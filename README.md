@@ -2,6 +2,18 @@
 
 `invproj` is a modular warehouse, production, and quality-control management platform built with Django and PostgreSQL. The project is designed with multi-company (multi-tenant) support, rich auditing metadata, and clear module boundaries so that each domain can evolve independently or be split into services in the future.
 
+## Quick Test & Run
+
+```bash
+cd invproj
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py test
+python manage.py runserver 0.0.0.0:8000
+```
+
 This README documents:
 
 - Project architecture and technology stack
