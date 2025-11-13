@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <a href="{% url 'shared:access_levels' %}">{% trans "Access Levels" %}</a>
+      <span>/</span>
+      <span>{{ page_title }}</span>
+    </nav>
+    <h1 class="page-title">{{ page_title }}</h1>
+  </div>
+
+  <form method="post" class="entity-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="form-errors">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <div class="form-grid">
+      {% for field in form %}
+        <div class="form-field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}
+            <small class="form-text text-muted">{{ field.help_text }}</small>
+          {% endif %}
+          {% for error in field.errors %}
+            <div class="field-error">{{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <section class="form-section">
+      <header class="section-header">
+        <h2>{% trans "Feature Permissions" %}</h2>
+        <p>{% trans "Select the allowed actions for each feature. View permissions can be limited to own records or extended to all records." %}</p>
+      </header>
+
+      <table class="data-table permissions-table">
+        <thead>
+          <tr>
+            <th>{% trans "Feature" %}</th>
+            <th>{% trans "View Scope" %}</th>
+            <th>{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for feature in feature_permissions %}
+          <tr>
+            <td>
+              <strong>{{ feature.label }}</strong>
+              <div class="muted-text code">{{ feature.code }}</div>
+            </td>
+            <td>
+              {% if feature.view_supported %}
+                <div class="radio-group">
+                  <label>
+                    <input type="radio" name="perm-{{ feature.html_id }}-view" value="none" {% if feature.view_scope == 'none' %}checked{% endif %}>
+                    {% trans "None" %}
+                  </label>
+                  <label>
+                    <input type="radio" name="perm-{{ feature.html_id }}-view" value="own" {% if feature.view_scope == 'own' %}checked{% endif %}>
+                    {% trans "Own" %}
+                  </label>
+                  <label>
+                    <input type="radio" name="perm-{{ feature.html_id }}-view" value="all" {% if feature.view_scope == 'all' %}checked{% endif %}>
+                    {% trans "All" %}
+                  </label>
+                </div>
+              {% else %}
+                <span class="muted-text">{% trans "Not applicable" %}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if feature.actions %}
+                <div class="checkbox-grid">
+                  {% for action in feature.actions %}
+                    <label>
+                      <input type="checkbox" name="perm-{{ feature.html_id }}-{{ action.code }}" {% if action.checked %}checked{% endif %}>
+                      {{ action.label }}
+                    </label>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <span class="muted-text">{% trans "No extra actions available." %}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+      <a href="{% url 'shared:access_levels' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+

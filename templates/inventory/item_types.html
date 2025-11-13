@@ -1,0 +1,73 @@
+{% extends "inventory/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Item Types" %}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Master Data" %}</span>
+<span class="separator">/</span>
+<span>{% trans "Item Types" %}</span>
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions">
+  <a href="{% url 'inventory:itemtype_create' %}" class="btn btn-primary">
+    + {% trans "Create Item Type" %}
+  </a>
+</div>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="data-table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Code" %}</th>
+        <th>{% trans "Name" %} (FA)</th>
+        <th>{% trans "Name" %} (EN)</th>
+        <th>Sort Order</th>
+        <th>{% trans "Status" %}</th>
+        <th>{% trans "Actions" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if item_types %}
+        {% for type in item_types %}
+        <tr>
+          <td><code>{{ type.public_code }}</code></td>
+          <td><strong>{{ type.name }}</strong></td>
+          <td>{{ type.name_en }}</td>
+          <td style="text-align: center;">{{ type.sort_order }}</td>
+          <td>
+            {% if type.is_enabled %}
+              <span class="badge badge-active">{% trans "Active" %}</span>
+            {% else %}
+              <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'inventory:itemtype_edit' type.pk %}" class="btn btn-sm">{% trans "Edit" %}</a>
+            <a href="{% url 'inventory:itemtype_delete' type.pk %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="6">
+            <div class="empty-state">
+              <div class="empty-state-icon">🏷️</div>
+              <h3>{% trans "No Item Types Found" %}</h3>
+              <p>{% trans "Start by creating your first item type." %}</p>
+              <a href="{% url 'inventory:itemtype_create' %}" class="btn btn-primary">
+                + {% trans "Create" %} {% trans "Item Type" %}
+              </a>
+            </div>
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+

@@ -1,0 +1,118 @@
+{% extends "inventory/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Deficit Records" %}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Stocktaking" %}</span>
+<span class="separator">/</span>
+<span>{% trans "Deficit Records" %}</span>
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions">
+  <a href="{{ create_url }}" class="btn btn-primary">
+    + {% trans "Create" %} {% trans "Deficit Records" %}
+  </a>
+</div>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="data-table-container">
+  <style>
+    .action-buttons {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .badge-locked {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background-color: #dc2626;
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .inline-lock-form {
+      display: inline-flex;
+      margin: 0;
+    }
+  </style>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Document Code" %}</th>
+        <th>{% trans "Document Date" %}</th>
+        <th>{% trans "Items" %}</th>
+        <th>{% trans "Warehouses" %}</th>
+        <th>{% trans "Quantity Expected" %}</th>
+        <th>{% trans "Quantity Counted" %}</th>
+        <th>{% trans "Quantity Adjusted" %}</th>
+        <th>{% trans "Posted" %}</th>
+        <th>{% trans "Actions" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if records %}
+        {% for record in records %}
+        <tr>
+          <td><code>{{ record.document_code }}</code></td>
+          <td>{{ record.document_date|date:"Y-m-d" }}</td>
+          <td>
+            <strong>{{ record.item.name }}</strong><br>
+            <small style="color: #6b7280;"><code>{{ record.item_code }}</code></small>
+          </td>
+          <td>{{ record.warehouse.name }}</td>
+          <td style="text-align: right;">{{ record.quantity_expected|floatformat:2 }}</td>
+          <td style="text-align: right;">{{ record.quantity_counted|floatformat:2 }}</td>
+          <td style="text-align: right; color: #ef4444;">-{{ record.quantity_adjusted|floatformat:2 }}</td>
+          <td>
+            {% if record.is_locked %}
+              <span class="badge badge-active">✓ {% trans "Posted" %}</span>
+            {% else %}
+              <span class="badge badge-draft">{% trans "Draft" %}</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="action-buttons">
+              {% if edit_url_name %}
+              <a href="{% url edit_url_name record.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+                {% if record.is_locked %}{% trans "View" %}{% else %}{% trans "Edit" %}{% endif %}
+              </a>
+              {% endif %}
+              {% if record.is_locked %}
+                <span class="badge-locked">{% trans "Locked" %}</span>
+              {% else %}
+                {% if lock_url_name %}
+                <form method="post" action="{% url lock_url_name record.pk %}" class="inline-lock-form">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;">
+                    {% trans "Lock" %}
+                  </button>
+                </form>
+                {% endif %}
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="9">
+            <div class="empty-state">
+              <div class="empty-state-icon">📉</div>
+              <h3>{% trans "No Deficit Records Found" %}</h3>
+              <p>{% trans "Deficit records are created during stocktaking when counted quantity is less than expected." %}</p>
+            </div>
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+

@@ -1,0 +1,154 @@
+{% extends "inventory/base.html" %}
+{% load i18n %}
+
+{% block page_title %}کالاها{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>کالاها</span>
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions">
+  <a href="{% url 'inventory:item_create' %}" class="btn btn-primary">
+    + تعریف کالای جدید
+  </a>
+  <button onclick="window.print()" class="btn btn-secondary">
+    چاپ
+  </button>
+</div>
+{% endblock %}
+
+{% block inventory_content %}
+<!-- Filter Panel -->
+<div class="filter-panel">
+  <h3>فیلتر و جستجو</h3>
+  <form method="get" action="" class="filter-form">
+    <div class="form-group">
+      <label for="search">جستجو</label>
+      <input type="text" name="search" id="search" 
+             placeholder="جستجو بر اساس کد یا نام" 
+             value="{{ request.GET.search }}"
+             class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label for="type">نوع کالا</label>
+      <select name="type" id="type" class="form-control">
+        <option value="">-- همه انواع --</option>
+        {% comment %}
+        {% for item_type in item_types %}
+        <option value="{{ item_type.id }}">{{ item_type.name }}</option>
+        {% endfor %}
+        {% endcomment %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="category">دسته‌بندی کالا</label>
+      <select name="category" id="category" class="form-control">
+        <option value="">-- همه دسته‌ها --</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="status">وضعیت</label>
+      <select name="status" id="status" class="form-control">
+        <option value="">-- همه --</option>
+        <option value="1">فعال</option>
+        <option value="0">غیرفعال</option>
+      </select>
+    </div>
+
+    <div class="form-group" style="align-self: flex-end;">
+      <button type="submit" class="btn btn-primary" style="width: 100%;">اعمال فیلتر</button>
+    </div>
+  </form>
+</div>
+
+<!-- Items Table -->
+<div class="data-table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>کد کالا</th>
+        <th>نام کالا</th>
+        <th>نوع</th>
+        <th>دسته‌بندی</th>
+        <th>شماره بچ</th>
+        <th>رهگیری</th>
+        <th>وضعیت</th>
+        <th>عملیات</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if items %}
+        {% for item in items %}
+        <tr>
+          <td><code>{{ item.item_code }}</code></td>
+          <td><strong>{{ item.name }}</strong><br><small style="color: #6b7280;">{{ item.name_en }}</small></td>
+          <td>{{ item.type.name }}</td>
+          <td>{{ item.category.name }}</td>
+          <td><code>{{ item.batch_number }}</code></td>
+          <td>
+            {% if item.has_lot_tracking %}
+              <span class="badge badge-active">رهگیری می‌شود</span>
+            {% else %}
+              <span class="badge badge-inactive">بدون رهگیری</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.is_enabled %}
+              <span class="badge badge-active">فعال</span>
+            {% else %}
+              <span class="badge badge-inactive">غیرفعال</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'inventory:item_edit' item.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+              ویرایش
+            </a>
+            <a href="{% url 'inventory:item_delete' item.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+              حذف
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="8">
+            <div class="empty-state">
+              <div class="empty-state-icon">📦</div>
+              <h3>هیچ کالایی ثبت نشده است</h3>
+              <p>برای شروع، یک کالای جدید تعریف کنید.</p>
+              <a href="{% url 'inventory:item_create' %}" class="btn btn-primary">
+                + تعریف کالای جدید
+              </a>
+            </div>
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+<div class="pagination">
+  {% if page_obj.has_previous %}
+    <a href="?page=1">&laquo; {% trans "First" %}</a>
+    <a href="?page={{ page_obj.previous_page_number }}">{% trans "Previous" %}</a>
+  {% endif %}
+
+  <span class="current">
+    {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+  </span>
+
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}">{% trans "Next" %}</a>
+    <a href="?page={{ page_obj.paginator.num_pages }}">{% trans "Last" %} &raquo;</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+

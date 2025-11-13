@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ form_title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">داشبورد</a>
+      <span>/</span>
+      <a href="{% url 'shared:company_units' %}">واحدهای سازمانی</a>
+      <span>/</span>
+      <span>{{ form_title }}</span>
+    </nav>
+    <h1 class="page-title">{{ form_title }}</h1>
+  </div>
+
+  <div class="form-container">
+    {% if messages %}
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post" class="entity-form">
+      {% csrf_token %}
+      <div class="form-section">
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.public_code.id_for_label }}">{{ form.public_code.label }} *</label>
+            {{ form.public_code }}
+            {% if form.public_code.errors %}
+              <span class="error">{{ form.public_code.errors.0 }}</span>
+            {% endif %}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.is_enabled.id_for_label }}">{{ form.is_enabled.label }}</label>
+            {{ form.is_enabled }}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.name.id_for_label }}">{{ form.name.label }} *</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+              <span class="error">{{ form.name.errors.0 }}</span>
+            {% endif %}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.name_en.id_for_label }}">{{ form.name_en.label }}</label>
+            {{ form.name_en }}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.unit_type.id_for_label }}">{{ form.unit_type.label }}</label>
+            {{ form.unit_type }}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.parent_unit.id_for_label }}">{{ form.parent_unit.label }}</label>
+            {{ form.parent_unit }}
+            {% if form.parent_unit.errors %}
+              <span class="error">{{ form.parent_unit.errors.0 }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+            {{ form.description }}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+            {{ form.notes }}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">ذخیره</button>
+        <a href="{% url 'shared:company_units' %}" class="btn btn-secondary">انصراف</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+.form-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.entity-form .form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.entity-form label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.entity-form .form-control, .entity-form select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.entity-form .form-control:focus, .entity-form select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.entity-form .error {
+  display: block;
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+  padding-top: 1rem;
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.alert-success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.alert-error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+</style>
+{% endblock %}

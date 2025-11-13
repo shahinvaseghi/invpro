@@ -1,0 +1,346 @@
+{% extends "inventory/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{{ form_title }}{% endblock %}
+
+{% block inventory_content %}
+<div class="form-container">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  {% if document_instance and document_instance.pk %}
+  <div class="info-banner">
+    <div><strong>{% trans "Document Code" %}:</strong> {{ document_instance.document_code }}</div>
+    <div><strong>{% trans "Document Date" %}:</strong> {{ document_instance.document_date|date:"Y-m-d" }}</div>
+    <div class="lock-status">
+      <strong>{% trans "Lock Status" %}:</strong>
+      {% if document_is_locked %}
+        <span class="badge badge-locked">{% trans "Locked" %}</span>
+      {% else %}
+        <span class="badge badge-unlocked">{% trans "Editable" %}</span>
+        {% if lock_url %}
+        <form method="post" action="{{ lock_url }}" class="inline-lock-form">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-warning btn-lock">{% trans "Lock" %}</button>
+        </form>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  {% if document_is_locked %}
+  <div class="alert alert-info">
+    {% trans "This document is locked and can no longer be edited or deleted." %}
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <form method="post" class="entity-form">
+    {% csrf_token %}
+    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+
+    {% for section_title, section_fields in fieldsets %}
+      <div class="form-section">
+        <h3>{{ section_title }}</h3>
+        <div class="form-row">
+          {% for field in section_fields %}
+            <div class="form-field">
+              <label for="{{ field.id_for_label }}">
+                {{ field.label }}
+                {% if field.field.required and not field.field.widget.attrs.readonly %}*{% endif %}
+              </label>
+              {{ field }}
+              {% if field.errors %}
+                <span class="error">{{ field.errors.0 }}</span>
+              {% endif %}
+              {% if field.help_text %}
+                <small class="form-text">{{ field.help_text }}</small>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+
+    {% for field in form.visible_fields %}
+      {% if field.name not in used_fields %}
+      <div class="form-section">
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ field.id_for_label }}">
+              {{ field.label }}
+              {% if field.field.required and not field.field.widget.attrs.readonly %}*{% endif %}
+            </label>
+            {{ field }}
+            {% if field.errors %}
+              <span class="error">{{ field.errors.0 }}</span>
+            {% endif %}
+            {% if field.help_text %}
+              <small class="form-text">{{ field.help_text }}</small>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+
+    <div class="form-actions">
+      {% if not document_is_locked %}
+      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+      {% endif %}
+      <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div>
+
+<style>
+.form-container {
+  max-width: 960px;
+  margin: 2rem auto;
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+}
+
+.entity-form .form-section {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.entity-form .form-section:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.entity-form .form-section h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  color: #111827;
+}
+
+.entity-form .form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.entity-form .form-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.entity-form label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #1f2937;
+}
+
+.entity-form .form-control,
+.entity-form select,
+.entity-form textarea,
+.entity-form input[type="text"],
+.entity-form input[type="number"],
+.entity-form input[type="date"],
+.entity-form input[type="datetime-local"] {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.entity-form .form-control:focus,
+.entity-form select:focus,
+.entity-form textarea:focus,
+.entity-form input[type="text"]:focus,
+.entity-form input[type="number"]:focus,
+.entity-form input[type="date"]:focus,
+.entity-form input[type="datetime-local"]:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.entity-form textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.entity-form .form-check-input {
+  width: 1.1rem;
+  height: 1.1rem;
+  cursor: pointer;
+}
+
+.entity-form .error {
+  margin-top: 0.35rem;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+.entity-form .form-text {
+  margin-top: 0.4rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 1rem;
+}
+
+.alert {
+  padding: 0.9rem 1.1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+}
+
+.alert-success {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.alert-error {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.alert-info {
+  background-color: #e0f2fe;
+  color: #0c4a6e;
+  border: 1px solid #bae6fd;
+}
+
+.info-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(139, 92, 246, 0.12));
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.info-banner strong {
+  color: #1d4ed8;
+}
+
+.lock-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-locked {
+  background-color: #dc2626;
+  color: #ffffff;
+}
+
+.badge-unlocked {
+  background-color: #10b981;
+  color: #ffffff;
+}
+
+.inline-lock-form {
+  display: inline-flex;
+  margin: 0;
+}
+
+.btn-lock {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+</style>
+
+<script>
+const unitMap = {{ unit_options_json|default:"{}" }};
+const warehouseMap = {{ warehouse_options_json|default:"{}" }};
+const unitPlaceholder = "{{ unit_placeholder|escapejs }}";
+const warehousePlaceholder = "{{ warehouse_placeholder|escapejs }}";
+
+const itemSelect = document.getElementById("id_item");
+const unitSelect = document.getElementById("id_unit");
+const warehouseSelect = document.getElementById("id_warehouse");
+
+function refreshUnitOptions() {
+  if (!itemSelect || !unitSelect) return;
+  const selectedItem = itemSelect.value || "";
+  const options = unitMap[selectedItem] || [];
+  const currentValue = unitSelect.value;
+
+  unitSelect.innerHTML = "";
+  const placeholderOption = document.createElement("option");
+  placeholderOption.value = "";
+  placeholderOption.textContent = unitPlaceholder;
+  unitSelect.appendChild(placeholderOption);
+
+  options.forEach(option => {
+    const optionEl = document.createElement("option");
+    optionEl.value = option.value;
+    optionEl.textContent = option.label;
+    unitSelect.appendChild(optionEl);
+  });
+
+  if (currentValue && options.some(option => option.value === currentValue)) {
+    unitSelect.value = currentValue;
+  }
+}
+
+function refreshWarehouseOptions() {
+  if (!itemSelect || !warehouseSelect) return;
+  const selectedItem = itemSelect.value || "";
+  const options = warehouseMap[selectedItem] || [];
+  const currentValue = warehouseSelect.value;
+
+  warehouseSelect.innerHTML = "";
+  const placeholderOption = document.createElement("option");
+  placeholderOption.value = "";
+  placeholderOption.textContent = warehousePlaceholder;
+  warehouseSelect.appendChild(placeholderOption);
+
+  options.forEach(option => {
+    const optionEl = document.createElement("option");
+    optionEl.value = option.value;
+    optionEl.textContent = option.label;
+    warehouseSelect.appendChild(optionEl);
+  });
+
+  if (currentValue && options.some(option => option.value === currentValue)) {
+    warehouseSelect.value = currentValue;
+  }
+}
+
+if (itemSelect) {
+  itemSelect.addEventListener("change", function() {
+    refreshUnitOptions();
+    refreshWarehouseOptions();
+  });
+  refreshUnitOptions();
+  refreshWarehouseOptions();
+}
+</script>
+{% endblock %}
+

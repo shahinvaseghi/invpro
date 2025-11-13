@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <a href="{% url 'shared:users' %}">{% trans "Users" %}</a>
+      <span>/</span>
+      <span>{{ page_title }}</span>
+    </nav>
+    <h1 class="page-title">{{ page_title }}</h1>
+  </div>
+
+  <form method="post" class="entity-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="form-errors">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <div class="form-grid">
+      {% for field in form %}
+        <div class="form-field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}
+            <small class="form-text text-muted">{{ field.help_text }}</small>
+          {% endif %}
+          {% for error in field.errors %}
+            <div class="field-error">{{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <section class="form-section">
+      <header class="section-header">
+        <h2>{% trans "Company Access" %}</h2>
+        <p>{% trans "Define which companies the user can access and the associated access level." %}</p>
+      </header>
+
+      {{ access_formset.management_form }}
+      {% if access_formset.non_form_errors %}
+        <div class="form-errors">
+          {{ access_formset.non_form_errors }}
+        </div>
+      {% endif %}
+
+      <table class="data-table formset-table">
+        <thead>
+          <tr>
+            <th>{% trans "Company" %}</th>
+            <th>{% trans "Access Level" %}</th>
+            <th>{% trans "Primary" %}</th>
+            <th>{% trans "Status" %}</th>
+            <th>{% trans "Delete" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for access_form in access_formset %}
+            <tr>
+              {% for hidden in access_form.hidden_fields %}{{ hidden }}{% endfor %}
+              <td>
+                {{ access_form.company }}
+                {% for error in access_form.company.errors %}
+                  <div class="field-error">{{ error }}</div>
+                {% endfor %}
+              </td>
+              <td>
+                {{ access_form.access_level }}
+                {% for error in access_form.access_level.errors %}
+                  <div class="field-error">{{ error }}</div>
+                {% endfor %}
+              </td>
+              <td>
+                {{ access_form.is_primary }}
+                {% for error in access_form.is_primary.errors %}
+                  <div class="field-error">{{ error }}</div>
+                {% endfor %}
+              </td>
+              <td>
+                {{ access_form.is_enabled }}
+                {% for error in access_form.is_enabled.errors %}
+                  <div class="field-error">{{ error }}</div>
+                {% endfor %}
+              </td>
+              <td>
+                {% if access_form.instance.pk %}
+                  {{ access_form.DELETE }}
+                {% else %}
+                  <span class="muted-text">–</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="muted-text">
+        {% trans "Add more entries by filling the blank row and saving; a fresh row will appear after each save." %}
+      </p>
+    </section>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+      <a href="{% url 'shared:users' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+

@@ -1,0 +1,133 @@
+{% extends "inventory/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ form_title }} - {{ block.super }}{% endblock %}
+
+{% block page_title %}{{ form_title }}{% endblock %}
+
+{% block inventory_content %}
+<div class="form-container">
+  {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+      {{ message }}
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" class="entity-form">
+    {% csrf_token %}
+    
+    <div class="form-section">
+      {% for field in form %}
+        <div class="form-field">
+          <label for="{{ field.id_for_label }}">
+            {{ field.label }}
+            {% if field.field.required %}*{% endif %}
+          </label>
+          {{ field }}
+          {% if field.errors %}
+            <span class="error">{{ field.errors.0 }}</span>
+          {% endif %}
+          {% if field.help_text %}
+            <small class="form-text">{{ field.help_text }}</small>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+      <a href="{{ request.META.HTTP_REFERER|default:'/' }}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div>
+
+<style>
+.form-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.entity-form .form-section {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.entity-form .form-field label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.entity-form .form-control, 
+.entity-form select,
+.entity-form textarea,
+.entity-form input[type="text"],
+.entity-form input[type="number"],
+.entity-form input[type="email"] {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.entity-form .form-control:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.entity-form textarea {
+  resize: vertical;
+}
+
+.entity-form .error {
+  display: block;
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.form-text {
+  display: block;
+  margin-top: 0.25rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+  padding-top: 2rem;
+  margin-top: 2rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.alert-success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.alert-error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+</style>
+{% endblock %}
+

@@ -1,0 +1,209 @@
+{% extends "inventory/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Purchase Requests" %}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Purchase Requests" %}</span>
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions">
+  <a href="{{ create_url }}" class="btn btn-primary">
+    + {% trans "Create" %} {% trans "Purchase Requests" %}
+  </a>
+  <button onclick="window.print()" class="btn btn-secondary">
+    {% trans "Print" %}
+  </button>
+</div>
+{% endblock %}
+
+{% block inventory_content %}
+<!-- Stats Summary -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">{% trans "Total" %}</div>
+    <div class="stat-value">{{ total_count }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">{% trans "Pending Approval" %}</div>
+    <div class="stat-value" style="color: #f59e0b;">{{ draft_count }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">{% trans "Approved" %}</div>
+    <div class="stat-value" style="color: #10b981;">{{ approved_count }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">{% trans "Fulfilled" %}</div>
+    <div class="stat-value" style="color: #3b82f6;">{{ fulfilled_count }}</div>
+  </div>
+</div>
+
+<!-- Filter Panel -->
+<div class="filter-panel">
+  <h3>{% trans "Filter" %}</h3>
+  <form method="get" action="" class="filter-form">
+    <div class="form-group">
+      <label for="status">{% trans "Status" %}</label>
+      <select name="status" id="status" class="form-control">
+        <option value="" {% if not status_filter %}selected{% endif %}>-- {% trans "All" %} --</option>
+        <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>{% trans "Draft" %}</option>
+        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>{% trans "Approved" %}</option>
+        <option value="ordered" {% if status_filter == 'ordered' %}selected{% endif %}>{% trans "Ordered" %}</option>
+        <option value="fulfilled" {% if status_filter == 'fulfilled' %}selected{% endif %}>{% trans "Fulfilled" %}</option>
+        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>{% trans "Cancelled" %}</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="priority">{% trans "Priority" %}</label>
+      <select name="priority" id="priority" class="form-control">
+        <option value="" {% if not priority_filter %}selected{% endif %}>-- {% trans "All" %} --</option>
+        <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>{% trans "Low" %}</option>
+        <option value="normal" {% if priority_filter == 'normal' %}selected{% endif %}>{% trans "Normal" %}</option>
+        <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>{% trans "High" %}</option>
+        <option value="urgent" {% if priority_filter == 'urgent' %}selected{% endif %}>{% trans "Urgent" %}</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="search">{% trans "Search" %}</label>
+      <input type="text" name="search" id="search" 
+             placeholder="{% trans 'Request code or item' %}" 
+             value="{{ search_term }}"
+             class="form-control">
+    </div>
+
+    <div class="form-group" style="align-self: flex-end;">
+      <button type="submit" class="btn btn-primary" style="width: 100%;">
+        {% trans "Filter" %}
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Purchase Requests Table -->
+<div class="data-table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Request Code" %}</th>
+        <th>{% trans "Request Date" %}</th>
+        <th>{% trans "Item" %}</th>
+        <th>{% trans "Quantity" %}</th>
+        <th>{% trans "Requester" %}</th>
+        <th>{% trans "Approver" %}</th>
+        <th>{% trans "Needed By" %}</th>
+        <th>{% trans "Priority" %}</th>
+        <th>{% trans "Status" %}</th>
+        <th>{% trans "Actions" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if purchase_requests %}
+        {% for pr in purchase_requests %}
+        <tr>
+          <td><code>{{ pr.request_code }}</code></td>
+          <td>{{ pr.request_date|date:"Y-m-d" }}</td>
+          <td>
+            <strong>{{ pr.item.name }}</strong><br>
+            <small style="color: #6b7280;"><code>{{ pr.item_code }}</code></small>
+          </td>
+          <td style="text-align: right;">{{ pr.quantity_requested|floatformat:2 }} {{ pr.unit }}</td>
+          <td>
+            {% if pr.requested_by %}
+              {{ pr.requested_by.first_name }} {{ pr.requested_by.last_name }}
+            {% else %}
+              <span style="color: #6b7280;">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if pr.approver %}
+              {{ pr.approver.first_name }} {{ pr.approver.last_name }}
+            {% else %}
+              <span style="color: #6b7280;">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if pr.needed_by_date %}
+              {{ pr.needed_by_date|date:"Y-m-d" }}
+            {% else %}
+              <span style="color: #6b7280;">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if pr.priority == 'urgent' %}
+              <span class="badge badge-rejected">{{ pr.get_priority_display }}</span>
+            {% elif pr.priority == 'high' %}
+              <span class="badge" style="background-color: #fbbf24; color: #78350f;">{{ pr.get_priority_display }}</span>
+            {% elif pr.priority == 'low' %}
+              <span class="badge badge-inactive">{{ pr.get_priority_display }}</span>
+            {% else %}
+              <span class="badge badge-draft">{{ pr.get_priority_display }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge
+              {% if pr.status == 'draft' %}badge-draft{% elif pr.status == 'approved' %}badge-approved
+              {% elif pr.status == 'fulfilled' %}badge-active{% elif pr.status == 'cancelled' %}badge-inactive{% else %}badge-pending{% endif %}">
+              {{ pr.get_status_display }}
+            </span>
+          </td>
+          <td>
+            <div class="action-buttons">
+              {% if pr.can_current_user_edit %}
+                <a href="{% url edit_url_name pr.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+                  {% trans "Edit" %}
+                </a>
+              {% endif %}
+              {% if pr.can_current_user_approve %}
+                <form method="post" action="{% url approve_url_name pr.pk %}" class="inline-lock-form">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+                    {% trans "Approve" %}
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="9">
+            <div class="empty-state">
+              <div class="empty-state-icon">🛒</div>
+              <h3>{% trans "No Purchase Requests Found" %}</h3>
+              <p>{% trans "Start by creating your first purchase request." %}</p>
+              <a href="{{ create_url }}" class="btn btn-primary">
+                + {% trans "Create" %} {% trans "Purchase Requests" %}
+              </a>
+            </div>
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+<div class="pagination">
+  {% if page_obj.has_previous %}
+    <a href="?page=1">&laquo; {% trans "First" %}</a>
+    <a href="?page={{ page_obj.previous_page_number }}">{% trans "Previous" %}</a>
+  {% endif %}
+
+  <span class="current">
+    {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+  </span>
+
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}">{% trans "Next" %}</a>
+    <a href="?page={{ page_obj.paginator.num_pages }}">{% trans "Last" %} &raquo;</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+

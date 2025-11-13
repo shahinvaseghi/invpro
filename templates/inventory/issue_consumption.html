@@ -1,0 +1,23 @@
+{% extends "inventory/issue_permanent.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Consumption Issues" %}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Issues" %}</span>
+<span class="separator">/</span>
+<span>{% trans "Consumption Issues" %}</span>
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions">
+  <a href="{{ create_url|default:'#' }}" class="btn btn-primary">
+    + {% trans "Create" %} {{ create_label|default:_("Consumption Issue") }}
+  </a>
+  <button onclick="window.print()" class="btn btn-secondary">
+    {% trans "Print" %}
+  </button>
+</div>
+{% endblock %}
+

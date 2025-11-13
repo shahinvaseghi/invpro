@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Delete User" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <a href="{% url 'shared:users' %}">{% trans "Users" %}</a>
+      <span>/</span>
+      <span>{% trans "Delete" %}</span>
+    </nav>
+    <h1 class="page-title">{% trans "Delete User" %}</h1>
+  </div>
+
+  <div class="confirmation-card">
+    <p>
+      {% blocktrans with username=object.username %}
+      Are you sure you want to delete user “{{ username }}”?
+      {% endblocktrans %}
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-actions">
+        <button type="submit" class="btn btn-danger">{% trans "Delete" %}</button>
+        <a href="{% url 'shared:users' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

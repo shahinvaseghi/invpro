@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}واحدهای سازمانی - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">داشبورد</a>
+      <span>/</span>
+      <span>واحدهای سازمانی</span>
+    </nav>
+    <h1 class="page-title">واحدهای سازمانی</h1>
+    <div class="page-actions">
+      <button class="btn btn-secondary" onclick="window.print()">چاپ</button>
+      <a href="{% url 'shared:company_unit_create' %}" class="btn btn-primary">ایجاد واحد جدید</a>
+    </div>
+  </div>
+
+  <div class="filter-panel">
+    <h3>فیلتر و جستجو</h3>
+    <form method="get" class="filter-form">
+      <div class="filter-row">
+        <div class="filter-field">
+          <label for="search">جستجو</label>
+          <input type="text" id="search" name="search" placeholder="جستجو بر اساس کد یا نام" value="{{ filters.search }}">
+        </div>
+        <div class="filter-field">
+          <label for="status">وضعیت</label>
+          <select id="status" name="status">
+            <option value="">-- همه --</option>
+            <option value="1" {% if filters.status == "1" %}selected{% endif %}>فعال</option>
+            <option value="0" {% if filters.status == "0" %}selected{% endif %}>غیرفعال</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button type="submit" class="btn btn-primary">اعمال فیلتر</button>
+          <a href="{% url 'shared:company_units' %}" class="btn btn-secondary">حذف فیلتر</a>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  {% if units %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>کد</th>
+        <th>نام واحد</th>
+        <th>واحد بالادست</th>
+        <th>وضعیت</th>
+        <th>عملیات</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for unit in units %}
+      <tr>
+        <td>{{ unit.public_code }}</td>
+        <td>{{ unit.name }}</td>
+        <td>{{ unit.parent_unit.name|default:"-" }}</td>
+        <td>
+          {% if unit.is_enabled %}
+            <span class="badge badge-success">فعال</span>
+          {% else %}
+            <span class="badge badge-inactive">غیرفعال</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{% url 'shared:company_unit_edit' unit.pk %}" class="btn btn-sm">ویرایش</a>
+          <a href="{% url 'shared:company_unit_delete' unit.pk %}" class="btn btn-sm btn-danger">حذف</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if is_paginated %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page=1" class="page-link">اولین</a>
+      <a href="?page={{ page_obj.previous_page_number }}" class="page-link">قبلی</a>
+    {% endif %}
+
+    <span class="page-info">
+      صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}" class="page-link">بعدی</a>
+      <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">آخرین</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🏢</div>
+    <h3>هیچ واحدی ثبت نشده است</h3>
+    <p>برای شروع، اولین واحد سازمانی را ثبت کنید.</p>
+    <a href="{% url 'shared:company_unit_create' %}" class="btn btn-primary">ایجاد واحد جدید</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

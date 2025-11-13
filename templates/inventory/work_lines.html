@@ -1,0 +1,72 @@
+{% extends "inventory/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Work Lines" %}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Master Data" %}</span>
+<span class="separator">/</span>
+<span>{% trans "Work Lines" %}</span>
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions">
+  <a href="#" class="btn btn-primary">
+    + {% trans "Create" %} {% trans "Work Lines" %}
+  </a>
+</div>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="data-table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Code" %}</th>
+        <th>{% trans "Name" %}</th>
+        <th>{% trans "Warehouses" %}</th>
+        <th>{% trans "Status" %}</th>
+        <th>{% trans "Actions" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if work_lines %}
+        {% for line in work_lines %}
+        <tr>
+          <td><code>{{ line.public_code }}</code></td>
+          <td><strong>{{ line.name }}</strong></td>
+          <td>{{ line.warehouse.name }}</td>
+          <td>
+            {% if line.is_enabled %}
+              <span class="badge badge-active">{% trans "Active" %}</span>
+            {% else %}
+              <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="#" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+              {% trans "Edit" %}
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="5">
+            <div class="empty-state">
+              <div class="empty-state-icon">🏭</div>
+              <h3>{% trans "No Work Lines Found" %}</h3>
+              <p>{% trans "Start by creating your first work line." %}</p>
+              <a href="#" class="btn btn-primary">
+                + {% trans "Create" %} {% trans "Work Lines" %}
+              </a>
+            </div>
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+

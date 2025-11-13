@@ -1,0 +1,154 @@
+# Changelog
+
+All notable changes to the invproj platform will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+---
+
+## [Unreleased]
+
+### Added
+- Multi-company architecture with session-based company switching
+- Company selector dropdown in header (alongside language switcher)
+- Default company support for users
+- Context processor for active company injection into templates
+- Custom CRUD forms for inventory master data:
+  - ItemTypeForm (انواع کالا)
+  - ItemCategoryForm (دسته‌بندی)
+  - ItemSubcategoryForm (زیردسته‌بندی/کاتالوگ)
+  - WarehouseForm (انبار)
+- Custom CRUD forms for shared entities:
+  - CompanyForm with automatic UserCompanyAccess creation
+  - PersonForm with username sync checkbox feature و انتخاب چند واحد سازمانی
+- Generic reusable templates for forms and delete confirmations
+- Comprehensive form documentation (README_FORMS.md for inventory and shared)
+- Persian/English internationalization (i18n) with full RTL support
+- Language switcher in header
+- Compiled translation files (django.po/django.mo for Persian)
+- Inventory balance calculation logic (inventory_balance.py)
+- WarehouseRequest model for internal material requests
+- Delete functionality with confirmation pages for all entities
+- Auto-population of created_by and edited_by fields
+- Breadcrumb navigation across all modules
+- Consistent status badges (Active/Inactive)
+- Empty state messages with actionable buttons
+- Edit and Delete buttons in all list views
+- امکان تخصیص پرسنل به چند واحد سازمانی و نمایش واحدها در فهرست پرسنل
+- Centralised permission catalog (`shared/permissions.py`) with granular actions (view own/all, create, edit/delete own, lock/unlock, approve/reject/cancel)
+- Placeholder navigation pages for Users, Groups, Access Levels (under Shared menu) ahead of full CRUD implementation
+- Full user/group/access level management UI under Shared module:
+  - User CRUD with group assignment and company-access formset
+  - Group CRUD backed by `GroupProfile` (description, enabled flag, access level linkage, member selection)
+  - Access level CRUD with feature/action matrix driven by `FEATURE_PERMISSION_MAP`
+- Dedicated stocktaking document pages (deficit, surplus, record) with auto code generation, item-aware unit/warehouse filtering, locking controls, and shared stocktaking form template
+- Dedicated purchase request workspace with locking, approver routing, and automatic exposure in permanent/consignment receipts after approval
+- Dedicated warehouse request workspace with item-aware unit/warehouse filtering, approver routing, and automatic exposure in permanent/consignment receipts after approval
+
+### Changed
+- Removed `activated_at` and `deactivated_at` fields from ActivatableModel
+- Made `created_by` and `edited_by` auto-populated (not user-selectable)
+- Updated Company.public_code from 8 to 3 digits
+- Updated CompanyUnit.public_code from 6 to 5 digits
+- Updated WorkCenter.public_code to 5 digits
+- Updated Item code structure:
+  - item_code: 7 digits (User 2 + Sequence 5)
+  - full_item_code: 16 digits (Type 3 + Category 3 + SubCategory 3 + ItemCode 7)
+- Standardized all forms to use consistent CSS classes
+- Moved "Work Lines" from Inventory module to Production module in sidebar
+
+### Fixed
+- Language switcher error resolved
+- Company selector not appearing (fixed URL patterns)
+- Translations missing for many UI elements
+- Form field names corrected (ItemSubcategory uses 'category' not 'item_category')
+- Warehouse form field corrected (no 'location' field in model)
+- Template block names corrected (inventory_content instead of module_content)
+- Duplicate translation entries removed from django.po
+- URL namespacing issues resolved for company switching
+
+### Security
+- Company data isolation enforced via session-based filtering
+- Users can only access companies they have explicit permission for
+- Personnel records scoped to active company
+- QuerySet filtering by company_id in all views
+
+---
+
+## [0.1.0] - Initial Release
+
+### Added
+- Django 4.2 project structure
+- PostgreSQL database support
+- Multi-company (multi-tenant) architecture
+- Shared module with:
+  - Custom User model
+  - Company model
+  - Person model
+  - AccessLevel and UserCompanyAccess models
+- Inventory module with:
+  - ItemType, ItemCategory, ItemSubcategory models
+  - Item model with dynamic code generation
+  - Warehouse model
+  - Supplier and SupplierCategory models
+  - Receipt models (Temporary, Permanent, Consignment)
+  - Issue models (Permanent, Consumption, Consignment)
+  - Stocktaking models (Record, Deficit, Surplus)
+  - PurchaseRequest model
+- Production module with:
+  - WorkCenter model
+  - WorkLine model
+  - BOM (Bill of Materials) support
+- QC module foundation
+- UI module with:
+  - Dashboard template
+  - Navigation sidebar
+  - Base templates
+- Common model mixins:
+  - TimeStampedModel (created_at, updated_at)
+  - ActivatableModel (is_enabled)
+  - SortableModel (sort_order)
+  - MetadataModel (metadata JSON field)
+  - CompanyScopedModel (company foreign key)
+- Admin interface for all models
+- Environment configuration via django-environ
+- Database migration system
+- Static files setup
+
+### Documentation
+- Main README.md with architecture overview
+- inventory_module_db_design_plan.md
+- ui_guidelines.md
+- Module-specific README files
+- Code comments and docstrings
+
+---
+
+## Future Versions
+
+### Planned for v0.2.0
+- API layer with Django REST Framework
+- Barcode/QR code scanning support
+- File attachments for documents
+- Email/SMS notifications
+- Excel/CSV import/export
+- Advanced filtering and search
+- Audit log viewer
+- Role-based permissions enforcement
+
+### Planned for v0.3.0
+- Advanced reporting and analytics
+- Dashboard widgets
+- Real-time production monitoring
+- Mobile-optimized UI
+- Bulk operations
+- Template customization
+
+### Planned for v0.4.0
+- Integration with external ERPs
+- Automated backup system
+- Advanced workflow engine
+- Custom report builder
+- Multi-warehouse transfer support
+- Batch/lot tracking enhancements
+

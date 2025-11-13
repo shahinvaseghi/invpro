@@ -1,0 +1,95 @@
+{% load static %}
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_CODE == 'fa' %}rtl{% else %}ltr{% endif %}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}{% trans "invproj Platform" %}{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/base.css' %}" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="logo">invproj</div>
+        <nav class="top-nav">
+          {% block top_nav %}
+          <!-- Company Selector -->
+          {% if request.user.is_authenticated and user_companies %}
+          <form action="{% url 'set_active_company' %}" method="post" class="company-switcher">
+            {% csrf_token %}
+            <input name="next" type="hidden" value="{{ request.get_full_path }}" />
+            <label for="company-select" style="margin-right: 8px; font-size: 0.9rem; color: #d1d5db;">
+              {% trans "Company" %}:
+            </label>
+            <select name="company_id" id="company-select" onchange="this.form.submit()" class="company-select">
+              {% for company in user_companies %}
+                <option value="{{ company.id }}" {% if active_company and company.id == active_company.id %}selected{% endif %}>
+                  {{ company.display_name }} ({{ company.public_code }})
+                </option>
+              {% endfor %}
+            </select>
+          </form>
+          {% endif %}
+          
+          <!-- Language Switcher -->
+          <form action="{% url 'set_language' %}" method="post" class="language-switcher">
+            {% csrf_token %}
+            <input name="next" type="hidden" value="{{ request.get_full_path }}" />
+            <select name="language" onchange="this.form.submit()" class="language-select">
+              {% get_current_language as LANGUAGE_CODE %}
+              {% get_available_languages as LANGUAGES %}
+              {% for lang_code, lang_name in LANGUAGES %}
+                <option value="{{ lang_code }}" {% if lang_code == LANGUAGE_CODE %}selected{% endif %}>
+                  {{ lang_name }}
+                </option>
+              {% endfor %}
+            </select>
+          </form>
+          
+          <!-- User Info -->
+          <span class="company-context">
+            {% if request.user.is_authenticated %}
+              👤 {{ request.user.username }}
+            {% else %}
+              {% trans "Guest" %}
+            {% endif %}
+          </span>
+          {% endblock %}
+        </nav>
+      </header>
+      <aside class="app-sidebar">
+        {% block sidebar %}
+          {% include "ui/components/sidebar.html" %}
+        {% endblock %}
+      </aside>
+      <main class="app-content">
+        {% block content %}
+        <section class="page-section">
+          <h1>{% trans "Welcome" %}</h1>
+          <p>{% trans "Select a module from the sidebar." %}</p>
+        </section>
+        {% endblock %}
+      </main>
+    </div>
+    <script>
+      // Toggle submenu functionality
+      document.addEventListener('DOMContentLoaded', function() {
+        const expandableLinks = document.querySelectorAll('.nav-expandable');
+        expandableLinks.forEach(link => {
+          link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const submenuId = this.getAttribute('data-submenu');
+            const submenu = document.getElementById(submenuId);
+            if (submenu) {
+              submenu.classList.toggle('open');
+              this.classList.toggle('expanded');
+            }
+          });
+        });
+      });
+    </script>
+    {% block extra_scripts %}{% endblock %}
+  </body>
+</html>
+

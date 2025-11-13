@@ -1,0 +1,122 @@
+{% extends "inventory/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Stocktaking Records" %}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Stocktaking" %}</span>
+<span class="separator">/</span>
+<span>{% trans "Stocktaking Records" %}</span>
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions">
+  <a href="{{ create_url }}" class="btn btn-primary">
+    + {% trans "Create" %} {% trans "Stocktaking Records" %}
+  </a>
+</div>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="data-table-container">
+  <style>
+    .action-buttons {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .badge-locked {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background-color: #dc2626;
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .inline-lock-form {
+      display: inline-flex;
+      margin: 0;
+    }
+  </style>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Document Code" %}</th>
+        <th>{% trans "Document Date" %}</th>
+        <th>{% trans "Session ID" %}</th>
+        <th>{% trans "Confirmed By" %}</th>
+        <th>Approval {% trans "Status" %}</th>
+        <th>{% trans "Final Value" %}</th>
+        <th>{% trans "Actions" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if records %}
+        {% for record in records %}
+        <tr>
+          <td><code>{{ record.document_code }}</code></td>
+          <td>{{ record.document_date|date:"Y-m-d" }}</td>
+          <td>{{ record.stocktaking_session_id }}</td>
+          <td>{{ record.confirmed_by.first_name }} {{ record.confirmed_by.last_name }}</td>
+          <td>
+            {% if record.approval_status == 'approved' %}
+              <span class="badge badge-approved">{% trans "Approved" %}</span>
+            {% elif record.approval_status == 'rejected' %}
+              <span class="badge badge-rejected">{% trans "Rejected" %}</span>
+            {% else %}
+              <span class="badge badge-pending">{% trans "Pending" %}</span>
+            {% endif %}
+          </td>
+          <td style="text-align: right;">
+            {% if record.final_inventory_value %}
+              {{ record.final_inventory_value|floatformat:2 }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            <div class="action-buttons">
+              {% if edit_url_name %}
+              <a href="{% url edit_url_name record.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+                {% if record.is_locked %}{% trans "View" %}{% else %}{% trans "Edit" %}{% endif %}
+              </a>
+              {% endif %}
+              {% if record.is_locked %}
+                <span class="badge-locked">{% trans "Locked" %}</span>
+              {% else %}
+                {% if lock_url_name %}
+                <form method="post" action="{% url lock_url_name record.pk %}" class="inline-lock-form">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;">
+                    {% trans "Lock" %}
+                  </button>
+                </form>
+                {% endif %}
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <div class="empty-state-icon">📋</div>
+              <h3>{% trans "No Stocktaking Records Found" %}</h3>
+              <p>{% trans "Stocktaking records confirm the accuracy of inventory counts." %}</p>
+              <a href="{{ create_url }}" class="btn btn-primary">
+                + {% trans "Create" %} {% trans "Stocktaking Records" %}
+              </a>
+            </div>
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+

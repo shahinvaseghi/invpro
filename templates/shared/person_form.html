@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ form_title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <a href="{% url 'shared:personnel' %}">{% trans "Personnel" %}</a>
+      <span>/</span>
+      <span>{{ form_title }}</span>
+    </nav>
+    
+    <h1 class="page-title">{{ form_title }}</h1>
+  </div>
+
+  <div class="form-container">
+    {% if messages %}
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post" class="entity-form">
+      {% csrf_token %}
+
+      <div class="form-section">
+        <h3>{% trans "Organizational Units" %}</h3>
+        <div class="form-row">
+          <div class="form-field full-width checkbox-list" dir="rtl">
+            <label class="section-label">{{ form.company_units.label }}</label>
+            <div class="checkbox-grid">
+              {% for checkbox in form.company_units %}
+                <label class="checkbox-item">
+                  {{ checkbox.tag }}
+                  <span>{{ checkbox.choice_label }}</span>
+                </label>
+              {% empty %}
+                <p class="form-text">{% trans "No units available for this company." %}</p>
+              {% endfor %}
+            </div>
+            {% if form.company_units.help_text %}
+              <small class="form-text">{{ form.company_units.help_text }}</small>
+            {% endif %}
+            {% if form.company_units.errors %}
+              <span class="error">{{ form.company_units.errors.0 }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-section">
+        <h3>{% trans "Basic Information" %}</h3>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.public_code.id_for_label }}">{{ form.public_code.label }} *</label>
+            {{ form.public_code }}
+            {% if form.public_code.errors %}
+              <span class="error">{{ form.public_code.errors.0 }}</span>
+            {% endif %}
+          </div>
+          
+          <div class="form-field">
+            <label for="{{ form.is_enabled.id_for_label }}">{{ form.is_enabled.label }}</label>
+            {{ form.is_enabled }}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }} *</label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}
+              <span class="error">{{ form.first_name.errors.0 }}</span>
+            {% endif %}
+          </div>
+
+          <div class="form-field">
+            <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }} *</label>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}
+              <span class="error">{{ form.last_name.errors.0 }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.first_name_en.id_for_label }}">{{ form.first_name_en.label }}</label>
+            {{ form.first_name_en }}
+          </div>
+
+          <div class="form-field">
+            <label for="{{ form.last_name_en.id_for_label }}">{{ form.last_name_en.label }}</label>
+            {{ form.last_name_en }}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.national_id.id_for_label }}">{{ form.national_id.label }}</label>
+            {{ form.national_id }}
+          </div>
+
+          <div class="form-field">
+            <label for="{{ form.personnel_code.id_for_label }}">{{ form.personnel_code.label }}</label>
+            {{ form.personnel_code }}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <div class="form-check" style="margin-top: 2rem;">
+              {{ form.use_personnel_code_as_username }}
+              <label class="form-check-label" for="use_personnel_code">
+                {{ form.use_personnel_code_as_username.label }}
+              </label>
+              <small class="form-text">{{ form.use_personnel_code_as_username.help_text }}</small>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="{{ form.username.id_for_label }}">{{ form.username.label }} *</label>
+            {{ form.username }}
+            {% if form.username.errors %}
+              <span class="error">{{ form.username.errors.0 }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>{% trans "Contact Information" %}</h3>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.phone_number.id_for_label }}">{{ form.phone_number.label }}</label>
+            {{ form.phone_number }}
+          </div>
+
+          <div class="form-field">
+            <label for="{{ form.mobile_number.id_for_label }}">{{ form.mobile_number.label }}</label>
+            {{ form.mobile_number }}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field full-width">
+            <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+            {{ form.email }}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field full-width">
+            <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+            {{ form.description }}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field full-width">
+            <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+            {{ form.notes }}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+        <a href="{% url 'shared:personnel' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+.form-container {
+  max-width: 1000px;
+  margin: 2rem auto;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.entity-form .form-section {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.entity-form .form-section:last-of-type {
+  border-bottom: none;
+}
+
+.entity-form .form-section h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #1f2937;
+}
+
+.entity-form .form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.entity-form .form-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.entity-form label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.entity-form .form-control {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.entity-form .form-control:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.entity-form textarea.form-control {
+  resize: vertical;
+}
+
+.entity-form .error {
+  display: block;
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+  padding-top: 2rem;
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.alert-success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.alert-error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.form-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.form-check-label {
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.form-check-input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.125rem;
+  cursor: pointer;
+}
+
+.form-text {
+  display: block;
+  margin-top: 0.25rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.entity-form .checkbox-list .checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem 1.25rem;
+  padding: 0.5rem 0;
+}
+
+.entity-form .checkbox-list .checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.entity-form .checkbox-list input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: #2563eb;
+}
+
+.entity-form .checkbox-list .section-label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const checkbox = document.getElementById('use_personnel_code');
+  const personnelCodeField = document.getElementById('personnel_code_field');
+  const usernameField = document.getElementById('username_field');
+  
+  function syncUsername() {
+    if (checkbox && checkbox.checked && personnelCodeField) {
+      usernameField.value = personnelCodeField.value;
+      usernameField.readOnly = true;
+      usernameField.style.backgroundColor = '#f3f4f6';
+    } else {
+      usernameField.readOnly = false;
+      usernameField.style.backgroundColor = '';
+    }
+  }
+  
+  // Initial sync
+  syncUsername();
+  
+  // Listen to checkbox changes
+  if (checkbox) {
+    checkbox.addEventListener('change', syncUsername);
+  }
+  
+  // Listen to personnel code changes
+  if (personnelCodeField) {
+    personnelCodeField.addEventListener('input', function() {
+      if (checkbox && checkbox.checked) {
+        usernameField.value = personnelCodeField.value;
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

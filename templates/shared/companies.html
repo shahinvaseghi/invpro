@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Companies" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <span>{% trans "Companies" %}</span>
+    </nav>
+    
+    <h1 class="page-title">{% trans "Companies" %}</h1>
+    
+    <div class="page-actions">
+      <button class="btn btn-secondary" onclick="window.print()">{% trans "Print" %}</button>
+      <a href="{% url 'shared:company_create' %}" class="btn btn-primary">{% trans "Create Company +" %}</a>
+    </div>
+  </div>
+  
+  <div class="filter-panel">
+    <h3>{% trans "Filter & Search" %}</h3>
+    <form method="get" class="filter-form">
+      <div class="filter-row">
+        <div class="filter-field">
+          <label for="search">{% trans "Search" %}</label>
+          <input type="text" id="search" name="search" placeholder="{% trans 'Search by code or name' %}" value="{{ request.GET.search }}">
+        </div>
+        <div class="filter-field">
+          <label for="status">{% trans "Status" %}</label>
+          <select id="status" name="status">
+            <option value="">-- {% trans "All" %} --</option>
+            <option value="1" {% if request.GET.status == "1" %}selected{% endif %}>{% trans "Active" %}</option>
+            <option value="0" {% if request.GET.status == "0" %}selected{% endif %}>{% trans "Inactive" %}</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button type="submit" class="btn btn-primary">{% trans "Filter" %}</button>
+          <a href="{% url 'shared:companies' %}" class="btn btn-secondary">{% trans "Clear" %}</a>
+        </div>
+      </div>
+    </form>
+  </div>
+  
+  {% if companies %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "CODE" %}</th>
+        <th>{% trans "Display Name" %}</th>
+        <th>{% trans "Legal Name" %}</th>
+        <th>{% trans "Tax ID" %}</th>
+        <th>{% trans "City" %}</th>
+        <th>{% trans "Country" %}</th>
+        <th>{% trans "Status" %}</th>
+        <th>{% trans "Actions" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for company in companies %}
+      <tr>
+        <td>{{ company.public_code }}</td>
+        <td>{{ company.display_name }}</td>
+        <td>{{ company.legal_name }}</td>
+        <td>{{ company.tax_id|default:"-" }}</td>
+        <td>{{ company.city|default:"-" }}</td>
+        <td>{{ company.country|default:"-" }}</td>
+        <td>
+          {% if company.is_enabled %}
+            <span class="badge badge-success">{% trans "Active" %}</span>
+          {% else %}
+            <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{% url 'shared:company_edit' company.id %}" class="btn btn-sm">{% trans "Edit" %}</a>
+          <a href="{% url 'shared:company_delete' company.id %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  
+  {% if is_paginated %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page=1" class="page-link">{% trans "First" %}</a>
+      <a href="?page={{ page_obj.previous_page_number }}" class="page-link">{% trans "Previous" %}</a>
+    {% endif %}
+    
+    <span class="page-info">
+      {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+    </span>
+    
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}" class="page-link">{% trans "Next" %}</a>
+      <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">{% trans "Last" %}</a>
+    {% endif %}
+  </div>
+  {% endif %}
+  
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🏢</div>
+    <h3>{% trans "No Companies Found" %}</h3>
+    <p>{% trans "You don't have access to any companies yet." %}</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

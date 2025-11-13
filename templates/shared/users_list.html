@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Users" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <span>{% trans "Users" %}</span>
+    </nav>
+
+    <h1 class="page-title">{% trans "Users" %}</h1>
+
+    <div class="page-actions">
+      <a href="{% url 'shared:user_create' %}" class="btn btn-primary">
+        {% trans "Create User +" %}
+      </a>
+    </div>
+  </div>
+
+  <div class="filter-panel">
+    <h3>{% trans "Filter & Search" %}</h3>
+    <form method="get" class="filter-form">
+      <div class="filter-row">
+        <div class="filter-field">
+          <label for="search">{% trans "Search" %}</label>
+          <input type="text" id="search" name="search" placeholder="{% trans 'Username, email or name' %}" value="{{ search_term }}">
+        </div>
+        <div class="filter-field">
+          <label for="status">{% trans "Status" %}</label>
+          <select id="status" name="status">
+            <option value="">{% trans "All" %}</option>
+            <option value="active" {% if status_filter == "active" %}selected{% endif %}>{% trans "Active" %}</option>
+            <option value="inactive" {% if status_filter == "inactive" %}selected{% endif %}>{% trans "Inactive" %}</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button type="submit" class="btn btn-primary">{% trans "Filter" %}</button>
+          <a href="{% url 'shared:users' %}" class="btn btn-secondary">{% trans "Clear" %}</a>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  {% if users %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Username" %}</th>
+        <th>{% trans "Name" %}</th>
+        <th>{% trans "Email" %}</th>
+        <th>{% trans "Default Company" %}</th>
+        <th>{% trans "Groups" %}</th>
+        <th>{% trans "Company Access" %}</th>
+        <th>{% trans "Status" %}</th>
+        <th>{% trans "Actions" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr>
+        <td>{{ user.username }}</td>
+        <td>{{ user.get_full_name|default:user.username }}</td>
+        <td>{{ user.email|default:"-" }}</td>
+        <td>{{ user.default_company.display_name|default:"-" }}</td>
+        <td>
+          {% with group_list=user.groups.all %}
+            {% if group_list %}
+              {{ group_list|join:", " }}
+            {% else %}
+              -
+            {% endif %}
+          {% endwith %}
+        </td>
+        <td>
+          {% with accesses=user.company_accesses.all %}
+            {% if accesses %}
+              <ul class="inline-list">
+                {% for access in accesses %}
+                  <li>
+                    {{ access.company.display_name }} –
+                    {{ access.access_level.name }}
+                    {% if access.is_primary %}
+                      <span class="badge badge-info">{% trans "Primary" %}</span>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              -
+            {% endif %}
+          {% endwith %}
+        </td>
+        <td>
+          {% if user.is_active %}
+            <span class="badge badge-success">{% trans "Active" %}</span>
+          {% else %}
+            <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="action-buttons">
+            <a href="{% url 'shared:user_edit' user.pk %}" class="btn btn-sm">{% trans "Edit" %}</a>
+            <a href="{% url 'shared:user_delete' user.pk %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if is_paginated %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page=1{% if search_term %}&search={{ search_term }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-link">{% trans "First" %}</a>
+      <a href="?page={{ page_obj.previous_page_number }}{% if search_term %}&search={{ search_term }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-link">{% trans "Previous" %}</a>
+    {% endif %}
+    <span class="page-info">
+      {% blocktrans %}Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}{% endblocktrans %}
+    </span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if search_term %}&search={{ search_term }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-link">{% trans "Next" %}</a>
+      <a href="?page={{ page_obj.paginator.num_pages }}{% if search_term %}&search={{ search_term }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-link">{% trans "Last" %}</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-state">
+    <h3>{% trans "No Users Found" %}</h3>
+    <p>{% trans "Start by adding your first user to the system." %}</p>
+    <a href="{% url 'shared:user_create' %}" class="btn btn-primary">{% trans "Create User +" %}</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard · invproj{% endblock %}
+
+{% block content %}
+<section class="page-section">
+  <header class="section-header">
+    <h1>Platform Overview</h1>
+    <p>Quick snapshot of inventory, production, and QC activities.</p>
+  </header>
+  <div class="dashboard-grid">
+    <article class="card">
+      <h2>Inventory</h2>
+      <ul>
+        <li><strong>Master Data:</strong> manage item catalog, suppliers, warehouses.</li>
+        <li><strong>Transactions:</strong> capture receipts, issues, and stocktaking adjustments.</li>
+        <li><strong>Traceability:</strong> track lot numbers for critical items.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <h2>Production</h2>
+      <ul>
+        <li><strong>BOM & Processes:</strong> define materials, steps, and work centers.</li>
+        <li><strong>Orders:</strong> plan, release, and monitor production jobs.</li>
+        <li><strong>Performance:</strong> record production output, scrap, cycle times.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <h2>Quality Control</h2>
+      <ul>
+        <li><strong>Inspections:</strong> review temporary receipts pending approval.</li>
+        <li><strong>Decisions:</strong> approve, reject, or log deviations with notes.</li>
+        <li><strong>Attachments:</strong> keep inspection evidence accessible.</li>
+      </ul>
+    </article>
+  </div>
+</section>
+{% endblock %}
+

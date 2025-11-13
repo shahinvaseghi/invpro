@@ -1,0 +1,195 @@
+{% extends "inventory/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{{ form_title }}{% endblock %}
+
+{% block inventory_content %}
+<div class="form-container">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" class="entity-form">
+    {% csrf_token %}
+    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+
+    <div class="form-section">
+      {% if form.allowed_warehouses %}
+      <div class="form-field full-width">
+        <label>{{ form.allowed_warehouses.label }}{% if form.allowed_warehouses.field.required %}*{% endif %}</label>
+        <div class="checkbox-grid">
+          {% for checkbox in form.allowed_warehouses %}
+            <label class="checkbox-item">
+              {{ checkbox.tag }}
+              <span>{{ checkbox.choice_label }}</span>
+            </label>
+          {% endfor %}
+        </div>
+        {% if form.allowed_warehouses.errors %}
+          <span class="error">{{ form.allowed_warehouses.errors.0 }}</span>
+        {% endif %}
+        {% if form.allowed_warehouses.help_text %}
+          <small class="form-text">{{ form.allowed_warehouses.help_text }}</small>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% for field in form.visible_fields %}
+        {% if field.name != 'allowed_warehouses' %}
+        <div class="form-field">
+          <label for="{{ field.id_for_label }}">
+            {{ field.label }}
+            {% if field.field.required %}*{% endif %}
+          </label>
+          {{ field }}
+          {% if field.errors %}
+            <span class="error">{{ field.errors.0 }}</span>
+          {% endif %}
+          {% if field.help_text %}
+            <small class="form-text">{{ field.help_text }}</small>
+          {% endif %}
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <div class="form-section">
+      <h3 style="margin-top: 2rem;">واحدهای ثانویه (اختیاری)</h3>
+      <p class="form-text">
+        در صورت نیاز می‌توانید تبدیل واحد تعریف کنید (مثلاً ۲ متر = ۲۰ کیلوگرم).
+      </p>
+      {{ units_formset.management_form }}
+      {% for hidden in units_formset.hidden_fields %}{{ hidden }}{% endfor %}
+
+      <div class="unit-formset">
+        {% for unit_form in units_formset %}
+          <div class="unit-form">
+            {% for hidden in unit_form.hidden_fields %}{{ hidden }}{% endfor %}
+            <div class="unit-row">
+              <div class="unit-field">
+                <label>{{ unit_form.from_quantity.label }}</label>
+                {{ unit_form.from_quantity }}
+                {% if unit_form.from_quantity.errors %}
+                  <span class="error">{{ unit_form.from_quantity.errors.0 }}</span>
+                {% endif %}
+              </div>
+              <div class="unit-field">
+                <label>{{ unit_form.from_unit.label }}</label>
+                {{ unit_form.from_unit }}
+                {% if unit_form.from_unit.errors %}
+                  <span class="error">{{ unit_form.from_unit.errors.0 }}</span>
+                {% endif %}
+              </div>
+              <div class="unit-field">
+                <label>{{ unit_form.to_quantity.label }}</label>
+                {{ unit_form.to_quantity }}
+                {% if unit_form.to_quantity.errors %}
+                  <span class="error">{{ unit_form.to_quantity.errors.0 }}</span>
+                {% endif %}
+              </div>
+              <div class="unit-field">
+                <label>{{ unit_form.to_unit.label }}</label>
+                {{ unit_form.to_unit }}
+                {% if unit_form.to_unit.errors %}
+                  <span class="error">{{ unit_form.to_unit.errors.0 }}</span>
+                {% endif %}
+              </div>
+              <div class="unit-field">
+                <label>{{ unit_form.description.label }}</label>
+                {{ unit_form.description }}
+              </div>
+              <div class="unit-field">
+                <label>{{ unit_form.notes.label }}</label>
+                {{ unit_form.notes }}
+              </div>
+              {% if units_formset.can_delete %}
+              <div class="unit-field unit-delete">
+                <label>{{ unit_form.DELETE.label }}</label>
+                {{ unit_form.DELETE }}
+              </div>
+              {% endif %}
+            </div>
+            {% if unit_form.non_field_errors %}
+              <div class="error">{{ unit_form.non_field_errors|join:", " }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">ذخیره</button>
+      <a href="{% url 'inventory:items' %}" class="btn btn-secondary">لغو</a>
+    </div>
+  </form>
+</div>
+
+<style>
+.unit-formset {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.unit-form {
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #f9fafb;
+}
+
+.unit-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.unit-field label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.unit-delete {
+  display: flex;
+  align-items: center;
+}
+
+.form-field.full-width {
+  width: 100%;
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem 1rem;
+  margin-top: 0.5rem;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.checkbox-item:hover {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.checkbox-item input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  cursor: pointer;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "inventory/stocktaking_deficit.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Surplus Records" %}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Stocktaking" %}</span>
+<span class="separator">/</span>
+<span>{% trans "Surplus Records" %}</span>
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions">
+  <a href="{{ create_url }}" class="btn btn-primary">
+    + {% trans "Create" %} {% trans "Surplus Records" %}
+  </a>
+</div>
+{% endblock %}
+

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}حذف واحد سازمانی - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">داشبورد</a>
+      <span>/</span>
+      <a href="{% url 'shared:company_units' %}">واحدهای سازمانی</a>
+      <span>/</span>
+      <span>حذف</span>
+    </nav>
+    <h1 class="page-title">حذف واحد سازمانی</h1>
+  </div>
+
+  <div class="form-container">
+    <p>آیا از حذف واحد «{{ object.name }}» مطمئن هستید؟</p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-actions">
+        <button type="submit" class="btn btn-danger">تأیید حذف</button>
+        <a href="{% url 'shared:company_units' %}" class="btn btn-secondary">انصراف</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+.form-container {
+  max-width: 600px;
+  margin: 2rem auto;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+</style>
+{% endblock %}

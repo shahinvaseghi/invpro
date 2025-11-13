@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Inventory" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <div class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span class="separator">/</span>
+      <span>{% trans "Inventory" %}</span>
+      {% block breadcrumb_extra %}{% endblock %}
+    </div>
+    <h1 class="page-title">{% block page_title %}{% trans "Inventory Management" %}{% endblock %}</h1>
+    {% block page_actions %}{% endblock %}
+  </div>
+
+  <div class="module-content">
+    {% block inventory_content %}
+    {% endblock %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Common inventory module scripts
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add any common JS functionality here
+  });
+</script>
+{% block inventory_scripts %}{% endblock %}
+{% endblock %}
+

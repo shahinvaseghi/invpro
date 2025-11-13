@@ -1,0 +1,3448 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: invproj\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-11-12 00:17+0000\n"
+"PO-Revision-Date: 2025-11-09 00:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: Persian\n"
+"Language: fa\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: inventory/forms.py:42 inventory/forms.py:152 inventory/forms.py:290
+#: inventory/forms.py:293 inventory/forms.py:1747 inventory/views.py:709
+#: inventory/views.py:1064
+msgid "--- انتخاب کنید ---"
+msgstr "--- انتخاب کنید ---"
+
+#: inventory/forms.py:43
+msgid "عدد (EA)"
+msgstr "عدد (EA)"
+
+#: inventory/forms.py:44
+msgid "کیلوگرم (KG)"
+msgstr "کیلوگرم (KG)"
+
+#: inventory/forms.py:45
+msgid "گرم (G)"
+msgstr "گرم (G)"
+
+#: inventory/forms.py:46
+msgid "تن"
+msgstr "تن"
+
+#: inventory/forms.py:47
+msgid "لیتر (L)"
+msgstr "لیتر (L)"
+
+#: inventory/forms.py:48
+msgid "میلی‌لیتر (ML)"
+msgstr "میلی‌لیتر (ML)"
+
+#: inventory/forms.py:49
+msgid "متر (M)"
+msgstr "متر (M)"
+
+#: inventory/forms.py:50
+msgid "سانتی‌متر (CM)"
+msgstr "سانتی‌متر (CM)"
+
+#: inventory/forms.py:51
+msgid "میلی‌متر (MM)"
+msgstr "میلی‌متر (MM)"
+
+#: inventory/forms.py:52
+msgid "متر مربع (M²)"
+msgstr "متر مربع (M²)"
+
+#: inventory/forms.py:53
+msgid "متر مکعب (M³)"
+msgstr "متر مکعب (M³)"
+
+#: inventory/forms.py:54
+msgid "بسته (BOX)"
+msgstr "بسته (BOX)"
+
+#: inventory/forms.py:55
+msgid "کارتن"
+msgstr "کارتن"
+
+#: inventory/forms.py:56
+msgid "جفت"
+msgstr "جفت"
+
+#: inventory/forms.py:57
+msgid "رول"
+msgstr "رول"
+
+#: inventory/forms.py:58
+msgid "ست"
+msgstr "ست"
+
+#: inventory/forms.py:129 inventory/forms.py:263 inventory/forms.py:1101
+#: inventory/forms.py:1202 inventory/forms.py:1352 inventory/models.py:289
+#: templates/inventory/purchase_requests.html:93
+#: templates/inventory/warehouse_requests.html:93
+msgid "Item"
+msgstr "کالا"
+
+#: inventory/forms.py:130 inventory/forms.py:264 inventory/forms.py:1070
+#: inventory/forms.py:1154 inventory/forms.py:1306 inventory/forms.py:1483
+#: inventory/forms.py:1551 inventory/forms.py:1627 inventory/forms.py:1876
+#: inventory/forms.py:1949 inventory/models.py:1489 inventory/models.py:1582
+msgid "Unit"
+msgstr "واحد"
+
+#: inventory/forms.py:131 inventory/forms.py:265
+msgid "Requested Quantity"
+msgstr "مقدار درخواست‌شده"
+
+#: inventory/forms.py:132 inventory/forms.py:268
+msgid "Needed By Date"
+msgstr "تاریخ مورد نیاز"
+
+#: inventory/forms.py:133 inventory/forms.py:269
+#: templates/inventory/purchase_requests.html:60
+#: templates/inventory/purchase_requests.html:98
+#: templates/inventory/warehouse_requests.html:60
+#: templates/inventory/warehouse_requests.html:99
+msgid "Priority"
+msgstr "اولویت"
+
+#: inventory/forms.py:134
+msgid "Reason Code / Notes"
+msgstr "کد دلیل / یادداشت"
+
+#: inventory/forms.py:135 inventory/forms.py:271
+#: templates/inventory/purchase_requests.html:96
+#: templates/inventory/warehouse_requests.html:97
+msgid "Approver"
+msgstr "تاییدکننده"
+
+#: inventory/forms.py:222 inventory/forms.py:395 inventory/forms.py:1034
+#: inventory/forms.py:1852
+msgid "Selected unit is not configured for this item."
+msgstr "واحد انتخاب‌شده برای این کالا تعریف نشده است."
+
+#: inventory/forms.py:228 inventory/forms.py:410
+msgid "Selected approver must belong to the active company."
+msgstr "تاییدکننده انتخاب‌شده باید متعلق به شرکت فعال باشد."
+
+#: inventory/forms.py:266 inventory/forms.py:1102 inventory/forms.py:1203
+#: inventory/forms.py:1353 inventory/models.py:170
+#: templates/inventory/warehouse_requests.html:95
+#: templates/inventory/warehouses.html:16
+#: templates/inventory/warehouses.html:63
+msgid "Warehouse"
+msgstr "انبار"
+
+#: inventory/forms.py:267 inventory/forms.py:1489 inventory/forms.py:1557
+#: inventory/forms.py:1633 templates/inventory/issue_permanent.html:102
+msgid "Organizational Unit"
+msgstr "واحد سازمانی"
+
+#: inventory/forms.py:270
+msgid "Purpose / Notes"
+msgstr "هدف / یادداشت‌ها"
+
+#: inventory/forms.py:404 inventory/forms.py:1863
+msgid "Selected warehouse is not permitted for this item."
+msgstr "انبار انتخاب‌شده برای این کالا مجاز نیست."
+
+#: inventory/forms.py:586
+msgid "Selected warehouse request is for a different item."
+msgstr "درخواست انبار انتخاب‌شده مربوط به کالای دیگری است."
+
+#: inventory/forms.py:590
+msgid "Selected warehouse request is for a different warehouse."
+msgstr "درخواست انبار انتخاب‌شده مربوط به انبار دیگری است."
+
+#: inventory/forms.py:436 inventory/forms.py:462 inventory/forms.py:490
+#: inventory/forms.py:516 inventory/forms.py:553 shared/forms.py:62
+#: shared/forms.py:129 shared/forms.py:500
+#: templates/inventory/generic_confirm_delete.html:15
+#: templates/inventory/item_confirm_delete.html:15
+#: templates/inventory/item_types.html:26
+#: templates/inventory/itemcategory_confirm_delete.html:15
+#: templates/inventory/itemsubcategory_confirm_delete.html:15
+#: templates/inventory/itemtype_confirm_delete.html:15
+#: templates/inventory/supplier_confirm_delete.html:15
+#: templates/inventory/suppliercategory_confirm_delete.html:15
+#: templates/inventory/warehouse_confirm_delete.html:15
+#: templates/inventory/warehouses.html:26
+#: templates/inventory/work_lines.html:26
+#: templates/shared/access_levels_list.html:52
+#: templates/shared/company_confirm_delete.html:26
+#: templates/shared/person_confirm_delete.html:26
+msgid "Code"
+msgstr "کد"
+
+#: inventory/forms.py:437 inventory/forms.py:463 inventory/forms.py:491
+#: inventory/forms.py:517 inventory/forms.py:554
+msgid "Name (Persian)"
+msgstr "نام (فارسی)"
+
+#: inventory/forms.py:438 inventory/forms.py:464 inventory/forms.py:492
+#: inventory/forms.py:518 inventory/forms.py:555
+msgid "Name (English)"
+msgstr "نام (انگلیسی)"
+
+#: inventory/forms.py:439 inventory/forms.py:465 inventory/forms.py:493
+#: inventory/forms.py:519 inventory/forms.py:564 shared/forms.py:140
+#: shared/forms.py:416 shared/forms.py:502 templates/shared/groups_list.html:53
+msgid "Description"
+msgstr "توضیحات"
+
+#: inventory/forms.py:440 inventory/forms.py:466 inventory/forms.py:494
+#: inventory/forms.py:520 shared/forms.py:141
+msgid "Notes"
+msgstr "یادداشت‌ها"
+
+#: inventory/forms.py:441 inventory/forms.py:467 inventory/forms.py:495
+#: inventory/forms.py:521 inventory/forms.py:565
+msgid "Sort Order"
+msgstr "ترتیب نمایش"
+
+#: inventory/forms.py:442 inventory/forms.py:468 inventory/forms.py:496
+#: inventory/forms.py:522 inventory/forms.py:566 inventory/forms.py:1108
+#: shared/forms.py:75 shared/forms.py:142 shared/forms.py:422
+#: shared/forms.py:503 shared/forms.py:527
+#: templates/inventory/issue_permanent.html:46
+#: templates/inventory/item_types.html:30
+#: templates/inventory/purchase_requests.html:48
+#: templates/inventory/purchase_requests.html:99
+#: templates/inventory/receipt_form.html:19
+#: templates/inventory/receipt_temporary.html:50
+#: templates/inventory/receipt_temporary.html:60
+#: templates/inventory/receipt_temporary.html:119
+#: templates/inventory/stocktaking_records.html:52
+#: templates/inventory/warehouse_requests.html:48
+#: templates/inventory/warehouse_requests.html:100
+#: templates/inventory/warehouses.html:30
+#: templates/inventory/work_lines.html:29
+#: templates/shared/access_levels_list.html:33
+#: templates/shared/access_levels_list.html:55
+#: templates/shared/companies.html:32 templates/shared/companies.html:57
+#: templates/shared/groups_list.html:33 templates/shared/groups_list.html:56
+#: templates/shared/personnel.html:32 templates/shared/personnel.html:58
+#: templates/shared/user_form.html:61 templates/shared/users_list.html:33
+#: templates/shared/users_list.html:58
+msgid "Status"
+msgstr "وضعیت"
+
+#: inventory/forms.py:489 inventory/models.py:98
+#, fuzzy
+#| msgid "Item Categories"
+msgid "Item Category"
+msgstr "دسته‌بندی اقلام"
+
+#: inventory/forms.py:556
+msgid "Phone Number"
+msgstr "شماره تلفن"
+
+#: inventory/forms.py:557
+msgid "Mobile Number"
+msgstr "شماره موبایل"
+
+#: inventory/forms.py:558 shared/forms.py:69 shared/forms.py:139
+#: shared/forms.py:287 templates/shared/personnel.html:56
+#: templates/shared/users_list.html:54
+msgid "Email"
+msgstr "ایمیل"
+
+#: inventory/forms.py:559 shared/forms.py:71
+msgid "Address"
+msgstr "نشانی"
+
+#: inventory/forms.py:560 shared/forms.py:72 templates/shared/companies.html:55
+msgid "City"
+msgstr "شهر"
+
+#: inventory/forms.py:561 shared/forms.py:73
+msgid "State/Province"
+msgstr "استان"
+
+#: inventory/forms.py:562
+msgid "Country Code"
+msgstr "کد کشور"
+
+#: inventory/forms.py:563 shared/forms.py:67 templates/shared/companies.html:54
+msgid "Tax ID"
+msgstr "شناسه مالیاتی"
+
+#: inventory/forms.py:575
+msgid "دستهٔ اصلی"
+msgstr "دستهٔ اصلی"
+
+#: inventory/forms.py:588
+msgid "تأمین‌کننده"
+msgstr "تأمین‌کننده"
+
+#: inventory/forms.py:589
+msgid "دسته‌بندی کالا"
+msgstr "دسته‌بندی کالا"
+
+#: inventory/forms.py:590 inventory/forms.py:714 inventory/forms.py:808
+msgid "یادداشت‌ها"
+msgstr "یادداشت‌ها"
+
+#: inventory/forms.py:618
+msgid "تأمین‌کننده و دسته‌ی انتخاب‌شده مربوط به شرکت‌های متفاوت هستند."
+msgstr "تأمین‌کننده و دسته‌ی انتخاب‌شده مربوط به شرکت‌های متفاوت هستند."
+
+#: inventory/forms.py:630
+msgid "برای این تأمین‌کننده و دسته‌بندی قبلاً ثبت انجام شده است."
+msgstr "برای این تأمین‌کننده و دسته‌بندی قبلاً ثبت انجام شده است."
+
+#: inventory/forms.py:641
+msgid "قابل فروش است"
+msgstr "قابل فروش است"
+
+#: inventory/forms.py:646
+msgid "نیاز به رهگیری لات دارد"
+msgstr "نیاز به رهگیری لات دارد"
+
+#: inventory/forms.py:651
+msgid "ورود از طریق رسید موقت"
+msgstr "ورود از طریق رسید موقت"
+
+#: inventory/forms.py:656
+msgid "فعال باشد"
+msgstr "فعال باشد"
+
+#: inventory/forms.py:662
+msgid "واحد اصلی"
+msgstr "واحد اصلی"
+
+#: inventory/forms.py:667
+msgid "واحد گزارش (برای گزارش‌گیری)"
+msgstr "واحد گزارش (برای گزارش‌گیری)"
+
+#: inventory/forms.py:672
+msgid "انبارهای مجاز"
+msgstr "انبارهای مجاز"
+
+#: inventory/forms.py:675
+msgid "حداقل یک انبار انتخاب کنید؛ اولین مورد به عنوان انبار اصلی ذخیره می‌شود."
+msgstr "حداقل یک انبار انتخاب کنید؛ اولین مورد به عنوان انبار اصلی ذخیره می‌شود."
+
+#: inventory/forms.py:704
+msgid "نوع کالا"
+msgstr "نوع کالا"
+
+#: inventory/forms.py:705
+msgid "دسته‌بندی"
+msgstr "دسته‌بندی"
+
+#: inventory/forms.py:706
+msgid "زیردسته"
+msgstr "زیردسته"
+
+#: inventory/forms.py:707
+msgid "کد کاربری (۲ رقم)"
+msgstr "کد کاربری (۲ رقم)"
+
+#: inventory/forms.py:708
+msgid "نام (فارسی)"
+msgstr "نام (فارسی)"
+
+#: inventory/forms.py:709
+msgid "نام (English)"
+msgstr "نام (English)"
+
+#: inventory/forms.py:710
+msgid "شناسه مالیاتی"
+msgstr "شناسه مالیاتی"
+
+#: inventory/forms.py:711
+msgid "عنوان مالیاتی"
+msgstr "عنوان مالیاتی"
+
+#: inventory/forms.py:712
+msgid "حداقل موجودی"
+msgstr "حداقل موجودی"
+
+#: inventory/forms.py:713
+msgid "توضیح کوتاه"
+msgstr "توضیح کوتاه"
+
+#: inventory/forms.py:715
+msgid "ترتیب نمایش"
+msgstr "ترتیب نمایش"
+
+#: inventory/forms.py:761
+msgid "نوع کالا و دسته‌بندی انتخاب‌شده مربوط به شرکت‌های متفاوت هستند."
+msgstr "نوع کالا و دسته‌بندی انتخاب‌شده مربوط به شرکت‌های متفاوت هستند."
+
+#: inventory/forms.py:765
+msgid "زیردسته انتخاب‌شده با دسته‌بندی هم‌خوانی ندارد."
+msgstr "زیردسته انتخاب‌شده با دسته‌بندی هم‌خوانی ندارد."
+
+#: inventory/forms.py:768
+msgid "کد کاربری باید فقط عدد باشد."
+msgstr "کد کاربری باید فقط عدد باشد."
+
+#: inventory/forms.py:770
+msgid "کد کاربری باید دقیقاً دو رقم باشد."
+msgstr "کد کاربری باید دقیقاً دو رقم باشد."
+
+#: inventory/forms.py:773
+msgid "حداقل یک انبار باید انتخاب شود."
+msgstr "حداقل یک انبار باید انتخاب شود."
+
+#: inventory/forms.py:775
+msgid "انبارهای انتخاب شده باید متعلق به همان شرکت فعال باشند."
+msgstr "انبارهای انتخاب شده باید متعلق به همان شرکت فعال باشند."
+
+#: inventory/forms.py:785
+msgid "واحد مبنا"
+msgstr "واحد مبنا"
+
+#: inventory/forms.py:790
+msgid "واحد تبدیل"
+msgstr "واحد تبدیل"
+
+#: inventory/forms.py:805
+msgid "مقدار مبنا"
+msgstr "مقدار مبنا"
+
+#: inventory/forms.py:806
+msgid "مقدار معادل"
+msgstr "مقدار معادل"
+
+#: inventory/forms.py:807
+msgid "توضیح"
+msgstr "توضیح"
+
+#: inventory/forms.py:816
+msgid "حذف شود؟"
+msgstr "حذف شود؟"
+
+#: inventory/forms.py:933
+#, python-format
+msgid "Selected %(model)s must belong to the active company."
+msgstr "%(model)s انتخاب‌شده باید متعلق به شرکت فعال باشد."
+
+#: inventory/forms.py:1099 inventory/forms.py:1200 inventory/forms.py:1350
+#: inventory/models.py:1470 inventory/models.py:1563 inventory/models.py:1656
+#: templates/inventory/issue_permanent.html:97
+#: templates/inventory/receipt_form.html:16
+#: templates/inventory/receipt_temporary.html:112
+#: templates/inventory/stocktaking_deficit.html:48
+#: templates/inventory/stocktaking_form.html:16
+#: templates/inventory/stocktaking_records.html:48
+msgid "Document Code"
+msgstr "کد سند"
+
+#: inventory/forms.py:1100 inventory/forms.py:1201 inventory/forms.py:1351
+#: inventory/models.py:1471 inventory/models.py:1564 inventory/models.py:1657
+#: templates/inventory/issue_permanent.html:98
+#: templates/inventory/receipt_form.html:17
+#: templates/inventory/receipt_temporary.html:113
+#: templates/inventory/stocktaking_deficit.html:49
+#: templates/inventory/stocktaking_form.html:17
+#: templates/inventory/stocktaking_records.html:49
+msgid "Document Date"
+msgstr "تاریخ سند"
+
+#: inventory/forms.py:1103 inventory/forms.py:1204 inventory/forms.py:1354
+#: templates/inventory/issue_permanent.html:100
+#: templates/inventory/purchase_requests.html:94
+#: templates/inventory/receipt_temporary.html:115
+#: templates/inventory/warehouse_requests.html:94
+msgid "Quantity"
+msgstr "مقدار"
+
+#: inventory/forms.py:1104
+msgid "Expected Conversion Date"
+msgstr "تاریخ تبدیل مورد انتظار"
+
+#: inventory/forms.py:1105 inventory/forms.py:1205 inventory/forms.py:1355
+#: inventory/models.py:528
+#, fuzzy
+#| msgid "Suppliers"
+msgid "Supplier"
+msgstr "تأمین‌کننده"
+
+#: inventory/forms.py:1106
+msgid "Source Document Type"
+msgstr "نوع سند مبدا"
+
+#: inventory/forms.py:1107
+msgid "Source Document Code"
+msgstr "کد سند مبدا"
+
+#: inventory/forms.py:1109
+msgid "QC Notes"
+msgstr "یادداشت‌های QC"
+
+#: inventory/forms.py:1123 inventory/forms.py:1227 inventory/forms.py:1378
+msgid "item"
+msgstr "کالا"
+
+#: inventory/forms.py:1124 inventory/forms.py:1228 inventory/forms.py:1379
+msgid "warehouse"
+msgstr "انبار"
+
+#: inventory/forms.py:1126 inventory/forms.py:1230 inventory/forms.py:1380
+msgid "supplier"
+msgstr "تأمین‌کننده"
+
+#: inventory/forms.py:1159 inventory/forms.py:1311
+msgid "Requires Temporary Receipt"
+msgstr "نیازمند رسید موقت"
+
+#: inventory/forms.py:1164 templates/inventory/stocktaking_deficit.html:55
+#: templates/inventory/stocktaking_deficit.html:75
+msgid "Posted"
+msgstr "ثبت‌شده"
+
+#: inventory/forms.py:1206
+msgid "Unit Price"
+msgstr "قیمت واحد"
+
+#: inventory/forms.py:1207 inventory/forms.py:1360
+msgid "Currency"
+msgstr "واحد پول"
+
+#: inventory/forms.py:1208 inventory/forms.py:1361 inventory/models.py:829
+#: inventory/views.py:896
+msgid "Temporary Receipt"
+msgstr "رسید موقت"
+
+#: inventory/forms.py:1209 inventory/forms.py:1362 inventory/models.py:705
+msgid "Purchase Request"
+msgstr "درخواست خرید"
+
+#: inventory/forms.py:1210 inventory/forms.py:1363 inventory/models.py:1859
+msgid "Warehouse Request"
+msgstr "درخواست انبار"
+
+#: inventory/forms.py:1211
+msgid "Tax Amount"
+msgstr "مبلغ مالیات"
+
+#: inventory/forms.py:1212
+msgid "Discount Amount"
+msgstr "مبلغ تخفیف"
+
+#: inventory/forms.py:1213
+msgid "Total Amount"
+msgstr "مبلغ کل"
+
+#: inventory/forms.py:1214
+msgid "Accounting Posted"
+msgstr "ثبت حسابداری انجام شد"
+
+#: inventory/forms.py:1215 inventory/models.py:1529 inventory/models.py:1622
+msgid "Posting Date"
+msgstr "تاریخ ثبت حسابداری"
+
+#: inventory/forms.py:1232 inventory/forms.py:1382
+msgid "temporary receipt"
+msgstr "رسید موقت"
+
+#: inventory/forms.py:1234 inventory/forms.py:1384
+msgid "purchase request"
+msgstr "درخواست خرید"
+
+#: inventory/forms.py:1236 inventory/forms.py:1386
+msgid "warehouse request"
+msgstr "درخواست انبار"
+
+#: inventory/forms.py:1241 inventory/forms.py:1391
+msgid "Selected warehouse request is for a different item."
+msgstr "Selected warehouse request is for a different item."
+
+#: inventory/forms.py:1243 inventory/forms.py:1393
+msgid "Selected warehouse request is for a different warehouse."
+msgstr "Selected warehouse request is for a different warehouse."
+
+#: inventory/forms.py:1356
+msgid "Contract Code"
+msgstr "کد قرارداد"
+
+#: inventory/forms.py:1357
+msgid "Expected Return Date"
+msgstr "تاریخ بازگشت مورد انتظار"
+
+#: inventory/forms.py:1358 inventory/models.py:1508 inventory/models.py:1601
+msgid "Valuation Method"
+msgstr "روش ارزش‌گذاری"
+
+#: inventory/forms.py:1359
+msgid "Estimated Unit Price"
+msgstr "بهای واحد تخمینی"
+
+#: inventory/forms.py:1364
+msgid "Ownership Status"
+msgstr "وضعیت مالکیت"
+
+#: inventory/forms.py:1365
+#, fuzzy
+#| msgid "Consignment Receipts"
+msgid "Conversion Receipt"
+msgstr "رسیدهای امانی"
+
+#: inventory/forms.py:1366
+msgid "Conversion Date"
+msgstr "تاریخ تبدیل"
+
+#: inventory/forms.py:1367
+msgid "Return Document"
+msgstr "سند بازگشت"
+
+#: inventory/forms.py:1395
+#, fuzzy
+#| msgid "Consignment Receipts"
+msgid "conversion receipt"
+msgstr "رسیدهای امانی"
+
+#: inventory/forms.py:1464
+msgid "unit"
+msgstr "واحد"
+
+#: inventory/forms.py:1465
+msgid "work line"
+msgstr "خط کار"
+
+#: inventory/forms.py:1466
+msgid "consignment receipt"
+msgstr "رسید امانی"
+
+#: inventory/forms.py:1474
+msgid "Selected work line belongs to a different warehouse."
+msgstr "خط کار انتخاب‌شده متعلق به انبار دیگری است."
+
+#: inventory/forms.py:1491
+msgid "Optional: specify which company unit received this issue."
+msgstr "اختیاری: مشخص کنید این حواله به کدام واحد سازمانی تحویل شده است."
+
+#: inventory/forms.py:1559
+msgid "Optional: specify which company unit consumes this issue."
+msgstr "اختیاری: مشخص کنید این حواله توسط کدام واحد سازمانی مصرف می‌شود."
+
+#: inventory/forms.py:1564 inventory/models.py:208
+#: templates/inventory/issue_permanent.html:103
+msgid "Work Line"
+msgstr "خط کار"
+
+#: inventory/forms.py:1635
+msgid "Optional: specify which company unit received this consignment."
+msgstr "اختیاری: مشخص کنید این رسید امانی به کدام واحد سازمانی تحویل شده است."
+
+#: inventory/forms.py:1921
+msgid "Counted quantity cannot exceed expected balance for a deficit document."
+msgstr "مقدار شمارش‌شده نمی‌تواند از موجودی انتظار‌رفته در سند کسری بیشتر باشد."
+
+#: inventory/forms.py:1994
+msgid "Counted quantity cannot be less than expected for a surplus document."
+msgstr "مقدار شمارش‌شده در سند مازاد نمی‌تواند کمتر از مقدار انتظار‌رفته باشد."
+
+#: inventory/models.py:21 production/models.py:21 qc/models.py:19
+#: shared/models.py:10
+msgid "Only numeric characters are allowed."
+msgstr "تنها استفاده از ارقام مجاز است."
+
+#: inventory/models.py:65 templates/inventory/item_types.html:63
+msgid "Item Type"
+msgstr "نوع کالا"
+
+#: inventory/models.py:66 shared/permissions.py:121
+#: templates/inventory/item_types.html:4 templates/inventory/item_types.html:10
+#: templates/ui/components/sidebar.html:23
+msgid "Item Types"
+msgstr "انواع قلم"
+
+#: inventory/models.py:99 shared/permissions.py:132
+#: templates/ui/components/sidebar.html:24
+msgid "Item Categories"
+msgstr "دسته‌بندی اقلام"
+
+#: inventory/models.py:136
+msgid "Item Subcategory"
+msgstr "زیر‌دسته کالا"
+
+#: inventory/models.py:137 shared/permissions.py:143
+#: templates/ui/components/sidebar.html:25
+msgid "Item Subcategories"
+msgstr "زیر‌دسته‌های کالا"
+
+#: inventory/models.py:171 shared/permissions.py:165
+#: templates/inventory/issue_permanent.html:101
+#: templates/inventory/receipt_temporary.html:116
+#: templates/inventory/stocktaking_deficit.html:51
+#: templates/inventory/warehouses.html:4 templates/inventory/warehouses.html:10
+#: templates/inventory/work_lines.html:28
+#: templates/ui/components/sidebar.html:26
+msgid "Warehouses"
+msgstr "انبارها"
+
+#: inventory/models.py:209 shared/permissions.py:176
+#: templates/inventory/work_lines.html:4 templates/inventory/work_lines.html:10
+#: templates/inventory/work_lines.html:16
+#: templates/inventory/work_lines.html:62
+#: templates/ui/components/sidebar.html:73
+msgid "Work Lines"
+msgstr "خطوط کار"
+
+#: inventory/models.py:290 shared/permissions.py:154
+#: templates/inventory/issue_permanent.html:99
+#: templates/inventory/receipt_temporary.html:114
+#: templates/inventory/stocktaking_deficit.html:50
+#: templates/ui/components/sidebar.html:30
+msgid "Items"
+msgstr "اقلام"
+
+#: inventory/models.py:353
+msgid "Item Specification"
+msgstr "Item Specification"
+
+#: inventory/models.py:354
+#, fuzzy
+#| msgid "Inspections"
+msgid "Item Specifications"
+msgstr "بازرسی‌ها"
+
+#: inventory/models.py:401
+msgid "Item Unit Conversion"
+msgstr "Item Unit Conversion"
+
+#: inventory/models.py:402
+msgid "Item Unit Conversions"
+msgstr "Item Unit Conversions"
+
+#: inventory/models.py:439
+#, fuzzy
+#| msgid "Warehouses"
+msgid "Item Warehouse"
+msgstr "انبارها"
+
+#: inventory/models.py:440
+#, fuzzy
+#| msgid "Warehouses"
+msgid "Item Warehouses"
+msgstr "انبارها"
+
+#: inventory/models.py:483
+msgid "Item Substitute"
+msgstr "Item Substitute"
+
+#: inventory/models.py:484
+msgid "Item Substitutes"
+msgstr "Item Substitutes"
+
+#: inventory/models.py:529 shared/permissions.py:199
+#: templates/inventory/receipt_temporary.html:117
+#: templates/ui/components/sidebar.html:38
+msgid "Suppliers"
+msgstr "تامین‌کنندگان"
+
+#: inventory/models.py:561
+#, fuzzy
+#| msgid "Supplier Categories"
+msgid "Supplier Category"
+msgstr "دسته‌بندی تامین‌کنندگان"
+
+#: inventory/models.py:562 shared/permissions.py:188
+#: templates/ui/components/sidebar.html:40
+msgid "Supplier Categories"
+msgstr "دسته‌بندی تامین‌کنندگان"
+
+#: inventory/models.py:589
+#, fuzzy
+#| msgid "Supplier Categories"
+msgid "Supplier Subcategory"
+msgstr "دسته‌بندی تامین‌کنندگان"
+
+#: inventory/models.py:590
+#, fuzzy
+#| msgid "Supplier Categories"
+msgid "Supplier Subcategories"
+msgstr "دسته‌بندی تامین‌کنندگان"
+
+#: inventory/models.py:632
+#, fuzzy
+#| msgid "Supplier List"
+msgid "Supplier Item"
+msgstr "لیست تامین‌کنندگان"
+
+#: inventory/models.py:633
+msgid "Supplier Items"
+msgstr "اقلام تأمین‌کننده"
+
+#: inventory/models.py:647 production/models.py:230
+#: templates/inventory/purchase_requests.html:63
+#: templates/inventory/warehouse_requests.html:63
+#: templates/inventory/warehouse_requests.html:149
+msgid "Low"
+msgstr "کم"
+
+#: inventory/models.py:648 production/models.py:231
+#: templates/inventory/purchase_requests.html:64
+#: templates/inventory/warehouse_requests.html:64
+#: templates/inventory/warehouse_requests.html:151
+msgid "Normal"
+msgstr "عادی"
+
+#: inventory/models.py:649 production/models.py:232
+#: templates/inventory/purchase_requests.html:65
+#: templates/inventory/warehouse_requests.html:65
+#: templates/inventory/warehouse_requests.html:147
+msgid "High"
+msgstr "زیاد"
+
+#: inventory/models.py:650 production/models.py:233
+#: templates/inventory/purchase_requests.html:66
+#: templates/inventory/warehouse_requests.html:66
+#: templates/inventory/warehouse_requests.html:145
+msgid "Urgent"
+msgstr "فوری"
+
+#: inventory/models.py:653 inventory/models.py:748 production/models.py:357
+#: templates/inventory/issue_permanent.html:36
+#: templates/inventory/issue_permanent.html:134
+#: templates/inventory/purchase_requests.html:51
+#: templates/inventory/receipt_temporary.html:161
+#: templates/inventory/stocktaking_deficit.html:77
+#: templates/inventory/warehouse_requests.html:51
+#: templates/inventory/warehouse_requests.html:156
+msgid "Draft"
+msgstr "پیش‌نویس"
+
+#: inventory/models.py:654 qc/models.py:43
+#: templates/inventory/purchase_requests.html:34
+#: templates/inventory/purchase_requests.html:52
+#: templates/inventory/stocktaking_records.html:67
+#: templates/inventory/warehouse_requests.html:34
+#: templates/inventory/warehouse_requests.html:52
+#: templates/inventory/warehouse_requests.html:158
+msgid "Approved"
+msgstr "تایید شده"
+
+#: inventory/models.py:655 templates/inventory/purchase_requests.html:53
+#, fuzzy
+#| msgid "Orders"
+msgid "Ordered"
+msgstr "سفارشات"
+
+#: inventory/models.py:656 templates/inventory/purchase_requests.html:38
+#: templates/inventory/purchase_requests.html:54
+msgid "Fulfilled"
+msgstr "تکمیل‌شده"
+
+#: inventory/models.py:657 production/models.py:227 production/models.py:360
+#: qc/models.py:39 templates/inventory/purchase_requests.html:55
+#: templates/inventory/warehouse_requests.html:55
+#: templates/inventory/warehouse_requests.html:164
+#, fuzzy
+#| msgid "Cancel"
+msgid "Cancelled"
+msgstr "لغو"
+
+#: inventory/models.py:706 shared/permissions.py:317
+#: templates/inventory/purchase_requests.html:4
+#: templates/inventory/purchase_requests.html:8
+#: templates/inventory/purchase_requests.html:14
+#: templates/inventory/purchase_requests.html:180
+#: templates/ui/components/sidebar.html:44
+msgid "Purchase Requests"
+msgstr "درخواست‌های خرید"
+
+#: inventory/models.py:749
+#, fuzzy
+#| msgid "Receipt Inspections"
+msgid "Awaiting inspection"
+msgstr "بازرسی رسیدها"
+
+#: inventory/models.py:750
+msgid "Closed/Cancelled"
+msgstr "بسته/لغو‌شده"
+
+#: inventory/models.py:830 shared/permissions.py:211
+#: templates/inventory/receipt_temporary.html:4
+#: templates/inventory/receipt_temporary.html:10
+#: templates/ui/components/sidebar.html:49
+msgid "Temporary Receipts"
+msgstr "رسیدهای موقت"
+
+#: inventory/models.py:964 inventory/views.py:915
+#, fuzzy
+#| msgid "Permanent Receipts"
+msgid "Permanent Receipt"
+msgstr "رسیدهای دائم"
+
+#: inventory/models.py:965 shared/permissions.py:227
+#: templates/inventory/receipt_permanent.html:4
+#: templates/inventory/receipt_permanent.html:10
+#: templates/ui/components/sidebar.html:50
+msgid "Permanent Receipts"
+msgstr "رسیدهای دائم"
+
+#: inventory/models.py:1094 inventory/views.py:934
+#, fuzzy
+#| msgid "Consignment Receipts"
+msgid "Consignment Receipt"
+msgstr "رسیدهای امانی"
+
+#: inventory/models.py:1095 shared/permissions.py:245
+#: templates/inventory/receipt_consignment.html:4
+#: templates/inventory/receipt_consignment.html:10
+#: templates/ui/components/sidebar.html:51
+msgid "Consignment Receipts"
+msgstr "رسیدهای امانی"
+
+#: inventory/models.py:1148
+#, fuzzy
+#| msgid "Items"
+msgid "Item Lot"
+msgstr "اقلام"
+
+#: inventory/models.py:1149
+#, fuzzy
+#| msgid "Items"
+msgid "Item Lots"
+msgstr "اقلام"
+
+#: inventory/models.py:1267 inventory/views.py:1449
+#: templates/inventory/issue_permanent.html:16
+#, fuzzy
+#| msgid "Permanent Issues"
+msgid "Permanent Issue"
+msgstr "حواله‌های دائم"
+
+#: inventory/models.py:1268 shared/permissions.py:264
+#: templates/inventory/issue_permanent.html:4
+#: templates/inventory/issue_permanent.html:10
+#: templates/inventory/issue_permanent.html:169
+#: templates/ui/components/sidebar.html:57
+msgid "Permanent Issues"
+msgstr "حواله‌های دائم"
+
+#: inventory/models.py:1370 inventory/views.py:1464
+#: templates/inventory/issue_consumption.html:16
+msgid "Consumption Issue"
+msgstr "حواله مصرف"
+
+#: inventory/models.py:1371 shared/permissions.py:282
+#: templates/inventory/issue_consumption.html:4
+#: templates/inventory/issue_consumption.html:10
+#: templates/ui/components/sidebar.html:58
+msgid "Consumption Issues"
+msgstr "حواله‌های مصرفی"
+
+#: inventory/models.py:1450 inventory/views.py:1479
+#: templates/inventory/issue_consignment.html:16
+msgid "Consignment Issue"
+msgstr "حواله امانی"
+
+#: inventory/models.py:1451 shared/permissions.py:298
+#: templates/inventory/issue_consignment.html:4
+#: templates/inventory/issue_consignment.html:10
+#: templates/ui/components/sidebar.html:59
+msgid "Consignment Issues"
+msgstr "حواله‌های امانی"
+
+#: inventory/models.py:1473 inventory/models.py:1566 inventory/models.py:1658
+msgid "Stocktaking Session ID"
+msgstr "شناسه جلسه شمارش"
+
+#: inventory/models.py:1482 inventory/models.py:1575
+#: templates/inventory/inventory_balance.html:99
+msgid "Item Code"
+msgstr "کد کالا"
+
+#: inventory/models.py:1488 inventory/models.py:1581
+msgid "Warehouse Code"
+msgstr "کد انبار"
+
+#: inventory/models.py:1491 inventory/models.py:1584
+#: templates/inventory/stocktaking_deficit.html:52
+msgid "Quantity Expected"
+msgstr "مقدار مورد انتظار"
+
+# Quality Control Module
+#: inventory/models.py:1497 inventory/models.py:1590
+#: templates/inventory/stocktaking_deficit.html:53
+msgid "Quantity Counted"
+msgstr "مقدار شمارش‌شده"
+
+#: inventory/models.py:1503 inventory/models.py:1596
+#: templates/inventory/stocktaking_deficit.html:54
+msgid "Quantity Adjusted"
+msgstr "مقدار تعدیل‌شده"
+
+#: inventory/models.py:1510 inventory/models.py:1603
+msgid "Unit Cost"
+msgstr "بهای واحد"
+
+#: inventory/models.py:1518 inventory/models.py:1611
+msgid "Total Cost"
+msgstr "بهای کل"
+
+#: inventory/models.py:1525 inventory/models.py:1618
+msgid "Reason Code"
+msgstr "کد دلیل"
+
+#: inventory/models.py:1526 inventory/models.py:1619
+msgid "Investigation Reference"
+msgstr "مرجع بررسی"
+
+#: inventory/models.py:1528 inventory/models.py:1621
+msgid "Is Posted"
+msgstr "وضعیت ثبت‌شده"
+
+#: inventory/models.py:1547 shared/permissions.py:346
+msgid "Stocktaking Deficit"
+msgstr "کسری شمارش موجودی"
+
+#: inventory/models.py:1548
+msgid "Stocktaking Deficits"
+msgstr "کسری‌های شمارش موجودی"
+
+#: inventory/models.py:1640 shared/permissions.py:361
+msgid "Stocktaking Surplus"
+msgstr "مازاد شمارش موجودی"
+
+#: inventory/models.py:1641
+msgid "Stocktaking Surpluses"
+msgstr "مازادهای شمارش موجودی"
+
+#: inventory/models.py:1659
+msgid "Inventory Snapshot Time"
+msgstr "زمان ثبت موجودی"
+
+#: inventory/models.py:1665
+msgid "Confirmed By Code"
+msgstr "کد تأییدکننده"
+
+#: inventory/models.py:1666
+msgid "Confirmation Notes"
+msgstr "یادداشت‌های تأیید"
+
+#: inventory/models.py:1667
+msgid "Variance Document IDs"
+msgstr "شناسه‌های سند اختلاف"
+
+#: inventory/models.py:1668
+msgid "Variance Document Codes"
+msgstr "کدهای سند اختلاف"
+
+#: inventory/models.py:1670 templates/inventory/stocktaking_records.html:53
+msgid "Final Value"
+msgstr "ارزش نهایی"
+
+#: inventory/models.py:1677
+msgid "Approval Status"
+msgstr "وضعیت تأیید"
+
+#: inventory/models.py:1678
+msgid "Approved At"
+msgstr "زمان تأیید"
+
+#: inventory/models.py:1686
+msgid "Approver Notes"
+msgstr "یادداشت‌های تأییدکننده"
+
+#: inventory/models.py:1687
+msgid "Record Metadata"
+msgstr "اطلاعات تکمیلی سند"
+
+#: inventory/models.py:1705
+msgid "Stocktaking Record"
+msgstr "سند شمارش موجودی"
+
+#: inventory/models.py:1706 shared/permissions.py:376
+#: templates/inventory/stocktaking_records.html:4
+#: templates/inventory/stocktaking_records.html:10
+#: templates/inventory/stocktaking_records.html:16
+#: templates/inventory/stocktaking_records.html:112
+#: templates/ui/components/sidebar.html:67
+msgid "Stocktaking Records"
+msgstr "اسناد شمارش"
+
+#: inventory/models.py:1860 shared/permissions.py:331
+#: templates/inventory/warehouse_requests.html:4
+#: templates/inventory/warehouse_requests.html:8
+#: templates/inventory/warehouse_requests.html:14
+#: templates/inventory/warehouse_requests.html:194
+#: templates/ui/components/sidebar.html:45
+msgid "Warehouse Requests"
+msgstr "درخواست از انبار"
+
+#: inventory/views.py:44
+msgid "سند قفل شده و قابل ویرایش یا حذف نیست."
+msgstr "سند قفل شده و قابل ویرایش یا حذف نیست."
+
+#: inventory/views.py:46
+msgid "فقط ایجاد کننده می‌تواند این سند را ویرایش کند."
+msgstr "فقط ایجاد کننده می‌تواند این سند را ویرایش کند."
+
+#: inventory/views.py:77
+msgid "سند با موفقیت قفل شد و دیگر قابل ویرایش نیست."
+msgstr "سند با موفقیت قفل شد و دیگر قابل ویرایش نیست."
+
+#: inventory/views.py:78
+msgid "این سند قبلاً قفل شده است."
+msgstr "این سند قبلاً قفل شده است."
+
+#: inventory/views.py:83
+msgid "پیکربندی قفل سند نامعتبر است."
+msgstr "پیکربندی قفل سند نامعتبر است."
+
+#: inventory/views.py:270
+msgid "کالا با موفقیت ایجاد شد."
+msgstr "کالا با موفقیت ایجاد شد."
+
+#: inventory/views.py:275
+msgid "تعریف کالای جدید"
+msgstr "تعریف کالای جدید"
+
+#: inventory/views.py:305
+msgid "اطلاعات کالا با موفقیت ویرایش شد."
+msgstr "اطلاعات کالا با موفقیت ویرایش شد."
+
+#: inventory/views.py:310
+msgid "ویرایش کالا"
+msgstr "ویرایش کالا"
+
+#: inventory/views.py:320
+msgid "کالا حذف شد."
+msgstr "کالا حذف شد."
+
+#: inventory/views.py:360
+msgid "دسته‌بندی تأمین‌کننده با موفقیت ایجاد شد."
+msgstr "دسته‌بندی تأمین‌کننده با موفقیت ایجاد شد."
+
+#: inventory/views.py:365
+msgid "ایجاد دسته‌بندی تأمین‌کننده"
+msgstr "ایجاد دسته‌بندی تأمین‌کننده"
+
+#: inventory/views.py:382
+msgid "دسته‌بندی تأمین‌کننده با موفقیت ویرایش شد."
+msgstr "دسته‌بندی تأمین‌کننده با موفقیت ویرایش شد."
+
+#: inventory/views.py:387
+msgid "ویرایش دسته‌بندی تأمین‌کننده"
+msgstr "ویرایش دسته‌بندی تأمین‌کننده"
+
+#: inventory/views.py:397
+msgid "دسته‌بندی تأمین‌کننده حذف شد."
+msgstr "دسته‌بندی تأمین‌کننده حذف شد."
+
+#: inventory/views.py:417
+msgid "تأمین‌کننده با موفقیت ایجاد شد."
+msgstr "تأمین‌کننده با موفقیت ایجاد شد."
+
+#: inventory/views.py:422
+msgid "ایجاد تأمین‌کننده"
+msgstr "ایجاد تأمین‌کننده"
+
+#: inventory/views.py:434
+msgid "تأمین‌کننده با موفقیت ویرایش شد."
+msgstr "تأمین‌کننده با موفقیت ویرایش شد."
+
+#: inventory/views.py:439
+msgid "ویرایش تأمین‌کننده"
+msgstr "ویرایش تأمین‌کننده"
+
+#: inventory/views.py:449
+msgid "تأمین‌کننده حذف شد."
+msgstr "تأمین‌کننده حذف شد."
+
+#: inventory/views.py:568
+msgid "ایجاد درخواست خرید"
+msgstr "ایجاد درخواست خرید"
+
+#: inventory/views.py:573 inventory/views.py:610 inventory/views.py:628
+#: inventory/views.py:788 inventory/views.py:826 inventory/views.py:845
+msgid "شرکت فعال مشخص نشده است."
+msgstr "شرکت فعال مشخص نشده است."
+
+#: inventory/views.py:577 inventory/views.py:643 inventory/views.py:792
+#: inventory/views.py:860
+msgid "برای این شرکت پروفایل پرسنلی متصل به کاربر فعلی یافت نشد."
+msgstr "برای این شرکت پروفایل پرسنلی متصل به کاربر فعلی یافت نشد."
+
+#: inventory/views.py:584
+msgid "درخواست خرید با موفقیت ثبت شد."
+msgstr "درخواست خرید با موفقیت ثبت شد."
+
+#: inventory/views.py:589 inventory/views.py:619 inventory/views.py:804
+#: inventory/views.py:835
+msgid "اطلاعات درخواست"
+msgstr "اطلاعات درخواست"
+
+#: inventory/views.py:590 inventory/views.py:620
+msgid "تایید"
+msgstr "تایید"
+
+#: inventory/views.py:598
+msgid "ویرایش درخواست خرید"
+msgstr "ویرایش درخواست خرید"
+
+#: inventory/views.py:614
+msgid "درخواست خرید با موفقیت بروزرسانی شد."
+msgstr "درخواست خرید با موفقیت بروزرسانی شد."
+
+#: inventory/views.py:638 inventory/views.py:855
+msgid "این درخواست قبلاً تایید شده است."
+msgstr "این درخواست قبلاً تایید شده است."
+
+#: inventory/views.py:647 inventory/views.py:864
+msgid "تنها تاییدکننده تعیین‌شده می‌تواند این درخواست را تایید کند."
+msgstr "تنها تاییدکننده تعیین‌شده می‌تواند این درخواست را تایید کند."
+
+#: inventory/views.py:652
+msgid "شما مجوز تایید درخواست خرید را ندارید."
+msgstr "شما مجوز تایید درخواست خرید را ندارید."
+
+#: inventory/views.py:661
+msgid "درخواست خرید تایید شد و برای استفاده در رسیدها آماده است."
+msgstr "درخواست خرید تایید شد و برای استفاده در رسیدها آماده است."
+
+#: inventory/views.py:783
+#, fuzzy
+#| msgid "ویرایش درخواست خرید"
+msgid "ایجاد درخواست انبار"
+msgstr "ویرایش درخواست خرید"
+
+#: inventory/views.py:799
+#, fuzzy
+#| msgid "درخواست خرید با موفقیت ثبت شد."
+msgid "درخواست انبار با موفقیت ثبت شد."
+msgstr "درخواست خرید با موفقیت ثبت شد."
+
+#: inventory/views.py:805 inventory/views.py:836
+msgid "زمان‌بندی و اولویت"
+msgstr "زمان‌بندی و اولویت"
+
+#: inventory/views.py:806 inventory/views.py:837
+msgid "تایید و توضیحات"
+msgstr "تایید و توضیحات"
+
+#: inventory/views.py:814
+#, fuzzy
+#| msgid "ویرایش درخواست خرید"
+msgid "ویرایش درخواست انبار"
+msgstr "ویرایش درخواست خرید"
+
+#: inventory/views.py:830
+#, fuzzy
+#| msgid "درخواست خرید با موفقیت بروزرسانی شد."
+msgid "درخواست انبار با موفقیت بروزرسانی شد."
+msgstr "درخواست خرید با موفقیت بروزرسانی شد."
+
+#: inventory/views.py:869
+#, fuzzy
+#| msgid "شما مجوز تایید درخواست خرید را ندارید."
+msgid "شما مجوز تایید درخواست انبار را ندارید."
+msgstr "شما مجوز تایید درخواست خرید را ندارید."
+
+#: inventory/views.py:880
+#, fuzzy
+#| msgid "درخواست خرید تایید شد و برای استفاده در رسیدها آماده است."
+msgid "درخواست انبار تایید شد و برای استفاده در رسیدها آماده است."
+msgstr "درخواست خرید تایید شد و برای استفاده در رسیدها آماده است."
+
+#: inventory/views.py:899
+#, fuzzy
+#| msgid "Temporary Receipts"
+msgid "No Temporary Receipts Found"
+msgstr "رسیدهای موقت"
+
+#: inventory/views.py:900
+#, fuzzy
+#| msgid "Start by creating your first item."
+msgid "Start by creating your first temporary receipt."
+msgstr "با ایجاد اولین قلم شروع کنید."
+
+#: inventory/views.py:918
+#, fuzzy
+#| msgid "Permanent Receipts"
+msgid "No Permanent Receipts Found"
+msgstr "رسیدهای دائم"
+
+#: inventory/views.py:919
+#, fuzzy
+#| msgid "Start by creating your first item type."
+msgid "Start by creating your first permanent receipt."
+msgstr "با ایجاد اولین نوع قلم شروع کنید."
+
+#: inventory/views.py:937
+#, fuzzy
+#| msgid "Consignment Receipts"
+msgid "No Consignment Receipts Found"
+msgstr "رسیدهای امانی"
+
+#: inventory/views.py:938
+#, fuzzy
+#| msgid "Start by creating your first item."
+msgid "Start by creating your first consignment receipt."
+msgstr "با ایجاد اولین قلم شروع کنید."
+
+#: inventory/views.py:1086
+msgid "ایجاد رسید موقت"
+msgstr "ایجاد رسید موقت"
+
+#: inventory/views.py:1095
+msgid "رسید موقت با موفقیت ایجاد شد."
+msgstr "رسید موقت با موفقیت ایجاد شد."
+
+#: inventory/views.py:1100 inventory/views.py:1125 inventory/views.py:1148
+#: inventory/views.py:1174 inventory/views.py:1199 inventory/views.py:1225
+#: inventory/views.py:1249 inventory/views.py:1275 inventory/views.py:1299
+#: inventory/views.py:1326 inventory/views.py:1351 inventory/views.py:1377
+#, fuzzy
+#| msgid "Select a Warehouse"
+msgid "Item & Warehouse"
+msgstr "انتخاب انبار"
+
+#: inventory/views.py:1101 inventory/views.py:1126
+#, fuzzy
+#| msgid "Supplier Categories"
+msgid "Supplier & References"
+msgstr "دسته‌بندی تامین‌کنندگان"
+
+#: inventory/views.py:1109
+msgid "ویرایش رسید موقت"
+msgstr "ویرایش رسید موقت"
+
+#: inventory/views.py:1120
+msgid "رسید موقت با موفقیت ویرایش شد."
+msgstr "رسید موقت با موفقیت ویرایش شد."
+
+#: inventory/views.py:1134
+msgid "ایجاد رسید دائم"
+msgstr "ایجاد رسید دائم"
+
+#: inventory/views.py:1143
+msgid "رسید دائم با موفقیت ایجاد شد."
+msgstr "رسید دائم با موفقیت ایجاد شد."
+
+#: inventory/views.py:1149 inventory/views.py:1175 inventory/views.py:1251
+#: inventory/views.py:1277
+msgid "Financials"
+msgstr "اطلاعات مالی"
+
+#: inventory/views.py:1150 inventory/views.py:1176 inventory/views.py:1201
+#: inventory/views.py:1227 inventory/views.py:1301 inventory/views.py:1328
+msgid "References"
+msgstr "ارجاعات"
+
+#: inventory/views.py:1158
+msgid "ویرایش رسید دائم"
+msgstr "ویرایش رسید دائم"
+
+#: inventory/views.py:1169
+msgid "رسید دائم با موفقیت ویرایش شد."
+msgstr "رسید دائم با موفقیت ویرایش شد."
+
+# Quality Control Module
+#: inventory/views.py:1177
+#, fuzzy
+#| msgid "Quality Control"
+msgid "Controls"
+msgstr "کنترل کیفیت"
+
+#: inventory/views.py:1185
+msgid "ایجاد رسید امانی"
+msgstr "ایجاد رسید امانی"
+
+#: inventory/views.py:1194
+msgid "رسید امانی با موفقیت ایجاد شد."
+msgstr "رسید امانی با موفقیت ایجاد شد."
+
+#: inventory/views.py:1200 inventory/views.py:1226
+#, fuzzy
+#| msgid "Supplier Categories"
+msgid "Supplier & Contract"
+msgstr "دسته‌بندی تامین‌کنندگان"
+
+#: inventory/views.py:1209
+msgid "ویرایش رسید امانی"
+msgstr "ویرایش رسید امانی"
+
+#: inventory/views.py:1220
+msgid "رسید امانی با موفقیت ویرایش شد."
+msgstr "رسید امانی با موفقیت ویرایش شد."
+
+#: inventory/views.py:1235
+msgid "ایجاد حواله دائم"
+msgstr "ایجاد حواله دائم"
+
+#: inventory/views.py:1244
+msgid "حواله دائم با موفقیت ایجاد شد."
+msgstr "حواله دائم با موفقیت ایجاد شد."
+
+#: inventory/views.py:1250 inventory/views.py:1276
+#, fuzzy
+#| msgid "Description"
+msgid "Destination"
+msgstr "توضیحات"
+
+#: inventory/views.py:1259
+msgid "ویرایش حواله دائم"
+msgstr "ویرایش حواله دائم"
+
+#: inventory/views.py:1270
+msgid "حواله دائم با موفقیت ویرایش شد."
+msgstr "حواله دائم با موفقیت ویرایش شد."
+
+#: inventory/views.py:1285
+msgid "ایجاد حواله مصرف"
+msgstr "ایجاد حواله مصرف"
+
+#: inventory/views.py:1294
+msgid "حواله مصرف با موفقیت ایجاد شد."
+msgstr "حواله مصرف با موفقیت ایجاد شد."
+
+#: inventory/views.py:1300 inventory/views.py:1327
+#, fuzzy
+#| msgid "Details"
+msgid "Usage Details"
+msgstr "جزئیات"
+
+#: inventory/views.py:1302 inventory/views.py:1329
+msgid "Costing"
+msgstr "محاسبات هزینه"
+
+#: inventory/views.py:1310
+msgid "ویرایش حواله مصرف"
+msgstr "ویرایش حواله مصرف"
+
+#: inventory/views.py:1321
+msgid "حواله مصرف با موفقیت ویرایش شد."
+msgstr "حواله مصرف با موفقیت ویرایش شد."
+
+#: inventory/views.py:1337
+msgid "ایجاد حواله امانی"
+msgstr "ایجاد حواله امانی"
+
+#: inventory/views.py:1346
+msgid "حواله امانی با موفقیت ایجاد شد."
+msgstr "حواله امانی با موفقیت ایجاد شد."
+
+#: inventory/views.py:1352 inventory/views.py:1378
+#, fuzzy
+#| msgid "Consignment Issues"
+msgid "Consignment"
+msgstr "حواله‌های امانی"
+
+#: inventory/views.py:1353 inventory/views.py:1379
+msgid "Destination & Reason"
+msgstr "مقصد و دلیل"
+
+#: inventory/views.py:1361
+msgid "ویرایش حواله امانی"
+msgstr "ویرایش حواله امانی"
+
+#: inventory/views.py:1372
+msgid "حواله امانی با موفقیت ویرایش شد."
+msgstr "حواله امانی با موفقیت ویرایش شد."
+
+#: inventory/views.py:1386
+msgid "رسید موقت قفل شد و دیگر قابل ویرایش نیست."
+msgstr "رسید موقت قفل شد و دیگر قابل ویرایش نیست."
+
+#: inventory/views.py:1392
+msgid "رسید دائم قفل شد و دیگر قابل ویرایش نیست."
+msgstr "رسید دائم قفل شد و دیگر قابل ویرایش نیست."
+
+#: inventory/views.py:1398
+msgid "رسید امانی قفل شد و دیگر قابل ویرایش نیست."
+msgstr "رسید امانی قفل شد و دیگر قابل ویرایش نیست."
+
+#: inventory/views.py:1404
+msgid "حواله دائم قفل شد و دیگر قابل ویرایش نیست."
+msgstr "حواله دائم قفل شد و دیگر قابل ویرایش نیست."
+
+#: inventory/views.py:1410
+msgid "حواله مصرفی قفل شد و دیگر قابل ویرایش نیست."
+msgstr "حواله مصرفی قفل شد و دیگر قابل ویرایش نیست."
+
+#: inventory/views.py:1416
+msgid "حواله امانی قفل شد و دیگر قابل ویرایش نیست."
+msgstr "حواله امانی قفل شد و دیگر قابل ویرایش نیست."
+
+#: inventory/views.py:1422
+msgid "سند کسری شمارش موجودی قفل شد و دیگر قابل ویرایش نیست."
+msgstr "سند کسری شمارش موجودی قفل شد و دیگر قابل ویرایش نیست."
+
+#: inventory/views.py:1428
+msgid "سند مازاد شمارش موجودی قفل شد و دیگر قابل ویرایش نیست."
+msgstr "سند مازاد شمارش موجودی قفل شد و دیگر قابل ویرایش نیست."
+
+#: inventory/views.py:1434
+msgid "گزارش نهایی شمارش موجودی قفل شد و دیگر قابل ویرایش نیست."
+msgstr "گزارش نهایی شمارش موجودی قفل شد و دیگر قابل ویرایش نیست."
+
+#: inventory/views.py:1488
+msgid "ایجاد سند کسری انبارگردانی"
+msgstr "ایجاد سند کسری انبارگردانی"
+
+#: inventory/views.py:1497
+msgid "سند کسری انبارگردانی با موفقیت ایجاد شد."
+msgstr "سند کسری انبارگردانی با موفقیت ایجاد شد."
+
+#: inventory/views.py:1502 inventory/views.py:1527 inventory/views.py:1552
+#: inventory/views.py:1577 inventory/views.py:1602 inventory/views.py:1627
+msgid "اطلاعات سند"
+msgstr "اطلاعات سند"
+
+#: inventory/views.py:1503 inventory/views.py:1528 inventory/views.py:1553
+#: inventory/views.py:1578
+msgid "مقادیر"
+msgstr "مقادیر"
+
+#: inventory/views.py:1504 inventory/views.py:1529 inventory/views.py:1554
+#: inventory/views.py:1579
+msgid "ارزش‌گذاری"
+msgstr "ارزش‌گذاری"
+
+#: inventory/views.py:1505 inventory/views.py:1530 inventory/views.py:1555
+#: inventory/views.py:1580
+msgid "جزئیات اضافه"
+msgstr "جزئیات اضافه"
+
+#: inventory/views.py:1513
+msgid "ویرایش سند کسری انبارگردانی"
+msgstr "ویرایش سند کسری انبارگردانی"
+
+#: inventory/views.py:1522
+msgid "سند کسری انبارگردانی با موفقیت بروزرسانی شد."
+msgstr "سند کسری انبارگردانی با موفقیت بروزرسانی شد."
+
+#: inventory/views.py:1538
+msgid "ایجاد سند مازاد انبارگردانی"
+msgstr "ایجاد سند مازاد انبارگردانی"
+
+#: inventory/views.py:1547
+msgid "سند مازاد انبارگردانی با موفقیت ایجاد شد."
+msgstr "سند مازاد انبارگردانی با موفقیت ایجاد شد."
+
+#: inventory/views.py:1563
+msgid "ویرایش سند مازاد انبارگردانی"
+msgstr "ویرایش سند مازاد انبارگردانی"
+
+#: inventory/views.py:1572
+msgid "سند مازاد انبارگردانی با موفقیت بروزرسانی شد."
+msgstr "سند مازاد انبارگردانی با موفقیت بروزرسانی شد."
+
+#: inventory/views.py:1588
+msgid "ایجاد سند نهایی انبارگردانی"
+msgstr "ایجاد سند نهایی انبارگردانی"
+
+#: inventory/views.py:1597
+msgid "سند نهایی انبارگردانی با موفقیت ایجاد شد."
+msgstr "سند نهایی انبارگردانی با موفقیت ایجاد شد."
+
+#: inventory/views.py:1603 inventory/views.py:1628
+msgid "تأیید موجودی"
+msgstr "تأیید موجودی"
+
+#: inventory/views.py:1604 inventory/views.py:1629
+msgid "وضعیت تایید"
+msgstr "وضعیت تایید"
+
+#: inventory/views.py:1605 inventory/views.py:1630
+msgid "خلاصه موجودی"
+msgstr "خلاصه موجودی"
+
+#: inventory/views.py:1613
+msgid "ویرایش سند نهایی انبارگردانی"
+msgstr "ویرایش سند نهایی انبارگردانی"
+
+#: inventory/views.py:1622
+msgid "سند نهایی انبارگردانی با موفقیت بروزرسانی شد."
+msgstr "سند نهایی انبارگردانی با موفقیت بروزرسانی شد."
+
+#: inventory/views.py:1788
+#, fuzzy
+#| msgid "Company created successfully."
+msgid "Item Type created successfully."
+msgstr "شرکت با موفقیت ایجاد شد."
+
+#: inventory/views.py:1793 templates/inventory/item_types.html:16
+#, fuzzy
+#| msgid "Create Item Type +"
+msgid "Create Item Type"
+msgstr "ایجاد نوع قلم +"
+
+#: inventory/views.py:1805
+#, fuzzy
+#| msgid "Company updated successfully."
+msgid "Item Type updated successfully."
+msgstr "شرکت با موفقیت به‌روزرسانی شد."
+
+#: inventory/views.py:1810
+#, fuzzy
+#| msgid "Item Types"
+msgid "Edit Item Type"
+msgstr "انواع قلم"
+
+#: inventory/views.py:1820
+#, fuzzy
+#| msgid "Company deleted successfully."
+msgid "Item Type deleted successfully."
+msgstr "شرکت با موفقیت حذف شد."
+
+#: inventory/views.py:1834
+#, fuzzy
+#| msgid "Company created successfully."
+msgid "Item Category created successfully."
+msgstr "شرکت با موفقیت ایجاد شد."
+
+#: inventory/views.py:1839
+#, fuzzy
+#| msgid "Create Item +"
+msgid "Create Item Category"
+msgstr "ایجاد اقلام +"
+
+#: inventory/views.py:1852
+#, fuzzy
+#| msgid "Company updated successfully."
+msgid "Item Category updated successfully."
+msgstr "شرکت با موفقیت به‌روزرسانی شد."
+
+#: inventory/views.py:1857
+#, fuzzy
+#| msgid "Item Categories"
+msgid "Edit Item Category"
+msgstr "دسته‌بندی اقلام"
+
+#: inventory/views.py:1868
+#, fuzzy
+#| msgid "Company deleted successfully."
+msgid "Item Category deleted successfully."
+msgstr "شرکت با موفقیت حذف شد."
+
+#: inventory/views.py:1889
+#, fuzzy
+#| msgid "Company created successfully."
+msgid "Item Subcategory created successfully."
+msgstr "شرکت با موفقیت ایجاد شد."
+
+#: inventory/views.py:1894
+#, fuzzy
+#| msgid "Create Item +"
+msgid "Create Item Subcategory"
+msgstr "ایجاد اقلام +"
+
+#: inventory/views.py:1913
+#, fuzzy
+#| msgid "Company updated successfully."
+msgid "Item Subcategory updated successfully."
+msgstr "شرکت با موفقیت به‌روزرسانی شد."
+
+#: inventory/views.py:1918
+#, fuzzy
+#| msgid "Item Categories"
+msgid "Edit Item Subcategory"
+msgstr "دسته‌بندی اقلام"
+
+#: inventory/views.py:1935
+#, fuzzy
+#| msgid "Company deleted successfully."
+msgid "Item Subcategory deleted successfully."
+msgstr "شرکت با موفقیت حذف شد."
+
+#: inventory/views.py:1949
+#, fuzzy
+#| msgid "Person created successfully."
+msgid "Warehouse created successfully."
+msgstr "شخص با موفقیت ایجاد شد."
+
+#: inventory/views.py:1954
+#, fuzzy
+#| msgid "Select Warehouse"
+msgid "Create Warehouse"
+msgstr "انتخاب انبار"
+
+#: inventory/views.py:1966
+#, fuzzy
+#| msgid "Person updated successfully."
+msgid "Warehouse updated successfully."
+msgstr "شخص با موفقیت به‌روزرسانی شد."
+
+#: inventory/views.py:1971
+#, fuzzy
+#| msgid "Warehouses"
+msgid "Edit Warehouse"
+msgstr "انبارها"
+
+#: inventory/views.py:1981
+#, fuzzy
+#| msgid "Person deleted successfully."
+msgid "Warehouse deleted successfully."
+msgstr "شخص با موفقیت حذف شد."
+
+#: production/models.py:53
+#, fuzzy
+#| msgid "Work Centers"
+msgid "Work Center"
+msgstr "مراکز کار"
+
+#: production/models.py:54
+msgid "Work Centers"
+msgstr "مراکز کار"
+
+#: production/models.py:103
+#, fuzzy
+#| msgid "BOM Materials"
+msgid "BOM Material"
+msgstr "مواد BOM"
+
+#: production/models.py:104
+msgid "BOM Materials"
+msgstr "مواد BOM"
+
+#: production/models.py:150
+#, fuzzy
+#| msgid "Production Orders"
+msgid "Production Process"
+msgstr "سفارشات تولید"
+
+#: production/models.py:151
+#, fuzzy
+#| msgid "Production Orders"
+msgid "Production Processes"
+msgstr "سفارشات تولید"
+
+#: production/models.py:202
+msgid "Process Step"
+msgstr "مرحلهٔ فرآیند"
+
+#: production/models.py:203
+msgid "Process Steps"
+msgstr "مراحل فرآیند"
+
+#: production/models.py:223
+msgid "Planned"
+msgstr "برنامه‌ریزی‌شده"
+
+#: production/models.py:224
+msgid "Released"
+msgstr "آزاد شده"
+
+#: production/models.py:225 qc/models.py:35
+msgid "In Progress"
+msgstr "در حال انجام"
+
+#: production/models.py:226
+msgid "Completed"
+msgstr "تکمیل‌شده"
+
+#: production/models.py:263
+msgid "Production Order"
+msgstr "سفارش تولید"
+
+#: production/models.py:264
+msgid "Production Orders"
+msgstr "سفارشات تولید"
+
+#: production/models.py:334
+msgid "Order Performance"
+msgstr "عملکرد سفارش"
+
+#: production/models.py:335
+#, fuzzy
+#| msgid "Order Performance"
+msgid "Order Performances"
+msgstr "عملکرد سفارش"
+
+#: production/models.py:358 templates/inventory/warehouse_requests.html:38
+#: templates/inventory/warehouse_requests.html:53
+#: templates/inventory/warehouse_requests.html:160
+msgid "Issued"
+msgstr "صادر شده"
+
+#: production/models.py:359
+msgid "Delivered"
+msgstr "تحویل شده"
+
+#: production/models.py:374
+msgid "Transfer To Line"
+msgstr "انتقال به خط"
+
+#: production/models.py:375
+msgid "Transfers To Line"
+msgstr "انتقال‌ها به خط"
+
+#: production/models.py:432
+msgid "Transfer To Line Item"
+msgstr "آیتم انتقال به خط"
+
+#: production/models.py:433
+msgid "Transfer To Line Items"
+msgstr "آیتم‌های انتقال به خط"
+
+#: qc/models.py:36
+msgid "Passed"
+msgstr "قبول شده"
+
+#: qc/models.py:37
+msgid "Failed"
+msgstr "رد شده"
+
+#: qc/models.py:38
+msgid "Rework"
+msgstr "بازکاری"
+
+#: qc/models.py:42 templates/inventory/stocktaking_records.html:71
+msgid "Pending"
+msgstr "در انتظار"
+
+#: qc/models.py:44
+msgid "Approved with Deviation"
+msgstr "تایید با انحراف"
+
+#: qc/models.py:45 templates/inventory/stocktaking_records.html:69
+#: templates/inventory/warehouse_requests.html:54
+#: templates/inventory/warehouse_requests.html:162
+msgid "Rejected"
+msgstr "رد شده"
+
+#: qc/models.py:87
+#, fuzzy
+#| msgid "Receipt Inspections"
+msgid "Receipt Inspection"
+msgstr "بازرسی رسیدها"
+
+#: qc/models.py:88
+msgid "Receipt Inspections"
+msgstr "بازرسی رسیدها"
+
+#: shared/admin.py:15 shared/admin.py:30
+msgid "Additional info"
+msgstr "اطلاعات تکمیلی"
+
+#: shared/forms.py:63 templates/shared/companies.html:53
+#: templates/shared/company_confirm_delete.html:28
+msgid "Legal Name"
+msgstr "نام قانونی"
+
+#: shared/forms.py:64 templates/shared/companies.html:52
+#: templates/shared/company_confirm_delete.html:27
+msgid "Display Name"
+msgstr "نام نمایشی"
+
+#: shared/forms.py:65
+#, fuzzy
+#| msgid "Display Name"
+msgid "Display Name (English)"
+msgstr "نام نمایشی"
+
+#: shared/forms.py:66
+msgid "Registration Number"
+msgstr "شماره ثبت"
+
+#: shared/forms.py:68 shared/forms.py:137 shared/forms.py:292
+msgid "Phone"
+msgstr "تلفن"
+
+#: shared/forms.py:70
+msgid "Website"
+msgstr "وب‌سایت"
+
+#: shared/forms.py:74 templates/shared/companies.html:56
+msgid "Country"
+msgstr "کشور"
+
+#: shared/forms.py:85
+msgid "Use Personnel Code as Username"
+msgstr "استفاده از کد پرسنلی به عنوان نام کاربری"
+
+#: shared/forms.py:86
+msgid "If checked, username will be same as personnel code"
+msgstr "در صورت تیک خوردن، نام کاربری همان کد پرسنلی خواهد بود"
+
+#: shared/forms.py:130 shared/forms.py:288
+#: templates/shared/person_confirm_delete.html:27
+#: templates/shared/personnel.html:52
+msgid "First Name"
+msgstr "نام"
+
+#: shared/forms.py:131 shared/forms.py:289
+#: templates/shared/person_confirm_delete.html:28
+#: templates/shared/personnel.html:53
+msgid "Last Name"
+msgstr "نام خانوادگی"
+
+#: shared/forms.py:132 shared/forms.py:290
+#, fuzzy
+#| msgid "First Name"
+msgid "First Name (English)"
+msgstr "نام"
+
+#: shared/forms.py:133 shared/forms.py:291
+#, fuzzy
+#| msgid "Last Name"
+msgid "Last Name (English)"
+msgstr "نام خانوادگی"
+
+#: shared/forms.py:134 templates/shared/person_confirm_delete.html:29
+#: templates/shared/personnel.html:54
+msgid "National ID"
+msgstr "کد ملی"
+
+#: shared/forms.py:135
+msgid "Personnel Code"
+msgstr "کد پرسنلی"
+
+#: shared/forms.py:136 shared/forms.py:286 templates/shared/users_list.html:52
+msgid "Username"
+msgstr "نام کاربری"
+
+#: shared/forms.py:138 shared/forms.py:293 templates/shared/personnel.html:55
+msgid "Mobile"
+msgstr "موبایل"
+
+#: shared/forms.py:143 shared/models.py:160 shared/permissions.py:64
+#: templates/shared/personnel.html:57 templates/ui/components/sidebar.html:7
+#, fuzzy
+#| msgid "Companies"
+msgid "Company Units"
+msgstr "شرکت‌ها"
+
+#: shared/forms.py:152
+msgid "Select one or more organizational units."
+msgstr "Select one or more organizational units."
+
+#: shared/forms.py:155 shared/views.py:244 shared/views.py:274
+msgid "Please select a company first."
+msgstr "لطفاً ابتدا یک شرکت انتخاب کنید."
+
+#: shared/forms.py:172
+msgid "Personnel Code is required when using it as username."
+msgstr "کد پرسنلی الزامی است وقتی به عنوان نام کاربری استفاده می‌شود."
+
+#: shared/forms.py:176
+msgid "Username is required when not using personnel code."
+msgstr "نام کاربری الزامی است وقتی از کد پرسنلی استفاده نمی‌شود."
+
+#: shared/forms.py:182
+msgid "Selected units must belong to the active company."
+msgstr "واحدهای انتخاب‌شده باید متعلق به شرکت فعال باشند."
+
+#: shared/forms.py:193
+msgid "Parent Unit"
+msgstr "واحد والد"
+
+#: shared/forms.py:245
+msgid "Parent unit must belong to the same company."
+msgstr "واحد والد باید متعلق به همان شرکت باشد."
+
+#: shared/forms.py:253 shared/permissions.py:97
+#: templates/shared/group_confirm_delete.html:12
+#: templates/shared/group_form.html:12 templates/shared/groups_list.html:4
+#: templates/shared/groups_list.html:12 templates/shared/groups_list.html:15
+#: templates/shared/users_list.html:56 templates/ui/components/sidebar.html:13
+msgid "Groups"
+msgstr "Groups"
+
+#: shared/forms.py:255
+msgid "Assign the user to one or more groups."
+msgstr "Assign the user to one or more groups."
+
+#: shared/forms.py:294 shared/forms.py:312
+#: templates/inventory/item_types.html:44
+#: templates/inventory/warehouses.html:44
+#: templates/inventory/work_lines.html:42
+#: templates/shared/access_levels_list.html:36
+#: templates/shared/access_levels_list.html:73
+#: templates/shared/companies.html:35 templates/shared/companies.html:72
+#: templates/shared/groups_list.html:36 templates/shared/groups_list.html:95
+#: templates/shared/personnel.html:35 templates/shared/personnel.html:82
+#: templates/shared/users_list.html:36 templates/shared/users_list.html:99
+msgid "Active"
+msgstr "فعال"
+
+#: shared/forms.py:295 shared/forms.py:318
+msgid "Staff User"
+msgstr "کاربر کارکنان"
+
+#: shared/forms.py:296 shared/forms.py:324
+msgid "Superuser"
+msgstr "ابرکاربر"
+
+#: shared/forms.py:297 templates/shared/users_list.html:55
+msgid "Default Company"
+msgstr "شرکت پیش‌فرض"
+
+#: shared/forms.py:346
+msgid "Password"
+msgstr "گذرواژه"
+
+#: shared/forms.py:351
+msgid "Password confirmation"
+msgstr "تأیید گذرواژه"
+
+#: shared/forms.py:354
+msgid "Enter the same password as before, for verification."
+msgstr "برای اطمینان، همان گذرواژه قبلی را دوباره وارد کنید."
+
+#: shared/forms.py:365
+msgid "The two password fields didn’t match."
+msgstr "دو فیلد گذرواژه با هم مطابقت ندارند."
+
+#: shared/forms.py:379
+msgid "New password"
+msgstr "گذرواژه جدید"
+
+#: shared/forms.py:385
+msgid "Confirm new password"
+msgstr "تأیید گذرواژه جدید"
+
+#: shared/forms.py:400
+msgid "The new passwords do not match."
+msgstr "گذرواژه‌های جدید یکسان نیستند."
+
+#: shared/forms.py:429 shared/models.py:187 shared/permissions.py:108
+#: templates/shared/access_level_confirm_delete.html:12
+#: templates/shared/access_level_form.html:12
+#: templates/shared/access_levels_list.html:4
+#: templates/shared/access_levels_list.html:12
+#: templates/shared/access_levels_list.html:15
+#: templates/shared/groups_list.html:54 templates/ui/components/sidebar.html:14
+msgid "Access Levels"
+msgstr "سطوح دسترسی"
+
+#: shared/forms.py:435 templates/shared/groups_list.html:55
+msgid "Members"
+msgstr "اعضا"
+
+#: shared/forms.py:437
+msgid "Select users who should belong to this group."
+msgstr "کاربرانی را که باید عضو این گروه باشند انتخاب کنید."
+
+#: shared/forms.py:447
+msgid "Group Name"
+msgstr "نام گروه"
+
+#: shared/forms.py:501 templates/inventory/generic_confirm_delete.html:16
+#: templates/inventory/item_confirm_delete.html:16
+#: templates/inventory/item_types.html:27
+#: templates/inventory/item_types.html:28
+#: templates/inventory/itemcategory_confirm_delete.html:16
+#: templates/inventory/itemsubcategory_confirm_delete.html:16
+#: templates/inventory/itemtype_confirm_delete.html:16
+#: templates/inventory/supplier_confirm_delete.html:16
+#: templates/inventory/suppliercategory_confirm_delete.html:16
+#: templates/inventory/warehouse_confirm_delete.html:16
+#: templates/inventory/warehouses.html:27
+#: templates/inventory/warehouses.html:28
+#: templates/inventory/work_lines.html:27
+#: templates/shared/access_levels_list.html:53
+#: templates/shared/groups_list.html:52 templates/shared/users_list.html:53
+#, fuzzy
+#| msgid "Last Name"
+msgid "Name"
+msgstr "نام خانوادگی"
+
+#: shared/forms.py:504
+msgid "Global Role"
+msgstr "Global Role"
+
+#: shared/forms.py:524 shared/models.py:132 templates/base.html:23
+#: templates/shared/user_form.html:58
+msgid "Company"
+msgstr "شرکت"
+
+#: shared/forms.py:525 shared/models.py:186 templates/shared/user_form.html:59
+msgid "Access Level"
+msgstr "Access Level"
+
+#: shared/forms.py:526 templates/shared/user_form.html:60
+#: templates/shared/users_list.html:87
+msgid "Primary"
+msgstr "Primary"
+
+#: shared/forms.py:550
+msgid "Only one primary company may be selected per user."
+msgstr "Only one primary company may be selected per user."
+
+#: shared/models.py:14
+msgid "Disabled"
+msgstr "Disabled"
+
+#: shared/models.py:15
+msgid "Enabled"
+msgstr "Enabled"
+
+#: shared/models.py:74
+msgid "email address"
+msgstr "email address"
+
+#: shared/models.py:85
+msgid "Default company to use when user logs in"
+msgstr "Default company to use when user logs in"
+
+#: shared/models.py:91
+#, fuzzy
+#| msgid "Username"
+msgid "User"
+msgstr "نام کاربری"
+
+#: shared/models.py:92 shared/permissions.py:86
+#: templates/shared/user_confirm_delete.html:12
+#: templates/shared/user_form.html:12 templates/shared/users_list.html:4
+#: templates/shared/users_list.html:12 templates/shared/users_list.html:15
+#: templates/ui/components/sidebar.html:10
+#: templates/ui/components/sidebar.html:12
+#, fuzzy
+#| msgid "Username"
+msgid "Users"
+msgstr "نام کاربری"
+
+#: shared/models.py:133 shared/permissions.py:53
+#: templates/shared/companies.html:4 templates/shared/companies.html:12
+#: templates/shared/companies.html:15
+#: templates/shared/company_confirm_delete.html:12
+#: templates/shared/company_form.html:12 templates/ui/components/sidebar.html:6
+msgid "Companies"
+msgstr "شرکت‌ها"
+
+#: shared/models.py:159
+#, fuzzy
+#| msgid "Company"
+msgid "Company Unit"
+msgstr "شرکت"
+
+#: shared/models.py:210
+msgid "Access Level Permission"
+msgstr "Access Level Permission"
+
+#: shared/models.py:211
+msgid "Access Level Permissions"
+msgstr "Access Level Permissions"
+
+#: shared/models.py:237
+msgid "Group Profile"
+msgstr "Group Profile"
+
+#: shared/models.py:238
+msgid "Group Profiles"
+msgstr "Group Profiles"
+
+#: shared/models.py:266
+msgid "User Company Access"
+msgstr "User Company Access"
+
+#: shared/models.py:267
+msgid "User Company Accesses"
+msgstr "User Company Accesses"
+
+#: shared/models.py:330
+#, fuzzy
+#| msgid "Personnel"
+msgid "Person"
+msgstr "پرسنل"
+
+#: shared/models.py:331
+msgid "People"
+msgstr "People"
+
+#: shared/models.py:374
+#, fuzzy
+#| msgid "Personnel"
+msgid "Person Assignment"
+msgstr "پرسنل"
+
+#: shared/models.py:375
+#, fuzzy
+#| msgid "Consignment Issues"
+msgid "Person Assignments"
+msgstr "حواله‌های امانی"
+
+#: shared/permissions.py:75 templates/shared/person_confirm_delete.html:12
+#: templates/shared/person_form.html:12 templates/shared/personnel.html:4
+#: templates/shared/personnel.html:12 templates/shared/personnel.html:15
+#: templates/ui/components/sidebar.html:8
+msgid "Personnel"
+msgstr "پرسنل"
+
+#: shared/permissions.py:391 templates/inventory/inventory_balance.html:4
+#: templates/inventory/inventory_balance.html:8
+#: templates/ui/components/sidebar.html:34
+msgid "Inventory Balance"
+msgstr "موجودی انبار"
+
+#: shared/views.py:182
+msgid "Company created successfully."
+msgstr "شرکت با موفقیت ایجاد شد."
+
+#: shared/views.py:188
+msgid "Create Company"
+msgstr "ایجاد شرکت"
+
+#: shared/views.py:202
+msgid "Company updated successfully."
+msgstr "شرکت با موفقیت به‌روزرسانی شد."
+
+#: shared/views.py:208
+msgid "Edit Company"
+msgstr "ویرایش شرکت"
+
+#: shared/views.py:219
+msgid "Company deleted successfully."
+msgstr "شرکت با موفقیت حذف شد."
+
+#: shared/views.py:249
+msgid "Person created successfully."
+msgstr "شخص با موفقیت ایجاد شد."
+
+#: shared/views.py:255
+msgid "Create Person"
+msgstr "ایجاد شخص"
+
+#: shared/views.py:310
+msgid "Person updated successfully."
+msgstr "شخص با موفقیت به‌روزرسانی شد."
+
+#: shared/views.py:316
+msgid "Edit Person"
+msgstr "ویرایش شخص"
+
+#: shared/views.py:357
+msgid "Person deleted successfully."
+msgstr "شخص با موفقیت حذف شد."
+
+#: shared/views.py:442
+#, fuzzy
+#| msgid "Create Person"
+msgid "Create User"
+msgstr "ایجاد شخص"
+
+#: shared/views.py:457
+#, fuzzy
+#| msgid "Person created successfully."
+msgid "User created successfully."
+msgstr "شخص با موفقیت ایجاد شد."
+
+#: shared/views.py:471
+#, fuzzy
+#| msgid "Edit Person"
+msgid "Edit User"
+msgstr "ویرایش شخص"
+
+#: shared/views.py:486
+#, fuzzy
+#| msgid "Person updated successfully."
+msgid "User updated successfully."
+msgstr "شخص با موفقیت به‌روزرسانی شد."
+
+#: shared/views.py:496
+#, fuzzy
+#| msgid "Person deleted successfully."
+msgid "User deleted successfully."
+msgstr "شخص با موفقیت حذف شد."
+
+#: shared/views.py:539
+#, fuzzy
+#| msgid "Create Person"
+msgid "Create Group"
+msgstr "ایجاد شخص"
+
+#: shared/views.py:545
+#, fuzzy
+#| msgid "Person created successfully."
+msgid "Group created successfully."
+msgstr "شخص با موفقیت ایجاد شد."
+
+#: shared/views.py:558
+#, fuzzy
+#| msgid "Edit Person"
+msgid "Edit Group"
+msgstr "ویرایش شخص"
+
+#: shared/views.py:564
+#, fuzzy
+#| msgid "Person updated successfully."
+msgid "Group updated successfully."
+msgstr "شخص با موفقیت به‌روزرسانی شد."
+
+#: shared/views.py:574
+#, fuzzy
+#| msgid "Person deleted successfully."
+msgid "Group deleted successfully."
+msgstr "شخص با موفقیت حذف شد."
+
+#: shared/views.py:587
+msgid "View own records"
+msgstr "View own records"
+
+#: shared/views.py:588
+msgid "View all records"
+msgstr "View all records"
+
+# Common Terms
+#: shared/views.py:589 templates/inventory/issue_consignment.html:16
+#: templates/inventory/issue_consumption.html:16
+#: templates/inventory/issue_permanent.html:16
+#: templates/inventory/issue_permanent.html:169
+#: templates/inventory/item_types.html:63
+#: templates/inventory/purchase_requests.html:14
+#: templates/inventory/purchase_requests.html:180
+#: templates/inventory/receipt_temporary.html:16
+#: templates/inventory/receipt_temporary.html:206
+#: templates/inventory/stocktaking_deficit.html:16
+#: templates/inventory/stocktaking_records.html:16
+#: templates/inventory/stocktaking_records.html:112
+#: templates/inventory/stocktaking_surplus.html:16
+#: templates/inventory/warehouse_requests.html:14
+#: templates/inventory/warehouse_requests.html:194
+#: templates/inventory/warehouses.html:16
+#: templates/inventory/warehouses.html:63
+#: templates/inventory/work_lines.html:16
+#: templates/inventory/work_lines.html:62
+msgid "Create"
+msgstr "ایجاد"
+
+#: shared/views.py:590
+msgid "Edit own records"
+msgstr "Edit own records"
+
+#: shared/views.py:591
+#, fuzzy
+#| msgid "Delete Person"
+msgid "Delete own records"
+msgstr "حذف شخص"
+
+#: shared/views.py:592
+msgid "Lock own documents"
+msgstr "Lock own documents"
+
+#: shared/views.py:593
+msgid "Lock others documents"
+msgstr "Lock others documents"
+
+#: shared/views.py:594
+msgid "Unlock own documents"
+msgstr "Unlock own documents"
+
+#: shared/views.py:595
+msgid "Unlock others documents"
+msgstr "Unlock others documents"
+
+#: shared/views.py:596 templates/inventory/purchase_requests.html:164
+#: templates/inventory/warehouse_requests.html:178
+#, fuzzy
+#| msgid "Approved"
+msgid "Approve"
+msgstr "تایید شده"
+
+#: shared/views.py:597
+#, fuzzy
+#| msgid "Rejected"
+msgid "Reject"
+msgstr "رد شده"
+
+#: shared/views.py:598 templates/inventory/generic_confirm_delete.html:26
+#: templates/inventory/generic_form.html:41
+#: templates/inventory/item_confirm_delete.html:26
+#: templates/inventory/itemcategory_confirm_delete.html:26
+#: templates/inventory/itemcategory_form.html:41
+#: templates/inventory/itemsubcategory_confirm_delete.html:26
+#: templates/inventory/itemsubcategory_form.html:41
+#: templates/inventory/itemtype_confirm_delete.html:26
+#: templates/inventory/itemtype_form.html:41
+#: templates/inventory/purchase_request_form.html:65
+#: templates/inventory/receipt_form.html:96
+#: templates/inventory/stocktaking_form.html:93
+#: templates/inventory/supplier_confirm_delete.html:26
+#: templates/inventory/supplier_form.html:41
+#: templates/inventory/suppliercategory_confirm_delete.html:26
+#: templates/inventory/suppliercategory_form.html:41
+#: templates/inventory/warehouse_confirm_delete.html:26
+#: templates/inventory/warehouse_form.html:41
+#: templates/inventory/warehouse_request_form.html:65
+#: templates/shared/access_level_confirm_delete.html:29
+#: templates/shared/access_level_form.html:105
+#: templates/shared/company_confirm_delete.html:38
+#: templates/shared/company_form.html:141
+#: templates/shared/group_confirm_delete.html:29
+#: templates/shared/group_form.html:44
+#: templates/shared/person_confirm_delete.html:39
+#: templates/shared/person_form.html:177
+#: templates/shared/user_confirm_delete.html:29
+#: templates/shared/user_form.html:111
+msgid "Cancel"
+msgstr "لغو"
+
+#: shared/views.py:748
+msgid "Create Access Level"
+msgstr "Create Access Level"
+
+#: shared/views.py:757
+#, fuzzy
+#| msgid "Person created successfully."
+msgid "Access level created successfully."
+msgstr "شخص با موفقیت ایجاد شد."
+
+#: shared/views.py:770
+msgid "Edit Access Level"
+msgstr "Edit Access Level"
+
+#: shared/views.py:778
+#, fuzzy
+#| msgid "Person updated successfully."
+msgid "Access level updated successfully."
+msgstr "شخص با موفقیت به‌روزرسانی شد."
+
+#: shared/views.py:788
+#, fuzzy
+#| msgid "Person deleted successfully."
+msgid "Access level deleted successfully."
+msgstr "شخص با موفقیت حذف شد."
+
+#: templates/base.html:8
+msgid "invproj Platform"
+msgstr "سامانه invproj"
+
+#: templates/base.html:55
+msgid "Guest"
+msgstr "مهمان"
+
+#: templates/base.html:69
+msgid "Welcome"
+msgstr "خوش آمدید"
+
+#: templates/base.html:70
+msgid "Select a module from the sidebar."
+msgstr "یک ماژول از منوی کناری انتخاب کنید."
+
+# Inventory Module
+#: templates/inventory/base.html:5 templates/inventory/base.html:13
+#: templates/ui/components/sidebar.html:19
+msgid "Inventory"
+msgstr "انبار"
+
+#: templates/inventory/base.html:11
+#: templates/shared/access_level_confirm_delete.html:10
+#: templates/shared/access_level_form.html:10
+#: templates/shared/access_levels_list.html:10
+#: templates/shared/companies.html:10
+#: templates/shared/company_confirm_delete.html:10
+#: templates/shared/company_form.html:10
+#: templates/shared/group_confirm_delete.html:10
+#: templates/shared/group_form.html:10 templates/shared/groups_list.html:10
+#: templates/shared/person_confirm_delete.html:10
+#: templates/shared/person_form.html:10 templates/shared/personnel.html:10
+#: templates/shared/user_confirm_delete.html:10
+#: templates/shared/user_form.html:10 templates/shared/users_list.html:10
+#: templates/ui/components/sidebar.html:5
+msgid "Dashboard"
+msgstr "داشبورد"
+
+#: templates/inventory/base.html:16
+#, fuzzy
+#| msgid "Inventory Balance"
+msgid "Inventory Management"
+msgstr "موجودی انبار"
+
+#: templates/inventory/generic_confirm_delete.html:4
+#: templates/inventory/generic_confirm_delete.html:6
+#: templates/inventory/item_confirm_delete.html:4
+#: templates/inventory/item_confirm_delete.html:6
+#: templates/inventory/item_types.html:51
+#: templates/inventory/itemcategory_confirm_delete.html:4
+#: templates/inventory/itemcategory_confirm_delete.html:6
+#: templates/inventory/itemsubcategory_confirm_delete.html:4
+#: templates/inventory/itemsubcategory_confirm_delete.html:6
+#: templates/inventory/itemtype_confirm_delete.html:4
+#: templates/inventory/itemtype_confirm_delete.html:6
+#: templates/inventory/supplier_confirm_delete.html:4
+#: templates/inventory/supplier_confirm_delete.html:6
+#: templates/inventory/suppliercategory_confirm_delete.html:4
+#: templates/inventory/suppliercategory_confirm_delete.html:6
+#: templates/inventory/warehouse_confirm_delete.html:4
+#: templates/inventory/warehouse_confirm_delete.html:6
+#: templates/inventory/warehouses.html:51
+#: templates/shared/access_level_confirm_delete.html:14
+#: templates/shared/access_level_confirm_delete.html:28
+#: templates/shared/access_levels_list.html:81
+#: templates/shared/companies.html:79
+#: templates/shared/group_confirm_delete.html:14
+#: templates/shared/group_confirm_delete.html:28
+#: templates/shared/groups_list.html:103 templates/shared/personnel.html:89
+#: templates/shared/user_confirm_delete.html:14
+#: templates/shared/user_confirm_delete.html:28
+#: templates/shared/user_form.html:62 templates/shared/users_list.html:107
+msgid "Delete"
+msgstr "حذف"
+
+#: templates/inventory/generic_confirm_delete.html:11
+#: templates/inventory/item_confirm_delete.html:11
+#: templates/inventory/itemcategory_confirm_delete.html:11
+#: templates/inventory/itemsubcategory_confirm_delete.html:11
+#: templates/inventory/itemtype_confirm_delete.html:11
+#: templates/inventory/supplier_confirm_delete.html:11
+#: templates/inventory/suppliercategory_confirm_delete.html:11
+#: templates/inventory/warehouse_confirm_delete.html:11
+#: templates/shared/company_confirm_delete.html:22
+#: templates/shared/person_confirm_delete.html:22
+msgid "Are you sure?"
+msgstr "آیا مطمئن هستید؟"
+
+#: templates/inventory/generic_confirm_delete.html:12
+#: templates/inventory/item_confirm_delete.html:12
+#: templates/inventory/itemcategory_confirm_delete.html:12
+#: templates/inventory/itemsubcategory_confirm_delete.html:12
+#: templates/inventory/itemtype_confirm_delete.html:12
+#: templates/inventory/supplier_confirm_delete.html:12
+#: templates/inventory/suppliercategory_confirm_delete.html:12
+#: templates/inventory/warehouse_confirm_delete.html:12
+#, fuzzy
+#| msgid "Do you really want to delete this person?"
+msgid "Do you really want to delete this item?"
+msgstr "آیا واقعاً می‌خواهید این شخص را حذف کنید؟"
+
+#: templates/inventory/generic_confirm_delete.html:19
+#: templates/inventory/item_confirm_delete.html:19
+#: templates/inventory/itemcategory_confirm_delete.html:19
+#: templates/inventory/itemsubcategory_confirm_delete.html:19
+#: templates/inventory/itemtype_confirm_delete.html:19
+#: templates/inventory/supplier_confirm_delete.html:19
+#: templates/inventory/suppliercategory_confirm_delete.html:19
+#: templates/inventory/warehouse_confirm_delete.html:19
+#: templates/shared/company_confirm_delete.html:31
+#: templates/shared/person_confirm_delete.html:32
+msgid "This action cannot be undone."
+msgstr "این عملیات قابل بازگشت نیست."
+
+#: templates/inventory/generic_confirm_delete.html:25
+#: templates/inventory/item_confirm_delete.html:25
+#: templates/inventory/itemcategory_confirm_delete.html:25
+#: templates/inventory/itemsubcategory_confirm_delete.html:25
+#: templates/inventory/itemtype_confirm_delete.html:25
+#: templates/inventory/supplier_confirm_delete.html:25
+#: templates/inventory/suppliercategory_confirm_delete.html:25
+#: templates/inventory/warehouse_confirm_delete.html:25
+#: templates/shared/company_confirm_delete.html:37
+#: templates/shared/person_confirm_delete.html:38
+msgid "Yes, Delete"
+msgstr "بله، حذف شود"
+
+#: templates/inventory/generic_form.html:40
+#: templates/inventory/itemcategory_form.html:40
+#: templates/inventory/itemsubcategory_form.html:40
+#: templates/inventory/itemtype_form.html:40
+#: templates/inventory/purchase_request_form.html:64
+#: templates/inventory/receipt_form.html:94
+#: templates/inventory/stocktaking_form.html:91
+#: templates/inventory/supplier_form.html:40
+#: templates/inventory/suppliercategory_form.html:40
+#: templates/inventory/warehouse_form.html:40
+#: templates/inventory/warehouse_request_form.html:64
+#: templates/shared/access_level_form.html:104
+#: templates/shared/company_form.html:140 templates/shared/group_form.html:43
+#: templates/shared/person_form.html:176 templates/shared/user_form.html:110
+msgid "Save"
+msgstr "ذخیره"
+
+#: templates/inventory/inventory_balance.html:14
+#: templates/inventory/issue_consignment.html:19
+#: templates/inventory/issue_consumption.html:19
+#: templates/inventory/issue_permanent.html:19
+#: templates/inventory/purchase_requests.html:17
+#: templates/inventory/receipt_temporary.html:19
+#: templates/inventory/warehouse_requests.html:17
+#: templates/shared/companies.html:18 templates/shared/personnel.html:18
+msgid "Print"
+msgstr "چاپ"
+
+#: templates/inventory/inventory_balance.html:17
+msgid "Export"
+msgstr "خروجی"
+
+#: templates/inventory/inventory_balance.html:25
+#: templates/inventory/issue_permanent.html:43
+#: templates/inventory/issue_permanent.html:64
+#: templates/inventory/purchase_requests.html:45
+#: templates/inventory/purchase_requests.html:80
+#: templates/inventory/receipt_temporary.html:47
+#: templates/inventory/receipt_temporary.html:78
+#: templates/inventory/warehouse_requests.html:45
+#: templates/inventory/warehouse_requests.html:80
+#: templates/shared/access_levels_list.html:41
+#: templates/shared/companies.html:40 templates/shared/groups_list.html:41
+#: templates/shared/personnel.html:40 templates/shared/users_list.html:41
+msgid "Filter"
+msgstr "فیلتر"
+
+#: templates/inventory/inventory_balance.html:28
+#: templates/inventory/inventory_balance.html:30
+msgid "Select Warehouse"
+msgstr "انتخاب انبار"
+
+#: templates/inventory/inventory_balance.html:40
+msgid "Select Item Type"
+msgstr "انتخاب نوع کالا"
+
+#: templates/inventory/inventory_balance.html:42
+#, fuzzy
+#| msgid "Item Types"
+msgid "All Types"
+msgstr "انواع قلم"
+
+#: templates/inventory/inventory_balance.html:52
+msgid "Select Category"
+msgstr "انتخاب دسته‌بندی"
+
+#: templates/inventory/inventory_balance.html:54
+#, fuzzy
+#| msgid "Item Categories"
+msgid "All Categories"
+msgstr "دسته‌بندی اقلام"
+
+#: templates/inventory/inventory_balance.html:64
+msgid "As of Date"
+msgstr "تا تاریخ"
+
+#: templates/inventory/inventory_balance.html:71
+msgid "Calculate"
+msgstr "محاسبه"
+
+#: templates/inventory/inventory_balance.html:81
+msgid "Total Items"
+msgstr "تعداد کالا"
+
+#: templates/inventory/inventory_balance.html:85
+#, fuzzy
+#| msgid "Current Balance"
+msgid "Total Balance"
+msgstr "موجودی فعلی"
+
+#: templates/inventory/inventory_balance.html:89
+#, fuzzy
+#| msgid "Calculate"
+msgid "Last Calculated"
+msgstr "محاسبه"
+
+#: templates/inventory/inventory_balance.html:100
+#, fuzzy
+#| msgid "Last Name"
+msgid "Item Name"
+msgstr "نام خانوادگی"
+
+#: templates/inventory/inventory_balance.html:101
+msgid "Baseline Date"
+msgstr "تاریخ مبنا"
+
+#: templates/inventory/inventory_balance.html:102
+msgid "Baseline Quantity"
+msgstr "موجودی مبنا"
+
+#: templates/inventory/inventory_balance.html:103
+msgid "Receipts Total"
+msgstr "مجموع ورودی"
+
+#: templates/inventory/inventory_balance.html:104
+msgid "Issues Total"
+msgstr "مجموع خروجی"
+
+#: templates/inventory/inventory_balance.html:105
+msgid "Current Balance"
+msgstr "موجودی فعلی"
+
+#: templates/inventory/inventory_balance.html:106
+#: templates/inventory/issue_permanent.html:106
+#: templates/inventory/item_types.html:31
+#: templates/inventory/purchase_requests.html:100
+#: templates/inventory/receipt_temporary.html:124
+#: templates/inventory/stocktaking_deficit.html:56
+#: templates/inventory/stocktaking_records.html:54
+#: templates/inventory/warehouse_requests.html:101
+#: templates/inventory/warehouses.html:31
+#: templates/inventory/work_lines.html:30
+#: templates/shared/access_level_form.html:53
+#: templates/shared/access_levels_list.html:56
+#: templates/shared/companies.html:58 templates/shared/groups_list.html:57
+#: templates/shared/personnel.html:59 templates/shared/users_list.html:59
+msgid "Actions"
+msgstr "عملیات"
+
+#: templates/inventory/inventory_balance.html:118
+#, fuzzy
+#| msgid "Stocktaking"
+msgid "No Stocktaking"
+msgstr "شمارش موجودی"
+
+#: templates/inventory/inventory_balance.html:135
+msgid "Details"
+msgstr "جزئیات"
+
+#: templates/inventory/inventory_balance.html:146
+msgid "No Items Found"
+msgstr "هیچ قلمی یافت نشد"
+
+#: templates/inventory/inventory_balance.html:147
+msgid "No items with inventory activity found for the selected filters."
+msgstr "No items with inventory activity found for the selected filters."
+
+#: templates/inventory/inventory_balance.html:152
+msgid "Select a Warehouse"
+msgstr "انتخاب انبار"
+
+#: templates/inventory/inventory_balance.html:153
+msgid "Please select a warehouse to view inventory balances."
+msgstr "لطفاً یک انبار برای مشاهده موجودی انتخاب کنید."
+
+#: templates/inventory/inventory_balance.html:159
+msgid "Error"
+msgstr "Error"
+
+#: templates/inventory/inventory_balance.html:170
+msgid "No data to export"
+msgstr "No data to export"
+
+#: templates/inventory/issue_consignment.html:8
+#: templates/inventory/issue_consumption.html:8
+#: templates/inventory/issue_permanent.html:8
+#: templates/ui/components/sidebar.html:55
+msgid "Issues"
+msgstr "حواله‌ها"
+
+#: templates/inventory/issue_permanent.html:28
+#: templates/inventory/purchase_requests.html:26
+#: templates/inventory/receipt_temporary.html:28
+#: templates/inventory/warehouse_requests.html:26
+#, fuzzy
+#| msgid "Total Items"
+msgid "Total"
+msgstr "تعداد کالا"
+
+#: templates/inventory/issue_permanent.html:48
+#: templates/inventory/purchase_requests.html:50
+#: templates/inventory/purchase_requests.html:62
+#: templates/inventory/receipt_temporary.html:52
+#: templates/inventory/receipt_temporary.html:62
+#: templates/inventory/warehouse_requests.html:50
+#: templates/inventory/warehouse_requests.html:62
+#: templates/shared/access_level_form.html:76
+#: templates/shared/access_levels_list.html:35
+#: templates/shared/companies.html:34 templates/shared/groups_list.html:35
+#: templates/shared/personnel.html:34 templates/shared/users_list.html:35
+msgid "All"
+msgstr "همه"
+
+#: templates/inventory/issue_permanent.html:55
+#: templates/inventory/purchase_requests.html:71
+#: templates/inventory/receipt_temporary.html:69
+#: templates/inventory/warehouse_requests.html:71
+#: templates/shared/access_levels_list.html:29
+#: templates/shared/companies.html:28 templates/shared/groups_list.html:29
+#: templates/shared/personnel.html:28 templates/shared/users_list.html:29
+msgid "Search"
+msgstr "جستجو"
+
+#: templates/inventory/issue_permanent.html:57
+#: templates/inventory/receipt_temporary.html:71
+msgid "Document code or item"
+msgstr "Document code or item"
+
+#: templates/inventory/issue_permanent.html:141
+#: templates/inventory/receipt_temporary.html:178
+#: templates/inventory/stocktaking_deficit.html:84
+#: templates/inventory/stocktaking_records.html:85
+msgid "View"
+msgstr "View"
+
+#: templates/inventory/issue_permanent.html:143
+#: templates/inventory/receipt_form.html:24
+#: templates/inventory/receipt_temporary.html:180
+#: templates/inventory/stocktaking_deficit.html:88
+#: templates/inventory/stocktaking_form.html:21
+#: templates/inventory/stocktaking_records.html:89
+msgid "Locked"
+msgstr "Locked"
+
+#: templates/inventory/issue_permanent.html:146
+#: templates/inventory/item_types.html:50
+#: templates/inventory/purchase_requests.html:157
+#: templates/inventory/receipt_temporary.html:183
+#: templates/inventory/stocktaking_deficit.html:84
+#: templates/inventory/stocktaking_records.html:85
+#: templates/inventory/warehouse_requests.html:171
+#: templates/inventory/warehouses.html:50
+#: templates/inventory/work_lines.html:49
+#: templates/shared/access_levels_list.html:80
+#: templates/shared/companies.html:78 templates/shared/groups_list.html:102
+#: templates/shared/personnel.html:88 templates/shared/users_list.html:106
+msgid "Edit"
+msgstr "ویرایش"
+
+#: templates/inventory/issue_permanent.html:152
+#: templates/inventory/receipt_form.html:30
+#: templates/inventory/receipt_temporary.html:189
+#: templates/inventory/stocktaking_deficit.html:94
+#: templates/inventory/stocktaking_form.html:27
+#: templates/inventory/stocktaking_records.html:95
+msgid "Lock"
+msgstr "Lock"
+
+#: templates/inventory/issue_permanent.html:166
+#, fuzzy
+#| msgid "No Items Found"
+msgid "No Issues Found"
+msgstr "هیچ قلمی یافت نشد"
+
+#: templates/inventory/issue_permanent.html:167
+#, fuzzy
+#| msgid "Start by creating your first item."
+msgid "Start by creating your first issue document."
+msgstr "با ایجاد اولین قلم شروع کنید."
+
+#: templates/inventory/issue_permanent.html:183
+#: templates/inventory/items.html:140
+#: templates/inventory/purchase_requests.html:194
+#: templates/inventory/receipt_temporary.html:220
+#: templates/inventory/warehouse_requests.html:208
+#: templates/shared/access_levels_list.html:92
+#: templates/shared/companies.html:89 templates/shared/groups_list.html:114
+#: templates/shared/personnel.html:99 templates/shared/users_list.html:118
+msgid "First"
+msgstr "اول"
+
+#: templates/inventory/issue_permanent.html:184
+#: templates/inventory/items.html:141
+#: templates/inventory/purchase_requests.html:195
+#: templates/inventory/receipt_temporary.html:221
+#: templates/inventory/warehouse_requests.html:209
+#: templates/shared/access_levels_list.html:93
+#: templates/shared/companies.html:90 templates/shared/groups_list.html:115
+#: templates/shared/personnel.html:100 templates/shared/users_list.html:119
+msgid "Previous"
+msgstr "قبلی"
+
+#: templates/inventory/issue_permanent.html:188
+#: templates/inventory/items.html:145
+#: templates/inventory/purchase_requests.html:199
+#: templates/inventory/receipt_temporary.html:225
+#: templates/inventory/warehouse_requests.html:213
+#: templates/shared/companies.html:94 templates/shared/personnel.html:104
+msgid "Page"
+msgstr "صفحه"
+
+#: templates/inventory/issue_permanent.html:188
+#: templates/inventory/items.html:145
+#: templates/inventory/purchase_requests.html:199
+#: templates/inventory/receipt_temporary.html:225
+#: templates/inventory/warehouse_requests.html:213
+#: templates/shared/companies.html:94 templates/shared/personnel.html:104
+msgid "of"
+msgstr "از"
+
+#: templates/inventory/issue_permanent.html:192
+#: templates/inventory/items.html:149
+#: templates/inventory/purchase_requests.html:203
+#: templates/inventory/receipt_temporary.html:229
+#: templates/inventory/warehouse_requests.html:217
+#: templates/shared/access_levels_list.html:99
+#: templates/shared/companies.html:98 templates/shared/groups_list.html:121
+#: templates/shared/personnel.html:108 templates/shared/users_list.html:125
+msgid "Next"
+msgstr "بعدی"
+
+#: templates/inventory/issue_permanent.html:193
+#: templates/inventory/items.html:150
+#: templates/inventory/purchase_requests.html:204
+#: templates/inventory/receipt_temporary.html:230
+#: templates/inventory/warehouse_requests.html:218
+#: templates/shared/access_levels_list.html:100
+#: templates/shared/companies.html:99 templates/shared/groups_list.html:122
+#: templates/shared/personnel.html:109 templates/shared/users_list.html:126
+msgid "Last"
+msgstr "آخر"
+
+#: templates/inventory/item_types.html:8 templates/inventory/warehouses.html:8
+#: templates/inventory/work_lines.html:8
+#: templates/ui/components/sidebar.html:21
+msgid "Master Data"
+msgstr "اطلاعات پایه"
+
+#: templates/inventory/item_types.html:46
+#: templates/inventory/warehouses.html:46
+#: templates/inventory/work_lines.html:44
+#: templates/shared/access_levels_list.html:37
+#: templates/shared/access_levels_list.html:75
+#: templates/shared/companies.html:36 templates/shared/companies.html:74
+#: templates/shared/groups_list.html:37 templates/shared/groups_list.html:97
+#: templates/shared/personnel.html:36 templates/shared/personnel.html:84
+#: templates/shared/users_list.html:37 templates/shared/users_list.html:101
+msgid "Inactive"
+msgstr "غیرفعال"
+
+#: templates/inventory/item_types.html:60
+msgid "No Item Types Found"
+msgstr "هیچ نوع قلمی یافت نشد"
+
+#: templates/inventory/item_types.html:61
+msgid "Start by creating your first item type."
+msgstr "با ایجاد اولین نوع قلم شروع کنید."
+
+#: templates/inventory/purchase_requests.html:30
+#: templates/inventory/warehouse_requests.html:30
+msgid "Pending Approval"
+msgstr "در انتظار تأیید"
+
+#: templates/inventory/purchase_requests.html:73
+#: templates/inventory/warehouse_requests.html:73
+msgid "Request code or item"
+msgstr "کد درخواست یا کالا"
+
+#: templates/inventory/purchase_requests.html:91
+#: templates/inventory/warehouse_requests.html:91
+msgid "Request Code"
+msgstr "کد درخواست"
+
+#: templates/inventory/purchase_requests.html:92
+#: templates/inventory/warehouse_requests.html:92
+msgid "Request Date"
+msgstr "تاریخ درخواست"
+
+#: templates/inventory/purchase_requests.html:95
+#: templates/inventory/warehouse_requests.html:96
+msgid "Requester"
+msgstr "درخواست‌دهنده"
+
+#: templates/inventory/purchase_requests.html:97
+#: templates/inventory/warehouse_requests.html:98
+msgid "Needed By"
+msgstr "تاریخ نیاز"
+
+#: templates/inventory/purchase_requests.html:177
+#, fuzzy
+#| msgid "Purchase Requests"
+msgid "No Purchase Requests Found"
+msgstr "درخواست‌های خرید"
+
+#: templates/inventory/purchase_requests.html:178
+#, fuzzy
+#| msgid "Start by creating your first item type."
+msgid "Start by creating your first purchase request."
+msgstr "با ایجاد اولین نوع قلم شروع کنید."
+
+#: templates/inventory/receipt_consignment.html:8
+#: templates/inventory/receipt_permanent.html:8
+#: templates/inventory/receipt_temporary.html:8
+#: templates/ui/components/sidebar.html:47
+msgid "Receipts"
+msgstr "رسیدها"
+
+#: templates/inventory/receipt_form.html:22
+#: templates/inventory/stocktaking_form.html:19
+#, fuzzy
+#| msgid "Status"
+msgid "Lock Status"
+msgstr "وضعیت"
+
+#: templates/inventory/receipt_form.html:26
+#: templates/inventory/stocktaking_form.html:23
+#, fuzzy
+#| msgid "Edit"
+msgid "Editable"
+msgstr "ویرایش"
+
+#: templates/inventory/receipt_form.html:38
+#: templates/inventory/stocktaking_form.html:35
+msgid "This document is locked and can no longer be edited or deleted."
+msgstr "This document is locked and can no longer be edited or deleted."
+
+#: templates/inventory/receipt_temporary.html:16
+#: templates/inventory/receipt_temporary.html:206
+#, fuzzy
+#| msgid "Receipts"
+msgid "Receipt"
+msgstr "رسیدها"
+
+#: templates/inventory/receipt_temporary.html:122
+msgid "Converted"
+msgstr "Converted"
+
+#: templates/inventory/receipt_temporary.html:157
+msgid "Awaiting QC"
+msgstr "Awaiting QC"
+
+#: templates/inventory/receipt_temporary.html:159
+msgid "Closed"
+msgstr "Closed"
+
+#: templates/inventory/receipt_temporary.html:168
+#: templates/shared/access_levels_list.html:66
+msgid "Yes"
+msgstr "Yes"
+
+#: templates/inventory/receipt_temporary.html:170
+#: templates/shared/access_levels_list.html:68
+msgid "No"
+msgstr "No"
+
+#: templates/inventory/receipt_temporary.html:203
+#, fuzzy
+#| msgid "No Items Found"
+msgid "No records found."
+msgstr "هیچ قلمی یافت نشد"
+
+#: templates/inventory/receipt_temporary.html:204
+#, fuzzy
+#| msgid "Start by creating your first item."
+msgid "Start by creating a new record."
+msgstr "با ایجاد اولین قلم شروع کنید."
+
+#: templates/inventory/stocktaking_deficit.html:4
+#: templates/inventory/stocktaking_deficit.html:10
+#: templates/inventory/stocktaking_deficit.html:16
+#: templates/ui/components/sidebar.html:65
+msgid "Deficit Records"
+msgstr "کسری موجودی"
+
+#: templates/inventory/stocktaking_deficit.html:8
+#: templates/inventory/stocktaking_records.html:8
+#: templates/inventory/stocktaking_surplus.html:8
+#: templates/ui/components/sidebar.html:63
+msgid "Stocktaking"
+msgstr "شمارش موجودی"
+
+#: templates/inventory/stocktaking_deficit.html:108
+msgid "No Deficit Records Found"
+msgstr "هیچ سند کسری یافت نشد"
+
+#: templates/inventory/stocktaking_deficit.html:109
+msgid ""
+"Deficit records are created during stocktaking when counted quantity is less "
+"than expected."
+msgstr ""
+"در فرایند شمارش موجودی، زمانی که مقدار شمارش‌شده کمتر از مقدار مورد انتظار "
+"باشد، سند کسری ایجاد می‌شود."
+
+#: templates/inventory/stocktaking_records.html:50
+msgid "Session ID"
+msgstr "شناسه جلسه"
+
+#: templates/inventory/stocktaking_records.html:51
+msgid "Confirmed By"
+msgstr "تأییدکننده"
+
+#: templates/inventory/stocktaking_records.html:109
+msgid "No Stocktaking Records Found"
+msgstr "هیچ سند شمارشی یافت نشد"
+
+#: templates/inventory/stocktaking_records.html:110
+msgid "Stocktaking records confirm the accuracy of inventory counts."
+msgstr "اسناد شمارش موجودی نشان می‌دهند که مقادیر ثبت‌شده دقیق هستند."
+
+#: templates/inventory/stocktaking_surplus.html:4
+#: templates/inventory/stocktaking_surplus.html:10
+#: templates/inventory/stocktaking_surplus.html:16
+#: templates/ui/components/sidebar.html:66
+msgid "Surplus Records"
+msgstr "مازاد موجودی"
+
+#: templates/inventory/warehouse_requests.html:191
+#, fuzzy
+#| msgid "No Items Found"
+msgid "No Requests Found"
+msgstr "هیچ قلمی یافت نشد"
+
+#: templates/inventory/warehouse_requests.html:192
+#, fuzzy
+#| msgid "Start by creating your first item type."
+msgid "Start by creating your first warehouse request."
+msgstr "با ایجاد اولین نوع قلم شروع کنید."
+
+#: templates/inventory/warehouses.html:60
+#, fuzzy
+#| msgid "Warehouses"
+msgid "No Warehouses Found"
+msgstr "انبارها"
+
+#: templates/inventory/warehouses.html:61
+#, fuzzy
+#| msgid "Start by creating your first item."
+msgid "Start by creating your first warehouse."
+msgstr "با ایجاد اولین قلم شروع کنید."
+
+#: templates/inventory/work_lines.html:59
+#, fuzzy
+#| msgid "No Companies Found"
+msgid "No Work Lines Found"
+msgstr "هیچ شرکتی یافت نشد"
+
+#: templates/inventory/work_lines.html:60
+#, fuzzy
+#| msgid "Start by creating your first item."
+msgid "Start by creating your first work line."
+msgstr "با ایجاد اولین قلم شروع کنید."
+
+#: templates/shared/access_level_confirm_delete.html:4
+#: templates/shared/access_level_confirm_delete.html:16
+msgid "Delete Access Level"
+msgstr "Delete Access Level"
+
+#: templates/shared/access_level_confirm_delete.html:21
+#, python-format
+msgid ""
+"\n"
+"      Are you sure you want to delete access level “%(name)s”?\n"
+"      "
+msgstr ""
+
+#: templates/shared/access_level_form.html:44
+#, fuzzy
+#| msgid "Create Person"
+msgid "Feature Permissions"
+msgstr "ایجاد شخص"
+
+#: templates/shared/access_level_form.html:45
+msgid ""
+"Select the allowed actions for each feature. View permissions can be limited "
+"to own records or extended to all records."
+msgstr ""
+
+#: templates/shared/access_level_form.html:51
+msgid "Feature"
+msgstr "Feature"
+
+#: templates/shared/access_level_form.html:52
+msgid "View Scope"
+msgstr "View Scope"
+
+#: templates/shared/access_level_form.html:68
+msgid "None"
+msgstr "None"
+
+#: templates/shared/access_level_form.html:72
+msgid "Own"
+msgstr "Own"
+
+#: templates/shared/access_level_form.html:80
+msgid "Not applicable"
+msgstr "Not applicable"
+
+#: templates/shared/access_level_form.html:94
+msgid "No extra actions available."
+msgstr "No extra actions available."
+
+#: templates/shared/access_levels_list.html:19
+#: templates/shared/access_levels_list.html:109
+#, fuzzy
+#| msgid "Create Item Type +"
+msgid "Create Access Level +"
+msgstr "ایجاد نوع قلم +"
+
+#: templates/shared/access_levels_list.html:25
+#: templates/shared/companies.html:24 templates/shared/groups_list.html:25
+#: templates/shared/personnel.html:24 templates/shared/users_list.html:25
+msgid "Filter & Search"
+msgstr "فیلتر و جستجو"
+
+#: templates/shared/access_levels_list.html:30
+#, fuzzy
+#| msgid "Search by code or name"
+msgid "Code or name"
+msgstr "جستجو با کد یا نام"
+
+#: templates/shared/access_levels_list.html:42
+#: templates/shared/companies.html:41 templates/shared/groups_list.html:42
+#: templates/shared/personnel.html:41 templates/shared/users_list.html:42
+msgid "Clear"
+msgstr "پاک کردن"
+
+#: templates/shared/access_levels_list.html:54
+msgid "Global"
+msgstr "Global"
+
+#: templates/shared/access_levels_list.html:96
+#: templates/shared/groups_list.html:118 templates/shared/users_list.html:122
+#, python-format
+msgid "Page %(page_obj.number)s of %(page_obj.paginator.num_pages)s"
+msgstr "Page %(page_obj.number)s of %(page_obj.paginator.num_pages)s"
+
+#: templates/shared/access_levels_list.html:107
+#, fuzzy
+#| msgid "No Personnel Found"
+msgid "No Access Levels Found"
+msgstr "هیچ پرسنلی یافت نشد"
+
+#: templates/shared/access_levels_list.html:108
+msgid "Start by defining an access level and assigning feature permissions."
+msgstr "Start by defining an access level and assigning feature permissions."
+
+#: templates/shared/companies.html:19
+msgid "Create Company +"
+msgstr "ایجاد شرکت +"
+
+#: templates/shared/companies.html:29 templates/shared/personnel.html:29
+msgid "Search by code or name"
+msgstr "جستجو با کد یا نام"
+
+#: templates/shared/companies.html:51 templates/shared/personnel.html:51
+msgid "CODE"
+msgstr "کد"
+
+#: templates/shared/companies.html:107
+msgid "No Companies Found"
+msgstr "هیچ شرکتی یافت نشد"
+
+#: templates/shared/companies.html:108
+msgid "You don't have access to any companies yet."
+msgstr "شما هنوز به هیچ شرکتی دسترسی ندارید."
+
+#: templates/shared/company_confirm_delete.html:4
+#: templates/shared/company_confirm_delete.html:14
+#: templates/shared/company_confirm_delete.html:17
+msgid "Delete Company"
+msgstr "حذف شرکت"
+
+#: templates/shared/company_confirm_delete.html:23
+msgid "Do you really want to delete this company?"
+msgstr "آیا واقعاً می‌خواهید این شرکت را حذف کنید؟"
+
+#: templates/shared/company_form.html:33 templates/shared/person_form.html:58
+msgid "Basic Information"
+msgstr "اطلاعات اولیه"
+
+#: templates/shared/company_form.html:77
+#, fuzzy
+#| msgid "Registration Number"
+msgid "Registration & Tax"
+msgstr "شماره ثبت"
+
+#: templates/shared/company_form.html:93 templates/shared/person_form.html:139
+msgid "Contact Information"
+msgstr "اطلاعات تماس"
+
+#: templates/shared/group_confirm_delete.html:4
+#: templates/shared/group_confirm_delete.html:16
+#, fuzzy
+#| msgid "Delete Person"
+msgid "Delete Group"
+msgstr "حذف شخص"
+
+#: templates/shared/group_confirm_delete.html:21
+#, python-format
+msgid ""
+"\n"
+"      Are you sure you want to delete group “%(name)s”?\n"
+"      "
+msgstr ""
+
+#: templates/shared/groups_list.html:19 templates/shared/groups_list.html:131
+#, fuzzy
+#| msgid "Create Person +"
+msgid "Create Group +"
+msgstr "ایجاد شخص +"
+
+#: templates/shared/groups_list.html:30
+msgid "Group name"
+msgstr "Group name"
+
+#: templates/shared/groups_list.html:129
+#, fuzzy
+#| msgid "No Companies Found"
+msgid "No Groups Found"
+msgstr "هیچ شرکتی یافت نشد"
+
+#: templates/shared/groups_list.html:130
+msgid "Start by creating a group and assigning access levels."
+msgstr "Start by creating a group and assigning access levels."
+
+#: templates/shared/person_confirm_delete.html:4
+#: templates/shared/person_confirm_delete.html:14
+#: templates/shared/person_confirm_delete.html:17
+msgid "Delete Person"
+msgstr "حذف شخص"
+
+#: templates/shared/person_confirm_delete.html:23
+msgid "Do you really want to delete this person?"
+msgstr "آیا واقعاً می‌خواهید این شخص را حذف کنید؟"
+
+#: templates/shared/person_form.html:33
+msgid "Organizational Units"
+msgstr "Organizational Units"
+
+#: templates/shared/person_form.html:44
+msgid "No units available for this company."
+msgstr "No units available for this company."
+
+#: templates/shared/personnel.html:19 templates/shared/personnel.html:118
+msgid "Create Person +"
+msgstr "ایجاد شخص +"
+
+#: templates/shared/personnel.html:116
+msgid "No Personnel Found"
+msgstr "هیچ پرسنلی یافت نشد"
+
+#: templates/shared/personnel.html:117
+msgid "Start by adding your first person to the system."
+msgstr "با اضافه کردن اولین شخص به سیستم شروع کنید."
+
+#: templates/shared/user_confirm_delete.html:4
+#: templates/shared/user_confirm_delete.html:16
+#, fuzzy
+#| msgid "Delete Person"
+msgid "Delete User"
+msgstr "حذف شخص"
+
+#: templates/shared/user_confirm_delete.html:21
+#, python-format
+msgid ""
+"\n"
+"      Are you sure you want to delete user “%(username)s”?\n"
+"      "
+msgstr ""
+
+#: templates/shared/user_form.html:44 templates/shared/users_list.html:57
+#, fuzzy
+#| msgid "Companies"
+msgid "Company Access"
+msgstr "شرکت‌ها"
+
+#: templates/shared/user_form.html:45
+msgid ""
+"Define which companies the user can access and the associated access level."
+msgstr ""
+
+#: templates/shared/user_form.html:105
+msgid ""
+"Add more entries by filling the blank row and saving; a fresh row will "
+"appear after each save."
+msgstr ""
+
+#: templates/shared/users_list.html:19 templates/shared/users_list.html:135
+#, fuzzy
+#| msgid "Create Person +"
+msgid "Create User +"
+msgstr "ایجاد شخص +"
+
+#: templates/shared/users_list.html:30
+msgid "Username, email or name"
+msgstr "Username, email or name"
+
+#: templates/shared/users_list.html:133
+#, fuzzy
+#| msgid "No Items Found"
+msgid "No Users Found"
+msgstr "هیچ قلمی یافت نشد"
+
+#: templates/shared/users_list.html:134
+#, fuzzy
+#| msgid "Start by adding your first person to the system."
+msgid "Start by adding your first user to the system."
+msgstr "با اضافه کردن اولین شخص به سیستم شروع کنید."
+
+# Shared Module
+#: templates/ui/components/sidebar.html:4
+msgid "Shared"
+msgstr "مشترک"
+
+#: templates/ui/components/sidebar.html:32
+msgid "Create Item"
+msgstr "ایجاد کالا"
+
+#: templates/ui/components/sidebar.html:33
+msgid "Edit Items"
+msgstr "ویرایش کالاها"
+
+#: templates/ui/components/sidebar.html:41
+msgid "Supplier List"
+msgstr "لیست تامین‌کنندگان"
+
+# Production Module
+#: templates/ui/components/sidebar.html:72
+msgid "Production"
+msgstr "تولید"
+
+#: templates/ui/components/sidebar.html:74
+msgid "BOM"
+msgstr "BOM"
+
+#: templates/ui/components/sidebar.html:75
+msgid "Processes"
+msgstr "فرآیندها"
+
+#: templates/ui/components/sidebar.html:76
+msgid "Orders"
+msgstr "سفارشات"
+
+# Quality Control Module
+#: templates/ui/components/sidebar.html:79
+msgid "Quality Control"
+msgstr "کنترل کیفیت"
+
+#: templates/ui/components/sidebar.html:80
+msgid "Inspections"
+msgstr "بازرسی‌ها"
+
+#~ msgid "Item Catalog"
+#~ msgstr "کاتالوگ اقلام"
+
+#~ msgid "Material Transfers"
+#~ msgstr "انتقال مواد"
+
+#~ msgid "Import"
+#~ msgstr "ورودی"
+
+#~ msgid "Platform Overview"
+#~ msgstr "نمای کلی سامانه"
+
+#~ msgid "Quick snapshot of inventory, production, and QC activities."
+#~ msgstr "خلاصه‌ای از فعالیت‌های انبار، تولید و کنترل کیفیت."
+
+#~ msgid "Transactions"
+#~ msgstr "تراکنش‌ها"
+
+#~ msgid "Traceability"
+#~ msgstr "ردیابی"
+
+#~ msgid "Last Stocktaking"
+#~ msgstr "آخرین انبارگردانی"
+
+#~ msgid "Excel Export"
+#~ msgstr "خروجی Excel"
+
+#~ msgid "NAME (FA)"
+#~ msgstr "نام (فارسی)"
+
+#~ msgid "NAME (EN)"
+#~ msgstr "نام (انگلیسی)"
+
+#~ msgid "SORT ORDER"
+#~ msgstr "ترتیب نمایش"
+
+#~ msgid "ITEM CODE"
+#~ msgstr "کد قلم"
+
+#~ msgid "ITEM NAME"
+#~ msgstr "نام قلم"
+
+#~ msgid "BATCH NUMBER"
+#~ msgstr "شماره  دسته"
+
+#~ msgid "Tax & Registration"
+#~ msgstr "مالیات و ثبت"
+
+#~ msgid "State"
+#~ msgstr "استان"
+
+#~ msgid "3-digit numeric code"
+#~ msgstr "کد 3 رقمی عددی"
+
+#~ msgid "8-digit numeric code"
+#~ msgstr "کد 8 رقمی عددی"
+
+#~ msgid "10-digit national ID"
+#~ msgstr "کد ملی 10 رقمی"
+
+#~ msgid "3-letter country code (e.g., IRN)"
+#~ msgstr "کد 3 حرفی کشور (مثال: IRN)"
