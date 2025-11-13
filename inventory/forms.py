@@ -15,11 +15,13 @@ from .models import (
     ItemType,
     ItemCategory,
     ItemSubcategory,
-    Warehouse,
-    WorkLine,
     Item,
     Supplier,
     SupplierCategory,
+    SupplierSubcategory,
+    SupplierItem,
+    Warehouse,
+    WorkLine,
     ItemUnit,
     ItemWarehouse,
     ReceiptTemporary,
@@ -570,14 +572,28 @@ class SupplierForm(forms.ModelForm):
 
 
 class SupplierCategoryForm(forms.ModelForm):
-    """Form for creating/editing supplier categories."""
-    
+    """Form for creating/editing supplier categories with optional subcategories and items."""
+
     is_primary = forms.BooleanField(
         required=False,
         label=_('دستهٔ اصلی'),
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
     )
-    
+    subcategories = forms.ModelMultipleChoiceField(
+        queryset=ItemSubcategory.objects.none(),
+        required=False,
+        label=_('زیردسته‌های قابل تأمین'),
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'checkbox-grid'}),
+        help_text=_('در صورت نیاز، زیردسته‌های مربوط به این تأمین‌کننده را انتخاب کنید.'),
+    )
+    items = forms.ModelMultipleChoiceField(
+        queryset=Item.objects.none(),
+        required=False,
+        label=_('کالاهای قابل تأمین'),
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'checkbox-grid'}),
+        help_text=_('کالاهای موجود در همان دسته‌بندی (و زیردسته‌های انتخابی) را می‌توانید انتخاب کنید.'),
+    )
+
     class Meta:
         model = SupplierCategory
         fields = ['supplier', 'category', 'is_primary', 'notes']
@@ -606,13 +622,78 @@ class SupplierCategoryForm(forms.ModelForm):
                 is_enabled=1,
             )
 
+            category_id = self._resolve_category_id()
+            subcategory_qs = ItemSubcategory.objects.filter(
+                company_id=self.company_id,
+                is_enabled=1,
+            )
+            if category_id:
+                subcategory_qs = subcategory_qs.filter(category_id=category_id)
+            self.fields['subcategories'].queryset = subcategory_qs.order_by('category__name', 'name')
+
+            item_qs = Item.objects.filter(
+                company_id=self.company_id,
+                is_enabled=1,
+            )
+            if category_id:
+                item_qs = item_qs.filter(category_id=category_id)
+            selected_sub_ids = self._selected_subcategory_ids()
+            if selected_sub_ids:
+                item_qs = item_qs.filter(subcategory_id__in=selected_sub_ids)
+            self.fields['items'].queryset = item_qs.order_by('name')
+        else:
+            self.fields['subcategories'].queryset = ItemSubcategory.objects.none()
+            self.fields['items'].queryset = Item.objects.none()
+
         self.fields['supplier'].label_from_instance = lambda obj: obj.name
         self.fields['category'].label_from_instance = lambda obj: obj.name
+        self.fields['subcategories'].label_from_instance = lambda obj: f"{obj.category.name} / {obj.name}"
+        self.fields['items'].label_from_instance = lambda obj: obj.name
+
+        # Prefill selections when editing
+        if self.instance.pk:
+            supplier = self.instance.supplier
+            company = self.instance.company
+            category = self.instance.category
+            if supplier and company and category:
+                sub_initial = supplier.subcategories.filter(
+                    company=company,
+                    subcategory__category=category,
+                ).values_list('subcategory_id', flat=True)
+                self.fields['subcategories'].initial = list(sub_initial)
+
+                item_initial = supplier.items.filter(
+                    company=company,
+                    item__category=category,
+                ).values_list('item_id', flat=True)
+                self.fields['items'].initial = list(item_initial)
+
+    def _resolve_category_id(self):
+        """Return current category id from data, instance, or initial."""
+
+        if self.is_bound:
+            value = self.data.get('category')
+        else:
+            value = self.initial.get('category') or getattr(self.instance, 'category_id', None)
+        try:
+            return int(value) if value else None
+        except (TypeError, ValueError):
+            return None
+
+    def _selected_subcategory_ids(self):
+        if self.is_bound:
+            return [int(pk) for pk in self.data.getlist('subcategories') if pk.isdigit()]
+        initial = self.initial.get('subcategories')
+        if initial:
+            return list(initial)
+        return []
 
     def clean(self):
         cleaned_data = super().clean()
         supplier = cleaned_data.get('supplier')
         category = cleaned_data.get('category')
+        subcategories = cleaned_data.get('subcategories') or []
+        items = cleaned_data.get('items') or []
 
         if supplier and category:
             if supplier.company_id != category.company_id:
@@ -630,6 +711,28 @@ class SupplierCategoryForm(forms.ModelForm):
             if qs.exists():
                 raise forms.ValidationError(
                     _('برای این تأمین‌کننده و دسته‌بندی قبلاً ثبت انجام شده است.')
+                )
+
+            invalid_subcategories = [
+                sub for sub in subcategories if sub.category_id != category.id
+            ]
+            if invalid_subcategories:
+                self.add_error(
+                    'subcategories',
+                    _('زیردسته‌های انتخاب‌شده باید متعلق به همان دسته باشند.'),
+                )
+
+            selected_sub_ids = {sub.id for sub in subcategories}
+            invalid_items = []
+            for item in items:
+                if item.category_id != category.id:
+                    invalid_items.append(item)
+                elif selected_sub_ids and item.subcategory_id and item.subcategory_id not in selected_sub_ids:
+                    invalid_items.append(item)
+            if invalid_items:
+                self.add_error(
+                    'items',
+                    _('کالاهای انتخاب‌شده باید در زیردسته‌های انتخاب‌شده یا همان دسته باشند.'),
                 )
 
         return cleaned_data

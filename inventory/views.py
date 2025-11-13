@@ -362,19 +362,69 @@ class SupplierCategoryCreateView(InventoryBaseView, CreateView):
     form_class = forms.SupplierCategoryForm
     template_name = 'inventory/suppliercategory_form.html'
     success_url = reverse_lazy('inventory:supplier_categories')
-    
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['company_id'] = self.request.session.get('active_company_id')
         return kwargs
-    
+
     def form_valid(self, form):
-        form.instance.company_id = self.request.session.get('active_company_id')
+        company_id = self.request.session.get('active_company_id')
+        form.instance.company_id = company_id
         form.instance.created_by = self.request.user
         form.instance.edited_by = self.request.user
+        self.object = form.save()
+        self._sync_supplier_links(form)
         messages.success(self.request, _('دسته‌بندی تأمین‌کننده با موفقیت ایجاد شد.'))
-        return super().form_valid(form)
-    
+        return HttpResponseRedirect(self.get_success_url())
+
+    def _sync_supplier_links(self, form):
+        supplier = self.object.supplier
+        company = self.object.company
+        category = self.object.category
+        subcategories = list(form.cleaned_data.get('subcategories') or [])
+        items = list(form.cleaned_data.get('items') or [])
+
+        selected_sub_ids = {sub.id for sub in subcategories}
+        models.SupplierSubcategory.objects.filter(
+            supplier=supplier,
+            company=company,
+            subcategory__category=category,
+        ).exclude(subcategory_id__in=selected_sub_ids).delete()
+        for sub in subcategories:
+            obj, created = models.SupplierSubcategory.objects.get_or_create(
+                supplier=supplier,
+                company=company,
+                subcategory=sub,
+                defaults={
+                    'created_by': self.request.user,
+                    'edited_by': self.request.user,
+                },
+            )
+            if not created:
+                obj.edited_by = self.request.user
+                obj.save(update_fields=['edited_by'])
+
+        selected_item_ids = {item.id for item in items}
+        models.SupplierItem.objects.filter(
+            supplier=supplier,
+            company=company,
+            item__category=category,
+        ).exclude(item_id__in=selected_item_ids).delete()
+        for item in items:
+            obj, created = models.SupplierItem.objects.get_or_create(
+                supplier=supplier,
+                company=company,
+                item=item,
+                defaults={
+                    'created_by': self.request.user,
+                    'edited_by': self.request.user,
+                },
+            )
+            if not created:
+                obj.edited_by = self.request.user
+                obj.save(update_fields=['edited_by'])
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['form_title'] = _('ایجاد دسته‌بندی تأمین‌کننده')
@@ -386,17 +436,66 @@ class SupplierCategoryUpdateView(InventoryBaseView, UpdateView):
     form_class = forms.SupplierCategoryForm
     template_name = 'inventory/suppliercategory_form.html'
     success_url = reverse_lazy('inventory:supplier_categories')
-    
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['company_id'] = self.request.session.get('active_company_id')
         return kwargs
-    
+
     def form_valid(self, form):
         form.instance.edited_by = self.request.user
+        self.object = form.save()
+        self._sync_supplier_links(form)
         messages.success(self.request, _('دسته‌بندی تأمین‌کننده با موفقیت ویرایش شد.'))
-        return super().form_valid(form)
-    
+        return HttpResponseRedirect(self.get_success_url())
+
+    def _sync_supplier_links(self, form):
+        supplier = self.object.supplier
+        company = self.object.company
+        category = self.object.category
+        subcategories = list(form.cleaned_data.get('subcategories') or [])
+        items = list(form.cleaned_data.get('items') or [])
+
+        selected_sub_ids = {sub.id for sub in subcategories}
+        models.SupplierSubcategory.objects.filter(
+            supplier=supplier,
+            company=company,
+            subcategory__category=category,
+        ).exclude(subcategory_id__in=selected_sub_ids).delete()
+        for sub in subcategories:
+            obj, created = models.SupplierSubcategory.objects.get_or_create(
+                supplier=supplier,
+                company=company,
+                subcategory=sub,
+                defaults={
+                    'created_by': self.request.user,
+                    'edited_by': self.request.user,
+                },
+            )
+            if not created:
+                obj.edited_by = self.request.user
+                obj.save(update_fields=['edited_by'])
+
+        selected_item_ids = {item.id for item in items}
+        models.SupplierItem.objects.filter(
+            supplier=supplier,
+            company=company,
+            item__category=category,
+        ).exclude(item_id__in=selected_item_ids).delete()
+        for item in items:
+            obj, created = models.SupplierItem.objects.get_or_create(
+                supplier=supplier,
+                company=company,
+                item=item,
+                defaults={
+                    'created_by': self.request.user,
+                    'edited_by': self.request.user,
+                },
+            )
+            if not created:
+                obj.edited_by = self.request.user
+                obj.save(update_fields=['edited_by'])
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['form_title'] = _('ویرایش دسته‌بندی تأمین‌کننده')
