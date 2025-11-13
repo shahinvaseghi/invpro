@@ -3,10 +3,10 @@ Views for the inventory module.
 """
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import ListView, TemplateView, CreateView, UpdateView, DeleteView, View
+from django.views.generic import ListView, TemplateView, CreateView, UpdateView, DeleteView, View, FormView
 from django.http import JsonResponse, HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from datetime import date
@@ -19,6 +19,8 @@ from . import inventory_balance
 from . import forms
 from .services import serials as serial_service
 from shared.models import Person
+from shared.mixins import FeaturePermissionRequiredMixin
+from decimal import Decimal, InvalidOperation
 
 
 class InventoryBaseView(LoginRequiredMixin):
@@ -84,6 +86,10 @@ class DocumentLockView(LoginRequiredMixin, View):
         """Hook for subclasses to perform extra actions after locking."""
         return None
 
+    def before_lock(self, obj, request):
+        """Hook executed before locking. Return False to cancel lock."""
+        return True
+
     def post(self, request, *args, **kwargs):
         if self.model is None or not self.success_url_name:
             messages.error(request, _('پیکربندی قفل سند نامعتبر است.'))
@@ -99,6 +105,9 @@ class DocumentLockView(LoginRequiredMixin, View):
         if getattr(obj, self.lock_field, 0):
             messages.info(request, self.already_locked_message)
         else:
+            if not self.before_lock(obj, request):
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse(self.success_url_name)))
+
             update_fields = {self.lock_field}
             setattr(obj, self.lock_field, 1)
             if hasattr(obj, 'locked_at'):
@@ -115,6 +124,72 @@ class DocumentLockView(LoginRequiredMixin, View):
             messages.success(request, self.success_message)
 
         return HttpResponseRedirect(reverse(self.success_url_name))
+
+
+class LineFormsetMixin:
+    """Mixin to handle line formset creation and saving for multi-line documents."""
+    
+    formset_class = None
+    formset_prefix = 'lines'
+    
+    def build_line_formset(self, data=None, instance=None, company_id=None):
+        """Build line formset for the document."""
+        if instance is None:
+            instance = getattr(self, "object", None)
+        if company_id is None:
+            if instance and instance.company_id:
+                company_id = instance.company_id
+            else:
+                company_id = self.request.session.get('active_company_id')
+        
+        if self.formset_class is None:
+            raise ValueError("formset_class must be set in view class")
+        
+        kwargs = {
+            'instance': instance,
+            'prefix': self.formset_prefix,
+            'company_id': company_id,
+        }
+        if data is not None:
+            kwargs['data'] = data
+        return self.formset_class(**kwargs)
+    
+    def get_line_formset(self, data=None):
+        """Get line formset for current request."""
+        return self.build_line_formset(data=data)
+    
+    def get_context_data(self, **kwargs):
+        """Add line formset to context."""
+        context = super().get_context_data(**kwargs)
+        if 'lines_formset' not in context:
+            if self.request.method == 'POST':
+                context['lines_formset'] = self.get_line_formset(data=self.request.POST)
+            else:
+                context['lines_formset'] = self.get_line_formset()
+        return context
+    
+    def form_invalid(self, form):
+        """Handle invalid form with formset."""
+        company_id = getattr(form.instance, "company_id", None) or self.request.session.get('active_company_id')
+        return self.render_to_response(
+            self.get_context_data(
+                form=form,
+                lines_formset=self.build_line_formset(data=self.request.POST, instance=form.instance, company_id=company_id),
+            )
+        )
+    
+    def _save_line_formset(self, formset):
+        """Save line formset instances."""
+        instances = formset.save(commit=False)
+        for line in instances:
+            line.company = self.object.company
+            line.document = self.object
+            if not hasattr(line, 'company_id') or not line.company_id:
+                line.company_id = self.object.company_id
+            line.save()
+        formset.save_m2m()  # Save ManyToMany relationships (serials)
+        for obj in formset.deleted_objects:
+            obj.delete()
 
 
 class ItemUnitFormsetMixin:
@@ -253,6 +328,48 @@ class ItemListView(InventoryBaseView, ListView):
     template_name = 'inventory/items.html'
     context_object_name = 'items'
     paginate_by = 50
+
+
+class ItemSerialListView(FeaturePermissionRequiredMixin, InventoryBaseView, ListView):
+    feature_code = 'inventory.master.item_serials'
+    model = models.ItemSerial
+    template_name = 'inventory/item_serials.html'
+    context_object_name = 'serials'
+    paginate_by = 100
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = queryset.select_related('item', 'receipt_document', 'current_warehouse')
+        receipt_code = (self.request.GET.get('receipt_code') or '').strip()
+        item_code = (self.request.GET.get('item_code') or '').strip()
+        serial_code = (self.request.GET.get('serial_code') or '').strip()
+        status = (self.request.GET.get('status') or '').strip()
+
+        if receipt_code:
+            queryset = queryset.filter(receipt_document_code__icontains=receipt_code)
+        if item_code:
+            queryset = queryset.filter(item__item_code__icontains=item_code)
+        if serial_code:
+            queryset = queryset.filter(serial_code__icontains=serial_code)
+        if status:
+            queryset = queryset.filter(current_status=status)
+
+        return queryset.order_by('-created_at', '-id')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['receipt_code'] = (self.request.GET.get('receipt_code') or '').strip()
+        context['item_code'] = (self.request.GET.get('item_code') or '').strip()
+        context['serial_code'] = (self.request.GET.get('serial_code') or '').strip()
+        context['status'] = (self.request.GET.get('status') or '').strip()
+        context['status_choices'] = models.ItemSerial.Status.choices
+        context['has_filters'] = any([
+            context['receipt_code'],
+            context['item_code'],
+            context['serial_code'],
+            context['status'],
+        ])
+        return context
 
 
 class ItemCreateView(ItemUnitFormsetMixin, InventoryBaseView, CreateView):
@@ -1054,6 +1171,7 @@ class ReceiptPermanentListView(InventoryBaseView, ListView):
         context['show_conversion'] = False
         context['empty_heading'] = _('No Permanent Receipts Found')
         context['empty_text'] = _('Start by creating your first permanent receipt.')
+        context['serial_url_name'] = 'inventory:receipt_permanent_serials'
         return context
 
 
@@ -1073,6 +1191,7 @@ class ReceiptConsignmentListView(InventoryBaseView, ListView):
         context['show_conversion'] = False
         context['empty_heading'] = _('No Consignment Receipts Found')
         context['empty_text'] = _('Start by creating your first consignment receipt.')
+        context['serial_url_name'] = 'inventory:receipt_consignment_serials'
         return context
 
 
@@ -1264,9 +1383,10 @@ class ReceiptTemporaryUpdateView(DocumentLockProtectedMixin, ReceiptFormMixin, U
         ]
 
 
-class ReceiptPermanentCreateView(ReceiptFormMixin, CreateView):
+class ReceiptPermanentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
     model = models.ReceiptPermanent
     form_class = forms.ReceiptPermanentForm
+    formset_class = forms.ReceiptPermanentLineFormSet
     success_url = reverse_lazy('inventory:receipt_permanent')
     form_title = _('ایجاد رسید دائم')
     receipt_variant = 'permanent'
@@ -1276,21 +1396,31 @@ class ReceiptPermanentCreateView(ReceiptFormMixin, CreateView):
     def form_valid(self, form):
         form.instance.company_id = self.request.session.get('active_company_id')
         form.instance.created_by = self.request.user
-        response = super().form_valid(form)
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        self._save_line_formset(lines_formset)
+        
         messages.success(self.request, _('رسید دائم با موفقیت ایجاد شد.'))
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self):
         return [
-            (_('Item & Warehouse'), ['item', 'warehouse', 'unit', 'quantity']),
-            (_('Financials'), ['supplier', 'unit_price', 'currency', 'tax_amount', 'discount_amount', 'total_amount']),
-            (_('References'), ['requires_temporary_receipt', 'temporary_receipt', 'purchase_request', 'warehouse_request']),
+            (_('Document Info'), ['document_code', 'document_date', 'requires_temporary_receipt', 'temporary_receipt', 'purchase_request', 'warehouse_request']),
         ]
 
 
-class ReceiptPermanentUpdateView(DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
+class ReceiptPermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
     model = models.ReceiptPermanent
     form_class = forms.ReceiptPermanentForm
+    formset_class = forms.ReceiptPermanentLineFormSet
     success_url = reverse_lazy('inventory:receipt_permanent')
     form_title = _('ویرایش رسید دائم')
     receipt_variant = 'permanent'
@@ -1302,21 +1432,31 @@ class ReceiptPermanentUpdateView(DocumentLockProtectedMixin, ReceiptFormMixin, U
         if not form.instance.created_by_id:
             form.instance.created_by = self.request.user
         form.instance.edited_by = self.request.user
-        response = super().form_valid(form)
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        self._save_line_formset(lines_formset)
+        
         messages.success(self.request, _('رسید دائم با موفقیت ویرایش شد.'))
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self):
         return [
-            (_('Item & Warehouse'), ['item', 'warehouse', 'unit', 'quantity']),
-            (_('Financials'), ['supplier', 'unit_price', 'currency', 'tax_amount', 'discount_amount', 'total_amount']),
-            (_('References'), ['requires_temporary_receipt', 'temporary_receipt', 'purchase_request', 'warehouse_request']),
+            (_('Document Info'), ['document_code', 'document_date', 'requires_temporary_receipt', 'temporary_receipt', 'purchase_request', 'warehouse_request']),
         ]
 
 
-class ReceiptConsignmentCreateView(ReceiptFormMixin, CreateView):
+class ReceiptConsignmentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
     model = models.ReceiptConsignment
     form_class = forms.ReceiptConsignmentForm
+    formset_class = forms.ReceiptConsignmentLineFormSet
     success_url = reverse_lazy('inventory:receipt_consignment')
     form_title = _('ایجاد رسید امانی')
     receipt_variant = 'consignment'
@@ -1326,21 +1466,31 @@ class ReceiptConsignmentCreateView(ReceiptFormMixin, CreateView):
     def form_valid(self, form):
         form.instance.company_id = self.request.session.get('active_company_id')
         form.instance.created_by = self.request.user
-        response = super().form_valid(form)
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        self._save_line_formset(lines_formset)
+        
         messages.success(self.request, _('رسید امانی با موفقیت ایجاد شد.'))
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self):
         return [
-            (_('Item & Warehouse'), ['item', 'warehouse', 'unit', 'quantity']),
-            (_('Supplier & Contract'), ['supplier', 'consignment_contract_code', 'expected_return_date', 'valuation_method', 'unit_price_estimate', 'currency']),
-            (_('References'), ['requires_temporary_receipt', 'temporary_receipt', 'purchase_request', 'warehouse_request', 'ownership_status', 'conversion_receipt', 'conversion_date', 'return_document_id']),
+            (_('Document Info'), ['document_code', 'document_date', 'consignment_contract_code', 'expected_return_date', 'valuation_method', 'requires_temporary_receipt', 'temporary_receipt', 'purchase_request', 'warehouse_request', 'ownership_status', 'conversion_receipt', 'conversion_date', 'return_document_id']),
         ]
 
 
-class ReceiptConsignmentUpdateView(DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
+class ReceiptConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
     model = models.ReceiptConsignment
     form_class = forms.ReceiptConsignmentForm
+    formset_class = forms.ReceiptConsignmentLineFormSet
     success_url = reverse_lazy('inventory:receipt_consignment')
     form_title = _('ویرایش رسید امانی')
     receipt_variant = 'consignment'
@@ -1352,21 +1502,31 @@ class ReceiptConsignmentUpdateView(DocumentLockProtectedMixin, ReceiptFormMixin,
         if not form.instance.created_by_id:
             form.instance.created_by = self.request.user
         form.instance.edited_by = self.request.user
-        response = super().form_valid(form)
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        self._save_line_formset(lines_formset)
+        
         messages.success(self.request, _('رسید امانی با موفقیت ویرایش شد.'))
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self):
         return [
-            (_('Item & Warehouse'), ['item', 'warehouse', 'unit', 'quantity']),
-            (_('Supplier & Contract'), ['supplier', 'consignment_contract_code', 'expected_return_date', 'valuation_method', 'unit_price_estimate', 'currency']),
-            (_('References'), ['requires_temporary_receipt', 'temporary_receipt', 'purchase_request', 'warehouse_request', 'ownership_status', 'conversion_receipt', 'conversion_date', 'return_document_id']),
+            (_('Document Info'), ['document_code', 'document_date', 'consignment_contract_code', 'expected_return_date', 'valuation_method', 'requires_temporary_receipt', 'temporary_receipt', 'purchase_request', 'warehouse_request', 'ownership_status', 'conversion_receipt', 'conversion_date', 'return_document_id']),
         ]
 
 
-class IssuePermanentCreateView(ReceiptFormMixin, CreateView):
+class IssuePermanentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
     model = models.IssuePermanent
     form_class = forms.IssuePermanentForm
+    formset_class = forms.IssuePermanentLineFormSet
     success_url = reverse_lazy('inventory:issue_permanent')
     form_title = _('ایجاد حواله دائم')
     receipt_variant = 'issue_permanent'
@@ -1377,23 +1537,31 @@ class IssuePermanentCreateView(ReceiptFormMixin, CreateView):
         form.instance.company_id = self.request.session.get('active_company_id')
         form.instance.created_by = self.request.user
         form.instance.edited_by = self.request.user
-        previous_serial_ids: Set[int] = set()
-        response = super().form_valid(form)
-        serial_service.sync_issue_serials(self.object, previous_serial_ids, user=self.request.user)
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        self._save_line_formset(lines_formset)
+        
         messages.success(self.request, _('حواله دائم با موفقیت ایجاد شد.'))
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self):
         return [
-            (_('Item & Warehouse'), ['item', 'warehouse', 'unit', 'quantity', 'serials']),
-            (_('Destination'), ['destination_type', 'destination_id', 'destination_code', 'department_unit', 'reason_code']),
-            (_('Financials'), ['unit_price', 'currency', 'tax_amount', 'discount_amount', 'total_amount']),
+            (_('Document Info'), ['document_code', 'document_date', 'department_unit']),
         ]
 
 
-class IssuePermanentUpdateView(DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
+class IssuePermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
     model = models.IssuePermanent
     form_class = forms.IssuePermanentForm
+    formset_class = forms.IssuePermanentLineFormSet
     success_url = reverse_lazy('inventory:issue_permanent')
     form_title = _('ویرایش حواله دائم')
     receipt_variant = 'issue_permanent'
@@ -1402,33 +1570,34 @@ class IssuePermanentUpdateView(DocumentLockProtectedMixin, ReceiptFormMixin, Upd
     lock_redirect_url_name = 'inventory:issue_permanent'
 
     def form_valid(self, form):
-        previous_serial_ids: Set[int] = set(form.instance.serials.values_list('id', flat=True)) if form.instance.pk else set()
         if not form.instance.created_by_id:
             form.instance.created_by = self.request.user
         form.instance.edited_by = self.request.user
-        response = super().form_valid(form)
-        serial_service.sync_issue_serials(self.object, previous_serial_ids, user=self.request.user)
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        self._save_line_formset(lines_formset)
+        
         messages.success(self.request, _('حواله دائم با موفقیت ویرایش شد.'))
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self):
         return [
-            (_('Item & Warehouse'), ['item', 'warehouse', 'unit', 'quantity', 'serials']),
-            (_('Destination'), ['destination_type', 'destination_id', 'destination_code', 'department_unit', 'reason_code']),
-            (_('Financials'), ['unit_price', 'currency', 'tax_amount', 'discount_amount', 'total_amount']),
-        ]
-
-    def get_fieldsets(self):
-        return [
-            (_('Item & Warehouse'), ['item', 'warehouse', 'unit', 'quantity']),
-            (_('Destination'), ['destination_type', 'destination_id', 'destination_code', 'department_unit', 'reason_code']),
-            (_('Financials'), ['unit_price', 'currency', 'tax_amount', 'discount_amount', 'total_amount']),
+            (_('Document Info'), ['document_code', 'document_date', 'department_unit']),
         ]
 
 
-class IssueConsumptionCreateView(ReceiptFormMixin, CreateView):
+class IssueConsumptionCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
     model = models.IssueConsumption
     form_class = forms.IssueConsumptionForm
+    formset_class = forms.IssueConsumptionLineFormSet
     success_url = reverse_lazy('inventory:issue_consumption')
     form_title = _('ایجاد حواله مصرف')
     receipt_variant = 'issue_consumption'
@@ -1439,24 +1608,31 @@ class IssueConsumptionCreateView(ReceiptFormMixin, CreateView):
         form.instance.company_id = self.request.session.get('active_company_id')
         form.instance.created_by = self.request.user
         form.instance.edited_by = self.request.user
-        previous_serial_ids: Set[int] = set()
-        response = super().form_valid(form)
-        serial_service.sync_issue_serials(self.object, previous_serial_ids, user=self.request.user)
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        self._save_line_formset(lines_formset)
+        
         messages.success(self.request, _('حواله مصرف با موفقیت ایجاد شد.'))
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self):
         return [
-            (_('Item & Warehouse'), ['item', 'warehouse', 'unit', 'quantity', 'serials']),
-            (_('Usage Details'), ['consumption_type', 'department_unit', 'work_line']),
-            (_('References'), ['reference_document_type', 'reference_document_id', 'reference_document_code', 'production_transfer_id', 'production_transfer_code']),
-            (_('Costing'), ['unit_cost', 'total_cost']),
+            (_('Document Info'), ['document_code', 'document_date', 'department_unit']),
         ]
 
 
-class IssueConsumptionUpdateView(DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
+class IssueConsumptionUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
     model = models.IssueConsumption
     form_class = forms.IssueConsumptionForm
+    formset_class = forms.IssueConsumptionLineFormSet
     success_url = reverse_lazy('inventory:issue_consumption')
     form_title = _('ویرایش حواله مصرف')
     receipt_variant = 'issue_consumption'
@@ -1465,35 +1641,34 @@ class IssueConsumptionUpdateView(DocumentLockProtectedMixin, ReceiptFormMixin, U
     lock_redirect_url_name = 'inventory:issue_consumption'
 
     def form_valid(self, form):
-        previous_serial_ids: Set[int] = set(form.instance.serials.values_list('id', flat=True)) if form.instance.pk else set()
         if not form.instance.created_by_id:
             form.instance.created_by = self.request.user
         form.instance.edited_by = self.request.user
-        response = super().form_valid(form)
-        serial_service.sync_issue_serials(self.object, previous_serial_ids, user=self.request.user)
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        self._save_line_formset(lines_formset)
+        
         messages.success(self.request, _('حواله مصرف با موفقیت ویرایش شد.'))
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self):
         return [
-            (_('Item & Warehouse'), ['item', 'warehouse', 'unit', 'quantity', 'serials']),
-            (_('Usage Details'), ['consumption_type', 'department_unit', 'work_line']),
-            (_('References'), ['reference_document_type', 'reference_document_id', 'reference_document_code', 'production_transfer_id', 'production_transfer_code']),
-            (_('Costing'), ['unit_cost', 'total_cost']),
-        ]
-
-    def get_fieldsets(self):
-        return [
-            (_('Item & Warehouse'), ['item', 'warehouse', 'unit', 'quantity']),
-            (_('Usage Details'), ['consumption_type', 'department_unit', 'work_line']),
-            (_('References'), ['reference_document_type', 'reference_document_id', 'reference_document_code', 'production_transfer_id', 'production_transfer_code']),
-            (_('Costing'), ['unit_cost', 'total_cost']),
+            (_('Document Info'), ['document_code', 'document_date', 'department_unit']),
         ]
 
 
-class IssueConsignmentCreateView(ReceiptFormMixin, CreateView):
+class IssueConsignmentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
     model = models.IssueConsignment
     form_class = forms.IssueConsignmentForm
+    formset_class = forms.IssueConsignmentLineFormSet
     success_url = reverse_lazy('inventory:issue_consignment')
     form_title = _('ایجاد حواله امانی')
     receipt_variant = 'issue_consignment'
@@ -1504,23 +1679,31 @@ class IssueConsignmentCreateView(ReceiptFormMixin, CreateView):
         form.instance.company_id = self.request.session.get('active_company_id')
         form.instance.created_by = self.request.user
         form.instance.edited_by = self.request.user
-        previous_serial_ids: Set[int] = set()
-        response = super().form_valid(form)
-        serial_service.sync_issue_serials(self.object, previous_serial_ids, user=self.request.user)
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        self._save_line_formset(lines_formset)
+        
         messages.success(self.request, _('حواله امانی با موفقیت ایجاد شد.'))
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self):
         return [
-            (_('Item & Warehouse'), ['item', 'warehouse', 'unit', 'quantity', 'serials']),
-            (_('Consignment'), ['consignment_receipt', 'department_unit']),
-            (_('Destination & Reason'), ['destination_type', 'destination_id', 'destination_code', 'reason_code']),
+            (_('Document Info'), ['document_code', 'document_date', 'department_unit']),
         ]
 
 
-class IssueConsignmentUpdateView(DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
+class IssueConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
     model = models.IssueConsignment
     form_class = forms.IssueConsignmentForm
+    formset_class = forms.IssueConsignmentLineFormSet
     success_url = reverse_lazy('inventory:issue_consignment')
     form_title = _('ویرایش حواله امانی')
     receipt_variant = 'issue_consignment'
@@ -1529,27 +1712,27 @@ class IssueConsignmentUpdateView(DocumentLockProtectedMixin, ReceiptFormMixin, U
     lock_redirect_url_name = 'inventory:issue_consignment'
 
     def form_valid(self, form):
-        previous_serial_ids: Set[int] = set(form.instance.serials.values_list('id', flat=True)) if form.instance.pk else set()
         if not form.instance.created_by_id:
             form.instance.created_by = self.request.user
         form.instance.edited_by = self.request.user
-        response = super().form_valid(form)
-        serial_service.sync_issue_serials(self.object, previous_serial_ids, user=self.request.user)
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        self._save_line_formset(lines_formset)
+        
         messages.success(self.request, _('حواله امانی با موفقیت ویرایش شد.'))
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self):
         return [
-            (_('Item & Warehouse'), ['item', 'warehouse', 'unit', 'quantity', 'serials']),
-            (_('Consignment'), ['consignment_receipt', 'department_unit']),
-            (_('Destination & Reason'), ['destination_type', 'destination_id', 'destination_code', 'reason_code']),
-        ]
-
-    def get_fieldsets(self):
-        return [
-            (_('Item & Warehouse'), ['item', 'warehouse', 'unit', 'quantity']),
-            (_('Consignment'), ['consignment_receipt', 'department_unit']),
-            (_('Destination & Reason'), ['destination_type', 'destination_id', 'destination_code', 'reason_code']),
+            (_('Document Info'), ['document_code', 'document_date', 'department_unit']),
         ]
 
 
@@ -1565,16 +1748,20 @@ class ReceiptPermanentLockView(DocumentLockView):
     success_message = _('رسید دائم قفل شد و دیگر قابل ویرایش نیست.')
 
     def after_lock(self, obj, request):
-        try:
-            created = serial_service.generate_receipt_serials(obj, user=request.user)
-        except serial_service.SerialTrackingError as exc:
-            messages.error(request, str(exc))
-        else:
-            if created:
-                messages.info(
-                    request,
-                    _('%(count)s serial numbers were generated for this receipt.') % {'count': created},
-                )
+        # Generate serials for all lines with lot-tracked items
+        lines = models.ReceiptPermanentLine.objects.filter(document=obj, is_enabled=1)
+        total_created = 0
+        for line in lines:
+            try:
+                created = serial_service.generate_receipt_line_serials(line, user=request.user)
+                total_created += created
+            except serial_service.SerialTrackingError as exc:
+                messages.error(request, str(exc))
+        if total_created > 0:
+            messages.info(
+                request,
+                _('%(count)s serial numbers were generated for this receipt.') % {'count': total_created},
+            )
 
 
 class ReceiptConsignmentLockView(DocumentLockView):
@@ -1588,11 +1775,45 @@ class IssuePermanentLockView(DocumentLockView):
     success_url_name = 'inventory:issue_permanent'
     success_message = _('حواله دائم قفل شد و دیگر قابل ویرایش نیست.')
 
+    def before_lock(self, obj, request):
+        # Validate serials for all lines with lot-tracked items
+        lines = models.IssuePermanentLine.objects.filter(document=obj, is_enabled=1)
+        for line in lines:
+            if line.item and line.item.has_lot_tracking == 1:
+                try:
+                    required = int(Decimal(line.quantity))
+                except (InvalidOperation, TypeError):
+                    messages.error(
+                        request,
+                        _('برای ردیف %(item)s، مقدار باید پیش از قفل‌شدن عدد صحیح باشد.')
+                        % {'item': line.item.name}
+                    )
+                    return False
+                if Decimal(line.quantity) != Decimal(required):
+                    messages.error(
+                        request,
+                        _('برای ردیف %(item)s، مقدار باید پیش از قفل‌شدن عدد صحیح باشد.')
+                        % {'item': line.item.name}
+                    )
+                    return False
+                selected = line.serials.count()
+                if selected != required:
+                    messages.error(
+                        request,
+                        _('برای ردیف %(item)s، پیش از قفل کردن باید %(expected)s سریال انتخاب شود (الان %(selected)s عدد ثبت شده است).')
+                        % {'item': line.item.name, 'expected': required, 'selected': selected}
+                    )
+                    return False
+        return True
+
     def after_lock(self, obj, request):
-        try:
-            serial_service.finalize_issue_serials(obj, user=request.user)
-        except serial_service.SerialTrackingError as exc:
-            messages.error(request, str(exc))
+        # Finalize serials for all lines
+        lines = models.IssuePermanentLine.objects.filter(document=obj, is_enabled=1)
+        for line in lines:
+            try:
+                serial_service.finalize_issue_line_serials(line, user=request.user)
+            except serial_service.SerialTrackingError as exc:
+                messages.error(request, str(exc))
 
 
 class IssueConsumptionLockView(DocumentLockView):
@@ -1600,11 +1821,45 @@ class IssueConsumptionLockView(DocumentLockView):
     success_url_name = 'inventory:issue_consumption'
     success_message = _('حواله مصرفی قفل شد و دیگر قابل ویرایش نیست.')
 
+    def before_lock(self, obj, request):
+        # Validate serials for all lines with lot-tracked items
+        lines = models.IssueConsumptionLine.objects.filter(document=obj, is_enabled=1)
+        for line in lines:
+            if line.item and line.item.has_lot_tracking == 1:
+                try:
+                    required = int(Decimal(line.quantity))
+                except (InvalidOperation, TypeError):
+                    messages.error(
+                        request,
+                        _('برای ردیف %(item)s، مقدار باید پیش از قفل‌شدن عدد صحیح باشد.')
+                        % {'item': line.item.name}
+                    )
+                    return False
+                if Decimal(line.quantity) != Decimal(required):
+                    messages.error(
+                        request,
+                        _('برای ردیف %(item)s، مقدار باید پیش از قفل‌شدن عدد صحیح باشد.')
+                        % {'item': line.item.name}
+                    )
+                    return False
+                selected = line.serials.count()
+                if selected != required:
+                    messages.error(
+                        request,
+                        _('برای ردیف %(item)s، پیش از قفل کردن باید %(expected)s سریال انتخاب شود (الان %(selected)s عدد ثبت شده است).')
+                        % {'item': line.item.name, 'expected': required, 'selected': selected}
+                    )
+                    return False
+        return True
+
     def after_lock(self, obj, request):
-        try:
-            serial_service.finalize_issue_serials(obj, user=request.user)
-        except serial_service.SerialTrackingError as exc:
-            messages.error(request, str(exc))
+        # Finalize serials for all lines
+        lines = models.IssueConsumptionLine.objects.filter(document=obj, is_enabled=1)
+        for line in lines:
+            try:
+                serial_service.finalize_issue_line_serials(line, user=request.user)
+            except serial_service.SerialTrackingError as exc:
+                messages.error(request, str(exc))
 
 
 class IssueConsignmentLockView(DocumentLockView):
@@ -1612,11 +1867,45 @@ class IssueConsignmentLockView(DocumentLockView):
     success_url_name = 'inventory:issue_consignment'
     success_message = _('حواله امانی قفل شد و دیگر قابل ویرایش نیست.')
 
+    def before_lock(self, obj, request):
+        # Validate serials for all lines with lot-tracked items
+        lines = models.IssueConsignmentLine.objects.filter(document=obj, is_enabled=1)
+        for line in lines:
+            if line.item and line.item.has_lot_tracking == 1:
+                try:
+                    required = int(Decimal(line.quantity))
+                except (InvalidOperation, TypeError):
+                    messages.error(
+                        request,
+                        _('برای ردیف %(item)s، مقدار باید پیش از قفل‌شدن عدد صحیح باشد.')
+                        % {'item': line.item.name}
+                    )
+                    return False
+                if Decimal(line.quantity) != Decimal(required):
+                    messages.error(
+                        request,
+                        _('برای ردیف %(item)s، مقدار باید پیش از قفل‌شدن عدد صحیح باشد.')
+                        % {'item': line.item.name}
+                    )
+                    return False
+                selected = line.serials.count()
+                if selected != required:
+                    messages.error(
+                        request,
+                        _('برای ردیف %(item)s، پیش از قفل کردن باید %(expected)s سریال انتخاب شود (الان %(selected)s عدد ثبت شده است).')
+                        % {'item': line.item.name, 'expected': required, 'selected': selected}
+                    )
+                    return False
+        return True
+
     def after_lock(self, obj, request):
-        try:
-            serial_service.finalize_issue_serials(obj, user=request.user)
-        except serial_service.SerialTrackingError as exc:
-            messages.error(request, str(exc))
+        # Finalize serials for all lines
+        lines = models.IssueConsignmentLine.objects.filter(document=obj, is_enabled=1)
+        for line in lines:
+            try:
+                serial_service.finalize_issue_line_serials(line, user=request.user)
+            except serial_service.SerialTrackingError as exc:
+                messages.error(request, str(exc))
 
 
 class StocktakingDeficitLockView(DocumentLockView):
@@ -1650,6 +1939,7 @@ class IssuePermanentListView(InventoryBaseView, ListView):
         context['edit_url_name'] = 'inventory:issue_permanent_edit'
         context['lock_url_name'] = 'inventory:issue_permanent_lock'
         context['create_label'] = _('Permanent Issue')
+        context['serial_url_name'] = 'inventory:issue_permanent_serials'
         return context
 
 
@@ -1665,6 +1955,7 @@ class IssueConsumptionListView(InventoryBaseView, ListView):
         context['edit_url_name'] = 'inventory:issue_consumption_edit'
         context['lock_url_name'] = 'inventory:issue_consumption_lock'
         context['create_label'] = _('Consumption Issue')
+        context['serial_url_name'] = 'inventory:issue_consumption_serials'
         return context
 
 
@@ -1680,6 +1971,7 @@ class IssueConsignmentListView(InventoryBaseView, ListView):
         context['edit_url_name'] = 'inventory:issue_consignment_edit'
         context['lock_url_name'] = 'inventory:issue_consignment_lock'
         context['create_label'] = _('Consignment Issue')
+        context['serial_url_name'] = 'inventory:issue_consignment_serials'
         return context
 
 
@@ -2183,3 +2475,295 @@ class WarehouseDeleteView(InventoryBaseView, DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(self.request, _('Warehouse deleted successfully.'))
         return super().delete(request, *args, **kwargs)
+
+
+# ============================================================================
+# Line-based Serial Assignment Views (Multi-line support)
+# ============================================================================
+
+class IssueLineSerialAssignmentBaseView(FeaturePermissionRequiredMixin, FormView):
+    """Base view for assigning serials to a specific issue line."""
+    template_name = 'inventory/issue_serial_assignment.html'
+    form_class = forms.IssueLineSerialAssignmentForm
+    line_model = None
+    document_model = None
+    feature_code = None
+    serial_url_name = ''
+    list_url_name = ''
+    edit_url_name = ''
+    lock_url_name = ''
+
+    def dispatch(self, request, *args, **kwargs):
+        self.document = self.get_document()
+        self.line = self.get_line()
+        if self.line.item and self.line.item.has_lot_tracking != 1:
+            messages.info(request, _('این کالا نیازی به سریال ندارد.'))
+            return HttpResponseRedirect(reverse(self.edit_url_name, args=[self.document.pk]))
+        if getattr(self.document, 'is_locked', 0):
+            messages.info(request, _('برای سند قفل‌شده امکان تغییر سریال وجود ندارد.'))
+            return HttpResponseRedirect(reverse(self.list_url_name))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_document(self):
+        queryset = self.document_model.objects.all()
+        company_id = self.request.session.get('active_company_id')
+        if company_id and hasattr(self.document_model, 'company_id'):
+            queryset = queryset.filter(company_id=company_id)
+        return get_object_or_404(queryset, pk=self.kwargs.get('pk'))
+
+    def get_line(self):
+        queryset = self.line_model.objects.filter(document=self.document)
+        company_id = self.request.session.get('active_company_id')
+        if company_id and hasattr(self.line_model, 'company_id'):
+            queryset = queryset.filter(company_id=company_id)
+        return get_object_or_404(queryset, pk=self.kwargs.get('line_id'))
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['line'] = self.line
+        return kwargs
+
+    def form_valid(self, form):
+        form.save(user=self.request.user)
+        messages.success(self.request, _('سریال‌های ردیف با موفقیت ذخیره شد.'))
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse(self.edit_url_name, args=[self.document.pk])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['line'] = self.line
+        context['document'] = self.document
+        context['list_url'] = reverse(self.list_url_name)
+        context['edit_url'] = reverse(self.edit_url_name, args=[self.document.pk])
+        context['lock_url'] = reverse(self.lock_url_name, args=[self.document.pk]) if self.lock_url_name else None
+        try:
+            required = int(Decimal(self.line.quantity))
+        except (InvalidOperation, TypeError):
+            required = None
+        context['required_serials'] = required
+        context['selected_serials_count'] = self.line.serials.count()
+        available_queryset = context['form'].fields['serials'].queryset
+        context['available_serials_count'] = available_queryset.count()
+        context['available_serials'] = available_queryset
+        return context
+
+
+class IssuePermanentLineSerialAssignmentView(IssueLineSerialAssignmentBaseView):
+    line_model = models.IssuePermanentLine
+    document_model = models.IssuePermanent
+    feature_code = 'inventory.issues.permanent'
+    serial_url_name = 'inventory:issue_permanent_line_serials'
+    list_url_name = 'inventory:issue_permanent'
+    edit_url_name = 'inventory:issue_permanent_edit'
+    lock_url_name = 'inventory:issue_permanent_lock'
+
+
+class IssueConsumptionLineSerialAssignmentView(IssueLineSerialAssignmentBaseView):
+    line_model = models.IssueConsumptionLine
+    document_model = models.IssueConsumption
+    feature_code = 'inventory.issues.consumption'
+    serial_url_name = 'inventory:issue_consumption_line_serials'
+    list_url_name = 'inventory:issue_consumption'
+    edit_url_name = 'inventory:issue_consumption_edit'
+    lock_url_name = 'inventory:issue_consumption_lock'
+
+
+class IssueConsignmentLineSerialAssignmentView(IssueLineSerialAssignmentBaseView):
+    line_model = models.IssueConsignmentLine
+    document_model = models.IssueConsignment
+    feature_code = 'inventory.issues.consignment'
+    serial_url_name = 'inventory:issue_consignment_line_serials'
+    list_url_name = 'inventory:issue_consignment'
+    edit_url_name = 'inventory:issue_consignment_edit'
+    lock_url_name = 'inventory:issue_consignment_lock'
+
+
+class ReceiptSerialAssignmentBaseView(FeaturePermissionRequiredMixin, View):
+    template_name = 'inventory/receipt_serial_assignment.html'
+    model = None
+    feature_code = None
+    serial_url_name = ''
+    list_url_name = ''
+    edit_url_name = ''
+    lock_url_name = ''
+
+    def dispatch(self, request, *args, **kwargs):
+        self.receipt = self.get_receipt()
+        if self.receipt.item and self.receipt.item.has_lot_tracking != 1:
+            messages.info(request, _('این کالا نیازی به سریال ندارد.'))
+            return HttpResponseRedirect(reverse(self.list_url_name))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_receipt(self):
+        queryset = self.model.objects.all()
+        company_id = self.request.session.get('active_company_id')
+        if company_id and hasattr(self.model, 'company_id'):
+            queryset = queryset.filter(company_id=company_id)
+        return get_object_or_404(queryset, pk=self.kwargs.get('pk'))
+
+    def get_required_serials(self):
+        try:
+            return int(Decimal(self.receipt.quantity))
+        except (InvalidOperation, TypeError):
+            return None
+
+    def get_context_data(self):
+        required = self.get_required_serials()
+        serials = self.receipt.serials.order_by('serial_code')
+        context = {
+            'receipt': self.receipt,
+            'serials': serials,
+            'required_serials': required,
+            'serials_count': serials.count(),
+            'list_url': reverse(self.list_url_name),
+            'edit_url': reverse(self.edit_url_name, args=[self.receipt.pk]),
+            'lock_url': reverse(self.lock_url_name, args=[self.receipt.pk]) if self.lock_url_name else None,
+            'can_generate': not getattr(self.receipt, 'is_locked', 0),
+            'missing_serials': max(required - serials.count(), 0) if required is not None else None,
+        }
+        return context
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name, self.get_context_data())
+
+    def post(self, request, *args, **kwargs):
+        if getattr(self.receipt, 'is_locked', 0):
+            messages.info(request, _('رسید قفل شده و امکان تولید سریال جدید وجود ندارد.'))
+            return HttpResponseRedirect(self.get_success_url())
+
+        try:
+            created = serial_service.generate_receipt_serials(self.receipt, user=request.user)
+        except serial_service.SerialTrackingError as exc:
+            messages.error(request, str(exc))
+        else:
+            if created:
+                messages.success(request, _('%(count)s سریال جدید ایجاد شد.') % {'count': created})
+            else:
+                messages.info(request, _('سریال جدیدی برای ایجاد وجود نداشت.'))
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse(self.serial_url_name, args=[self.receipt.pk])
+
+
+class ReceiptPermanentSerialAssignmentView(ReceiptSerialAssignmentBaseView):
+    model = models.ReceiptPermanent
+    feature_code = 'inventory.receipts.permanent'
+    serial_url_name = 'inventory:receipt_permanent_serials'
+    list_url_name = 'inventory:receipt_permanent'
+    edit_url_name = 'inventory:receipt_permanent_edit'
+    lock_url_name = 'inventory:receipt_permanent_lock'
+
+
+class ReceiptConsignmentSerialAssignmentView(ReceiptSerialAssignmentBaseView):
+    model = models.ReceiptConsignment
+    feature_code = 'inventory.receipts.consignment'
+    serial_url_name = 'inventory:receipt_consignment_serials'
+    list_url_name = 'inventory:receipt_consignment'
+    edit_url_name = 'inventory:receipt_consignment_edit'
+    lock_url_name = 'inventory:receipt_consignment_lock'
+
+
+# ============================================================================
+# Line-based Receipt Serial Assignment Views (Multi-line support)
+# ============================================================================
+
+class ReceiptLineSerialAssignmentBaseView(FeaturePermissionRequiredMixin, View):
+    """Base view for managing serials for a specific receipt line."""
+    template_name = 'inventory/receipt_serial_assignment.html'
+    line_model = None
+    document_model = None
+    feature_code = None
+    serial_url_name = ''
+    list_url_name = ''
+    edit_url_name = ''
+    lock_url_name = ''
+
+    def dispatch(self, request, *args, **kwargs):
+        self.document = self.get_document()
+        self.line = self.get_line()
+        if self.line.item and self.line.item.has_lot_tracking != 1:
+            messages.info(request, _('این کالا نیازی به سریال ندارد.'))
+            return HttpResponseRedirect(reverse(self.edit_url_name, args=[self.document.pk]))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_document(self):
+        queryset = self.document_model.objects.all()
+        company_id = self.request.session.get('active_company_id')
+        if company_id and hasattr(self.document_model, 'company_id'):
+            queryset = queryset.filter(company_id=company_id)
+        return get_object_or_404(queryset, pk=self.kwargs.get('pk'))
+
+    def get_line(self):
+        queryset = self.line_model.objects.filter(document=self.document)
+        company_id = self.request.session.get('active_company_id')
+        if company_id and hasattr(self.line_model, 'company_id'):
+            queryset = queryset.filter(company_id=company_id)
+        return get_object_or_404(queryset, pk=self.kwargs.get('line_id'))
+
+    def get_required_serials(self):
+        try:
+            return int(Decimal(self.line.quantity))
+        except (InvalidOperation, TypeError):
+            return None
+
+    def get_context_data(self):
+        required = self.get_required_serials()
+        serials = self.line.serials.order_by('serial_code')
+        context = {
+            'line': self.line,
+            'document': self.document,
+            'serials': serials,
+            'required_serials': required,
+            'serials_count': serials.count(),
+            'list_url': reverse(self.list_url_name),
+            'edit_url': reverse(self.edit_url_name, args=[self.document.pk]),
+            'lock_url': reverse(self.lock_url_name, args=[self.document.pk]) if self.lock_url_name else None,
+            'can_generate': not getattr(self.document, 'is_locked', 0),
+            'missing_serials': max(required - serials.count(), 0) if required is not None else None,
+        }
+        return context
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name, self.get_context_data())
+
+    def post(self, request, *args, **kwargs):
+        if getattr(self.document, 'is_locked', 0):
+            messages.info(request, _('رسید قفل شده و امکان تولید سریال جدید وجود ندارد.'))
+            return HttpResponseRedirect(self.get_success_url())
+
+        try:
+            created = serial_service.generate_receipt_line_serials(self.line, user=request.user)
+        except serial_service.SerialTrackingError as exc:
+            messages.error(request, str(exc))
+        else:
+            if created:
+                messages.success(request, _('%(count)s سریال جدید ایجاد شد.') % {'count': created})
+            else:
+                messages.info(request, _('سریال جدیدی برای ایجاد وجود نداشت.'))
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse(self.edit_url_name, args=[self.document.pk])
+
+
+class ReceiptPermanentLineSerialAssignmentView(ReceiptLineSerialAssignmentBaseView):
+    line_model = models.ReceiptPermanentLine
+    document_model = models.ReceiptPermanent
+    feature_code = 'inventory.receipts.permanent'
+    serial_url_name = 'inventory:receipt_permanent_line_serials'
+    list_url_name = 'inventory:receipt_permanent'
+    edit_url_name = 'inventory:receipt_permanent_edit'
+    lock_url_name = 'inventory:receipt_permanent_lock'
+
+
+class ReceiptConsignmentLineSerialAssignmentView(ReceiptLineSerialAssignmentBaseView):
+    line_model = models.ReceiptConsignmentLine
+    document_model = models.ReceiptConsignment
+    feature_code = 'inventory.receipts.consignment'
+    serial_url_name = 'inventory:receipt_consignment_line_serials'
+    list_url_name = 'inventory:receipt_consignment'
+    edit_url_name = 'inventory:receipt_consignment_edit'
+    lock_url_name = 'inventory:receipt_consignment_lock'

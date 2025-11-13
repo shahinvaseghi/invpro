@@ -37,8 +37,15 @@ from .models import (
     StocktakingRecord,
     PurchaseRequest,
     WarehouseRequest,
+    # Line models
+    IssuePermanentLine,
+    IssueConsumptionLine,
+    IssueConsignmentLine,
+    ReceiptPermanentLine,
+    ReceiptConsignmentLine,
 )
 from shared.models import CompanyUnit, Person
+from .services import serials as serial_service
 
 User = get_user_model()
 
@@ -426,9 +433,8 @@ class ItemTypeForm(forms.ModelForm):
     
     class Meta:
         model = ItemType
-        fields = ['public_code', 'name', 'name_en', 'description', 'notes', 'sort_order', 'is_enabled']
+        fields = ['name', 'name_en', 'description', 'notes', 'sort_order', 'is_enabled']
         widgets = {
-            'public_code': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '3'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'name_en': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.TextInput(attrs={'class': 'form-control'}),
@@ -437,7 +443,6 @@ class ItemTypeForm(forms.ModelForm):
             'is_enabled': forms.Select(attrs={'class': 'form-control'}),
         }
         labels = {
-            'public_code': _('Code'),
             'name': _('Name (Persian)'),
             'name_en': _('Name (English)'),
             'description': _('Description'),
@@ -452,9 +457,8 @@ class ItemCategoryForm(forms.ModelForm):
     
     class Meta:
         model = ItemCategory
-        fields = ['public_code', 'name', 'name_en', 'description', 'notes', 'sort_order', 'is_enabled']
+        fields = ['name', 'name_en', 'description', 'notes', 'sort_order', 'is_enabled']
         widgets = {
-            'public_code': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '3'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'name_en': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.TextInput(attrs={'class': 'form-control'}),
@@ -463,7 +467,6 @@ class ItemCategoryForm(forms.ModelForm):
             'is_enabled': forms.Select(attrs={'class': 'form-control'}),
         }
         labels = {
-            'public_code': _('Code'),
             'name': _('Name (Persian)'),
             'name_en': _('Name (English)'),
             'description': _('Description'),
@@ -478,10 +481,9 @@ class ItemSubcategoryForm(forms.ModelForm):
     
     class Meta:
         model = ItemSubcategory
-        fields = ['category', 'public_code', 'name', 'name_en', 'description', 'notes', 'sort_order', 'is_enabled']
+        fields = ['category', 'name', 'name_en', 'description', 'notes', 'sort_order', 'is_enabled']
         widgets = {
             'category': forms.Select(attrs={'class': 'form-control'}),
-            'public_code': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '3'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'name_en': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.TextInput(attrs={'class': 'form-control'}),
@@ -491,7 +493,6 @@ class ItemSubcategoryForm(forms.ModelForm):
         }
         labels = {
             'category': _('Item Category'),
-            'public_code': _('Code'),
             'name': _('Name (Persian)'),
             'name_en': _('Name (English)'),
             'description': _('Description'),
@@ -506,9 +507,8 @@ class WarehouseForm(forms.ModelForm):
     
     class Meta:
         model = Warehouse
-        fields = ['public_code', 'name', 'name_en', 'description', 'notes', 'sort_order', 'is_enabled']
+        fields = ['name', 'name_en', 'description', 'notes', 'sort_order', 'is_enabled']
         widgets = {
-            'public_code': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '6'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'name_en': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.TextInput(attrs={'class': 'form-control'}),
@@ -517,7 +517,6 @@ class WarehouseForm(forms.ModelForm):
             'is_enabled': forms.Select(attrs={'class': 'form-control'}),
         }
         labels = {
-            'public_code': _('Code'),
             'name': _('Name (Persian)'),
             'name_en': _('Name (English)'),
             'description': _('Description'),
@@ -533,12 +532,11 @@ class SupplierForm(forms.ModelForm):
     class Meta:
         model = Supplier
         fields = [
-            'public_code', 'name', 'name_en', 'phone_number', 'mobile_number',
+            'name', 'name_en', 'phone_number', 'mobile_number',
             'email', 'address', 'city', 'state', 'country', 'tax_id',
             'description', 'sort_order', 'is_enabled'
         ]
         widgets = {
-            'public_code': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '6'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'name_en': forms.TextInput(attrs={'class': 'form-control'}),
             'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
@@ -554,7 +552,6 @@ class SupplierForm(forms.ModelForm):
             'is_enabled': forms.Select(attrs={'class': 'form-control'}),
         }
         labels = {
-            'public_code': _('Code'),
             'name': _('Name (Persian)'),
             'name_en': _('Name (English)'),
             'phone_number': _('Phone Number'),
@@ -1250,13 +1247,9 @@ class ReceiptTemporaryForm(ReceiptBaseForm):
             self.save_m2m()
         return instance
 
-class ReceiptPermanentForm(ReceiptBaseForm):
-    """Create/update form for permanent receipts."""
+class ReceiptPermanentForm(forms.ModelForm):
+    """Header-only form for permanent receipt documents with multi-line support."""
 
-    unit = forms.ChoiceField(
-        label=_('Unit'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
-    )
     requires_temporary_receipt = forms.BooleanField(
         required=False,
         label=_('Requires Temporary Receipt'),
@@ -1268,85 +1261,57 @@ class ReceiptPermanentForm(ReceiptBaseForm):
         fields = [
             'document_code',
             'document_date',
-            'item',
-            'warehouse',
-            'unit',
-            'quantity',
-            'supplier',
-            'unit_price',
-            'currency',
             'requires_temporary_receipt',
             'temporary_receipt',
             'purchase_request',
             'warehouse_request',
-            'tax_amount',
-            'discount_amount',
-            'total_amount',
         ]
         widgets = {
-            'document_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-                        'tax_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'discount_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'total_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-        }
-        labels = {
-            'document_code': _('Document Code'),
-            'document_date': _('Document Date'),
-            'item': _('Item'),
-            'warehouse': _('Warehouse'),
-            'quantity': _('Quantity'),
-            'supplier': _('Supplier'),
-            'unit_price': _('Unit Price'),
-            'currency': _('Currency'),
-            'temporary_receipt': _('Temporary Receipt'),
-            'purchase_request': _('Purchase Request'),
-            'warehouse_request': _('Warehouse Request'),
-            'tax_amount': _('Tax Amount'),
-            'discount_amount': _('Discount Amount'),
-            'total_amount': _('Total Amount'),
+            'document_code': forms.HiddenInput(),
+            'document_date': forms.HiddenInput(),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, company_id=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.company_id = company_id or getattr(self.instance, 'company_id', None)
+        
+        if self.company_id:
+            if 'temporary_receipt' in self.fields:
+                self.fields['temporary_receipt'].queryset = ReceiptTemporary.objects.filter(
+                    company_id=self.company_id
+                ).order_by('-document_date', 'document_code')
+                self.fields['temporary_receipt'].label_from_instance = lambda obj: f"{obj.document_code}"
+            
+            if 'purchase_request' in self.fields:
+                self.fields['purchase_request'].queryset = PurchaseRequest.objects.filter(
+                    company_id=self.company_id
+                ).order_by('-request_date', 'request_code')
+                self.fields['purchase_request'].label_from_instance = lambda obj: f"{obj.request_code}"
+            
+            if 'warehouse_request' in self.fields:
+                self.fields['warehouse_request'].queryset = WarehouseRequest.objects.filter(
+                    company_id=self.company_id
+                ).order_by('-needed_by_date', 'request_code')
+                self.fields['warehouse_request'].label_from_instance = lambda obj: f"{obj.request_code}"
+        
         if self.instance.pk:
             self.fields['requires_temporary_receipt'].initial = bool(self.instance.requires_temporary_receipt)
 
     def clean(self):
         cleaned_data = super().clean()
         if self.company_id:
-            self._clean_company_match(cleaned_data, 'item', _('item'))
-            self._clean_company_match(cleaned_data, 'warehouse', _('warehouse'))
-            if cleaned_data.get('supplier'):
-                self._clean_company_match(cleaned_data, 'supplier', _('supplier'))
             if cleaned_data.get('temporary_receipt'):
-                self._clean_company_match(cleaned_data, 'temporary_receipt', _('temporary receipt'))
+                temp = cleaned_data.get('temporary_receipt')
+                if temp.company_id != self.company_id:
+                    self.add_error('temporary_receipt', _('Selected temporary receipt belongs to a different company.'))
             if cleaned_data.get('purchase_request'):
-                self._clean_company_match(cleaned_data, 'purchase_request', _('purchase request'))
+                pr = cleaned_data.get('purchase_request')
+                if pr.company_id != self.company_id:
+                    self.add_error('purchase_request', _('Selected purchase request belongs to a different company.'))
             if cleaned_data.get('warehouse_request'):
-                self._clean_company_match(cleaned_data, 'warehouse_request', _('warehouse request'))
-                warehouse_request = cleaned_data.get('warehouse_request')
-                item = cleaned_data.get('item')
-                warehouse = cleaned_data.get('warehouse')
-                if warehouse_request and item and warehouse_request.item_id != item.id:
-                    self.add_error('warehouse_request', _('Selected warehouse request is for a different item.'))
-                if warehouse_request and warehouse and warehouse_request.warehouse_id != warehouse.id:
-                    self.add_error('warehouse_request', _('Selected warehouse request is for a different warehouse.'))
-
-        factor = getattr(self, '_unit_factor', Decimal('1'))
-        unit_price = cleaned_data.get('unit_price')
-        if unit_price not in (None, '') and factor not in (None, Decimal('0')):
-            try:
-                if not isinstance(unit_price, Decimal):
-                    unit_price = Decimal(str(unit_price))
-                self._entered_unit_price_value = unit_price
-                cleaned_data['unit_price'] = unit_price / factor
-                self.instance.unit_price = cleaned_data['unit_price']
-            except (InvalidOperation, TypeError):
-                pass
-        else:
-            self._entered_unit_price_value = None
+                wr = cleaned_data.get('warehouse_request')
+                if wr.company_id != self.company_id:
+                    self.add_error('warehouse_request', _('Selected warehouse request belongs to a different company.'))
         return cleaned_data
 
     def save(self, commit=True):
@@ -1356,21 +1321,10 @@ class ReceiptPermanentForm(ReceiptBaseForm):
         if not instance.document_date:
             instance.document_date = timezone.now().date()
         instance.requires_temporary_receipt = 1 if self.cleaned_data.get('requires_temporary_receipt') else 0
-        instance.is_locked = getattr(self.instance, 'is_locked', 0) or 0
-        instance.unit = self.instance.unit
-        instance.quantity = self.instance.quantity
-        instance.entered_unit = self._entered_unit_value or getattr(instance, 'entered_unit', '') or instance.unit
-        if self._entered_quantity_value is not None:
-            instance.entered_quantity = self._entered_quantity_value
-        elif instance.entered_quantity is None:
-            instance.entered_quantity = instance.quantity
-        if self._entered_unit_price_value is not None:
-            instance.entered_unit_price = self._entered_unit_price_value
-        elif self.cleaned_data.get('unit_price') in (None, ''):
-            instance.entered_unit_price = None
+        
         if commit:
             instance.save()
-            self.save_m2m()
+            # Handle temporary receipt conversion
             if instance.temporary_receipt:
                 temp = instance.temporary_receipt
                 updated_fields = set()
@@ -1390,13 +1344,9 @@ class ReceiptPermanentForm(ReceiptBaseForm):
                     temp.save(update_fields=list(updated_fields))
         return instance
 
-class ReceiptConsignmentForm(ReceiptBaseForm):
-    """Create/update form for consignment receipts."""
+class ReceiptConsignmentForm(forms.ModelForm):
+    """Header-only form for consignment receipt documents with multi-line support."""
 
-    unit = forms.ChoiceField(
-        label=_('Unit'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
-    )
     requires_temporary_receipt = forms.BooleanField(
         required=False,
         label=_('Requires Temporary Receipt'),
@@ -1408,16 +1358,9 @@ class ReceiptConsignmentForm(ReceiptBaseForm):
         fields = [
             'document_code',
             'document_date',
-            'item',
-            'warehouse',
-            'unit',
-            'quantity',
-            'supplier',
             'consignment_contract_code',
             'expected_return_date',
             'valuation_method',
-            'unit_price_estimate',
-            'currency',
             'requires_temporary_receipt',
             'temporary_receipt',
             'purchase_request',
@@ -1428,75 +1371,67 @@ class ReceiptConsignmentForm(ReceiptBaseForm):
             'return_document_id',
         ]
         widgets = {
-            'document_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'document_code': forms.HiddenInput(),
+            'document_date': forms.HiddenInput(),
             'consignment_contract_code': forms.TextInput(attrs={'class': 'form-control'}),
+            'expected_return_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'valuation_method': forms.TextInput(attrs={'class': 'form-control'}),
-            'unit_price_estimate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-                        'ownership_status': forms.TextInput(attrs={'class': 'form-control'}),
+            'ownership_status': forms.TextInput(attrs={'class': 'form-control'}),
+            'conversion_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'return_document_id': forms.NumberInput(attrs={'class': 'form-control'}),
         }
-        labels = {
-            'document_code': _('Document Code'),
-            'document_date': _('Document Date'),
-            'item': _('Item'),
-            'warehouse': _('Warehouse'),
-            'quantity': _('Quantity'),
-            'supplier': _('Supplier'),
-            'consignment_contract_code': _('Contract Code'),
-            'expected_return_date': _('Expected Return Date'),
-            'valuation_method': _('Valuation Method'),
-            'unit_price_estimate': _('Estimated Unit Price'),
-            'currency': _('Currency'),
-            'temporary_receipt': _('Temporary Receipt'),
-            'purchase_request': _('Purchase Request'),
-            'warehouse_request': _('Warehouse Request'),
-            'ownership_status': _('Ownership Status'),
-            'conversion_receipt': _('Conversion Receipt'),
-            'conversion_date': _('Conversion Date'),
-            'return_document_id': _('Return Document'),
-        }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, company_id=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.company_id = company_id or getattr(self.instance, 'company_id', None)
+        
+        if self.company_id:
+            if 'temporary_receipt' in self.fields:
+                self.fields['temporary_receipt'].queryset = ReceiptTemporary.objects.filter(
+                    company_id=self.company_id
+                ).order_by('-document_date', 'document_code')
+                self.fields['temporary_receipt'].label_from_instance = lambda obj: f"{obj.document_code}"
+            
+            if 'purchase_request' in self.fields:
+                self.fields['purchase_request'].queryset = PurchaseRequest.objects.filter(
+                    company_id=self.company_id
+                ).order_by('-request_date', 'request_code')
+                self.fields['purchase_request'].label_from_instance = lambda obj: f"{obj.request_code}"
+            
+            if 'warehouse_request' in self.fields:
+                self.fields['warehouse_request'].queryset = WarehouseRequest.objects.filter(
+                    company_id=self.company_id
+                ).order_by('-needed_by_date', 'request_code')
+                self.fields['warehouse_request'].label_from_instance = lambda obj: f"{obj.request_code}"
+            
+            if 'conversion_receipt' in self.fields:
+                self.fields['conversion_receipt'].queryset = ReceiptPermanent.objects.filter(
+                    company_id=self.company_id
+                ).order_by('-document_date', 'document_code')
+                self.fields['conversion_receipt'].label_from_instance = lambda obj: f"{obj.document_code}"
+        
         if self.instance.pk:
             self.fields['requires_temporary_receipt'].initial = bool(self.instance.requires_temporary_receipt)
 
     def clean(self):
         cleaned_data = super().clean()
         if self.company_id:
-            self._clean_company_match(cleaned_data, 'item', _('item'))
-            self._clean_company_match(cleaned_data, 'warehouse', _('warehouse'))
-            self._clean_company_match(cleaned_data, 'supplier', _('supplier'))
             if cleaned_data.get('temporary_receipt'):
-                self._clean_company_match(cleaned_data, 'temporary_receipt', _('temporary receipt'))
+                temp = cleaned_data.get('temporary_receipt')
+                if temp.company_id != self.company_id:
+                    self.add_error('temporary_receipt', _('Selected temporary receipt belongs to a different company.'))
             if cleaned_data.get('purchase_request'):
-                self._clean_company_match(cleaned_data, 'purchase_request', _('purchase request'))
+                pr = cleaned_data.get('purchase_request')
+                if pr.company_id != self.company_id:
+                    self.add_error('purchase_request', _('Selected purchase request belongs to a different company.'))
             if cleaned_data.get('warehouse_request'):
-                self._clean_company_match(cleaned_data, 'warehouse_request', _('warehouse request'))
-                warehouse_request = cleaned_data.get('warehouse_request')
-                item = cleaned_data.get('item')
-                warehouse = cleaned_data.get('warehouse')
-                if warehouse_request and item and warehouse_request.item_id != item.id:
-                    self.add_error('warehouse_request', _('Selected warehouse request is for a different item.'))
-                if warehouse_request and warehouse and warehouse_request.warehouse_id != warehouse.id:
-                    self.add_error('warehouse_request', _('Selected warehouse request is for a different warehouse.'))
+                wr = cleaned_data.get('warehouse_request')
+                if wr.company_id != self.company_id:
+                    self.add_error('warehouse_request', _('Selected warehouse request belongs to a different company.'))
             if cleaned_data.get('conversion_receipt'):
-                self._clean_company_match(cleaned_data, 'conversion_receipt', _('conversion receipt'))
-
-        factor = getattr(self, '_unit_factor', Decimal('1'))
-        unit_price_estimate = cleaned_data.get('unit_price_estimate')
-        if unit_price_estimate not in (None, '') and factor not in (None, Decimal('0')):
-            try:
-                if not isinstance(unit_price_estimate, Decimal):
-                    unit_price_estimate = Decimal(str(unit_price_estimate))
-                self._entered_unit_price_value = unit_price_estimate
-                cleaned_data['unit_price_estimate'] = unit_price_estimate / factor
-                self.instance.unit_price_estimate = cleaned_data['unit_price_estimate']
-            except (InvalidOperation, TypeError):
-                pass
-        else:
-            self._entered_unit_price_value = None
+                conv = cleaned_data.get('conversion_receipt')
+                if conv.company_id != self.company_id:
+                    self.add_error('conversion_receipt', _('Selected conversion receipt belongs to a different company.'))
         return cleaned_data
 
     def save(self, commit=True):
@@ -1506,21 +1441,9 @@ class ReceiptConsignmentForm(ReceiptBaseForm):
         if not instance.document_date:
             instance.document_date = timezone.now().date()
         instance.requires_temporary_receipt = 1 if self.cleaned_data.get('requires_temporary_receipt') else 0
-        instance.is_locked = getattr(self.instance, 'is_locked', 0) or 0
-        instance.unit = self.instance.unit
-        instance.quantity = self.instance.quantity
-        instance.entered_unit = self._entered_unit_value or getattr(instance, 'entered_unit', '') or instance.unit
-        if self._entered_quantity_value is not None:
-            instance.entered_quantity = self._entered_quantity_value
-        elif instance.entered_quantity is None:
-            instance.entered_quantity = instance.quantity
-        if self._entered_unit_price_value is not None:
-            instance.entered_unit_price = self._entered_unit_price_value
-        elif self.cleaned_data.get('unit_price_estimate') in (None, ''):
-            instance.entered_unit_price = None
+        
         if commit:
             instance.save()
-            self.save_m2m()
         return instance
 
 
@@ -1574,8 +1497,8 @@ class IssueBaseForm(ReceiptBaseForm):
                 current_document_id=self.instance.pk,
             )
         serial_field.queryset = queryset.filter(status_filter).order_by("serial_code")
-        serial_field.required = True
-        serial_field.help_text = _('Select the serial numbers for each unit issued.')
+        serial_field.required = False
+        serial_field.help_text = _('Use the "Assign Serials" action to manage serial numbers.')
         if getattr(self.instance, 'pk', None):
             serial_field.initial = self.instance.serials.values_list("pk", flat=True)
 
@@ -1633,13 +1556,9 @@ class IssueBaseForm(ReceiptBaseForm):
             self.add_error('serials', _('Selected serial numbers do not belong to this item.'))
 
 
-class IssuePermanentForm(IssueBaseForm):
-    """Create/update form for permanent issues."""
+class IssuePermanentForm(forms.ModelForm):
+    """Header-only form for permanent issue documents with multi-line support."""
 
-    unit = forms.ChoiceField(
-        label=_('Unit'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
-    )
     department_unit = forms.ModelChoiceField(
         queryset=CompanyUnit.objects.none(),
         required=False,
@@ -1647,47 +1566,28 @@ class IssuePermanentForm(IssueBaseForm):
         widget=forms.Select(attrs={'class': 'form-control'}),
         help_text=_('Optional: specify which company unit received this issue.'),
     )
-    serials = forms.ModelMultipleChoiceField(
-        queryset=ItemSerial.objects.none(),
-        required=False,
-        label=_('Serial Numbers'),
-        widget=forms.SelectMultiple(attrs={'class': 'form-control'}),
-        help_text=_('Select serial numbers when the item requires tracking.'),
-    )
 
     class Meta:
         model = IssuePermanent
         fields = [
             'document_code',
             'document_date',
-            'item',
-            'warehouse',
-            'unit',
-            'quantity',
-            'destination_type',
-            'destination_id',
-            'destination_code',
-            'reason_code',
             'department_unit',
-            'serials',
-            'unit_price',
-            'currency',
-            'tax_amount',
-            'discount_amount',
-            'total_amount',
         ]
         widgets = {
-            'document_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'destination_type': forms.TextInput(attrs={'class': 'form-control'}),
-            'destination_id': forms.NumberInput(attrs={'class': 'form-control'}),
-            'destination_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'reason_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-                        'tax_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'discount_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'total_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'document_code': forms.HiddenInput(),
+            'document_date': forms.HiddenInput(),
         }
+
+    def __init__(self, *args, company_id=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.company_id = company_id or getattr(self.instance, 'company_id', None)
+        
+        if self.company_id and 'department_unit' in self.fields:
+            self.fields['department_unit'].queryset = CompanyUnit.objects.filter(
+                company_id=self.company_id, is_enabled=1
+            ).order_by('name')
+            self.fields['department_unit'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
 
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -1697,24 +1597,21 @@ class IssuePermanentForm(IssueBaseForm):
             instance.document_date = timezone.now().date()
 
         department_unit = self.cleaned_data.get('department_unit')
-        instance.department_unit = department_unit
-        instance.department_unit_code = department_unit.public_code if department_unit else ''
-
-        instance.unit = self.instance.unit
-        instance.quantity = self.instance.quantity
+        if department_unit:
+            instance.department_unit = department_unit
+            instance.department_unit_code = department_unit.public_code
+        else:
+            instance.department_unit = None
+            instance.department_unit_code = ''
+        
         if commit:
             instance.save()
-            self.save_m2m()
         return instance
 
 
-class IssueConsumptionForm(IssueBaseForm):
-    """Create/update form for consumption issues."""
+class IssueConsumptionForm(forms.ModelForm):
+    """Header-only form for consumption issue documents with multi-line support."""
 
-    unit = forms.ChoiceField(
-        label=_('Unit'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
-    )
     department_unit = forms.ModelChoiceField(
         queryset=CompanyUnit.objects.none(),
         required=False,
@@ -1722,53 +1619,28 @@ class IssueConsumptionForm(IssueBaseForm):
         widget=forms.Select(attrs={'class': 'form-control'}),
         help_text=_('Optional: specify which company unit consumes this issue.'),
     )
-    work_line = forms.ModelChoiceField(
-        queryset=WorkLine.objects.none(),
-        required=False,
-        label=_('Work Line'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
-    )
-    serials = forms.ModelMultipleChoiceField(
-        queryset=ItemSerial.objects.none(),
-        required=False,
-        label=_('Serial Numbers'),
-        widget=forms.SelectMultiple(attrs={'class': 'form-control'}),
-        help_text=_('Select serial numbers when the item requires tracking.'),
-    )
 
     class Meta:
         model = IssueConsumption
         fields = [
             'document_code',
             'document_date',
-            'item',
-            'warehouse',
-            'unit',
-            'quantity',
-            'consumption_type',
             'department_unit',
-            'work_line',
-            'serials',
-            'reference_document_type',
-            'reference_document_id',
-            'reference_document_code',
-            'production_transfer_id',
-            'production_transfer_code',
-            'unit_cost',
-            'total_cost',
         ]
         widgets = {
-            'document_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'consumption_type': forms.TextInput(attrs={'class': 'form-control'}),
-            'reference_document_type': forms.TextInput(attrs={'class': 'form-control'}),
-            'reference_document_id': forms.NumberInput(attrs={'class': 'form-control'}),
-            'reference_document_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'production_transfer_id': forms.NumberInput(attrs={'class': 'form-control'}),
-            'production_transfer_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'unit_cost': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'total_cost': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'document_code': forms.HiddenInput(),
+            'document_date': forms.HiddenInput(),
         }
+
+    def __init__(self, *args, company_id=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.company_id = company_id or getattr(self.instance, 'company_id', None)
+        
+        if self.company_id and 'department_unit' in self.fields:
+            self.fields['department_unit'].queryset = CompanyUnit.objects.filter(
+                company_id=self.company_id, is_enabled=1
+            ).order_by('name')
+            self.fields['department_unit'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
 
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -1778,27 +1650,21 @@ class IssueConsumptionForm(IssueBaseForm):
             instance.document_date = timezone.now().date()
 
         department_unit = self.cleaned_data.get('department_unit')
-        work_line = self.cleaned_data.get('work_line')
-        instance.department_unit = department_unit
-        instance.work_line = work_line
-        instance.department_unit_code = department_unit.public_code if department_unit else ''
-        instance.work_line_code = work_line.public_code if work_line else ''
-
-        instance.unit = self.instance.unit
-        instance.quantity = self.instance.quantity
+        if department_unit:
+            instance.department_unit = department_unit
+            instance.department_unit_code = department_unit.public_code
+        else:
+            instance.department_unit = None
+            instance.department_unit_code = ''
+        
         if commit:
             instance.save()
-            self.save_m2m()
         return instance
 
 
-class IssueConsignmentForm(IssueBaseForm):
-    """Create/update form for consignment issues."""
+class IssueConsignmentForm(forms.ModelForm):
+    """Header-only form for consignment issue documents with multi-line support."""
 
-    unit = forms.ChoiceField(
-        label=_('Unit'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
-    )
     department_unit = forms.ModelChoiceField(
         queryset=CompanyUnit.objects.none(),
         required=False,
@@ -1806,39 +1672,28 @@ class IssueConsignmentForm(IssueBaseForm):
         widget=forms.Select(attrs={'class': 'form-control'}),
         help_text=_('Optional: specify which company unit received this consignment.'),
     )
-    serials = forms.ModelMultipleChoiceField(
-        queryset=ItemSerial.objects.none(),
-        required=False,
-        label=_('Serial Numbers'),
-        widget=forms.SelectMultiple(attrs={'class': 'form-control'}),
-        help_text=_('Select serial numbers when the item requires tracking.'),
-    )
 
     class Meta:
         model = IssueConsignment
         fields = [
             'document_code',
             'document_date',
-            'item',
-            'warehouse',
-            'unit',
-            'quantity',
-            'consignment_receipt',
-            'destination_type',
-            'destination_id',
-            'destination_code',
-            'reason_code',
             'department_unit',
-            'serials',
         ]
         widgets = {
-            'document_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'destination_type': forms.TextInput(attrs={'class': 'form-control'}),
-            'destination_id': forms.NumberInput(attrs={'class': 'form-control'}),
-            'destination_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'reason_code': forms.TextInput(attrs={'class': 'form-control'}),
+            'document_code': forms.HiddenInput(),
+            'document_date': forms.HiddenInput(),
         }
+
+    def __init__(self, *args, company_id=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.company_id = company_id or getattr(self.instance, 'company_id', None)
+        
+        if self.company_id and 'department_unit' in self.fields:
+            self.fields['department_unit'].queryset = CompanyUnit.objects.filter(
+                company_id=self.company_id, is_enabled=1
+            ).order_by('name')
+            self.fields['department_unit'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
 
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -1848,20 +1703,15 @@ class IssueConsignmentForm(IssueBaseForm):
             instance.document_date = timezone.now().date()
 
         department_unit = self.cleaned_data.get('department_unit')
-        instance.department_unit = department_unit
-        instance.department_unit_code = department_unit.public_code if department_unit else ''
-
-        consignment_receipt = self.cleaned_data.get('consignment_receipt')
-        if consignment_receipt:
-            instance.consignment_receipt_code = consignment_receipt.document_code
+        if department_unit:
+            instance.department_unit = department_unit
+            instance.department_unit_code = department_unit.public_code
         else:
-            instance.consignment_receipt_code = ''
-
-        instance.unit = self.instance.unit
-        instance.quantity = self.instance.quantity
+            instance.department_unit = None
+            instance.department_unit_code = ''
+        
         if commit:
             instance.save()
-            self.save_m2m()
         return instance
 
 
@@ -2249,3 +2099,411 @@ class StocktakingRecordForm(StocktakingBaseForm):
             instance.save()
             self.save_m2m()
         return instance
+
+
+class IssueLineSerialAssignmentForm(forms.Form):
+    """Form for assigning serials to a specific issue line."""
+    serials = forms.ModelMultipleChoiceField(
+        queryset=ItemSerial.objects.none(),
+        required=False,
+        label=_('Serial Numbers'),
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'serial-checkboxes'}),
+    )
+
+    def __init__(self, line, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.line = line
+        self.company_id = line.company_id
+
+        if line.item and line.item.has_lot_tracking == 1:
+            # Base queryset: same company, same item, same warehouse
+            queryset = ItemSerial.objects.filter(
+                company_id=self.company_id,
+                item=line.item,
+                current_warehouse=line.warehouse,
+            )
+            # Only show:
+            # 1. AVAILABLE serials (not yet assigned to any issue)
+            # 2. RESERVED serials that belong to THIS specific line (allow editing)
+            # Exclude: ISSUED, CONSUMED, DAMAGED, RETURNED serials (already issued)
+            # Exclude: RESERVED serials that belong to other lines
+            line_class_name = line.__class__.__name__
+            line_pk = line.pk
+            
+            # Available serials OR reserved serials for this specific line
+            status_filter = (
+                Q(current_status=ItemSerial.Status.AVAILABLE) |
+                Q(
+                    current_status=ItemSerial.Status.RESERVED,
+                    current_document_type=line_class_name,
+                    current_document_id=line_pk,
+                )
+            )
+            # Exclude already-issued/consumed/damaged/returned serials
+            excluded_statuses = [
+                ItemSerial.Status.ISSUED,
+                ItemSerial.Status.CONSUMED,
+                ItemSerial.Status.DAMAGED,
+                ItemSerial.Status.RETURNED,
+            ]
+            status_filter = status_filter & ~Q(current_status__in=excluded_statuses)
+            
+            self.fields['serials'].queryset = queryset.filter(status_filter).order_by('serial_code')
+            self.initial['serials'] = line.serials.values_list('pk', flat=True)
+            try:
+                required = int(Decimal(line.quantity))
+            except (InvalidOperation, TypeError):
+                required = None
+            if required is not None:
+                self.fields['serials'].help_text = _('%(count)s serial(s) required for this line.') % {'count': required}
+        else:
+            self.fields['serials'].help_text = _('This item does not require serial tracking.')
+            self.fields['serials'].widget = forms.HiddenInput()
+
+    def clean_serials(self):
+        serials = self.cleaned_data.get('serials')
+        item = getattr(self.line, 'item', None)
+        if not item or item.has_lot_tracking != 1:
+            return ItemSerial.objects.none()
+
+        try:
+            required = int(Decimal(self.line.quantity))
+        except (InvalidOperation, TypeError):
+            raise forms.ValidationError(_('Quantity must be a whole number before assigning serials.'))
+
+        if Decimal(self.line.quantity) != Decimal(required):
+            raise forms.ValidationError(_('Quantity must be a whole number before assigning serials.'))
+
+        selected = list(serials)
+        if len(selected) != required:
+            raise forms.ValidationError(
+                _('You must select exactly %(count)s serial(s). Currently %(current)s selected.')
+                % {'count': required, 'current': len(selected)}
+            )
+
+        invalid = [serial for serial in selected if serial.item_id != item.id]
+        if invalid:
+            raise forms.ValidationError(_('Selected serials do not belong to the requested item.'))
+
+        return serials
+
+    def save(self, user=None):
+        line = self.line
+        if line.item and line.item.has_lot_tracking == 1:
+            previous_serial_ids = set(line.serials.values_list('id', flat=True))
+            selected_serials = list(self.cleaned_data.get('serials'))
+            line.serials.set(selected_serials)
+            serial_service.sync_issue_line_serials(line, previous_serial_ids, user=user)
+        else:
+            line.serials.clear()
+        return line
+
+
+# ============================================================================
+# Line Forms and Formsets (Multi-line support)
+# ============================================================================
+
+class IssueLineBaseForm(forms.ModelForm):
+    """Base form for issue line items."""
+    
+    unit = forms.ChoiceField(
+        label=_('Unit'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+    
+    class Meta:
+        abstract = True
+    
+    def __init__(self, *args, company_id=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.company_id = company_id or getattr(self.instance, 'company_id', None)
+        
+        if self.company_id:
+            if 'item' in self.fields:
+                self.fields['item'].queryset = Item.objects.filter(
+                    company_id=self.company_id, is_enabled=1
+                ).order_by('name')
+                self.fields['item'].label_from_instance = lambda obj: f"{obj.name} · {obj.item_code}"
+            
+            if 'warehouse' in self.fields:
+                self.fields['warehouse'].queryset = Warehouse.objects.filter(
+                    company_id=self.company_id, is_enabled=1
+                ).order_by('name')
+                self.fields['warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
+        
+        if 'unit' in self.fields:
+            self.fields['unit'].choices = UNIT_CHOICES
+
+
+class IssuePermanentLineForm(IssueLineBaseForm):
+    """Form for permanent issue line items."""
+    
+    class Meta:
+        model = IssuePermanentLine
+        fields = [
+            'item', 'warehouse', 'unit', 'quantity',
+            'entered_unit', 'entered_quantity',
+            'destination_type', 'destination_id', 'destination_code', 'reason_code',
+            'unit_price', 'currency', 'tax_amount', 'discount_amount', 'total_amount',
+            'line_notes',
+        ]
+        widgets = {
+            'item': forms.Select(attrs={'class': 'form-control'}),
+            'warehouse': forms.Select(attrs={'class': 'form-control'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'entered_unit': forms.TextInput(attrs={'class': 'form-control'}),
+            'entered_quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'destination_type': forms.TextInput(attrs={'class': 'form-control'}),
+            'destination_id': forms.NumberInput(attrs={'class': 'form-control'}),
+            'destination_code': forms.TextInput(attrs={'class': 'form-control'}),
+            'reason_code': forms.TextInput(attrs={'class': 'form-control'}),
+            'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'tax_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'discount_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'total_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+
+
+class IssueConsumptionLineForm(IssueLineBaseForm):
+    """Form for consumption issue line items."""
+    
+    work_line = forms.ModelChoiceField(
+        queryset=WorkLine.objects.none(),
+        required=False,
+        label=_('Work Line'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+    
+    class Meta:
+        model = IssueConsumptionLine
+        fields = [
+            'item', 'warehouse', 'unit', 'quantity',
+            'entered_unit', 'entered_quantity',
+            'consumption_type', 'work_line',
+            'reference_document_type', 'reference_document_id', 'reference_document_code',
+            'production_transfer_id', 'production_transfer_code',
+            'unit_cost', 'total_cost', 'cost_center_code',
+            'line_notes',
+        ]
+        widgets = {
+            'item': forms.Select(attrs={'class': 'form-control'}),
+            'warehouse': forms.Select(attrs={'class': 'form-control'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'entered_unit': forms.TextInput(attrs={'class': 'form-control'}),
+            'entered_quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'consumption_type': forms.TextInput(attrs={'class': 'form-control'}),
+            'reference_document_type': forms.TextInput(attrs={'class': 'form-control'}),
+            'reference_document_id': forms.NumberInput(attrs={'class': 'form-control'}),
+            'reference_document_code': forms.TextInput(attrs={'class': 'form-control'}),
+            'production_transfer_id': forms.NumberInput(attrs={'class': 'form-control'}),
+            'production_transfer_code': forms.TextInput(attrs={'class': 'form-control'}),
+            'unit_cost': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'total_cost': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'cost_center_code': forms.TextInput(attrs={'class': 'form-control'}),
+            'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+    
+    def __init__(self, *args, company_id=None, **kwargs):
+        super().__init__(*args, company_id=company_id, **kwargs)
+        if self.company_id and 'work_line' in self.fields:
+            self.fields['work_line'].queryset = WorkLine.objects.filter(
+                company_id=self.company_id, is_enabled=1
+            ).order_by('name')
+            self.fields['work_line'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
+
+
+class IssueConsignmentLineForm(IssueLineBaseForm):
+    """Form for consignment issue line items."""
+    
+    consignment_receipt = forms.ModelChoiceField(
+        queryset=ReceiptConsignment.objects.none(),
+        label=_('Consignment Receipt'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+    
+    class Meta:
+        model = IssueConsignmentLine
+        fields = [
+            'item', 'warehouse', 'unit', 'quantity',
+            'entered_unit', 'entered_quantity',
+            'consignment_receipt',
+            'destination_type', 'destination_id', 'destination_code', 'reason_code',
+            'line_notes',
+        ]
+        widgets = {
+            'item': forms.Select(attrs={'class': 'form-control'}),
+            'warehouse': forms.Select(attrs={'class': 'form-control'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'entered_unit': forms.TextInput(attrs={'class': 'form-control'}),
+            'entered_quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'destination_type': forms.TextInput(attrs={'class': 'form-control'}),
+            'destination_id': forms.NumberInput(attrs={'class': 'form-control'}),
+            'destination_code': forms.TextInput(attrs={'class': 'form-control'}),
+            'reason_code': forms.TextInput(attrs={'class': 'form-control'}),
+            'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+    
+    def __init__(self, *args, company_id=None, **kwargs):
+        super().__init__(*args, company_id=company_id, **kwargs)
+        if self.company_id and 'consignment_receipt' in self.fields:
+            self.fields['consignment_receipt'].queryset = ReceiptConsignment.objects.filter(
+                company_id=self.company_id
+            ).order_by('-document_date', 'document_code')
+            self.fields['consignment_receipt'].label_from_instance = lambda obj: f"{obj.document_code}"
+
+
+class ReceiptLineBaseForm(forms.ModelForm):
+    """Base form for receipt line items."""
+    
+    unit = forms.ChoiceField(
+        label=_('Unit'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+    
+    class Meta:
+        abstract = True
+    
+    def __init__(self, *args, company_id=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.company_id = company_id or getattr(self.instance, 'company_id', None)
+        
+        if self.company_id:
+            if 'item' in self.fields:
+                self.fields['item'].queryset = Item.objects.filter(
+                    company_id=self.company_id, is_enabled=1
+                ).order_by('name')
+                self.fields['item'].label_from_instance = lambda obj: f"{obj.name} · {obj.item_code}"
+            
+            if 'warehouse' in self.fields:
+                self.fields['warehouse'].queryset = Warehouse.objects.filter(
+                    company_id=self.company_id, is_enabled=1
+                ).order_by('name')
+                self.fields['warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
+            
+            if 'supplier' in self.fields:
+                self.fields['supplier'].queryset = Supplier.objects.filter(
+                    company_id=self.company_id, is_enabled=1
+                ).order_by('name')
+                self.fields['supplier'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
+        
+        if 'unit' in self.fields:
+            self.fields['unit'].choices = UNIT_CHOICES
+
+
+class ReceiptPermanentLineForm(ReceiptLineBaseForm):
+    """Form for permanent receipt line items."""
+    
+    class Meta:
+        model = ReceiptPermanentLine
+        fields = [
+            'item', 'warehouse', 'unit', 'quantity',
+            'entered_unit', 'entered_quantity', 'entered_unit_price',
+            'supplier',
+            'unit_price', 'currency', 'tax_amount', 'discount_amount', 'total_amount',
+            'line_notes',
+        ]
+        widgets = {
+            'item': forms.Select(attrs={'class': 'form-control'}),
+            'warehouse': forms.Select(attrs={'class': 'form-control'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'entered_unit': forms.TextInput(attrs={'class': 'form-control'}),
+            'entered_quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'entered_unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'tax_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'discount_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'total_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+
+
+class ReceiptConsignmentLineForm(ReceiptLineBaseForm):
+    """Form for consignment receipt line items."""
+    
+    class Meta:
+        model = ReceiptConsignmentLine
+        fields = [
+            'item', 'warehouse', 'unit', 'quantity',
+            'entered_unit', 'entered_quantity', 'entered_unit_price',
+            'supplier',
+            'unit_price_estimate', 'currency',
+            'line_notes',
+        ]
+        widgets = {
+            'item': forms.Select(attrs={'class': 'form-control'}),
+            'warehouse': forms.Select(attrs={'class': 'form-control'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'entered_unit': forms.TextInput(attrs={'class': 'form-control'}),
+            'entered_quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'entered_unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'unit_price_estimate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+
+
+# Base FormSet classes for company_id handling
+class BaseLineFormSet(forms.BaseInlineFormSet):
+    def __init__(self, *args, company_id=None, **kwargs):
+        self.company_id = company_id
+        super().__init__(*args, **kwargs)
+        # Pass company_id to all forms in the formset
+        for form in self.forms:
+            form.company_id = company_id
+
+
+# Create formsets
+IssuePermanentLineFormSet = inlineformset_factory(
+    IssuePermanent,
+    IssuePermanentLine,
+    form=IssuePermanentLineForm,
+    formset=BaseLineFormSet,
+    extra=1,
+    can_delete=True,
+    min_num=1,
+    validate_min=True,
+)
+
+IssueConsumptionLineFormSet = inlineformset_factory(
+    IssueConsumption,
+    IssueConsumptionLine,
+    form=IssueConsumptionLineForm,
+    formset=BaseLineFormSet,
+    extra=1,
+    can_delete=True,
+    min_num=1,
+    validate_min=True,
+)
+
+IssueConsignmentLineFormSet = inlineformset_factory(
+    IssueConsignment,
+    IssueConsignmentLine,
+    form=IssueConsignmentLineForm,
+    formset=BaseLineFormSet,
+    extra=1,
+    can_delete=True,
+    min_num=1,
+    validate_min=True,
+)
+
+ReceiptPermanentLineFormSet = inlineformset_factory(
+    ReceiptPermanent,
+    ReceiptPermanentLine,
+    form=ReceiptPermanentLineForm,
+    formset=BaseLineFormSet,
+    extra=1,
+    can_delete=True,
+    min_num=1,
+    validate_min=True,
+)
+
+ReceiptConsignmentLineFormSet = inlineformset_factory(
+    ReceiptConsignment,
+    ReceiptConsignmentLine,
+    form=ReceiptConsignmentLineForm,
+    formset=BaseLineFormSet,
+    extra=1,
+    can_delete=True,
+    min_num=1,
+    validate_min=True,
+)

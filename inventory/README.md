@@ -37,6 +37,7 @@ Contains all inventory-related entities. Major groups:
 
 - **Issues**
   - `IssuePermanent`, `IssueConsumption`, `IssueConsignment`: outbound document variants برای حالات دائم، مصرفی و امانی. علاوه بر ذخیره کد کالا/انبار و وضعیت ارسال، امکان ثبت واحد سازمانی مقصد و برای حالت مصرف، خط تولید مربوطه نیز فراهم شده است تا رهگیری مقصد مواد دقیق‌تر انجام شود. این مدل‌ها اکنون با `ItemSerial` ادغام شده‌اند: زمان ایجاد یا ویرایش، سریال‌های انتخاب‌شده رزرو می‌شوند و با قفل سند وضعیتشان به `issued` یا `consumed` تغییر پیدا می‌کند.
+  - برای هر حواله سریال‌دار یک دکمه «Assign Serials» در لیست وجود دارد که کاربر را به صفحه‌ی اختصاصی انتخاب سریال می‌برد؛ پس از انتخاب، همان منطق رزرو سریال (`sync_issue_serials`) اعمال می‌شود و در زمان قفل، تطابق تعداد سریال با مقدار کنترل می‌گردد.
 
 - **Stocktaking**
   - `StocktakingDeficit`, `StocktakingSurplus`: adjustment documents capturing counted vs expected quantities, valuation, and posting info.
@@ -49,6 +50,7 @@ Each model enforces unique constraints tailored to multi-company setups and uses
 مهم‌ترین ویوهای موجود:
 
 - `ItemListView`, `ItemCreateView`, `ItemUpdateView`, `ItemDeleteView`: رابط کامل CRUD برای کالاها در رابط کاربری اصلی. `ItemCreateView` و `ItemUpdateView` علاوه بر فرم کالا، فرم‌ست واحدهای ثانویه (`ItemUnit`) را نیز پشتیبانی می‌کنند.
+- `ItemSerialListView`: صفحه‌ی جدید «لیست سریال‌ها» که امکان جستجو بر اساس کد رسید، کد کالا یا خود سریال را می‌دهد و وضعیت فعلی، انبار، واحد سازمانی و کد لات هر سریال تولیدشده را نمایش می‌کند. دسترسی به این صفحه طی مجوز `inventory.master.item_serials` کنترل می‌شود.
 - در همان ویوها انتخاب «انبارهای مجاز» نیز مدیریت می‌شود؛ بعد از ذخیره، جدول `ItemWarehouse` بر اساس انتخاب‌های کاربر همگام‌سازی و اولین انبار به عنوان انبار اصلی علامت‌گذاری می‌شود.
 - `SupplierCategoryCreateView`, `SupplierCreateView` و ویوهای ویرایش/حذف متناظر: فرم‌های اختصاصی برای مدیریت تأمین‌کنندگان و دسته‌بندی‌های آنها (تبدیل از صفحات ادمین به UI داخلی).
 - `ReceiptTemporaryCreateView`/`UpdateView`, `ReceiptPermanentCreateView`/`UpdateView`, `ReceiptConsignmentCreateView`/`UpdateView`: فرم‌های اختصاصی برای ثبت رسیدها. این ویوها:
@@ -61,6 +63,7 @@ Each model enforces unique constraints tailored to multi-company setups and uses
 ## templates
 
 - `inventory/item_form.html`: تمپلیت اختصاصی برای تعریف/ویرایش کالا که علاوه بر فیلدهای اصلی، فرم‌ست تبدیل واحد را نمایش می‌دهد.
+- `inventory/item_serials.html`: نمای جدولی سریال‌ها به همراه فرم فیلتر (کد رسید، کد کالا، کد سریال، وضعیت) و برچسب‌های وضعیت.
 - `inventory/receipt_form.html`: قالب پایه‌ی جدید برای فرم رسیدها که بخش‌های اطلاعات سند، سربرگ وضعیت، و اسکریپت جاوااسکریپت جهت به‌روزرسانی پویا‌ی واحد را فراهم می‌کند.
 - `receipt_temporary.html`, `receipt_permanent.html`, `receipt_consignment.html`: صفحات لیست رسیدها که به مسیرهای ایجاد/ویرایش داخلی متصل شده‌اند و پیام‌های خالی/آمار را بر اساس نوع سند نمایش می‌دهند.
 - `inventory/stocktaking_form.html`: قالب مشترک فرم‌های شمارش موجودی به همراه اسکریپت‌های پویا برای به‌روزرسانی واحد و انبار مجاز بر اساس انتخاب کالا.
@@ -69,6 +72,7 @@ Each model enforces unique constraints tailored to multi-company setups and uses
 ## urls.py
 
 - مسیرهای جدید برای کالا: `/inventory/items/create/`, `/inventory/items/<pk>/edit/`, `/inventory/items/<pk>/delete/`
+- مسیر مشاهده سریال‌ها: `/inventory/item-serials/` که به ویوی `ItemSerialListView` متصل است و فقط در صورت داشتن مجوز مرتبط در منوی کالا نمایش داده می‌شود.
 - مسیرهای مخصوص رسیدها: `/inventory/receipts/<type>/create|<pk>/edit/` که به ویوهای اختصاصی متصل شده‌اند.
 - مسیرهای مربوط به تأمین‌کنندگان و دسته‌بندی‌های تأمین‌کننده نیز کامل شده‌اند.
 - مسیرهای شمارش موجودی: `/inventory/stocktaking/deficit|surplus|records/(create|<pk>/edit/)` به همراه مسیرهای قفل، همگی به ویوهای اختصاصی جدید متصل هستند.
@@ -77,7 +81,9 @@ Each model enforces unique constraints tailored to multi-company setups and uses
 
 - علاوه بر فرم‌های قبلی، مجموعه‌ی زیر فرم‌ها برای سندهای انبار پیاده‌سازی شده‌اند:
   - `ReceiptTemporaryForm`, `ReceiptPermanentForm`, `ReceiptConsignmentForm` که مسئول تولید خودکار کد/تاریخ سند هستند، فیلد وضعیت را پنهان می‌کنند، واحدهای مجاز را محدود می‌کنند و مقدار و قیمت را با واحد اصلی کالا همگام می‌سازند.
+  - برای کالاهای دارای سریال (lot tracking)، همین فرم‌ها اکنون بررسی می‌کنند که مقدار پس از تبدیل واحد دقیقاً عدد صحیح باشد؛ در غیر این صورت پیام خطا نشان داده می‌شود و ذخیره انجام نمی‌شود.
   - منطق داخلی فرم‌ها از گراف تبدیل واحد (`ItemUnit`) برای محاسبه‌ی ضرایب استفاده می‌کند تا قیمت‌های واردشده با واحد جایگزین به قیمت واحد اصلی تبدیل شود.
+- در کنار هر رسید دائم/امانی سریال‌دار، دکمه‌ی «Manage Serials» قرار گرفته است؛ این صفحه امکان مشاهده‌ی سریال‌های تولیدشده و اجرای دستی تابع `generate_receipt_serials` پیش از قفل سند را فراهم می‌کند.
 - فرم‌های `IssuePermanentForm`, `IssueConsumptionForm`, `IssueConsignmentForm` نیز افزوده شده‌اند که ضمن محدود کردن واحد کالا، انتخاب اختیاری واحد سازمانی و (برای مصرف) خط تولید را ممکن می‌کنند و کد سند را با الگوهای `ISP-`, `ISU-`, `ICN-` تولید می‌کنند. برای کالاهای دارای سریال، این فرم‌ها لیست سریال‌های قابل انتخاب را نمایش می‌دهند، تعداد انتخاب را با مقدار سند تطبیق می‌دهند و سریال‌ها را تا لحظه قفل در وضعیت `reserved` نگه می‌دارند.
 - فرم‌های جدید `StocktakingDeficitForm`, `StocktakingSurplusForm`, `StocktakingRecordForm` کد سند را با پیشوند `STD/STS/STR` تولید کرده، واحدهای مجاز کالا، انبارهای مجاز و فیلدهای JSON مخفی (متادیتا/مستندات) را مدیریت می‌کنند و اختلاف مقدار/ارزش را به‌صورت خودکار محاسبه می‌کنند.
 - `ItemForm`, `ItemUnitForm` و `ItemUnitFormSet` همچنان برای مدیریت کالا و تبدیل واحدهای آن استفاده می‌شوند و `ItemForm` اکنون فیلد چندانتخابی «انبارهای مجاز» دارد که بعد از ذخیره، رکوردهای `ItemWarehouse` را ایجاد/به‌روزرسانی و اولین انتخاب را به عنوان `is_primary=1` تنظیم می‌کند.

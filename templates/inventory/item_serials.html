@@ -1,0 +1,156 @@
+{% extends "inventory/base.html" %}
+{% load i18n %}
+
+{% block page_title %}لیست سریال‌های کالا{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>کالاها</span>
+<span class="separator">/</span>
+<span>لیست سریال‌ها</span>
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions">
+  <button onclick="window.print()" class="btn btn-secondary">
+    {% trans "Print" %}
+  </button>
+</div>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="filter-panel">
+  <h3>{% trans "Filter" %}</h3>
+  <form method="get" action="" class="filter-form">
+    <div class="form-group">
+      <label for="receipt_code">{% trans "Receipt Code" %}</label>
+      <input type="text" name="receipt_code" id="receipt_code" value="{{ receipt_code }}" class="form-control" placeholder="{% trans 'e.g. PRM-202511-000123' %}">
+    </div>
+
+    <div class="form-group">
+      <label for="item_code">{% trans "Item Code" %}</label>
+      <input type="text" name="item_code" id="item_code" value="{{ item_code }}" class="form-control" placeholder="{% trans 'Item code' %}">
+    </div>
+
+    <div class="form-group">
+      <label for="serial_code">{% trans "Serial Code" %}</label>
+      <input type="text" name="serial_code" id="serial_code" value="{{ serial_code }}" class="form-control" placeholder="{% trans 'Full or partial serial' %}">
+    </div>
+
+    <div class="form-group">
+      <label for="status">{% trans "Status" %}</label>
+      <select name="status" id="status" class="form-control">
+        <option value="">{% trans "All" %}</option>
+        {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group" style="align-self: flex-end;">
+      <button type="submit" class="btn btn-primary" style="width: 100%;">{% trans "Apply" %}</button>
+    </div>
+  </form>
+</div>
+
+<div class="data-table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Serial" %}</th>
+        <th>{% trans "Item" %}</th>
+        <th>{% trans "Receipt" %}</th>
+        <th>{% trans "Status" %}</th>
+        <th>{% trans "Warehouse" %}</th>
+        <th>{% trans "Company Unit" %}</th>
+        <th>{% trans "Lot" %}</th>
+        <th>{% trans "Created" %}</th>
+        <th>{% trans "Last Movement" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if serials %}
+        {% for serial in serials %}
+        <tr>
+          <td><code>{{ serial.serial_code }}</code></td>
+          <td>
+            <strong>{{ serial.item.name }}</strong><br>
+            <small class="muted">{{ serial.item_code }}</small>
+          </td>
+          <td><code>{{ serial.receipt_document_code }}</code></td>
+          <td>
+            {% if serial.current_status == serial.Status.AVAILABLE %}
+              <span class="badge badge-active">{{ serial.get_current_status_display }}</span>
+            {% elif serial.current_status == serial.Status.RESERVED %}
+              <span class="badge badge-warning">{{ serial.get_current_status_display }}</span>
+            {% elif serial.current_status == serial.Status.ISSUED %}
+              <span class="badge badge-info">{{ serial.get_current_status_display }}</span>
+            {% elif serial.current_status == serial.Status.CONSUMED %}
+              <span class="badge badge-neutral">{{ serial.get_current_status_display }}</span>
+            {% elif serial.current_status == serial.Status.RETURNED %}
+              <span class="badge badge-secondary">{{ serial.get_current_status_display }}</span>
+            {% else %}
+              <span class="badge badge-danger">{{ serial.get_current_status_display }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if serial.current_warehouse %}
+              {{ serial.current_warehouse.name }}<br>
+              <small class="muted">{{ serial.current_warehouse_code }}</small>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if serial.current_company_unit %}
+              {{ serial.current_company_unit.name }}<br>
+              <small class="muted">{{ serial.current_company_unit_code }}</small>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if serial.lot_code %}
+              <code>{{ serial.lot_code }}</code>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td>{{ serial.created_at|date:"Y-m-d H:i" }}</td>
+          <td>{% if serial.last_moved_at %}{{ serial.last_moved_at|date:"Y-m-d H:i" }}{% else %}<span class="muted">—</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="9">
+            <div class="empty-state">
+              <div class="empty-state-icon">🔍</div>
+              {% if has_filters %}
+              <h3>{% trans "No serials match the selected filters." %}</h3>
+              <p>{% trans "Try adjusting the receipt code or item code and search again." %}</p>
+              {% else %}
+              <h3>{% trans "No serial numbers available yet." %}</h3>
+              <p>{% trans "Lock a receipt for a lot-tracked item to generate serial numbers." %}</p>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+{% if is_paginated %}
+<div class="pagination">
+  {% if page_obj.has_previous %}
+    <a href="?page=1{% if receipt_code %}&receipt_code={{ receipt_code }}{% endif %}{% if item_code %}&item_code={{ item_code }}{% endif %}{% if serial_code %}&serial_code={{ serial_code }}{% endif %}{% if status %}&status={{ status }}{% endif %}">&laquo; {% trans "First" %}</a>
+    <a href="?page={{ page_obj.previous_page_number }}{% if receipt_code %}&receipt_code={{ receipt_code }}{% endif %}{% if item_code %}&item_code={{ item_code }}{% endif %}{% if serial_code %}&serial_code={{ serial_code }}{% endif %}{% if status %}&status={{ status }}{% endif %}">{% trans "Previous" %}</a>
+  {% endif %}
+  <span class="current">{% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if receipt_code %}&receipt_code={{ receipt_code }}{% endif %}{% if item_code %}&item_code={{ item_code }}{% endif %}{% if serial_code %}&serial_code={{ serial_code }}{% endif %}{% if status %}&status={{ status }}{% endif %}">{% trans "Next" %}</a>
+    <a href="?page={{ page_obj.paginator.num_pages }}{% if receipt_code %}&receipt_code={{ receipt_code }}{% endif %}{% if item_code %}&item_code={{ item_code }}{% endif %}{% if serial_code %}&serial_code={{ serial_code }}{% endif %}{% if status %}&status={{ status }}{% endif %}">{% trans "Last" %} &raquo;</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

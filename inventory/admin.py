@@ -118,16 +118,16 @@ class ReceiptTemporaryAdmin(admin.ModelAdmin):
 
 @admin.register(models.ReceiptPermanent)
 class ReceiptPermanentAdmin(admin.ModelAdmin):
-    list_display = ("company", "document_code", "item", "warehouse", "quantity", "is_locked", "is_enabled")
+    list_display = ("company", "document_code", "document_date", "is_locked", "is_enabled")
     list_filter = ("company", "is_locked", "is_enabled")
-    search_fields = ("document_code", "item__item_code", "warehouse__name")
+    search_fields = ("document_code",)
 
 
 @admin.register(models.ReceiptConsignment)
 class ReceiptConsignmentAdmin(admin.ModelAdmin):
-    list_display = ("company", "document_code", "item", "supplier", "ownership_status", "is_enabled")
+    list_display = ("company", "document_code", "document_date", "ownership_status", "is_enabled")
     list_filter = ("company", "ownership_status", "is_enabled")
-    search_fields = ("document_code", "item__item_code", "supplier__name")
+    search_fields = ("document_code",)
 
 
 @admin.register(models.ItemLot)
@@ -139,23 +139,23 @@ class ItemLotAdmin(admin.ModelAdmin):
 
 @admin.register(models.IssuePermanent)
 class IssuePermanentAdmin(admin.ModelAdmin):
-    list_display = ("company", "document_code", "item", "destination_type", "quantity", "is_locked")
-    list_filter = ("company", "destination_type", "is_locked")
-    search_fields = ("document_code", "item__item_code", "destination_code")
+    list_display = ("company", "document_code", "document_date", "is_locked")
+    list_filter = ("company", "is_locked")
+    search_fields = ("document_code",)
 
 
 @admin.register(models.IssueConsumption)
 class IssueConsumptionAdmin(admin.ModelAdmin):
-    list_display = ("company", "document_code", "item", "consumption_type", "quantity", "is_locked")
-    list_filter = ("company", "consumption_type", "is_locked")
-    search_fields = ("document_code", "item__item_code", "cost_center_code")
+    list_display = ("company", "document_code", "document_date", "is_locked")
+    list_filter = ("company", "is_locked")
+    search_fields = ("document_code",)
 
 
 @admin.register(models.IssueConsignment)
 class IssueConsignmentAdmin(admin.ModelAdmin):
-    list_display = ("company", "document_code", "item", "destination_type", "quantity")
-    list_filter = ("company", "destination_type", "is_enabled")
-    search_fields = ("document_code", "item__item_code", "consignment_receipt_code")
+    list_display = ("company", "document_code", "document_date")
+    list_filter = ("company", "is_enabled")
+    search_fields = ("document_code",)
 
 
 @admin.register(models.StocktakingDeficit)

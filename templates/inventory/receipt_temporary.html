@@ -178,10 +178,20 @@
                   {% trans "View" %}
                 </a>
                 <span class="badge badge-locked" style="margin-top:4px;">{% trans "Locked" %}</span>
+                {% if serial_url_name and receipt.item.has_lot_tracking %}
+                  <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
+                    {% trans "View Serials" %}
+                  </a>
+                {% endif %}
               {% else %}
                 <a href="{% url edit_url_name receipt.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
                   {% trans "Edit" %}
                 </a>
+                {% if serial_url_name and receipt.item.has_lot_tracking %}
+                  <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
+                    {% trans "Manage Serials" %}
+                  </a>
+                {% endif %}
                 {% if lock_url_name %}
                 <form method="post" action="{% url lock_url_name receipt.pk %}" class="inline-lock-form" style="display:inline-flex; margin-left:0.5rem;">
                   {% csrf_token %}

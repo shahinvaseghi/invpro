@@ -30,6 +30,7 @@ urlpatterns = [
     path('items/create/', views.ItemCreateView.as_view(), name='item_create'),
     path('items/<int:pk>/edit/', views.ItemUpdateView.as_view(), name='item_edit'),
     path('items/<int:pk>/delete/', views.ItemDeleteView.as_view(), name='item_delete'),
+    path('item-serials/', views.ItemSerialListView.as_view(), name='item_serials'),
     
     # Master Data - Warehouses
     path('warehouses/', views.WarehouseListView.as_view(), name='warehouses'),
@@ -66,24 +67,29 @@ urlpatterns = [
     path('receipts/permanent/create/', views.ReceiptPermanentCreateView.as_view(), name='receipt_permanent_create'),
     path('receipts/permanent/<int:pk>/edit/', views.ReceiptPermanentUpdateView.as_view(), name='receipt_permanent_edit'),
     path('receipts/permanent/<int:pk>/lock/', views.ReceiptPermanentLockView.as_view(), name='receipt_permanent_lock'),
+    path('receipts/permanent/<int:pk>/lines/<int:line_id>/serials/', views.ReceiptPermanentLineSerialAssignmentView.as_view(), name='receipt_permanent_line_serials'),
     path('receipts/consignment/', views.ReceiptConsignmentListView.as_view(), name='receipt_consignment'),
     path('receipts/consignment/create/', views.ReceiptConsignmentCreateView.as_view(), name='receipt_consignment_create'),
     path('receipts/consignment/<int:pk>/edit/', views.ReceiptConsignmentUpdateView.as_view(), name='receipt_consignment_edit'),
     path('receipts/consignment/<int:pk>/lock/', views.ReceiptConsignmentLockView.as_view(), name='receipt_consignment_lock'),
+    path('receipts/consignment/<int:pk>/lines/<int:line_id>/serials/', views.ReceiptConsignmentLineSerialAssignmentView.as_view(), name='receipt_consignment_line_serials'),
     
     # Issues
     path('issues/permanent/', views.IssuePermanentListView.as_view(), name='issue_permanent'),
     path('issues/permanent/create/', views.IssuePermanentCreateView.as_view(), name='issue_permanent_create'),
     path('issues/permanent/<int:pk>/edit/', views.IssuePermanentUpdateView.as_view(), name='issue_permanent_edit'),
     path('issues/permanent/<int:pk>/lock/', views.IssuePermanentLockView.as_view(), name='issue_permanent_lock'),
+    path('issues/permanent/<int:pk>/lines/<int:line_id>/serials/', views.IssuePermanentLineSerialAssignmentView.as_view(), name='issue_permanent_line_serials'),
     path('issues/consumption/', views.IssueConsumptionListView.as_view(), name='issue_consumption'),
     path('issues/consumption/create/', views.IssueConsumptionCreateView.as_view(), name='issue_consumption_create'),
     path('issues/consumption/<int:pk>/edit/', views.IssueConsumptionUpdateView.as_view(), name='issue_consumption_edit'),
     path('issues/consumption/<int:pk>/lock/', views.IssueConsumptionLockView.as_view(), name='issue_consumption_lock'),
+    path('issues/consumption/<int:pk>/lines/<int:line_id>/serials/', views.IssueConsumptionLineSerialAssignmentView.as_view(), name='issue_consumption_line_serials'),
     path('issues/consignment/', views.IssueConsignmentListView.as_view(), name='issue_consignment'),
     path('issues/consignment/create/', views.IssueConsignmentCreateView.as_view(), name='issue_consignment_create'),
     path('issues/consignment/<int:pk>/edit/', views.IssueConsignmentUpdateView.as_view(), name='issue_consignment_edit'),
     path('issues/consignment/<int:pk>/lock/', views.IssueConsignmentLockView.as_view(), name='issue_consignment_lock'),
+    path('issues/consignment/<int:pk>/lines/<int:line_id>/serials/', views.IssueConsignmentLineSerialAssignmentView.as_view(), name='issue_consignment_line_serials'),
     
     # Stocktaking
     path('stocktaking/deficit/', views.StocktakingDeficitListView.as_view(), name='stocktaking_deficit'),

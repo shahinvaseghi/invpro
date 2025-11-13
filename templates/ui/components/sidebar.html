@@ -62,6 +62,9 @@
           {% if user_feature_permissions|feature_allowed:'inventory.master.items' %}
             <li><a href="{% url 'inventory:items' %}" class="nav-link-sub">{% trans "Edit Items" %}</a></li>
           {% endif %}
+          {% if user_feature_permissions|feature_allowed:'inventory.master.item_serials' %}
+            <li><a href="{% url 'inventory:item_serials' %}" class="nav-link-sub">{% trans "Item Serials" %}</a></li>
+          {% endif %}
           {% if user_feature_permissions|feature_allowed:'inventory.balance' %}
             <li><a href="{% url 'inventory:inventory_balance' %}" class="nav-link-sub">{% trans "Inventory Balance" %}</a></li>
           {% endif %}

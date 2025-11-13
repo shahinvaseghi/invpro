@@ -16,6 +16,7 @@ from shared.models import (
     SortableModel,
     TimeStampedModel,
 )
+from .utils.codes import generate_sequential_code
 
 
 NUMERIC_CODE_VALIDATOR = RegexValidator(
@@ -90,6 +91,15 @@ class ItemType(InventorySortableModel):
     def __str__(self) -> str:
         return self.name
 
+    def save(self, *args, **kwargs):
+        if not self.public_code and self.company_id:
+            self.public_code = generate_sequential_code(
+                self.__class__,
+                company_id=self.company_id,
+                width=3,
+            )
+        super().save(*args, **kwargs)
+
 
 class ItemCategory(InventorySortableModel):
     public_code = models.CharField(
@@ -122,6 +132,15 @@ class ItemCategory(InventorySortableModel):
 
     def __str__(self) -> str:
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.public_code and self.company_id:
+            self.public_code = generate_sequential_code(
+                self.__class__,
+                company_id=self.company_id,
+                width=3,
+            )
+        super().save(*args, **kwargs)
 
 
 class ItemSubcategory(InventorySortableModel):
@@ -161,6 +180,16 @@ class ItemSubcategory(InventorySortableModel):
     def __str__(self) -> str:
         return self.name
 
+    def save(self, *args, **kwargs):
+        if not self.public_code and self.company_id and self.category_id:
+            self.public_code = generate_sequential_code(
+                self.__class__,
+                company_id=self.company_id,
+                width=3,
+                extra_filters={"category": self.category},
+            )
+        super().save(*args, **kwargs)
+
 
 class Warehouse(InventorySortableModel):
     public_code = models.CharField(
@@ -194,6 +223,15 @@ class Warehouse(InventorySortableModel):
 
     def __str__(self) -> str:
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.public_code and self.company_id:
+            self.public_code = generate_sequential_code(
+                self.__class__,
+                company_id=self.company_id,
+                width=5,
+            )
+        super().save(*args, **kwargs)
 
 
 class WorkLine(InventorySortableModel):
@@ -232,6 +270,16 @@ class WorkLine(InventorySortableModel):
 
     def __str__(self) -> str:
         return f"{self.warehouse} · {self.name}"
+
+    def save(self, *args, **kwargs):
+        if not self.public_code and self.company_id and self.warehouse_id:
+            self.public_code = generate_sequential_code(
+                self.__class__,
+                company_id=self.company_id,
+                width=5,
+                extra_filters={"warehouse": self.warehouse},
+            )
+        super().save(*args, **kwargs)
 
 
 class Item(InventorySortableModel):
@@ -286,11 +334,6 @@ class Item(InventorySortableModel):
         return f"{self.item_code} · {self.name}"
 
     def save(self, *args, **kwargs):
-        self.type_code = self.type.public_code
-        self.category_code = self.category.public_code
-        self.subcategory_code = self.subcategory.public_code
-        if not self.sequence_segment:
-            self.sequence_segment = self._generate_sequence_segment()
         if not self.item_code:
             # Item code: User(2) + Sequence(5) = 7 digits
             self.item_code = f"{self.user_segment}{self.sequence_segment}"
@@ -533,6 +576,15 @@ class Supplier(InventorySortableModel):
 
     def __str__(self) -> str:
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.public_code and self.company_id:
+            self.public_code = generate_sequential_code(
+                self.__class__,
+                company_id=self.company_id,
+                width=6,
+            )
+        super().save(*args, **kwargs)
 
 
 class SupplierCategory(InventoryBaseModel):
@@ -820,42 +872,10 @@ class ReceiptTemporary(InventoryBaseModel, LockableModel):
 
 
 class ReceiptPermanent(InventoryDocumentBase):
+    """Header-only model for permanent receipt documents with multi-line support."""
     document_code = models.CharField(max_length=20, unique=True)
     document_date = models.DateField(default=timezone.now)
-    item = models.ForeignKey(
-        Item,
-        on_delete=models.PROTECT,
-        related_name="permanent_receipts",
-    )
-    item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
-    warehouse = models.ForeignKey(
-        Warehouse,
-        on_delete=models.PROTECT,
-        related_name="permanent_receipts",
-    )
-    warehouse_code = models.CharField(max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
-    unit = models.CharField(max_length=30)
-    quantity = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-    )
-    supplier = models.ForeignKey(
-        Supplier,
-        on_delete=models.SET_NULL,
-        related_name="permanent_receipts",
-        null=True,
-        blank=True,
-    )
-    supplier_code = models.CharField(max_length=6, validators=[NUMERIC_CODE_VALIDATOR], blank=True)
-    unit_price = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, blank=True)
+    # Header-level fields only - item/warehouse/quantity moved to ReceiptPermanentLine
     requires_temporary_receipt = models.PositiveSmallIntegerField(default=0)
     temporary_receipt = models.ForeignKey(
         ReceiptTemporary,
@@ -881,43 +901,7 @@ class ReceiptPermanent(InventoryDocumentBase):
         blank=True,
     )
     warehouse_request_code = models.CharField(max_length=20, blank=True)
-    tax_amount = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    discount_amount = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    total_amount = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
     document_metadata = models.JSONField(default=dict, blank=True)
-    entered_unit = models.CharField(max_length=30, blank=True)
-    entered_quantity = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        null=True,
-        blank=True,
-        validators=[POSITIVE_DECIMAL],
-    )
-    entered_unit_price = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        null=True,
-        blank=True,
-        validators=[POSITIVE_DECIMAL],
-    )
 
     class Meta:
         verbose_name = _("Permanent Receipt")
@@ -928,12 +912,6 @@ class ReceiptPermanent(InventoryDocumentBase):
         return self.document_code
 
     def save(self, *args, **kwargs):
-        if not self.item_code:
-            self.item_code = self.item.item_code
-        if not self.warehouse_code:
-            self.warehouse_code = self.warehouse.public_code
-        if self.supplier and not self.supplier_code:
-            self.supplier_code = self.supplier.public_code
         if self.temporary_receipt and not self.temporary_receipt_code:
             self.temporary_receipt_code = self.temporary_receipt.document_code
         if self.purchase_request and not self.purchase_request_code:
@@ -944,43 +922,13 @@ class ReceiptPermanent(InventoryDocumentBase):
 
 
 class ReceiptConsignment(InventoryDocumentBase):
+    """Header-only model for consignment receipt documents with multi-line support."""
     document_code = models.CharField(max_length=20, unique=True)
     document_date = models.DateField(default=timezone.now)
-    item = models.ForeignKey(
-        Item,
-        on_delete=models.PROTECT,
-        related_name="consignment_receipts",
-    )
-    item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
-    warehouse = models.ForeignKey(
-        Warehouse,
-        on_delete=models.PROTECT,
-        related_name="consignment_receipts",
-    )
-    warehouse_code = models.CharField(max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
-    unit = models.CharField(max_length=30)
-    quantity = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-    )
-    supplier = models.ForeignKey(
-        Supplier,
-        on_delete=models.PROTECT,
-        related_name="consignment_receipts",
-    )
-    supplier_code = models.CharField(max_length=6, validators=[NUMERIC_CODE_VALIDATOR])
+    # Header-level fields only - item/warehouse/quantity moved to ReceiptConsignmentLine
     consignment_contract_code = models.CharField(max_length=30, blank=True)
     expected_return_date = models.DateField(null=True, blank=True)
     valuation_method = models.CharField(max_length=30, blank=True)
-    unit_price_estimate = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, blank=True)
     requires_temporary_receipt = models.PositiveSmallIntegerField(default=0)
     temporary_receipt = models.ForeignKey(
         ReceiptTemporary,
@@ -1018,21 +966,6 @@ class ReceiptConsignment(InventoryDocumentBase):
     conversion_date = models.DateField(null=True, blank=True)
     return_document_id = models.BigIntegerField(null=True, blank=True)
     document_metadata = models.JSONField(default=dict, blank=True)
-    entered_unit = models.CharField(max_length=30, blank=True)
-    entered_quantity = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        null=True,
-        blank=True,
-        validators=[POSITIVE_DECIMAL],
-    )
-    entered_unit_price = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        null=True,
-        blank=True,
-        validators=[POSITIVE_DECIMAL],
-    )
 
     class Meta:
         verbose_name = _("Consignment Receipt")
@@ -1043,12 +976,6 @@ class ReceiptConsignment(InventoryDocumentBase):
         return self.document_code
 
     def save(self, *args, **kwargs):
-        if not self.item_code:
-            self.item_code = self.item.item_code
-        if not self.warehouse_code:
-            self.warehouse_code = self.warehouse.public_code
-        if not self.supplier_code:
-            self.supplier_code = self.supplier.public_code
         if self.temporary_receipt and not self.temporary_receipt_code:
             self.temporary_receipt_code = self.temporary_receipt.document_code
         if self.purchase_request and not self.purchase_request_code:
@@ -1273,19 +1200,23 @@ class ItemSerialHistory(InventoryBaseModel):
         super().save(*args, **kwargs)
 
 
-class IssuePermanent(InventoryDocumentBase):
-    document_code = models.CharField(max_length=20, unique=True)
-    document_date = models.DateField(default=timezone.now)
+# ============================================================================
+# Issue and Receipt Line Models (Multi-line support)
+# ============================================================================
+
+class IssueLineBase(InventoryBaseModel, SortableModel):
+    """Base model for issue line items."""
+    
     item = models.ForeignKey(
         Item,
         on_delete=models.PROTECT,
-        related_name="permanent_issues",
+        related_name="%(class)s_lines",
     )
     item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
     warehouse = models.ForeignKey(
         Warehouse,
         on_delete=models.PROTECT,
-        related_name="permanent_issues",
+        related_name="%(class)s_lines",
     )
     warehouse_code = models.CharField(max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
     unit = models.CharField(max_length=30)
@@ -1293,6 +1224,36 @@ class IssuePermanent(InventoryDocumentBase):
         max_digits=18,
         decimal_places=6,
         validators=[POSITIVE_DECIMAL],
+    )
+    entered_unit = models.CharField(max_length=30, blank=True)
+    entered_quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        validators=[POSITIVE_DECIMAL],
+    )
+    line_notes = models.TextField(blank=True)
+    
+    class Meta:
+        abstract = True
+        ordering = ("sort_order", "id")
+    
+    def save(self, *args, **kwargs):
+        if self.item and not self.item_code:
+            self.item_code = self.item.item_code
+        if self.warehouse and not self.warehouse_code:
+            self.warehouse_code = self.warehouse.public_code
+        super().save(*args, **kwargs)
+
+
+class IssuePermanentLine(IssueLineBase):
+    """Line item for permanent issue documents."""
+    
+    document = models.ForeignKey(
+        "IssuePermanent",
+        on_delete=models.CASCADE,
+        related_name="lines",
     )
     destination_type = models.CharField(max_length=30)
     destination_id = models.BigIntegerField(null=True, blank=True)
@@ -1327,63 +1288,32 @@ class IssuePermanent(InventoryDocumentBase):
         null=True,
         blank=True,
     )
-    issue_metadata = models.JSONField(default=dict, blank=True)
-    department_unit = models.ForeignKey(
-        "shared.CompanyUnit",
-        on_delete=models.SET_NULL,
-        related_name="permanent_issues",
-        null=True,
-        blank=True,
-    )
-    department_unit_code = models.CharField(
-        max_length=8,
-        validators=[NUMERIC_CODE_VALIDATOR],
-        blank=True,
-    )
     serials = models.ManyToManyField(
         "inventory.ItemSerial",
-        related_name="issue_permanent_documents",
+        related_name="issue_permanent_lines",
         blank=True,
     )
-
+    
     class Meta:
-        verbose_name = _("Permanent Issue")
-        verbose_name_plural = _("Permanent Issues")
-        ordering = ("-document_date", "document_code")
-
+        verbose_name = _("Permanent Issue Line")
+        verbose_name_plural = _("Permanent Issue Lines")
+        ordering = ("sort_order", "id")
+        indexes = [
+            models.Index(fields=("company", "document"), name="inv_issue_perm_line_doc_idx"),
+            models.Index(fields=("company", "item"), name="inv_issue_perm_line_item_idx"),
+        ]
+    
     def __str__(self) -> str:
-        return self.document_code
-
-    def save(self, *args, **kwargs):
-        if not self.item_code:
-            self.item_code = self.item.item_code
-        if not self.warehouse_code:
-            self.warehouse_code = self.warehouse.public_code
-        if self.department_unit and not self.department_unit_code:
-            self.department_unit_code = self.department_unit.public_code
-        super().save(*args, **kwargs)
+        return f"{self.document.document_code} - {self.item.name}"
 
 
-class IssueConsumption(InventoryDocumentBase):
-    document_code = models.CharField(max_length=20, unique=True)
-    document_date = models.DateField(default=timezone.now)
-    item = models.ForeignKey(
-        Item,
-        on_delete=models.PROTECT,
-        related_name="consumption_issues",
-    )
-    item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
-    warehouse = models.ForeignKey(
-        Warehouse,
-        on_delete=models.PROTECT,
-        related_name="consumption_issues",
-    )
-    warehouse_code = models.CharField(max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
-    unit = models.CharField(max_length=30)
-    quantity = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
+class IssueConsumptionLine(IssueLineBase):
+    """Line item for consumption issue documents."""
+    
+    document = models.ForeignKey(
+        "IssueConsumption",
+        on_delete=models.CASCADE,
+        related_name="lines",
     )
     consumption_type = models.CharField(max_length=30)
     reference_document_type = models.CharField(max_length=30, blank=True)
@@ -1406,23 +1336,10 @@ class IssueConsumption(InventoryDocumentBase):
         blank=True,
     )
     cost_center_code = models.CharField(max_length=30, blank=True)
-    issue_metadata = models.JSONField(default=dict, blank=True)
-    department_unit = models.ForeignKey(
-        "shared.CompanyUnit",
-        on_delete=models.SET_NULL,
-        related_name="consumption_issues",
-        null=True,
-        blank=True,
-    )
-    department_unit_code = models.CharField(
-        max_length=8,
-        validators=[NUMERIC_CODE_VALIDATOR],
-        blank=True,
-    )
     work_line = models.ForeignKey(
         "inventory.WorkLine",
         on_delete=models.SET_NULL,
-        related_name="consumption_issues",
+        related_name="consumption_issue_lines",
         null=True,
         blank=True,
     )
@@ -1433,9 +1350,294 @@ class IssueConsumption(InventoryDocumentBase):
     )
     serials = models.ManyToManyField(
         "inventory.ItemSerial",
-        related_name="issue_consumption_documents",
+        related_name="issue_consumption_lines",
         blank=True,
     )
+    
+    class Meta:
+        verbose_name = _("Consumption Issue Line")
+        verbose_name_plural = _("Consumption Issue Lines")
+        ordering = ("sort_order", "id")
+        indexes = [
+            models.Index(fields=("company", "document"), name="inv_issue_cons_line_doc_idx"),
+            models.Index(fields=("company", "item"), name="inv_issue_cons_line_item_idx"),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.document.document_code} - {self.item.name}"
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.work_line and not self.work_line_code:
+            self.work_line_code = self.work_line.public_code
+            super().save(*args, **kwargs)
+
+
+class IssueConsignmentLine(IssueLineBase):
+    """Line item for consignment issue documents."""
+    
+    document = models.ForeignKey(
+        "IssueConsignment",
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    consignment_receipt = models.ForeignKey(
+        ReceiptConsignment,
+        on_delete=models.PROTECT,
+        related_name="issue_lines",
+    )
+    consignment_receipt_code = models.CharField(max_length=20)
+    destination_type = models.CharField(max_length=30)
+    destination_id = models.BigIntegerField(null=True, blank=True)
+    destination_code = models.CharField(max_length=30, blank=True)
+    reason_code = models.CharField(max_length=30, blank=True)
+    serials = models.ManyToManyField(
+        "inventory.ItemSerial",
+        related_name="issue_consignment_lines",
+        blank=True,
+    )
+    
+    class Meta:
+        verbose_name = _("Consignment Issue Line")
+        verbose_name_plural = _("Consignment Issue Lines")
+        ordering = ("sort_order", "id")
+        indexes = [
+            models.Index(fields=("company", "document"), name="inv_issue_consg_line_doc_idx"),
+            models.Index(fields=("company", "item"), name="inv_issue_consg_line_item_idx"),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.document.document_code} - {self.item.name}"
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.consignment_receipt and not self.consignment_receipt_code:
+            self.consignment_receipt_code = self.consignment_receipt.document_code
+            super().save(*args, **kwargs)
+
+
+class ReceiptLineBase(InventoryBaseModel, SortableModel):
+    """Base model for receipt line items."""
+    
+    item = models.ForeignKey(
+        Item,
+        on_delete=models.PROTECT,
+        related_name="%(class)s_lines",
+    )
+    item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
+    warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.PROTECT,
+        related_name="%(class)s_lines",
+    )
+    warehouse_code = models.CharField(max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
+    unit = models.CharField(max_length=30)
+    quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+    )
+    entered_unit = models.CharField(max_length=30, blank=True)
+    entered_quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        validators=[POSITIVE_DECIMAL],
+    )
+    entered_unit_price = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        validators=[POSITIVE_DECIMAL],
+    )
+    line_notes = models.TextField(blank=True)
+    
+    class Meta:
+        abstract = True
+        ordering = ("sort_order", "id")
+    
+    def save(self, *args, **kwargs):
+        if self.item and not self.item_code:
+            self.item_code = self.item.item_code
+        if self.warehouse and not self.warehouse_code:
+            self.warehouse_code = self.warehouse.public_code
+        super().save(*args, **kwargs)
+
+
+class ReceiptPermanentLine(ReceiptLineBase):
+    """Line item for permanent receipt documents."""
+    
+    document = models.ForeignKey(
+        "ReceiptPermanent",
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    supplier = models.ForeignKey(
+        Supplier,
+        on_delete=models.SET_NULL,
+        related_name="permanent_receipt_lines",
+        null=True,
+        blank=True,
+    )
+    supplier_code = models.CharField(max_length=6, validators=[NUMERIC_CODE_VALIDATOR], blank=True)
+    unit_price = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        null=True,
+        blank=True,
+    )
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, blank=True)
+    tax_amount = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        null=True,
+        blank=True,
+    )
+    discount_amount = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        null=True,
+        blank=True,
+    )
+    total_amount = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        null=True,
+        blank=True,
+    )
+    serials = models.ManyToManyField(
+        "inventory.ItemSerial",
+        related_name="receipt_permanent_lines",
+        blank=True,
+    )
+    
+    class Meta:
+        verbose_name = _("Permanent Receipt Line")
+        verbose_name_plural = _("Permanent Receipt Lines")
+        ordering = ("sort_order", "id")
+        indexes = [
+            models.Index(fields=("company", "document"), name="inv_receipt_perm_line_doc_idx"),
+            models.Index(fields=("company", "item"), name="inv_receipt_perm_line_item_idx"),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.document.document_code} - {self.item.name}"
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.supplier and not self.supplier_code:
+            self.supplier_code = self.supplier.public_code
+            super().save(*args, **kwargs)
+
+
+class ReceiptConsignmentLine(ReceiptLineBase):
+    """Line item for consignment receipt documents."""
+    
+    document = models.ForeignKey(
+        "ReceiptConsignment",
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    supplier = models.ForeignKey(
+        Supplier,
+        on_delete=models.PROTECT,
+        related_name="consignment_receipt_lines",
+    )
+    supplier_code = models.CharField(max_length=6, validators=[NUMERIC_CODE_VALIDATOR])
+    unit_price_estimate = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        null=True,
+        blank=True,
+    )
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, blank=True)
+    serials = models.ManyToManyField(
+        "inventory.ItemSerial",
+        related_name="receipt_consignment_lines",
+        blank=True,
+    )
+    
+    class Meta:
+        verbose_name = _("Consignment Receipt Line")
+        verbose_name_plural = _("Consignment Receipt Lines")
+        ordering = ("sort_order", "id")
+        indexes = [
+            models.Index(fields=("company", "document"), name="inv_rec_consg_line_doc_idx"),
+            models.Index(fields=("company", "item"), name="inv_rec_consg_line_item_idx"),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.document.document_code} - {self.item.name}"
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.supplier and not self.supplier_code:
+            self.supplier_code = self.supplier.public_code
+            super().save(*args, **kwargs)
+
+
+# ============================================================================
+# Issue and Receipt Document Models (Header-only, multi-line support)
+# ============================================================================
+
+class IssuePermanent(InventoryDocumentBase):
+    """Header-only model for permanent issue documents with multi-line support."""
+    document_code = models.CharField(max_length=20, unique=True)
+    document_date = models.DateField(default=timezone.now)
+    # Header-level fields only - item/warehouse/quantity moved to IssuePermanentLine
+    department_unit = models.ForeignKey(
+        "shared.CompanyUnit",
+        on_delete=models.SET_NULL,
+        related_name="permanent_issues",
+        null=True,
+        blank=True,
+    )
+    department_unit_code = models.CharField(
+        max_length=8,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        blank=True,
+    )
+    issue_metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        verbose_name = _("Permanent Issue")
+        verbose_name_plural = _("Permanent Issues")
+        ordering = ("-document_date", "document_code")
+
+    def __str__(self) -> str:
+        return self.document_code
+
+    def save(self, *args, **kwargs):
+        if self.department_unit and not self.department_unit_code:
+            self.department_unit_code = self.department_unit.public_code
+        super().save(*args, **kwargs)
+
+
+class IssueConsumption(InventoryDocumentBase):
+    """Header-only model for consumption issue documents with multi-line support."""
+    document_code = models.CharField(max_length=20, unique=True)
+    document_date = models.DateField(default=timezone.now)
+    # Header-level fields only - item/warehouse/quantity moved to IssueConsumptionLine
+    department_unit = models.ForeignKey(
+        "shared.CompanyUnit",
+        on_delete=models.SET_NULL,
+        related_name="consumption_issues",
+        null=True,
+        blank=True,
+    )
+    department_unit_code = models.CharField(
+        max_length=8,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        blank=True,
+    )
+    issue_metadata = models.JSONField(default=dict, blank=True)
 
     class Meta:
         verbose_name = _("Consumption Issue")
@@ -1446,49 +1648,16 @@ class IssueConsumption(InventoryDocumentBase):
         return self.document_code
 
     def save(self, *args, **kwargs):
-        if not self.item_code:
-            self.item_code = self.item.item_code
-        if not self.warehouse_code:
-            self.warehouse_code = self.warehouse.public_code
         if self.department_unit and not self.department_unit_code:
             self.department_unit_code = self.department_unit.public_code
-        if self.work_line and not self.work_line_code:
-            self.work_line_code = self.work_line.public_code
         super().save(*args, **kwargs)
 
 
 class IssueConsignment(InventoryDocumentBase):
+    """Header-only model for consignment issue documents with multi-line support."""
     document_code = models.CharField(max_length=20, unique=True)
     document_date = models.DateField(default=timezone.now)
-    item = models.ForeignKey(
-        Item,
-        on_delete=models.PROTECT,
-        related_name="consignment_issues",
-    )
-    item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
-    warehouse = models.ForeignKey(
-        Warehouse,
-        on_delete=models.PROTECT,
-        related_name="consignment_issues",
-    )
-    warehouse_code = models.CharField(max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
-    unit = models.CharField(max_length=30)
-    quantity = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-    )
-    consignment_receipt = models.ForeignKey(
-        ReceiptConsignment,
-        on_delete=models.PROTECT,
-        related_name="issues",
-    )
-    consignment_receipt_code = models.CharField(max_length=20)
-    destination_type = models.CharField(max_length=30)
-    destination_id = models.BigIntegerField(null=True, blank=True)
-    destination_code = models.CharField(max_length=30, blank=True)
-    reason_code = models.CharField(max_length=30, blank=True)
-    issue_metadata = models.JSONField(default=dict, blank=True)
+    # Header-level fields only - item/warehouse/quantity moved to IssueConsignmentLine
     department_unit = models.ForeignKey(
         "shared.CompanyUnit",
         on_delete=models.SET_NULL,
@@ -1501,11 +1670,7 @@ class IssueConsignment(InventoryDocumentBase):
         validators=[NUMERIC_CODE_VALIDATOR],
         blank=True,
     )
-    serials = models.ManyToManyField(
-        "inventory.ItemSerial",
-        related_name="issue_consignment_documents",
-        blank=True,
-    )
+    issue_metadata = models.JSONField(default=dict, blank=True)
 
     class Meta:
         verbose_name = _("Consignment Issue")
@@ -1516,12 +1681,6 @@ class IssueConsignment(InventoryDocumentBase):
         return self.document_code
 
     def save(self, *args, **kwargs):
-        if not self.item_code:
-            self.item_code = self.item.item_code
-        if not self.warehouse_code:
-            self.warehouse_code = self.warehouse.public_code
-        if not self.consignment_receipt_code:
-            self.consignment_receipt_code = self.consignment_receipt.document_code
         if self.department_unit and not self.department_unit_code:
             self.department_unit_code = self.department_unit.public_code
         super().save(*args, **kwargs)

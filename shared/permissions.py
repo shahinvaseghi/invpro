@@ -160,6 +160,14 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.DELETE_OWN,
         ],
     ),
+    "inventory.master.item_serials": FeaturePermission(
+        code="inventory.master.item_serials",
+        label=_("Item Serials"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+        ],
+    ),
     "inventory.master.warehouses": FeaturePermission(
         code="inventory.master.warehouses",
         label=_("Warehouses"),

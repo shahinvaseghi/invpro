@@ -89,6 +89,248 @@
       {% endif %}
     {% endfor %}
 
+    {% if lines_formset %}
+    <div class="form-section">
+      <h3>{% trans "Document Lines" %}</h3>
+      <p class="form-text">
+        {% trans "Add one or more items to this document. Each line represents a single item with its quantity and other details." %}
+      </p>
+      {{ lines_formset.management_form }}
+      {% for hidden in lines_formset.hidden_fields %}{{ hidden }}{% endfor %}
+
+      <div class="lines-formset" id="lines-formset">
+        {% for line_form in lines_formset %}
+          <div class="line-form" data-form-index="{{ forloop.counter0 }}">
+            {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
+            
+            <div class="line-header">
+              <h4>{% trans "Line" %} {{ forloop.counter }}</h4>
+              {% if lines_formset.can_delete %}
+              <div class="line-delete">
+                <label>{{ line_form.DELETE.label }}</label>
+                {{ line_form.DELETE }}
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="line-fields">
+              <div class="form-row">
+                {% if 'item' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.item.label }}{% if line_form.item.field.required %}*{% endif %}</label>
+                  {{ line_form.item }}
+                  {% if line_form.item.errors %}
+                    <span class="error">{{ line_form.item.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'warehouse' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.warehouse.label }}{% if line_form.warehouse.field.required %}*{% endif %}</label>
+                  {{ line_form.warehouse }}
+                  {% if line_form.warehouse.errors %}
+                    <span class="error">{{ line_form.warehouse.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'unit' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit.label }}{% if line_form.unit.field.required %}*{% endif %}</label>
+                  {{ line_form.unit }}
+                  {% if line_form.unit.errors %}
+                    <span class="error">{{ line_form.unit.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'quantity' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.quantity.label }}{% if line_form.quantity.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity }}
+                  {% if line_form.quantity.errors %}
+                    <span class="error">{{ line_form.quantity.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+
+              {% if 'supplier' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field">
+                  <label>{{ line_form.supplier.label }}</label>
+                  {{ line_form.supplier }}
+                  {% if line_form.supplier.errors %}
+                    <span class="error">{{ line_form.supplier.errors.0 }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              {% endif %}
+
+              {% if 'destination_type' in line_form.fields or 'consumption_type' in line_form.fields or 'consignment_receipt' in line_form.fields %}
+              <div class="form-row">
+                {% if 'destination_type' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.destination_type.label }}</label>
+                  {{ line_form.destination_type }}
+                  {% if line_form.destination_type.errors %}
+                    <span class="error">{{ line_form.destination_type.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'consumption_type' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.consumption_type.label }}</label>
+                  {{ line_form.consumption_type }}
+                  {% if line_form.consumption_type.errors %}
+                    <span class="error">{{ line_form.consumption_type.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'consignment_receipt' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.consignment_receipt.label }}{% if line_form.consignment_receipt.field.required %}*{% endif %}</label>
+                  {{ line_form.consignment_receipt }}
+                  {% if line_form.consignment_receipt.errors %}
+                    <span class="error">{{ line_form.consignment_receipt.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {% if 'unit_price' in line_form.fields or 'unit_cost' in line_form.fields or 'unit_price_estimate' in line_form.fields %}
+              <div class="form-row">
+                {% if 'unit_price' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit_price.label }}</label>
+                  {{ line_form.unit_price }}
+                  {% if line_form.unit_price.errors %}
+                    <span class="error">{{ line_form.unit_price.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'unit_cost' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit_cost.label }}</label>
+                  {{ line_form.unit_cost }}
+                  {% if line_form.unit_cost.errors %}
+                    <span class="error">{{ line_form.unit_cost.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'unit_price_estimate' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit_price_estimate.label }}</label>
+                  {{ line_form.unit_price_estimate }}
+                  {% if line_form.unit_price_estimate.errors %}
+                    <span class="error">{{ line_form.unit_price_estimate.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'currency' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.currency.label }}</label>
+                  {{ line_form.currency }}
+                  {% if line_form.currency.errors %}
+                    <span class="error">{{ line_form.currency.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {% if 'line_notes' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field full-width">
+                  <label>{{ line_form.line_notes.label }}</label>
+                  {{ line_form.line_notes }}
+                  {% if line_form.line_notes.errors %}
+                    <span class="error">{{ line_form.line_notes.errors.0 }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              {% endif %}
+
+              {% if document_instance and document_instance.pk and line_form.instance.pk %}
+                {% with line=line_form.instance %}
+                  {% if line.item and line.item.has_lot_tracking == 1 %}
+                  <div class="form-row">
+                    <div class="form-field full-width">
+                      <div class="serial-assignment-section">
+                        {% if 'receipt' in request.path %}
+                          {% if 'permanent' in request.path %}
+                            <a href="{% url 'inventory:receipt_permanent_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-info">
+                              {% trans "Manage Serials" %}
+                            </a>
+                          {% elif 'consignment' in request.path %}
+                            <a href="{% url 'inventory:receipt_consignment_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-info">
+                              {% trans "Manage Serials" %}
+                            </a>
+                          {% endif %}
+                          <span class="serial-count">
+                            {% trans "Serials:" %} {{ line.serials.count }}
+                          </span>
+                        {% elif 'issue' in request.path %}
+                          {% if 'permanent' in request.path %}
+                            {% if not document_is_locked %}
+                              <a href="{% url 'inventory:issue_permanent_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-primary">
+                                {% trans "Assign Serials" %}
+                              </a>
+                            {% else %}
+                              <a href="{% url 'inventory:issue_permanent_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-secondary">
+                                {% trans "View Serials" %}
+                              </a>
+                            {% endif %}
+                          {% elif 'consumption' in request.path %}
+                            {% if not document_is_locked %}
+                              <a href="{% url 'inventory:issue_consumption_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-primary">
+                                {% trans "Assign Serials" %}
+                              </a>
+                            {% else %}
+                              <a href="{% url 'inventory:issue_consumption_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-secondary">
+                                {% trans "View Serials" %}
+                              </a>
+                            {% endif %}
+                          {% elif 'consignment' in request.path %}
+                            {% if not document_is_locked %}
+                              <a href="{% url 'inventory:issue_consignment_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-primary">
+                                {% trans "Assign Serials" %}
+                              </a>
+                            {% else %}
+                              <a href="{% url 'inventory:issue_consignment_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-secondary">
+                                {% trans "View Serials" %}
+                              </a>
+                            {% endif %}
+                          {% endif %}
+                          <span class="serial-count">
+                            {% trans "Assigned:" %} {{ line.serials.count }} / 
+                            {% if line.quantity %}{{ line.quantity|floatformat:0 }}{% else %}0{% endif %}
+                          </span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                  {% endif %}
+                {% endwith %}
+              {% endif %}
+            </div>
+
+            {% if line_form.non_field_errors %}
+              <div class="error">{{ line_form.non_field_errors|join:", " }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
     <div class="form-actions">
       {% if not document_is_locked %}
       <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
@@ -276,47 +518,117 @@
   font-size: 0.85rem;
   font-weight: 600;
 }
+
+.lines-formset {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.line-form {
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #f9fafb;
+  position: relative;
+}
+
+.line-form.deleted {
+  opacity: 0.5;
+  background-color: #fee2e2;
+}
+
+.line-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.line-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.line-delete {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.line-delete label {
+  margin: 0;
+  font-weight: 500;
+  color: #dc2626;
+}
+
+.line-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.line-fields .form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.line-fields .form-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.serial-assignment-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background-color: #f3f4f6;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.serial-assignment-section .btn {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.serial-assignment-section .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.serial-count {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
 </style>
 
 <script>
-const unitMap = {{ unit_options_json|default:"{}" }};
-const unitPlaceholder = "{{ unit_placeholder|escapejs }}";
-const itemSelect = document.getElementById("id_item");
-const unitSelect = document.getElementById("id_unit");
-
-function refreshUnitOptions() {
-  if (!itemSelect || !unitSelect) return;
-  const selectedItem = itemSelect.value || "";
-  const options = unitMap[selectedItem] || [];
-  const currentValue = unitSelect.value;
-
-  unitSelect.innerHTML = "";
-
-  const placeholderOption = document.createElement("option");
-  placeholderOption.value = "";
-  placeholderOption.textContent = unitPlaceholder;
-  unitSelect.appendChild(placeholderOption);
-
-  options.forEach(function(option) {
-    const optionEl = document.createElement("option");
-    optionEl.value = option.value;
-    optionEl.textContent = option.label;
-    unitSelect.appendChild(optionEl);
+// Handle line formset delete checkboxes
+document.addEventListener('DOMContentLoaded', function() {
+  const deleteCheckboxes = document.querySelectorAll('.line-form input[type="checkbox"][name*="DELETE"]');
+  deleteCheckboxes.forEach(function(checkbox) {
+    checkbox.addEventListener('change', function() {
+      const lineForm = this.closest('.line-form');
+      if (this.checked) {
+        lineForm.classList.add('deleted');
+      } else {
+        lineForm.classList.remove('deleted');
+      }
+    });
   });
-
-  let desiredValue = currentValue;
-  if (!desiredValue || !options.some(option => option.value === desiredValue)) {
-    desiredValue = options.length > 0 ? options[0].value : "";
-  }
-  if (desiredValue) {
-    unitSelect.value = desiredValue;
-  }
-}
-
-if (itemSelect && unitSelect) {
-  itemSelect.addEventListener("change", refreshUnitOptions);
-  refreshUnitOptions();
-}
+});
 </script>
 {% endblock %}
 

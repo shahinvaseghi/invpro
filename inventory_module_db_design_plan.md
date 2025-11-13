@@ -1,6 +1,6 @@
 ## Overview
 
-We are designing `invproj`, a modular warehouse and production management platform built with Python and Django. The system targets PostgreSQL as the primary database and must operate in both Linux/Nginx and Windows Server/IIS environments. Front-end delivery is planned through Django’s templating (with room for future SPA integration), while RESTful APIs will serve integrations when modules are split into separate services. The architecture keeps a single physical database initially, yet strict naming conventions and schema boundaries (`inventory_`, `production_`, `qc_`, and shared `invproj_` tables) make it possible to migrate modules into dedicated databases or microservices later without heavy refactoring. Shared/global entities—companies, personnel, users, company units—live in the `invproj_` namespace; module-specific tables reference these shared structures to maintain consistent tenancy and access control rules across the platform.
+We are designing `invproj`, a modular warehouse and production management platform built with Python and Django. The system targets PostgreSQL as the primary database and must operate in both Linux/Nginx and Windows Server/IIS environments. Front-end delivery is planned through Django's templating (with room for future SPA integration), while RESTful APIs will serve integrations when modules are split into separate services. The architecture keeps a single physical database initially, yet strict naming conventions and schema boundaries (`inventory_`, `production_`, `qc_`, and shared `invproj_` tables) make it possible to migrate modules into dedicated databases or microservices later without heavy refactoring. Shared/global entities—companies, personnel, users, company units—live in the `invproj_` namespace; module-specific tables reference these shared structures to maintain consistent tenancy and access control rules across the platform.
 
 This document presents the inventory module database design for the `invproj` platform. The overall solution is a modular Python/Django system that targets PostgreSQL and must run in both Linux/Nginx and Windows/IIS environments. We deploy all modules inside a single physical database initially, but schema boundaries and naming conventions allow future extraction into separate services. Shared/global entities use the `invproj_` prefix, while inventory-specific tables use `inventory_`; production and QC modules follow similar conventions in their own design documents. Each module is designed to remain self-contained yet interoperable through well-defined references and shared entities.
 
@@ -89,7 +89,7 @@ Additional considerations:
 - No parent link here because root categories remain standalone; subcategories will live in their own table referencing this one.
 - Mirror index strategy (e.g., `(company_id, is_enabled, sort_order, public_code)` plus unique constraints) to keep lookup patterns consistent.
 - Optional status log table if activation history tracking is required.
-- Enforce referential integrity so every category row’s `company_id` matches the owning company referenced by dependent tables.
+- Enforce referential integrity so every category row's `company_id` matches the owning company referenced by dependent tables.
 
 #### Table: `inventory_item_subcategory`
 
@@ -119,7 +119,7 @@ Additional considerations:
 - Enforce unique constraint on `(company_id, category_id, public_code)` and optionally `(company_id, category_id, name)` to prevent duplicates per category.
 - Foreign key should cascade updates but restrict deletes; consider soft-delete or status log pattern similar to higher-level tables.
 - If hierarchical subcategories are ever needed, extend with additional relationship table instead of self-referencing.
-- Validate at application level that `company_id` matches the parent category’s company.
+- Validate at application level that `company_id` matches the parent category's company.
 
 #### Table: `inventory_warehouse`
 
@@ -201,7 +201,7 @@ Additional considerations:
 | `edited_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Update audit (trigger/logic). |
 | `created_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Creator reference. |
 | `edited_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Last editor reference. |
-| `description` | `varchar(255)` | nullable | Short description/title (e.g., “Default spec”). |
+| `description` | `varchar(255)` | nullable | Short description/title (e.g., "Default spec"). |
 | `notes` | `text` | nullable | Additional internal notes. |
 | `metadata` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | Extensible administrative metadata. |
 
@@ -211,7 +211,7 @@ Additional considerations:
 - `spec_data` structure should be documented (e.g., expected keys for dimensions, units, tolerances) and validated at application layer.
 - If multiple suppliers per item with shared specs need tracking, consider separate supplier reference table and join table.
 - `item_code` duplicates data for denormalized reporting; keep synchronized via triggers or application logic.
-- Enforce through application logic that `company_id` aligns with the parent item’s company.
+- Enforce through application logic that `company_id` aligns with the parent item's company.
 
 #### Table: `inventory_item_unit`
 
@@ -236,7 +236,7 @@ Additional considerations:
 | `edited_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Update audit (trigger/logic). |
 | `created_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Creator reference. |
 | `edited_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Last editor reference. |
-| `description` | `varchar(255)` | nullable | Short description (e.g., “Meter to KG”). |
+| `description` | `varchar(255)` | nullable | Short description (e.g., "Meter to KG"). |
 | `notes` | `text` | nullable | Operational notes or validation remarks. |
 | `metadata` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | Extensible details (e.g., tolerance, supplier-specific tags). |
 
@@ -309,7 +309,7 @@ Additional considerations:
 | `edited_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Update audit (trigger/logic). |
 | `created_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Creator reference. |
 | `edited_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Last editor reference. |
-| `description` | `varchar(255)` | nullable | Short context (e.g., “Emergency replacement”). |
+| `description` | `varchar(255)` | nullable | Short context (e.g., "Emergency replacement"). |
 | `notes` | `text` | nullable | Operational or approval notes. |
 | `metadata` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | Extensible details (e.g., quality constraints). |
 
@@ -941,7 +941,7 @@ Additional considerations:
 | `quantity` | `numeric(18,6)` | `NOT NULL` | Quantity issued. |
 | `consignment_receipt_id` | `bigint` | `NOT NULL`, FK to `inventory_receipt_consignment(id)` | Links back to the consignment receipt. |
 | `consignment_receipt_code` | `varchar(20)` | `NOT NULL` | Cached consignment receipt code. |
-| `destination_type` | `varchar(30)` | `NOT NULL` | Receiving entity classification (e.g., “customer_return”, “supplier_return”). |
+| `destination_type` | `varchar(30)` | `NOT NULL` | Receiving entity classification (e.g., "customer_return", "supplier_return"). |
 | `destination_id` | `bigint` | nullable | Reference to downstream entity. |
 | `destination_code` | `varchar(30)` | nullable | Cached downstream reference code. |
 | `reason_code` | `varchar(30)` | nullable | Reason for consignment issue (return, usage). |
