@@ -555,6 +555,7 @@ UserCompanyAccessFormSet = inlineformset_factory(
     UserCompanyAccess,
     form=UserCompanyAccessForm,
     formset=BaseUserCompanyAccessFormSet,
+    fk_name='user',
     extra=1,
     can_delete=True,
 )

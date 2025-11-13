@@ -1192,11 +1192,11 @@ class ItemSerial(InventoryBaseModel):
         indexes = [
             models.Index(
                 fields=("company", "item", "current_status"),
-                name="inventory_item_serial_status_idx",
+                name="inv_item_serial_status_idx",
             ),
             models.Index(
                 fields=("company", "receipt_document"),
-                name="inventory_item_serial_receipt_idx",
+                name="inv_item_serial_receipt_idx",
             ),
         ]
 
@@ -1258,7 +1258,7 @@ class ItemSerialHistory(InventoryBaseModel):
         indexes = [
             models.Index(
                 fields=("company", "serial", "event_at"),
-                name="inventory_item_serial_history_idx",
+                name="inv_item_serial_hist_idx",
             ),
         ]
 
