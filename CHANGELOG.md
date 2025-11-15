@@ -44,6 +44,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Dedicated stocktaking document pages (deficit, surplus, record) with auto code generation, item-aware unit/warehouse filtering, locking controls, and shared stocktaking form template
 - Dedicated purchase request workspace with locking, approver routing, and automatic exposure in permanent/consignment receipts after approval
 - Dedicated warehouse request workspace with item-aware unit/warehouse filtering, approver routing, and automatic exposure in permanent/consignment receipts after approval
+- **Multi-line document support** for Issue and Receipt documents:
+  - Converted `IssuePermanent`, `IssueConsumption`, `IssueConsignment`, `ReceiptPermanent`, `ReceiptConsignment` to header-only documents
+  - Created line item models: `IssuePermanentLine`, `IssueConsumptionLine`, `IssueConsignmentLine`, `ReceiptPermanentLine`, `ReceiptConsignmentLine`
+  - Each line can have its own item, quantity, warehouse, unit, and pricing information
+  - Users can add/remove multiple lines dynamically in document forms
+- **Line-based serial assignment**:
+  - Serial numbers are now managed at the line item level, not document level
+  - Each line with a lot-tracked item has a dedicated serial assignment page
+  - Serial generation for receipt lines with format `{DOC_CODE}-L{LINE_ID}-{SEQUENCE:04d}`
+  - Serial reservation and finalization for issue lines
+  - Validation ensures serial count matches line quantity before document lock
+  - New views: `IssueLineSerialAssignmentBaseView`, `ReceiptLineSerialAssignmentBaseView` and their concrete implementations
+  - New services: `generate_receipt_line_serials()`, `sync_issue_line_serials()`, `finalize_issue_line_serials()`
+- Line formsets for managing multiple line items in document forms
+- `LineFormsetMixin` for reusable line formset handling in views
+- Updated document lock views to validate and finalize serials for all lines
 
 ### Changed
 - Removed `activated_at` and `deactivated_at` fields from ActivatableModel
@@ -56,6 +72,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - full_item_code: 16 digits (Type 3 + Category 3 + SubCategory 3 + ItemCode 7)
 - Standardized all forms to use consistent CSS classes
 - Moved "Work Lines" from Inventory module to Production module in sidebar
+- **Refactored Issue and Receipt models to header-only architecture**:
+  - Removed `item`, `warehouse`, `quantity`, `unit` fields from document models
+  - These fields are now managed by line item models
+  - Document models now only contain header-level information
+- **Updated serial assignment workflow**:
+  - Serials are now linked to line items via `ManyToManyField`
+  - Serial assignment pages work with specific line items, not entire documents
+  - `ItemSerial.current_document_type` and `current_document_id` now reference line models
 
 ### Fixed
 - Language switcher error resolved

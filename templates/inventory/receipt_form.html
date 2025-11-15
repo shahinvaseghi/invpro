@@ -91,15 +91,29 @@
 
     {% if lines_formset %}
     <div class="form-section">
-      <h3>{% trans "Document Lines" %}</h3>
-      <p class="form-text">
-        {% trans "Add one or more items to this document. Each line represents a single item with its quantity and other details." %}
-      </p>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+          <h3 style="margin: 0;">{% trans "Document Lines" %}</h3>
+          <p class="form-text" style="margin: 0.5rem 0 0 0;">
+            {% trans "Add one or more items to this document. Each line represents a single item with its quantity and other details." %}
+          </p>
+        </div>
+        <button type="button" id="add-line-btn" class="btn btn-success" style="padding: 0.5rem 1rem;">
+          <span style="font-size: 1.2rem; margin-right: 0.25rem;">+</span> {% trans "Add Line" %}
+        </button>
+      </div>
       {{ lines_formset.management_form }}
       {% for hidden in lines_formset.hidden_fields %}{{ hidden }}{% endfor %}
 
       <div class="lines-formset" id="lines-formset">
         {% for line_form in lines_formset %}
+          {% comment %}Determine if this form should be displayed:
+             - In create mode: only show first empty form (extra=1)
+             - In edit mode: show existing lines (with pk) and first empty form if any
+          {% endcomment %}
+          {% if not form.instance.pk %}
+            {# Create mode: only show first empty form (extra=1) #}
+            {% if forloop.counter0 < 1 %}
           <div class="line-form" data-form-index="{{ forloop.counter0 }}">
             {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
             
@@ -210,6 +224,19 @@
                   {{ line_form.unit_price }}
                   {% if line_form.unit_price.errors %}
                     <span class="error">{{ line_form.unit_price.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'entered_price_unit' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.entered_price_unit.label }}{% if line_form.entered_price_unit.field.required %}*{% endif %}</label>
+                  {{ line_form.entered_price_unit }}
+                  {% if line_form.entered_price_unit.errors %}
+                    <span class="error">{{ line_form.entered_price_unit.errors.0 }}</span>
+                  {% endif %}
+                  {% if line_form.entered_price_unit.help_text %}
+                    <small class="form-text text-muted">{{ line_form.entered_price_unit.help_text }}</small>
                   {% endif %}
                 </div>
                 {% endif %}
@@ -326,6 +353,425 @@
               <div class="error">{{ line_form.non_field_errors|join:", " }}</div>
             {% endif %}
           </div>
+            {% endif %}
+          {% else %}
+            {# Edit mode: show existing lines (with pk) and first empty form if any #}
+            {% if line_form.instance.pk %}
+              {# Existing line - always show #}
+          <div class="line-form" data-form-index="{{ forloop.counter0 }}">
+            {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
+            
+            <div class="line-header">
+              <h4>{% trans "Line" %} {{ forloop.counter }}</h4>
+              {% if lines_formset.can_delete %}
+              <div class="line-delete">
+                <label>{{ line_form.DELETE.label }}</label>
+                {{ line_form.DELETE }}
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="line-fields">
+              <div class="form-row">
+                {% if 'item' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.item.label }}{% if line_form.item.field.required %}*{% endif %}</label>
+                  {{ line_form.item }}
+                  {% if line_form.item.errors %}
+                    <span class="error">{{ line_form.item.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'warehouse' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.warehouse.label }}{% if line_form.warehouse.field.required %}*{% endif %}</label>
+                  {{ line_form.warehouse }}
+                  {% if line_form.warehouse.errors %}
+                    <span class="error">{{ line_form.warehouse.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'unit' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit.label }}{% if line_form.unit.field.required %}*{% endif %}</label>
+                  {{ line_form.unit }}
+                  {% if line_form.unit.errors %}
+                    <span class="error">{{ line_form.unit.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'quantity' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.quantity.label }}{% if line_form.quantity.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity }}
+                  {% if line_form.quantity.errors %}
+                    <span class="error">{{ line_form.quantity.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+
+              {% if 'supplier' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field">
+                  <label>{{ line_form.supplier.label }}</label>
+                  {{ line_form.supplier }}
+                  {% if line_form.supplier.errors %}
+                    <span class="error">{{ line_form.supplier.errors.0 }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              {% endif %}
+
+              {% if 'unit_price' in line_form.fields or 'unit_cost' in line_form.fields or 'unit_price_estimate' in line_form.fields %}
+              <div class="form-row">
+                {% if 'unit_price' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit_price.label }}</label>
+                  {{ line_form.unit_price }}
+                  {% if line_form.unit_price.errors %}
+                    <span class="error">{{ line_form.unit_price.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'entered_price_unit' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.entered_price_unit.label }}{% if line_form.entered_price_unit.field.required %}*{% endif %}</label>
+                  {{ line_form.entered_price_unit }}
+                  {% if line_form.entered_price_unit.errors %}
+                    <span class="error">{{ line_form.entered_price_unit.errors.0 }}</span>
+                  {% endif %}
+                  {% if line_form.entered_price_unit.help_text %}
+                    <small class="form-text text-muted">{{ line_form.entered_price_unit.help_text }}</small>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'unit_cost' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit_cost.label }}</label>
+                  {{ line_form.unit_cost }}
+                  {% if line_form.unit_cost.errors %}
+                    <span class="error">{{ line_form.unit_cost.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'unit_price_estimate' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit_price_estimate.label }}</label>
+                  {{ line_form.unit_price_estimate }}
+                  {% if line_form.unit_price_estimate.errors %}
+                    <span class="error">{{ line_form.unit_price_estimate.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'currency' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.currency.label }}</label>
+                  {{ line_form.currency }}
+                  {% if line_form.currency.errors %}
+                    <span class="error">{{ line_form.currency.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {% if 'line_notes' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field full-width">
+                  <label>{{ line_form.line_notes.label }}</label>
+                  {{ line_form.line_notes }}
+                  {% if line_form.line_notes.errors %}
+                    <span class="error">{{ line_form.line_notes.errors.0 }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              {% endif %}
+
+              {% if document_instance and document_instance.pk and line_form.instance.pk %}
+                {% with line=line_form.instance %}
+                  {% if line.item and line.item.has_lot_tracking == 1 %}
+                  <div class="form-row">
+                    <div class="form-field full-width">
+                      <div class="serial-assignment-section">
+                        {% if 'receipt' in request.path %}
+                          {% if 'permanent' in request.path %}
+                            <a href="{% url 'inventory:receipt_permanent_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-info">
+                              {% trans "Manage Serials" %}
+                            </a>
+                          {% elif 'consignment' in request.path %}
+                            <a href="{% url 'inventory:receipt_consignment_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-info">
+                              {% trans "Manage Serials" %}
+                            </a>
+                          {% endif %}
+                          <span class="serial-count">
+                            {% trans "Serials:" %} {{ line.serials.count }}
+                          </span>
+                        {% elif 'issue' in request.path %}
+                          {% if 'permanent' in request.path %}
+                            {% if not document_is_locked %}
+                              <a href="{% url 'inventory:issue_permanent_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-primary">
+                                {% trans "Assign Serials" %}
+                              </a>
+                            {% else %}
+                              <a href="{% url 'inventory:issue_permanent_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-secondary">
+                                {% trans "View Serials" %}
+                              </a>
+                            {% endif %}
+                          {% elif 'consumption' in request.path %}
+                            {% if not document_is_locked %}
+                              <a href="{% url 'inventory:issue_consumption_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-primary">
+                                {% trans "Assign Serials" %}
+                              </a>
+                            {% else %}
+                              <a href="{% url 'inventory:issue_consumption_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-secondary">
+                                {% trans "View Serials" %}
+                              </a>
+                            {% endif %}
+                          {% elif 'consignment' in request.path %}
+                            {% if not document_is_locked %}
+                              <a href="{% url 'inventory:issue_consignment_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-primary">
+                                {% trans "Assign Serials" %}
+                              </a>
+                            {% else %}
+                              <a href="{% url 'inventory:issue_consignment_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-secondary">
+                                {% trans "View Serials" %}
+                              </a>
+                            {% endif %}
+                          {% endif %}
+                          <span class="serial-count">
+                            {% trans "Assigned:" %} {{ line.serials.count }} / 
+                            {% if line.quantity %}{{ line.quantity|floatformat:0 }}{% else %}0{% endif %}
+                          </span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                  {% endif %}
+                {% endwith %}
+              {% endif %}
+            </div>
+
+            {% if line_form.non_field_errors %}
+              <div class="error">{{ line_form.non_field_errors|join:", " }}</div>
+            {% endif %}
+          </div>
+            {% elif forloop.counter0 < 1 %}
+              {# First empty form in edit mode #}
+          <div class="line-form" data-form-index="{{ forloop.counter0 }}">
+            {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
+            
+            <div class="line-header">
+              <h4>{% trans "Line" %} {{ forloop.counter }}</h4>
+              {% if lines_formset.can_delete %}
+              <div class="line-delete">
+                <label>{{ line_form.DELETE.label }}</label>
+                {{ line_form.DELETE }}
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="line-fields">
+              <div class="form-row">
+                {% if 'item' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.item.label }}{% if line_form.item.field.required %}*{% endif %}</label>
+                  {{ line_form.item }}
+                  {% if line_form.item.errors %}
+                    <span class="error">{{ line_form.item.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'warehouse' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.warehouse.label }}{% if line_form.warehouse.field.required %}*{% endif %}</label>
+                  {{ line_form.warehouse }}
+                  {% if line_form.warehouse.errors %}
+                    <span class="error">{{ line_form.warehouse.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'unit' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit.label }}{% if line_form.unit.field.required %}*{% endif %}</label>
+                  {{ line_form.unit }}
+                  {% if line_form.unit.errors %}
+                    <span class="error">{{ line_form.unit.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'quantity' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.quantity.label }}{% if line_form.quantity.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity }}
+                  {% if line_form.quantity.errors %}
+                    <span class="error">{{ line_form.quantity.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+
+              {% if 'supplier' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field">
+                  <label>{{ line_form.supplier.label }}</label>
+                  {{ line_form.supplier }}
+                  {% if line_form.supplier.errors %}
+                    <span class="error">{{ line_form.supplier.errors.0 }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              {% endif %}
+
+              {% if 'unit_price' in line_form.fields or 'unit_cost' in line_form.fields or 'unit_price_estimate' in line_form.fields %}
+              <div class="form-row">
+                {% if 'unit_price' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit_price.label }}</label>
+                  {{ line_form.unit_price }}
+                  {% if line_form.unit_price.errors %}
+                    <span class="error">{{ line_form.unit_price.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'entered_price_unit' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.entered_price_unit.label }}{% if line_form.entered_price_unit.field.required %}*{% endif %}</label>
+                  {{ line_form.entered_price_unit }}
+                  {% if line_form.entered_price_unit.errors %}
+                    <span class="error">{{ line_form.entered_price_unit.errors.0 }}</span>
+                  {% endif %}
+                  {% if line_form.entered_price_unit.help_text %}
+                    <small class="form-text text-muted">{{ line_form.entered_price_unit.help_text }}</small>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'unit_cost' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit_cost.label }}</label>
+                  {{ line_form.unit_cost }}
+                  {% if line_form.unit_cost.errors %}
+                    <span class="error">{{ line_form.unit_cost.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'unit_price_estimate' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit_price_estimate.label }}</label>
+                  {{ line_form.unit_price_estimate }}
+                  {% if line_form.unit_price_estimate.errors %}
+                    <span class="error">{{ line_form.unit_price_estimate.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'currency' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.currency.label }}</label>
+                  {{ line_form.currency }}
+                  {% if line_form.currency.errors %}
+                    <span class="error">{{ line_form.currency.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {% if 'line_notes' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field full-width">
+                  <label>{{ line_form.line_notes.label }}</label>
+                  {{ line_form.line_notes }}
+                  {% if line_form.line_notes.errors %}
+                    <span class="error">{{ line_form.line_notes.errors.0 }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              {% endif %}
+
+              {% if document_instance and document_instance.pk and line_form.instance.pk %}
+                {% with line=line_form.instance %}
+                  {% if line.item and line.item.has_lot_tracking == 1 %}
+                  <div class="form-row">
+                    <div class="form-field full-width">
+                      <div class="serial-assignment-section">
+                        {% if 'receipt' in request.path %}
+                          {% if 'permanent' in request.path %}
+                            <a href="{% url 'inventory:receipt_permanent_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-info">
+                              {% trans "Manage Serials" %}
+                            </a>
+                          {% elif 'consignment' in request.path %}
+                            <a href="{% url 'inventory:receipt_consignment_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-info">
+                              {% trans "Manage Serials" %}
+                            </a>
+                          {% endif %}
+                          <span class="serial-count">
+                            {% trans "Serials:" %} {{ line.serials.count }}
+                          </span>
+                        {% elif 'issue' in request.path %}
+                          {% if 'permanent' in request.path %}
+                            {% if not document_is_locked %}
+                              <a href="{% url 'inventory:issue_permanent_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-primary">
+                                {% trans "Assign Serials" %}
+                              </a>
+                            {% else %}
+                              <a href="{% url 'inventory:issue_permanent_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-secondary">
+                                {% trans "View Serials" %}
+                              </a>
+                            {% endif %}
+                          {% elif 'consumption' in request.path %}
+                            {% if not document_is_locked %}
+                              <a href="{% url 'inventory:issue_consumption_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-primary">
+                                {% trans "Assign Serials" %}
+                              </a>
+                            {% else %}
+                              <a href="{% url 'inventory:issue_consumption_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-secondary">
+                                {% trans "View Serials" %}
+                              </a>
+                            {% endif %}
+                          {% elif 'consignment' in request.path %}
+                            {% if not document_is_locked %}
+                              <a href="{% url 'inventory:issue_consignment_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-primary">
+                                {% trans "Assign Serials" %}
+                              </a>
+                            {% else %}
+                              <a href="{% url 'inventory:issue_consignment_line_serials' document_instance.pk line.pk %}" class="btn btn-sm btn-secondary">
+                                {% trans "View Serials" %}
+                              </a>
+                            {% endif %}
+                          {% endif %}
+                          <span class="serial-count">
+                            {% trans "Assigned:" %} {{ line.serials.count }} / 
+                            {% if line.quantity %}{{ line.quantity|floatformat:0 }}{% else %}0{% endif %}
+                          </span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                  {% endif %}
+                {% endwith %}
+              {% endif %}
+            </div>
+
+            {% if line_form.non_field_errors %}
+              <div class="error">{{ line_form.non_field_errors|join:", " }}</div>
+            {% endif %}
+          </div>
+            {% endif %}
+          {% endif %}
         {% endfor %}
       </div>
     </div>
@@ -615,8 +1061,13 @@
 </style>
 
 <script>
-// Handle line formset delete checkboxes
 document.addEventListener('DOMContentLoaded', function() {
+  const formsetContainer = document.getElementById('lines-formset');
+  const totalFormsInput = document.querySelector('input[name$="-TOTAL_FORMS"]');
+  const addLineBtn = document.getElementById('add-line-btn');
+  const unitChoicesUrl = '{% url "inventory:item_allowed_units" %}';
+  
+  // Handle line formset delete checkboxes
   const deleteCheckboxes = document.querySelectorAll('.line-form input[type="checkbox"][name*="DELETE"]');
   deleteCheckboxes.forEach(function(checkbox) {
     checkbox.addEventListener('change', function() {
@@ -628,6 +1079,232 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   });
+  
+  // Add search functionality to select fields
+  function addSearchToSelect(select) {
+    if (select.tagName !== 'SELECT') return;
+    // Skip if already wrapped
+    if (select.parentNode && select.parentNode.classList && select.parentNode.classList.contains('select-wrapper')) return;
+    
+    // Add search input above select
+    const wrapper = document.createElement('div');
+    wrapper.className = 'select-wrapper';
+    wrapper.style.position = 'relative';
+    select.parentNode.insertBefore(wrapper, select);
+    wrapper.appendChild(select);
+    
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'select-search-input';
+    searchInput.placeholder = '{% trans "Search..." %}';
+    searchInput.style.cssText = 'width: 100%; padding: 0.4rem; margin-bottom: 0.25rem; border: 1px solid #d1d5db; border-radius: 4px;';
+    wrapper.insertBefore(searchInput, select);
+    
+    // Filter options on search
+    searchInput.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
+      Array.from(select.options).forEach(function(option) {
+        const text = option.text.toLowerCase();
+        option.style.display = text.includes(searchTerm) ? '' : 'none';
+      });
+    });
+  }
+  
+  // Add search to all select fields in lines
+  document.querySelectorAll('.line-form select').forEach(addSearchToSelect);
+  
+  // Update unit choices when item changes
+  function updateUnitChoices(itemSelect, unitSelect) {
+    const itemId = itemSelect.value;
+    if (!itemId) {
+      unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
+      return;
+    }
+    
+    // Show loading state
+    unitSelect.disabled = true;
+    unitSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
+    
+    const url = unitChoicesUrl + '?item_id=' + itemId;
+    console.log('Fetching units from:', url);
+    
+    fetch(url)
+      .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+          throw new Error('Network response was not ok: ' + response.status);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Received data:', data);
+        if (data.error) {
+          console.error('Error fetching units:', data.error);
+          unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
+          unitSelect.disabled = false;
+          alert('{% trans "Error loading units" %}: ' + data.error);
+          return;
+        }
+        
+        const currentValue = unitSelect.value;
+        unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
+        
+        if (data.units && data.units.length > 0) {
+          console.log('Adding units:', data.units);
+          console.log('unitSelect element:', unitSelect);
+          console.log('unitSelect tagName:', unitSelect.tagName);
+          data.units.forEach(function(unit) {
+            const option = document.createElement('option');
+            option.value = unit.value;
+            option.textContent = unit.label;
+            if (unit.value === currentValue) {
+              option.selected = true;
+            }
+            unitSelect.appendChild(option);
+            console.log('Added option:', unit.value, unit.label);
+          });
+          console.log('unitSelect.innerHTML after adding:', unitSelect.innerHTML);
+          console.log('unitSelect.options.length:', unitSelect.options.length);
+        } else {
+          console.log('No units found, using default_unit:', data.default_unit);
+          // If no units found, at least show default unit
+          if (data.default_unit) {
+            const option = document.createElement('option');
+            option.value = data.default_unit;
+            // Try to get label from UNIT_CHOICES
+            const labelMap = {
+              'EA': 'عدد (EA)',
+              'KG': 'کیلوگرم (KG)',
+              'BOX': 'بسته (BOX)',
+              'CARTON': 'کارتن'
+            };
+            option.textContent = labelMap[data.default_unit] || data.default_unit;
+            if (data.default_unit === currentValue) {
+              option.selected = true;
+            }
+            unitSelect.appendChild(option);
+          }
+        }
+        
+        unitSelect.disabled = false;
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
+        unitSelect.disabled = false;
+        alert('{% trans "Error loading units. Please try again." %}: ' + error.message);
+      });
+  }
+  
+  // Attach item change handlers for multi-line forms (inlinesets)
+  document.querySelectorAll('.line-form select[name*="-item"]').forEach(function(itemSelect) {
+    const lineForm = itemSelect.closest('.line-form');
+    const unitSelect = lineForm.querySelector('select[name*="-unit"]');
+    if (unitSelect) {
+      // Load units if item is already selected (for edit mode)
+      if (itemSelect.value) {
+        updateUnitChoices(itemSelect, unitSelect);
+      }
+      
+      // Attach change handler
+      itemSelect.addEventListener('change', function() {
+        updateUnitChoices(itemSelect, unitSelect);
+      });
+    }
+  });
+  
+  // Attach item change handlers for single-line forms (like ReceiptTemporary)
+  // Handle forms without lines_formset (single-line forms)
+  const singleItemSelect = document.querySelector('select[name="item"]:not([name*="-"])');
+  if (singleItemSelect) {
+    // Make sure we're not inside a line-form (to avoid duplicates)
+    if (!singleItemSelect.closest('.line-form')) {
+      const singleUnitSelect = document.querySelector('select[name="unit"]:not([name*="-"])');
+      if (singleUnitSelect && !singleUnitSelect.closest('.line-form')) {
+        // Load units if item is already selected (for edit mode)
+        if (singleItemSelect.value) {
+          updateUnitChoices(singleItemSelect, singleUnitSelect);
+        }
+        
+        // Attach change handler
+        singleItemSelect.addEventListener('change', function() {
+          updateUnitChoices(singleItemSelect, singleUnitSelect);
+        });
+      }
+    }
+  }
+  
+  // Add new line functionality
+  if (addLineBtn && totalFormsInput) {
+    addLineBtn.addEventListener('click', function() {
+      const totalForms = parseInt(totalFormsInput.value);
+      const newFormIndex = totalForms;
+      
+      // Clone the last form
+      const lastForm = formsetContainer.querySelector('.line-form:last-child');
+      if (!lastForm) return;
+      
+      const newForm = lastForm.cloneNode(true);
+      
+      // Update form indices
+      newForm.querySelectorAll('input, select, textarea').forEach(function(input) {
+        const name = input.name;
+        if (name) {
+          input.name = name.replace(/-(\d+)-/, '-' + newFormIndex + '-');
+          input.id = input.id ? input.id.replace(/-(\d+)-/, '-' + newFormIndex + '-') : '';
+        }
+      });
+      
+      // Clear values
+      newForm.querySelectorAll('input[type="text"], input[type="number"], select, textarea').forEach(function(input) {
+        if (input.type !== 'checkbox' && input.type !== 'hidden') {
+          input.value = '';
+        }
+      });
+      
+      // Update line number
+      const lineHeader = newForm.querySelector('.line-header h4');
+      if (lineHeader) {
+        lineHeader.textContent = '{% trans "Line" %} ' + (newFormIndex + 1);
+      }
+      
+      // Reset delete checkbox
+      const deleteCheckbox = newForm.querySelector('input[type="checkbox"][name*="DELETE"]');
+      if (deleteCheckbox) {
+        deleteCheckbox.checked = false;
+        newForm.classList.remove('deleted');
+      }
+      
+      // Add to container
+      formsetContainer.appendChild(newForm);
+      
+      // Update total forms
+      totalFormsInput.value = totalForms + 1;
+      
+      // Re-attach event handlers
+      if (deleteCheckbox) {
+        deleteCheckbox.addEventListener('change', function() {
+          const lineForm = this.closest('.line-form');
+          if (this.checked) {
+            lineForm.classList.add('deleted');
+          } else {
+            lineForm.classList.remove('deleted');
+          }
+        });
+      }
+      
+      const newItemSelect = newForm.querySelector('select[name*="-item"]');
+      const newUnitSelect = newForm.querySelector('select[name*="-unit"]');
+      if (newItemSelect && newUnitSelect) {
+        newItemSelect.addEventListener('change', function() {
+          updateUnitChoices(newItemSelect, newUnitSelect);
+        });
+      }
+      
+      // Add search to new selects
+      newForm.querySelectorAll('select').forEach(addSearchToSelect);
+    });
+  }
 });
 </script>
 {% endblock %}

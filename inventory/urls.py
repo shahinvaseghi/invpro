@@ -31,6 +31,7 @@ urlpatterns = [
     path('items/<int:pk>/edit/', views.ItemUpdateView.as_view(), name='item_edit'),
     path('items/<int:pk>/delete/', views.ItemDeleteView.as_view(), name='item_delete'),
     path('item-serials/', views.ItemSerialListView.as_view(), name='item_serials'),
+    path('api/item-allowed-units/', views.get_item_allowed_units, name='item_allowed_units'),
     
     # Master Data - Warehouses
     path('warehouses/', views.WarehouseListView.as_view(), name='warehouses'),

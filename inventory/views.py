@@ -180,16 +180,28 @@ class LineFormsetMixin:
     
     def _save_line_formset(self, formset):
         """Save line formset instances."""
-        instances = formset.save(commit=False)
-        for line in instances:
-            line.company = self.object.company
-            line.document = self.object
-            if not hasattr(line, 'company_id') or not line.company_id:
-                line.company_id = self.object.company_id
-            line.save()
-        formset.save_m2m()  # Save ManyToMany relationships (serials)
-        for obj in formset.deleted_objects:
-            obj.delete()
+        # Process each form in the formset manually to ensure all valid forms are saved
+        for form in formset.forms:
+            # Check if form should be deleted
+            if form.cleaned_data.get('DELETE', False):
+                if form.instance.pk:
+                    form.instance.delete()
+                continue
+            
+            # Check if form has an item (required for saving)
+            item = form.cleaned_data.get('item')
+            if not item:
+                # Skip empty forms
+                continue
+            
+            # Save the instance
+            instance = form.save(commit=False)
+            instance.company = self.object.company
+            instance.document = self.object
+            if not hasattr(instance, 'company_id') or not instance.company_id:
+                instance.company_id = self.object.company_id
+            instance.save()
+            form.save_m2m()  # Save ManyToMany relationships (serials)
 
 
 class ItemUnitFormsetMixin:
@@ -1161,6 +1173,16 @@ class ReceiptPermanentListView(InventoryBaseView, ListView):
     context_object_name = 'receipts'
     paginate_by = 50
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Prefetch lines with related items, warehouses, and suppliers for efficient display
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse',
+            'lines__supplier'
+        )
+        return queryset
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['create_url'] = reverse_lazy('inventory:receipt_permanent_create')
@@ -1406,6 +1428,22 @@ class ReceiptPermanentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
+        
+        # Check if we have at least one valid line before saving
+        valid_lines = []
+        for form in lines_formset.forms:
+            if form.cleaned_data and form.cleaned_data.get('item') and not form.cleaned_data.get('DELETE', False):
+                valid_lines.append(form)
+        
+        if not valid_lines:
+            # No valid lines, show error and delete the document
+            self.object.delete()
+            form.add_error(None, _('Please add at least one line with an item.'))
+            lines_formset = self.build_line_formset(instance=None)
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
         self._save_line_formset(lines_formset)
         
         messages.success(self.request, _('رسید دائم با موفقیت ایجاد شد.'))
@@ -1442,6 +1480,20 @@ class ReceiptPermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
+        
+        # Check if we have at least one valid line before saving
+        valid_lines = []
+        for form in lines_formset.forms:
+            if form.cleaned_data and form.cleaned_data.get('item') and not form.cleaned_data.get('DELETE', False):
+                valid_lines.append(form)
+        
+        if not valid_lines:
+            # No valid lines, show error
+            lines_formset.add_error(None, _('Please add at least one line with an item.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
         self._save_line_formset(lines_formset)
         
         messages.success(self.request, _('رسید دائم با موفقیت ویرایش شد.'))
@@ -2767,3 +2819,44 @@ class ReceiptConsignmentLineSerialAssignmentView(ReceiptLineSerialAssignmentBase
     list_url_name = 'inventory:receipt_consignment'
     edit_url_name = 'inventory:receipt_consignment_edit'
     lock_url_name = 'inventory:receipt_consignment_lock'
+
+
+def get_item_allowed_units(request):
+    """API endpoint to get allowed units for an item."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+    
+    item_id = request.GET.get('item_id')
+    if not item_id:
+        return JsonResponse({'error': 'item_id is required'}, status=400)
+    
+    try:
+        company_id = request.session.get('active_company_id')
+        if not company_id:
+            return JsonResponse({'error': 'No active company'}, status=400)
+        
+        item = get_object_or_404(models.Item, pk=item_id, company_id=company_id, is_enabled=1)
+        
+        # Get allowed units
+        codes = []
+        def add(code: str):
+            if code and code not in codes:
+                codes.append(code)
+        
+        # Add default and primary units (always add both, even if same or None)
+        add(item.default_unit)
+        add(item.primary_unit)
+        
+        # Add units from ItemUnit conversions
+        for unit in models.ItemUnit.objects.filter(item=item, company_id=item.company_id):
+            add(unit.from_unit)
+            add(unit.to_unit)
+        
+        # Map to labels
+        from .forms import UNIT_CHOICES
+        label_map = {value: str(label) for value, label in UNIT_CHOICES}
+        units = [{'value': code, 'label': label_map.get(code, code)} for code in codes if code]
+        
+        return JsonResponse({'units': units, 'default_unit': item.default_unit})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

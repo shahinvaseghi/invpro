@@ -209,6 +209,10 @@ class PurchaseRequestForm(forms.ModelForm):
             add(unit.from_unit)
             add(unit.to_unit)
 
+        # If no units found, add default unit 'EA' as fallback
+        if not codes:
+            codes.append('EA')
+        
         label_map = {value: str(label) for value, label in UNIT_CHOICES}
         return [{'value': code, 'label': label_map.get(code, code)} for code in codes if code]
 
@@ -353,6 +357,10 @@ class WarehouseRequestForm(forms.ModelForm):
             add(unit.from_unit)
             add(unit.to_unit)
 
+        # If no units found, add default unit 'EA' as fallback
+        if not codes:
+            codes.append('EA')
+        
         label_map = {value: str(label) for value, label in UNIT_CHOICES}
         return [{'value': code, 'label': label_map.get(code, code)} for code in codes if code]
 
@@ -972,10 +980,33 @@ class ReceiptBaseForm(forms.ModelForm):
             self.fields['document_code'].widget = forms.HiddenInput()
             self.fields['document_code'].required = False
 
+        if self.company_id:
+            self._filter_company_scoped_fields()
+        
+        # Set unit choices - this must be done before restoring initial values
+        self._set_unit_choices()
+        
+        # Restore entered values if editing
         if not self.is_bound and getattr(self.instance, 'pk', None):
             entry_unit = getattr(self.instance, 'entered_unit', '') or getattr(self.instance, 'unit', '')
             if 'unit' in self.fields and entry_unit:
+                # Ensure the unit is in choices, if not add it
+                unit_choices = list(self.fields['unit'].choices)
+                unit_codes = [code for code, _ in unit_choices]
+                if entry_unit not in unit_codes:
+                    # Add current unit to choices if not present
+                    self.fields['unit'].choices = unit_choices + [(entry_unit, entry_unit)]
+                # Django ChoiceField uses instance.field for display when editing
+                # So we need to set instance.unit to the entered_unit for proper display
+                if hasattr(self.instance, 'unit'):
+                    # Store the original unit if we're changing it
+                    if not hasattr(self.instance, '_original_unit'):
+                        self.instance._original_unit = self.instance.unit
+                    # Set unit to entered_unit for display purposes
+                    self.instance.unit = entry_unit
+                # Also set initial as backup
                 self.initial['unit'] = entry_unit
+            
             if 'quantity' in self.fields and getattr(self.instance, 'entered_quantity', None) is not None:
                 self.initial['quantity'] = self.instance.entered_quantity
             entry_price = getattr(self.instance, 'entered_unit_price', None)
@@ -983,6 +1014,7 @@ class ReceiptBaseForm(forms.ModelForm):
                 self.initial['unit_price'] = entry_price
             if 'unit_price_estimate' in self.fields and entry_price is not None:
                 self.initial['unit_price_estimate'] = entry_price
+        
         if 'expected_return_date' in self.fields:
             self.fields['expected_return_date'].widget = self.date_widget
         if 'expected_receipt_date' in self.fields:
@@ -992,10 +1024,6 @@ class ReceiptBaseForm(forms.ModelForm):
         if 'document_code' in self.fields:
             self.fields['document_code'].widget = forms.HiddenInput()
             self.fields['document_code'].required = False
-
-        if self.company_id:
-            self._filter_company_scoped_fields()
-        self._set_unit_choices()
 
     def _filter_company_scoped_fields(self):
         if 'item' in self.fields:
@@ -1048,6 +1076,10 @@ class ReceiptBaseForm(forms.ModelForm):
             add(unit.from_unit)
             add(unit.to_unit)
 
+        # If no units found, add default unit 'EA' as fallback
+        if not codes:
+            codes.append('EA')
+        
         label_map = {value: str(label) for value, label in UNIT_CHOICES}
         return [{'value': code, 'label': label_map.get(code, code)} for code in codes if code]
 
@@ -1275,6 +1307,17 @@ class ReceiptPermanentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.company_id = company_id or getattr(self.instance, 'company_id', None)
         
+        # Make document_code and document_date not required and hidden (they're auto-generated)
+        if 'document_code' in self.fields:
+            self.fields['document_code'].required = False
+            self.fields['document_code'].widget = forms.HiddenInput()
+        if 'document_date' in self.fields:
+            self.fields['document_date'].required = False
+            self.fields['document_date'].widget = forms.HiddenInput()
+            # Set initial value to today if creating new
+            if not getattr(self.instance, 'pk', None):
+                self.fields['document_date'].initial = timezone.now().date()
+        
         if self.company_id:
             if 'temporary_receipt' in self.fields:
                 self.fields['temporary_receipt'].queryset = ReceiptTemporary.objects.filter(
@@ -1297,8 +1340,31 @@ class ReceiptPermanentForm(forms.ModelForm):
         if self.instance.pk:
             self.fields['requires_temporary_receipt'].initial = bool(self.instance.requires_temporary_receipt)
 
+    def clean_document_code(self):
+        """Auto-generate document_code if not provided."""
+        document_code = self.cleaned_data.get('document_code', '').strip()
+        if not document_code:
+            # Will be generated in save() method
+            return ''
+        return document_code
+    
+    def clean_document_date(self):
+        """Auto-generate document_date if not provided."""
+        document_date = self.cleaned_data.get('document_date')
+        if not document_date:
+            # Return today's date as default
+            return timezone.now().date()
+        return document_date
+
     def clean(self):
         cleaned_data = super().clean()
+        
+        # Ensure document_code and document_date are set (will be generated in save if empty)
+        if not cleaned_data.get('document_code'):
+            cleaned_data['document_code'] = ''
+        if not cleaned_data.get('document_date'):
+            cleaned_data['document_date'] = timezone.now().date()
+        
         if self.company_id:
             if cleaned_data.get('temporary_receipt'):
                 temp = cleaned_data.get('temporary_receipt')
@@ -1385,6 +1451,15 @@ class ReceiptConsignmentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.company_id = company_id or getattr(self.instance, 'company_id', None)
         
+        # Make document_code and document_date not required (they're auto-generated, already hidden in Meta)
+        if 'document_code' in self.fields:
+            self.fields['document_code'].required = False
+        if 'document_date' in self.fields:
+            self.fields['document_date'].required = False
+            # Set initial value to today if creating new
+            if not getattr(self.instance, 'pk', None):
+                self.fields['document_date'].initial = timezone.now().date()
+        
         if self.company_id:
             if 'temporary_receipt' in self.fields:
                 self.fields['temporary_receipt'].queryset = ReceiptTemporary.objects.filter(
@@ -1413,8 +1488,31 @@ class ReceiptConsignmentForm(forms.ModelForm):
         if self.instance.pk:
             self.fields['requires_temporary_receipt'].initial = bool(self.instance.requires_temporary_receipt)
 
+    def clean_document_code(self):
+        """Auto-generate document_code if not provided."""
+        document_code = self.cleaned_data.get('document_code', '').strip()
+        if not document_code:
+            # Will be generated in save() method
+            return ''
+        return document_code
+    
+    def clean_document_date(self):
+        """Auto-generate document_date if not provided."""
+        document_date = self.cleaned_data.get('document_date')
+        if not document_date:
+            # Return today's date as default
+            return timezone.now().date()
+        return document_date
+
     def clean(self):
         cleaned_data = super().clean()
+        
+        # Ensure document_code and document_date are set (will be generated in save if empty)
+        if not cleaned_data.get('document_code'):
+            cleaned_data['document_code'] = ''
+        if not cleaned_data.get('document_date'):
+            cleaned_data['document_date'] = timezone.now().date()
+        
         if self.company_id:
             if cleaned_data.get('temporary_receipt'):
                 temp = cleaned_data.get('temporary_receipt')
@@ -1583,12 +1681,29 @@ class IssuePermanentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.company_id = company_id or getattr(self.instance, 'company_id', None)
         
+        # Make document_code and document_date not required (they're auto-generated)
+        if 'document_code' in self.fields:
+            self.fields['document_code'].required = False
+        if 'document_date' in self.fields:
+            self.fields['document_date'].required = False
+        
         if self.company_id and 'department_unit' in self.fields:
             self.fields['department_unit'].queryset = CompanyUnit.objects.filter(
                 company_id=self.company_id, is_enabled=1
             ).order_by('name')
             self.fields['department_unit'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
 
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Set default values for document_code and document_date if not provided
+        if not cleaned_data.get('document_code'):
+            cleaned_data['document_code'] = ''
+        if not cleaned_data.get('document_date'):
+            cleaned_data['document_date'] = timezone.now().date()
+        
+        return cleaned_data
+    
     def save(self, commit=True):
         instance = super().save(commit=False)
         if not instance.document_code:
@@ -1636,12 +1751,29 @@ class IssueConsumptionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.company_id = company_id or getattr(self.instance, 'company_id', None)
         
+        # Make document_code and document_date not required (they're auto-generated)
+        if 'document_code' in self.fields:
+            self.fields['document_code'].required = False
+        if 'document_date' in self.fields:
+            self.fields['document_date'].required = False
+        
         if self.company_id and 'department_unit' in self.fields:
             self.fields['department_unit'].queryset = CompanyUnit.objects.filter(
                 company_id=self.company_id, is_enabled=1
             ).order_by('name')
             self.fields['department_unit'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
 
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Set default values for document_code and document_date if not provided
+        if not cleaned_data.get('document_code'):
+            cleaned_data['document_code'] = ''
+        if not cleaned_data.get('document_date'):
+            cleaned_data['document_date'] = timezone.now().date()
+        
+        return cleaned_data
+    
     def save(self, commit=True):
         instance = super().save(commit=False)
         if not instance.document_code:
@@ -1689,12 +1821,29 @@ class IssueConsignmentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.company_id = company_id or getattr(self.instance, 'company_id', None)
         
+        # Make document_code and document_date not required (they're auto-generated)
+        if 'document_code' in self.fields:
+            self.fields['document_code'].required = False
+        if 'document_date' in self.fields:
+            self.fields['document_date'].required = False
+        
         if self.company_id and 'department_unit' in self.fields:
             self.fields['department_unit'].queryset = CompanyUnit.objects.filter(
                 company_id=self.company_id, is_enabled=1
             ).order_by('name')
             self.fields['department_unit'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
 
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Set default values for document_code and document_date if not provided
+        if not cleaned_data.get('document_code'):
+            cleaned_data['document_code'] = ''
+        if not cleaned_data.get('document_date'):
+            cleaned_data['document_date'] = timezone.now().date()
+        
+        return cleaned_data
+    
     def save(self, commit=True):
         instance = super().save(commit=False)
         if not instance.document_code:
@@ -1819,6 +1968,10 @@ class StocktakingBaseForm(forms.ModelForm):
             add(unit.from_unit)
             add(unit.to_unit)
 
+        # If no units found, add default unit 'EA' as fallback
+        if not codes:
+            codes.append('EA')
+        
         label_map = {value: str(label) for value, label in UNIT_CHOICES}
         return [{'value': code, 'label': label_map.get(code, code)} for code in codes if code]
 
@@ -2217,6 +2370,9 @@ class IssueLineBaseForm(forms.ModelForm):
     def __init__(self, *args, company_id=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.company_id = company_id or getattr(self.instance, 'company_id', None)
+        self._unit_factor = Decimal('1')
+        self._entered_unit_value = None
+        self._entered_quantity_value = None
         
         if self.company_id:
             if 'item' in self.fields:
@@ -2231,8 +2387,211 @@ class IssueLineBaseForm(forms.ModelForm):
                 ).order_by('name')
                 self.fields['warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
         
-        if 'unit' in self.fields:
-            self.fields['unit'].choices = UNIT_CHOICES
+        # Set unit choices based on selected item
+        self._set_unit_choices()
+        
+        # Restore entered values if editing
+        if not self.is_bound and getattr(self.instance, 'pk', None):
+            entry_unit = getattr(self.instance, 'entered_unit', '') or getattr(self.instance, 'unit', '')
+            if 'unit' in self.fields and entry_unit:
+                self.initial['unit'] = entry_unit
+            if 'quantity' in self.fields and getattr(self.instance, 'entered_quantity', None) is not None:
+                self.initial['quantity'] = self.instance.entered_quantity
+    
+    def clean_unit(self):
+        """Validate unit and update choices based on selected item."""
+        unit = self.cleaned_data.get('unit')
+        # Update unit choices based on selected item (in case item was selected after form init)
+        # This is needed because Django validates choices before clean() is called
+        item_key = None
+        for key in self.data.keys():
+            if key.endswith('-item'):
+                item_key = key
+                break
+        if item_key:
+            try:
+                item_id = self.data.get(item_key)
+                if item_id:
+                    item = Item.objects.get(pk=item_id, company_id=self.company_id)
+                    self._set_unit_choices()
+            except (Item.DoesNotExist, ValueError, TypeError):
+                pass
+        return unit
+    
+    def _resolve_item(self, candidate=None):
+        """Resolve item from form data or instance."""
+        if isinstance(candidate, Item):
+            return candidate
+        if candidate:
+            try:
+                return Item.objects.get(pk=candidate, company_id=self.company_id)
+            except (Item.DoesNotExist, ValueError, TypeError):
+                pass
+        # Check form data (POST)
+        if self.data:
+            item_key = None
+            for key in self.data.keys():
+                if key.endswith('-item'):
+                    item_key = key
+                    break
+            if item_key:
+                try:
+                    item_id = self.data.get(item_key)
+                    if item_id:
+                        return Item.objects.get(pk=item_id, company_id=self.company_id)
+                except (Item.DoesNotExist, ValueError, TypeError):
+                    pass
+        # Check instance (for edit mode)
+        if getattr(self.instance, 'item_id', None):
+            return self.instance.item
+        # Check initial data (for new forms with pre-selected item)
+        initial_item = self.initial.get('item')
+        if isinstance(initial_item, Item):
+            return initial_item
+        if initial_item:
+            try:
+                return Item.objects.get(pk=initial_item, company_id=self.company_id)
+            except (Item.DoesNotExist, ValueError, TypeError):
+                pass
+        return None
+    
+    def _get_item_allowed_units(self, item: Item):
+        """Get list of allowed units for an item."""
+        if not item:
+            return []
+        codes = []
+        
+        def add(code: str):
+            if code and code not in codes:
+                codes.append(code)
+        
+        # Add default and primary units (always add both, even if same or None)
+        add(item.default_unit)
+        add(item.primary_unit)
+        
+        # Add units from ItemUnit conversions
+        for unit in ItemUnit.objects.filter(item=item, company_id=item.company_id):
+            add(unit.from_unit)
+            add(unit.to_unit)
+        
+        label_map = {value: str(label) for value, label in UNIT_CHOICES}
+        return [{'value': code, 'label': label_map.get(code, code)} for code in codes if code]
+    
+    def _set_unit_choices(self):
+        """Set unit field choices based on selected item."""
+        unit_field = self.fields.get('unit')
+        if not unit_field:
+            return
+        placeholder = UNIT_CHOICES[0]
+        item = self._resolve_item()
+        if item:
+            allowed = [(row['value'], row['label']) for row in self._get_item_allowed_units(item)]
+            entry_unit = getattr(self.instance, 'entered_unit', None)
+            if entry_unit and entry_unit not in [code for code, _ in allowed]:
+                label_map = dict(allowed)
+                allowed.append((entry_unit, label_map.get(entry_unit, entry_unit)))
+            unit_field.choices = [placeholder] + allowed
+        else:
+            unit_field.choices = [placeholder]
+    
+    def _get_unit_factor(self, item: Item, unit_code: str) -> Decimal:
+        """Calculate conversion factor from unit_code to item's default_unit."""
+        default_unit = item.default_unit
+        if not unit_code or unit_code == default_unit:
+            return Decimal('1')
+        
+        graph = {}
+        for conversion in ItemUnit.objects.filter(item=item, company_id=item.company_id):
+            from_qty = conversion.from_quantity
+            to_qty = conversion.to_quantity
+            if from_qty in (None, 0) or to_qty in (None, 0):
+                continue
+            graph.setdefault(conversion.from_unit, []).append((conversion.to_unit, to_qty / from_qty))
+            graph.setdefault(conversion.to_unit, []).append((conversion.from_unit, from_qty / to_qty))
+        
+        visited = set()
+        queue = deque([(unit_code, Decimal('1'))])
+        while queue:
+            unit, factor = queue.popleft()
+            if unit == default_unit:
+                return factor
+            if unit in visited:
+                continue
+            visited.add(unit)
+            for neighbor, ratio in graph.get(unit, []):
+                queue.append((neighbor, factor * ratio))
+        
+        return Decimal('1')
+    
+    def _validate_unit(self, cleaned_data):
+        """Validate unit and calculate conversion factor."""
+        self._unit_factor = Decimal('1')
+        if 'unit' not in self.fields:
+            return
+        item = self._resolve_item(cleaned_data.get('item'))
+        if not item:
+            return
+        unit = cleaned_data.get('unit') or item.default_unit
+        allowed = {row['value'] for row in self._get_item_allowed_units(item)}
+        allowed.add(item.default_unit)
+        if unit not in allowed:
+            self.add_error('unit', _('Selected unit is not configured for this item.'))
+        factor = self._get_unit_factor(item, unit)
+        self._unit_factor = factor
+        self._entered_unit_value = unit
+        cleaned_data['unit'] = item.default_unit
+    
+    def _normalize_quantity(self, cleaned_data):
+        """Normalize quantity to base unit and save entered value."""
+        if 'unit' not in self.fields:
+            return
+        item = self._resolve_item(cleaned_data.get('item'))
+        quantity = cleaned_data.get('quantity')
+        if not item or quantity in (None, ''):
+            return
+        factor = getattr(self, '_unit_factor', Decimal('1'))
+        if not isinstance(quantity, Decimal):
+            try:
+                quantity = Decimal(str(quantity))
+            except (InvalidOperation, TypeError):
+                return
+        self._entered_quantity_value = quantity
+        cleaned_data['quantity'] = quantity * factor
+        cleaned_data['unit'] = item.default_unit
+        self.instance.unit = item.default_unit
+        self.instance.quantity = cleaned_data['quantity']
+    
+    def clean(self):
+        """Validate and normalize form data."""
+        cleaned_data = super().clean()
+        
+        # Check if form is empty (for inline formsets, empty forms should be skipped)
+        item = cleaned_data.get('item')
+        if not item:
+            # If this is an empty form in a formset, mark all fields as empty
+            # Django will skip it during save()
+            return cleaned_data
+        
+        self._validate_unit(cleaned_data)
+        self._normalize_quantity(cleaned_data)
+        return cleaned_data
+    
+    def save(self, commit=True):
+        """Save form instance with entered values."""
+        instance = super().save(commit=False)
+        
+        # Save entered unit and quantity
+        entered_unit = self._entered_unit_value or getattr(instance, 'entered_unit', '') or instance.unit
+        instance.entered_unit = entered_unit
+        if self._entered_quantity_value is not None:
+            instance.entered_quantity = self._entered_quantity_value
+        elif instance.entered_quantity is None:
+            instance.entered_quantity = instance.quantity
+        
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
 class IssuePermanentLineForm(IssueLineBaseForm):
@@ -2361,12 +2720,23 @@ class ReceiptLineBaseForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-control'}),
     )
     
+    entered_price_unit = forms.CharField(
+        label=_('Entered Price Unit'),
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Optional: unit for price (e.g., BOX)')}),
+        help_text=_("Unit for entered_unit_price (e.g., BOX, CARTON). If empty, same as entered_unit."),
+    )
+    
     class Meta:
         abstract = True
     
     def __init__(self, *args, company_id=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.company_id = company_id or getattr(self.instance, 'company_id', None)
+        self._unit_factor = Decimal('1')
+        self._entered_unit_value = None
+        self._entered_quantity_value = None
+        self._entered_unit_price_value = None
         
         if self.company_id:
             if 'item' in self.fields:
@@ -2387,8 +2757,342 @@ class ReceiptLineBaseForm(forms.ModelForm):
                 ).order_by('name')
                 self.fields['supplier'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
         
+        # Set unit choices - use all UNIT_CHOICES initially (will be filtered by JavaScript)
         if 'unit' in self.fields:
             self.fields['unit'].choices = UNIT_CHOICES
+        
+        # Ensure entered_price_unit is a CharField, not ChoiceField
+        if 'entered_price_unit' in self.fields:
+            self.fields['entered_price_unit'].required = False
+            # Make sure it's not a ChoiceField (Django might auto-convert it)
+            if isinstance(self.fields['entered_price_unit'], forms.ChoiceField):
+                # Convert to CharField
+                self.fields['entered_price_unit'] = forms.CharField(
+                    label=self.fields['entered_price_unit'].label,
+                    required=False,
+                    widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Optional: unit for price (e.g., BOX)')}),
+                    help_text=_("Unit for entered_unit_price (e.g., BOX, CARTON). If empty, same as entered_unit."),
+                )
+        
+        # Restore entered values if editing
+        if not self.is_bound and getattr(self.instance, 'pk', None):
+            # Get item first to set unit choices properly
+            item = getattr(self.instance, 'item', None)
+            if item and 'unit' in self.fields:
+                # Set unit choices based on item
+                self._set_unit_choices_for_item(item)
+            
+            # Get unit value from entered_unit or unit (prioritize entered_unit for display)
+            entry_unit = getattr(self.instance, 'entered_unit', '') or getattr(self.instance, 'unit', '')
+            if 'unit' in self.fields and entry_unit:
+                # Ensure the unit is in choices, if not add it
+                unit_choices = list(self.fields['unit'].choices)
+                unit_codes = [code for code, _ in unit_choices]
+                if entry_unit not in unit_codes:
+                    # Add current unit to choices if not present
+                    self.fields['unit'].choices = unit_choices + [(entry_unit, entry_unit)]
+                
+                # Django ChoiceField uses instance.field for display when editing
+                # So we need to set instance.unit to the entered_unit for proper display
+                if hasattr(self.instance, 'unit'):
+                    # Store the original unit if we're changing it
+                    if not hasattr(self.instance, '_original_unit'):
+                        self.instance._original_unit = self.instance.unit
+                    # Set unit to entered_unit for display purposes
+                    self.instance.unit = entry_unit
+                
+                # Also set initial as backup
+                self.initial['unit'] = entry_unit
+            
+            if 'quantity' in self.fields and getattr(self.instance, 'entered_quantity', None) is not None:
+                self.initial['quantity'] = self.instance.entered_quantity
+            entry_price = getattr(self.instance, 'entered_unit_price', None)
+            if 'unit_price' in self.fields and entry_price is not None:
+                self.initial['unit_price'] = entry_price
+            if 'unit_price_estimate' in self.fields and entry_price is not None:
+                self.initial['unit_price_estimate'] = entry_price
+            if 'entered_price_unit' in self.fields:
+                entered_price_unit = getattr(self.instance, 'entered_price_unit', '') or getattr(self.instance, 'entered_unit', '')
+                if entered_price_unit:
+                    self.initial['entered_price_unit'] = entered_price_unit
+    
+    def _set_unit_choices_for_item(self, item):
+        """Set unit choices based on item."""
+        if not item or 'unit' not in self.fields:
+            return
+        
+        placeholder = UNIT_CHOICES[0]
+        allowed = self._get_item_allowed_units(item)
+        if allowed:
+            unit_choices = [placeholder] + [(row['value'], row['label']) for row in allowed]
+        else:
+            unit_choices = [placeholder]
+        
+        # Ensure current unit is in choices
+        current_unit = getattr(self.instance, 'unit', '') or getattr(self.instance, 'entered_unit', '')
+        if current_unit:
+            unit_codes = [code for code, _ in unit_choices]
+            if current_unit not in unit_codes:
+                unit_choices.append((current_unit, current_unit))
+        
+        self.fields['unit'].choices = unit_choices
+    
+    def clean_unit(self):
+        """Validate unit."""
+        unit = self.cleaned_data.get('unit')
+        item = self._resolve_item(self.cleaned_data.get('item'))
+        if item:
+            allowed = {row['value'] for row in self._get_item_allowed_units(item)}
+            if unit and unit not in allowed:
+                raise forms.ValidationError(_('Selected unit is not configured for this item.'))
+        return unit
+    
+    def _resolve_item(self, candidate=None):
+        """Resolve item from form data or instance."""
+        if isinstance(candidate, Item):
+            return candidate
+        if candidate:
+            try:
+                return Item.objects.get(pk=candidate, company_id=self.company_id)
+            except (Item.DoesNotExist, ValueError, TypeError):
+                pass
+        # Check form data (POST)
+        if self.data:
+            item_key = None
+            for key in self.data.keys():
+                if key.endswith('-item'):
+                    item_key = key
+                    break
+            if item_key:
+                try:
+                    item_id = self.data.get(item_key)
+                    if item_id:
+                        return Item.objects.get(pk=item_id, company_id=self.company_id)
+                except (Item.DoesNotExist, ValueError, TypeError):
+                    pass
+        # Check instance (for edit mode)
+        if getattr(self.instance, 'item_id', None):
+            return self.instance.item
+        # Check initial data (for new forms with pre-selected item)
+        initial_item = self.initial.get('item')
+        if isinstance(initial_item, Item):
+            return initial_item
+        if initial_item:
+            try:
+                return Item.objects.get(pk=initial_item, company_id=self.company_id)
+            except (Item.DoesNotExist, ValueError, TypeError):
+                pass
+        return None
+    
+    def _get_item_allowed_units(self, item: Item):
+        """Get list of allowed units for an item."""
+        if not item:
+            return []
+        codes = []
+        
+        def add(code: str):
+            if code and code not in codes:
+                codes.append(code)
+        
+        # Add default and primary units (always add both, even if same or None)
+        add(item.default_unit)
+        add(item.primary_unit)
+        
+        # Add units from ItemUnit conversions
+        for unit in ItemUnit.objects.filter(item=item, company_id=item.company_id):
+            add(unit.from_unit)
+            add(unit.to_unit)
+        
+        label_map = {value: str(label) for value, label in UNIT_CHOICES}
+        return [{'value': code, 'label': label_map.get(code, code)} for code in codes if code]
+    
+    def _get_unit_factor(self, item: Item, unit_code: str) -> Decimal:
+        """Calculate conversion factor from unit_code to item's default_unit."""
+        default_unit = item.default_unit
+        if not unit_code or unit_code == default_unit:
+            return Decimal('1')
+        
+        graph = {}
+        for conversion in ItemUnit.objects.filter(item=item, company_id=item.company_id):
+            from_qty = conversion.from_quantity
+            to_qty = conversion.to_quantity
+            if from_qty in (None, 0) or to_qty in (None, 0):
+                continue
+            graph.setdefault(conversion.from_unit, []).append((conversion.to_unit, to_qty / from_qty))
+            graph.setdefault(conversion.to_unit, []).append((conversion.from_unit, from_qty / to_qty))
+        
+        visited = set()
+        queue = deque([(unit_code, Decimal('1'))])
+        while queue:
+            unit, factor = queue.popleft()
+            if unit == default_unit:
+                return factor
+            if unit in visited:
+                continue
+            visited.add(unit)
+            for neighbor, ratio in graph.get(unit, []):
+                queue.append((neighbor, factor * ratio))
+        
+        return Decimal('1')
+    
+    def _validate_unit(self, cleaned_data):
+        """Validate unit and calculate conversion factor."""
+        self._unit_factor = Decimal('1')
+        if 'unit' not in self.fields:
+            return
+        item = self._resolve_item(cleaned_data.get('item'))
+        if not item:
+            return
+        unit = cleaned_data.get('unit') or item.default_unit
+        allowed = {row['value'] for row in self._get_item_allowed_units(item)}
+        allowed.add(item.default_unit)
+        if unit not in allowed:
+            self.add_error('unit', _('Selected unit is not configured for this item.'))
+        factor = self._get_unit_factor(item, unit)
+        self._unit_factor = factor
+        self._entered_unit_value = unit
+        cleaned_data['unit'] = item.default_unit
+    
+    def _normalize_quantity(self, cleaned_data):
+        """Normalize quantity to base unit and save entered value."""
+        if 'unit' not in self.fields:
+            return
+        item = self._resolve_item(cleaned_data.get('item'))
+        quantity = cleaned_data.get('quantity')
+        if not item or quantity in (None, ''):
+            return
+        factor = getattr(self, '_unit_factor', Decimal('1'))
+        if not isinstance(quantity, Decimal):
+            try:
+                quantity = Decimal(str(quantity))
+            except (InvalidOperation, TypeError):
+                return
+        
+        self._entered_quantity_value = quantity
+        cleaned_data['quantity'] = quantity * factor
+        cleaned_data['unit'] = item.default_unit
+        self.instance.unit = item.default_unit
+        self.instance.quantity = cleaned_data['quantity']
+    
+    def _normalize_price(self, cleaned_data):
+        """Normalize price to base unit and save entered value.
+        
+        Logic:
+        - entered_unit_price: Price as entered by user
+        - entered_price_unit: Unit for entered_unit_price (if empty, same as entered_unit)
+        - unit_price: Price normalized to item's default_unit (EA)
+        
+        If entered_price_unit is provided, use it for price normalization.
+        Otherwise, assume price is for the same unit as quantity (entered_unit).
+        """
+        if 'unit' not in self.fields:
+            return
+        item = self._resolve_item(cleaned_data.get('item'))
+        if not item:
+            return
+        
+        # Get the entered unit for quantity (before normalization)
+        entered_unit = getattr(self, '_entered_unit_value', None) or cleaned_data.get('unit')
+        
+        # Get the entered unit for price (if specified, otherwise use entered_unit)
+        entered_price_unit = cleaned_data.get('entered_price_unit', '').strip()
+        if not entered_price_unit:
+            entered_price_unit = entered_unit
+        
+        # Calculate price factor: convert from entered_price_unit to default_unit
+        # IMPORTANT: For price, we need the INVERSE of the quantity factor
+        # Quantity: 1 BOX = 1000 EA, so factor = 1000 (multiply BOX by 1000 to get EA)
+        # Price: 100000 per BOX -> ? per EA
+        # If 1 BOX = 1000 EA, then price per EA = price per BOX / 1000
+        # So we need to DIVIDE by the quantity factor, not multiply
+        if entered_price_unit and entered_price_unit != item.default_unit:
+            quantity_factor = self._get_unit_factor(item, entered_price_unit)
+            # For price conversion, we need the inverse: price per larger unit -> price per smaller unit
+            # Example: 100000 per BOX, 1 BOX = 1000 EA -> 100000 / 1000 = 100 per EA
+            price_factor = Decimal('1') / quantity_factor if quantity_factor != Decimal('0') else Decimal('1')
+        else:
+            price_factor = Decimal('1')
+        
+        # Handle unit_price
+        if 'unit_price' in self.fields:
+            unit_price = cleaned_data.get('unit_price')
+            if unit_price not in (None, ''):
+                if not isinstance(unit_price, Decimal):
+                    try:
+                        unit_price = Decimal(str(unit_price))
+                    except (InvalidOperation, TypeError):
+                        return
+                
+                # Save entered price (as entered by user, for entered_price_unit)
+                self._entered_unit_price_value = unit_price
+                
+                # Convert to base unit price: price per entered_price_unit -> price per default_unit
+                # Example: 100000 per BOX -> 100 per EA (if 1 BOX = 1000 EA, so divide by 1000)
+                cleaned_data['unit_price'] = unit_price * price_factor
+        
+        # Handle unit_price_estimate
+        if 'unit_price_estimate' in self.fields:
+            unit_price_estimate = cleaned_data.get('unit_price_estimate')
+            if unit_price_estimate not in (None, ''):
+                if not isinstance(unit_price_estimate, Decimal):
+                    try:
+                        unit_price_estimate = Decimal(str(unit_price_estimate))
+                    except (InvalidOperation, TypeError):
+                        return
+                # Save entered price (same as unit_price for estimate)
+                if self._entered_unit_price_value is None:
+                    self._entered_unit_price_value = unit_price_estimate
+                # Convert to base unit price using price_factor (inverse of quantity factor)
+                cleaned_data['unit_price_estimate'] = unit_price_estimate * price_factor
+    
+    def clean_entered_price_unit(self):
+        """Validate entered_price_unit."""
+        entered_price_unit = self.cleaned_data.get('entered_price_unit', '').strip()
+        # If provided, validate it's a valid unit for the item
+        if entered_price_unit:
+            item = self._resolve_item(self.cleaned_data.get('item'))
+            if item:
+                allowed_units = {row['value'] for row in self._get_item_allowed_units(item)}
+                if entered_price_unit not in allowed_units:
+                    # Don't raise error, just warn - user might enter a unit that's not in the list
+                    # But we'll use it anyway for price normalization
+                    pass
+        return entered_price_unit
+    
+    def clean(self):
+        """Validate and normalize form data."""
+        cleaned_data = super().clean()
+        self._validate_unit(cleaned_data)
+        self._normalize_quantity(cleaned_data)
+        self._normalize_price(cleaned_data)
+        return cleaned_data
+    
+    def save(self, commit=True):
+        """Save form instance with entered values."""
+        instance = super().save(commit=False)
+        
+        # Save entered unit, quantity, and price
+        entered_unit = self._entered_unit_value or getattr(instance, 'entered_unit', '') or instance.unit
+        instance.entered_unit = entered_unit
+        if self._entered_quantity_value is not None:
+            instance.entered_quantity = self._entered_quantity_value
+        elif instance.entered_quantity is None:
+            instance.entered_quantity = instance.quantity
+        if self._entered_unit_price_value is not None:
+            instance.entered_unit_price = self._entered_unit_price_value
+            # Save entered_price_unit if provided, otherwise use entered_unit
+            entered_price_unit = self.cleaned_data.get('entered_price_unit', '').strip()
+            if not entered_price_unit:
+                entered_price_unit = entered_unit
+            instance.entered_price_unit = entered_price_unit
+        elif hasattr(instance, 'entered_price_unit') and not instance.entered_price_unit:
+            # If no price entered, set entered_price_unit to entered_unit for consistency
+            instance.entered_price_unit = entered_unit
+        
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
 class ReceiptPermanentLineForm(ReceiptLineBaseForm):
@@ -2398,7 +3102,7 @@ class ReceiptPermanentLineForm(ReceiptLineBaseForm):
         model = ReceiptPermanentLine
         fields = [
             'item', 'warehouse', 'unit', 'quantity',
-            'entered_unit', 'entered_quantity', 'entered_unit_price',
+            'entered_unit', 'entered_quantity', 'entered_unit_price', 'entered_price_unit',
             'supplier',
             'unit_price', 'currency', 'tax_amount', 'discount_amount', 'total_amount',
             'line_notes',
@@ -2410,6 +3114,7 @@ class ReceiptPermanentLineForm(ReceiptLineBaseForm):
             'entered_unit': forms.TextInput(attrs={'class': 'form-control'}),
             'entered_quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'entered_unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'entered_price_unit': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Optional: unit for price (e.g., BOX)')}),
             'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'tax_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'discount_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
@@ -2425,7 +3130,7 @@ class ReceiptConsignmentLineForm(ReceiptLineBaseForm):
         model = ReceiptConsignmentLine
         fields = [
             'item', 'warehouse', 'unit', 'quantity',
-            'entered_unit', 'entered_quantity', 'entered_unit_price',
+            'entered_unit', 'entered_quantity', 'entered_unit_price', 'entered_price_unit',
             'supplier',
             'unit_price_estimate', 'currency',
             'line_notes',
@@ -2437,6 +3142,7 @@ class ReceiptConsignmentLineForm(ReceiptLineBaseForm):
             'entered_unit': forms.TextInput(attrs={'class': 'form-control'}),
             'entered_quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'entered_unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'entered_price_unit': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Optional: unit for price (e.g., BOX)')}),
             'unit_price_estimate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
@@ -2450,6 +3156,29 @@ class BaseLineFormSet(forms.BaseInlineFormSet):
         # Pass company_id to all forms in the formset
         for form in self.forms:
             form.company_id = company_id
+    
+    def clean(self):
+        """Validate that at least one line has an item."""
+        if any(self.errors):
+            return
+        
+        # Count non-empty forms (forms with an item)
+        non_empty_forms = 0
+        for form in self.forms:
+            # Check if form is marked for deletion
+            if form.cleaned_data.get('DELETE', False):
+                continue
+            # Check if form has an item
+            if form.cleaned_data and form.cleaned_data.get('item'):
+                non_empty_forms += 1
+        
+        # If min_num is set and we don't have enough non-empty forms, raise validation error
+        # Django's validate_min might not catch empty forms correctly, so we check manually
+        min_num = getattr(self, 'min_num', 0)
+        if min_num and non_empty_forms < min_num:
+            raise forms.ValidationError(
+                _('Please add at least %(min_num)d line(s) with an item.') % {'min_num': min_num}
+            )
 
 
 # Create formsets

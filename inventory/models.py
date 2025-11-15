@@ -906,7 +906,7 @@ class ReceiptPermanent(InventoryDocumentBase):
     class Meta:
         verbose_name = _("Permanent Receipt")
         verbose_name_plural = _("Permanent Receipts")
-        ordering = ("-document_date", "document_code")
+        ordering = ("-id", "-document_date", "document_code")
 
     def __str__(self) -> str:
         return self.document_code
@@ -1451,6 +1451,11 @@ class ReceiptLineBase(InventoryBaseModel, SortableModel):
         null=True,
         blank=True,
         validators=[POSITIVE_DECIMAL],
+    )
+    entered_price_unit = models.CharField(
+        max_length=30,
+        blank=True,
+        help_text=_("Unit for entered_unit_price (e.g., BOX, CARTON). If empty, same as entered_unit."),
     )
     line_notes = models.TextField(blank=True)
     

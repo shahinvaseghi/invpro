@@ -131,26 +131,95 @@
           <td><code>{{ receipt.document_code }}</code></td>
           <td>{{ receipt.document_date|date:"Y-m-d" }}</td>
           <td>
-            <strong>{{ receipt.item.name }}</strong><br>
-            <small style="color: #6b7280;"><code>{{ receipt.item_code }}</code></small>
-          </td>
-          <td style="text-align: right;">
-            {% if receipt.entered_quantity %}
-              {{ receipt.entered_quantity|floatformat:2 }}
-              {% if receipt.entered_unit %}
-                {{ receipt.entered_unit }}
-              {% else %}
-                {{ receipt.unit }}
-              {% endif %}
-              {% if receipt.entered_quantity != receipt.quantity or receipt.entered_unit and receipt.entered_unit != receipt.unit %}
-                <small class="muted">({{ receipt.quantity|floatformat:2 }} {{ receipt.unit }})</small>
+            {% if receipt.item %}
+              {# Temporary receipt - single line #}
+              <strong>{{ receipt.item.name }}</strong><br>
+              <small style="color: #6b7280;"><code>{{ receipt.item_code }}</code></small>
+            {% elif receipt.lines.all %}
+              {# Permanent/Consignment receipt - multiple lines #}
+              {% for line in receipt.lines.all|slice:":3" %}
+                <strong>{{ line.item.name }}</strong><br>
+                <small style="color: #6b7280;"><code>{{ line.item.item_code }}</code></small>{% if not forloop.last %}<br><br>{% endif %}
+              {% endfor %}
+              {% if receipt.lines.count > 3 %}
+                <small class="muted">+ {{ receipt.lines.count|add:"-3" }} {% trans "more" %}</small>
               {% endif %}
             {% else %}
-              {{ receipt.quantity|floatformat:2 }} {{ receipt.unit }}
+              —
             {% endif %}
           </td>
-          <td>{{ receipt.warehouse.name }}</td>
-          <td>{% if receipt.supplier %}{{ receipt.supplier.name }}{% else %}—{% endif %}</td>
+          <td style="text-align: right;">
+            {% if receipt.item %}
+              {# Temporary receipt - single line #}
+              {% if receipt.entered_quantity %}
+                {{ receipt.entered_quantity|floatformat:2 }}
+                {% if receipt.entered_unit %}
+                  {{ receipt.entered_unit }}
+                {% else %}
+                  {{ receipt.unit }}
+                {% endif %}
+                {% if receipt.entered_quantity != receipt.quantity or receipt.entered_unit and receipt.entered_unit != receipt.unit %}
+                  <small class="muted">({{ receipt.quantity|floatformat:2 }} {{ receipt.unit }})</small>
+                {% endif %}
+              {% else %}
+                {{ receipt.quantity|floatformat:2 }} {{ receipt.unit }}
+              {% endif %}
+            {% elif receipt.lines.all %}
+              {# Permanent/Consignment receipt - multiple lines #}
+              {% for line in receipt.lines.all|slice:":3" %}
+                {% if line.entered_quantity %}
+                  {{ line.entered_quantity|floatformat:2 }}
+                  {% if line.entered_unit %}
+                    {{ line.entered_unit }}
+                  {% else %}
+                    {{ line.unit }}
+                  {% endif %}
+                  {% if line.entered_quantity != line.quantity or line.entered_unit and line.entered_unit != line.unit %}
+                    <small class="muted">({{ line.quantity|floatformat:2 }} {{ line.unit }})</small>
+                  {% endif %}
+                {% else %}
+                  {{ line.quantity|floatformat:2 }} {{ line.unit }}
+                {% endif %}{% if not forloop.last %}<br>{% endif %}
+              {% endfor %}
+              {% if receipt.lines.count > 3 %}
+                <small class="muted">+ {{ receipt.lines.count|add:"-3" }} {% trans "more" %}</small>
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {% if receipt.warehouse %}
+              {# Temporary receipt - single line #}
+              {{ receipt.warehouse.name }}
+            {% elif receipt.lines.all %}
+              {# Permanent/Consignment receipt - multiple lines #}
+              {% for line in receipt.lines.all|slice:":3" %}
+                {{ line.warehouse.name }}{% if not forloop.last %}<br>{% endif %}
+              {% endfor %}
+              {% if receipt.lines.count > 3 %}
+                <small class="muted">+ {{ receipt.lines.count|add:"-3" }} {% trans "more" %}</small>
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {% if receipt.supplier %}
+              {# Temporary receipt - single line #}
+              {{ receipt.supplier.name }}
+            {% elif receipt.lines.all %}
+              {# Permanent/Consignment receipt - multiple lines #}
+              {% for line in receipt.lines.all|slice:":3" %}
+                {% if line.supplier %}{{ line.supplier.name }}{% else %}—{% endif %}{% if not forloop.last %}<br>{% endif %}
+              {% endfor %}
+              {% if receipt.lines.count > 3 %}
+                <small class="muted">+ {{ receipt.lines.count|add:"-3" }} {% trans "more" %}</small>
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
           {% if show_qc %}
           <td>
             {% if receipt.status == 1 %}

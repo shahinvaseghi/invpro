@@ -292,11 +292,135 @@ python manage.py makemessages -l fa
 
 ---
 
-## 7. Receipt Capture & Unit Normalisation
+## 7. Multi-Line Document Support & Line-Based Serial Assignment
+
+### Overview
+The inventory system now supports **multi-line documents** for both receipts and issues, allowing users to add multiple items to a single document. Each line item can have its own item, quantity, warehouse, and pricing information. Additionally, **serial number assignment** is now managed at the line level, providing granular control over serial tracking for lot-controlled items.
+
+### Key Features
+
+#### Multi-Line Document Architecture
+- **Header-Only Documents**: Issue and Receipt documents (`IssuePermanent`, `IssueConsumption`, `IssueConsignment`, `ReceiptPermanent`, `ReceiptConsignment`) now store only header-level information (document code, date, supplier, notes, etc.)
+- **Line Item Models**: Each document type has corresponding line models:
+  - `IssuePermanentLine`, `IssueConsumptionLine`, `IssueConsignmentLine` for issues
+  - `ReceiptPermanentLine`, `ReceiptConsignmentLine` for receipts
+- **Line Item Fields**: Each line contains:
+  - Item reference and cached item code
+  - Warehouse reference and cached warehouse code
+  - Unit of measure (normalized to base unit)
+  - Quantity (normalized to base unit)
+  - Entered unit and entered quantity (preserved user input)
+  - Line-specific notes
+  - Sort order for custom ordering
+  - Type-specific fields (e.g., `destination_type`, `consumption_type`, `consignment_receipt` for issues; `unit_price`, `unit_cost` for receipts)
+
+#### Line-Based Serial Assignment
+- **Per-Line Serial Management**: Serial numbers are now assigned and tracked at the line item level, not the document level
+- **Serial Assignment Pages**: Each line item with a lot-tracked item has a dedicated serial assignment page accessible via a button in the document form
+- **Serial Generation**: For receipt lines, serials are generated when the document is locked, with the format `{DOC_CODE}-L{LINE_ID}-{SEQUENCE:04d}`
+- **Serial Reservation**: For issue lines, selected serials are reserved (`RESERVED` status) when assigned, and finalized (`ISSUED` or `CONSUMED`) when the document is locked
+- **Validation**: Before locking a document, the system validates that:
+  - For lot-tracked items, quantity must be a whole number
+  - The number of assigned serials must exactly match the line quantity
+  - All serials belong to the correct item and warehouse
+
+### User Experience
+
+#### Creating Multi-Line Documents
+1. User creates a new receipt or issue document
+2. Document header form is displayed (document code, date, supplier, etc.)
+3. User can add multiple line items using the line formset
+4. For each line:
+   - Select item (filtered by company)
+   - Select warehouse (filtered by item's allowed warehouses)
+   - Enter quantity and select unit (limited to item's allowed units)
+   - Enter pricing information (for receipts)
+   - Add line-specific notes
+5. User can add/remove lines dynamically
+6. User saves the document
+
+#### Serial Assignment Workflow
+
+**For Receipt Lines:**
+1. User creates/edits a receipt document
+2. User adds a line item with a lot-tracked item
+3. User saves the document
+4. A "Manage Serials" button appears next to the line item
+5. User clicks the button to open the serial management page
+6. User can generate serials manually or they are auto-generated when the document is locked
+7. Serial count is displayed next to the button
+
+**For Issue Lines:**
+1. User creates/edits an issue document
+2. User adds a line item with a lot-tracked item
+3. User saves the document
+4. An "Assign Serials" button appears next to the line item (or "View Serials" if document is locked)
+5. User clicks the button to open the serial assignment page
+6. User selects the required number of serials from available serials
+7. Selected serials are reserved for this line
+8. Serial count (assigned/required) is displayed next to the button
+9. When the document is locked, reserved serials are finalized to `ISSUED` or `CONSUMED` status
+
+### Technical Implementation
+
+#### Models
+```python
+# Base line model
+class IssueLineBase(InventoryBaseModel, SortableModel):
+    document = ForeignKey(...)  # Parent document
+    item = ForeignKey(Item, ...)
+    warehouse = ForeignKey(Warehouse, ...)
+    unit = CharField(...)  # Normalized to base unit
+    quantity = DecimalField(...)  # Normalized to base unit
+    entered_unit = CharField(...)  # User's original input
+    entered_quantity = DecimalField(...)  # User's original input
+    serials = ManyToManyField(ItemSerial, ...)  # Assigned serials
+    line_notes = TextField(...)
+
+# Concrete line models
+class IssuePermanentLine(IssueLineBase):
+    document = ForeignKey(IssuePermanent, ...)
+    destination_type = CharField(...)
+    # ... other fields
+
+class ReceiptPermanentLine(ReceiptLineBase):
+    document = ForeignKey(ReceiptPermanent, ...)
+    unit_price = DecimalField(...)
+    # ... other fields
+```
+
+#### Forms and Formsets
+- **Line Forms**: `IssuePermanentLineForm`, `IssueConsumptionLineForm`, etc. handle individual line item fields
+- **Line Formsets**: `IssuePermanentLineFormSet`, `ReceiptPermanentLineFormSet`, etc. manage multiple lines
+- **LineFormsetMixin**: Reusable mixin for views to handle line formset creation, validation, and saving
+
+#### Views
+- **LineFormsetMixin**: Provides `build_line_formset()`, `get_line_formset()`, and `_save_line_formset()` methods
+- **Serial Assignment Views**: 
+  - `IssueLineSerialAssignmentBaseView` for issue lines
+  - `ReceiptLineSerialAssignmentBaseView` for receipt lines
+- **Document Lock Views**: Updated to validate and finalize serials for all lines before/after locking
+
+#### Services
+- **`generate_receipt_line_serials()`**: Generates serials for a receipt line
+- **`sync_issue_line_serials()`**: Reserves/releases serials for an issue line
+- **`finalize_issue_line_serials()`**: Finalizes serials when an issue document is locked
+- **Helper functions**: `_reserve_line_serials()`, `_release_line_serials()`, `_determine_final_status_for_line()`
+
+### Benefits
+- **Flexibility**: Users can add multiple items to a single document, reducing data entry time
+- **Accuracy**: Serial tracking at the line level ensures precise traceability
+- **Scalability**: Architecture supports future enhancements (e.g., line-level approvals, pricing variations)
+- **User Experience**: Intuitive interface with clear visual indicators for serial assignment status
+
+---
+
+## 8. Receipt Capture & Unit Normalisation
 
 ### Highlights
 - **فرم‌های اختصاصی رسید**: برای رسیدهای موقت، دائم و امانی مسیرهای ایجاد/ویرایش مستقلی پیاده‌سازی شده است؛ کاربر دیگر به پنل ادمین ارجاع داده نمی‌شود.
 - **تولید خودکار متادیتا**: هنگام ایجاد سند، کد منحصربه‌فرد با الگوی `TMP|PRM|CON-YYYYMM-XXXXXX`، تاریخ روز و وضعیت اولیه (`Draft` برای رسید موقت) بدون دخالت کاربر ثبت می‌شود.
+- **Multi-Line Support**: رسیدهای دائم و امانی اکنون از چند ردیف پشتیبانی می‌کنند؛ هر ردیف می‌تواند کالا، مقدار، انبار و قیمت مستقل داشته باشد.
 - **واحدهای قابل انتخاب محدود**: فیلد واحد صرفاً واحد اصلی کالا و تبدیل‌های تعریف‌شده در `ItemUnit` را نمایش می‌دهد. اسکریپت پویا در قالب HTML در زمان تغییر کالا، فهرست واحدها را تازه‌سازی می‌کند.
 - **یکسان‌سازی مقدار و قیمت**: پیش از ذخیره، مقدار (`quantity`) و قیمت (`unit_price` و `unit_price_estimate`) بر اساس ضرایب تبدیل واحد به واحد اصلی کالا تبدیل و در پایگاه‌داده ذخیره می‌شود. به این ترتیب موجودی مالی و تعدادی همیشه با یک واحد پایه محاسبه می‌شود.
 - **الزام مقدار صحیح برای سریال‌ها**: اگر کالای انتخابی رهگیری سریال داشته باشد، فرم‌های رسید و حواله تنها مقادیر صحیح (پس از تبدیل واحد) را می‌پذیرند و در صورت مشاهده مقدار اعشاری خطا نمایش داده می‌شود.
