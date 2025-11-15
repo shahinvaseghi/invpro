@@ -1,5 +1,5 @@
 {% extends "inventory/base.html" %}
-{% load i18n %}
+{% load i18n jalali_tags %}
 
 {% block page_title %}{% trans "Warehouse Requests" %}{% endblock %}
 
@@ -106,7 +106,7 @@
         {% for wr in requests %}
         <tr>
           <td><code>{{ wr.request_code }}</code></td>
-          <td>{{ wr.request_date|date:"Y-m-d" }}</td>
+          <td>{{ wr.request_date|jalali_date }}</td>
           <td>
             <strong>{{ wr.item.name }}</strong><br>
             <small style="color: #6b7280;"><code>{{ wr.item_code }}</code></small>
@@ -135,7 +135,7 @@
           </td>
           <td>
             {% if wr.needed_by_date %}
-              {{ wr.needed_by_date|date:"Y-m-d" }}
+              {{ wr.needed_by_date|jalali_date }}
             {% else %}
               <span style="color:#6b7280;">—</span>
             {% endif %}

@@ -1,5 +1,5 @@
 {% extends "inventory/base.html" %}
-{% load i18n %}
+{% load i18n jalali_tags %}
 
 {% block page_title %}{% trans "Permanent Issues" %}{% endblock %}
 
@@ -111,7 +111,7 @@
         {% for issue in issues %}
         <tr>
           <td><code>{{ issue.document_code }}</code></td>
-          <td>{{ issue.document_date|date:"Y-m-d" }}</td>
+          <td>{{ issue.document_date|jalali_date }}</td>
           <td>
             <strong>{{ issue.item.name }}</strong><br>
             <small style="color: #6b7280;"><code>{{ issue.item_code }}</code></small>

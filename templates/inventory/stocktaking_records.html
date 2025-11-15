@@ -1,5 +1,5 @@
 {% extends "inventory/base.html" %}
-{% load i18n %}
+{% load i18n jalali_tags %}
 
 {% block page_title %}{% trans "Stocktaking Records" %}{% endblock %}
 
@@ -59,7 +59,7 @@
         {% for record in records %}
         <tr>
           <td><code>{{ record.document_code }}</code></td>
-          <td>{{ record.document_date|date:"Y-m-d" }}</td>
+          <td>{{ record.document_date|jalali_date }}</td>
           <td>{{ record.stocktaking_session_id }}</td>
           <td>{{ record.confirmed_by.first_name }} {{ record.confirmed_by.last_name }}</td>
           <td>

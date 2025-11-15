@@ -1,5 +1,5 @@
 {% extends "inventory/base.html" %}
-{% load i18n %}
+{% load i18n jalali_tags %}
 
 {% block page_title %}{% trans "Receipt Serials" %}{% endblock %}
 
@@ -58,7 +58,7 @@
               <span class="muted">—</span>
             {% endif %}
           </td>
-          <td>{% if serial.last_moved_at %}{{ serial.last_moved_at|date:"Y-m-d H:i" }}{% else %}<span class="muted">—</span>{% endif %}</td>
+          <td>{% if serial.last_moved_at %}{{ serial.last_moved_at|jalali_datetime }}{% else %}<span class="muted">—</span>{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>

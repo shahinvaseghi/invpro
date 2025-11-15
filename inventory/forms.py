@@ -46,6 +46,9 @@ from .models import (
 )
 from shared.models import CompanyUnit, Person
 from .services import serials as serial_service
+from .fields import JalaliDateField
+from .widgets import JalaliDateInput
+from inventory.utils.jalali import today_jalali
 
 User = get_user_model()
 
@@ -131,7 +134,7 @@ class PurchaseRequestForm(forms.ModelForm):
             'item': forms.Select(attrs={'class': 'form-control'}),
             'unit': forms.Select(attrs={'class': 'form-control'}),
             'quantity_requested': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'needed_by_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'needed_by_date': JalaliDateInput(attrs={'class': 'form-control'}),
             'priority': forms.Select(attrs={'class': 'form-control'}),
             'reason_code': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'approver': forms.Select(attrs={'class': 'form-control'}),
@@ -269,7 +272,7 @@ class WarehouseRequestForm(forms.ModelForm):
             'quantity_requested': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'warehouse': forms.Select(attrs={'class': 'form-control'}),
             'department_unit': forms.Select(attrs={'class': 'form-control'}),
-            'needed_by_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'needed_by_date': JalaliDateInput(attrs={'class': 'form-control'}),
             'priority': forms.Select(attrs={'class': 'form-control'}),
             'purpose': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'approver': forms.Select(attrs={'class': 'form-control'}),
@@ -951,7 +954,7 @@ ItemUnitFormSet = inlineformset_factory(
 class ReceiptBaseForm(forms.ModelForm):
     """Base helpers for receipt forms with company-aware querysets."""
 
-    date_widget = forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    date_widget = JalaliDateInput(attrs={'class': 'form-control'})
     datetime_widget = forms.DateTimeInput(
         attrs={'class': 'form-control', 'type': 'datetime-local', 'step': 60},
         format='%Y-%m-%dT%H:%M',
@@ -1440,10 +1443,10 @@ class ReceiptConsignmentForm(forms.ModelForm):
             'document_code': forms.HiddenInput(),
             'document_date': forms.HiddenInput(),
             'consignment_contract_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'expected_return_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'expected_return_date': JalaliDateInput(attrs={'class': 'form-control'}),
             'valuation_method': forms.TextInput(attrs={'class': 'form-control'}),
             'ownership_status': forms.TextInput(attrs={'class': 'form-control'}),
-            'conversion_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'conversion_date': JalaliDateInput(attrs={'class': 'form-control'}),
             'return_document_id': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
@@ -1871,7 +1874,7 @@ class StocktakingBaseForm(forms.ModelForm):
 
     def __init__(self, *args, company_id=None, **kwargs):
         self.company_id = company_id or getattr(kwargs.get('instance'), 'company_id', None)
-        self.date_widget = forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+        self.date_widget = JalaliDateInput(attrs={'class': 'form-control'})
         self.datetime_widget = forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'})
         super().__init__(*args, **kwargs)
 

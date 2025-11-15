@@ -1,5 +1,5 @@
 {% extends "inventory/base.html" %}
-{% load i18n %}
+{% load i18n jalali_tags %}
 
 {% block page_title %}{% trans "Temporary Receipts" %}{% endblock %}
 
@@ -129,7 +129,7 @@
         {% for receipt in receipts %}
         <tr>
           <td><code>{{ receipt.document_code }}</code></td>
-          <td>{{ receipt.document_date|date:"Y-m-d" }}</td>
+          <td>{{ receipt.document_date|jalali_date }}</td>
           <td>
             {% if receipt.item %}
               {# Temporary receipt - single line #}

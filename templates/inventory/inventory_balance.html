@@ -1,5 +1,5 @@
 {% extends "inventory/base.html" %}
-{% load i18n %}
+{% load i18n jalali_tags %}
 
 {% block page_title %}{% trans "Inventory Balance" %}{% endblock %}
 
@@ -63,7 +63,7 @@
     <div class="form-group">
       <label for="as_of_date">{% trans "As of Date" %}</label>
       <input type="date" name="as_of_date" id="as_of_date" 
-             value="{{ as_of_date|date:'Y-m-d' }}" class="form-control">
+             value="{{ as_of_date|jalali_date }}" class="form-control">
     </div>
 
     <div class="form-group" style="align-self: flex-end;">
@@ -87,7 +87,7 @@
   </div>
   <div class="stat-card">
     <div class="stat-label">{% trans "Last Calculated" %}</div>
-    <div class="stat-value" style="font-size: 1rem;">{{ as_of_date|date:"Y-m-d" }}</div>
+    <div class="stat-value" style="font-size: 1rem;">{{ as_of_date|jalali_date }}</div>
   </div>
 </div>
 

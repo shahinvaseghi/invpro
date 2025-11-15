@@ -1,5 +1,5 @@
 {% extends "inventory/base.html" %}
-{% load i18n %}
+{% load i18n jalali_tags %}
 
 {% block page_title %}{% trans "Deficit Records" %}{% endblock %}
 
@@ -61,7 +61,7 @@
         {% for record in records %}
         <tr>
           <td><code>{{ record.document_code }}</code></td>
-          <td>{{ record.document_date|date:"Y-m-d" }}</td>
+          <td>{{ record.document_date|jalali_date }}</td>
           <td>
             <strong>{{ record.item.name }}</strong><br>
             <small style="color: #6b7280;"><code>{{ record.item_code }}</code></small>
