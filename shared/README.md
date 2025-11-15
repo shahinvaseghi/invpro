@@ -50,6 +50,9 @@ Defines the ModelForms used across the shared module:
   - `GroupListView`, `GroupCreateView`, `GroupUpdateView`, `GroupDeleteView`: مدیریت گروه‌ها، اختصاص کاربران و نگاشت به سطح دسترسی از طریق `GroupProfile`.
 - **مدیریت سطوح دسترسی**:
   - `AccessLevelListView`, `AccessLevelCreateView`, `AccessLevelUpdateView`, `AccessLevelDeleteView`: CRUD کامل روی `AccessLevel` به همراه رندر ماتریس اکشن‌ها بر اساس `FEATURE_PERMISSION_MAP` و ذخیره در `AccessLevelPermission`.
+  - صفحه ایجاد/ویرایش (`access_level_form.html`) شامل **دکمه‌های Quick Action** برای انتخاب/لغو انتخاب گروهی permissions:
+    - برای هر Feature (ردیف): دکمه‌های "همه" و "هیچکدام" برای انتخاب/لغو انتخاب تمام permissions همان Feature
+    - برای کل صفحه: دکمه‌های "همه" و "هیچکدام" برای انتخاب/لغو انتخاب تمام permissions تمام Features
 
 ## permissions.py
 
@@ -69,7 +72,10 @@ Defines the ModelForms used across the shared module:
 - `shared/person_form.html`: فرم پرسنل با بخش انتخاب واحدهای سازمانی (چند انتخابی).
 - **صفحات جدید مدیریت کاربران**: `shared/users_list.html`, `shared/user_form.html`, `shared/user_confirm_delete.html`
 - **صفحات جدید مدیریت گروه‌ها**: `shared/groups_list.html`, `shared/group_form.html`, `shared/group_confirm_delete.html`
-- **صفحات جدید مدیریت سطوح دسترسی**: `shared/access_levels_list.html`, `shared/access_level_form.html`, `shared/access_level_confirm_delete.html`
+- **صفحات جدید مدیریت سطوح دسترسی**: 
+  - `shared/access_levels_list.html`: فهرست سطوح دسترسی
+  - `shared/access_level_form.html`: فرم ایجاد/ویرایش سطح دسترسی با **ماتریس permission** و دکمه‌های "همه" و "هیچکدام" برای هر ردیف (Feature) و کل صفحه برای انتخاب/لغو انتخاب گروهی permissions
+  - `shared/access_level_confirm_delete.html`: تأیید حذف سطح دسترسی
 
 ## migrations/
 - `0001_initial.py`: auto-generated from the models and mirrors the database design document (`shared_module_db_design_plan.md`). When models change, run `python manage.py makemigrations shared` to create additional migrations.

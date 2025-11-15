@@ -60,6 +60,29 @@ class InventoryBaseView(LoginRequiredMixin):
 - **Form Labels**: All form fields have Persian/English labels
 - **Error Messages**: Validation errors in user's language
 
+## 2.1 Date Display (Jalali/Gregorian Conversion)
+
+### Overview
+The system displays dates in Jalali (Persian) format in the UI while storing them in Gregorian format in the database.
+
+### Features
+- **Storage**: All dates stored as Gregorian in database (`DateField`, `DateTimeField`)
+- **Display**: Converted to Jalali format using template tags (`{{ date|jalali_date }}`)
+- **Input**: Custom `JalaliDateInput` widget converts Jalali input to Gregorian before saving
+- **Forms**: All document forms (`ReceiptPermanentForm`, `IssuePermanentForm`, etc.) use `JalaliDateField`
+- **Benefits**: Users see familiar Jalali calendar, database maintains standard format, no dual date fields needed
+
+### Technical Implementation
+- Custom widget: `JalaliDateInput` (`inventory/widgets.py`)
+- Custom field: `JalaliDateField` (`inventory/fields.py`)
+- Template tags: `jalali_tags` (`inventory/templatetags/jalali_tags.py`)
+- Utilities: `inventory/utils/jalali.py` for conversion functions
+
+### Forms Using Jalali Dates
+- Receipt forms: `ReceiptPermanentForm`, `ReceiptConsignmentForm`
+- Issue forms: `IssuePermanentForm`, `IssueConsumptionForm`, `IssueConsignmentForm`
+- Request forms: `PurchaseRequestForm`, `WarehouseRequestForm`
+
 ### Translation Coverage
 - Navigation menus
 - Page titles and headers
@@ -143,6 +166,7 @@ python manage.py makemessages -l fa
 - Category dropdown filtered by company
 - Full CRUD operations
 - هر کالا هنگام ایجاد/ویرایش همراه با لیست «انبارهای مجاز» ذخیره می‌شود تا از ورود کالا به انبارهای ناخواسته جلوگیری گردد.
+- **Strict Warehouse Restrictions**: Items can ONLY be received/issued in warehouses explicitly configured in `ItemWarehouse` relationship. If no warehouses configured, item cannot be received/issued anywhere (error shown). Validation enforced in both server-side (Python) and client-side (JavaScript). Warehouse dropdown dynamically updates when item is selected.
 
 **Code Pattern**: `001`, `002`, `003`, ... (within each category)
 
@@ -581,6 +605,7 @@ Internal material requisition workflow
   - فرم‌های ایجاد/ویرایش کاربر همراه با تعیین رمز، گروه‌ها و دسترسی شرکت‌ها
   - قالب‌های گروه برای نگاشت اعضا و سطوح دسترسی (پشتیبانی از `GroupProfile`)
   - ماتریس انتخاب اکشن‌ها برای هر Access Level بر اساس `FEATURE_PERMISSION_MAP`
+  - **Quick Action Buttons**: دکمه‌های "همه" و "هیچکدام" برای هر Feature (ردیف) و کل صفحه برای انتخاب/لغو انتخاب گروهی permissions
 
 ### Data Protection
 - CSRF protection on all forms

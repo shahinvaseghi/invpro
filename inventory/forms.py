@@ -52,6 +52,15 @@ from inventory.utils.jalali import today_jalali
 
 User = get_user_model()
 
+
+def get_purchase_request_approvers(company_id):
+    """
+    Get queryset of Person objects that can approve purchase requests.
+    For now, returns all active Person objects in the company.
+    In future, this can be filtered by role/permission.
+    """
+    return Person.objects.filter(company_id=company_id, is_enabled=1).order_by('first_name', 'last_name')
+
 UNIT_CHOICES = [
     ("", _("--- انتخاب کنید ---")),
     ("EA", _("عدد (EA)")),
@@ -1684,11 +1693,16 @@ class IssuePermanentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.company_id = company_id or getattr(self.instance, 'company_id', None)
         
-        # Make document_code and document_date not required (they're auto-generated)
+        # Make document_code and document_date not required and hidden (they're auto-generated)
         if 'document_code' in self.fields:
             self.fields['document_code'].required = False
+            self.fields['document_code'].widget = forms.HiddenInput()
         if 'document_date' in self.fields:
             self.fields['document_date'].required = False
+            self.fields['document_date'].widget = forms.HiddenInput()
+            # Set initial value to today if creating new
+            if not getattr(self.instance, 'pk', None):
+                self.fields['document_date'].initial = timezone.now().date()
         
         if self.company_id and 'department_unit' in self.fields:
             self.fields['department_unit'].queryset = CompanyUnit.objects.filter(
@@ -1696,6 +1710,22 @@ class IssuePermanentForm(forms.ModelForm):
             ).order_by('name')
             self.fields['department_unit'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
 
+    def clean_document_code(self):
+        """Auto-generate document_code if not provided."""
+        document_code = self.cleaned_data.get('document_code')
+        if not document_code:
+            # Will be generated in save()
+            return ''
+        return document_code
+    
+    def clean_document_date(self):
+        """Auto-generate document_date if not provided."""
+        document_date = self.cleaned_data.get('document_date')
+        if not document_date:
+            # Will be generated in save()
+            return timezone.now().date()
+        return document_date
+    
     def clean(self):
         cleaned_data = super().clean()
         
@@ -1709,6 +1739,11 @@ class IssuePermanentForm(forms.ModelForm):
     
     def save(self, commit=True):
         instance = super().save(commit=False)
+        
+        # Ensure company_id is set
+        if not instance.company_id and self.company_id:
+            instance.company_id = self.company_id
+        
         if not instance.document_code:
             instance.document_code = generate_document_code(IssuePermanent, instance.company_id, "ISP")
         if not instance.document_date:
@@ -1730,24 +1765,15 @@ class IssuePermanentForm(forms.ModelForm):
 class IssueConsumptionForm(forms.ModelForm):
     """Header-only form for consumption issue documents with multi-line support."""
 
-    department_unit = forms.ModelChoiceField(
-        queryset=CompanyUnit.objects.none(),
-        required=False,
-        label=_('Organizational Unit'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        help_text=_('Optional: specify which company unit consumes this issue.'),
-    )
-
     class Meta:
         model = IssueConsumption
         fields = [
             'document_code',
             'document_date',
-            'department_unit',
         ]
         widgets = {
             'document_code': forms.HiddenInput(),
-            'document_date': forms.HiddenInput(),
+            'document_date': forms.HiddenInput(),  # Hidden, auto-generated
         }
 
     def __init__(self, *args, company_id=None, **kwargs):
@@ -1759,12 +1785,8 @@ class IssueConsumptionForm(forms.ModelForm):
             self.fields['document_code'].required = False
         if 'document_date' in self.fields:
             self.fields['document_date'].required = False
-        
-        if self.company_id and 'department_unit' in self.fields:
-            self.fields['department_unit'].queryset = CompanyUnit.objects.filter(
-                company_id=self.company_id, is_enabled=1
-            ).order_by('name')
-            self.fields['department_unit'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
+            # Make document_date readonly
+            self.fields['document_date'].widget.attrs['readonly'] = True
 
     def clean(self):
         cleaned_data = super().clean()
@@ -1783,14 +1805,6 @@ class IssueConsumptionForm(forms.ModelForm):
             instance.document_code = generate_document_code(IssueConsumption, instance.company_id, "ISU")
         if not instance.document_date:
             instance.document_date = timezone.now().date()
-
-        department_unit = self.cleaned_data.get('department_unit')
-        if department_unit:
-            instance.department_unit = department_unit
-            instance.department_unit_code = department_unit.public_code
-        else:
-            instance.department_unit = None
-            instance.department_unit_code = ''
         
         if commit:
             instance.save()
@@ -2041,8 +2055,14 @@ class StocktakingBaseForm(forms.ModelForm):
         warehouse = cleaned_data.get('warehouse')
         if warehouse and item:
             allowed_ids = {int(option['value']) for option in self._get_item_allowed_warehouses(item)}
-            if allowed_ids and warehouse.id not in allowed_ids:
-                self.add_error('warehouse', _('Selected warehouse is not permitted for this item.'))
+            # If item has allowed warehouses configured, warehouse must be in that list
+            # If no warehouses configured, item cannot be received (error)
+            if allowed_ids:
+                if warehouse.id not in allowed_ids:
+                    self.add_error('warehouse', _('انبار انتخاب شده برای این کالا مجاز نیست. لطفاً یکی از انبارهای مجاز را انتخاب کنید.'))
+            else:
+                # No warehouses configured for this item - this is an error
+                self.add_error('warehouse', _('این کالا هیچ انبار مجازی ندارد. لطفاً ابتدا در تعریف کالا، حداقل یک انبار مجاز را انتخاب کنید.'))
 
     def clean(self):
         cleaned_data = super().clean()
@@ -2390,35 +2410,135 @@ class IssueLineBaseForm(forms.ModelForm):
                 ).order_by('name')
                 self.fields['warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
         
-        # Set unit choices based on selected item
+        # Set unit choices - this must be done before restoring initial values
         self._set_unit_choices()
         
         # Restore entered values if editing
         if not self.is_bound and getattr(self.instance, 'pk', None):
             entry_unit = getattr(self.instance, 'entered_unit', '') or getattr(self.instance, 'unit', '')
             if 'unit' in self.fields and entry_unit:
+                # Ensure the unit is in choices, if not add it
+                unit_choices = list(self.fields['unit'].choices)
+                unit_codes = [code for code, _ in unit_choices]
+                if entry_unit not in unit_codes:
+                    # Add current unit to choices if not present
+                    self.fields['unit'].choices = unit_choices + [(entry_unit, entry_unit)]
+                # Django ChoiceField uses instance.field for display when editing
+                # So we need to set instance.unit to the entered_unit for proper display
+                if hasattr(self.instance, 'unit'):
+                    # Store the original unit if we're changing it
+                    if not hasattr(self.instance, '_original_unit'):
+                        self.instance._original_unit = self.instance.unit
+                    # Set unit to entered_unit for display purposes
+                    self.instance.unit = entry_unit
+                # Also set initial as backup
                 self.initial['unit'] = entry_unit
+            
             if 'quantity' in self.fields and getattr(self.instance, 'entered_quantity', None) is not None:
                 self.initial['quantity'] = self.instance.entered_quantity
+    
+    def clean_item(self):
+        """Clean item and update unit and warehouse choices."""
+        item = self.cleaned_data.get('item')
+        
+        # Update unit choices immediately after item is cleaned
+        # This ensures choices are set before unit validation
+        if item:
+            self._set_unit_choices(item=item)
+            # Also update warehouse queryset based on allowed warehouses
+            self._set_warehouse_queryset(item=item)
+        
+        return item
+    
+    def _get_item_allowed_warehouses(self, item: Item):
+        """Get list of allowed warehouses for an item."""
+        if not item:
+            return []
+        relations = item.warehouses.select_related('warehouse')
+        warehouses = [rel.warehouse for rel in relations if rel.warehouse.is_enabled]
+        # IMPORTANT: If no warehouses configured, this means the item CANNOT be received anywhere
+        # Only return warehouses if explicitly configured
+        # This enforces strict warehouse restrictions
+        return [
+            {'value': str(w.pk), 'label': f"{w.public_code} - {w.name}"}
+            for w in warehouses
+        ]
+    
+    def _set_warehouse_queryset(self, item=None):
+        """Set warehouse field queryset based on selected item's allowed warehouses."""
+        warehouse_field = self.fields.get('warehouse')
+        if not warehouse_field:
+            return
+        
+        # If item not provided, try to resolve it
+        if item is None:
+            item = self._resolve_item()
+        
+        if item:
+            allowed_ids = [int(option['value']) for option in self._get_item_allowed_warehouses(item)]
+            if allowed_ids:
+                # Only show allowed warehouses
+                warehouse_field.queryset = Warehouse.objects.filter(pk__in=allowed_ids, is_enabled=1).order_by('name')
+                return
+            else:
+                # No warehouses configured - show empty queryset (will show error in validation)
+                warehouse_field.queryset = Warehouse.objects.none()
+                return
+        
+        # Fallback: show all warehouses in company if no item selected
+        if self.company_id:
+            warehouse_field.queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1).order_by('name')
+    
+    def clean_warehouse(self):
+        """Validate warehouse against item's allowed warehouses."""
+        warehouse = self.cleaned_data.get('warehouse')
+        item = self.cleaned_data.get('item')
+        
+        if warehouse and item:
+            allowed_ids = {int(option['value']) for option in self._get_item_allowed_warehouses(item)}
+            # If item has allowed warehouses configured, warehouse must be in that list
+            # If no warehouses configured, item cannot be received (error)
+            if allowed_ids:
+                if warehouse.id not in allowed_ids:
+                    raise forms.ValidationError(
+                        _('انبار انتخاب شده برای این کالا مجاز نیست. لطفاً یکی از انبارهای مجاز را انتخاب کنید.')
+                    )
+            else:
+                # No warehouses configured for this item - this is an error
+                raise forms.ValidationError(
+                    _('این کالا هیچ انبار مجازی ندارد. لطفاً ابتدا در تعریف کالا، حداقل یک انبار مجاز را انتخاب کنید.')
+                )
+        
+        return warehouse
     
     def clean_unit(self):
         """Validate unit and update choices based on selected item."""
         unit = self.cleaned_data.get('unit')
-        # Update unit choices based on selected item (in case item was selected after form init)
-        # This is needed because Django validates choices before clean() is called
-        item_key = None
-        for key in self.data.keys():
-            if key.endswith('-item'):
-                item_key = key
-                break
-        if item_key:
-            try:
-                item_id = self.data.get(item_key)
-                if item_id:
-                    item = Item.objects.get(pk=item_id, company_id=self.company_id)
-                    self._set_unit_choices()
-            except (Item.DoesNotExist, ValueError, TypeError):
-                pass
+        
+        # Get item from cleaned_data (it should already be cleaned by clean_item)
+        item = self.cleaned_data.get('item')
+        
+        # If no item is selected, don't validate unit (allow empty)
+        if not item:
+            return unit
+        
+        # Update unit choices again (in case clean_item wasn't called or item changed)
+        self._set_unit_choices(item=item)
+        
+        # Now validate unit against allowed units
+        allowed = {row['value'] for row in self._get_item_allowed_units(item)}
+        allowed.add(item.default_unit)
+        
+        # Also check current choices in the field
+        unit_field = self.fields.get('unit')
+        if unit_field:
+            choice_values = {choice[0] for choice in unit_field.choices if choice[0]}
+            allowed.update(choice_values)
+        
+        # If unit is provided and not in allowed list, raise error
+        if unit and unit not in allowed:
+            raise forms.ValidationError(_('Selected unit is not configured for this item.'))
+        
         return unit
     
     def _resolve_item(self, candidate=None):
@@ -2480,22 +2600,48 @@ class IssueLineBaseForm(forms.ModelForm):
         label_map = {value: str(label) for value, label in UNIT_CHOICES}
         return [{'value': code, 'label': label_map.get(code, code)} for code in codes if code]
     
-    def _set_unit_choices(self):
+    def _set_unit_choices(self, item=None):
         """Set unit field choices based on selected item."""
         unit_field = self.fields.get('unit')
         if not unit_field:
             return
         placeholder = UNIT_CHOICES[0]
-        item = self._resolve_item()
+        
+        # If item not provided, try to resolve it
+        if item is None:
+            item = self._resolve_item()
+        
+        # Get current unit from instance if editing
+        current_unit = None
+        if not self.is_bound and getattr(self.instance, 'pk', None):
+            current_unit = getattr(self.instance, 'entered_unit', '') or getattr(self.instance, 'unit', '')
+        
+        # Also get unit from cleaned_data if available (for validation)
+        if not current_unit and hasattr(self, 'cleaned_data'):
+            current_unit = self.cleaned_data.get('unit')
+        
         if item:
             allowed = [(row['value'], row['label']) for row in self._get_item_allowed_units(item)]
-            entry_unit = getattr(self.instance, 'entered_unit', None)
-            if entry_unit and entry_unit not in [code for code, _ in allowed]:
-                label_map = dict(allowed)
-                allowed.append((entry_unit, label_map.get(entry_unit, entry_unit)))
+            allowed_codes = [code for code, _ in allowed]
+            
+            # Add current unit if editing and it's not in allowed list
+            if current_unit and current_unit not in allowed_codes:
+                label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                allowed.append((current_unit, label_map.get(current_unit, current_unit)))
+            
+            # If no units found, add default_unit as fallback
+            if not allowed and item.default_unit:
+                label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                allowed.append((item.default_unit, label_map.get(item.default_unit, item.default_unit)))
+            
             unit_field.choices = [placeholder] + allowed
         else:
-            unit_field.choices = [placeholder]
+            # No item selected, but if editing and have current_unit, add it
+            if current_unit:
+                label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                unit_field.choices = [placeholder, (current_unit, label_map.get(current_unit, current_unit))]
+            else:
+                unit_field.choices = [placeholder]
     
     def _get_unit_factor(self, item: Item, unit_code: str) -> Decimal:
         """Calculate conversion factor from unit_code to item's default_unit."""
@@ -2575,6 +2721,19 @@ class IssueLineBaseForm(forms.ModelForm):
             # Django will skip it during save()
             return cleaned_data
         
+        # Validate warehouse against item's allowed warehouses
+        warehouse = cleaned_data.get('warehouse')
+        if warehouse and item:
+            allowed_ids = {int(option['value']) for option in self._get_item_allowed_warehouses(item)}
+            # If item has allowed warehouses configured, warehouse must be in that list
+            # If no warehouses configured, item cannot be received (error)
+            if allowed_ids:
+                if warehouse.id not in allowed_ids:
+                    self.add_error('warehouse', _('انبار انتخاب شده برای این کالا مجاز نیست. لطفاً یکی از انبارهای مجاز را انتخاب کنید.'))
+            else:
+                # No warehouses configured for this item - this is an error
+                self.add_error('warehouse', _('این کالا هیچ انبار مجازی ندارد. لطفاً ابتدا در تعریف کالا، حداقل یک انبار مجاز را انتخاب کنید.'))
+        
         self._validate_unit(cleaned_data)
         self._normalize_quantity(cleaned_data)
         return cleaned_data
@@ -2600,6 +2759,14 @@ class IssueLineBaseForm(forms.ModelForm):
 class IssuePermanentLineForm(IssueLineBaseForm):
     """Form for permanent issue line items."""
     
+    destination_type = forms.ModelChoiceField(
+        queryset=WorkLine.objects.none(),
+        required=False,
+        label=_('Work Line'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        help_text=_('Select the work line that receives this issue.'),
+    )
+    
     class Meta:
         model = IssuePermanentLine
         fields = [
@@ -2615,7 +2782,6 @@ class IssuePermanentLineForm(IssueLineBaseForm):
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'entered_unit': forms.TextInput(attrs={'class': 'form-control'}),
             'entered_quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'destination_type': forms.TextInput(attrs={'class': 'form-control'}),
             'destination_id': forms.NumberInput(attrs={'class': 'form-control'}),
             'destination_code': forms.TextInput(attrs={'class': 'form-control'}),
             'reason_code': forms.TextInput(attrs={'class': 'form-control'}),
@@ -2625,10 +2791,102 @@ class IssuePermanentLineForm(IssueLineBaseForm):
             'total_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
+    
+    def __init__(self, *args, company_id=None, **kwargs):
+        super().__init__(*args, company_id=company_id, **kwargs)
+        
+        # Set destination_type (WorkLine) queryset
+        if self.company_id and 'destination_type' in self.fields:
+            self.fields['destination_type'].queryset = WorkLine.objects.filter(
+                company_id=self.company_id, is_enabled=1
+            ).order_by('warehouse__name', 'name')
+            self.fields['destination_type'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name} ({obj.warehouse.name if obj.warehouse else ''})"
+            self.fields['destination_type'].empty_label = _("--- انتخاب کنید ---")
+            
+            # If editing and instance has destination_type, try to find matching WorkLine
+            if not self.is_bound and getattr(self.instance, 'pk', None):
+                if self.instance.destination_type == 'work_line' and self.instance.destination_id:
+                    # If destination_type is 'work_line', use destination_id
+                    try:
+                        work_line = WorkLine.objects.get(
+                            company_id=self.company_id,
+                            id=self.instance.destination_id
+                        )
+                        self.initial['destination_type'] = work_line.id
+                    except WorkLine.DoesNotExist:
+                        pass
+                elif self.instance.destination_type and not self.instance.destination_id:
+                    # Try to find WorkLine by code (for old data)
+                    try:
+                        work_line = WorkLine.objects.get(
+                            company_id=self.company_id,
+                            public_code=self.instance.destination_type
+                        )
+                        self.initial['destination_type'] = work_line.id
+                    except WorkLine.DoesNotExist:
+                        pass
+    
+    def clean_destination_type(self):
+        """Validate destination_type (WorkLine)."""
+        work_line = self.cleaned_data.get('destination_type')
+        # Store work_line for later use in save()
+        self._destination_work_line = work_line
+        return work_line
+    
+    def save(self, commit=True):
+        """Save with destination_type handling."""
+        instance = super().save(commit=False)
+        
+        # Handle destination_type (WorkLine)
+        work_line = getattr(self, '_destination_work_line', None)
+        if work_line is None:
+            # Try to get from cleaned_data if _destination_work_line not set
+            work_line = self.cleaned_data.get('destination_type')
+        
+        if work_line and isinstance(work_line, WorkLine):
+            instance.destination_type = 'work_line'
+            instance.destination_id = work_line.id
+            instance.destination_code = work_line.public_code
+        else:
+            # Set default empty value if not provided
+            instance.destination_type = ''
+            instance.destination_id = None
+            instance.destination_code = ''
+        
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
 class IssueConsumptionLineForm(IssueLineBaseForm):
     """Form for consumption issue line items."""
+    
+    destination_type_choice = forms.ChoiceField(
+        choices=[
+            ('', _('--- انتخاب کنید ---')),
+            ('company_unit', _('واحد کاری (Company Unit)')),
+            ('work_line', _('خط کاری (Work Line)')),
+        ],
+        required=False,
+        label=_('نوع مقصد'),
+        widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_destination_type_choice'}),
+        help_text=_('ابتدا نوع مقصد را انتخاب کنید.'),
+    )
+    
+    destination_company_unit = forms.ModelChoiceField(
+        queryset=CompanyUnit.objects.none(),
+        required=False,
+        label=_('واحد کاری'),
+        widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_destination_company_unit'}),
+    )
+    
+    destination_work_line = forms.ModelChoiceField(
+        queryset=WorkLine.objects.none(),
+        required=False,
+        label=_('خط کاری'),
+        widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_destination_work_line'}),
+    )
     
     work_line = forms.ModelChoiceField(
         queryset=WorkLine.objects.none(),
@@ -2642,7 +2900,8 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
         fields = [
             'item', 'warehouse', 'unit', 'quantity',
             'entered_unit', 'entered_quantity',
-            'consumption_type', 'work_line',
+            'destination_type_choice', 'destination_company_unit', 'destination_work_line',  # Destination fields
+            'consumption_type', 'work_line',  # consumption_type is hidden, managed by destination_type_choice
             'reference_document_type', 'reference_document_id', 'reference_document_code',
             'production_transfer_id', 'production_transfer_code',
             'unit_cost', 'total_cost', 'cost_center_code',
@@ -2654,7 +2913,8 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'entered_unit': forms.TextInput(attrs={'class': 'form-control'}),
             'entered_quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'consumption_type': forms.TextInput(attrs={'class': 'form-control'}),
+            'consumption_type': forms.HiddenInput(),  # Hidden, set automatically based on destination_type_choice
+            'work_line': forms.Select(attrs={'class': 'form-control'}),
             'reference_document_type': forms.TextInput(attrs={'class': 'form-control'}),
             'reference_document_id': forms.NumberInput(attrs={'class': 'form-control'}),
             'reference_document_code': forms.TextInput(attrs={'class': 'form-control'}),
@@ -2662,17 +2922,138 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
             'production_transfer_code': forms.TextInput(attrs={'class': 'form-control'}),
             'unit_cost': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'total_cost': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'cost_center_code': forms.TextInput(attrs={'class': 'form-control'}),
+            'cost_center_code': forms.HiddenInput(),  # Hidden, used internally for company_unit storage
             'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
     
     def __init__(self, *args, company_id=None, **kwargs):
         super().__init__(*args, company_id=company_id, **kwargs)
-        if self.company_id and 'work_line' in self.fields:
+        # Update querysets if company_id is available
+        self._update_querysets_after_company_id()
+    
+    def _update_querysets_after_company_id(self):
+        """Update querysets after company_id is set (called from BaseLineFormSet)."""
+        if not self.company_id:
+            return
+        
+        # Set work_line queryset
+        if 'work_line' in self.fields:
             self.fields['work_line'].queryset = WorkLine.objects.filter(
                 company_id=self.company_id, is_enabled=1
+            ).order_by('warehouse__name', 'name')
+            self.fields['work_line'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name} ({obj.warehouse.name if obj.warehouse else ''})"
+        
+        # Set destination_company_unit queryset
+        if 'destination_company_unit' in self.fields:
+            self.fields['destination_company_unit'].queryset = CompanyUnit.objects.filter(
+                company_id=self.company_id, is_enabled=1
             ).order_by('name')
-            self.fields['work_line'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
+            self.fields['destination_company_unit'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
+            self.fields['destination_company_unit'].empty_label = _("--- انتخاب کنید ---")
+        
+        # Set destination_work_line queryset (initially all work lines, will be filtered by JavaScript based on warehouse)
+        if 'destination_work_line' in self.fields:
+            self.fields['destination_work_line'].queryset = WorkLine.objects.filter(
+                company_id=self.company_id, is_enabled=1
+            ).select_related('warehouse').order_by('warehouse__name', 'name')
+            self.fields['destination_work_line'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name} ({obj.warehouse.name if obj.warehouse else ''})"
+            self.fields['destination_work_line'].empty_label = _("--- انتخاب کنید ---")
+        
+        # If editing, set initial values based on consumption_type
+        if not self.is_bound and getattr(self.instance, 'pk', None):
+            dest_type = getattr(self.instance, 'consumption_type', None)
+            # Set consumption_type initial value (hidden field)
+            if dest_type:
+                self.initial['consumption_type'] = dest_type
+            
+            if dest_type == 'company_unit':
+                # Try to get company unit from cost_center_code (where we stored it)
+                if hasattr(self.instance, 'cost_center_code') and self.instance.cost_center_code:
+                    try:
+                        unit = CompanyUnit.objects.get(
+                            company_id=self.company_id,
+                            public_code=self.instance.cost_center_code
+                        )
+                        self.initial['destination_type_choice'] = 'company_unit'
+                        self.initial['destination_company_unit'] = unit.id
+                        # Show the company unit field container (JavaScript will handle display)
+                    except CompanyUnit.DoesNotExist:
+                        pass
+            elif dest_type == 'work_line' and self.instance.work_line:
+                self.initial['destination_type_choice'] = 'work_line'
+                self.initial['destination_work_line'] = self.instance.work_line.id
+                # Show the work line field container (JavaScript will handle display)
+    
+    def clean(self):
+        """Validate destination selection."""
+        cleaned_data = super().clean()
+        dest_type_choice = cleaned_data.get('destination_type_choice')
+        dest_company_unit = cleaned_data.get('destination_company_unit')
+        dest_work_line = cleaned_data.get('destination_work_line')
+        
+        # Check if item is selected (required for validation)
+        item = cleaned_data.get('item')
+        if not item:
+            # If no item, skip destination validation (form will be skipped anyway)
+            return cleaned_data
+        
+        # Require destination_type_choice to be selected
+        if not dest_type_choice:
+            self.add_error('destination_type_choice', _('Please select a destination type.'))
+            return cleaned_data
+        
+        # Validate based on selected destination type
+        if dest_type_choice == 'company_unit':
+            if not dest_company_unit:
+                self.add_error('destination_company_unit', _('Please select a company unit.'))
+        elif dest_type_choice == 'work_line':
+            if not dest_work_line:
+                self.add_error('destination_work_line', _('Please select a work line.'))
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        """Save with destination handling."""
+        instance = super().save(commit=False)
+        
+        dest_type_choice = self.cleaned_data.get('destination_type_choice')
+        dest_company_unit = self.cleaned_data.get('destination_company_unit')
+        dest_work_line = self.cleaned_data.get('destination_work_line')
+        
+        # Set destination based on choice
+        if dest_type_choice == 'company_unit' and dest_company_unit:
+            instance.consumption_type = 'company_unit'
+            # For company_unit, we store the unit ID in a way we can retrieve it later
+            # Since IssueConsumptionLine doesn't have destination_id, we can store it in cost_center_code as temporary solution
+            # Or we need to check if model has these fields
+            instance.work_line = None
+            # Store company unit code in cost_center_code for now (or we could add destination fields to model)
+            if hasattr(instance, 'cost_center_code'):
+                instance.cost_center_code = dest_company_unit.public_code
+        elif dest_type_choice == 'work_line' and dest_work_line:
+            instance.consumption_type = 'work_line'
+            instance.work_line = dest_work_line
+            if hasattr(instance, 'cost_center_code') and instance.cost_center_code:
+                # Clear cost_center_code if it was used for company_unit
+                try:
+                    CompanyUnit.objects.get(public_code=instance.cost_center_code)
+                    instance.cost_center_code = ''
+                except CompanyUnit.DoesNotExist:
+                    pass
+        else:
+            # If no choice made, this should have been caught by validation
+            # But if we reach here, it means validation didn't catch it
+            # This should not happen, but we need to handle it
+            # Don't save if consumption_type is not set (validation should prevent this)
+            if not getattr(instance, 'consumption_type', None) and not instance.pk:
+                # This is a new instance without consumption_type - validation should have caught this
+                # We'll let the database constraint catch it if validation didn't
+                pass
+        
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
 class IssueConsignmentLineForm(IssueLineBaseForm):
@@ -2682,6 +3063,14 @@ class IssueConsignmentLineForm(IssueLineBaseForm):
         queryset=ReceiptConsignment.objects.none(),
         label=_('Consignment Receipt'),
         widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+    
+    destination_type = forms.ModelChoiceField(
+        queryset=WorkLine.objects.none(),
+        required=False,
+        label=_('Work Line'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        help_text=_('Select the work line that receives this issue.'),
     )
     
     class Meta:
@@ -2699,7 +3088,6 @@ class IssueConsignmentLineForm(IssueLineBaseForm):
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'entered_unit': forms.TextInput(attrs={'class': 'form-control'}),
             'entered_quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'destination_type': forms.TextInput(attrs={'class': 'form-control'}),
             'destination_id': forms.NumberInput(attrs={'class': 'form-control'}),
             'destination_code': forms.TextInput(attrs={'class': 'form-control'}),
             'reason_code': forms.TextInput(attrs={'class': 'form-control'}),
@@ -2708,11 +3096,69 @@ class IssueConsignmentLineForm(IssueLineBaseForm):
     
     def __init__(self, *args, company_id=None, **kwargs):
         super().__init__(*args, company_id=company_id, **kwargs)
-        if self.company_id and 'consignment_receipt' in self.fields:
-            self.fields['consignment_receipt'].queryset = ReceiptConsignment.objects.filter(
-                company_id=self.company_id
-            ).order_by('-document_date', 'document_code')
-            self.fields['consignment_receipt'].label_from_instance = lambda obj: f"{obj.document_code}"
+        
+        if self.company_id:
+            if 'consignment_receipt' in self.fields:
+                self.fields['consignment_receipt'].queryset = ReceiptConsignment.objects.filter(
+                    company_id=self.company_id
+                ).order_by('-document_date', 'document_code')
+                self.fields['consignment_receipt'].label_from_instance = lambda obj: f"{obj.document_code}"
+            
+            # Set destination_type (WorkLine) queryset
+            if 'destination_type' in self.fields:
+                self.fields['destination_type'].queryset = WorkLine.objects.filter(
+                    company_id=self.company_id, is_enabled=1
+                ).order_by('warehouse__name', 'name')
+                self.fields['destination_type'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name} ({obj.warehouse.name if obj.warehouse else ''})"
+                self.fields['destination_type'].empty_label = _("--- انتخاب کنید ---")
+                
+                # If editing and instance has destination_type, try to find matching WorkLine
+                if not self.is_bound and getattr(self.instance, 'pk', None):
+                    if self.instance.destination_type == 'work_line' and self.instance.destination_id:
+                        try:
+                            work_line = WorkLine.objects.get(
+                                company_id=self.company_id,
+                                id=self.instance.destination_id
+                            )
+                            self.initial['destination_type'] = work_line.id
+                        except WorkLine.DoesNotExist:
+                            pass
+                    elif self.instance.destination_type and not self.instance.destination_id:
+                        try:
+                            work_line = WorkLine.objects.get(
+                                company_id=self.company_id,
+                                public_code=self.instance.destination_type
+                            )
+                            self.initial['destination_type'] = work_line.id
+                        except WorkLine.DoesNotExist:
+                            pass
+    
+    def clean_destination_type(self):
+        """Validate destination_type (WorkLine)."""
+        work_line = self.cleaned_data.get('destination_type')
+        self._destination_work_line = work_line
+        return work_line
+    
+    def save(self, commit=True):
+        """Save with destination_type handling."""
+        instance = super().save(commit=False)
+        
+        # Handle destination_type (WorkLine)
+        work_line = getattr(self, '_destination_work_line', None) or self.cleaned_data.get('destination_type')
+        
+        if work_line and isinstance(work_line, WorkLine):
+            instance.destination_type = 'work_line'
+            instance.destination_id = work_line.id
+            instance.destination_code = work_line.public_code
+        else:
+            instance.destination_type = ''
+            instance.destination_id = None
+            instance.destination_code = ''
+        
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
 class ReceiptLineBaseForm(forms.ModelForm):
@@ -2840,6 +3286,38 @@ class ReceiptLineBaseForm(forms.ModelForm):
         
         self.fields['unit'].choices = unit_choices
     
+    def clean_item(self):
+        """Clean item and update unit and warehouse choices."""
+        item = self.cleaned_data.get('item')
+        
+        # Update warehouse queryset based on allowed warehouses
+        if item:
+            self._set_warehouse_queryset(item=item)
+        
+        return item
+    
+    def clean_warehouse(self):
+        """Validate warehouse against item's allowed warehouses."""
+        warehouse = self.cleaned_data.get('warehouse')
+        item = self.cleaned_data.get('item')
+        
+        if warehouse and item:
+            allowed_ids = {int(option['value']) for option in self._get_item_allowed_warehouses(item)}
+            # If item has allowed warehouses configured, warehouse must be in that list
+            # If no warehouses configured, item cannot be received (error)
+            if allowed_ids:
+                if warehouse.id not in allowed_ids:
+                    raise forms.ValidationError(
+                        _('انبار انتخاب شده برای این کالا مجاز نیست. لطفاً یکی از انبارهای مجاز را انتخاب کنید.')
+                    )
+            else:
+                # No warehouses configured for this item - this is an error
+                raise forms.ValidationError(
+                    _('این کالا هیچ انبار مجازی ندارد. لطفاً ابتدا در تعریف کالا، حداقل یک انبار مجاز را انتخاب کنید.')
+                )
+        
+        return warehouse
+    
     def clean_unit(self):
         """Validate unit."""
         unit = self.cleaned_data.get('unit')
@@ -2849,6 +3327,45 @@ class ReceiptLineBaseForm(forms.ModelForm):
             if unit and unit not in allowed:
                 raise forms.ValidationError(_('Selected unit is not configured for this item.'))
         return unit
+    
+    def _get_item_allowed_warehouses(self, item: Item):
+        """Get list of allowed warehouses for an item."""
+        if not item:
+            return []
+        relations = item.warehouses.select_related('warehouse')
+        warehouses = [rel.warehouse for rel in relations if rel.warehouse.is_enabled]
+        # IMPORTANT: If no warehouses configured, this means the item CANNOT be received anywhere
+        # Only return warehouses if explicitly configured
+        # This enforces strict warehouse restrictions
+        return [
+            {'value': str(w.pk), 'label': f"{w.public_code} - {w.name}"}
+            for w in warehouses
+        ]
+    
+    def _set_warehouse_queryset(self, item=None):
+        """Set warehouse field queryset based on selected item's allowed warehouses."""
+        warehouse_field = self.fields.get('warehouse')
+        if not warehouse_field:
+            return
+        
+        # If item not provided, try to resolve it
+        if item is None:
+            item = self._resolve_item()
+        
+        if item:
+            allowed_ids = [int(option['value']) for option in self._get_item_allowed_warehouses(item)]
+            if allowed_ids:
+                # Only show allowed warehouses
+                warehouse_field.queryset = Warehouse.objects.filter(pk__in=allowed_ids, is_enabled=1).order_by('name')
+                return
+            else:
+                # No warehouses configured - show empty queryset (will show error in validation)
+                warehouse_field.queryset = Warehouse.objects.none()
+                return
+        
+        # Fallback: show all warehouses in company if no item selected
+        if self.company_id:
+            warehouse_field.queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1).order_by('name')
     
     def _resolve_item(self, candidate=None):
         """Resolve item from form data or instance."""
@@ -3156,9 +3673,12 @@ class BaseLineFormSet(forms.BaseInlineFormSet):
     def __init__(self, *args, company_id=None, **kwargs):
         self.company_id = company_id
         super().__init__(*args, **kwargs)
-        # Pass company_id to all forms in the formset
+        # Pass company_id to all forms in the formset and update querysets
         for form in self.forms:
             form.company_id = company_id
+            # Update querysets after company_id is set
+            if hasattr(form, '_update_querysets_after_company_id'):
+                form._update_querysets_after_company_id()
     
     def clean(self):
         """Validate that at least one line has an item."""

@@ -1,3 +1,5 @@
+import re
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, Group
 from django.core.validators import RegexValidator
@@ -213,7 +215,7 @@ class CompanyUnit(CompanyScopedModel, TimeStampedModel, ActivatableModel, Metada
 
 
 class AccessLevel(TimeStampedModel, ActivatableModel, MetadataModel):
-    code = models.CharField(max_length=30, unique=True)
+    code = models.CharField(max_length=30, unique=True, blank=True, editable=False)
     name = models.CharField(max_length=120)
     description = models.TextField(blank=True)
     is_global = models.PositiveSmallIntegerField(
@@ -228,6 +230,38 @@ class AccessLevel(TimeStampedModel, ActivatableModel, MetadataModel):
 
     def __str__(self) -> str:
         return self.name
+    
+    def save(self, *args, **kwargs):
+        if not self.code:
+            # Generate code from name: convert to uppercase, replace spaces with underscores
+            base_code = self.name.upper().strip()
+            # Remove special characters, keep only alphanumeric and underscores
+            base_code = ''.join(c if c.isalnum() or c == '_' else '_' for c in base_code)
+            # Replace multiple underscores with single underscore
+            base_code = re.sub(r'_+', '_', base_code)
+            # Remove leading/trailing underscores
+            base_code = base_code.strip('_')
+            # Limit length to 25 chars (leaving room for sequence suffix)
+            if len(base_code) > 25:
+                base_code = base_code[:25].rstrip('_')
+            
+            # If empty after cleaning, use default
+            if not base_code:
+                base_code = "ACCESS_LEVEL"
+            
+            # Check if code exists, if yes add sequence
+            candidate_code = base_code
+            sequence = 1
+            while AccessLevel.objects.filter(code=candidate_code).exclude(pk=self.pk).exists():
+                suffix = f"_{sequence}"
+                # Ensure total length doesn't exceed 30
+                max_base_len = 30 - len(suffix)
+                candidate_code = base_code[:max_base_len] + suffix
+                sequence += 1
+            
+            self.code = candidate_code
+        
+        super().save(*args, **kwargs)
 
 
 class AccessLevelPermission(TimeStampedModel, MetadataModel):

@@ -3,6 +3,8 @@ Views for the inventory module.
 """
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_http_methods
 from django.views.generic import ListView, TemplateView, CreateView, UpdateView, DeleteView, View, FormView
 from django.http import JsonResponse, HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
@@ -182,6 +184,12 @@ class LineFormsetMixin:
         """Save line formset instances."""
         # Process each form in the formset manually to ensure all valid forms are saved
         for form in formset.forms:
+            # Check if form has cleaned_data
+            # Note: Even if form has errors, cleaned_data might still exist for some fields
+            # But we should check if the form is actually valid before saving
+            if not form.cleaned_data:
+                continue
+            
             # Check if form should be deleted
             if form.cleaned_data.get('DELETE', False):
                 if form.instance.pk:
@@ -194,6 +202,11 @@ class LineFormsetMixin:
                 # Skip empty forms
                 continue
             
+            # Check if form has errors - if it does, skip it
+            # This is important because validation errors mean the form shouldn't be saved
+            if form.errors:
+                continue
+            
             # Save the instance
             instance = form.save(commit=False)
             instance.company = self.object.company
@@ -202,6 +215,45 @@ class LineFormsetMixin:
                 instance.company_id = self.object.company_id
             instance.save()
             form.save_m2m()  # Save ManyToMany relationships (serials)
+            
+            # Handle selected serials from hidden input (for new issue lines)
+            if hasattr(instance, 'serials'):
+                # Get selected serials from POST data
+                prefix = form.prefix
+                selected_serials_key = f'{prefix}-selected_serials'
+                selected_serials_str = self.request.POST.get(selected_serials_key, '')
+                
+                if selected_serials_str:
+                    try:
+                        # Parse comma-separated serial IDs
+                        serial_ids = [int(id.strip()) for id in selected_serials_str.split(',') if id.strip()]
+                        
+                        if serial_ids:
+                            # Get available serials for this item and warehouse
+                            if instance.item and instance.item.has_lot_tracking == 1:
+                                # Filter serials: must be same company, same item, same warehouse, and available/reserved
+                                available_serials = models.ItemSerial.objects.filter(
+                                    company_id=instance.company_id,
+                                    item=instance.item,
+                                    current_warehouse=instance.warehouse,
+                                    current_status__in=[models.ItemSerial.Status.AVAILABLE, models.ItemSerial.Status.RESERVED],
+                                    pk__in=serial_ids
+                                )
+                                
+                                # Assign serials to this line
+                                instance.serials.set(available_serials)
+                                
+                                # Reserve serials for this line
+                                if available_serials.exists():
+                                    from .services import serials as serial_service
+                                    serial_service.sync_issue_line_serials(
+                                        instance,
+                                        [],  # No previous serials for new lines
+                                        user=self.request.user
+                                    )
+                    except (ValueError, TypeError) as e:
+                        # Ignore invalid serial IDs
+                        pass
 
 
 class ItemUnitFormsetMixin:
@@ -1154,6 +1206,11 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
     context_object_name = 'receipts'
     paginate_by = 50
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = queryset.select_related('created_by')
+        return queryset
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['create_url'] = reverse_lazy('inventory:receipt_temporary_create')
@@ -1180,7 +1237,7 @@ class ReceiptPermanentListView(InventoryBaseView, ListView):
             'lines__item',
             'lines__warehouse',
             'lines__supplier'
-        )
+        ).select_related('created_by')
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -1202,6 +1259,16 @@ class ReceiptConsignmentListView(InventoryBaseView, ListView):
     template_name = 'inventory/receipt_consignment.html'
     context_object_name = 'receipts'
     paginate_by = 50
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Prefetch lines with related items, warehouses, and suppliers for efficient display
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse',
+            'lines__supplier'
+        ).select_related('created_by')
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1599,6 +1666,29 @@ class IssuePermanentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
+        
+        # Check if there are any valid lines
+        valid_lines = 0
+        for line_form in lines_formset.forms:
+            # Only count forms that:
+            # 1. Have cleaned_data
+            # 2. Have no errors
+            # 3. Have an item
+            # 4. Are not marked for deletion
+            if (line_form.cleaned_data and 
+                not line_form.errors and
+                line_form.cleaned_data.get('item') and 
+                not line_form.cleaned_data.get('DELETE', False)):
+                valid_lines += 1
+        
+        if valid_lines == 0:
+            # Delete the document if no valid lines
+            self.object.delete()
+            lines_formset.add_error(None, _('Please add at least one line with an item.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
         self._save_line_formset(lines_formset)
         
         messages.success(self.request, _('حواله دائم با موفقیت ایجاد شد.'))
@@ -1606,7 +1696,7 @@ class IssuePermanentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
 
     def get_fieldsets(self):
         return [
-            (_('Document Info'), ['document_code', 'document_date', 'department_unit']),
+            (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
         ]
 
 
@@ -1635,6 +1725,27 @@ class IssuePermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, Rec
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
+        
+        # Check if there are any valid lines
+        valid_lines = 0
+        for line_form in lines_formset.forms:
+            # Only count forms that:
+            # 1. Have cleaned_data
+            # 2. Have no errors
+            # 3. Have an item
+            # 4. Are not marked for deletion
+            if (line_form.cleaned_data and 
+                not line_form.errors and
+                line_form.cleaned_data.get('item') and 
+                not line_form.cleaned_data.get('DELETE', False)):
+                valid_lines += 1
+        
+        if valid_lines == 0:
+            lines_formset.add_error(None, _('Please add at least one line with an item.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
         self._save_line_formset(lines_formset)
         
         messages.success(self.request, _('حواله دائم با موفقیت ویرایش شد.'))
@@ -1642,7 +1753,7 @@ class IssuePermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, Rec
 
     def get_fieldsets(self):
         return [
-            (_('Document Info'), ['document_code', 'document_date', 'department_unit']),
+            (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
         ]
 
 
@@ -1657,27 +1768,101 @@ class IssueConsumptionCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
     lock_url_name = 'inventory:issue_consumption_lock'
 
     def form_valid(self, form):
+        import logging
+        logger = logging.getLogger(__name__)
+        
         form.instance.company_id = self.request.session.get('active_company_id')
         form.instance.created_by = self.request.user
         form.instance.edited_by = self.request.user
         
         # Save document first
         self.object = form.save()
+        logger.info(f"Created IssueConsumption document: {self.object.document_code} (ID: {self.object.id})")
         
         # Handle line formset
         lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
         if not lines_formset.is_valid():
+            logger.warning(f"Formset is not valid for document {self.object.document_code}")
+            # Add formset errors to form for display
+            if lines_formset.non_form_errors():
+                for error in lines_formset.non_form_errors():
+                    logger.warning(f"Formset non-form error: {error}")
+                    form.add_error(None, error)
+            # Also add individual form errors for better debugging
+            for idx, line_form in enumerate(lines_formset.forms):
+                if line_form.errors:
+                    logger.warning(f"Line {idx + 1} has errors: {line_form.errors}")
+                    for field, errors in line_form.errors.items():
+                        for error in errors:
+                            error_msg = _('Line %(line)d - %(field)s: %(error)s') % {
+                                'line': idx + 1,
+                                'field': field,
+                                'error': error
+                            }
+                            form.add_error(None, error_msg)
+                elif line_form.cleaned_data:
+                    logger.info(f"Line {idx + 1} cleaned_data: item={line_form.cleaned_data.get('item')}, destination_type_choice={line_form.cleaned_data.get('destination_type_choice')}")
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
+        
+        # Check if we have at least one valid line before saving
+        valid_lines = []
+        form_errors = []
+        for idx, line_form in enumerate(lines_formset.forms):
+            # Skip empty forms (no item)
+            if not line_form.cleaned_data:
+                logger.debug(f"Line {idx + 1}: No cleaned_data, skipping")
+                continue
+            # Skip deleted forms
+            if line_form.cleaned_data.get('DELETE', False):
+                logger.debug(f"Line {idx + 1}: Marked for deletion, skipping")
+                continue
+            # Skip forms without item
+            if not line_form.cleaned_data.get('item'):
+                logger.debug(f"Line {idx + 1}: No item selected, skipping")
+                continue
+            # Check if form has validation errors
+            if line_form.errors:
+                # Collect error messages for display
+                item_name = str(line_form.cleaned_data.get('item', 'Item'))
+                logger.warning(f"Line {idx + 1} (item: {item_name}) has validation errors: {line_form.errors}")
+                for field, errors in line_form.errors.items():
+                    for error in errors:
+                        form_errors.append(f"{item_name}: {field}: {error}")
+                # Form has errors, don't count it as valid but keep the formset to show errors
+                continue
+            # This form is valid
+            logger.info(f"Line {idx + 1} is valid: item={line_form.cleaned_data.get('item')}")
+            valid_lines.append(line_form)
+        
+        logger.info(f"Found {len(valid_lines)} valid lines out of {len(lines_formset.forms)} total forms")
+        
+        if not valid_lines:
+            # No valid lines, show error and delete the document
+            logger.warning(f"No valid lines found for document {self.object.document_code}, deleting document")
+            self.object.delete()
+            if form_errors:
+                for error_msg in form_errors:
+                    form.add_error(None, error_msg)
+            else:
+                form.add_error(None, _('Please add at least one line with an item and complete all required fields.'))
+            # Rebuild formset with POST data to preserve user input and show errors
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        logger.info(f"Saving {len(valid_lines)} valid lines for document {self.object.document_code}")
         self._save_line_formset(lines_formset)
         
+        logger.info(f"Successfully created IssueConsumption {self.object.document_code} with {len(valid_lines)} lines")
         messages.success(self.request, _('حواله مصرف با موفقیت ایجاد شد.'))
         return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self):
         return [
-            (_('Document Info'), ['document_code', 'document_date', 'department_unit']),
+            (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
         ]
 
 
@@ -1713,7 +1898,7 @@ class IssueConsumptionUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
 
     def get_fieldsets(self):
         return [
-            (_('Document Info'), ['document_code', 'document_date', 'department_unit']),
+            (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
         ]
 
 
@@ -1748,7 +1933,7 @@ class IssueConsignmentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
 
     def get_fieldsets(self):
         return [
-            (_('Document Info'), ['document_code', 'document_date', 'department_unit']),
+            (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
         ]
 
 
@@ -1784,7 +1969,7 @@ class IssueConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
 
     def get_fieldsets(self):
         return [
-            (_('Document Info'), ['document_code', 'document_date', 'department_unit']),
+            (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
         ]
 
 
@@ -1985,6 +2170,14 @@ class IssuePermanentListView(InventoryBaseView, ListView):
     context_object_name = 'issues'
     paginate_by = 50
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = queryset.select_related('created_by', 'department_unit').prefetch_related(
+            'lines__item',
+            'lines__warehouse',
+        )
+        return queryset
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['create_url'] = reverse_lazy('inventory:issue_permanent_create')
@@ -2001,6 +2194,11 @@ class IssueConsumptionListView(InventoryBaseView, ListView):
     context_object_name = 'issues'
     paginate_by = 50
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = queryset.select_related('created_by')
+        return queryset
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['create_url'] = reverse_lazy('inventory:issue_consumption_create')
@@ -2016,6 +2214,11 @@ class IssueConsignmentListView(InventoryBaseView, ListView):
     template_name = 'inventory/issue_consignment.html'
     context_object_name = 'issues'
     paginate_by = 50
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = queryset.select_related('created_by')
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -2858,5 +3061,130 @@ def get_item_allowed_units(request):
         units = [{'value': code, 'label': label_map.get(code, code)} for code in codes if code]
         
         return JsonResponse({'units': units, 'default_unit': item.default_unit})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+@login_required
+def get_item_allowed_warehouses(request):
+    """API endpoint to get allowed warehouses for an item."""
+    item_id = request.GET.get('item_id')
+    if not item_id:
+        return JsonResponse({'error': 'item_id parameter required'}, status=400)
+
+    try:
+        company_id = request.session.get('active_company_id')
+        if not company_id:
+            return JsonResponse({'error': 'No active company'}, status=400)
+
+        item = get_object_or_404(models.Item, pk=item_id, company_id=company_id, is_enabled=1)
+
+        # Get allowed warehouses
+        relations = item.warehouses.select_related('warehouse')
+        warehouses = [rel.warehouse for rel in relations if rel.warehouse.is_enabled]
+
+        # IMPORTANT: If no warehouses configured, this means the item CANNOT be received anywhere
+        # Only return warehouses if explicitly configured
+        # This enforces strict warehouse restrictions
+
+        warehouses_data = [
+            {'value': str(w.pk), 'label': f"{w.public_code} - {w.name}"}
+            for w in warehouses
+        ]
+
+        return JsonResponse({'warehouses': warehouses_data})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+@login_required
+def get_item_available_serials(request):
+    """API endpoint to get available serial numbers for an item in a warehouse."""
+    item_id = request.GET.get('item_id')
+    warehouse_id = request.GET.get('warehouse_id')
+    
+    if not item_id:
+        return JsonResponse({'error': 'item_id parameter required'}, status=400)
+    
+    if not warehouse_id:
+        return JsonResponse({'error': 'warehouse_id parameter required'}, status=400)
+
+    try:
+        company_id = request.session.get('active_company_id')
+        if not company_id:
+            return JsonResponse({'error': 'No active company'}, status=400)
+
+        item = get_object_or_404(models.Item, pk=item_id, company_id=company_id, is_enabled=1)
+        
+        # Check if item has lot tracking enabled
+        if item.has_lot_tracking != 1:
+            return JsonResponse({'serials': [], 'has_lot_tracking': False})
+
+        warehouse = get_object_or_404(models.Warehouse, pk=warehouse_id, company_id=company_id, is_enabled=1)
+
+        # Get available serials: same company, same item, same warehouse, status AVAILABLE or RESERVED
+        # Exclude ISSUED, CONSUMED, DAMAGED, RETURNED serials
+        serials = models.ItemSerial.objects.filter(
+            company_id=company_id,
+            item=item,
+            current_warehouse=warehouse,
+            current_status__in=[models.ItemSerial.Status.AVAILABLE, models.ItemSerial.Status.RESERVED]
+        ).order_by('serial_code')
+
+        serials_data = [
+            {
+                'value': str(s.pk),
+                'label': s.serial_code,
+                'status': s.current_status,
+            }
+            for s in serials
+        ]
+
+        return JsonResponse({
+            'serials': serials_data,
+            'has_lot_tracking': True,
+            'count': len(serials_data)
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+@login_required
+def get_warehouse_work_lines(request):
+    """API endpoint to get work lines for a warehouse."""
+    warehouse_id = request.GET.get('warehouse_id')
+    
+    if not warehouse_id:
+        return JsonResponse({'error': 'warehouse_id parameter required'}, status=400)
+
+    try:
+        company_id = request.session.get('active_company_id')
+        if not company_id:
+            return JsonResponse({'error': 'No active company'}, status=400)
+
+        warehouse = get_object_or_404(models.Warehouse, pk=warehouse_id, company_id=company_id, is_enabled=1)
+
+        # Get work lines for this warehouse
+        work_lines = models.WorkLine.objects.filter(
+            company_id=company_id,
+            warehouse=warehouse,
+            is_enabled=1
+        ).order_by('name')
+
+        work_lines_data = [
+            {
+                'value': str(wl.pk),
+                'label': f"{wl.public_code} · {wl.name}",
+            }
+            for wl in work_lines
+        ]
+
+        return JsonResponse({
+            'work_lines': work_lines_data,
+            'count': len(work_lines_data)
+        })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

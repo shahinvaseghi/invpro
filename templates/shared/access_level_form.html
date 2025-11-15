@@ -27,7 +27,7 @@
     <div class="form-grid">
       {% for field in form %}
         <div class="form-field">
-          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span style="color: red;">*</span>{% endif %}</label>
           {{ field }}
           {% if field.help_text %}
             <small class="form-text text-muted">{{ field.help_text }}</small>
@@ -38,11 +38,25 @@
         </div>
       {% endfor %}
     </div>
+    
+    {% if form.instance and form.instance.pk and form.instance.code %}
+    <div class="form-grid">
+      <div class="form-field">
+        <label>{% trans "Code" %}</label>
+        <input type="text" class="form-control" value="{{ form.instance.code }}" readonly style="background-color: #f3f4f6;">
+        <small class="form-text text-muted">{% trans "Auto-generated from name. Cannot be changed." %}</small>
+      </div>
+    </div>
+    {% endif %}
 
     <section class="form-section">
       <header class="section-header">
         <h2>{% trans "Feature Permissions" %}</h2>
         <p>{% trans "Select the allowed actions for each feature. View permissions can be limited to own records or extended to all records." %}</p>
+        <div style="margin-top: 10px;">
+          <button type="button" id="select-all-global" class="btn btn-sm btn-secondary">{% trans "Select All" %}</button>
+          <button type="button" id="deselect-all-global" class="btn btn-sm btn-secondary">{% trans "Deselect All" %}</button>
+        </div>
       </header>
 
       <table class="data-table permissions-table">
@@ -51,11 +65,12 @@
             <th>{% trans "Feature" %}</th>
             <th>{% trans "View Scope" %}</th>
             <th>{% trans "Actions" %}</th>
+            <th style="width: 150px;">{% trans "Quick Actions" %}</th>
           </tr>
         </thead>
         <tbody>
           {% for feature in feature_permissions %}
-          <tr>
+          <tr data-feature-id="{{ feature.html_id }}">
             <td>
               <strong>{{ feature.label }}</strong>
               <div class="muted-text code">{{ feature.code }}</div>
@@ -94,11 +109,92 @@
                 <span class="muted-text">{% trans "No extra actions available." %}</span>
               {% endif %}
             </td>
+            <td>
+              <button type="button" class="btn btn-sm btn-primary select-all-row" data-feature-id="{{ feature.html_id }}">{% trans "Select All" %}</button>
+              <button type="button" class="btn btn-sm btn-secondary deselect-all-row" data-feature-id="{{ feature.html_id }}">{% trans "Deselect All" %}</button>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </section>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Function to select all in a row
+      function selectAllRow(featureId) {
+        const row = document.querySelector(`tr[data-feature-id="${featureId}"]`);
+        if (!row) return;
+        
+        // Select "all" radio button if view is supported
+        const viewRadio = row.querySelector(`input[name="perm-${featureId}-view"][value="all"]`);
+        if (viewRadio) {
+          viewRadio.checked = true;
+        }
+        
+        // Check all checkboxes in this row
+        const checkboxes = row.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+          checkbox.checked = true;
+        });
+      }
+      
+      // Function to deselect all in a row
+      function deselectAllRow(featureId) {
+        const row = document.querySelector(`tr[data-feature-id="${featureId}"]`);
+        if (!row) return;
+        
+        // Select "none" radio button if view is supported
+        const viewRadio = row.querySelector(`input[name="perm-${featureId}-view"][value="none"]`);
+        if (viewRadio) {
+          viewRadio.checked = true;
+        }
+        
+        // Uncheck all checkboxes in this row
+        const checkboxes = row.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+          checkbox.checked = false;
+        });
+      }
+      
+      // Function to select all globally
+      function selectAllGlobal() {
+        const rows = document.querySelectorAll('tr[data-feature-id]');
+        rows.forEach(row => {
+          const featureId = row.getAttribute('data-feature-id');
+          selectAllRow(featureId);
+        });
+      }
+      
+      // Function to deselect all globally
+      function deselectAllGlobal() {
+        const rows = document.querySelectorAll('tr[data-feature-id]');
+        rows.forEach(row => {
+          const featureId = row.getAttribute('data-feature-id');
+          deselectAllRow(featureId);
+        });
+      }
+      
+      // Attach event listeners for row buttons
+      document.querySelectorAll('.select-all-row').forEach(button => {
+        button.addEventListener('click', function() {
+          const featureId = this.getAttribute('data-feature-id');
+          selectAllRow(featureId);
+        });
+      });
+      
+      document.querySelectorAll('.deselect-all-row').forEach(button => {
+        button.addEventListener('click', function() {
+          const featureId = this.getAttribute('data-feature-id');
+          deselectAllRow(featureId);
+        });
+      });
+      
+      // Attach event listeners for global buttons
+      document.getElementById('select-all-global')?.addEventListener('click', selectAllGlobal);
+      document.getElementById('deselect-all-global')?.addEventListener('click', deselectAllGlobal);
+    });
+    </script>
 
     <div class="form-actions">
       <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>

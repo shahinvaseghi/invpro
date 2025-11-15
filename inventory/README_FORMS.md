@@ -110,7 +110,7 @@ The form automatically filters available categories based on the user's active c
 - سه فلگ `is_sellable`, `has_lot_tracking`, `requires_temporary_receipt`
 - `tax_id`, `tax_title`, `min_stock`
 - `default_unit`, `primary_unit` (از `UNIT_CHOICES` انتخاب می‌شوند، آماده برای متر/کیلو/عدد/بسته و …)
-- `allowed_warehouses` (چندانتخابی): انبارهایی که کالا مجاز است در آن‌ها دریافت/نگهداری شود؛ نخستین انتخاب به عنوان انبار اصلی ثبت می‌شود.
+- `allowed_warehouses` (چندانتخابی): انبارهایی که کالا مجاز است در آن‌ها دریافت/نگهداری شود؛ نخستین انتخاب به عنوان انبار اصلی ثبت می‌شود. **مهم**: اگر کالا هیچ انبار مجازی نداشته باشد، نمی‌تواند در هیچ انباری رسید یا حواله شود (validation سخت).
 - `description`, `notes`
 - `sort_order`, `is_enabled`
 
@@ -143,8 +143,9 @@ The form automatically filters available categories based on the user's active c
 **Purpose:** ایجاد/ویرایش رسیدهای موقت (ثبت ورود کالا پیش از تأیید QC)  
 **Model:** `ReceiptTemporary`
 
-- `document_code`, `document_date` و `status` در رابط کاربری نمایش داده نمی‌شوند؛ هنگام ایجاد رکورد جدید، کد با الگو `TMP-YYYYMM-XXXXXX`، تاریخ روز و وضعیت پیش‌فرض `Draft` به‌صورت خودکار تولید و ذخیره می‌شوند.
+- `document_code`, `document_date` و `status` در رابط کاربری نمایش داده نمی‌شوند؛ هنگام ایجاد رکورد جدید، کد با الگو `TMP-YYYYMM-XXXXXX`، تاریخ روز (با `JalaliDateField`) و وضعیت پیش‌فرض `Draft` به‌صورت خودکار تولید و ذخیره می‌شوند.
 - فیلد `unit` تنها واحد اصلی کالا و تبدیل‌های تعریف‌شده در `ItemUnit` را نمایش می‌دهد. اگر کاربر واحد جایگزین را انتخاب کند مقدار (`quantity`) و واحد قبل از ذخیره به واحد اصلی تبدیل می‌شود.
+- فیلد `warehouse` **فقط انبارهای مجاز** کالای انتخاب شده را نمایش می‌دهد (filtered by `ItemWarehouse`). اگر کالا انبار مجاز نداشته باشد، خطا داده می‌شود.
 - برای کالاهایی که `has_lot_tracking=1` دارند، فرم بررسی می‌کند مقدار پس از تبدیل واحد دقیقاً عدد صحیح باشد؛ در صورت وارد کردن مقدار اعشاری پیام خطا نمایش داده می‌شود و ذخیره انجام نمی‌شود.
 - فیلدهایی مانند `item`, `warehouse`, `supplier` بر اساس شرکت فعال فیلتر می‌شوند.
 - در حالت ویرایش، فرم اطلاعات سند (کد، تاریخ، وضعیت) را در بالای صفحه به صورت فقط خواندنی نشان می‌دهد.
@@ -153,13 +154,16 @@ The form automatically filters available categories based on the user's active c
 
 ### 8. ReceiptPermanentForm
 **Purpose:** ثبت رسید دائمی و تبدیل موجودی موقت به قطعی  
-**Model:** `ReceiptPermanent`
+**Model:** `ReceiptPermanent` (header-only) + `ReceiptPermanentLine` (lines)
 
-- کد سند با الگو `PRM-YYYYMM-XXXXXX` و تاریخ روز هنگام ایجاد به شکل خودکار تعیین می‌شود؛ وضعیت، فیلدهای قفل و ثبت حسابداری در بخش «Controls» فرم نمایش داده می‌شوند.
-- `unit` فقط واحدهای مجاز را لیست می‌کند و مقدار و واحد نهایی همیشه با واحد اصلی کالا ذخیره می‌شود.
-- فیلد `unit_price` می‌تواند بر اساس واحد جایگزین وارد شود؛ فرم در مرحله‌ی ذخیره آن را به قیمت هر واحد اصلی تبدیل می‌کند تا موجودی مالی با واحد پایه ثبت شود.
+- کد سند با الگو `PRM-YYYYMM-XXXXXX` و تاریخ روز (با `JalaliDateField`) هنگام ایجاد به شکل خودکار تعیین می‌شود؛ وضعیت، فیلدهای قفل و ثبت حسابداری در بخش «Controls» فرم نمایش داده می‌شوند.
+- **پشتیبانی چند ردیف**: از `ReceiptPermanentLineFormSet` استفاده می‌کند. حداقل 1 ردیف الزامی است. هر ردیف می‌تواند کالا، انبار، مقدار، واحد و قیمت جداگانه داشته باشد.
+- در هر ردیف، `unit` فقط واحدهای مجاز کالای انتخاب شده را لیست می‌کند و مقدار و واحد نهایی همیشه با واحد اصلی کالا ذخیره می‌شود.
+- در هر ردیف، `warehouse` **فقط انبارهای مجاز** کالای انتخاب شده را نمایش می‌دهد (filtered by `ItemWarehouse`). اگر کالا انبار مجاز نداشته باشد، خطا داده می‌شود.
+- فیلد `unit_price` می‌تواند بر اساس واحد جایگزین (`entered_price_unit`) وارد شود؛ فرم در مرحله‌ی ذخیره آن را به قیمت هر واحد اصلی تبدیل می‌کند تا موجودی مالی با واحد پایه ثبت شود.
 - اگر کالای انتخابی سریال‌دار باشد، مقدار باید عدد صحیح باشد (پس از تبدیل واحد). فرم خطای متنی برمی‌گرداند و از ذخیره جلوگیری می‌کند.
 - ارتباط با رسید موقت (`temporary_receipt`) و درخواست خرید (`purchase_request`) به‌صورت خودکار فیلتر می‌شود.
+- برای هر ردیف که کالای آن `has_lot_tracking=1` دارد، دکمه «Manage Serials» نمایش داده می‌شود.
 
 ---
 
@@ -177,42 +181,50 @@ The form automatically filters available categories based on the user's active c
 ### 10. IssuePermanentForm
 **Purpose:** ثبت و ویرایش حواله‌های دائم در رابط اختصاصی
 
-**Model:** `IssuePermanent`
+**Model:** `IssuePermanent` (header-only) + `IssuePermanentLine` (lines)
 
-- فیلدهای اصلی: `item`, `warehouse`, `unit`, `quantity`
-- مقصد: `destination_type/destination_id/destination_code` و همچنین فیلد انتخابی `department_unit` برای تعیین واحد سازمانی دریافت‌کننده
+- **پشتیبانی چند ردیف**: از `IssuePermanentLineFormSet` استفاده می‌کند. حداقل 1 ردیف الزامی است. هر ردیف می‌تواند کالا، انبار، مقدار، واحد و مقصد جداگانه داشته باشد.
+- در هر ردیف، فیلدهای اصلی: `item`, `warehouse`, `unit`, `quantity`
+- در هر ردیف، مقصد: `destination_type` (always `WorkLine`) و `destination_id`/`destination_code` برای تعیین خط کاری مقصد
 - بخش مالی شامل `unit_price`, `currency`, `tax_amount`, `discount_amount`, `total_amount` است؛ فیلد `currency` اکنون یک لیست انتخابی با گزینه‌های محدود (`IRT` = تومان، `IRR` = ریال، `USD` = دلار) است تا ورود مقادیر متفرقه جلوگیری شود.
-- کد سند و تاریخ به صورت خودکار تولید می‌شود و فیلدها در فرم مخفی هستند.
-- انتخاب واحد کالا مانند فرم‌های رسید محدود به واحدهای تعریف‌شده‌ی همان کالا است.
+- کد سند و تاریخ (با `JalaliDateField`) به صورت خودکار تولید می‌شود و فیلدها در فرم مخفی هستند.
+- در هر ردیف، انتخاب واحد کالا مانند فرم‌های رسید محدود به واحدهای تعریف‌شده‌ی همان کالا است.
+- در هر ردیف، `warehouse` **فقط انبارهای مجاز** کالای انتخاب شده را نمایش می‌دهد (filtered by `ItemWarehouse`). اگر کالا انبار مجاز نداشته باشد، خطا داده می‌شود.
 - اگر کالا سریال‌دار باشد، فرم علاوه بر الزام انتخاب تعداد سریال برابر با مقدار، بررسی می‌کند مقدار واردشده پس از تبدیل واحد عدد صحیح باشد.
-- عملیات انتخاب سریال به جای همین فرم، از طریق دکمه «Assign Serials» در لیست حواله انجام می‌شود؛ فرم همچنان داده‌های موجود را نمایش/ذخیره می‌کند ولی الزامی برای پر کردن فیلد در همین صفحه وجود ندارد.
+- عملیات انتخاب سریال به جای همین فرم، از طریق دکمه «Assign Serials» برای هر ردیف انجام می‌شود؛ فرم همچنان داده‌های موجود را نمایش/ذخیره می‌کند ولی الزامی برای پر کردن فیلد در همین صفحه وجود ندارد.
 
 ---
 
 ### 11. IssueConsumptionForm
 **Purpose:** ثبت حواله‌های مصرف (مصرف داخلی/خط تولید)
 
-**Model:** `IssueConsumption`
+**Model:** `IssueConsumption` (header-only) + `IssueConsumptionLine` (lines)
 
-- علاوه بر فیلدهای پایه (کالا، انبار، واحد، مقدار)، می‌توان به صورت انتخابی واحد سازمانی (`department_unit`) و خط کاری (`work_line`) را مشخص کرد.
+- **پشتیبانی چند ردیف**: از `IssueConsumptionLineFormSet` استفاده می‌کند. حداقل 1 ردیف الزامی است.
+- در هر ردیف، علاوه بر فیلدهای پایه (کالا، انبار، واحد، مقدار)، می‌توان مقصد را انتخاب کرد:
+  - ابتدا `destination_type_choice` انتخاب می‌شود: "Company Unit" یا "Work Line"
+  - سپس بر اساس انتخاب، `destination_company_unit` یا `destination_work_line` نمایش داده می‌شود
+- در هر ردیف، `warehouse` **فقط انبارهای مجاز** کالای انتخاب شده را نمایش می‌دهد (filtered by `ItemWarehouse`). اگر کالا انبار مجاز نداشته باشد، خطا داده می‌شود.
 - فیلدهای مرجع شامل `reference_document_*` و `production_transfer_*` هستند.
-- هزینه‌ی واحد و مجموع هزینه قابل ثبت است؛ سیستم کد سند و تاریخ را به صورت خودکار مقداردهی می‌کند و واحد کالا را با منطق تبدیل واحد نرمال می‌نماید.
+- هزینه‌ی واحد و مجموع هزینه قابل ثبت است؛ سیستم کد سند و تاریخ (با `JalaliDateField`) را به صورت خودکار مقداردهی می‌کند و واحد کالا را با منطق تبدیل واحد نرمال می‌نماید.
 - مقدار حواله برای کالاهای سریال‌دار باید عدد صحیح باشد؛ فرم قبل از ذخیره این موضوع را بررسی می‌کند.
-- انتخاب سریال‌ها از طریق صفحه‌ی اختصاصی «Assign Serials» انجام می‌شود.
+- انتخاب سریال‌ها از طریق صفحه‌ی اختصاصی «Assign Serials» برای هر ردیف انجام می‌شود.
 
 ---
 
 ### 12. IssueConsignmentForm
 **Purpose:** مدیریت حواله‌های امانی که از موجودی امانی خارج می‌شوند
 
-**Model:** `IssueConsignment`
+**Model:** `IssueConsignment` (header-only) + `IssueConsignmentLine` (lines)
 
-- انتخاب کالا/انبار و مقدار مشابه سایر فرم‌ها انجام می‌شود.
+- **پشتیبانی چند ردیف**: از `IssueConsignmentLineFormSet` استفاده می‌کند. حداقل 1 ردیف الزامی است.
+- در هر ردیف، انتخاب کالا/انبار و مقدار مشابه سایر فرم‌ها انجام می‌شود.
+- در هر ردیف، `warehouse` **فقط انبارهای مجاز** کالای انتخاب شده را نمایش می‌دهد (filtered by `ItemWarehouse`). اگر کالا انبار مجاز نداشته باشد، خطا داده می‌شود.
 - کاربر باید رسید امانی مبنا (`consignment_receipt`) را انتخاب کند؛ کد آن به صورت خودکار در مدل ذخیره می‌شود.
-- می‌توان واحد سازمانی مقصد (`department_unit`) و اطلاعات مقصد (`destination_type`, `destination_id`, `destination_code`) را وارد کرد.
-- کد سند و تاریخ به شکل خودکار ساخته می‌شود و واحد کالا محدود به واحدهای تعریف‌شده است.
+- در هر ردیف، مقصد: `destination_type` (always `WorkLine`) و `destination_id`/`destination_code` برای تعیین خط کاری مقصد
+- کد سند و تاریخ (با `JalaliDateField`) به شکل خودکار ساخته می‌شود و واحد کالا محدود به واحدهای تعریف‌شده است.
 - برای کالاهای دارای سریال، مقدار باید به صورت عدد صحیح ثبت شود و فرم در غیر این صورت خطا برمی‌گرداند.
-- فیلد سریال در این فرم اختیاری است؛ مدیریت انتخاب/رزرو سریال از طریق دکمه‌ی «Assign Serials» در لیست حواله انجام می‌شود.
+- فیلد سریال در این فرم اختیاری است؛ مدیریت انتخاب/رزرو سریال از طریق دکمه‌ی «Assign Serials» برای هر ردیف انجام می‌شود.
 
 ---
 
@@ -356,4 +368,45 @@ All error messages are translated to Persian when `LANGUAGE_CODE='fa'`.
 2. Implement bulk import from Excel
 3. Add image upload for item types
 4. Implement form wizards for complex multi-step data entry
+
+---
+
+## Warehouse Restrictions (Allowed Warehouses)
+
+All receipt and issue line forms enforce strict warehouse restrictions:
+
+**Implementation**:
+- Forms: `ReceiptLineBaseForm`, `IssueLineBaseForm` both implement:
+  - `_get_item_allowed_warehouses()`: Returns only explicitly configured warehouses
+  - `_set_warehouse_queryset()`: Filters warehouse dropdown dynamically
+  - `clean_warehouse()`: Validates selected warehouse is in allowed list
+  
+**Validation Rules**:
+- If item has no warehouses configured → Error: "این کالا هیچ انبار مجازی ندارد"
+- If warehouse selected not in allowed list → Error: "انبار انتخاب شده برای این کالا مجاز نیست"
+- No fallback to all warehouses (strict restriction)
+
+**Client-Side (JavaScript)**:
+- `updateWarehouseChoices()` function dynamically updates warehouse dropdown when item changes
+- API endpoint: `/inventory/api/item-allowed-warehouses/?item_id=X`
+- Applied to both single-line forms (`ReceiptTemporary`) and multi-line forms (all receipt/issue formsets)
+
+**Example**:
+- Item: "Monitor" - Allowed Warehouses: Only "003 - IT"
+- User tries to receive in "002 - Facilities" → **Error**: Warehouse not allowed
+
+---
+
+## Date Handling (Jalali/Gregorian)
+
+All document forms use `JalaliDateField` and `JalaliDateInput` widget:
+- Dates displayed in Jalali (Persian) format in UI
+- Dates stored in Gregorian format in database
+- Automatic conversion on input/output
+- Forms using Jalali dates:
+  - `ReceiptPermanentForm`, `ReceiptConsignmentForm`
+  - `IssuePermanentForm`, `IssueConsumptionForm`, `IssueConsignmentForm`
+  - `PurchaseRequestForm`, `WarehouseRequestForm`
+
+For details, see `inventory/fields.py`, `inventory/widgets.py`, and `inventory/templatetags/jalali_tags.py`.
 

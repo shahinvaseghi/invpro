@@ -1255,7 +1255,7 @@ class IssuePermanentLine(IssueLineBase):
         on_delete=models.CASCADE,
         related_name="lines",
     )
-    destination_type = models.CharField(max_length=30)
+    destination_type = models.CharField(max_length=30, blank=True, default='')
     destination_id = models.BigIntegerField(null=True, blank=True)
     destination_code = models.CharField(max_length=30, blank=True)
     reason_code = models.CharField(max_length=30, blank=True)

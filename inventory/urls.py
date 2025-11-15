@@ -32,6 +32,9 @@ urlpatterns = [
     path('items/<int:pk>/delete/', views.ItemDeleteView.as_view(), name='item_delete'),
     path('item-serials/', views.ItemSerialListView.as_view(), name='item_serials'),
     path('api/item-allowed-units/', views.get_item_allowed_units, name='item_allowed_units'),
+    path('api/item-allowed-warehouses/', views.get_item_allowed_warehouses, name='item_allowed_warehouses'),
+    path('api/item-available-serials/', views.get_item_available_serials, name='item_available_serials'),
+    path('api/warehouse-work-lines/', views.get_warehouse_work_lines, name='warehouse_work_lines'),
     
     # Master Data - Warehouses
     path('warehouses/', views.WarehouseListView.as_view(), name='warehouses'),

@@ -599,6 +599,7 @@ This document provides a comprehensive mapping between the user interface (menus
 - `full_item_code` is auto-generated: `type_code` (3) + `category_code` (3) + `subcategory_code` (3) + `item_code` (7) = 16 digits
 - `batch_number` is auto-generated: `MMYY-XXXXXX` format based on current month/year
 - `sequence_segment` is auto-incremented per type/category/subcategory/user_segment combination
+- **Warehouse Restrictions**: Item can only be received/issued in warehouses explicitly configured in `ItemWarehouse` relationship (strict validation)
 
 #### inventory_itemunit
 **Purpose**: Unit conversion definitions for items (e.g., 1 BOX = 100 EA)
@@ -634,6 +635,40 @@ This document provides a comprehensive mapping between the user interface (menus
 - Conversion factor: `to_quantity / from_quantity` (e.g., if 1 BOX = 100 EA, then from_quantity=1, to_quantity=100)
 - Unit conversion uses graph traversal algorithm to find conversion path between any two units
 - Unique constraint: (company, item, from_unit, to_unit) - prevents duplicate conversions
+
+#### inventory_itemwarehouse
+**Purpose**: Mapping between items and warehouses - defines which warehouses an item can be received/issued from (strict restriction)
+
+| Field | Type | Description | Constraints |
+|-------|------|-------------|-------------|
+| id | BigInt | Primary key | Auto-increment |
+| company_id | BigInt | Company reference | FK to shared_company, Not null |
+| company_code | CharField(8) | Company code (cached) | Optional |
+| item_id | BigInt | Item reference | FK to inventory_item, Not null, CASCADE |
+| warehouse_id | BigInt | Warehouse reference | FK to inventory_warehouse, Not null, CASCADE |
+| is_primary | SmallInt | Primary warehouse flag (first selected warehouse) | Default: 0 |
+| notes | TextField | Optional notes | Optional |
+| is_enabled | SmallInt | Active status | Default: 1 |
+| metadata | JSONField | Additional metadata | Default: {} |
+| created_at | DateTime | Creation timestamp | Auto-set |
+| created_by_id | BigInt | Creator user | FK to shared_user, Optional |
+| edited_at | DateTime | Last edit timestamp | Auto-update |
+| edited_by_id | BigInt | Last editor user | FK to shared_user, Optional |
+
+**Relationships:**
+- Many-to-One: `ItemWarehouse` → `Company` (company_id)
+- Many-to-One: `ItemWarehouse` → `Item` (item_id, CASCADE)
+- Many-to-One: `ItemWarehouse` → `Warehouse` (warehouse_id, CASCADE)
+
+**Business Logic:**
+- **Strict Warehouse Restriction**: Items can ONLY be received/issued in warehouses explicitly listed in this table
+- First selected warehouse is marked as primary (`is_primary=1`)
+- If no warehouses configured for item → Item cannot be received/issued anywhere (error shown)
+- Used by forms to filter warehouse dropdowns dynamically
+- Validation enforced in both server-side (Python) and client-side (JavaScript)
+
+**Constraints:**
+- Unique constraint: `(company, item, warehouse)` - prevents duplicate mappings
 
 #### inventory_supplier
 **Purpose**: Supplier/vendor master data
@@ -812,6 +847,7 @@ This document provides a comprehensive mapping between the user interface (menus
 - Price conversion: User enters `entered_unit_price` in `entered_price_unit`, system may convert to `unit_price` in default unit
 - When document is locked, serials are assigned to this line (Many-to-Many relationship)
 - Minimum 1 line required per document
+- **Warehouse Validation**: Warehouse must be in item's allowed warehouses list (enforced in form validation)
 
 #### inventory_itemserial
 **Purpose**: Serial number tracking for serialized items
@@ -1063,6 +1099,101 @@ inventory_receipttemporary (1) ──> (1) inventory_receiptpermanent
 
 ## Business Logic and Workflows
 
+### Warehouse Restriction Logic (Allowed Warehouses)
+
+**Purpose**: Enforce strict warehouse restrictions for items - items can only be received in warehouses explicitly configured for them.
+
+**Implementation**: 
+- Item-Warehouse mapping stored in `inventory_itemwarehouse` table
+- Each item can have multiple allowed warehouses
+- First selected warehouse marked as primary (`is_primary=1`)
+
+**Validation**:
+1. **Form Level**: 
+   - `_get_item_allowed_warehouses()`: Returns only explicitly configured warehouses for an item
+   - `_set_warehouse_queryset()`: Filters warehouse dropdown to show only allowed warehouses
+   - `clean_warehouse()`: Validates selected warehouse is in allowed list
+   
+2. **Client-Side (JavaScript)**:
+   - `updateWarehouseChoices()`: Dynamically updates warehouse dropdown when item changes
+   - API endpoint: `/inventory/api/item-allowed-warehouses/?item_id=X`
+   
+3. **Strict Enforcement**:
+   - If no warehouses configured for item → Error: "این کالا هیچ انبار مجازی ندارد"
+   - If warehouse selected not in allowed list → Error: "انبار انتخاب شده برای این کالا مجاز نیست"
+   - No fallback to all warehouses (strict restriction)
+
+**Business Logic**:
+- When creating/editing item, user must select at least one allowed warehouse
+- First selected warehouse is marked as primary (`is_primary=1`)
+- Receipt documents can only use warehouses from item's allowed list
+- Issue documents can only use warehouses from item's allowed list
+
+**Database Table**: `inventory_itemwarehouse`
+- `item_id` (FK to `inventory_item`)
+- `warehouse_id` (FK to `inventory_warehouse`)
+- `is_primary` (SmallInt): First warehouse is marked as primary
+- `notes` (TextField): Optional notes
+
+**Example**:
+- Item: "Monitor" (id=11)
+- Allowed Warehouses: Only "003 - IT" warehouse
+- User tries to receive in "002 - Facilities" → **Error**: Warehouse not allowed
+
+---
+
+### Date Handling (Jalali/Gregorian Conversion)
+
+**Purpose**: Display dates in Jalali (Persian) format in UI while storing in Gregorian (Miladi) format in database.
+
+**Implementation**:
+- **Storage**: All dates stored as Gregorian in database (`DateField`, `DateTimeField`)
+- **Display**: Converted to Jalali format in templates using custom template tags
+- **Input**: User enters Jalali dates, converted to Gregorian before saving
+
+**Custom Widget**: `JalaliDateInput` (`inventory/widgets.py`)
+- Extends Django's `DateInput`
+- Template: `inventory/widgets/jalali_date_input.html`
+- Methods:
+  - `format_value()`: Converts Gregorian date to Jalali string for display
+  - `value_from_datadict()`: Converts Jalali string from form to Gregorian date
+
+**Custom Field**: `JalaliDateField` (`inventory/fields.py`)
+- Extends Django's `DateField`
+- Uses `JalaliDateInput` widget automatically
+
+**Template Tags**: `jalali_tags` (`inventory/templatetags/jalali_tags.py`)
+- `{% load jalali_tags %}` in templates
+- `{{ date|jalali_date }}`: Format date as Jalali (e.g., "1404/08/24")
+- `{{ date|jalali_datetime }}`: Format datetime as Jalali with time
+
+**Utilities**: `inventory/utils/jalali.py`
+- `gregorian_to_jalali()`: Convert Gregorian date/datetime to Jalali string
+- `jalali_to_gregorian()`: Convert Jalali string to Gregorian date
+- `today_jalali()`: Get today's date in Jalali format
+
+**Forms Using Jalali Dates**:
+- `ReceiptPermanentForm`: `document_date` field
+- `ReceiptConsignmentForm`: `document_date` field
+- `IssuePermanentForm`: `document_date` field
+- `IssueConsumptionForm`: `document_date` field
+- `IssueConsignmentForm`: `document_date` field
+- `PurchaseRequestForm`: `request_date`, `needed_by_date` fields
+- `WarehouseRequestForm`: `request_date`, `needed_by_date` fields
+
+**Benefits**:
+- Users see familiar Jalali calendar in UI
+- Database maintains standard Gregorian dates
+- Easy filtering and querying (no dual date fields needed)
+- No additional database fields required
+
+**Example**:
+- User enters: "1404/08/24" (Jalali)
+- Stored in DB: "2025-11-15" (Gregorian)
+- Displayed in UI: "1404/08/24" (Jalali)
+
+---
+
 ### Unit Conversion Logic
 
 **Purpose**: Convert user-entered quantity/unit to system default unit
@@ -1201,9 +1332,22 @@ inventory_receipttemporary (1) ──> (1) inventory_receiptpermanent
    - By `item_id`, `warehouse_id`, `unit` (default unit)
    - Filtered by `company_id`
 
-**API Endpoint**: `/inventory/api/balance/`
-- Returns JSON with balance for each item/warehouse combination
-- Calculated on-demand (not stored)
+**API Endpoints**:
+
+1. **Balance Calculation**: `/inventory/api/balance/`
+   - Returns JSON with balance for each item/warehouse combination
+   - Calculated on-demand (not stored)
+
+2. **Item Allowed Units**: `/inventory/api/item-allowed-units/?item_id=X`
+   - Returns JSON with allowed units for an item
+   - Used by JavaScript to populate unit dropdown dynamically
+   - Response: `{'units': [...], 'default_unit': 'EA'}`
+
+3. **Item Allowed Warehouses**: `/inventory/api/item-allowed-warehouses/?item_id=X`
+   - Returns JSON with allowed warehouses for an item
+   - Used by JavaScript to populate warehouse dropdown dynamically
+   - Response: `{'warehouses': [{'value': '1', 'label': '001 - Warehouse Name'}, ...]}`
+   - **Important**: Returns empty list if no warehouses configured (strict restriction)
 
 ### Document Code Generation
 
@@ -1270,6 +1414,8 @@ This documentation provides a comprehensive mapping between:
 5. On-demand inventory balance calculation
 6. Lock protection for finalized documents
 7. Status workflows for temporary receipts and serials
+8. Strict warehouse restrictions (allowed warehouses per item)
+9. Jalali date display with Gregorian storage
 
 For additional details, refer to:
 - `inventory/models.py`: Model definitions

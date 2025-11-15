@@ -96,6 +96,7 @@
       <tr>
         <th>{% trans "Document Code" %}</th>
         <th>{% trans "Document Date" %}</th>
+        <th>{% trans "Created By" %}</th>
         <th>{% trans "Items" %}</th>
         <th>{% trans "Quantity" %}</th>
         <th>{% trans "Warehouses" %}</th>
@@ -113,20 +114,78 @@
           <td><code>{{ issue.document_code }}</code></td>
           <td>{{ issue.document_date|jalali_date }}</td>
           <td>
-            <strong>{{ issue.item.name }}</strong><br>
-            <small style="color: #6b7280;"><code>{{ issue.item_code }}</code></small>
+            {% if issue.created_by %}
+              {{ issue.created_by.get_full_name|default:issue.created_by.username }}
+            {% else %}
+              <span style="color: #6b7280;">—</span>
+            {% endif %}
           </td>
-          <td style="text-align: right;">{{ issue.quantity|floatformat:2 }} {{ issue.unit }}</td>
-          <td>{{ issue.warehouse.name }}</td>
+          <td>
+            {% if issue.lines.all %}
+              {% for line in issue.lines.all|slice:":3" %}
+                <div style="margin-bottom: 4px;">
+                  <strong>{{ line.item.name }}</strong><br>
+                  <small style="color: #6b7280;"><code>{{ line.item_code }}</code></small>
+                </div>
+              {% endfor %}
+              {% if issue.lines.count > 3 %}
+                <small style="color: #6b7280;">+ {{ issue.lines.count|add:"-3" }} {% trans "more" %}</small>
+              {% endif %}
+            {% else %}
+              <span style="color: #6b7280;">—</span>
+            {% endif %}
+          </td>
+          <td style="text-align: right;">
+            {% if issue.lines.all %}
+              {% for line in issue.lines.all|slice:":3" %}
+                <div style="margin-bottom: 4px;">
+                  {{ line.entered_quantity|default:line.quantity|floatformat:2 }} {{ line.entered_unit|default:line.unit }}
+                </div>
+              {% endfor %}
+            {% else %}
+              <span style="color: #6b7280;">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if issue.lines.all %}
+              {% for line in issue.lines.all|slice:":3" %}
+                <div style="margin-bottom: 4px;">{{ line.warehouse.name }}</div>
+              {% endfor %}
+            {% else %}
+              <span style="color: #6b7280;">—</span>
+            {% endif %}
+          </td>
           <td>{% if issue.department_unit %}{{ issue.department_unit.name }}{% else %}—{% endif %}</td>
           <td>
-            {% if issue.work_line %}
-              {{ issue.work_line }}
+            {% if issue.lines.all %}
+              {% for line in issue.lines.all|slice:":3" %}
+                <div style="margin-bottom: 4px;">
+                  {% if line.destination_type == 'work_line' and line.destination_code %}
+                    {{ line.destination_code }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </div>
+              {% endfor %}
             {% else %}
               —
             {% endif %}
           </td>
-          <td>{{ issue.destination_type|default:"—" }}</td>
+          <td>
+            {% if issue.lines.all %}
+              {% for line in issue.lines.all|slice:":3" %}
+                <div style="margin-bottom: 4px;">
+                  {% if line.destination_type == 'work_line' and line.destination_code %}
+                    {{ line.destination_code }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </div>
+              {% endfor %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
           <td>
             {% if issue.is_locked %}
               <span class="badge badge-active">✓ Posted</span>
@@ -170,7 +229,7 @@
         {% endfor %}
       {% else %}
         <tr>
-          <td colspan="8">
+          <td colspan="11">
             <div class="empty-state">
               <div class="empty-state-icon">📤</div>
               <h3>{% trans "No Issues Found" %}</h3>

@@ -111,6 +111,7 @@
       <tr>
         <th>{% trans "Document Code" %}</th>
         <th>{% trans "Document Date" %}</th>
+        <th>{% trans "Created By" %}</th>
         <th>{% trans "Items" %}</th>
         <th>{% trans "Quantity" %}</th>
         <th>{% trans "Warehouses" %}</th>
@@ -130,6 +131,13 @@
         <tr>
           <td><code>{{ receipt.document_code }}</code></td>
           <td>{{ receipt.document_date|jalali_date }}</td>
+          <td>
+            {% if receipt.created_by %}
+              {{ receipt.created_by.get_full_name|default:receipt.created_by.username }}
+            {% else %}
+              <span style="color: #6b7280;">—</span>
+            {% endif %}
+          </td>
           <td>
             {% if receipt.item %}
               {# Temporary receipt - single line #}
@@ -276,7 +284,7 @@
         {% endfor %}
       {% else %}
         <tr>
-          <td colspan="9">
+          <td colspan="{% if show_qc and show_conversion %}10{% elif show_qc or show_conversion %}9{% else %}8{% endif %}">
             <div class="empty-state">
               <div class="empty-state-icon">📥</div>
               <h3>{{ empty_heading|default:_("No records found.") }}</h3>

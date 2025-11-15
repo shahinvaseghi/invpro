@@ -82,8 +82,9 @@ Each model enforces unique constraints tailored to multi-company setups and uses
 - `inventory/receipt_form.html`: قالب پایه‌ی جدید برای فرم رسیدها و حواله‌ها که بخش‌های اطلاعات سند، سربرگ وضعیت، و اسکریپت جاوااسکریپت جهت به‌روزرسانی پویا‌ی واحد را فراهم می‌کند. این قالب اکنون از **فرم‌ست ردیف‌ها** پشتیبانی می‌کند و برای هر ردیف که کالای آن `has_lot_tracking=1` دارد، دکمه‌های «Manage Serials» یا «Assign Serials» را نمایش می‌دهد.
 - `inventory/issue_serial_assignment.html`: قالب اختصاصی برای انتخاب سریال‌های یک ردیف حواله. این صفحه لیست سریال‌های موجود را به صورت checkbox نمایش می‌دهد و کاربر می‌تواند تعداد مورد نیاز را انتخاب کند.
 - `inventory/receipt_serial_assignment.html`: قالب اختصاصی برای مدیریت سریال‌های یک ردیف رسید. این صفحه امکان مشاهده و تولید سریال‌ها را فراهم می‌کند.
-- `receipt_temporary.html`, `receipt_permanent.html`, `receipt_consignment.html`: صفحات لیست رسیدها که به مسیرهای ایجاد/ویرایش داخلی متصل شده‌اند و پیام‌های خالی/آمار را بر اساس نوع سند نمایش می‌دهند.
+- `receipt_temporary.html`, `receipt_permanent.html`, `receipt_consignment.html`: صفحات لیست رسیدها که به مسیرهای ایجاد/ویرایش داخلی متصل شده‌اند و پیام‌های خالی/آمار را بر اساس نوع سند نمایش می‌دهند. تاریخ‌های سند با template tag `jalali_date` به صورت Jalali نمایش داده می‌شوند.
 - `inventory/stocktaking_form.html`: قالب مشترک فرم‌های شمارش موجودی به همراه اسکریپت‌های پویا برای به‌روزرسانی واحد و انبار مجاز بر اساس انتخاب کالا.
+- `inventory/receipt_form.html`: قالب پایه برای فرم‌های رسید و حواله که شامل JavaScript برای به‌روزرسانی پویای dropdown های واحد و انبار بر اساس انتخاب کالا است. تابع `updateUnitChoices()` واحدها را به‌روزرسانی می‌کند و تابع `updateWarehouseChoices()` انبارهای مجاز را به‌روزرسانی می‌کند.
 - `stocktaking_deficit.html`, `stocktaking_surplus.html`, `stocktaking_records.html`: صفحات لیست سندهای شمارش که اکنون دکمه «ایجاد» و لینک ویرایش/مشاهده به ویوهای جدید دارند و وضعیت قفل سند را نمایش می‌دهند.
 
 ## urls.py
@@ -112,6 +113,8 @@ Each model enforces unique constraints tailored to multi-company setups and uses
   - `BaseLineFormSet`: کلاس پایه برای فرم‌ست‌های ردیف که `company_id` را به درستی به فرم‌های داخلی منتقل می‌کند.
 - فرم‌های جدید `StocktakingDeficitForm`, `StocktakingSurplusForm`, `StocktakingRecordForm` کد سند را با پیشوند `STD/STS/STR` تولید کرده، واحدهای مجاز کالا، انبارهای مجاز و فیلدهای JSON مخفی (متادیتا/مستندات) را مدیریت می‌کنند و اختلاف مقدار/ارزش را به‌صورت خودکار محاسبه می‌کنند.
 - `ItemForm`, `ItemUnitForm` و `ItemUnitFormSet` همچنان برای مدیریت کالا و تبدیل واحدهای آن استفاده می‌شوند و `ItemForm` اکنون فیلد چندانتخابی «انبارهای مجاز» دارد که بعد از ذخیره، رکوردهای `ItemWarehouse` را ایجاد/به‌روزرسانی و اولین انتخاب را به عنوان `is_primary=1` تنظیم می‌کند.
+- **Validation انبارهای مجاز**: همه فرم‌های رسید و حواله (`ReceiptLineBaseForm`, `IssueLineBaseForm`) اکنون validation انبارهای مجاز را اعمال می‌کنند. اگر کالا انبار مجاز نداشته باشد، خطا داده می‌شود. اگر انبار انتخاب شده در لیست انبارهای مجاز نباشد، خطا داده می‌شود. این validation در سمت سرور (Python) و سمت کلاینت (JavaScript) اعمال می‌شود.
+- **تاریخ‌های Jalali**: همه فرم‌های سند از `JalaliDateField` و `JalaliDateInput` استفاده می‌کنند که تاریخ‌ها را به صورت Jalali نمایش می‌دهند اما در دیتابیس به صورت Gregorian ذخیره می‌کنند. Template tags `jalali_tags` برای نمایش تاریخ‌ها در templates استفاده می‌شوند.
 
 ## admin.py
 

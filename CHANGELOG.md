@@ -60,6 +60,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Line formsets for managing multiple line items in document forms
 - `LineFormsetMixin` for reusable line formset handling in views
 - Updated document lock views to validate and finalize serials for all lines
+- **Strict warehouse restrictions (allowed warehouses)**:
+  - Items can only be received/issued in warehouses explicitly configured in `ItemWarehouse` relationship
+  - Validation enforced in forms (server-side and client-side)
+  - JavaScript dynamically updates warehouse dropdown when item changes
+  - API endpoint: `/inventory/api/item-allowed-warehouses/?item_id=X`
+  - Error messages if warehouse not allowed or no warehouses configured
+- **Jalali date display**:
+  - All dates displayed in Jalali (Persian) format in UI while stored in Gregorian format in database
+  - Custom `JalaliDateField` and `JalaliDateInput` widget
+  - Template tags `jalali_tags` for displaying dates in templates
+  - Automatic conversion on input/output
+  - Applied to all document forms (receipts, issues, purchase requests, warehouse requests)
+- **Access Level permission matrix UI enhancements**:
+  - Added "Select All" and "Deselect All" buttons for each feature row
+  - Added global "Select All" and "Deselect All" buttons for the entire permission matrix
+  - Quick action buttons allow bulk selection/deselection of permissions per feature
+  - JavaScript-based functionality for efficient permission management
 
 ### Changed
 - Removed `activated_at` and `deactivated_at` fields from ActivatableModel

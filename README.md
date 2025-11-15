@@ -221,6 +221,8 @@ Key behaviours:
 - Purchase and warehouse requests have dedicated create/edit/approve pages, enforce approver permissions, lock after approval, and only expose approved/locked requests for selection in permanent/consignment receipts.
 - All models inherit auditing and multi-company mixins.
 - Django admin dashboards are set up for quick data verification (`inventory/admin.py`).
+- **Warehouse Restrictions**: Items can only be received/issued in warehouses explicitly configured in `ItemWarehouse` relationship. Strict validation enforced in forms (server-side and client-side).
+- **Date Display**: All dates displayed in Jalali (Persian) format in UI while stored in Gregorian format in database.
 
 ### 3.3 Production (`production`)
 
@@ -451,6 +453,18 @@ All templates use Django i18n:
 - `{% trans "Text" %}` for translatable strings
 - `locale/fa/LC_MESSAGES/django.po` contains Persian translations
 - Automatic RTL support via `dir="{{ LANGUAGE_CODE }}"` on `<html>`
+
+### 10.5 Date Handling (Jalali/Gregorian)
+
+The system displays dates in Jalali (Persian) format in the UI while storing them in Gregorian format in the database:
+
+- **Storage**: All dates stored as Gregorian in database (`DateField`, `DateTimeField`)
+- **Display**: Converted to Jalali format using `{% load jalali_tags %}` and `{{ date|jalali_date }}` template tag
+- **Input**: Custom `JalaliDateInput` widget converts Jalali input to Gregorian before saving
+- **Forms**: All document forms (`ReceiptPermanentForm`, `IssuePermanentForm`, etc.) use `JalaliDateField`
+- **Benefits**: Users see familiar Jalali calendar, database maintains standard format, no dual date fields needed
+
+For details, see `inventory/widgets.py`, `inventory/fields.py`, and `inventory/templatetags/jalali_tags.py`.
 
 ---
 
