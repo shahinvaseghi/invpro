@@ -60,6 +60,29 @@ class InventoryBaseView(LoginRequiredMixin):
 - **Form Labels**: All form fields have Persian/English labels
 - **Error Messages**: Validation errors in user's language
 
+## 2.1 Date Display (Jalali/Gregorian Conversion)
+
+### Overview
+The system displays dates in Jalali (Persian) format in the UI while storing them in Gregorian format in the database.
+
+### Features
+- **Storage**: All dates stored as Gregorian in database (`DateField`, `DateTimeField`)
+- **Display**: Converted to Jalali format using template tags (`{{ date|jalali_date }}`)
+- **Input**: Custom `JalaliDateInput` widget converts Jalali input to Gregorian before saving
+- **Forms**: All document forms (`ReceiptPermanentForm`, `IssuePermanentForm`, etc.) use `JalaliDateField`
+- **Benefits**: Users see familiar Jalali calendar, database maintains standard format, no dual date fields needed
+
+### Technical Implementation
+- Custom widget: `JalaliDateInput` (`inventory/widgets.py`)
+- Custom field: `JalaliDateField` (`inventory/fields.py`)
+- Template tags: `jalali_tags` (`inventory/templatetags/jalali_tags.py`)
+- Utilities: `inventory/utils/jalali.py` for conversion functions
+
+### Forms Using Jalali Dates
+- Receipt forms: `ReceiptPermanentForm`, `ReceiptConsignmentForm`
+- Issue forms: `IssuePermanentForm`, `IssueConsumptionForm`, `IssueConsignmentForm`
+- Request forms: `PurchaseRequestForm`, `WarehouseRequestForm`
+
 ### Translation Coverage
 - Navigation menus
 - Page titles and headers
@@ -143,6 +166,7 @@ python manage.py makemessages -l fa
 - Category dropdown filtered by company
 - Full CRUD operations
 - هر کالا هنگام ایجاد/ویرایش همراه با لیست «انبارهای مجاز» ذخیره می‌شود تا از ورود کالا به انبارهای ناخواسته جلوگیری گردد.
+- **Strict Warehouse Restrictions**: Items can ONLY be received/issued in warehouses explicitly configured in `ItemWarehouse` relationship. If no warehouses configured, item cannot be received/issued anywhere (error shown). Validation enforced in both server-side (Python) and client-side (JavaScript). Warehouse dropdown dynamically updates when item is selected.
 
 **Code Pattern**: `001`, `002`, `003`, ... (within each category)
 
@@ -265,19 +289,29 @@ python manage.py makemessages -l fa
 
 ### Common Features
 - **Data Tables**: Clean, sortable tables
-- **Action Columns**: Edit and Delete buttons for each row
+- **Action Columns**: Edit, Delete, and Lock buttons for each row
+- **Delete Functionality**: 
+  - Delete buttons conditionally displayed based on user permissions
+  - `DELETE_OWN` permission allows users to delete their own documents
+  - `DELETE_OTHER` permission allows users to delete documents created by other users
+  - Superusers can delete any document without explicit permission
+  - Locked documents cannot be deleted (protected by `DocumentLockProtectedMixin`)
+  - Confirmation pages with document details before deletion
+  - Available for all document types: Receipts (Temporary, Permanent, Consignment), Issues (Permanent, Consumption, Consignment), Stocktaking (Deficit, Surplus, Records)
 - **Status Badges**: Color-coded Active/Inactive indicators
 - **Pagination**: 50 items per page
 - **Empty States**: User-friendly messages with create buttons
 - **Create Button**: Prominent "+ Create X" button at top
 - **Breadcrumbs**: Navigation path
 - **Company Filtering**: Auto-filtered by active company
+- **Document Sorting**: Issue and Stocktaking document lists (`IssueConsumptionListView`, `IssueConsignmentListView`, `IssuePermanentListView`, `StocktakingRecordListView`) are sorted by newest first (`ordering = ['-id']`)
 
 ### Available List Views
 - Item Types
 - Item Categories
 - Item Subcategories
 - Items
+- Item Serials
 - Warehouses
 - Suppliers
 - Supplier Categories
@@ -291,20 +325,148 @@ python manage.py makemessages -l fa
 
 ---
 
-## 7. Receipt Capture & Unit Normalisation
+## 7. Multi-Line Document Support & Line-Based Serial Assignment
+
+### Overview
+The inventory system now supports **multi-line documents** for both receipts and issues, allowing users to add multiple items to a single document. Each line item can have its own item, quantity, warehouse, and pricing information. Additionally, **serial number assignment** is now managed at the line level, providing granular control over serial tracking for lot-controlled items.
+
+### Key Features
+
+#### Multi-Line Document Architecture
+- **Header-Only Documents**: Issue and Receipt documents (`IssuePermanent`, `IssueConsumption`, `IssueConsignment`, `ReceiptPermanent`, `ReceiptConsignment`) now store only header-level information (document code, date, supplier, notes, etc.)
+- **Line Item Models**: Each document type has corresponding line models:
+  - `IssuePermanentLine`, `IssueConsumptionLine`, `IssueConsignmentLine` for issues
+  - `ReceiptPermanentLine`, `ReceiptConsignmentLine` for receipts
+- **Line Item Fields**: Each line contains:
+  - Item reference and cached item code
+  - Warehouse reference and cached warehouse code
+  - Unit of measure (normalized to base unit)
+  - Quantity (normalized to base unit)
+  - Entered unit and entered quantity (preserved user input)
+  - Line-specific notes
+  - Sort order for custom ordering
+  - Type-specific fields (e.g., `destination_type`, `consumption_type`, `consignment_receipt` (optional) for issues; `unit_price`, `unit_cost` for receipts)
+
+#### Line-Based Serial Assignment
+- **Per-Line Serial Management**: Serial numbers are now assigned and tracked at the line item level, not the document level
+- **Serial Assignment Pages**: Each line item with a lot-tracked item has a dedicated serial assignment page accessible via a button in the document form
+- **Serial Generation**: For receipt lines, serials are generated when the document is locked, with the format `{DOC_CODE}-L{LINE_ID}-{SEQUENCE:04d}`
+- **Serial Reservation**: For issue lines, selected serials are reserved (`RESERVED` status) when assigned, and finalized (`ISSUED` or `CONSUMED`) when the document is locked
+- **Validation**: Before locking a document, the system validates that:
+  - For lot-tracked items, quantity must be a whole number
+  - The number of assigned serials must exactly match the line quantity
+  - All serials belong to the correct item and warehouse
+
+### User Experience
+
+#### Creating Multi-Line Documents
+1. User creates a new receipt or issue document
+2. Document header form is displayed (document code, date, supplier, etc.)
+3. User can add multiple line items using the line formset
+4. For each line:
+   - Select item (filtered by company)
+   - Select warehouse (filtered by item's allowed warehouses)
+   - Enter quantity and select unit (limited to item's allowed units)
+   - Enter pricing information (for receipts)
+   - Add line-specific notes
+5. User can add/remove lines dynamically
+6. User saves the document
+
+#### Serial Assignment Workflow
+
+**For Receipt Lines:**
+1. User creates/edits a receipt document
+2. User adds a line item with a lot-tracked item
+3. User saves the document
+4. A "Manage Serials" button appears next to the line item
+5. User clicks the button to open the serial management page
+6. User can generate serials manually or they are auto-generated when the document is locked
+7. Serial count is displayed next to the button
+
+**For Issue Lines:**
+1. User creates/edits an issue document
+2. User adds a line item with a lot-tracked item
+3. User saves the document
+4. An "Assign Serials" button appears next to the line item (or "View Serials" if document is locked)
+5. User clicks the button to open the serial assignment page
+6. User selects the required number of serials from available serials
+7. Selected serials are reserved for this line
+8. Serial count (assigned/required) is displayed next to the button
+9. When the document is locked, reserved serials are finalized to `ISSUED` or `CONSUMED` status
+
+### Technical Implementation
+
+#### Models
+```python
+# Base line model
+class IssueLineBase(InventoryBaseModel, SortableModel):
+    document = ForeignKey(...)  # Parent document
+    item = ForeignKey(Item, ...)
+    warehouse = ForeignKey(Warehouse, ...)
+    unit = CharField(...)  # Normalized to base unit
+    quantity = DecimalField(...)  # Normalized to base unit
+    entered_unit = CharField(...)  # User's original input
+    entered_quantity = DecimalField(...)  # User's original input
+    serials = ManyToManyField(ItemSerial, ...)  # Assigned serials
+    line_notes = TextField(...)
+
+# Concrete line models
+class IssuePermanentLine(IssueLineBase):
+    document = ForeignKey(IssuePermanent, ...)
+    destination_type = CharField(...)
+    # ... other fields
+
+class ReceiptPermanentLine(ReceiptLineBase):
+    document = ForeignKey(ReceiptPermanent, ...)
+    unit_price = DecimalField(...)
+    # ... other fields
+```
+
+#### Forms and Formsets
+- **Line Forms**: `IssuePermanentLineForm`, `IssueConsumptionLineForm`, etc. handle individual line item fields
+- **Line Formsets**: `IssuePermanentLineFormSet`, `ReceiptPermanentLineFormSet`, etc. manage multiple lines
+- **LineFormsetMixin**: Reusable mixin for views to handle line formset creation, validation, and saving
+
+#### Views
+- **LineFormsetMixin**: Provides `build_line_formset()`, `get_line_formset()`, and `_save_line_formset()` methods
+- **Serial Assignment Views**: 
+  - `IssueLineSerialAssignmentBaseView` for issue lines
+  - `ReceiptLineSerialAssignmentBaseView` for receipt lines
+- **Document Lock Views**: Updated to validate and finalize serials for all lines before/after locking
+
+#### Services
+- **`generate_receipt_line_serials()`**: Generates serials for a receipt line
+- **`sync_issue_line_serials()`**: Reserves/releases serials for an issue line
+- **`finalize_issue_line_serials()`**: Finalizes serials when an issue document is locked
+- **Helper functions**: `_reserve_line_serials()`, `_release_line_serials()`, `_determine_final_status_for_line()`
+
+### Benefits
+- **Flexibility**: Users can add multiple items to a single document, reducing data entry time
+- **Accuracy**: Serial tracking at the line level ensures precise traceability
+- **Scalability**: Architecture supports future enhancements (e.g., line-level approvals, pricing variations)
+- **User Experience**: Intuitive interface with clear visual indicators for serial assignment status
+
+---
+
+## 8. Receipt Capture & Unit Normalisation
 
 ### Highlights
 - **فرم‌های اختصاصی رسید**: برای رسیدهای موقت، دائم و امانی مسیرهای ایجاد/ویرایش مستقلی پیاده‌سازی شده است؛ کاربر دیگر به پنل ادمین ارجاع داده نمی‌شود.
 - **تولید خودکار متادیتا**: هنگام ایجاد سند، کد منحصربه‌فرد با الگوی `TMP|PRM|CON-YYYYMM-XXXXXX`، تاریخ روز و وضعیت اولیه (`Draft` برای رسید موقت) بدون دخالت کاربر ثبت می‌شود.
+- **Auto-population of document_date and document_code**: All Issue and Receipt forms (`IssueConsumptionForm`, `IssueConsignmentForm`, `IssuePermanentForm`, etc.) automatically populate `document_date` and `document_code` fields using `clean_document_date()` and `clean_document_code()` methods. This prevents form submission failures due to missing auto-generated fields.
+- **Multi-Line Support**: رسیدهای دائم و امانی اکنون از چند ردیف پشتیبانی می‌کنند؛ هر ردیف می‌تواند کالا، مقدار، انبار و قیمت مستقل داشته باشد.
 - **واحدهای قابل انتخاب محدود**: فیلد واحد صرفاً واحد اصلی کالا و تبدیل‌های تعریف‌شده در `ItemUnit` را نمایش می‌دهد. اسکریپت پویا در قالب HTML در زمان تغییر کالا، فهرست واحدها را تازه‌سازی می‌کند.
 - **یکسان‌سازی مقدار و قیمت**: پیش از ذخیره، مقدار (`quantity`) و قیمت (`unit_price` و `unit_price_estimate`) بر اساس ضرایب تبدیل واحد به واحد اصلی کالا تبدیل و در پایگاه‌داده ذخیره می‌شود. به این ترتیب موجودی مالی و تعدادی همیشه با یک واحد پایه محاسبه می‌شود.
+- **الزام مقدار صحیح برای سریال‌ها**: اگر کالای انتخابی رهگیری سریال داشته باشد، فرم‌های رسید و حواله تنها مقادیر صحیح (پس از تبدیل واحد) را می‌پذیرند و در صورت مشاهده مقدار اعشاری خطا نمایش داده می‌شود.
 - **نمایش اطلاعات مرجع**: در حالت ویرایش، بنر بالای فرم کد سند، تاریخ و وضعیت فعلی را به صورت فقط‌خواندنی نشان می‌دهد تا کاربر از داده‌های قطعی مطلع باشد.
 - **حواله‌های اختصاصی**: برای حواله‌های دائم، مصرف و امانی نیز صفحات ایجاد/ویرایش مشابه رسیدها پیاده‌سازی شده و کد سند با الگوهای `ISP-`, `ISU-`, `ICN-` تولید می‌شود. کاربر می‌تواند واحد سازمانی مقصد (و برای مصرف، خط تولید مرتبط) را انتخاب کند و پس از قفل‌کردن سند دیگر امکان ویرایش/حذف وجود ندارد.
+- **Consignment Receipt Optional**: In `IssueConsignmentLine`, the `consignment_receipt` and `consignment_receipt_code` fields are now optional (`null=True, blank=True`). Consignment issues can be created independently without requiring a consignment receipt, allowing more flexible workflow management.
 - **شمارش موجودی اختصاصی**: اسناد کسری (`STD-`), مازاد (`STS-`) و ثبت نهایی (`STR-`) دارای صفحات ایجاد/ویرایش اختصاصی هستند؛ واحد و انبار مجاز بر اساس تنظیمات کالا محدود می‌شود، اختلاف مقدار و ارزش به صورت خودکار محاسبه می‌گردد و پس از قفل کردن سند فقط قابل مشاهده خواهد بود.
 
 ### Implementation Notes
 - کلاس پایه‌ی `ReceiptBaseForm` متدهای `_get_item_allowed_units` و `_get_unit_factor` را ارائه می‌کند تا گراف تبدیل واحدها ساخته و ضریب تبدیل به واحد اصلی محاسبه شود.
 - متد `_normalize_quantity` مقدار واردشده توسط کاربر را به واحد اصلی کالا تبدیل و با همان واحد در مدل ذخیره می‌کند.
+- برای کالاهای دارای سریال، همین متد پس از تبدیل واحد بررسی می‌کند که مقدار نهایی عدد صحیح باشد و در غیر این صورت خطای کاربری برمی‌گرداند.
 - فرم‌های `ReceiptPermanentForm` و `ReceiptConsignmentForm` علاوه بر مقدار، قیمت واحد را نیز به کمک ضریب محاسبه‌شده به قیمت واحد اصلی تبدیل می‌کنند.
 - قالب `inventory/receipt_form.html` شامل بنر اطلاعات سند و اسکریپت جاوااسکریپت برای به‌روزرسانی پویا‌ی گزینه‌های واحد است.
 - کلاس `StocktakingBaseForm` منطق مشترک فرم‌های کسری/مازاد/ثبت نهایی را مدیریت می‌کند (تولید کد سند، محدودسازی واحد و انبار مجاز، فیلدهای JSON پنهان و محاسبه خودکار اختلاف مقدار/ارزش) و قالب `inventory/stocktaking_form.html` همان تجربه کاربری رسیدها را برای شمارش موجودی به ارمغان می‌آورد.
@@ -329,25 +491,99 @@ Generic delete template used via symlinks for consistency.
 ## 9. Inventory Balance Calculation
 
 ### Purpose
-Real-time calculation of item quantities in warehouses
+Real-time calculation of item quantities in warehouses based on stocktaking baselines and subsequent document movements.
 
 ### Calculation Logic
-1. **Baseline**: Last stocktaking record for item/warehouse
-2. **Receipts**: Add permanent, temporary, consignment receipts
-3. **Issues**: Subtract permanent, consumption, consignment issues
-4. **Adjustments**: Apply stocktaking deficits (subtract) and surpluses (add)
+1. **Baseline Detection**:
+   - First checks for `StocktakingSurplus`/`StocktakingDeficit` documents linked to a stocktaking record
+   - If not found, uses the latest approved and locked `StocktakingRecord` as baseline (with quantity 0)
+   - Baseline date is the date of the stocktaking record
+2. **Receipts**: Sum of all permanent receipts and consignment receipts from baseline date
+3. **Issues**: Sum of all permanent issues, consumption issues, and consignment issues from baseline date
+4. **Adjustments**: Apply stocktaking surpluses (add) and deficits (subtract)
 
 ### Features
-- Company-scoped calculations
-- Warehouse filtering
-- Item type/category filtering
-- As-of-date calculations
-- JSON API endpoint for AJAX queries
+- **Company-scoped calculations**: All queries filtered by active company
+- **Warehouse filtering**: Calculate balance for specific warehouse
+- **Item type/category filtering**: Filter by item type and category
+- **As-of-date calculations**: Calculate balance as of any date (default: today)
+- **Automatic date handling**: "As of Date" field is hidden and automatically set to today
+- **Line-based queries**: Queries line item models (`ReceiptPermanentLine`, `IssueConsumptionLine`, etc.) instead of header models
+- **Transaction inclusion**: Includes items with actual transactions, not just explicit warehouse assignments
+- **Details page**: Click "Details" button to view complete transaction history for an item
+  - Shows all receipts and issues from baseline date to selected date
+  - Displays running balance calculation for each transaction
+  - Accessible via `/inventory/balance/details/<item_id>/<warehouse_id>/`
+- **JSON API endpoint**: `/inventory/api/balance/` for AJAX queries
+
+### Technical Implementation
+- **Module**: `inventory/inventory_balance.py`
+- **Main Functions**:
+  - `get_last_stocktaking_baseline()`: Retrieves baseline from stocktaking records
+  - `calculate_movements_after_baseline()`: Calculates receipts and issues after baseline
+  - `calculate_item_balance()`: Complete balance for a single item
+  - `calculate_warehouse_balances()`: Bulk calculation for all items in warehouse
+- **View**: `InventoryBalanceView` and `InventoryBalanceDetailsView`
+- **Template**: `templates/inventory/inventory_balance.html` and `templates/inventory/inventory_balance_details.html`
+
+### Important Notes
+- Only enabled documents are included (`document__is_enabled=1`)
+- Consignment receipts/issues are included in calculations
+- Baseline uses approved and locked `StocktakingRecord` when surplus/deficit documents don't exist
+- Date display: Baseline date shown in Jalali format using `|jalali_date` filter
 
 ### Performance Considerations
 - Indexes on (company_id, warehouse_id, item_id, document_date)
-- Efficient query aggregation
+- Efficient query aggregation using line item models
+- N+1 pattern in `calculate_warehouse_balances()` (one query per item)
 - Caching planned for future versions
+
+---
+
+## 9.1 Stocktaking Approval Workflow
+
+### Overview
+Stocktaking records now support a formal approval workflow with designated approvers and approval status tracking.
+
+### Key Features
+
+#### Approval Status
+- **Three Status Options**:
+  - `pending`: Initial status, awaiting approval
+  - `approved`: Approved by designated approver
+  - `rejected`: Rejected by designated approver
+- **Automatic Timestamp**: `approved_at` field automatically set when status changes to `approved`, cleared when changed to `pending` or `rejected`
+
+#### Approver Management
+- **User-Based Approvers**: `confirmed_by` and `approver` fields changed from `Person` to `User` model
+- **Company Scoping**: Approvers filtered by company access (`UserCompanyAccess`)
+- **Field Display**: Approver fields show `username - Full Name` or just `username` if no full name
+- **Permission Enforcement**: Only the designated `approver` can change `approval_status`
+  - Client-side: `approval_status` field disabled if current user is not the selected approver
+  - Server-side: `clean()` method validates that only the approver can change status
+
+#### Form Structure
+- **Field Order**: `approver` field appears before `approval_status` in the form
+- **Dynamic Behavior**: Form automatically enables/disables `approval_status` based on current user
+- **Validation**: Server-side validation ensures only approver can modify approval status
+
+### Technical Implementation
+- **Model**: `StocktakingRecord` in `inventory/models.py`
+  - `confirmed_by`: ForeignKey to `User` (was `Person`)
+  - `approver`: ForeignKey to `User` (was `Person`)
+  - `approval_status`: CharField with choices (pending, approved, rejected)
+  - `approved_at`: DateTimeField (auto-set/cleared)
+- **Form**: `StocktakingRecordForm` in `inventory/forms.py`
+  - `approval_status`: ChoiceField with three options
+  - `__init__`: Disables `approval_status` if user is not the approver
+  - `clean()`: Server-side permission check
+  - `save()`: Auto-sets/clears `approved_at` based on status
+- **Migration**: `0020_change_stocktaking_users.py` updates foreign keys from `Person` to `User`
+
+### Use Cases
+- Formal approval process for stocktaking records
+- Audit trail of who approved/rejected stocktaking
+- Integration with inventory balance calculation (only approved records used as baseline)
 
 ---
 
@@ -447,13 +683,25 @@ Internal material requisition workflow
 - QuerySet filtering by company_id
 - Session-based company context
 - Centralised permission catalogue (`shared/permissions.py`) with actions for:
-  - Viewing own records vs. all records
-  - Creating, editing, deleting, locking/unlocking (own vs. دیگران)
-  - Approve / Reject / Cancel flows برای گردش کارهای دارای تأیید
+  - Viewing own records vs. all records (`VIEW_OWN`, `VIEW_ALL`)
+  - Creating, editing, deleting (`CREATE`, `EDIT_OWN`, `EDIT_OTHER`, `DELETE_OWN`, `DELETE_OTHER`)
+  - Locking/unlocking own or other users' documents (`LOCK_OWN`, `LOCK_OTHER`, `UNLOCK_OWN`, `UNLOCK_OTHER`)
+  - Approve / Reject / Cancel flows برای گردش کارهای دارای تأیید (`APPROVE`, `REJECT`, `CANCEL`)
+  - **نکته**: `DELETE_OTHER` به تمام اسناد (receipts، issues، requests، stocktaking) اضافه شده است تا امکان حذف اسناد سایر کاربران برای کاربران با دسترسی مناسب فراهم شود.
+  - `APPROVE` برای stocktaking records نیز پشتیبانی می‌شود.
 - Dedicated Shared module UI برای مدیریت کاربران، گروه‌ها و سطوح دسترسی:
-  - فرم‌های ایجاد/ویرایش کاربر همراه با تعیین رمز، گروه‌ها و دسترسی شرکت‌ها
-  - قالب‌های گروه برای نگاشت اعضا و سطوح دسترسی (پشتیبانی از `GroupProfile`)
-  - ماتریس انتخاب اکشن‌ها برای هر Access Level بر اساس `FEATURE_PERMISSION_MAP`
+  - **User Management**:
+    - فرم‌های ایجاد/ویرایش کاربر همراه با تعیین رمز، گروه‌ها و دسترسی شرکت‌ها
+    - `groups` field uses `CheckboxSelectMultiple` widget for intuitive multi-selection
+    - Users can be assigned to multiple groups simultaneously
+  - **Group Management**:
+    - `members` field removed from Group form (membership now managed via User form)
+    - `access_levels` field uses `CheckboxSelectMultiple` widget for intuitive multi-selection
+    - Groups can be assigned multiple access levels simultaneously
+    - Supports `GroupProfile` model with description and enabled flag
+  - **Access Level Management**:
+    - ماتریس انتخاب اکشن‌ها برای هر Access Level بر اساس `FEATURE_PERMISSION_MAP`
+    - **Quick Action Buttons**: دکمه‌های "همه" و "هیچکدام" برای هر Feature (ردیف) و کل صفحه برای انتخاب/لغو انتخاب گروهی permissions
 
 ### Data Protection
 - CSRF protection on all forms

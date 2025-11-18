@@ -2,6 +2,18 @@
 
 `invproj` is a modular warehouse, production, and quality-control management platform built with Django and PostgreSQL. The project is designed with multi-company (multi-tenant) support, rich auditing metadata, and clear module boundaries so that each domain can evolve independently or be split into services in the future.
 
+## Quick Test & Run
+
+```bash
+cd invproj
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py test
+python manage.py runserver 0.0.0.0:8000
+```
+
 This README documents:
 
 - Project architecture and technology stack
@@ -34,7 +46,7 @@ This README documents:
 | `qc` | Quality inspections linked to temporary receipts | `qc_` |
 | `ui` | Template-based UI shell, navigation, and dashboards | — |
 
-Each app directory includes its own `README.md` with a deeper breakdown of files and classes.
+Each app directory includes its own `README.md` with a deeper breakdown of files and classes. See [Documentation Files](#14-documentation-files) for a complete list of all documentation files.
 
 Common mixins (timestamps, activation flags, metadata, sort order, multi-company scoping) are located in `shared.models` and reused across every module to ensure consistent auditing and tenancy rules.
 
@@ -184,7 +196,8 @@ This module hosts cross-cutting entities and mixins.
   - `AccessLevel`, `AccessLevelPermission`: role/permission matrix
   - `UserCompanyAccess`: mapping users to companies with access levels
   - `Person`, `PersonAssignment`: personnel directory and work-center assignments
-- **Permissions Catalog**: `shared/permissions.py` exposes a central `FEATURE_PERMISSION_MAP` that enumerates menu-level features (رسیدها، حواله‌ها، درخواست‌ها) همراه با اکشن‌های دقیق مثل `view_own`, `view_all`, `create`, `edit_own`, `delete_own`, `lock_*`, `unlock_*`, `approve`, `reject`, `cancel`. این نقشه مستقیماً برای ساخت `AccessLevelPermission` و کنترل نمایش منوها استفاده خواهد شد.
+- **Permissions Catalog**: `shared/permissions.py` exposes a central `FEATURE_PERMISSION_MAP` that enumerates menu-level features (رسیدها، حواله‌ها، درخواست‌ها) همراه با اکشن‌های دقیق مثل `view_own`, `view_all`, `create`, `edit_own`, `edit_other`, `delete_own`, `delete_other`, `lock_*`, `unlock_*`, `approve`, `reject`, `cancel`. این نقشه مستقیماً برای ساخت `AccessLevelPermission` و کنترل نمایش منوها استفاده خواهد شد. **نکته**: `DELETE_OTHER` به تمام اسناد اضافه شده است تا امکان حذف اسناد سایر کاربران فراهم شود و `APPROVE` برای stocktaking records نیز پشتیبانی می‌شود.
+- **Document Deletion**: قابلیت حذف برای تمام انواع اسناد (رسیدها، حواله‌ها، شمارش موجودی) پیاده‌سازی شده است. دکمه‌های حذف به صورت شرطی بر اساس دسترسی کاربر (`DELETE_OWN` و `DELETE_OTHER`) نمایش داده می‌شوند. اسناد قفل‌شده قابل حذف نیستند. کلاس پایه `DocumentDeleteViewBase` برای پیاده‌سازی یکپارچه استفاده می‌شود.
 - **User & Access Management**: مسیرهای `/shared/users/`, `/shared/groups/`, `/shared/access-levels/` اکنون صفحات کامل لیست/ایجاد/ویرایش/حذف دارند؛ شامل فرم‌ست دسترسی شرکت برای کاربران، نگاشت گروه‌ها به `AccessLevel` و ماتریس اکشن‌ها بر اساس `FEATURE_PERMISSION_MAP`.
 
 Each model includes constraints to enforce per-company uniqueness of codes and names. JSON fields (`metadata`, `metadata`, etc.) allow flexible extensions without schema changes.
@@ -209,6 +222,8 @@ Key behaviours:
 - Purchase and warehouse requests have dedicated create/edit/approve pages, enforce approver permissions, lock after approval, and only expose approved/locked requests for selection in permanent/consignment receipts.
 - All models inherit auditing and multi-company mixins.
 - Django admin dashboards are set up for quick data verification (`inventory/admin.py`).
+- **Warehouse Restrictions**: Items can only be received/issued in warehouses explicitly configured in `ItemWarehouse` relationship. Strict validation enforced in forms (server-side and client-side).
+- **Date Display**: All dates displayed in Jalali (Persian) format in UI while stored in Gregorian format in database.
 
 ### 3.3 Production (`production`)
 
@@ -440,6 +455,18 @@ All templates use Django i18n:
 - `locale/fa/LC_MESSAGES/django.po` contains Persian translations
 - Automatic RTL support via `dir="{{ LANGUAGE_CODE }}"` on `<html>`
 
+### 10.5 Date Handling (Jalali/Gregorian)
+
+The system displays dates in Jalali (Persian) format in the UI while storing them in Gregorian format in the database:
+
+- **Storage**: All dates stored as Gregorian in database (`DateField`, `DateTimeField`)
+- **Display**: Converted to Jalali format using `{% load jalali_tags %}` and `{{ date|jalali_date }}` template tag
+- **Input**: Custom `JalaliDateInput` widget converts Jalali input to Gregorian before saving
+- **Forms**: All document forms (`ReceiptPermanentForm`, `IssuePermanentForm`, etc.) use `JalaliDateField`
+- **Benefits**: Users see familiar Jalali calendar, database maintains standard format, no dual date fields needed
+
+For details, see `inventory/widgets.py`, `inventory/fields.py`, and `inventory/templatetags/jalali_tags.py`.
+
 ---
 
 ## 11. Inventory Balance Calculation
@@ -519,7 +546,58 @@ Table: `inventory_warehouse_request`
 
 ---
 
-## 14. Maintainer Notes
+## 14. Documentation Files
+
+This project includes comprehensive documentation organized by module and purpose:
+
+### 14.1 Main Documentation
+
+| File | Description |
+|------|-------------|
+| `README.md` | This file - platform overview, setup, and architecture guide |
+| `CHANGELOG.md` | Version history and release notes |
+| `FEATURES.md` | Feature list and capabilities |
+| `DEVELOPMENT.md` | Development guidelines and workflows |
+| `DATABASE_DOCUMENTATION.md` | Database schema and relationships |
+| `system_requirements.md` | System requirements and deployment guide |
+| `ui_guidelines.md` | UI/UX guidelines and component documentation |
+
+### 14.2 Module Design Plans
+
+| File | Description |
+|------|-------------|
+| `shared_module_db_design_plan.md` | Shared module database design specifications |
+| `inventory_module_db_design_plan.md` | Inventory module database design specifications |
+| `production_module_db_design_plan.md` | Production module database design specifications |
+| `qc_module_db_design_plan.md` | Quality Control module database design specifications |
+
+### 14.3 Module README Files
+
+| File | Description |
+|------|-------------|
+| `shared/README.md` | Shared module overview, models, and utilities |
+| `shared/README_FORMS.md` | Shared module forms documentation |
+| `inventory/README.md` | Inventory module overview and models |
+| `inventory/README_FORMS.md` | Inventory module forms documentation |
+| `inventory/README_BALANCE.md` | Inventory balance calculation logic |
+| `production/README.md` | Production module overview and models |
+| `qc/README.md` | Quality Control module overview |
+| `ui/README.md` | UI module templates and components |
+| `templates/inventory/README.md` | Inventory template documentation |
+
+### 14.4 Documentation Structure
+
+- **Main README** (`README.md`): Start here for platform overview and quick start
+- **Module READMEs**: Each app directory contains detailed module documentation
+- **Design Plans**: Database design specifications for each module
+- **Form Documentation**: Detailed form documentation for complex modules
+- **Template Documentation**: UI template structure and usage
+
+For developers new to the project, start with `README.md` and then explore module-specific READMEs based on your area of work.
+
+---
+
+## 15. Maintainer Notes
 
 - Always run `python manage.py test shared inventory production qc` before pushing changes.
 - Maintain coverage for critical logic (code generation, workflow transitions, balance calculations).

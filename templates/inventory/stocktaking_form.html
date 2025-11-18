@@ -1,5 +1,5 @@
 {% extends "inventory/base.html" %}
-{% load i18n %}
+{% load i18n jalali_tags %}
 
 {% block page_title %}{{ form_title }}{% endblock %}
 
@@ -14,7 +14,7 @@
   {% if document_instance and document_instance.pk %}
   <div class="info-banner">
     <div><strong>{% trans "Document Code" %}:</strong> {{ document_instance.document_code }}</div>
-    <div><strong>{% trans "Document Date" %}:</strong> {{ document_instance.document_date|date:"Y-m-d" }}</div>
+    <div><strong>{% trans "Document Date" %}:</strong> {{ document_instance.document_date|jalali_date }}</div>
     <div class="lock-status">
       <strong>{% trans "Lock Status" %}:</strong>
       {% if document_is_locked %}

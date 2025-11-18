@@ -1,0 +1,152 @@
+{% extends "inventory/base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "Receipt Serials" %}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Receipts" %}</span>
+<span class="separator">/</span>
+<span>{% trans "Serials" %}</span>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="form-container">
+  <div class="info-banner">
+    <div><strong>{% trans "Document" %}:</strong> <code>{{ receipt.document_code }}</code></div>
+    <div><strong>{% trans "Item" %}:</strong> {{ receipt.item.name }} (<code>{{ receipt.item_code }}</code>)</div>
+    <div><strong>{% trans "Quantity" %}:</strong> {{ receipt.quantity|floatformat:0 }} {{ receipt.unit }}</div>
+    {% if required_serials %}
+    <div><strong>{% trans "Serials Required" %}:</strong> {{ required_serials }}</div>
+    {% endif %}
+  </div>
+
+  <div class="action-bar">
+    <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
+    <a href="{{ edit_url }}" class="btn btn-secondary">{% trans "Edit Document" %}</a>
+    {% if lock_url %}
+      <form method="post" action="{{ lock_url }}" class="inline-lock-form">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-warning">{% trans "Lock Document" %}</button>
+      </form>
+    {% endif %}
+  </div>
+
+  {% if serials %}
+  <div class="serial-table">
+    <table>
+      <thead>
+        <tr>
+          <th>{% trans "Serial" %}</th>
+          <th>{% trans "Lot" %}</th>
+          <th>{% trans "Status" %}</th>
+          <th>{% trans "Current Warehouse" %}</th>
+          <th>{% trans "Last Movement" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for serial in serials %}
+        <tr>
+          <td><code>{{ serial.serial_code }}</code></td>
+          <td>{% if serial.lot_code %}<code>{{ serial.lot_code }}</code>{% else %}<span class="muted">—</span>{% endif %}</td>
+          <td>{{ serial.get_current_status_display }}</td>
+          <td>
+            {% if serial.current_warehouse %}
+              {{ serial.current_warehouse.name }}<br>
+              <small class="muted">{{ serial.current_warehouse_code }}</small>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td>{% if serial.last_moved_at %}{{ serial.last_moved_at|jalali_datetime }}{% else %}<span class="muted">—</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state" style="margin: 2rem 0;">
+    <div class="empty-state-icon">📦</div>
+    <h3>{% trans "No serials have been generated yet." %}</h3>
+    <p>{% trans "Use the generate button below to create serial numbers before locking the receipt." %}</p>
+  </div>
+  {% endif %}
+
+  <div class="summary">
+    <div><strong>{% trans "Serials Generated" %}:</strong> {{ serials_count }}</div>
+    {% if required_serials %}
+    <div><strong>{% trans "Remaining" %}:</strong> {{ missing_serials|default_if_none:"—" }}</div>
+    {% endif %}
+  </div>
+
+  <div class="form-actions">
+    {% if can_generate %}
+      <form method="post" action="" style="display:inline-flex;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary">{% trans "Generate Missing Serials" %}</button>
+      </form>
+    {% else %}
+      <span class="muted">{% trans "Receipt is locked; serials can no longer be generated." %}</span>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.form-container {
+  max-width: 900px;
+  margin: 2rem auto;
+  background: #fff;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+}
+.info-banner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+.action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.inline-lock-form {
+  display: inline-flex;
+}
+.serial-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.serial-table th,
+.serial-table td {
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem;
+  text-align: left;
+}
+.serial-table th {
+  background: #f1f5f9;
+  font-weight: 600;
+}
+.muted {
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+.summary {
+  display: flex;
+  gap: 2rem;
+  margin: 1.5rem 0;
+  font-weight: 600;
+}
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+</style>
+{% endblock %}

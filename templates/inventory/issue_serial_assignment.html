@@ -1,0 +1,172 @@
+{% extends "inventory/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Assign Serials" %}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Issues" %}</span>
+<span class="separator">/</span>
+<span>{% trans "Assign Serials" %}</span>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="form-container">
+  <div class="info-banner">
+    <div><strong>{% trans "Document" %}:</strong> <code>{{ issue.document_code }}</code></div>
+    <div><strong>{% trans "Item" %}:</strong> {{ issue.item.name }} (<code>{{ issue.item_code }}</code>)</div>
+    <div><strong>{% trans "Quantity" %}:</strong> {{ issue.quantity|floatformat:0 }} {{ issue.unit }}</div>
+    {% if required_serials %}
+    <div><strong>{% trans "Serials Required" %}:</strong> {{ required_serials }}</div>
+    {% endif %}
+  </div>
+
+  <div class="action-bar">
+    <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
+    <a href="{{ edit_url }}" class="btn btn-secondary">{% trans "Edit Document" %}</a>
+    {% if lock_url %}
+      <form method="post" action="{{ lock_url }}" class="inline-lock-form">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-warning">{% trans "Lock Document" %}</button>
+      </form>
+    {% endif %}
+  </div>
+
+  <form method="post" class="entity-form">
+    {% csrf_token %}
+
+    <div class="form-section">
+      <h3>{% trans "Available Serials" %}</h3>
+      <p class="hint">
+        {% blocktrans with available=available_serials_count selected=selected_serials_count required=required_serials %}
+        {{ available }} serial(s) available. Currently {{ selected }} selected. Required: {{ required }}.
+        {% endblocktrans %}
+      </p>
+      {% if form.serials.help_text %}
+        <small class="form-text">{{ form.serials.help_text }}</small>
+      {% endif %}
+      <div class="serial-selection-container">
+        {{ form.serials }}
+      </div>
+      {% if form.serials.errors %}
+        <span class="error">{{ form.serials.errors.0 }}</span>
+      {% endif %}
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% trans "Save Serials" %}</button>
+      <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div>
+
+<style>
+.form-container {
+  max-width: 900px;
+  margin: 2rem auto;
+  background: white;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+}
+.info-banner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+.action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.inline-lock-form {
+  display: inline-flex;
+}
+.serial-selection-container {
+  max-height: 500px;
+  overflow-y: auto;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 1rem;
+  background: #ffffff;
+  margin-top: 0.75rem;
+}
+.serial-checkboxes {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.serial-checkboxes li {
+  padding: 0.5rem;
+  margin: 0.25rem 0;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+.serial-checkboxes li:hover {
+  background-color: #f3f4f6;
+}
+.serial-checkboxes li label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: normal;
+  margin: 0;
+  width: 100%;
+  gap: 0.5rem;
+  user-select: none;
+}
+.serial-checkboxes li input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #2563eb;
+  flex-shrink: 0;
+}
+.serial-checkboxes li input[type="checkbox"]:checked {
+  accent-color: #2563eb;
+}
+/* Highlight checked items - using :has() for modern browsers */
+.serial-checkboxes li:has(input[type="checkbox"]:checked) {
+  background-color: #eff6ff;
+  border-left: 3px solid #2563eb;
+  padding-left: 0.75rem;
+}
+.serial-checkboxes li:has(input[type="checkbox"]:checked) label {
+  font-weight: 600;
+  color: #2563eb;
+}
+/* Fallback for browsers that don't support :has() */
+.serial-checkboxes li input[type="checkbox"]:checked ~ label,
+.serial-checkboxes li label:has(input[type="checkbox"]:checked) {
+  font-weight: 600;
+  color: #2563eb;
+}
+.hint {
+  color: #475569;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+.error {
+  display: block;
+  margin-top: 0.5rem;
+  color: #dc2626;
+}
+.form-text {
+  display: block;
+  margin-top: 0.5rem;
+  color: #6b7280;
+}
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+</style>
+{% endblock %}

@@ -30,6 +30,7 @@ def get_last_stocktaking_baseline(
     if as_of_date is None:
         as_of_date = timezone.now().date()
     
+    # Try to find surplus/deficit documents (old approach)
     latest_surplus = models.StocktakingSurplus.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
@@ -56,12 +57,31 @@ def get_last_stocktaking_baseline(
     elif latest_deficit:
         latest_date = latest_deficit.document_date
     
+    # If no surplus/deficit found, try to find approved StocktakingRecord
     if not latest_date:
-        return {
-            'baseline_date': None,
-            'baseline_quantity': Decimal('0'),
-            'stocktaking_record_id': None,
-        }
+        latest_record = models.StocktakingRecord.objects.filter(
+            company_id=company_id,
+            document_date__lte=as_of_date,
+            approval_status='approved',
+            is_locked=1,
+            is_enabled=1,
+        ).order_by('-document_date', '-id').first()
+        
+        if latest_record:
+            # Use the record date as baseline, but quantity = 0 (will calculate from receipts/issues)
+            return {
+                'baseline_date': latest_record.document_date,
+                'baseline_quantity': Decimal('0'),
+                'stocktaking_record_id': latest_record.id,
+                'stocktaking_record_code': latest_record.document_code,
+            }
+        else:
+            # No stocktaking at all - start from zero
+            return {
+                'baseline_date': None,
+                'baseline_quantity': Decimal('0'),
+                'stocktaking_record_id': None,
+            }
     
     # Get the surplus/deficit for this specific item and warehouse
     # from the documents referenced in the stocktaking record
@@ -113,19 +133,47 @@ def calculate_movements_after_baseline(
     if as_of_date is None:
         as_of_date = timezone.now().date()
     
+    # Ensure as_of_date is a date object
+    if not isinstance(as_of_date, date):
+        try:
+            if isinstance(as_of_date, str):
+                as_of_date = date.fromisoformat(as_of_date)
+            else:
+                as_of_date = timezone.now().date()
+        except (ValueError, TypeError):
+            as_of_date = timezone.now().date()
+    
     # If no baseline, start from beginning of time
     if baseline_date is None:
         baseline_date = date(1900, 1, 1)
     
-    # Calculate receipts (positive movements)
-    receipts = models.ReceiptPermanent.objects.filter(
+    # Ensure baseline_date is a date object
+    if not isinstance(baseline_date, date):
+        try:
+            if isinstance(baseline_date, str):
+                baseline_date = date.fromisoformat(baseline_date)
+            else:
+                baseline_date = date(1900, 1, 1)
+        except (ValueError, TypeError):
+            baseline_date = date(1900, 1, 1)
+    
+    # Calculate receipts (positive movements) from line items
+    receipts_perm = models.ReceiptPermanentLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
         item_id=item_id,
-        document_date__gt=baseline_date,
-        document_date__lte=as_of_date,
-        is_locked=1,
-        is_enabled=1,
+        document__document_date__gt=baseline_date,
+        document__document_date__lte=as_of_date,
+        document__is_enabled=1,
+    ).aggregate(total=Sum('quantity'))
+    
+    receipts_consignment = models.ReceiptConsignmentLine.objects.filter(
+        company_id=company_id,
+        warehouse_id=warehouse_id,
+        item_id=item_id,
+        document__document_date__gt=baseline_date,
+        document__document_date__lte=as_of_date,
+        document__is_enabled=1,
     ).aggregate(total=Sum('quantity'))
     
     surplus = models.StocktakingSurplus.objects.filter(
@@ -138,27 +186,38 @@ def calculate_movements_after_baseline(
         is_enabled=1,
     ).aggregate(total=Sum('quantity_adjusted'))
     
-    receipts_total = (receipts['total'] or Decimal('0')) + (surplus['total'] or Decimal('0'))
+    receipts_total = (
+        (receipts_perm['total'] or Decimal('0')) + 
+        (receipts_consignment['total'] or Decimal('0')) + 
+        (surplus['total'] or Decimal('0'))
+    )
     
-    # Calculate issues (negative movements)
-    issues_permanent = models.IssuePermanent.objects.filter(
+    # Calculate issues (negative movements) from line items
+    issues_permanent = models.IssuePermanentLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
         item_id=item_id,
-        document_date__gt=baseline_date,
-        document_date__lte=as_of_date,
-        is_locked=1,
-        is_enabled=1,
+        document__document_date__gt=baseline_date,
+        document__document_date__lte=as_of_date,
+        document__is_enabled=1,
     ).aggregate(total=Sum('quantity'))
     
-    issues_consumption = models.IssueConsumption.objects.filter(
+    issues_consumption = models.IssueConsumptionLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
         item_id=item_id,
-        document_date__gt=baseline_date,
-        document_date__lte=as_of_date,
-        is_locked=1,
-        is_enabled=1,
+        document__document_date__gt=baseline_date,
+        document__document_date__lte=as_of_date,
+        document__is_enabled=1,
+    ).aggregate(total=Sum('quantity'))
+    
+    issues_consignment = models.IssueConsignmentLine.objects.filter(
+        company_id=company_id,
+        warehouse_id=warehouse_id,
+        item_id=item_id,
+        document__document_date__gt=baseline_date,
+        document__document_date__lte=as_of_date,
+        document__is_enabled=1,
     ).aggregate(total=Sum('quantity'))
     
     deficit = models.StocktakingDeficit.objects.filter(
@@ -174,6 +233,7 @@ def calculate_movements_after_baseline(
     issues_total = (
         (issues_permanent['total'] or Decimal('0')) +
         (issues_consumption['total'] or Decimal('0')) +
+        (issues_consignment['total'] or Decimal('0')) +
         (deficit['total'] or Decimal('0'))
     )
     
@@ -277,8 +337,44 @@ def calculate_warehouse_balances(
     Returns:
         List of balance dictionaries (one per item)
     """
-    # Get all items in this warehouse
+    # Get all items that have activity in this warehouse (receipts, issues, or stocktaking)
+    from django.db.models import Q
+    
+    # First, get items with warehouse assignment (traditional way)
+    items_with_assignment = models.Item.objects.filter(
+        company_id=company_id,
+        is_enabled=1,
+        warehouses__warehouse_id=warehouse_id,
+        warehouses__is_enabled=1,
+    ).values_list('id', flat=True)
+    
+    # Second, get items with actual transactions in this warehouse
+    items_with_receipts = models.ReceiptPermanentLine.objects.filter(
+        company_id=company_id,
+        warehouse_id=warehouse_id,
+    ).values_list('item_id', flat=True).distinct()
+    
+    items_with_consignment_receipts = models.ReceiptConsignmentLine.objects.filter(
+        company_id=company_id,
+        warehouse_id=warehouse_id,
+    ).values_list('item_id', flat=True).distinct()
+    
+    items_with_issues = models.IssuePermanentLine.objects.filter(
+        company_id=company_id,
+        warehouse_id=warehouse_id,
+    ).values_list('item_id', flat=True).distinct()
+    
+    items_with_consumption = models.IssueConsumptionLine.objects.filter(
+        company_id=company_id,
+        warehouse_id=warehouse_id,
+    ).values_list('item_id', flat=True).distinct()
+    
+    # Combine all item IDs
+    all_item_ids = set(items_with_assignment) | set(items_with_receipts) | set(items_with_consignment_receipts) | set(items_with_issues) | set(items_with_consumption)
+    
+    # Build final query
     items_query = models.Item.objects.filter(
+        id__in=all_item_ids,
         company_id=company_id,
         is_enabled=1,
     )
@@ -289,12 +385,6 @@ def calculate_warehouse_balances(
     if item_category_id:
         items_query = items_query.filter(category_id=item_category_id)
     
-    # Also filter by items that have warehouse assignment
-    items_query = items_query.filter(
-        warehouses__warehouse_id=warehouse_id,
-        warehouses__is_enabled=1,
-    ).distinct()
-    
     balances = []
     for item in items_query:
         try:
@@ -303,8 +393,10 @@ def calculate_warehouse_balances(
             if balance['current_balance'] != 0 or balance['receipts_total'] > 0 or balance['issues_total'] > 0:
                 balances.append(balance)
         except Exception as e:
-            # Log error but continue with other items
-            print(f"Error calculating balance for item {item.id}: {e}")
+            # Log error with more details but continue with other items
+            import traceback
+            print(f"Error calculating balance for item {item.id} ({item.item_code}): {e}")
+            print(f"Traceback: {traceback.format_exc()}")
             continue
     
     return balances

@@ -8,7 +8,7 @@ Defines the reusable abstractions and core shared tables.
 
 - **Mixins**
   - `TimeStampedModel`: adds `created_at` / `edited_at` fields.
-  - `ActivatableModel`: adds `is_enabled`, `activated_at`, `deactivated_at`.
+  - `ActivatableModel`: adds `is_enabled`, `enabled_at`, `enabled_by`, `disabled_at`, `disabled_by`.
   - `MetadataModel`: adds a JSON `metadata` field.
   - `SortableModel`: adds `sort_order`.
   - `CompanyScopedModel`: base for multi-company isolation; stores `company`, `company_code` and auto-populates the cached code on save.
@@ -50,12 +50,15 @@ Defines the ModelForms used across the shared module:
   - `GroupListView`, `GroupCreateView`, `GroupUpdateView`, `GroupDeleteView`: مدیریت گروه‌ها، اختصاص کاربران و نگاشت به سطح دسترسی از طریق `GroupProfile`.
 - **مدیریت سطوح دسترسی**:
   - `AccessLevelListView`, `AccessLevelCreateView`, `AccessLevelUpdateView`, `AccessLevelDeleteView`: CRUD کامل روی `AccessLevel` به همراه رندر ماتریس اکشن‌ها بر اساس `FEATURE_PERMISSION_MAP` و ذخیره در `AccessLevelPermission`.
+  - صفحه ایجاد/ویرایش (`access_level_form.html`) شامل **دکمه‌های Quick Action** برای انتخاب/لغو انتخاب گروهی permissions:
+    - برای هر Feature (ردیف): دکمه‌های "همه" و "هیچکدام" برای انتخاب/لغو انتخاب تمام permissions همان Feature
+    - برای کل صفحه: دکمه‌های "همه" و "هیچکدام" برای انتخاب/لغو انتخاب تمام permissions تمام Features
 
 ## permissions.py
 
 ماژول جدید `shared/permissions.py` کاتالوگ متمرکز مجوزها را نگه می‌دارد:
 
-- `PermissionAction` (Enum): مجموعه اکشن‌های پایه مثل `VIEW_OWN`, `VIEW_ALL`, `CREATE`, `EDIT_OWN`, `DELETE_OWN`, `LOCK_OWN`, `LOCK_OTHER`, `UNLOCK_OWN`, `UNLOCK_OTHER`, `APPROVE`, `REJECT`, `CANCEL`.
+- `PermissionAction` (Enum): مجموعه اکشن‌های پایه مثل `VIEW_OWN`, `VIEW_ALL`, `CREATE`, `EDIT_OWN`, `EDIT_OTHER`, `DELETE_OWN`, `DELETE_OTHER`, `LOCK_OWN`, `LOCK_OTHER`, `UNLOCK_OWN`, `UNLOCK_OTHER`, `APPROVE`, `REJECT`, `CANCEL`.
 - `FeaturePermission`: دیتاکلاس توصیف‌کننده‌ی هر منو / قابلیت و اکشن‌های مجاز آن.
 - `FEATURE_PERMISSION_MAP`: نگاشت ماژول‌ها و زیرمنوهای فعلی (رسیدها، حواله‌ها، درخواست‌ها) به لیست اکشن‌های پشتیبانی‌شده. این ساختار بعداً برای ایجاد `AccessLevelPermission` ها، فرم‌های مدیریت دسترسی و کنترل نمایش منوها استفاده خواهد شد.
 - `list_feature_permissions()`: هلسپر برای بازگرداندن همه‌ی موارد جهت استفاده در فرم‌ها/فیکسچرها.
@@ -69,7 +72,10 @@ Defines the ModelForms used across the shared module:
 - `shared/person_form.html`: فرم پرسنل با بخش انتخاب واحدهای سازمانی (چند انتخابی).
 - **صفحات جدید مدیریت کاربران**: `shared/users_list.html`, `shared/user_form.html`, `shared/user_confirm_delete.html`
 - **صفحات جدید مدیریت گروه‌ها**: `shared/groups_list.html`, `shared/group_form.html`, `shared/group_confirm_delete.html`
-- **صفحات جدید مدیریت سطوح دسترسی**: `shared/access_levels_list.html`, `shared/access_level_form.html`, `shared/access_level_confirm_delete.html`
+- **صفحات جدید مدیریت سطوح دسترسی**: 
+  - `shared/access_levels_list.html`: فهرست سطوح دسترسی
+  - `shared/access_level_form.html`: فرم ایجاد/ویرایش سطح دسترسی با **ماتریس permission** و دکمه‌های "همه" و "هیچکدام" برای هر ردیف (Feature) و کل صفحه برای انتخاب/لغو انتخاب گروهی permissions
+  - `shared/access_level_confirm_delete.html`: تأیید حذف سطح دسترسی
 
 ## migrations/
 - `0001_initial.py`: auto-generated from the models and mirrors the database design document (`shared_module_db_design_plan.md`). When models change, run `python manage.py makemigrations shared` to create additional migrations.

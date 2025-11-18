@@ -14,6 +14,7 @@ def active_company(request):
     context = {
         'active_company': None,
         'user_companies': [],
+        'user_feature_permissions': {},
     }
     
     if request.user.is_authenticated:
@@ -53,6 +54,11 @@ def active_company(request):
                 context['active_company'] = context['user_companies'][0]
             
             request.session['active_company_id'] = context['active_company'].id
-    
+
+        from shared.utils.permissions import get_user_feature_permissions
+
+        company_id = context['active_company'].id if context['active_company'] else None
+        context['user_feature_permissions'] = get_user_feature_permissions(request.user, company_id)
+
     return context
 

@@ -1,5 +1,5 @@
 {% extends "inventory/base.html" %}
-{% load i18n %}
+{% load i18n jalali_tags %}
 
 {% block page_title %}{% trans "Inventory Balance" %}{% endblock %}
 
@@ -60,11 +60,8 @@
       </select>
     </div>
 
-    <div class="form-group">
-      <label for="as_of_date">{% trans "As of Date" %}</label>
-      <input type="date" name="as_of_date" id="as_of_date" 
-             value="{{ as_of_date|date:'Y-m-d' }}" class="form-control">
-    </div>
+    <!-- Hidden date field - automatically set to today -->
+    <input type="hidden" name="as_of_date" id="as_of_date" value="{{ as_of_date|date:'Y-m-d' }}">
 
     <div class="form-group" style="align-self: flex-end;">
       <button type="submit" class="btn btn-primary" style="width: 100%;">
@@ -87,7 +84,7 @@
   </div>
   <div class="stat-card">
     <div class="stat-label">{% trans "Last Calculated" %}</div>
-    <div class="stat-value" style="font-size: 1rem;">{{ as_of_date|date:"Y-m-d" }}</div>
+    <div class="stat-value" style="font-size: 1rem;">{{ as_of_date|jalali_date }}</div>
   </div>
 </div>
 
@@ -113,7 +110,7 @@
         <td>{{ balance.item_name }}</td>
         <td>
           {% if balance.baseline_date %}
-            {{ balance.baseline_date }}
+            {{ balance.baseline_date|jalali_date }}
           {% else %}
             <span class="badge badge-draft">{% trans "No Stocktaking" %}</span>
           {% endif %}
@@ -131,7 +128,8 @@
           {% endif %}
         </td>
         <td>
-          <a href="#" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+          <a href="{% url 'inventory:balance_details' balance.item_id balance.warehouse_id %}?as_of_date={{ as_of_date|date:'Y-m-d' }}" 
+             class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
             {% trans "Details" %}
           </a>
         </td>

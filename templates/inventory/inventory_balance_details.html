@@ -1,0 +1,144 @@
+{% extends "inventory/base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "Inventory Balance Details" %}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<a href="{% url 'inventory:inventory_balance' %}">{% trans "Inventory Balance" %}</a>
+<span class="separator">/</span>
+<span>{% trans "Details" %}</span>
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions">
+  <a href="{% url 'inventory:inventory_balance' %}?warehouse_id={{ warehouse.id }}" class="btn btn-secondary">
+    {% trans "Back to Balance" %}
+  </a>
+  <button onclick="window.print()" class="btn btn-secondary">
+    {% trans "Print" %}
+  </button>
+</div>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="details-header" style="margin-bottom: 24px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+  <h2 style="margin: 0 0 16px 0;">{{ item.name }} ({{ item.item_code }})</h2>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+    <div>
+      <strong>{% trans "Warehouse" %}:</strong> {{ warehouse.name }} ({{ warehouse.public_code }})
+    </div>
+    <div>
+      <strong>{% trans "Baseline Date" %}:</strong> 
+      {% if baseline.baseline_date %}
+        {{ baseline.baseline_date|jalali_date }}
+      {% else %}
+        <span class="badge badge-draft">{% trans "No Stocktaking" %}</span>
+      {% endif %}
+    </div>
+    <div>
+      <strong>{% trans "Baseline Quantity" %}:</strong> {{ baseline.baseline_quantity|floatformat:2 }} {{ item.default_unit|default:"" }}
+    </div>
+    <div>
+      <strong>{% trans "As of Date" %}:</strong> {{ as_of_date|jalali_date }}
+    </div>
+  </div>
+</div>
+
+{% if error %}
+<div class="alert alert-error" style="margin-bottom: 20px; padding: 16px; background-color: #fee2e2; border: 1px solid #fecaca; border-radius: 8px; color: #991b1b;">
+  <strong>{% trans "Error" %}:</strong> {{ error }}
+</div>
+{% else %}
+
+<!-- Summary Cards -->
+<div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+  <div class="stat-card" style="padding: 16px; background: #ecfdf5; border: 1px solid #10b981; border-radius: 8px;">
+    <div class="stat-label" style="font-size: 0.875rem; color: #065f46; margin-bottom: 8px;">{% trans "Total Receipts" %}</div>
+    <div class="stat-value" style="font-size: 1.5rem; font-weight: 600; color: #10b981;">+{{ total_receipts|floatformat:2 }}</div>
+  </div>
+  <div class="stat-card" style="padding: 16px; background: #fef2f2; border: 1px solid #ef4444; border-radius: 8px;">
+    <div class="stat-label" style="font-size: 0.875rem; color: #991b1b; margin-bottom: 8px;">{% trans "Total Issues" %}</div>
+    <div class="stat-value" style="font-size: 1.5rem; font-weight: 600; color: #ef4444;">-{{ total_issues|floatformat:2 }}</div>
+  </div>
+    <div class="stat-card" style="padding: 16px; background: #eff6ff; border: 1px solid #3b82f6; border-radius: 8px;">
+      <div class="stat-label" style="font-size: 0.875rem; color: #1e40af; margin-bottom: 8px;">{% trans "Current Balance" %}</div>
+      <div class="stat-value" style="font-size: 1.5rem; font-weight: 600; color: #3b82f6;">
+        {{ current_balance|floatformat:2 }}
+      </div>
+    </div>
+</div>
+
+<!-- Transactions Table -->
+<div class="data-table-container">
+  <h3 style="margin-bottom: 16px;">{% trans "Transaction History" %}</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Date" %}</th>
+        <th>{% trans "Type" %}</th>
+        <th>{% trans "Document Code" %}</th>
+        <th style="text-align: right;">{% trans "Quantity" %}</th>
+        <th style="text-align: right;">{% trans "Running Balance" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if baseline.baseline_date %}
+      <tr style="background-color: #f8f9fa;">
+        <td>{{ baseline.baseline_date|jalali_date }}</td>
+        <td><span class="badge badge-info">{% trans "Baseline" %}</span></td>
+        <td>
+          {% if baseline.stocktaking_record_code %}
+            {{ baseline.stocktaking_record_code }}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+        <td style="text-align: right;">{{ baseline.baseline_quantity|floatformat:2 }}</td>
+        <td style="text-align: right; font-weight: 600;">{{ baseline.baseline_quantity|floatformat:2 }}</td>
+      </tr>
+      {% endif %}
+      
+      {% for transaction in transactions %}
+      <tr>
+        <td>{{ transaction.date|jalali_date }}</td>
+        <td>
+          {% if transaction.type == 'receipt' %}
+            <span class="badge badge-success">{{ transaction.type_label }}</span>
+          {% else %}
+            <span class="badge badge-danger">{{ transaction.type_label }}</span>
+          {% endif %}
+        </td>
+        <td><code>{{ transaction.document_code }}</code></td>
+        <td style="text-align: right;">
+          {% if transaction.type == 'receipt' %}
+            <span style="color: #10b981;">+{{ transaction.quantity|floatformat:2 }}</span>
+          {% else %}
+            <span style="color: #ef4444;">-{{ transaction.quantity|floatformat:2 }}</span>
+          {% endif %}
+          {{ transaction.unit }}
+        </td>
+        <td style="text-align: right; font-weight: 600;">
+          {% if transaction.running_balance < 0 %}
+            <span style="color: #ef4444;">{{ transaction.running_balance|floatformat:2 }}</span>
+          {% elif transaction.running_balance == 0 %}
+            <span style="color: #6b7280;">{{ transaction.running_balance|floatformat:2 }}</span>
+          {% else %}
+            <span style="color: #10b981;">{{ transaction.running_balance|floatformat:2 }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 40px; color: #6b7280;">
+          {% trans "No transactions found for this period." %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endif %}
+{% endblock %}
+

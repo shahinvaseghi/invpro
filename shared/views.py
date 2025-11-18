@@ -24,6 +24,7 @@ from .forms import (
     UserCreateForm,
     UserUpdateForm,
 )
+from .mixins import FeaturePermissionRequiredMixin
 from .models import AccessLevel, Company, CompanyUnit, Person, UserCompanyAccess
 from .permissions import FEATURE_PERMISSION_MAP, PermissionAction
 
@@ -61,7 +62,7 @@ def set_active_company(request):
     return HttpResponseRedirect(request.POST.get('next', '/'))
 
 
-class CompanyListView(LoginRequiredMixin, ListView):
+class CompanyListView(FeaturePermissionRequiredMixin, ListView):
     """
     List all companies that the current user has access to.
     """
@@ -69,6 +70,7 @@ class CompanyListView(LoginRequiredMixin, ListView):
     template_name = 'shared/companies.html'
     context_object_name = 'companies'
     paginate_by = 50
+    feature_code = 'shared.companies'
     
     def get_queryset(self):
         """Filter companies based on user access."""
@@ -89,7 +91,7 @@ class CompanyListView(LoginRequiredMixin, ListView):
         return context
 
 
-class PersonnelListView(LoginRequiredMixin, ListView):
+class PersonnelListView(FeaturePermissionRequiredMixin, ListView):
     """
     List all personnel (Person objects) for the active company.
     """
@@ -97,6 +99,7 @@ class PersonnelListView(LoginRequiredMixin, ListView):
     template_name = 'shared/personnel.html'
     context_object_name = 'personnel'
     paginate_by = 50
+    feature_code = 'shared.personnel'
     
     def get_queryset(self):
         """Filter personnel by active company."""
@@ -116,7 +119,7 @@ class PersonnelListView(LoginRequiredMixin, ListView):
         return context
 
 
-class CompanyUnitListView(LoginRequiredMixin, ListView):
+class CompanyUnitListView(FeaturePermissionRequiredMixin, ListView):
     """
     List all company units for the active company.
     """
@@ -124,6 +127,7 @@ class CompanyUnitListView(LoginRequiredMixin, ListView):
     template_name = 'shared/company_units.html'
     context_object_name = 'units'
     paginate_by = 50
+    feature_code = 'shared.company_units'
 
     def get_queryset(self):
         active_company_id = self.request.session.get('active_company_id')
@@ -158,12 +162,14 @@ class CompanyUnitListView(LoginRequiredMixin, ListView):
         return context
 
 
-class CompanyCreateView(LoginRequiredMixin, CreateView):
+class CompanyCreateView(FeaturePermissionRequiredMixin, CreateView):
     """Create a new company."""
     model = Company
     form_class = CompanyForm
     template_name = 'shared/company_form.html'
     success_url = reverse_lazy('shared:companies')
+    feature_code = 'shared.companies'
+    required_action = 'create'
     
     def form_valid(self, form):
         # Auto-set created_by
@@ -189,12 +195,14 @@ class CompanyCreateView(LoginRequiredMixin, CreateView):
         return context
 
 
-class CompanyUpdateView(LoginRequiredMixin, UpdateView):
+class CompanyUpdateView(FeaturePermissionRequiredMixin, UpdateView):
     """Update an existing company."""
     model = Company
     form_class = CompanyForm
     template_name = 'shared/company_form.html'
     success_url = reverse_lazy('shared:companies')
+    feature_code = 'shared.companies'
+    required_action = 'edit_own'
     
     def form_valid(self, form):
         # Auto-set edited_by
@@ -209,11 +217,13 @@ class CompanyUpdateView(LoginRequiredMixin, UpdateView):
         return context
 
 
-class CompanyDeleteView(LoginRequiredMixin, DeleteView):
+class CompanyDeleteView(FeaturePermissionRequiredMixin, DeleteView):
     """Delete a company."""
     model = Company
     success_url = reverse_lazy('shared:companies')
     template_name = 'shared/company_confirm_delete.html'
+    feature_code = 'shared.companies'
+    required_action = 'delete_own'
     
     def delete(self, request, *args, **kwargs):
         messages.success(self.request, _('Company deleted successfully.'))
@@ -225,12 +235,14 @@ class CompanyDeleteView(LoginRequiredMixin, DeleteView):
         return context
 
 
-class PersonCreateView(LoginRequiredMixin, CreateView):
+class PersonCreateView(FeaturePermissionRequiredMixin, CreateView):
     """Create a new person."""
     model = Person
     form_class = PersonForm
     template_name = 'shared/person_form.html'
     success_url = reverse_lazy('shared:personnel')
+    feature_code = 'shared.personnel'
+    required_action = 'create'
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -256,12 +268,14 @@ class PersonCreateView(LoginRequiredMixin, CreateView):
         return context
 
 
-class CompanyUnitCreateView(LoginRequiredMixin, CreateView):
+class CompanyUnitCreateView(FeaturePermissionRequiredMixin, CreateView):
     """Create a new company unit."""
     model = CompanyUnit
     form_class = CompanyUnitForm
     template_name = 'shared/company_unit_form.html'
     success_url = reverse_lazy('shared:company_units')
+    feature_code = 'shared.company_units'
+    required_action = 'create'
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -285,12 +299,14 @@ class CompanyUnitCreateView(LoginRequiredMixin, CreateView):
         return context
 
 
-class PersonUpdateView(LoginRequiredMixin, UpdateView):
+class PersonUpdateView(FeaturePermissionRequiredMixin, UpdateView):
     """Update an existing person."""
     model = Person
     form_class = PersonForm
     template_name = 'shared/person_form.html'
     success_url = reverse_lazy('shared:personnel')
+    feature_code = 'shared.personnel'
+    required_action = 'edit_own'
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -317,12 +333,14 @@ class PersonUpdateView(LoginRequiredMixin, UpdateView):
         return context
 
 
-class CompanyUnitUpdateView(LoginRequiredMixin, UpdateView):
+class CompanyUnitUpdateView(FeaturePermissionRequiredMixin, UpdateView):
     """Update existing company unit."""
     model = CompanyUnit
     form_class = CompanyUnitForm
     template_name = 'shared/company_unit_form.html'
     success_url = reverse_lazy('shared:company_units')
+    feature_code = 'shared.company_units'
+    required_action = 'edit_own'
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -340,11 +358,13 @@ class CompanyUnitUpdateView(LoginRequiredMixin, UpdateView):
         return context
 
 
-class PersonDeleteView(LoginRequiredMixin, DeleteView):
+class PersonDeleteView(FeaturePermissionRequiredMixin, DeleteView):
     """Delete a person."""
     model = Person
     success_url = reverse_lazy('shared:personnel')
     template_name = 'shared/person_confirm_delete.html'
+    feature_code = 'shared.personnel'
+    required_action = 'delete_own'
     
     def get_queryset(self):
         """Filter by active company."""
@@ -363,11 +383,13 @@ class PersonDeleteView(LoginRequiredMixin, DeleteView):
         return context
 
 
-class CompanyUnitDeleteView(LoginRequiredMixin, DeleteView):
+class CompanyUnitDeleteView(FeaturePermissionRequiredMixin, DeleteView):
     """Delete a company unit."""
     model = CompanyUnit
     template_name = 'shared/company_unit_confirm_delete.html'
     success_url = reverse_lazy('shared:company_units')
+    feature_code = 'shared.company_units'
+    required_action = 'delete_own'
 
     def delete(self, request, *args, **kwargs):
         messages.success(self.request, 'واحد سازمانی حذف شد.')
@@ -396,11 +418,12 @@ class UserAccessFormsetMixin:
         )
 
 
-class UserListView(LoginRequiredMixin, ListView):
+class UserListView(FeaturePermissionRequiredMixin, ListView):
     model = User
     template_name = 'shared/users_list.html'
     context_object_name = 'users'
     paginate_by = 20
+    feature_code = 'shared.users'
 
     def get_queryset(self):
         queryset = (
@@ -429,11 +452,13 @@ class UserListView(LoginRequiredMixin, ListView):
         return context
 
 
-class UserCreateView(LoginRequiredMixin, UserAccessFormsetMixin, CreateView):
+class UserCreateView(FeaturePermissionRequiredMixin, UserAccessFormsetMixin, CreateView):
     model = User
     form_class = UserCreateForm
     template_name = 'shared/user_form.html'
     success_url = reverse_lazy('shared:users')
+    feature_code = 'shared.users'
+    required_action = 'create'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -458,11 +483,13 @@ class UserCreateView(LoginRequiredMixin, UserAccessFormsetMixin, CreateView):
         return HttpResponseRedirect(self.get_success_url())
 
 
-class UserUpdateView(LoginRequiredMixin, UserAccessFormsetMixin, UpdateView):
+class UserUpdateView(FeaturePermissionRequiredMixin, UserAccessFormsetMixin, UpdateView):
     model = User
     form_class = UserUpdateForm
     template_name = 'shared/user_form.html'
     success_url = reverse_lazy('shared:users')
+    feature_code = 'shared.users'
+    required_action = 'edit_own'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -487,10 +514,12 @@ class UserUpdateView(LoginRequiredMixin, UserAccessFormsetMixin, UpdateView):
         return HttpResponseRedirect(self.get_success_url())
 
 
-class UserDeleteView(LoginRequiredMixin, DeleteView):
+class UserDeleteView(FeaturePermissionRequiredMixin, DeleteView):
     model = User
     template_name = 'shared/user_confirm_delete.html'
     success_url = reverse_lazy('shared:users')
+    feature_code = 'shared.users'
+    required_action = 'delete_own'
 
     def delete(self, request, *args, **kwargs):
         messages.success(self.request, _('User deleted successfully.'))
@@ -502,11 +531,12 @@ class UserDeleteView(LoginRequiredMixin, DeleteView):
         return context
 
 
-class GroupListView(LoginRequiredMixin, ListView):
+class GroupListView(FeaturePermissionRequiredMixin, ListView):
     model = Group
     template_name = 'shared/groups_list.html'
     context_object_name = 'groups'
     paginate_by = 20
+    feature_code = 'shared.groups'
 
     def get_queryset(self):
         search = self.request.GET.get('search')
@@ -527,11 +557,13 @@ class GroupListView(LoginRequiredMixin, ListView):
         return context
 
 
-class GroupCreateView(LoginRequiredMixin, CreateView):
+class GroupCreateView(FeaturePermissionRequiredMixin, CreateView):
     model = Group
     form_class = GroupForm
     template_name = 'shared/group_form.html'
     success_url = reverse_lazy('shared:groups')
+    feature_code = 'shared.groups'
+    required_action = 'create'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -546,11 +578,13 @@ class GroupCreateView(LoginRequiredMixin, CreateView):
         return response
 
 
-class GroupUpdateView(LoginRequiredMixin, UpdateView):
+class GroupUpdateView(FeaturePermissionRequiredMixin, UpdateView):
     model = Group
     form_class = GroupForm
     template_name = 'shared/group_form.html'
     success_url = reverse_lazy('shared:groups')
+    feature_code = 'shared.groups'
+    required_action = 'edit_own'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -565,10 +599,12 @@ class GroupUpdateView(LoginRequiredMixin, UpdateView):
         return response
 
 
-class GroupDeleteView(LoginRequiredMixin, DeleteView):
+class GroupDeleteView(FeaturePermissionRequiredMixin, DeleteView):
     model = Group
     template_name = 'shared/group_confirm_delete.html'
     success_url = reverse_lazy('shared:groups')
+    feature_code = 'shared.groups'
+    required_action = 'delete_own'
 
     def delete(self, request, *args, **kwargs):
         messages.success(self.request, _('Group deleted successfully.'))
@@ -588,7 +624,9 @@ class AccessLevelPermissionMixin:
         PermissionAction.VIEW_ALL.value: _('View all records'),
         PermissionAction.CREATE.value: _('Create'),
         PermissionAction.EDIT_OWN.value: _('Edit own records'),
+        PermissionAction.EDIT_OTHER.value: _('Edit others records'),
         PermissionAction.DELETE_OWN.value: _('Delete own records'),
+        PermissionAction.DELETE_OTHER.value: _('Delete others records'),
         PermissionAction.LOCK_OWN.value: _('Lock own documents'),
         PermissionAction.LOCK_OTHER.value: _('Lock others documents'),
         PermissionAction.UNLOCK_OWN.value: _('Unlock own documents'),
@@ -712,11 +750,12 @@ class AccessLevelPermissionMixin:
         self.object.permissions.exclude(resource_code__in=active_codes).delete()
 
 
-class AccessLevelListView(LoginRequiredMixin, ListView):
+class AccessLevelListView(FeaturePermissionRequiredMixin, ListView):
     model = AccessLevel
     template_name = 'shared/access_levels_list.html'
     context_object_name = 'access_levels'
     paginate_by = 20
+    feature_code = 'shared.access_levels'
 
     def get_queryset(self):
         queryset = AccessLevel.objects.all().order_by('code').prefetch_related('permissions')
@@ -736,11 +775,13 @@ class AccessLevelListView(LoginRequiredMixin, ListView):
         return context
 
 
-class AccessLevelCreateView(LoginRequiredMixin, AccessLevelPermissionMixin, CreateView):
+class AccessLevelCreateView(FeaturePermissionRequiredMixin, AccessLevelPermissionMixin, CreateView):
     model = AccessLevel
     form_class = AccessLevelForm
     template_name = 'shared/access_level_form.html'
     success_url = reverse_lazy('shared:access_levels')
+    feature_code = 'shared.access_levels'
+    required_action = 'create'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -758,11 +799,13 @@ class AccessLevelCreateView(LoginRequiredMixin, AccessLevelPermissionMixin, Crea
         return response
 
 
-class AccessLevelUpdateView(LoginRequiredMixin, AccessLevelPermissionMixin, UpdateView):
+class AccessLevelUpdateView(FeaturePermissionRequiredMixin, AccessLevelPermissionMixin, UpdateView):
     model = AccessLevel
     form_class = AccessLevelForm
     template_name = 'shared/access_level_form.html'
     success_url = reverse_lazy('shared:access_levels')
+    feature_code = 'shared.access_levels'
+    required_action = 'edit_own'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -779,10 +822,12 @@ class AccessLevelUpdateView(LoginRequiredMixin, AccessLevelPermissionMixin, Upda
         return response
 
 
-class AccessLevelDeleteView(LoginRequiredMixin, DeleteView):
+class AccessLevelDeleteView(FeaturePermissionRequiredMixin, DeleteView):
     model = AccessLevel
     template_name = 'shared/access_level_confirm_delete.html'
     success_url = reverse_lazy('shared:access_levels')
+    feature_code = 'shared.access_levels'
+    required_action = 'delete_own'
 
     def delete(self, request, *args, **kwargs):
         messages.success(self.request, _('Access level deleted successfully.'))

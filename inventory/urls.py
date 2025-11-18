@@ -30,6 +30,11 @@ urlpatterns = [
     path('items/create/', views.ItemCreateView.as_view(), name='item_create'),
     path('items/<int:pk>/edit/', views.ItemUpdateView.as_view(), name='item_edit'),
     path('items/<int:pk>/delete/', views.ItemDeleteView.as_view(), name='item_delete'),
+    path('item-serials/', views.ItemSerialListView.as_view(), name='item_serials'),
+    path('api/item-allowed-units/', views.get_item_allowed_units, name='item_allowed_units'),
+    path('api/item-allowed-warehouses/', views.get_item_allowed_warehouses, name='item_allowed_warehouses'),
+    path('api/item-available-serials/', views.get_item_available_serials, name='item_available_serials'),
+    path('api/warehouse-work-lines/', views.get_warehouse_work_lines, name='warehouse_work_lines'),
     
     # Master Data - Warehouses
     path('warehouses/', views.WarehouseListView.as_view(), name='warehouses'),
@@ -61,42 +66,56 @@ urlpatterns = [
     path('receipts/temporary/', views.ReceiptTemporaryListView.as_view(), name='receipt_temporary'),
     path('receipts/temporary/create/', views.ReceiptTemporaryCreateView.as_view(), name='receipt_temporary_create'),
     path('receipts/temporary/<int:pk>/edit/', views.ReceiptTemporaryUpdateView.as_view(), name='receipt_temporary_edit'),
+    path('receipts/temporary/<int:pk>/delete/', views.ReceiptTemporaryDeleteView.as_view(), name='receipt_temporary_delete'),
     path('receipts/temporary/<int:pk>/lock/', views.ReceiptTemporaryLockView.as_view(), name='receipt_temporary_lock'),
     path('receipts/permanent/', views.ReceiptPermanentListView.as_view(), name='receipt_permanent'),
     path('receipts/permanent/create/', views.ReceiptPermanentCreateView.as_view(), name='receipt_permanent_create'),
     path('receipts/permanent/<int:pk>/edit/', views.ReceiptPermanentUpdateView.as_view(), name='receipt_permanent_edit'),
+    path('receipts/permanent/<int:pk>/delete/', views.ReceiptPermanentDeleteView.as_view(), name='receipt_permanent_delete'),
     path('receipts/permanent/<int:pk>/lock/', views.ReceiptPermanentLockView.as_view(), name='receipt_permanent_lock'),
+    path('receipts/permanent/<int:pk>/lines/<int:line_id>/serials/', views.ReceiptPermanentLineSerialAssignmentView.as_view(), name='receipt_permanent_line_serials'),
     path('receipts/consignment/', views.ReceiptConsignmentListView.as_view(), name='receipt_consignment'),
     path('receipts/consignment/create/', views.ReceiptConsignmentCreateView.as_view(), name='receipt_consignment_create'),
     path('receipts/consignment/<int:pk>/edit/', views.ReceiptConsignmentUpdateView.as_view(), name='receipt_consignment_edit'),
+    path('receipts/consignment/<int:pk>/delete/', views.ReceiptConsignmentDeleteView.as_view(), name='receipt_consignment_delete'),
     path('receipts/consignment/<int:pk>/lock/', views.ReceiptConsignmentLockView.as_view(), name='receipt_consignment_lock'),
+    path('receipts/consignment/<int:pk>/lines/<int:line_id>/serials/', views.ReceiptConsignmentLineSerialAssignmentView.as_view(), name='receipt_consignment_line_serials'),
     
     # Issues
     path('issues/permanent/', views.IssuePermanentListView.as_view(), name='issue_permanent'),
     path('issues/permanent/create/', views.IssuePermanentCreateView.as_view(), name='issue_permanent_create'),
     path('issues/permanent/<int:pk>/edit/', views.IssuePermanentUpdateView.as_view(), name='issue_permanent_edit'),
+    path('issues/permanent/<int:pk>/delete/', views.IssuePermanentDeleteView.as_view(), name='issue_permanent_delete'),
     path('issues/permanent/<int:pk>/lock/', views.IssuePermanentLockView.as_view(), name='issue_permanent_lock'),
+    path('issues/permanent/<int:pk>/lines/<int:line_id>/serials/', views.IssuePermanentLineSerialAssignmentView.as_view(), name='issue_permanent_line_serials'),
     path('issues/consumption/', views.IssueConsumptionListView.as_view(), name='issue_consumption'),
     path('issues/consumption/create/', views.IssueConsumptionCreateView.as_view(), name='issue_consumption_create'),
     path('issues/consumption/<int:pk>/edit/', views.IssueConsumptionUpdateView.as_view(), name='issue_consumption_edit'),
+    path('issues/consumption/<int:pk>/delete/', views.IssueConsumptionDeleteView.as_view(), name='issue_consumption_delete'),
     path('issues/consumption/<int:pk>/lock/', views.IssueConsumptionLockView.as_view(), name='issue_consumption_lock'),
+    path('issues/consumption/<int:pk>/lines/<int:line_id>/serials/', views.IssueConsumptionLineSerialAssignmentView.as_view(), name='issue_consumption_line_serials'),
     path('issues/consignment/', views.IssueConsignmentListView.as_view(), name='issue_consignment'),
     path('issues/consignment/create/', views.IssueConsignmentCreateView.as_view(), name='issue_consignment_create'),
     path('issues/consignment/<int:pk>/edit/', views.IssueConsignmentUpdateView.as_view(), name='issue_consignment_edit'),
+    path('issues/consignment/<int:pk>/delete/', views.IssueConsignmentDeleteView.as_view(), name='issue_consignment_delete'),
     path('issues/consignment/<int:pk>/lock/', views.IssueConsignmentLockView.as_view(), name='issue_consignment_lock'),
+    path('issues/consignment/<int:pk>/lines/<int:line_id>/serials/', views.IssueConsignmentLineSerialAssignmentView.as_view(), name='issue_consignment_line_serials'),
     
     # Stocktaking
     path('stocktaking/deficit/', views.StocktakingDeficitListView.as_view(), name='stocktaking_deficit'),
     path('stocktaking/deficit/create/', views.StocktakingDeficitCreateView.as_view(), name='stocktaking_deficit_create'),
     path('stocktaking/deficit/<int:pk>/edit/', views.StocktakingDeficitUpdateView.as_view(), name='stocktaking_deficit_edit'),
+    path('stocktaking/deficit/<int:pk>/delete/', views.StocktakingDeficitDeleteView.as_view(), name='stocktaking_deficit_delete'),
     path('stocktaking/deficit/<int:pk>/lock/', views.StocktakingDeficitLockView.as_view(), name='stocktaking_deficit_lock'),
     path('stocktaking/surplus/', views.StocktakingSurplusListView.as_view(), name='stocktaking_surplus'),
     path('stocktaking/surplus/create/', views.StocktakingSurplusCreateView.as_view(), name='stocktaking_surplus_create'),
     path('stocktaking/surplus/<int:pk>/edit/', views.StocktakingSurplusUpdateView.as_view(), name='stocktaking_surplus_edit'),
+    path('stocktaking/surplus/<int:pk>/delete/', views.StocktakingSurplusDeleteView.as_view(), name='stocktaking_surplus_delete'),
     path('stocktaking/surplus/<int:pk>/lock/', views.StocktakingSurplusLockView.as_view(), name='stocktaking_surplus_lock'),
     path('stocktaking/records/', views.StocktakingRecordListView.as_view(), name='stocktaking_records'),
     path('stocktaking/records/create/', views.StocktakingRecordCreateView.as_view(), name='stocktaking_record_create'),
     path('stocktaking/records/<int:pk>/edit/', views.StocktakingRecordUpdateView.as_view(), name='stocktaking_record_edit'),
+    path('stocktaking/records/<int:pk>/delete/', views.StocktakingRecordDeleteView.as_view(), name='stocktaking_record_delete'),
     path('stocktaking/records/<int:pk>/lock/', views.StocktakingRecordLockView.as_view(), name='stocktaking_record_lock'),
     
     # Warehouse Requests
@@ -107,6 +126,7 @@ urlpatterns = [
     
     # Inventory Balance
     path('balance/', views.InventoryBalanceView.as_view(), name='inventory_balance'),
+    path('balance/details/<int:item_id>/<int:warehouse_id>/', views.InventoryBalanceDetailsView.as_view(), name='balance_details'),
     path('api/balance/', views.InventoryBalanceAPIView.as_view(), name='inventory_balance_api'),
 ]
 

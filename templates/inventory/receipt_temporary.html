@@ -1,5 +1,5 @@
 {% extends "inventory/base.html" %}
-{% load i18n %}
+{% load i18n jalali_tags %}
 
 {% block page_title %}{% trans "Temporary Receipts" %}{% endblock %}
 
@@ -111,6 +111,7 @@
       <tr>
         <th>{% trans "Document Code" %}</th>
         <th>{% trans "Document Date" %}</th>
+        <th>{% trans "Created By" %}</th>
         <th>{% trans "Items" %}</th>
         <th>{% trans "Quantity" %}</th>
         <th>{% trans "Warehouses" %}</th>
@@ -129,28 +130,104 @@
         {% for receipt in receipts %}
         <tr>
           <td><code>{{ receipt.document_code }}</code></td>
-          <td>{{ receipt.document_date|date:"Y-m-d" }}</td>
+          <td>{{ receipt.document_date|jalali_date }}</td>
           <td>
-            <strong>{{ receipt.item.name }}</strong><br>
-            <small style="color: #6b7280;"><code>{{ receipt.item_code }}</code></small>
-          </td>
-          <td style="text-align: right;">
-            {% if receipt.entered_quantity %}
-              {{ receipt.entered_quantity|floatformat:2 }}
-              {% if receipt.entered_unit %}
-                {{ receipt.entered_unit }}
-              {% else %}
-                {{ receipt.unit }}
-              {% endif %}
-              {% if receipt.entered_quantity != receipt.quantity or receipt.entered_unit and receipt.entered_unit != receipt.unit %}
-                <small class="muted">({{ receipt.quantity|floatformat:2 }} {{ receipt.unit }})</small>
-              {% endif %}
+            {% if receipt.created_by %}
+              {{ receipt.created_by.get_full_name|default:receipt.created_by.username }}
             {% else %}
-              {{ receipt.quantity|floatformat:2 }} {{ receipt.unit }}
+              <span style="color: #6b7280;">—</span>
             {% endif %}
           </td>
-          <td>{{ receipt.warehouse.name }}</td>
-          <td>{% if receipt.supplier %}{{ receipt.supplier.name }}{% else %}—{% endif %}</td>
+          <td>
+            {% if receipt.item %}
+              {# Temporary receipt - single line #}
+              <strong>{{ receipt.item.name }}</strong><br>
+              <small style="color: #6b7280;"><code>{{ receipt.item_code }}</code></small>
+            {% elif receipt.lines.all %}
+              {# Permanent/Consignment receipt - multiple lines #}
+              {% for line in receipt.lines.all|slice:":3" %}
+                <strong>{{ line.item.name }}</strong><br>
+                <small style="color: #6b7280;"><code>{{ line.item.item_code }}</code></small>{% if not forloop.last %}<br><br>{% endif %}
+              {% endfor %}
+              {% if receipt.lines.count > 3 %}
+                <small class="muted">+ {{ receipt.lines.count|add:"-3" }} {% trans "more" %}</small>
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td style="text-align: right;">
+            {% if receipt.item %}
+              {# Temporary receipt - single line #}
+              {% if receipt.entered_quantity %}
+                {{ receipt.entered_quantity|floatformat:2 }}
+                {% if receipt.entered_unit %}
+                  {{ receipt.entered_unit }}
+                {% else %}
+                  {{ receipt.unit }}
+                {% endif %}
+                {% if receipt.entered_quantity != receipt.quantity or receipt.entered_unit and receipt.entered_unit != receipt.unit %}
+                  <small class="muted">({{ receipt.quantity|floatformat:2 }} {{ receipt.unit }})</small>
+                {% endif %}
+              {% else %}
+                {{ receipt.quantity|floatformat:2 }} {{ receipt.unit }}
+              {% endif %}
+            {% elif receipt.lines.all %}
+              {# Permanent/Consignment receipt - multiple lines #}
+              {% for line in receipt.lines.all|slice:":3" %}
+                {% if line.entered_quantity %}
+                  {{ line.entered_quantity|floatformat:2 }}
+                  {% if line.entered_unit %}
+                    {{ line.entered_unit }}
+                  {% else %}
+                    {{ line.unit }}
+                  {% endif %}
+                  {% if line.entered_quantity != line.quantity or line.entered_unit and line.entered_unit != line.unit %}
+                    <small class="muted">({{ line.quantity|floatformat:2 }} {{ line.unit }})</small>
+                  {% endif %}
+                {% else %}
+                  {{ line.quantity|floatformat:2 }} {{ line.unit }}
+                {% endif %}{% if not forloop.last %}<br>{% endif %}
+              {% endfor %}
+              {% if receipt.lines.count > 3 %}
+                <small class="muted">+ {{ receipt.lines.count|add:"-3" }} {% trans "more" %}</small>
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {% if receipt.warehouse %}
+              {# Temporary receipt - single line #}
+              {{ receipt.warehouse.name }}
+            {% elif receipt.lines.all %}
+              {# Permanent/Consignment receipt - multiple lines #}
+              {% for line in receipt.lines.all|slice:":3" %}
+                {{ line.warehouse.name }}{% if not forloop.last %}<br>{% endif %}
+              {% endfor %}
+              {% if receipt.lines.count > 3 %}
+                <small class="muted">+ {{ receipt.lines.count|add:"-3" }} {% trans "more" %}</small>
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {% if receipt.supplier %}
+              {# Temporary receipt - single line #}
+              {{ receipt.supplier.name }}
+            {% elif receipt.lines.all %}
+              {# Permanent/Consignment receipt - multiple lines #}
+              {% for line in receipt.lines.all|slice:":3" %}
+                {% if line.supplier %}{{ line.supplier.name }}{% else %}—{% endif %}{% if not forloop.last %}<br>{% endif %}
+              {% endfor %}
+              {% if receipt.lines.count > 3 %}
+                <small class="muted">+ {{ receipt.lines.count|add:"-3" }} {% trans "more" %}</small>
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
           {% if show_qc %}
           <td>
             {% if receipt.status == 1 %}
@@ -178,10 +255,35 @@
                   {% trans "View" %}
                 </a>
                 <span class="badge badge-locked" style="margin-top:4px;">{% trans "Locked" %}</span>
+                {% if serial_url_name and receipt.item.has_lot_tracking %}
+                  <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
+                    {% trans "View Serials" %}
+                  </a>
+                {% endif %}
               {% else %}
                 <a href="{% url edit_url_name receipt.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
                   {% trans "Edit" %}
                 </a>
+                {% if serial_url_name and receipt.item.has_lot_tracking %}
+                  <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
+                    {% trans "Manage Serials" %}
+                  </a>
+                {% endif %}
+                {% if delete_url_name %}
+                  {% if receipt.created_by == user %}
+                    {% if can_delete_own %}
+                      <a href="{% url delete_url_name receipt.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this receipt?" %}');">
+                        {% trans "Delete" %}
+                      </a>
+                    {% endif %}
+                  {% else %}
+                    {% if can_delete_other %}
+                      <a href="{% url delete_url_name receipt.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this receipt?" %}');">
+                        {% trans "Delete" %}
+                      </a>
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
                 {% if lock_url_name %}
                 <form method="post" action="{% url lock_url_name receipt.pk %}" class="inline-lock-form" style="display:inline-flex; margin-left:0.5rem;">
                   {% csrf_token %}
@@ -197,7 +299,7 @@
         {% endfor %}
       {% else %}
         <tr>
-          <td colspan="9">
+          <td colspan="{% if show_qc and show_conversion %}10{% elif show_qc or show_conversion %}9{% else %}8{% endif %}">
             <div class="empty-state">
               <div class="empty-state-icon">📥</div>
               <h3>{{ empty_heading|default:_("No records found.") }}</h3>

@@ -219,6 +219,66 @@ help_text = _('If checked, username will be same as personnel code')
 
 ---
 
+### 3. AccessLevelForm
+**Purpose:** Create and edit access level roles with permission matrix
+
+**Model:** `AccessLevel`
+
+**Fields:**
+- `code` (max 30 chars) - Unique role code (e.g., "inventory_manager")
+- `name` (max 120 chars) - Human-readable role name
+- `description` - Detailed description of role responsibilities
+- `is_enabled` - Active/Inactive status
+- `is_global` - Global role flag (if 1, role can span multiple companies)
+
+**Permission Matrix:**
+The form renders a permission matrix table based on `FEATURE_PERMISSION_MAP`:
+- Each row represents a feature (e.g., "Companies", "Item Types", "Permanent Receipts")
+- View Scope column: Radio buttons (None, Own, All) for view permissions
+- Actions column: Checkboxes for each action (Create, Edit Own, Delete Own, Lock Own, Lock Other, Unlock Own, Unlock Other, Approve, Reject, Cancel)
+- **Quick Action Buttons**:
+  - Per-row buttons: "Select All" and "Deselect All" for each feature row
+  - Global buttons: "Select All" and "Deselect All" for entire permission matrix
+  - JavaScript-based bulk selection/deselection functionality
+
+**JavaScript Features:**
+- `selectAllRow(featureId)`: Selects "All" radio and checks all checkboxes for a feature row
+- `deselectAllRow(featureId)`: Selects "None" radio and unchecks all checkboxes for a feature row
+- `selectAllGlobal()`: Applies selectAllRow to all features
+- `deselectAllGlobal()`: Applies deselectAllRow to all features
+
+**Template:** `templates/shared/access_level_form.html`
+- Permission matrix table with feature rows
+- Quick action buttons in table header and each row
+- JavaScript handlers for bulk operations
+
+**Usage:**
+```python
+class AccessLevelCreateView(FeaturePermissionRequiredMixin, AccessLevelPermissionMixin, CreateView):
+    model = AccessLevel
+    form_class = AccessLevelForm
+    template_name = 'shared/access_level_form.html'
+    success_url = reverse_lazy('shared:access_levels')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['feature_permissions'] = self._prepare_feature_context()
+        return context
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        self._save_permissions(form)
+        return response
+```
+
+**Permission Saving:**
+- Permissions stored in `AccessLevelPermission` model
+- View scope stored in `metadata.actions.view_scope` (none/own/all)
+- Individual actions stored in `metadata.actions` dictionary
+- Legacy fields (`can_view`, `can_create`, `can_edit`, `can_delete`, `can_approve`) maintained for backward compatibility
+
+---
+
 ## JavaScript Integration
 
 ### Username Sync Feature

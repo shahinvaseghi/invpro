@@ -25,7 +25,9 @@ class PermissionAction(Enum):
     VIEW_ALL = "view_all"
     CREATE = "create"
     EDIT_OWN = "edit_own"
+    EDIT_OTHER = "edit_other"
     DELETE_OWN = "delete_own"
+    DELETE_OTHER = "delete_other"
     LOCK_OWN = "lock_own"
     LOCK_OTHER = "lock_other"
     UNLOCK_OWN = "unlock_own"
@@ -160,6 +162,14 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.DELETE_OWN,
         ],
     ),
+    "inventory.master.item_serials": FeaturePermission(
+        code="inventory.master.item_serials",
+        label=_("Item Serials"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+        ],
+    ),
     "inventory.master.warehouses": FeaturePermission(
         code="inventory.master.warehouses",
         label=_("Warehouses"),
@@ -215,6 +225,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_OTHER,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
             PermissionAction.UNLOCK_OWN,
@@ -231,6 +242,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_OTHER,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
             PermissionAction.UNLOCK_OWN,
@@ -249,6 +261,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_OTHER,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
             PermissionAction.UNLOCK_OWN,
@@ -268,6 +281,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_OTHER,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
             PermissionAction.UNLOCK_OWN,
@@ -286,6 +300,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_OTHER,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
             PermissionAction.UNLOCK_OWN,
@@ -302,6 +317,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_OTHER,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
             PermissionAction.UNLOCK_OWN,
@@ -321,6 +337,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_OTHER,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
@@ -335,6 +352,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_OTHER,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
@@ -350,6 +368,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_OTHER,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
             PermissionAction.UNLOCK_OWN,
@@ -365,6 +384,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_OTHER,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
             PermissionAction.UNLOCK_OWN,
@@ -380,10 +400,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_OTHER,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
+            PermissionAction.APPROVE,
         ],
     ),
     "inventory.balance": FeaturePermission(
