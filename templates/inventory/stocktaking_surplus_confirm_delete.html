@@ -1,0 +1,83 @@
+{% extends "inventory/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Delete Surplus Record" %} - {{ block.super }}{% endblock %}
+
+{% block page_title %}{% trans "Delete Surplus Record" %}{% endblock %}
+
+{% block inventory_content %}
+<div class="form-container">
+  <div class="delete-warning">
+    <h2>{% trans "Are you sure?" %}</h2>
+    <p>{% trans "Do you really want to delete this surplus record?" %}</p>
+    
+    <div class="delete-details">
+      <p><strong>{% trans "Document Code" %}:</strong> {{ object.document_code }}</p>
+      <p><strong>{% trans "Document Date" %}:</strong> {{ object.document_date|date:"Y-m-d" }}</p>
+      {% if object.item %}
+      <p><strong>{% trans "Item" %}:</strong> {{ object.item.name }} ({{ object.item_code }})</p>
+      {% endif %}
+      {% if object.created_by %}
+      <p><strong>{% trans "Created By" %}:</strong> {{ object.created_by.get_full_name|default:object.created_by.username }}</p>
+      {% endif %}
+    </div>
+    
+    <p class="warning-text">{% trans "This action cannot be undone." %}</p>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-danger">{% trans "Yes, Delete" %}</button>
+      <a href="{% url 'inventory:stocktaking_surplus' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div>
+
+<style>
+.form-container {
+  max-width: 600px;
+  margin: 2rem auto;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.delete-warning {
+  text-align: center;
+  padding: 2rem;
+}
+
+.delete-warning h2 {
+  color: #dc2626;
+  margin-bottom: 1rem;
+}
+
+.delete-details {
+  background: #f3f4f6;
+  padding: 1.5rem;
+  border-radius: 4px;
+  margin: 1.5rem 0;
+  text-align: left;
+}
+
+.delete-details p {
+  margin: 0.5rem 0;
+}
+
+.warning-text {
+  color: #991b1b;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  padding-top: 1rem;
+}
+</style>
+{% endblock %}
+

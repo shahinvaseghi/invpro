@@ -251,7 +251,7 @@ class UserBaseForm(forms.ModelForm):
         queryset=Group.objects.none(),
         required=False,
         label=_('Groups'),
-        widget=forms.SelectMultiple(attrs={'class': 'form-control'}),
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
         help_text=_('Assign the user to one or more groups.'),
     )
 
@@ -427,14 +427,8 @@ class GroupForm(forms.ModelForm):
         queryset=AccessLevel.objects.none(),
         required=False,
         label=_('Access Levels'),
-        widget=forms.SelectMultiple(attrs={'class': 'form-control'}),
-    )
-    members = forms.ModelMultipleChoiceField(
-        queryset=User.objects.none(),
-        required=False,
-        label=_('Members'),
-        widget=forms.SelectMultiple(attrs={'class': 'form-control'}),
-        help_text=_('Select users who should belong to this group.'),
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+        help_text=_('Select one or more access levels for this group.'),
     )
 
     class Meta:
@@ -451,15 +445,12 @@ class GroupForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.profile = getattr(self.instance, 'profile', None)
         self.fields['access_levels'].queryset = AccessLevel.objects.filter(is_enabled=1).order_by('code')
-        self.fields['members'].queryset = User.objects.order_by('username')
         if self.profile:
             self.fields['description'].initial = self.profile.description
             self.fields['is_enabled'].initial = self.profile.is_enabled
             self.fields['access_levels'].initial = self.profile.access_levels.all()
         else:
             self.fields['is_enabled'].initial = 1
-        if self.instance.pk:
-            self.fields['members'].initial = self.instance.user_set.all()
 
     def save(self, commit=True):
         group = super().save(commit=commit)
@@ -471,7 +462,6 @@ class GroupForm(forms.ModelForm):
         if commit:
             profile.save()
             profile.access_levels.set(self.cleaned_data.get('access_levels') or [])
-            group.user_set.set(self.cleaned_data.get('members') or [])
         else:
             self._post_save_profile = profile
         return group
@@ -482,7 +472,6 @@ class GroupForm(forms.ModelForm):
         if profile:
             profile.save()
             profile.access_levels.set(self.cleaned_data.get('access_levels') or [])
-            profile.group.user_set.set(self.cleaned_data.get('members') or [])
 
 
 class AccessLevelForm(forms.ModelForm):

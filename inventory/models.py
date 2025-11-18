@@ -1385,8 +1385,10 @@ class IssueConsignmentLine(IssueLineBase):
         ReceiptConsignment,
         on_delete=models.PROTECT,
         related_name="issue_lines",
+        null=True,
+        blank=True,
     )
-    consignment_receipt_code = models.CharField(max_length=20)
+    consignment_receipt_code = models.CharField(max_length=20, blank=True)
     destination_type = models.CharField(max_length=30)
     destination_id = models.BigIntegerField(null=True, blank=True)
     destination_code = models.CharField(max_length=30, blank=True)
@@ -1849,9 +1851,9 @@ class StocktakingRecord(InventoryDocumentBase):
     stocktaking_session_id = models.BigIntegerField(_("Stocktaking Session ID"))
     inventory_snapshot_time = models.DateTimeField(_("Inventory Snapshot Time"))
     confirmed_by = models.ForeignKey(
-        Person,
+        'shared.User',
         on_delete=models.PROTECT,
-        related_name="stocktaking_records",
+        related_name="stocktaking_records_confirmed",
     )
     confirmed_by_code = models.CharField(_("Confirmed By Code"), max_length=8, validators=[NUMERIC_CODE_VALIDATOR])
     confirmation_notes = models.TextField(_("Confirmation Notes"), blank=True)
@@ -1868,7 +1870,7 @@ class StocktakingRecord(InventoryDocumentBase):
     approval_status = models.CharField(_("Approval Status"), max_length=20, default="pending")
     approved_at = models.DateTimeField(_("Approved At"), null=True, blank=True)
     approver = models.ForeignKey(
-        Person,
+        'shared.User',
         on_delete=models.SET_NULL,
         related_name="stocktaking_records_approved",
         null=True,
@@ -1886,8 +1888,8 @@ class StocktakingRecord(InventoryDocumentBase):
         return self.document_code
 
     def save(self, *args, **kwargs):
-        if not self.confirmed_by_code:
-            self.confirmed_by_code = self.confirmed_by.public_code
+        if not self.confirmed_by_code and self.confirmed_by:
+            self.confirmed_by_code = self.confirmed_by.username
         super().save(*args, **kwargs)
 
 

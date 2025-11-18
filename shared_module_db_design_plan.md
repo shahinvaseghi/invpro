@@ -152,10 +152,13 @@ Additional considerations:
 - هر ویژگی با `code` یکتا (مثل `inventory.receipts.permanent`) توصیف می‌شود و لیست اکشن‌هایی که این ویژگی پوشش می‌دهد شامل موارد زیر است:
   - `VIEW_OWN`, `VIEW_ALL`
   - `CREATE`
-  - `EDIT_OWN`, `DELETE_OWN`
+  - `EDIT_OWN`, `EDIT_OTHER`
+  - `DELETE_OWN`, `DELETE_OTHER`
   - `LOCK_OWN`, `LOCK_OTHER`
   - `UNLOCK_OWN`, `UNLOCK_OTHER`
   - `APPROVE`, `REJECT`, `CANCEL`
+- **نکته مهم**: `DELETE_OTHER` به تمام اسناد (receipts، issues، requests، stocktaking) اضافه شده است تا امکان حذف اسناد سایر کاربران برای کاربران با دسترسی مناسب فراهم شود.
+- `APPROVE` برای stocktaking records نیز اضافه شده است تا فرایند تایید اسناد شمارش امکان‌پذیر باشد.
 - هنگام ساخت رکوردهای `AccessLevelPermission`، فیلد `metadata` اکشن‌های فعال را به‌صورت دیکشنری ذخیره می‌کند، مثال:
   ```json
   {

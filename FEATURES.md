@@ -289,13 +289,22 @@ python manage.py makemessages -l fa
 
 ### Common Features
 - **Data Tables**: Clean, sortable tables
-- **Action Columns**: Edit and Delete buttons for each row
+- **Action Columns**: Edit, Delete, and Lock buttons for each row
+- **Delete Functionality**: 
+  - Delete buttons conditionally displayed based on user permissions
+  - `DELETE_OWN` permission allows users to delete their own documents
+  - `DELETE_OTHER` permission allows users to delete documents created by other users
+  - Superusers can delete any document without explicit permission
+  - Locked documents cannot be deleted (protected by `DocumentLockProtectedMixin`)
+  - Confirmation pages with document details before deletion
+  - Available for all document types: Receipts (Temporary, Permanent, Consignment), Issues (Permanent, Consumption, Consignment), Stocktaking (Deficit, Surplus, Records)
 - **Status Badges**: Color-coded Active/Inactive indicators
 - **Pagination**: 50 items per page
 - **Empty States**: User-friendly messages with create buttons
 - **Create Button**: Prominent "+ Create X" button at top
 - **Breadcrumbs**: Navigation path
 - **Company Filtering**: Auto-filtered by active company
+- **Document Sorting**: Issue and Stocktaking document lists (`IssueConsumptionListView`, `IssueConsignmentListView`, `IssuePermanentListView`, `StocktakingRecordListView`) are sorted by newest first (`ordering = ['-id']`)
 
 ### Available List Views
 - Item Types
@@ -336,7 +345,7 @@ The inventory system now supports **multi-line documents** for both receipts and
   - Entered unit and entered quantity (preserved user input)
   - Line-specific notes
   - Sort order for custom ordering
-  - Type-specific fields (e.g., `destination_type`, `consumption_type`, `consignment_receipt` for issues; `unit_price`, `unit_cost` for receipts)
+  - Type-specific fields (e.g., `destination_type`, `consumption_type`, `consignment_receipt` (optional) for issues; `unit_price`, `unit_cost` for receipts)
 
 #### Line-Based Serial Assignment
 - **Per-Line Serial Management**: Serial numbers are now assigned and tracked at the line item level, not the document level
@@ -444,12 +453,14 @@ class ReceiptPermanentLine(ReceiptLineBase):
 ### Highlights
 - **فرم‌های اختصاصی رسید**: برای رسیدهای موقت، دائم و امانی مسیرهای ایجاد/ویرایش مستقلی پیاده‌سازی شده است؛ کاربر دیگر به پنل ادمین ارجاع داده نمی‌شود.
 - **تولید خودکار متادیتا**: هنگام ایجاد سند، کد منحصربه‌فرد با الگوی `TMP|PRM|CON-YYYYMM-XXXXXX`، تاریخ روز و وضعیت اولیه (`Draft` برای رسید موقت) بدون دخالت کاربر ثبت می‌شود.
+- **Auto-population of document_date and document_code**: All Issue and Receipt forms (`IssueConsumptionForm`, `IssueConsignmentForm`, `IssuePermanentForm`, etc.) automatically populate `document_date` and `document_code` fields using `clean_document_date()` and `clean_document_code()` methods. This prevents form submission failures due to missing auto-generated fields.
 - **Multi-Line Support**: رسیدهای دائم و امانی اکنون از چند ردیف پشتیبانی می‌کنند؛ هر ردیف می‌تواند کالا، مقدار، انبار و قیمت مستقل داشته باشد.
 - **واحدهای قابل انتخاب محدود**: فیلد واحد صرفاً واحد اصلی کالا و تبدیل‌های تعریف‌شده در `ItemUnit` را نمایش می‌دهد. اسکریپت پویا در قالب HTML در زمان تغییر کالا، فهرست واحدها را تازه‌سازی می‌کند.
 - **یکسان‌سازی مقدار و قیمت**: پیش از ذخیره، مقدار (`quantity`) و قیمت (`unit_price` و `unit_price_estimate`) بر اساس ضرایب تبدیل واحد به واحد اصلی کالا تبدیل و در پایگاه‌داده ذخیره می‌شود. به این ترتیب موجودی مالی و تعدادی همیشه با یک واحد پایه محاسبه می‌شود.
 - **الزام مقدار صحیح برای سریال‌ها**: اگر کالای انتخابی رهگیری سریال داشته باشد، فرم‌های رسید و حواله تنها مقادیر صحیح (پس از تبدیل واحد) را می‌پذیرند و در صورت مشاهده مقدار اعشاری خطا نمایش داده می‌شود.
 - **نمایش اطلاعات مرجع**: در حالت ویرایش، بنر بالای فرم کد سند، تاریخ و وضعیت فعلی را به صورت فقط‌خواندنی نشان می‌دهد تا کاربر از داده‌های قطعی مطلع باشد.
 - **حواله‌های اختصاصی**: برای حواله‌های دائم، مصرف و امانی نیز صفحات ایجاد/ویرایش مشابه رسیدها پیاده‌سازی شده و کد سند با الگوهای `ISP-`, `ISU-`, `ICN-` تولید می‌شود. کاربر می‌تواند واحد سازمانی مقصد (و برای مصرف، خط تولید مرتبط) را انتخاب کند و پس از قفل‌کردن سند دیگر امکان ویرایش/حذف وجود ندارد.
+- **Consignment Receipt Optional**: In `IssueConsignmentLine`, the `consignment_receipt` and `consignment_receipt_code` fields are now optional (`null=True, blank=True`). Consignment issues can be created independently without requiring a consignment receipt, allowing more flexible workflow management.
 - **شمارش موجودی اختصاصی**: اسناد کسری (`STD-`), مازاد (`STS-`) و ثبت نهایی (`STR-`) دارای صفحات ایجاد/ویرایش اختصاصی هستند؛ واحد و انبار مجاز بر اساس تنظیمات کالا محدود می‌شود، اختلاف مقدار و ارزش به صورت خودکار محاسبه می‌گردد و پس از قفل کردن سند فقط قابل مشاهده خواهد بود.
 
 ### Implementation Notes
@@ -480,25 +491,99 @@ Generic delete template used via symlinks for consistency.
 ## 9. Inventory Balance Calculation
 
 ### Purpose
-Real-time calculation of item quantities in warehouses
+Real-time calculation of item quantities in warehouses based on stocktaking baselines and subsequent document movements.
 
 ### Calculation Logic
-1. **Baseline**: Last stocktaking record for item/warehouse
-2. **Receipts**: Add permanent, temporary, consignment receipts
-3. **Issues**: Subtract permanent, consumption, consignment issues
-4. **Adjustments**: Apply stocktaking deficits (subtract) and surpluses (add)
+1. **Baseline Detection**:
+   - First checks for `StocktakingSurplus`/`StocktakingDeficit` documents linked to a stocktaking record
+   - If not found, uses the latest approved and locked `StocktakingRecord` as baseline (with quantity 0)
+   - Baseline date is the date of the stocktaking record
+2. **Receipts**: Sum of all permanent receipts and consignment receipts from baseline date
+3. **Issues**: Sum of all permanent issues, consumption issues, and consignment issues from baseline date
+4. **Adjustments**: Apply stocktaking surpluses (add) and deficits (subtract)
 
 ### Features
-- Company-scoped calculations
-- Warehouse filtering
-- Item type/category filtering
-- As-of-date calculations
-- JSON API endpoint for AJAX queries
+- **Company-scoped calculations**: All queries filtered by active company
+- **Warehouse filtering**: Calculate balance for specific warehouse
+- **Item type/category filtering**: Filter by item type and category
+- **As-of-date calculations**: Calculate balance as of any date (default: today)
+- **Automatic date handling**: "As of Date" field is hidden and automatically set to today
+- **Line-based queries**: Queries line item models (`ReceiptPermanentLine`, `IssueConsumptionLine`, etc.) instead of header models
+- **Transaction inclusion**: Includes items with actual transactions, not just explicit warehouse assignments
+- **Details page**: Click "Details" button to view complete transaction history for an item
+  - Shows all receipts and issues from baseline date to selected date
+  - Displays running balance calculation for each transaction
+  - Accessible via `/inventory/balance/details/<item_id>/<warehouse_id>/`
+- **JSON API endpoint**: `/inventory/api/balance/` for AJAX queries
+
+### Technical Implementation
+- **Module**: `inventory/inventory_balance.py`
+- **Main Functions**:
+  - `get_last_stocktaking_baseline()`: Retrieves baseline from stocktaking records
+  - `calculate_movements_after_baseline()`: Calculates receipts and issues after baseline
+  - `calculate_item_balance()`: Complete balance for a single item
+  - `calculate_warehouse_balances()`: Bulk calculation for all items in warehouse
+- **View**: `InventoryBalanceView` and `InventoryBalanceDetailsView`
+- **Template**: `templates/inventory/inventory_balance.html` and `templates/inventory/inventory_balance_details.html`
+
+### Important Notes
+- Only enabled documents are included (`document__is_enabled=1`)
+- Consignment receipts/issues are included in calculations
+- Baseline uses approved and locked `StocktakingRecord` when surplus/deficit documents don't exist
+- Date display: Baseline date shown in Jalali format using `|jalali_date` filter
 
 ### Performance Considerations
 - Indexes on (company_id, warehouse_id, item_id, document_date)
-- Efficient query aggregation
+- Efficient query aggregation using line item models
+- N+1 pattern in `calculate_warehouse_balances()` (one query per item)
 - Caching planned for future versions
+
+---
+
+## 9.1 Stocktaking Approval Workflow
+
+### Overview
+Stocktaking records now support a formal approval workflow with designated approvers and approval status tracking.
+
+### Key Features
+
+#### Approval Status
+- **Three Status Options**:
+  - `pending`: Initial status, awaiting approval
+  - `approved`: Approved by designated approver
+  - `rejected`: Rejected by designated approver
+- **Automatic Timestamp**: `approved_at` field automatically set when status changes to `approved`, cleared when changed to `pending` or `rejected`
+
+#### Approver Management
+- **User-Based Approvers**: `confirmed_by` and `approver` fields changed from `Person` to `User` model
+- **Company Scoping**: Approvers filtered by company access (`UserCompanyAccess`)
+- **Field Display**: Approver fields show `username - Full Name` or just `username` if no full name
+- **Permission Enforcement**: Only the designated `approver` can change `approval_status`
+  - Client-side: `approval_status` field disabled if current user is not the selected approver
+  - Server-side: `clean()` method validates that only the approver can change status
+
+#### Form Structure
+- **Field Order**: `approver` field appears before `approval_status` in the form
+- **Dynamic Behavior**: Form automatically enables/disables `approval_status` based on current user
+- **Validation**: Server-side validation ensures only approver can modify approval status
+
+### Technical Implementation
+- **Model**: `StocktakingRecord` in `inventory/models.py`
+  - `confirmed_by`: ForeignKey to `User` (was `Person`)
+  - `approver`: ForeignKey to `User` (was `Person`)
+  - `approval_status`: CharField with choices (pending, approved, rejected)
+  - `approved_at`: DateTimeField (auto-set/cleared)
+- **Form**: `StocktakingRecordForm` in `inventory/forms.py`
+  - `approval_status`: ChoiceField with three options
+  - `__init__`: Disables `approval_status` if user is not the approver
+  - `clean()`: Server-side permission check
+  - `save()`: Auto-sets/clears `approved_at` based on status
+- **Migration**: `0020_change_stocktaking_users.py` updates foreign keys from `Person` to `User`
+
+### Use Cases
+- Formal approval process for stocktaking records
+- Audit trail of who approved/rejected stocktaking
+- Integration with inventory balance calculation (only approved records used as baseline)
 
 ---
 
@@ -598,14 +683,25 @@ Internal material requisition workflow
 - QuerySet filtering by company_id
 - Session-based company context
 - Centralised permission catalogue (`shared/permissions.py`) with actions for:
-  - Viewing own records vs. all records
-  - Creating, editing, deleting, locking/unlocking (own vs. دیگران)
-  - Approve / Reject / Cancel flows برای گردش کارهای دارای تأیید
+  - Viewing own records vs. all records (`VIEW_OWN`, `VIEW_ALL`)
+  - Creating, editing, deleting (`CREATE`, `EDIT_OWN`, `EDIT_OTHER`, `DELETE_OWN`, `DELETE_OTHER`)
+  - Locking/unlocking own or other users' documents (`LOCK_OWN`, `LOCK_OTHER`, `UNLOCK_OWN`, `UNLOCK_OTHER`)
+  - Approve / Reject / Cancel flows برای گردش کارهای دارای تأیید (`APPROVE`, `REJECT`, `CANCEL`)
+  - **نکته**: `DELETE_OTHER` به تمام اسناد (receipts، issues، requests، stocktaking) اضافه شده است تا امکان حذف اسناد سایر کاربران برای کاربران با دسترسی مناسب فراهم شود.
+  - `APPROVE` برای stocktaking records نیز پشتیبانی می‌شود.
 - Dedicated Shared module UI برای مدیریت کاربران، گروه‌ها و سطوح دسترسی:
-  - فرم‌های ایجاد/ویرایش کاربر همراه با تعیین رمز، گروه‌ها و دسترسی شرکت‌ها
-  - قالب‌های گروه برای نگاشت اعضا و سطوح دسترسی (پشتیبانی از `GroupProfile`)
-  - ماتریس انتخاب اکشن‌ها برای هر Access Level بر اساس `FEATURE_PERMISSION_MAP`
-  - **Quick Action Buttons**: دکمه‌های "همه" و "هیچکدام" برای هر Feature (ردیف) و کل صفحه برای انتخاب/لغو انتخاب گروهی permissions
+  - **User Management**:
+    - فرم‌های ایجاد/ویرایش کاربر همراه با تعیین رمز، گروه‌ها و دسترسی شرکت‌ها
+    - `groups` field uses `CheckboxSelectMultiple` widget for intuitive multi-selection
+    - Users can be assigned to multiple groups simultaneously
+  - **Group Management**:
+    - `members` field removed from Group form (membership now managed via User form)
+    - `access_levels` field uses `CheckboxSelectMultiple` widget for intuitive multi-selection
+    - Groups can be assigned multiple access levels simultaneously
+    - Supports `GroupProfile` model with description and enabled flag
+  - **Access Level Management**:
+    - ماتریس انتخاب اکشن‌ها برای هر Access Level بر اساس `FEATURE_PERMISSION_MAP`
+    - **Quick Action Buttons**: دکمه‌های "همه" و "هیچکدام" برای هر Feature (ردیف) و کل صفحه برای انتخاب/لغو انتخاب گروهی permissions
 
 ### Data Protection
 - CSRF protection on all forms

@@ -74,6 +74,7 @@ Each model enforces unique constraints tailored to multi-company setups and uses
 - `IssueLineSerialAssignmentBaseView` و کلاس‌های مشتق (`IssuePermanentLineSerialAssignmentView`, `IssueConsumptionLineSerialAssignmentView`, `IssueConsignmentLineSerialAssignmentView`): ویوهای اختصاصی برای مدیریت سریال‌های هر ردیف حواله. هر Line می‌تواند صفحه اختصاصی خود را داشته باشد.
 - `ReceiptLineSerialAssignmentBaseView` و کلاس‌های مشتق (`ReceiptPermanentLineSerialAssignmentView`, `ReceiptConsignmentLineSerialAssignmentView`): ویوهای اختصاصی برای مدیریت سریال‌های هر ردیف رسید.
 - `StocktakingDeficitCreateView`/`UpdateView`, `StocktakingSurplusCreateView`/`UpdateView`, `StocktakingRecordCreateView`/`UpdateView`: فرم‌های اختصاصی برای اسناد شمارش موجودی که کد سند (STD/STS/STR-YYYYMM-XXXXXX) را تولید کرده، واحدهای مجاز و انبارهای مجاز را بر اساس تنظیمات کالا محدود می‌کنند و امکان قفل کردن سند را پس از نهایی‌سازی فراهم می‌سازند.
+- **Document Delete Views**: کلاس پایه `DocumentDeleteViewBase` و کلاس‌های مشتق آن (`ReceiptTemporaryDeleteView`, `ReceiptPermanentDeleteView`, `ReceiptConsignmentDeleteView`, `IssuePermanentDeleteView`, `IssueConsumptionDeleteView`, `IssueConsignmentDeleteView`, `StocktakingDeficitDeleteView`, `StocktakingSurplusDeleteView`, `StocktakingRecordDeleteView`) برای حذف اسناد با بررسی دسترسی (`DELETE_OWN` و `DELETE_OTHER`) و محافظت از اسناد قفل‌شده. دکمه‌های حذف در لیست‌ها به صورت شرطی بر اساس دسترسی کاربر نمایش داده می‌شوند.
 
 ## templates
 
@@ -85,7 +86,8 @@ Each model enforces unique constraints tailored to multi-company setups and uses
 - `receipt_temporary.html`, `receipt_permanent.html`, `receipt_consignment.html`: صفحات لیست رسیدها که به مسیرهای ایجاد/ویرایش داخلی متصل شده‌اند و پیام‌های خالی/آمار را بر اساس نوع سند نمایش می‌دهند. تاریخ‌های سند با template tag `jalali_date` به صورت Jalali نمایش داده می‌شوند.
 - `inventory/stocktaking_form.html`: قالب مشترک فرم‌های شمارش موجودی به همراه اسکریپت‌های پویا برای به‌روزرسانی واحد و انبار مجاز بر اساس انتخاب کالا.
 - `inventory/receipt_form.html`: قالب پایه برای فرم‌های رسید و حواله که شامل JavaScript برای به‌روزرسانی پویای dropdown های واحد و انبار بر اساس انتخاب کالا است. تابع `updateUnitChoices()` واحدها را به‌روزرسانی می‌کند و تابع `updateWarehouseChoices()` انبارهای مجاز را به‌روزرسانی می‌کند.
-- `stocktaking_deficit.html`, `stocktaking_surplus.html`, `stocktaking_records.html`: صفحات لیست سندهای شمارش که اکنون دکمه «ایجاد» و لینک ویرایش/مشاهده به ویوهای جدید دارند و وضعیت قفل سند را نمایش می‌دهند.
+- `stocktaking_deficit.html`, `stocktaking_surplus.html`, `stocktaking_records.html`: صفحات لیست سندهای شمارش که اکنون دکمه «ایجاد» و لینک ویرایش/حذف/مشاهده به ویوهای جدید دارند و وضعیت قفل سند را نمایش می‌دهند. دکمه‌های حذف به صورت شرطی بر اساس دسترسی کاربر نمایش داده می‌شوند.
+- `*_confirm_delete.html`: تمپلیت‌های تأیید حذف برای تمام انواع اسناد (رسیدها، حواله‌ها، شمارش موجودی) که جزئیات سند را نمایش داده و از کاربر تأیید می‌گیرند.
 
 ## urls.py
 
@@ -100,6 +102,16 @@ Each model enforces unique constraints tailored to multi-company setups and uses
   - `/inventory/issues/consignment/<pk>/lines/<line_id>/serials/` برای اختصاص سریال‌های ردیف حواله امانی
 - مسیرهای مربوط به تأمین‌کنندگان و دسته‌بندی‌های تأمین‌کننده نیز کامل شده‌اند.
 - مسیرهای شمارش موجودی: `/inventory/stocktaking/deficit|surplus|records/(create|<pk>/edit/)` به همراه مسیرهای قفل، همگی به ویوهای اختصاصی جدید متصل هستند.
+- مسیرهای حذف اسناد:
+  - `/inventory/receipts/temporary/<pk>/delete/` برای حذف رسید موقت
+  - `/inventory/receipts/permanent/<pk>/delete/` برای حذف رسید دائم
+  - `/inventory/receipts/consignment/<pk>/delete/` برای حذف رسید امانی
+  - `/inventory/issues/permanent/<pk>/delete/` برای حذف حواله دائم
+  - `/inventory/issues/consumption/<pk>/delete/` برای حذف حواله مصرف
+  - `/inventory/issues/consignment/<pk>/delete/` برای حذف حواله امانی
+  - `/inventory/stocktaking/deficit/<pk>/delete/` برای حذف سند کسری
+  - `/inventory/stocktaking/surplus/<pk>/delete/` برای حذف سند مازاد
+  - `/inventory/stocktaking/records/<pk>/delete/` برای حذف سند شمارش موجودی
 
 ## forms.py
 

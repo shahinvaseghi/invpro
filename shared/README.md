@@ -8,7 +8,7 @@ Defines the reusable abstractions and core shared tables.
 
 - **Mixins**
   - `TimeStampedModel`: adds `created_at` / `edited_at` fields.
-  - `ActivatableModel`: adds `is_enabled`, `activated_at`, `deactivated_at`.
+  - `ActivatableModel`: adds `is_enabled`, `enabled_at`, `enabled_by`, `disabled_at`, `disabled_by`.
   - `MetadataModel`: adds a JSON `metadata` field.
   - `SortableModel`: adds `sort_order`.
   - `CompanyScopedModel`: base for multi-company isolation; stores `company`, `company_code` and auto-populates the cached code on save.
@@ -58,7 +58,7 @@ Defines the ModelForms used across the shared module:
 
 ماژول جدید `shared/permissions.py` کاتالوگ متمرکز مجوزها را نگه می‌دارد:
 
-- `PermissionAction` (Enum): مجموعه اکشن‌های پایه مثل `VIEW_OWN`, `VIEW_ALL`, `CREATE`, `EDIT_OWN`, `DELETE_OWN`, `LOCK_OWN`, `LOCK_OTHER`, `UNLOCK_OWN`, `UNLOCK_OTHER`, `APPROVE`, `REJECT`, `CANCEL`.
+- `PermissionAction` (Enum): مجموعه اکشن‌های پایه مثل `VIEW_OWN`, `VIEW_ALL`, `CREATE`, `EDIT_OWN`, `EDIT_OTHER`, `DELETE_OWN`, `DELETE_OTHER`, `LOCK_OWN`, `LOCK_OTHER`, `UNLOCK_OWN`, `UNLOCK_OTHER`, `APPROVE`, `REJECT`, `CANCEL`.
 - `FeaturePermission`: دیتاکلاس توصیف‌کننده‌ی هر منو / قابلیت و اکشن‌های مجاز آن.
 - `FEATURE_PERMISSION_MAP`: نگاشت ماژول‌ها و زیرمنوهای فعلی (رسیدها، حواله‌ها، درخواست‌ها) به لیست اکشن‌های پشتیبانی‌شده. این ساختار بعداً برای ایجاد `AccessLevelPermission` ها، فرم‌های مدیریت دسترسی و کنترل نمایش منوها استفاده خواهد شد.
 - `list_feature_permissions()`: هلسپر برای بازگرداندن همه‌ی موارد جهت استفاده در فرم‌ها/فیکسچرها.

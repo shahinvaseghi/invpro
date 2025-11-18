@@ -41,6 +41,17 @@ class InventoryBaseView(LoginRequiredMixin):
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'inventory'
         return context
+    
+    def add_delete_permissions_to_context(self, context, feature_code):
+        """Helper method to add delete permission checks to context."""
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        company_id = self.request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(self.request.user, company_id)
+        # Superuser can always delete
+        context['can_delete_own'] = self.request.user.is_superuser or has_feature_permission(permissions, feature_code, 'delete_own', allow_own_scope=True)
+        context['can_delete_other'] = self.request.user.is_superuser or has_feature_permission(permissions, feature_code, 'delete_other', allow_own_scope=False)
+        context['user'] = self.request.user  # Make user available in template
+        return context
 
 
 class DocumentLockProtectedMixin:
@@ -1215,12 +1226,14 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
         context = super().get_context_data(**kwargs)
         context['create_url'] = reverse_lazy('inventory:receipt_temporary_create')
         context['edit_url_name'] = 'inventory:receipt_temporary_edit'
+        context['delete_url_name'] = 'inventory:receipt_temporary_delete'
         context['lock_url_name'] = 'inventory:receipt_temporary_lock'
         context['create_label'] = _('Temporary Receipt')
         context['show_qc'] = True
         context['show_conversion'] = True
         context['empty_heading'] = _('No Temporary Receipts Found')
         context['empty_text'] = _('Start by creating your first temporary receipt.')
+        self.add_delete_permissions_to_context(context, 'inventory.receipts.temporary')
         return context
 
 
@@ -1244,6 +1257,7 @@ class ReceiptPermanentListView(InventoryBaseView, ListView):
         context = super().get_context_data(**kwargs)
         context['create_url'] = reverse_lazy('inventory:receipt_permanent_create')
         context['edit_url_name'] = 'inventory:receipt_permanent_edit'
+        context['delete_url_name'] = 'inventory:receipt_permanent_delete'
         context['lock_url_name'] = 'inventory:receipt_permanent_lock'
         context['create_label'] = _('Permanent Receipt')
         context['show_qc'] = False
@@ -1251,6 +1265,8 @@ class ReceiptPermanentListView(InventoryBaseView, ListView):
         context['empty_heading'] = _('No Permanent Receipts Found')
         context['empty_text'] = _('Start by creating your first permanent receipt.')
         context['serial_url_name'] = 'inventory:receipt_permanent_serials'
+        
+        self.add_delete_permissions_to_context(context, 'inventory.receipts.permanent')
         return context
 
 
@@ -1274,6 +1290,7 @@ class ReceiptConsignmentListView(InventoryBaseView, ListView):
         context = super().get_context_data(**kwargs)
         context['create_url'] = reverse_lazy('inventory:receipt_consignment_create')
         context['edit_url_name'] = 'inventory:receipt_consignment_edit'
+        context['delete_url_name'] = 'inventory:receipt_consignment_delete'
         context['lock_url_name'] = 'inventory:receipt_consignment_lock'
         context['create_label'] = _('Consignment Receipt')
         context['show_qc'] = False
@@ -1281,6 +1298,7 @@ class ReceiptConsignmentListView(InventoryBaseView, ListView):
         context['empty_heading'] = _('No Consignment Receipts Found')
         context['empty_text'] = _('Start by creating your first consignment receipt.')
         context['serial_url_name'] = 'inventory:receipt_consignment_serials'
+        self.add_delete_permissions_to_context(context, 'inventory.receipts.consignment')
         return context
 
 
@@ -1370,6 +1388,7 @@ class StocktakingFormMixin(InventoryBaseView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['company_id'] = self.request.session.get('active_company_id')
+        kwargs['user'] = self.request.user  # Pass current user to form for permission checks
         return kwargs
 
     def get_fieldsets(self):
@@ -1766,6 +1785,12 @@ class IssueConsumptionCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
     receipt_variant = 'issue_consumption'
     list_url_name = 'inventory:issue_consumption'
     lock_url_name = 'inventory:issue_consumption_lock'
+    
+    # post method removed - using default implementation
+    
+    def form_invalid(self, form):
+        """Handle invalid form submission"""
+        return super().form_invalid(form)
 
     def form_valid(self, form):
         import logging
@@ -1979,6 +2004,137 @@ class ReceiptTemporaryLockView(DocumentLockView):
     success_message = _('رسید موقت قفل شد و دیگر قابل ویرایش نیست.')
 
 
+class DocumentDeleteViewBase(FeaturePermissionRequiredMixin, DocumentLockProtectedMixin, InventoryBaseView, DeleteView):
+    """Base class for document delete views with permission checking."""
+    owner_field = None  # Disable owner check, we handle it manually
+    success_message = _('سند با موفقیت حذف شد.')
+
+    def dispatch(self, request, *args, **kwargs):
+        # Superuser bypass
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        
+        obj = self.get_object()
+        
+        # Check permissions
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        company_id = request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(request.user, company_id)
+        
+        # Check if user is owner and has DELETE_OWN permission
+        is_owner = obj.created_by == request.user if obj.created_by else False
+        can_delete_own = has_feature_permission(permissions, self.feature_code, 'delete_own', allow_own_scope=True)
+        can_delete_other = has_feature_permission(permissions, self.feature_code, 'delete_other', allow_own_scope=False)
+        
+        if is_owner and not can_delete_own:
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied(_('شما اجازه حذف اسناد خود را ندارید.'))
+        elif not is_owner and not can_delete_other:
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied(_('شما اجازه حذف اسناد سایر کاربران را ندارید.'))
+        
+        return super().dispatch(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, self.success_message)
+        return super().delete(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'inventory'
+        return context
+
+
+class ReceiptTemporaryDeleteView(DocumentDeleteViewBase):
+    model = models.ReceiptTemporary
+    template_name = 'inventory/receipt_temporary_confirm_delete.html'
+    success_url = reverse_lazy('inventory:receipt_temporary')
+    feature_code = 'inventory.receipts.temporary'
+    required_action = 'delete_own'
+    allow_own_scope = True
+    success_message = _('رسید موقت با موفقیت حذف شد.')
+
+
+class ReceiptPermanentDeleteView(DocumentDeleteViewBase):
+    model = models.ReceiptPermanent
+    template_name = 'inventory/receipt_permanent_confirm_delete.html'
+    success_url = reverse_lazy('inventory:receipt_permanent')
+    feature_code = 'inventory.receipts.permanent'
+    required_action = 'delete_own'
+    allow_own_scope = True
+    success_message = _('رسید دائم با موفقیت حذف شد.')
+
+
+class ReceiptConsignmentDeleteView(DocumentDeleteViewBase):
+    model = models.ReceiptConsignment
+    template_name = 'inventory/receipt_consignment_confirm_delete.html'
+    success_url = reverse_lazy('inventory:receipt_consignment')
+    feature_code = 'inventory.receipts.consignment'
+    required_action = 'delete_own'
+    allow_own_scope = True
+    success_message = _('رسید امانی با موفقیت حذف شد.')
+
+
+class IssuePermanentDeleteView(DocumentDeleteViewBase):
+    model = models.IssuePermanent
+    template_name = 'inventory/issue_permanent_confirm_delete.html'
+    success_url = reverse_lazy('inventory:issue_permanent')
+    feature_code = 'inventory.issues.permanent'
+    required_action = 'delete_own'
+    allow_own_scope = True
+    success_message = _('حواله دائم با موفقیت حذف شد.')
+
+
+class IssueConsumptionDeleteView(DocumentDeleteViewBase):
+    model = models.IssueConsumption
+    template_name = 'inventory/issue_consumption_confirm_delete.html'
+    success_url = reverse_lazy('inventory:issue_consumption')
+    feature_code = 'inventory.issues.consumption'
+    required_action = 'delete_own'
+    allow_own_scope = True
+    success_message = _('حواله مصرف با موفقیت حذف شد.')
+
+
+class IssueConsignmentDeleteView(DocumentDeleteViewBase):
+    model = models.IssueConsignment
+    template_name = 'inventory/issue_consignment_confirm_delete.html'
+    success_url = reverse_lazy('inventory:issue_consignment')
+    feature_code = 'inventory.issues.consignment'
+    required_action = 'delete_own'
+    allow_own_scope = True
+    success_message = _('حواله امانی با موفقیت حذف شد.')
+
+
+class StocktakingDeficitDeleteView(DocumentDeleteViewBase):
+    model = models.StocktakingDeficit
+    template_name = 'inventory/stocktaking_deficit_confirm_delete.html'
+    success_url = reverse_lazy('inventory:stocktaking_deficit')
+    feature_code = 'inventory.stocktaking.deficit'
+    required_action = 'delete_own'
+    allow_own_scope = True
+    success_message = _('سند کسری موجودی با موفقیت حذف شد.')
+
+
+class StocktakingSurplusDeleteView(DocumentDeleteViewBase):
+    model = models.StocktakingSurplus
+    template_name = 'inventory/stocktaking_surplus_confirm_delete.html'
+    success_url = reverse_lazy('inventory:stocktaking_surplus')
+    feature_code = 'inventory.stocktaking.surplus'
+    required_action = 'delete_own'
+    allow_own_scope = True
+    success_message = _('سند مازاد موجودی با موفقیت حذف شد.')
+
+
+class StocktakingRecordDeleteView(DocumentDeleteViewBase):
+    model = models.StocktakingRecord
+    template_name = 'inventory/stocktaking_record_confirm_delete.html'
+    success_url = reverse_lazy('inventory:stocktaking_record')
+    feature_code = 'inventory.stocktaking.records'
+    required_action = 'delete_own'
+    allow_own_scope = True
+    success_message = _('سند شمارش موجودی با موفقیت حذف شد.')
+
+
 class ReceiptPermanentLockView(DocumentLockView):
     model = models.ReceiptPermanent
     success_url_name = 'inventory:receipt_permanent'
@@ -2169,6 +2325,7 @@ class IssuePermanentListView(InventoryBaseView, ListView):
     template_name = 'inventory/issue_permanent.html'
     context_object_name = 'issues'
     paginate_by = 50
+    ordering = ['-id']  # Show newest documents first
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -2182,9 +2339,12 @@ class IssuePermanentListView(InventoryBaseView, ListView):
         context = super().get_context_data(**kwargs)
         context['create_url'] = reverse_lazy('inventory:issue_permanent_create')
         context['edit_url_name'] = 'inventory:issue_permanent_edit'
+        context['delete_url_name'] = 'inventory:issue_permanent_delete'
         context['lock_url_name'] = 'inventory:issue_permanent_lock'
         context['create_label'] = _('Permanent Issue')
-        context['serial_url_name'] = 'inventory:issue_permanent_serials'
+        # serial_url_name removed - serial assignment is done per line in edit view, not from list
+        context['serial_url_name'] = None
+        self.add_delete_permissions_to_context(context, 'inventory.issues.permanent')
         return context
 
 
@@ -2193,6 +2353,7 @@ class IssueConsumptionListView(InventoryBaseView, ListView):
     template_name = 'inventory/issue_consumption.html'
     context_object_name = 'issues'
     paginate_by = 50
+    ordering = ['-id']  # Show newest documents first
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -2203,9 +2364,12 @@ class IssueConsumptionListView(InventoryBaseView, ListView):
         context = super().get_context_data(**kwargs)
         context['create_url'] = reverse_lazy('inventory:issue_consumption_create')
         context['edit_url_name'] = 'inventory:issue_consumption_edit'
+        context['delete_url_name'] = 'inventory:issue_consumption_delete'
         context['lock_url_name'] = 'inventory:issue_consumption_lock'
         context['create_label'] = _('Consumption Issue')
-        context['serial_url_name'] = 'inventory:issue_consumption_serials'
+        # serial_url_name removed - serial assignment is done per line in edit view, not from list
+        context['serial_url_name'] = None
+        self.add_delete_permissions_to_context(context, 'inventory.issues.consumption')
         return context
 
 
@@ -2214,6 +2378,7 @@ class IssueConsignmentListView(InventoryBaseView, ListView):
     template_name = 'inventory/issue_consignment.html'
     context_object_name = 'issues'
     paginate_by = 50
+    ordering = ['-id']  # Show newest documents first
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -2224,9 +2389,12 @@ class IssueConsignmentListView(InventoryBaseView, ListView):
         context = super().get_context_data(**kwargs)
         context['create_url'] = reverse_lazy('inventory:issue_consignment_create')
         context['edit_url_name'] = 'inventory:issue_consignment_edit'
+        context['delete_url_name'] = 'inventory:issue_consignment_delete'
         context['lock_url_name'] = 'inventory:issue_consignment_lock'
         context['create_label'] = _('Consignment Issue')
-        context['serial_url_name'] = 'inventory:issue_consignment_serials'
+        # serial_url_name removed - serial assignment is done per line in edit view, not from list
+        context['serial_url_name'] = None
+        self.add_delete_permissions_to_context(context, 'inventory.issues.consignment')
         return context
 
 
@@ -2351,7 +2519,7 @@ class StocktakingRecordCreateView(StocktakingFormMixin, CreateView):
         return [
             (_('اطلاعات سند'), ['stocktaking_session_id']),
             (_('تأیید موجودی'), ['confirmed_by', 'confirmation_notes']),
-            (_('وضعیت تایید'), ['approval_status', 'approved_at', 'approver', 'approver_notes']),
+            (_('وضعیت تایید'), ['approver', 'approval_status', 'approver_notes']),
             (_('خلاصه موجودی'), ['final_inventory_value']),
         ]
 
@@ -2376,7 +2544,7 @@ class StocktakingRecordUpdateView(DocumentLockProtectedMixin, StocktakingFormMix
         return [
             (_('اطلاعات سند'), ['stocktaking_session_id']),
             (_('تأیید موجودی'), ['confirmed_by', 'confirmation_notes']),
-            (_('وضعیت تایید'), ['approval_status', 'approved_at', 'approver', 'approver_notes']),
+            (_('وضعیت تایید'), ['approver', 'approval_status', 'approver_notes']),
             (_('خلاصه موجودی'), ['final_inventory_value']),
         ]
 
@@ -2391,7 +2559,9 @@ class StocktakingDeficitListView(InventoryBaseView, ListView):
         context = super().get_context_data(**kwargs)
         context['create_url'] = reverse_lazy('inventory:stocktaking_deficit_create')
         context['edit_url_name'] = 'inventory:stocktaking_deficit_edit'
+        context['delete_url_name'] = 'inventory:stocktaking_deficit_delete'
         context['lock_url_name'] = 'inventory:stocktaking_deficit_lock'
+        self.add_delete_permissions_to_context(context, 'inventory.stocktaking.deficit')
         return context
 
 
@@ -2405,7 +2575,9 @@ class StocktakingSurplusListView(InventoryBaseView, ListView):
         context = super().get_context_data(**kwargs)
         context['create_url'] = reverse_lazy('inventory:stocktaking_surplus_create')
         context['edit_url_name'] = 'inventory:stocktaking_surplus_edit'
+        context['delete_url_name'] = 'inventory:stocktaking_surplus_delete'
         context['lock_url_name'] = 'inventory:stocktaking_surplus_lock'
+        self.add_delete_permissions_to_context(context, 'inventory.stocktaking.surplus')
         return context
 
 
@@ -2419,7 +2591,9 @@ class StocktakingRecordListView(InventoryBaseView, ListView):
         context = super().get_context_data(**kwargs)
         context['create_url'] = reverse_lazy('inventory:stocktaking_record_create')
         context['edit_url_name'] = 'inventory:stocktaking_record_edit'
+        context['delete_url_name'] = 'inventory:stocktaking_record_delete'
         context['lock_url_name'] = 'inventory:stocktaking_record_lock'
+        self.add_delete_permissions_to_context(context, 'inventory.stocktaking.records')
         return context
 
 
@@ -2441,12 +2615,18 @@ class InventoryBalanceView(InventoryBaseView, TemplateView):
         item_category_id = self.request.GET.get('item_category_id')
         as_of_date = self.request.GET.get('as_of_date')
         
-        # Parse date
+        # Parse date (accepts both Gregorian YYYY-MM-DD and Jalali YYYY/MM/DD)
         if as_of_date:
             try:
+                # Try Gregorian format first (YYYY-MM-DD)
                 as_of_date = date.fromisoformat(as_of_date)
             except ValueError:
-                as_of_date = None
+                try:
+                    # Try Jalali format (YYYY/MM/DD)
+                    from inventory.utils.jalali import jalali_to_gregorian
+                    as_of_date = jalali_to_gregorian(as_of_date)
+                except (ValueError, TypeError):
+                    as_of_date = None
         
         # Get warehouse and filter options for UI
         context['warehouses'] = models.Warehouse.objects.filter(is_enabled=1).order_by('name')
@@ -2482,6 +2662,190 @@ class InventoryBalanceView(InventoryBaseView, TemplateView):
                 context['balances'] = []
         else:
             context['balances'] = []
+        
+        return context
+
+
+class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
+    """
+    Display detailed transaction history (receipts and issues) for a specific item in a warehouse.
+    Shows all movements from baseline date to as_of_date.
+    """
+    template_name = 'inventory/inventory_balance_details.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        item_id = kwargs.get('item_id')
+        warehouse_id = kwargs.get('warehouse_id')
+        as_of_date = self.request.GET.get('as_of_date')
+        
+        # Parse date
+        if as_of_date:
+            try:
+                as_of_date = date.fromisoformat(as_of_date)
+            except ValueError:
+                try:
+                    from inventory.utils.jalali import jalali_to_gregorian
+                    as_of_date = jalali_to_gregorian(as_of_date)
+                except (ValueError, TypeError):
+                    as_of_date = None
+        
+        if not as_of_date:
+            as_of_date = date.today()
+        
+        # Get company_id from session
+        company_id = self.request.session.get('active_company_id')
+        if not company_id:
+            company_id = self.request.user.usercompanyaccess_set.first().company_id if self.request.user.usercompanyaccess_set.exists() else 1
+        
+        # Get item and warehouse
+        try:
+            item = models.Item.objects.get(id=item_id, company_id=company_id)
+            warehouse = models.Warehouse.objects.get(id=warehouse_id, company_id=company_id)
+        except models.Item.DoesNotExist:
+            context['error'] = _('Item not found')
+            return context
+        except models.Warehouse.DoesNotExist:
+            context['error'] = _('Warehouse not found')
+            return context
+        
+        # Get baseline
+        baseline = inventory_balance.get_last_stocktaking_baseline(
+            company_id, warehouse_id, item_id, as_of_date
+        )
+        baseline_date = baseline['baseline_date'] or date(1900, 1, 1)
+        
+        # Get all receipts (positive movements)
+        receipts_perm = models.ReceiptPermanentLine.objects.filter(
+            company_id=company_id,
+            warehouse_id=warehouse_id,
+            item_id=item_id,
+            document__document_date__gt=baseline_date,
+            document__document_date__lte=as_of_date,
+            document__is_enabled=1,
+        ).select_related('document').order_by('document__document_date', 'id')
+        
+        receipts_consignment = models.ReceiptConsignmentLine.objects.filter(
+            company_id=company_id,
+            warehouse_id=warehouse_id,
+            item_id=item_id,
+            document__document_date__gt=baseline_date,
+            document__document_date__lte=as_of_date,
+            document__is_enabled=1,
+        ).select_related('document').order_by('document__document_date', 'id')
+        
+        # Get all issues (negative movements)
+        issues_permanent = models.IssuePermanentLine.objects.filter(
+            company_id=company_id,
+            warehouse_id=warehouse_id,
+            item_id=item_id,
+            document__document_date__gt=baseline_date,
+            document__document_date__lte=as_of_date,
+            document__is_enabled=1,
+        ).select_related('document').order_by('document__document_date', 'id')
+        
+        issues_consumption = models.IssueConsumptionLine.objects.filter(
+            company_id=company_id,
+            warehouse_id=warehouse_id,
+            item_id=item_id,
+            document__document_date__gt=baseline_date,
+            document__document_date__lte=as_of_date,
+            document__is_enabled=1,
+        ).select_related('document').order_by('document__document_date', 'id')
+        
+        issues_consignment = models.IssueConsignmentLine.objects.filter(
+            company_id=company_id,
+            warehouse_id=warehouse_id,
+            item_id=item_id,
+            document__document_date__gt=baseline_date,
+            document__document_date__lte=as_of_date,
+            document__is_enabled=1,
+        ).select_related('document').order_by('document__document_date', 'id')
+        
+        # Combine all transactions
+        transactions = []
+        
+        # Add receipts
+        for receipt in receipts_perm:
+            transactions.append({
+                'date': receipt.document.document_date,
+                'type': 'receipt',
+                'type_label': _('Permanent Receipt'),
+                'document_code': receipt.document.document_code,
+                'quantity': receipt.quantity,
+                'unit': receipt.unit,
+            })
+        
+        for receipt in receipts_consignment:
+            transactions.append({
+                'date': receipt.document.document_date,
+                'type': 'receipt',
+                'type_label': _('Consignment Receipt'),
+                'document_code': receipt.document.document_code,
+                'quantity': receipt.quantity,
+                'unit': receipt.unit,
+            })
+        
+        # Add issues
+        for issue in issues_permanent:
+            transactions.append({
+                'date': issue.document.document_date,
+                'type': 'issue',
+                'type_label': _('Permanent Issue'),
+                'document_code': issue.document.document_code,
+                'quantity': issue.quantity,
+                'unit': issue.unit,
+            })
+        
+        for issue in issues_consumption:
+            transactions.append({
+                'date': issue.document.document_date,
+                'type': 'issue',
+                'type_label': _('Consumption Issue'),
+                'document_code': issue.document.document_code,
+                'quantity': issue.quantity,
+                'unit': issue.unit,
+            })
+        
+        for issue in issues_consignment:
+            transactions.append({
+                'date': issue.document.document_date,
+                'type': 'issue',
+                'type_label': _('Consignment Issue'),
+                'document_code': issue.document.document_code,
+                'quantity': issue.quantity,
+                'unit': issue.unit,
+            })
+        
+        # Sort by date
+        transactions.sort(key=lambda x: x['date'])
+        
+        # Calculate running balance
+        running_balance = baseline['baseline_quantity']
+        for transaction in transactions:
+            if transaction['type'] == 'receipt':
+                running_balance += transaction['quantity']
+            else:
+                running_balance -= transaction['quantity']
+            transaction['running_balance'] = running_balance
+        
+        # Calculate current balance
+        current_balance = baseline['baseline_quantity']
+        if transactions:
+            current_balance = transactions[-1]['running_balance']
+        
+        context.update({
+            'item': item,
+            'warehouse': warehouse,
+            'baseline': baseline,
+            'baseline_date': baseline_date,
+            'as_of_date': as_of_date,
+            'transactions': transactions,
+            'total_receipts': sum(t['quantity'] for t in transactions if t['type'] == 'receipt'),
+            'total_issues': sum(t['quantity'] for t in transactions if t['type'] == 'issue'),
+            'current_balance': current_balance,
+        })
         
         return context
 

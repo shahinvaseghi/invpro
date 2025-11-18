@@ -200,19 +200,24 @@
                   {% trans "View" %}
                 </a>
                 <span class="badge-locked">{% trans "Locked" %}</span>
-                {% if issue.item.has_lot_tracking %}
-                  <a href="{% url serial_url_name issue.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
-                    {% trans "View Serials" %}
-                  </a>
-                {% endif %}
               {% else %}
                 <a href="{% url edit_url_name issue.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
                   {% trans "Edit" %}
                 </a>
-                {% if issue.item.has_lot_tracking %}
-                  <a href="{% url serial_url_name issue.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
-                    {% trans "Assign Serials" %}
-                  </a>
+                {% if delete_url_name %}
+                  {% if issue.created_by == user %}
+                    {% if can_delete_own %}
+                      <a href="{% url delete_url_name issue.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this issue?" %}');">
+                        {% trans "Delete" %}
+                      </a>
+                    {% endif %}
+                  {% else %}
+                    {% if can_delete_other %}
+                      <a href="{% url delete_url_name issue.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this issue?" %}');">
+                        {% trans "Delete" %}
+                      </a>
+                    {% endif %}
+                  {% endif %}
                 {% endif %}
                 {% if lock_url_name %}
                 <form method="post" action="{% url lock_url_name issue.pk %}" class="inline-lock-form">

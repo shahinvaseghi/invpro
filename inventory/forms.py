@@ -1785,8 +1785,23 @@ class IssueConsumptionForm(forms.ModelForm):
             self.fields['document_code'].required = False
         if 'document_date' in self.fields:
             self.fields['document_date'].required = False
-            # Make document_date readonly
-            self.fields['document_date'].widget.attrs['readonly'] = True
+            # Set initial value for document_date
+            if not self.instance.pk:
+                self.fields['document_date'].initial = timezone.now().date()
+    
+    def clean_document_date(self):
+        """Clean and provide default value for document_date"""
+        date_value = self.cleaned_data.get('document_date')
+        if not date_value:
+            date_value = timezone.now().date()
+        return date_value
+    
+    def clean_document_code(self):
+        """Clean and provide default value for document_code"""
+        code_value = self.cleaned_data.get('document_code')
+        if not code_value:
+            code_value = ''
+        return code_value
 
     def clean(self):
         cleaned_data = super().clean()
@@ -1843,12 +1858,29 @@ class IssueConsignmentForm(forms.ModelForm):
             self.fields['document_code'].required = False
         if 'document_date' in self.fields:
             self.fields['document_date'].required = False
+            # Set initial value for document_date
+            if not self.instance.pk:
+                self.fields['document_date'].initial = timezone.now().date()
         
         if self.company_id and 'department_unit' in self.fields:
             self.fields['department_unit'].queryset = CompanyUnit.objects.filter(
                 company_id=self.company_id, is_enabled=1
             ).order_by('name')
             self.fields['department_unit'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
+    
+    def clean_document_date(self):
+        """Clean and provide default value for document_date"""
+        date_value = self.cleaned_data.get('document_date')
+        if not date_value:
+            date_value = timezone.now().date()
+        return date_value
+    
+    def clean_document_code(self):
+        """Clean and provide default value for document_code"""
+        code_value = self.cleaned_data.get('document_code')
+        if not code_value:
+            code_value = ''
+        return code_value
 
     def clean(self):
         cleaned_data = super().clean()
@@ -1886,8 +1918,9 @@ class StocktakingBaseForm(forms.ModelForm):
 
     unit_placeholder = UNIT_CHOICES[0][1]
 
-    def __init__(self, *args, company_id=None, **kwargs):
+    def __init__(self, *args, company_id=None, user=None, **kwargs):
         self.company_id = company_id or getattr(kwargs.get('instance'), 'company_id', None)
+        self.user = user  # Store user for permission checks in subclasses
         self.date_widget = JalaliDateInput(attrs={'class': 'form-control'})
         self.datetime_widget = forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'})
         super().__init__(*args, **kwargs)
@@ -1938,11 +1971,29 @@ class StocktakingBaseForm(forms.ModelForm):
             self.fields['warehouse'].label_from_instance = lambda obj: f"{obj.public_code} - {obj.name}"
             self.fields['warehouse'].empty_label = _("--- انتخاب کنید ---")
         if 'confirmed_by' in self.fields:
-            self.fields['confirmed_by'].queryset = Person.objects.filter(company_id=self.company_id, is_enabled=1)
-            self.fields['confirmed_by'].label_from_instance = lambda obj: f"{obj.public_code} - {obj.first_name} {obj.last_name}"
+            from shared.models import User
+            # Get users who have access to this company
+            self.fields['confirmed_by'].queryset = User.objects.filter(
+                company_accesses__company_id=self.company_id,
+                company_accesses__is_enabled=1,
+                is_active=True
+            ).distinct()
+            def confirmed_by_label(obj):
+                full_name = obj.get_full_name()
+                return f"{obj.username} - {full_name}" if full_name else obj.username
+            self.fields['confirmed_by'].label_from_instance = confirmed_by_label
         if 'approver' in self.fields:
-            self.fields['approver'].queryset = Person.objects.filter(company_id=self.company_id, is_enabled=1)
-            self.fields['approver'].label_from_instance = lambda obj: f"{obj.public_code} - {obj.first_name} {obj.last_name}"
+            from shared.models import User
+            # Get users who have access to this company
+            self.fields['approver'].queryset = User.objects.filter(
+                company_accesses__company_id=self.company_id,
+                company_accesses__is_enabled=1,
+                is_active=True
+            ).distinct()
+            def approver_label(obj):
+                full_name = obj.get_full_name()
+                return f"{obj.username} - {full_name}" if full_name else obj.username
+            self.fields['approver'].label_from_instance = approver_label
 
     def _resolve_item(self, candidate=None):
         if isinstance(candidate, Item):
@@ -2215,6 +2266,20 @@ class StocktakingSurplusForm(StocktakingBaseForm):
 
 class StocktakingRecordForm(StocktakingBaseForm):
     """Create/update form for stocktaking records."""
+    
+    # Define approval status choices
+    APPROVAL_STATUS_CHOICES = [
+        ('pending', _('در انتظار تایید')),
+        ('approved', _('تایید شده')),
+        ('rejected', _('رد شده')),
+    ]
+    
+    approval_status = forms.ChoiceField(
+        choices=APPROVAL_STATUS_CHOICES,
+        label=_('وضعیت تایید'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        initial='pending',
+    )
 
     class Meta:
         model = StocktakingRecord
@@ -2228,9 +2293,9 @@ class StocktakingRecordForm(StocktakingBaseForm):
             'variance_document_ids',
             'variance_document_codes',
             'final_inventory_value',
+            'approver',  # Moved before approval_status
             'approval_status',
             'approved_at',
-            'approver',
             'approver_notes',
             'record_metadata',
         ]
@@ -2238,14 +2303,29 @@ class StocktakingRecordForm(StocktakingBaseForm):
             'stocktaking_session_id': forms.NumberInput(attrs={'class': 'form-control'}),
             'confirmation_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'final_inventory_value': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'approval_status': forms.TextInput(attrs={'class': 'form-control'}),
             'approver_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, user=user, **kwargs)
         if 'approval_status' in self.fields and not getattr(self.instance, 'pk', None):
             self.fields['approval_status'].initial = 'pending'
+        
+        # Hide approved_at field - it's automatically set when status is approved
+        if 'approved_at' in self.fields:
+            self.fields['approved_at'].widget = forms.HiddenInput()
+            self.fields['approved_at'].required = False
+        
+        # Only the selected approver can change approval_status
+        if self.instance.pk and 'approval_status' in self.fields:
+            if self.user and self.instance.approver_id:
+                if self.user.id != self.instance.approver_id:
+                    # User is not the approver - make approval_status readonly
+                    self.fields['approval_status'].widget.attrs['disabled'] = 'disabled'
+                    self.fields['approval_status'].help_text = _('فقط تأییدکننده انتخاب شده می‌تواند وضعیت را تغییر دهد')
+            elif not self.instance.approver_id:
+                # No approver selected yet - anyone can change status
+                pass
         for field_name in ('variance_document_ids', 'variance_document_codes', 'record_metadata'):
             if field_name in self.fields and not getattr(self.instance, field_name, None):
                 default_value = [] if field_name != 'record_metadata' else {}
@@ -2257,6 +2337,16 @@ class StocktakingRecordForm(StocktakingBaseForm):
 
     def clean(self):
         cleaned_data = super().clean()
+        
+        # Server-side permission check: only approver can change approval_status
+        if self.instance.pk and 'approval_status' in cleaned_data:
+            if self.user and self.instance.approver_id:
+                if self.user.id != self.instance.approver_id:
+                    # User is not the approver - restore original status
+                    if self.instance.approval_status != cleaned_data['approval_status']:
+                        self.add_error('approval_status', _('فقط تأییدکننده انتخاب شده می‌تواند وضعیت را تغییر دهد'))
+                        cleaned_data['approval_status'] = self.instance.approval_status
+        
         return cleaned_data
 
     def save(self, commit=True):
@@ -2268,9 +2358,17 @@ class StocktakingRecordForm(StocktakingBaseForm):
         if not instance.inventory_snapshot_time:
             instance.inventory_snapshot_time = timezone.now()
         if instance.confirmed_by_id:
-            instance.confirmed_by_code = instance.confirmed_by.public_code
+            instance.confirmed_by_code = instance.confirmed_by.username
         if instance.approver_id:
             instance.approver_notes = instance.approver_notes or ''
+        
+        # Set approved_at when status changes to approved
+        if instance.approval_status == 'approved' and not instance.approved_at:
+            instance.approved_at = timezone.now()
+        # Clear approved_at if status changes back to pending or rejected
+        elif instance.approval_status in ('pending', 'rejected'):
+            instance.approved_at = None
+            
         if commit:
             instance.save()
             self.save_m2m()
@@ -3061,8 +3159,10 @@ class IssueConsignmentLineForm(IssueLineBaseForm):
     
     consignment_receipt = forms.ModelChoiceField(
         queryset=ReceiptConsignment.objects.none(),
+        required=False,
         label=_('Consignment Receipt'),
         widget=forms.Select(attrs={'class': 'form-control'}),
+        help_text=_('Optional: specify which consignment receipt this issue is related to.'),
     )
     
     destination_type = forms.ModelChoiceField(
