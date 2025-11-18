@@ -44,7 +44,8 @@ from .models import (
     ReceiptPermanentLine,
     ReceiptConsignmentLine,
 )
-from shared.models import CompanyUnit, Person
+from shared.models import CompanyUnit
+from production.models import Person
 from .services import serials as serial_service
 from .fields import JalaliDateField
 from .widgets import JalaliDateInput

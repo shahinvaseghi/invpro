@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Machines" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <span>{% trans "Machines" %}</span>
+    </nav>
+    
+    <h1 class="page-title">{% trans "Machines" %}</h1>
+    
+    <div class="page-actions">
+      <button class="btn btn-secondary" onclick="window.print()">{% trans "Print" %}</button>
+      <a href="{% url 'production:machine_create' %}" class="btn btn-primary">{% trans "Create Machine +" %}</a>
+    </div>
+  </div>
+  
+  <div class="filter-panel">
+    <h3>{% trans "Filter & Search" %}</h3>
+    <form method="get" class="filter-form">
+      <div class="filter-row">
+        <div class="filter-field">
+          <label for="search">{% trans "Search" %}</label>
+          <input type="text" id="search" name="search" placeholder="{% trans 'Search by code or name' %}" value="{{ request.GET.search }}">
+        </div>
+        <div class="filter-field">
+          <label for="work_center">{% trans "Work Center" %}</label>
+          <select id="work_center" name="work_center">
+            <option value="">-- {% trans "All" %} --</option>
+            {% for wc in work_centers %}
+              <option value="{{ wc.id }}" {% if request.GET.work_center == wc.id|stringformat:"s" %}selected{% endif %}>{{ wc.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-field">
+          <label for="status">{% trans "Status" %}</label>
+          <select id="status" name="status">
+            <option value="">-- {% trans "All" %} --</option>
+            <option value="operational" {% if request.GET.status == "operational" %}selected{% endif %}>{% trans "Operational" %}</option>
+            <option value="maintenance" {% if request.GET.status == "maintenance" %}selected{% endif %}>{% trans "Maintenance" %}</option>
+            <option value="idle" {% if request.GET.status == "idle" %}selected{% endif %}>{% trans "Idle" %}</option>
+            <option value="broken" {% if request.GET.status == "broken" %}selected{% endif %}>{% trans "Broken" %}</option>
+            <option value="retired" {% if request.GET.status == "retired" %}selected{% endif %}>{% trans "Retired" %}</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button type="submit" class="btn btn-primary">{% trans "Filter" %}</button>
+          <a href="{% url 'production:machines' %}" class="btn btn-secondary">{% trans "Clear" %}</a>
+        </div>
+      </div>
+    </form>
+  </div>
+  
+  {% if machines %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "CODE" %}</th>
+        <th>{% trans "Name" %}</th>
+        <th>{% trans "Type" %}</th>
+        <th>{% trans "Work Center" %}</th>
+        <th>{% trans "Manufacturer" %}</th>
+        <th>{% trans "Model" %}</th>
+        <th>{% trans "Status" %}</th>
+        <th>{% trans "Actions" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for machine in machines %}
+      <tr>
+        <td>{{ machine.public_code }}</td>
+        <td>{{ machine.name }}</td>
+        <td>{{ machine.machine_type }}</td>
+        <td>{{ machine.work_center.name|default:"-" }}</td>
+        <td>{{ machine.manufacturer|default:"-" }}</td>
+        <td>{{ machine.model_number|default:"-" }}</td>
+        <td>
+          <span class="badge badge-{{ machine.status }}">{{ machine.get_status_display }}</span>
+        </td>
+        <td>
+          <a href="{% url 'production:machine_edit' machine.id %}" class="btn btn-sm">{% trans "Edit" %}</a>
+          <a href="{% url 'production:machine_delete' machine.id %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  
+  {% if is_paginated %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page=1" class="page-link">{% trans "First" %}</a>
+      <a href="?page={{ page_obj.previous_page_number }}" class="page-link">{% trans "Previous" %}</a>
+    {% endif %}
+    
+    <span class="page-info">
+      {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+    </span>
+    
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}" class="page-link">{% trans "Next" %}</a>
+      <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">{% trans "Last" %}</a>
+    {% endif %}
+  </div>
+  {% endif %}
+  
+  {% else %}
+  <div class="empty-state">
+    <h3>{% trans "No Machines Found" %}</h3>
+    <p>{% trans "Start by adding your first machine to the system." %}</p>
+    <a href="{% url 'production:machine_create' %}" class="btn btn-primary">{% trans "Create Machine +" %}</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

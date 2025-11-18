@@ -72,9 +72,20 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.DELETE_OWN,
         ],
     ),
-    "shared.personnel": FeaturePermission(
-        code="shared.personnel",
+    "production.personnel": FeaturePermission(
+        code="production.personnel",
         label=_("Personnel"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "production.machines": FeaturePermission(
+        code="production.machines",
+        label=_("Machines"),
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,

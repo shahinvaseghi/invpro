@@ -40,9 +40,9 @@ This README documents:
 
 | Module / App | Purpose | Key Prefix |
 | ------------ | ------- | ---------- |
-| `shared` | Cross-cutting entities: companies, users, access hierarchy, personnel | `invproj_` |
+| `shared` | Cross-cutting entities: companies, users, access hierarchy | `invproj_` |
 | `inventory` | Master data, suppliers, receipts/issues, stocktaking | `inventory_` |
-| `production` | BOM, process definitions, production orders, line transfers | `production_` |
+| `production` | BOM, process definitions, production orders, line transfers, personnel, machines | `production_` |
 | `qc` | Quality inspections linked to temporary receipts | `qc_` |
 | `ui` | Template-based UI shell, navigation, and dashboards | — |
 
@@ -166,7 +166,7 @@ invproj/
 |----------------------------|-------------|
 | `config/settings.py`       | Environment-aware settings, app registration, DRF/CORS configs, `AUTH_USER_MODEL`. |
 | `config/urls.py`           | Routes admin + root → `ui.urls`. |
-| `shared/models.py`         | Base mixins + shared entities (companies, users, access, personnel). |
+| `shared/models.py`         | Base mixins + shared entities (companies, users, access). |
 | `inventory/models.py`      | Inventory-specific models following design document. |
 | `production/models.py`     | BOM, processes, orders, transfer entities. |
 | `qc/models.py`             | Temporary receipt inspection model. |
@@ -195,7 +195,6 @@ This module hosts cross-cutting entities and mixins.
   - `CompanyUnit`: hierarchical units per company
   - `AccessLevel`, `AccessLevelPermission`: role/permission matrix
   - `UserCompanyAccess`: mapping users to companies with access levels
-  - `Person`, `PersonAssignment`: personnel directory and work-center assignments
 - **Permissions Catalog**: `shared/permissions.py` exposes a central `FEATURE_PERMISSION_MAP` that enumerates menu-level features (رسیدها، حواله‌ها، درخواست‌ها) همراه با اکشن‌های دقیق مثل `view_own`, `view_all`, `create`, `edit_own`, `edit_other`, `delete_own`, `delete_other`, `lock_*`, `unlock_*`, `approve`, `reject`, `cancel`. این نقشه مستقیماً برای ساخت `AccessLevelPermission` و کنترل نمایش منوها استفاده خواهد شد. **نکته**: `DELETE_OTHER` به تمام اسناد اضافه شده است تا امکان حذف اسناد سایر کاربران فراهم شود و `APPROVE` برای stocktaking records نیز پشتیبانی می‌شود.
 - **Document Deletion**: قابلیت حذف برای تمام انواع اسناد (رسیدها، حواله‌ها، شمارش موجودی) پیاده‌سازی شده است. دکمه‌های حذف به صورت شرطی بر اساس دسترسی کاربر (`DELETE_OWN` و `DELETE_OTHER`) نمایش داده می‌شوند. اسناد قفل‌شده قابل حذف نیستند. کلاس پایه `DocumentDeleteViewBase` برای پیاده‌سازی یکپارچه استفاده می‌شود.
 - **User & Access Management**: مسیرهای `/shared/users/`, `/shared/groups/`, `/shared/access-levels/` اکنون صفحات کامل لیست/ایجاد/ویرایش/حذف دارند؛ شامل فرم‌ست دسترسی شرکت برای کاربران، نگاشت گروه‌ها به `AccessLevel` و ماتریس اکشن‌ها بر اساس `FEATURE_PERMISSION_MAP`.
@@ -229,7 +228,8 @@ Key behaviours:
 
 Implements manufacturing definitions and order tracking.
 
-- **Resources**: `WorkCenter`
+- **Resources**: `WorkCenter`, `Machine` (production machines/equipment)
+- **Personnel**: `Person`, `PersonAssignment` (personnel directory and work-center assignments)
 - **BOM**: `BOMMaterial` (links finished items to materials with scrap allowance)
 - **Process Definition**: `Process`, `ProcessStep` (with labor/machine minutes, personnel requirements)
 - **Orders**: `ProductOrder` (tracks revisions, BOM references, status), `OrderPerformance`
@@ -252,7 +252,7 @@ Provides the initial UI foundation, base layout, and navigation scaffolding.
 - **Routing**: Root URL includes `ui.urls`, mapping `/` to the dashboard.
 - **Templates**:
   - `templates/base.html`: global shell with header, sidebar, and content container.
-  - `templates/ui/components/sidebar.html`: modular navigation شامل بخش «Shared» (Companies، Personnel، Users، Groups، Access Levels) و زیرمنوهای Inventory/Production/QC؛ آماده برای اعمال محدودیت سطح دسترسی مبتنی بر `FEATURE_PERMISSION_MAP`.
+  - `templates/ui/components/sidebar.html`: modular navigation شامل بخش «Shared» (Companies، Users، Groups، Access Levels) و زیرمنوهای Inventory/Production (شامل Personnel و Machines)/QC؛ آماده برای اعمال محدودیت سطح دسترسی مبتنی بر `FEATURE_PERMISSION_MAP`.
   - `templates/ui/dashboard.html`: highlights module capabilities and next actions.
 - **Context Processors**: `ui.context_processors.active_module` exposes `active_module` placeholder.
 - **Static Assets**: `static/css/base.css` contains baseline typography, layout grid, and card styling.
@@ -332,7 +332,7 @@ To experiment with the domain:
 2. Populate base data via Django admin:
    - `Company`, `User`, `UserCompanyAccess`
    - `ItemType`, `ItemCategory`, `Item`, `Supplier`
-   - `WorkCenter`, `Process` definitions
+   - `WorkCenter`, `Machine`, `Person`, `Process` definitions
 3. Record transactions:
    - Temporary → Permanent receipt flow
    - Production order creation and performance tracking
@@ -580,7 +580,7 @@ This project includes comprehensive documentation organized by module and purpos
 | `inventory/README.md` | Inventory module overview and models |
 | `inventory/README_FORMS.md` | Inventory module forms documentation |
 | `inventory/README_BALANCE.md` | Inventory balance calculation logic |
-| `production/README.md` | Production module overview and models |
+| `production/README.md` | Production module overview and models (includes Personnel and Machines) |
 | `qc/README.md` | Quality Control module overview |
 | `ui/README.md` | UI module templates and components |
 | `templates/inventory/README.md` | Inventory template documentation |

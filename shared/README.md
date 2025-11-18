@@ -19,8 +19,6 @@ Defines the reusable abstractions and core shared tables.
   - `AccessLevel`: named roles, supports activation flags and `is_global`.
   - `AccessLevelPermission`: ties an access level to a module/resource with CRUD/approve flags.
   - `UserCompanyAccess`: maps users to companies with the role they hold; enforces one record per user/company pair.
-  - `Person`: personnel directory entry with optional linkage to `User`. هر شخص می‌تواند عضو چند واحد سازمانی از همان شرکت باشد (`ManyToMany` با `CompanyUnit`).
-  - `PersonAssignment`: assigns a person to a work center (inventory/production/etc.) with optional primary flag and date range.
 
 All models inherit the appropriate mixins to guarantee consistent auditing and isolation.
 
@@ -33,7 +31,6 @@ Registers every model with the Django admin and fine-tunes list displays, filter
 Defines the ModelForms used across the shared module:
 
 - `CompanyForm`: فرم ایجاد/ویرایش شرکت به همراه فیلدهای تماس و وضعیت.
-- `PersonForm`: فرم مدیریت پرسنل با قابلیت استفاده از کد پرسنلی به عنوان نام کاربری و انتخاب چند واحد سازمانی از شرکت فعال.
 - `CompanyUnitForm`: فرم جدید برای مدیریت واحدهای سازمانی شرکت (واحد اداری، مالی، تاسیسات و ...). فیلد `parent_unit` صرفاً واحدهای همان شرکت را نمایش می‌دهد و از انتخاب نادرست پیشگیری می‌کند.
 - `UserCreateForm` / `UserUpdateForm`: مدیریت کامل کاربران شامل انتخاب گروه‌ها، شرکت پیش‌فرض، تعیین/تغییر رمز عبور و دسترسی شرکت (از طریق فرم‌ست).
 - `GroupForm`: ساخت و ویرایش گروه‌ها به همراه توضیحات، فعال/غیرفعال بودن، تعیین اعضا و نگاشت به `AccessLevel`.
@@ -43,7 +40,6 @@ Defines the ModelForms used across the shared module:
 ## views.py
 
 - `CompanyListView`, `CompanyCreateView`, ...: مدیریت شرکت‌ها.
-- `PersonnelListView`, `PersonCreateView`, ...: فهرست و فرم‌های اختصاصی پرسنل بر اساس شرکت فعال، شامل بارگذاری لیست واحدهای سازمانی مرتبط برای هر شخص.
 - `CompanyUnitListView`, `CompanyUnitCreateView`, `CompanyUnitUpdateView`, `CompanyUnitDeleteView`: رابط کامل CRUD برای واحدهای شرکتی. لیست براساس شرکت فعال فیلتر می‌شود و امکان جستجو و فیلتر وضعیت را فراهم می‌کند.
 - **مدیریت کاربران و گروه‌ها**:
   - `UserListView`, `UserCreateView`, `UserUpdateView`, `UserDeleteView`: فهرست، ایجاد و ویرایش کاربران همراه با فرم‌ست دسترسی شرکت‌ها و پیام‌های موفقیت.
@@ -68,8 +64,6 @@ Defines the ModelForms used across the shared module:
 - `shared/company_units.html`: صفحه فهرست واحدها به همراه فرم جستجو و دکمه ایجاد.
 - `shared/company_unit_form.html`: فرم ایجاد/ویرایش واحد با فیلدهای کد، نام، واحد بالادست و توضیحات.
 - `shared/company_unit_confirm_delete.html`: صفحه تأیید حذف واحد.
-- `shared/personnel.html`: جدول پرسنل شامل ستون واحدهای سازمانی هر نفر.
-- `shared/person_form.html`: فرم پرسنل با بخش انتخاب واحدهای سازمانی (چند انتخابی).
 - **صفحات جدید مدیریت کاربران**: `shared/users_list.html`, `shared/user_form.html`, `shared/user_confirm_delete.html`
 - **صفحات جدید مدیریت گروه‌ها**: `shared/groups_list.html`, `shared/group_form.html`, `shared/group_confirm_delete.html`
 - **صفحات جدید مدیریت سطوح دسترسی**: 
@@ -79,8 +73,8 @@ Defines the ModelForms used across the shared module:
 
 ## migrations/
 - `0001_initial.py`: auto-generated from the models and mirrors the database design document (`shared_module_db_design_plan.md`). When models change, run `python manage.py makemigrations shared` to create additional migrations.
-- **جدید** `0006_person_company_units.py`: افزودن فیلد چند-به-چند `company_units` به مدل `Person`.
 - **جدید** `0007_groupprofile.py`: ایجاد مدل `GroupProfile` و نگاشت چند-به-چند به `AccessLevel`.
+- **تغییر**: مدل‌های `Person` و `PersonAssignment` از ماژول `shared` به ماژول `production` منتقل شدند (بهتر با جریان کاری تولید همسو هستند).
 
 ## apps.py
 - `UiConfig`: standard Django app configuration; no custom logic today but serves as the hook for startup code if needed later.
@@ -89,8 +83,8 @@ Defines the ModelForms used across the shared module:
 
 Provides sanity tests for the shared module. Highlights:
 - Ensures `__str__` methods return expected values.
-- Confirms `company_code` caching for `Person`.
 - Verifies `UserCompanyAccess` string representation includes company context.
+- Tests for `Person` model moved to `production` module tests.
 
 These tests run as part of `python manage.py test shared`.
 

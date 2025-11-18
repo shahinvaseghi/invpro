@@ -9,9 +9,9 @@ from shared.models import (
     ActivatableModel,
     CompanyScopedModel,
     MetadataModel,
-    Person,
     TimeStampedModel,
 )
+from production.models import Person
 
 
 NUMERIC_CODE_VALIDATOR = RegexValidator(

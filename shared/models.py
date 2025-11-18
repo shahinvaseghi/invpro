@@ -17,6 +17,24 @@ ENABLED_FLAG_CHOICES = (
     (1, _("Enabled")),
 )
 
+# Export NUMERIC_CODE_VALIDATOR and ENABLED_FLAG_CHOICES for use in other modules
+__all__ = [
+    "TimeStampedModel",
+    "ActivatableModel",
+    "MetadataModel",
+    "SortableModel",
+    "CompanyScopedModel",
+    "User",
+    "Company",
+    "CompanyUnit",
+    "AccessLevel",
+    "AccessLevelPermission",
+    "GroupProfile",
+    "UserCompanyAccess",
+    "NUMERIC_CODE_VALIDATOR",
+    "ENABLED_FLAG_CHOICES",
+]
+
 
 class TimeStampedModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
@@ -349,95 +367,3 @@ class UserCompanyAccess(TimeStampedModel, ActivatableModel, MetadataModel):
         return f"{self.user} @ {self.company}"
 
 
-class Person(
-    CompanyScopedModel,
-    TimeStampedModel,
-    ActivatableModel,
-    SortableModel,
-    MetadataModel,
-):
-    public_code = models.CharField(
-        max_length=8,
-        validators=[NUMERIC_CODE_VALIDATOR],
-    )
-    username = models.CharField(max_length=150)
-    first_name = models.CharField(max_length=120)
-    last_name = models.CharField(max_length=120)
-    first_name_en = models.CharField(max_length=120, blank=True)
-    last_name_en = models.CharField(max_length=120, blank=True)
-    national_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
-    personnel_code = models.CharField(max_length=30, unique=True, null=True, blank=True)
-    email = models.EmailField(unique=True, null=True, blank=True)
-    phone_number = models.CharField(max_length=30, blank=True)
-    mobile_number = models.CharField(max_length=30, blank=True)
-    description = models.CharField(max_length=255, blank=True)
-    notes = models.TextField(blank=True)
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        related_name="person_profile",
-        null=True,
-        blank=True,
-    )
-    company_units = models.ManyToManyField(
-        CompanyUnit,
-        blank=True,
-        related_name="people",
-    )
-
-    class Meta:
-        verbose_name = _("Person")
-        verbose_name_plural = _("People")
-        ordering = ("company", "sort_order", "public_code")
-        constraints = [
-            models.UniqueConstraint(
-                fields=("company", "public_code"),
-                name="person_company_public_code_unique",
-            ),
-            models.UniqueConstraint(
-                fields=("company", "username"),
-                name="person_company_username_unique",
-            ),
-            models.UniqueConstraint(
-                fields=("company", "first_name", "last_name"),
-                name="person_company_name_unique",
-            ),
-        ]
-
-    def __str__(self) -> str:
-        return f"{self.first_name} {self.last_name}"
-
-
-class PersonAssignment(
-    CompanyScopedModel,
-    TimeStampedModel,
-    ActivatableModel,
-    MetadataModel,
-):
-    person = models.ForeignKey(
-        Person,
-        on_delete=models.CASCADE,
-        related_name="assignments",
-    )
-    work_center_id = models.BigIntegerField()
-    work_center_type = models.CharField(max_length=30)
-    is_primary = models.PositiveSmallIntegerField(
-        choices=ENABLED_FLAG_CHOICES,
-        default=0,
-    )
-    assignment_start = models.DateField(null=True, blank=True)
-    assignment_end = models.DateField(null=True, blank=True)
-    notes = models.TextField(blank=True)
-
-    class Meta:
-        verbose_name = _("Person Assignment")
-        verbose_name_plural = _("Person Assignments")
-        constraints = [
-            models.UniqueConstraint(
-                fields=("company", "person", "work_center_id", "work_center_type"),
-                name="person_assignment_unique_scope",
-            ),
-        ]
-
-    def __str__(self) -> str:
-        return f"{self.person} → {self.work_center_type}:{self.work_center_id}"

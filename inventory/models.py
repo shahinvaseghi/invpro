@@ -12,10 +12,10 @@ from shared.models import (
     CompanyScopedModel,
     LockableModel,
     MetadataModel,
-    Person,
     SortableModel,
     TimeStampedModel,
 )
+from production.models import Person
 from .utils.codes import generate_sequential_code
 
 

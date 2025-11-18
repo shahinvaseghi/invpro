@@ -16,7 +16,7 @@
     
     <div class="page-actions">
       <button class="btn btn-secondary" onclick="window.print()">{% trans "Print" %}</button>
-      <a href="{% url 'shared:person_create' %}" class="btn btn-primary">{% trans "Create Person +" %}</a>
+      <a href="{% url 'production:person_create' %}" class="btn btn-primary">{% trans "Create Person +" %}</a>
     </div>
   </div>
   
@@ -38,7 +38,7 @@
         </div>
         <div class="filter-actions">
           <button type="submit" class="btn btn-primary">{% trans "Filter" %}</button>
-          <a href="{% url 'shared:personnel' %}" class="btn btn-secondary">{% trans "Clear" %}</a>
+          <a href="{% url 'production:personnel' %}" class="btn btn-secondary">{% trans "Clear" %}</a>
         </div>
       </div>
     </form>
@@ -85,8 +85,8 @@
           {% endif %}
         </td>
         <td>
-          <a href="{% url 'shared:person_edit' person.id %}" class="btn btn-sm">{% trans "Edit" %}</a>
-          <a href="{% url 'shared:person_delete' person.id %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
+          <a href="{% url 'production:person_edit' person.id %}" class="btn btn-sm">{% trans "Edit" %}</a>
+          <a href="{% url 'production:person_delete' person.id %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
         </td>
       </tr>
       {% endfor %}
@@ -115,7 +115,7 @@
   <div class="empty-state">
     <h3>{% trans "No Personnel Found" %}</h3>
     <p>{% trans "Start by adding your first person to the system." %}</p>
-    <a href="{% url 'shared:person_create' %}" class="btn btn-primary">{% trans "Create Person +" %}</a>
+    <a href="{% url 'production:person_create' %}" class="btn btn-primary">{% trans "Create Person +" %}</a>
   </div>
   {% endif %}
 </div>

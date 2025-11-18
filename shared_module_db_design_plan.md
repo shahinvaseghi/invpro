@@ -191,82 +191,6 @@ Relationship:
 - فیلد `is_enabled` برای غیرفعال کردن گروه بدون حذف کردن آن استفاده می‌شود (مطابق الگوی ActivatableModel).
 - می‌توان از `metadata` برای نگهداری پیکربندی‌های اختصاصی (مانند ترتیب نمایش یا محدودیت‌های سفارشی) استفاده کرد.
 
-#### Table: `invproj_person`
-
-| Column | Type | Constraints | Notes |
-| --- | --- | --- | --- |
-| `id` | `bigserial` | PK | Auto-increment surrogate key. |
-| `company_id` | `bigint` | `NOT NULL`, FK to `invproj_company(id)` | Tenant company owning the personnel record. |
-| `company_code` | `varchar(8)` | `NOT NULL`, check numeric | Cached company code used for cross-module joins. |
-| `public_code` | `varchar(8)` | `NOT NULL`, `UNIQUE` within company, check numeric | Internal personnel code; fallback to generated sequence if absent. |
-| `username` | `varchar(150)` | `NOT NULL`, `UNIQUE` within company | Personnel login identifier (if tied to authentication). |
-| `first_name` | `varchar(120)` | `NOT NULL` | Local script given name. |
-| `last_name` | `varchar(120)` | `NOT NULL` | Local script family name. |
-| `first_name_en` | `varchar(120)` | nullable | Optional Latin transliteration. |
-| `last_name_en` | `varchar(120)` | nullable | Optional Latin transliteration. |
-| `national_id` | `varchar(20)` | nullable, `UNIQUE` | National identifier if applicable. |
-| `personnel_code` | `varchar(30)` | nullable, `UNIQUE` | HR personnel code. |
-| `email` | `varchar(254)` | nullable, `UNIQUE` | Work email address. |
-| `phone_number` | `varchar(30)` | nullable | Primary contact number. |
-| `mobile_number` | `varchar(30)` | nullable | Secondary/mobile contact. |
-| `is_enabled` | `smallint` | `NOT NULL`, default `1`, check in (0,1) | Employment status flag. |
-| `sort_order` | `smallint` | `NOT NULL`, default `0` | Ordering for listings. |
-| `activated_at` | `timestamp with time zone` | nullable | Last enable timestamp. |
-| `deactivated_at` | `timestamp with time zone` | nullable | Last disable timestamp. |
-| `created_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Auto-populated on insert. |
-| `edited_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Update audit. |
-| `created_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Creator reference. |
-| `edited_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Last editor reference. |
-| `description` | `varchar(255)` | nullable | Short bio or role summary. |
-| `notes` | `text` | nullable | HR/operational notes. |
-| `metadata` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | Extensible attributes (certifications, shifts). |
-
-Additional considerations:
-
-- Composite unique indexes scoped by `company_id` enforce uniqueness for fields marked “UNIQUE within company”. |
-- Determine how this table integrates with Django’s `AUTH_USER_MODEL`; either link via `user_id` or consolidate accounts. |
-- Add employment lifecycle fields (`hire_date`, `termination_date`) or status history tables if required. |
-- Validate national ID, phone, and email formats within the application layer. |
-- Personnel می‌توانند عضو چند واحد سازمانی باشند؛ رابطه‌ی چند-به-چند با جدول `invproj_company_unit` از طریق جدول میانی `invproj_person_company_units` پیاده‌سازی شده است.
-
-##### Pivot Table: `invproj_person_company_units`
-
-| Column | Type | Constraints | Notes |
-| --- | --- | --- | --- |
-| `id` | `bigserial` | PK | Auto-generated surrogate key. |
-| `person_id` | `bigint` | `NOT NULL`, FK به `invproj_person(id)` | مرجع پرسنل. |
-| `companyunit_id` | `bigint` | `NOT NULL`, FK به `invproj_company_unit(id)` | مرجع واحد سازمانی. |
-| `UNIQUE(person_id, companyunit_id)` | constraint | جلوگیری از ثبت تکراری. | رابطه‌ی چند-به-چند استاندارد Django. |
-
-#### Table: `invproj_person_assignment`
-
-| Column | Type | Constraints | Notes |
-| --- | --- | --- | --- |
-| `id` | `bigserial` | PK | Auto-increment surrogate key. |
-| `company_id` | `bigint` | `NOT NULL`, FK to `invproj_company(id)` | Owning company. |
-| `company_code` | `varchar(8)` | `NOT NULL`, check numeric | Cached company code for reporting consistency. |
-| `person_id` | `bigint` | `NOT NULL`, FK to `invproj_person(id)` | Personnel reference. |
-| `work_center_id` | `bigint` | `NOT NULL` | References module-specific work centers (inventory/production). |
-| `work_center_type` | `varchar(30)` | `NOT NULL` | Indicates originating module (`inventory_work_line`, `production_work_center`, etc.). |
-| `is_primary` | `smallint` | `NOT NULL`, default `0`, check in (0,1) | Marks main assignment. |
-| `is_enabled` | `smallint` | `NOT NULL`, default `1`, check in (0,1) | Active assignment flag. |
-| `assignment_start` | `date` | nullable | Start date for assignment. |
-| `assignment_end` | `date` | nullable | End date for assignment. |
-| `notes` | `text` | nullable | Additional remarks (shift info, responsibilities). |
-| `metadata` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | Extensible assignment data (certifications, hourly limits). |
-| `created_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Auto-populated on insert. |
-| `edited_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Update audit. |
-| `created_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Creator reference. |
-| `edited_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Last editor reference. |
-
-Additional considerations:
-
-- Unique constraint on `(company_id, person_id, work_center_id, work_center_type)` prevents duplicate assignments. |
-- Ensure only one `is_primary=1` per person per work center type via partial unique index if needed. |
-- `work_center_type` supports polymorphic references; use enumerations and application logic to resolve to actual tables. |
-- Track assignment periods for reporting; optional history tables can capture changes over time. |
-- Validate `company_id` alignment with both person and work center to avoid cross-company assignments. |
-
 #### Table: `invproj_company_unit`
 
 | Column | Type | Constraints | Notes |
@@ -294,7 +218,7 @@ Additional considerations:
 
 - Unique constraints scoped by `(company_id, public_code)` and `(company_id, name)` maintain unit uniqueness per company. |
 - Use `parent_unit_id` to model hierarchy; enforce company alignment between parent and child units. |
-- Integrate with personnel assignments, production scheduling, or cost allocation by referencing units where needed. |
+- Integrate with production scheduling or cost allocation by referencing units where needed. |
 - Consider separate tables for unit-to-warehouse or unit-to-cost-center mappings when more complex relationships emerge. |
 
 ### Shared Considerations

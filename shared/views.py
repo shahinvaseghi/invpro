@@ -19,13 +19,12 @@ from .forms import (
     CompanyForm,
     CompanyUnitForm,
     GroupForm,
-    PersonForm,
     UserCompanyAccessFormSet,
     UserCreateForm,
     UserUpdateForm,
 )
 from .mixins import FeaturePermissionRequiredMixin
-from .models import AccessLevel, Company, CompanyUnit, Person, UserCompanyAccess
+from .models import AccessLevel, Company, CompanyUnit, UserCompanyAccess
 from .permissions import FEATURE_PERMISSION_MAP, PermissionAction
 
 User = get_user_model()
@@ -84,34 +83,6 @@ class CompanyListView(FeaturePermissionRequiredMixin, ListView):
             id__in=user_company_ids,
             is_enabled=1
         ).order_by('public_code')
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['active_module'] = 'shared'
-        return context
-
-
-class PersonnelListView(FeaturePermissionRequiredMixin, ListView):
-    """
-    List all personnel (Person objects) for the active company.
-    """
-    model = Person
-    template_name = 'shared/personnel.html'
-    context_object_name = 'personnel'
-    paginate_by = 50
-    feature_code = 'shared.personnel'
-    
-    def get_queryset(self):
-        """Filter personnel by active company."""
-        active_company_id = self.request.session.get('active_company_id')
-        
-        if not active_company_id:
-            return Person.objects.none()
-        
-        return Person.objects.filter(
-            company_id=active_company_id,
-            is_enabled=1
-        ).select_related('company').prefetch_related('company_units').order_by('public_code')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -235,39 +206,6 @@ class CompanyDeleteView(FeaturePermissionRequiredMixin, DeleteView):
         return context
 
 
-class PersonCreateView(FeaturePermissionRequiredMixin, CreateView):
-    """Create a new person."""
-    model = Person
-    form_class = PersonForm
-    template_name = 'shared/person_form.html'
-    success_url = reverse_lazy('shared:personnel')
-    feature_code = 'shared.personnel'
-    required_action = 'create'
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['company_id'] = self.request.session.get('active_company_id')
-        return kwargs
-    
-    def form_valid(self, form):
-        # Auto-set company and created_by
-        active_company_id = self.request.session.get('active_company_id')
-        if not active_company_id:
-            messages.error(self.request, _('Please select a company first.'))
-            return self.form_invalid(form)
-        
-        form.instance.company_id = active_company_id
-        form.instance.created_by = self.request.user
-        messages.success(self.request, _('Person created successfully.'))
-        return super().form_valid(form)
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['active_module'] = 'shared'
-        context['form_title'] = _('Create Person')
-        return context
-
-
 class CompanyUnitCreateView(FeaturePermissionRequiredMixin, CreateView):
     """Create a new company unit."""
     model = CompanyUnit
@@ -299,40 +237,6 @@ class CompanyUnitCreateView(FeaturePermissionRequiredMixin, CreateView):
         return context
 
 
-class PersonUpdateView(FeaturePermissionRequiredMixin, UpdateView):
-    """Update an existing person."""
-    model = Person
-    form_class = PersonForm
-    template_name = 'shared/person_form.html'
-    success_url = reverse_lazy('shared:personnel')
-    feature_code = 'shared.personnel'
-    required_action = 'edit_own'
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['company_id'] = self.object.company_id
-        return kwargs
-    
-    def get_queryset(self):
-        """Filter by active company."""
-        active_company_id = self.request.session.get('active_company_id')
-        if not active_company_id:
-            return Person.objects.none()
-        return Person.objects.filter(company_id=active_company_id)
-    
-    def form_valid(self, form):
-        # Auto-set edited_by
-        form.instance.edited_by = self.request.user
-        messages.success(self.request, _('Person updated successfully.'))
-        return super().form_valid(form)
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['active_module'] = 'shared'
-        context['form_title'] = _('Edit Person')
-        return context
-
-
 class CompanyUnitUpdateView(FeaturePermissionRequiredMixin, UpdateView):
     """Update existing company unit."""
     model = CompanyUnit
@@ -355,31 +259,6 @@ class CompanyUnitUpdateView(FeaturePermissionRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'shared'
         context['form_title'] = 'ویرایش واحد سازمانی'
-        return context
-
-
-class PersonDeleteView(FeaturePermissionRequiredMixin, DeleteView):
-    """Delete a person."""
-    model = Person
-    success_url = reverse_lazy('shared:personnel')
-    template_name = 'shared/person_confirm_delete.html'
-    feature_code = 'shared.personnel'
-    required_action = 'delete_own'
-    
-    def get_queryset(self):
-        """Filter by active company."""
-        active_company_id = self.request.session.get('active_company_id')
-        if not active_company_id:
-            return Person.objects.none()
-        return Person.objects.filter(company_id=active_company_id)
-    
-    def delete(self, request, *args, **kwargs):
-        messages.success(self.request, _('Person deleted successfully.'))
-        return super().delete(request, *args, **kwargs)
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['active_module'] = 'shared'
         return context
 
 

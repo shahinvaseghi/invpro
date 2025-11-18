@@ -213,8 +213,14 @@ All UI components map directly to the database tables defined in the module desi
 - Role management UI: create/edit access levels, select permissions via checkboxes grouped by module and resource.
 - Audit log: table showing who changed which access (detailed metadata).
 
-#### 6.4 Personnel Management (`invproj_person`, `invproj_person_assignment`)
+#### 6.4 Personnel Management (Production Module) (`production_person`, `production_person_assignment`)
 - Personnel list with search by code/name, filters by company unit, status.
+- **Location**: Production module (`/production/personnel/`)
+
+#### 6.5 Machine Management (Production Module) (`production_machine`)
+- Machine list with search by code/name, filters by work center, status, machine type.
+- Machine detail view showing specifications, maintenance schedule, work center assignment.
+- **Location**: Production module (`/production/machines/`)
 - Detail view: personal info, metadata, certifications (stored in metadata or future table), associated user account if applicable.
 - Assignment manager: grid showing work center assignments by module. Use row for person, columns for work centers. Provide timeline or history view for assignment periods.
 
@@ -290,7 +296,8 @@ All UI components map directly to the database tables defined in the module desi
 
 2. **Shared Module UI**
    - Company & unit management pages.
-   - User, access level, and personnel management.
+   - User and access level management.
+   - Personnel and machine management (Production module).
 
 3. **Inventory Module**
    - Master data (items, warehouses, suppliers).

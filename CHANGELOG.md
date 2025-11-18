@@ -9,6 +9,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Machine management in Production module (`production_machine` table)
+  - Machine code, name, type classification
+  - Work center assignment
+  - Manufacturer and model information
+  - Serial number tracking
+  - Capacity specifications (JSON field)
+  - Maintenance schedule and tracking
+  - Machine status (operational, maintenance, idle, broken, retired)
+  - Purchase and installation date tracking
+- Personnel management moved from Shared module to Production module
+  - Better alignment with production workflows and resource management
+  - Personnel records now in `production_person` table
+  - Personnel assignments in `production_person_assignment` table
 - Multi-company architecture with session-based company switching
 - Company selector dropdown in header (alongside language switcher)
 - Default company support for users
@@ -20,7 +33,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - WarehouseForm (انبار)
 - Custom CRUD forms for shared entities:
   - CompanyForm with automatic UserCompanyAccess creation
-  - PersonForm with username sync checkbox feature و انتخاب چند واحد سازمانی
+- Custom CRUD forms for production entities:
+  - PersonForm with username sync checkbox feature و انتخاب چند واحد سازمانی (moved from Shared module)
+  - MachineForm for machine management
 - Generic reusable templates for forms and delete confirmations
 - Comprehensive form documentation (README_FORMS.md for inventory and shared)
 - Persian/English internationalization (i18n) with full RTL support
@@ -107,6 +122,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Prevents form submission failures due to missing auto-generated fields
 
 ### Changed
+- Personnel management moved from Shared module (`shared_person`) to Production module (`production_person`)
+  - All personnel-related models, views, forms, and templates moved to production app
+  - Database tables renamed from `shared_person*` to `production_person*`
+  - URLs changed from `/shared/personnel/` to `/production/personnel/`
+  - Better alignment with production resource management workflows
+- Process approval workflow now references `production_person` instead of `shared_person`
+- ProcessStep model extended with optional `machine_id` field for machine assignment
 - Removed `activated_at` and `deactivated_at` fields from ActivatableModel
 - Made `created_by` and `edited_by` auto-populated (not user-selectable)
 - Updated Company.public_code from 8 to 3 digits

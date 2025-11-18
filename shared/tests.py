@@ -1,6 +1,7 @@
 from django.test import TestCase
 
 from shared import models
+from production import models as production_models
 
 
 class SharedModelTests(TestCase):
@@ -31,7 +32,7 @@ class SharedModelTests(TestCase):
         self.assertEqual(str(self.company), "Test Company")
 
     def test_person_auto_populates_company_code(self):
-        person = models.Person.objects.create(
+        person = production_models.Person.objects.create(
             company=self.company,
             public_code="00000001",
             username="person1",

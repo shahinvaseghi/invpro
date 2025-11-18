@@ -51,10 +51,18 @@ This document provides a comprehensive mapping between the user interface (menus
 
 #### Personnel
 - **Menu**: `Personnel`
-- **URL**: `/shared/personnel/`
-- **View**: `shared.views.PersonnelListView`
-- **Model**: `shared.models.Person`
-- **Database Table**: `shared_person`
+- **URL**: `/production/personnel/`
+- **View**: `production.views.PersonnelListView`
+- **Model**: `production.models.Person`
+- **Database Table**: `production_person`
+- **Operations**: Create, Edit, Delete, List
+
+#### Machines
+- **Menu**: `Machines`
+- **URL**: `/production/machines/`
+- **View**: `production.views.MachineListView`
+- **Model**: `production.models.Machine`
+- **Database Table**: `production_machine`
 - **Operations**: Create, Edit, Delete, List
 
 #### Users
@@ -338,7 +346,8 @@ This document provides a comprehensive mapping between the user interface (menus
 | edited_by_id | BigInt | Last editor user | FK to shared_user, Optional |
 
 **Relationships:**
-- One-to-Many: `Company` → `CompanyUnit`, `Person`, `Item`, `Warehouse`, etc. (all company-scoped models)
+- One-to-Many: `Company` → `CompanyUnit`, `Item`, `Warehouse`, etc. (all company-scoped models)
+- One-to-Many: `Company` → `Person` (via production module)
 
 #### shared_companyunit
 **Purpose**: Stores organizational units/departments within a company
@@ -365,10 +374,10 @@ This document provides a comprehensive mapping between the user interface (menus
 **Relationships:**
 - Many-to-One: `CompanyUnit` → `Company` (company_id)
 - One-to-Many: `CompanyUnit` → `CompanyUnit` (parent_unit_id, self-referential)
-- Many-to-Many: `CompanyUnit` ↔ `Person` (via shared_person_company_units)
+- Many-to-Many: `CompanyUnit` ↔ `Person` (via production_person_company_units)
 
-#### shared_person
-**Purpose**: Stores personnel/employee information
+#### production_person
+**Purpose**: Stores personnel/employee information (moved from shared module to production module)
 
 | Field | Type | Description | Constraints |
 |-------|------|-------------|-------------|
@@ -400,7 +409,7 @@ This document provides a comprehensive mapping between the user interface (menus
 **Relationships:**
 - Many-to-One: `Person` → `Company` (company_id)
 - One-to-One: `Person` → `User` (user_id)
-- Many-to-Many: `Person` ↔ `CompanyUnit` (via shared_person_company_units)
+- Many-to-Many: `Person` ↔ `CompanyUnit` (via production_person_company_units)
 
 #### shared_user
 **Purpose**: User authentication and authorization (extends Django's AbstractUser)
@@ -427,7 +436,7 @@ This document provides a comprehensive mapping between the user interface (menus
 
 **Relationships:**
 - Many-to-One: `User` → `Company` (default_company_id)
-- One-to-One: `User` → `Person` (via shared_person.user_id)
+- One-to-One: `User` → `Person` (via production_person.user_id)
 - Many-to-Many: `User` ↔ `Company` (via shared_usercompanyaccess)
 
 ---
@@ -902,7 +911,8 @@ shared_company (1) ──< (N) inventory_item
                     └─< (N) inventory_warehouse
                     └─< (N) inventory_supplier
                     └─< (N) shared_companyunit
-                    └─< (N) shared_person
+                    └─< (N) production_person
+                    └─< (N) production_machine
 
 inventory_itemtype (1) ──< (N) inventory_item
 inventory_itemcategory (1) ──< (N) inventory_item
@@ -953,7 +963,7 @@ inventory_receipttemporary (1) ──> (1) inventory_receiptpermanent
 3. **Many-to-Many (N:M)**:
    - `ReceiptPermanentLine` ↔ `ItemSerial` (via junction table)
    - `IssuePermanentLine` ↔ `ItemSerial` (via junction table)
-   - `Person` ↔ `CompanyUnit` (via junction table)
+   - `Person` ↔ `CompanyUnit` (via production_person_company_units junction table)
 
 4. **One-to-One (1:1)**:
    - `ReceiptTemporary` → `ReceiptPermanent` (converted_receipt_id)

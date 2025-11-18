@@ -199,7 +199,7 @@ python manage.py makemessages -l fa
 
 ---
 
-## 4. Personnel & Company Management
+## 4. Company Management
 
 ### Company Management
 **Features**:
@@ -224,7 +224,9 @@ python manage.py makemessages -l fa
 
 ---
 
-### Personnel Management
+### Personnel Management (Production Module)
+**Location**: `/production/personnel/`
+
 **Features**:
 - 8-digit unique person code
 - Persian and English names
@@ -251,6 +253,30 @@ python manage.py makemessages -l fa
 - Update: All personnel details
 - Delete: With confirmation page
 - تخصیص/حذف واحدهای سازمانی از طریق فرم و نمایش آنی در جدول فهرست
+
+**Note**: Personnel management was moved from the Shared module to the Production module to better align with production workflows and resource management.
+
+### Machine Management (Production Module)
+**Location**: `/production/machines/`
+
+**Features**:
+- Machine code and name (Persian/English)
+- Machine type classification (CNC, lathe, milling, assembly, packaging, etc.)
+- Work center assignment
+- Manufacturer and model information
+- Serial number tracking
+- Purchase and installation dates
+- Capacity specifications (JSON field for technical specs)
+- Maintenance schedule and tracking
+- Machine status (operational, maintenance, idle, broken, retired)
+- Active/Inactive status
+- Company-scoped (users see only their company's machines)
+
+**CRUD Operations**:
+- Create: Add new machines with specifications
+- Read: Filtered list by active company and work center
+- Update: Machine details, maintenance schedules, status
+- Delete: With confirmation page
 
 ---
 
@@ -321,7 +347,8 @@ python manage.py makemessages -l fa
 - Stocktaking (Deficit, Surplus, Records)
 - Warehouse Requests
 - Companies
-- Personnel
+- Personnel (Production Module)
+- Machines (Production Module)
 
 ---
 
@@ -597,7 +624,7 @@ Stocktaking records now support a formal approval workflow with designated appro
 #### Features
 - Auto-generated codes following `PRQ-YYYYMM-XXXXXX`.
 - Dedicated create/edit forms with item-aware unit dropdown (default unit + defined conversions).
-- Approver selection restricted to personnel granted the purchase-request approval permission.
+- Approver selection restricted to personnel (from production module) granted the purchase-request approval permission.
 - Approval action locks the request (`is_locked=1`), records timestamp, and exposes it to permanent/consignment receipt forms.
 - Receipt forms validate that the selected request matches both item and company before updating fulfillment quantities.
 - User-entered unit/quantity/price values are preserved for display while normalized values are stored for calculation.

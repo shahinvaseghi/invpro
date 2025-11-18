@@ -9,17 +9,15 @@ from django.utils.translation import gettext_lazy as _
 from shared.models import (
     ActivatableModel,
     CompanyScopedModel,
+    CompanyUnit,
+    ENABLED_FLAG_CHOICES,
     MetadataModel,
-    Person,
+    NUMERIC_CODE_VALIDATOR,
     SortableModel,
     TimeStampedModel,
 )
 
 
-NUMERIC_CODE_VALIDATOR = RegexValidator(
-    regex=r"^\d+$",
-    message=_("Only numeric characters are allowed."),
-)
 
 POSITIVE_DECIMAL = MinValueValidator(Decimal("0"))
 
@@ -37,6 +35,100 @@ class ProductionBaseModel(
 class ProductionSortableModel(ProductionBaseModel, SortableModel):
     class Meta:
         abstract = True
+
+
+class Person(
+    CompanyScopedModel,
+    TimeStampedModel,
+    ActivatableModel,
+    SortableModel,
+    MetadataModel,
+):
+    public_code = models.CharField(
+        max_length=8,
+        validators=[NUMERIC_CODE_VALIDATOR],
+    )
+    username = models.CharField(max_length=150)
+    first_name = models.CharField(max_length=120)
+    last_name = models.CharField(max_length=120)
+    first_name_en = models.CharField(max_length=120, blank=True)
+    last_name_en = models.CharField(max_length=120, blank=True)
+    national_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    personnel_code = models.CharField(max_length=30, unique=True, null=True, blank=True)
+    email = models.EmailField(unique=True, null=True, blank=True)
+    phone_number = models.CharField(max_length=30, blank=True)
+    mobile_number = models.CharField(max_length=30, blank=True)
+    description = models.CharField(max_length=255, blank=True)
+    notes = models.TextField(blank=True)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="person_profile",
+        null=True,
+        blank=True,
+    )
+    company_units = models.ManyToManyField(
+        CompanyUnit,
+        blank=True,
+        related_name="people",
+    )
+
+    class Meta:
+        verbose_name = _("Person")
+        verbose_name_plural = _("People")
+        ordering = ("company", "sort_order", "public_code")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "public_code"),
+                name="production_person_company_public_code_unique",
+            ),
+            models.UniqueConstraint(
+                fields=("company", "username"),
+                name="production_person_company_username_unique",
+            ),
+            models.UniqueConstraint(
+                fields=("company", "first_name", "last_name"),
+                name="production_person_company_name_unique",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.first_name} {self.last_name}"
+
+
+class PersonAssignment(
+    CompanyScopedModel,
+    TimeStampedModel,
+    ActivatableModel,
+    MetadataModel,
+):
+    person = models.ForeignKey(
+        Person,
+        on_delete=models.CASCADE,
+        related_name="assignments",
+    )
+    work_center_id = models.BigIntegerField()
+    work_center_type = models.CharField(max_length=30)
+    is_primary = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=0,
+    )
+    assignment_start = models.DateField(null=True, blank=True)
+    assignment_end = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = _("Person Assignment")
+        verbose_name_plural = _("Person Assignments")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "person", "work_center_id", "work_center_type"),
+                name="production_person_assignment_unique_scope",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.person} → {self.work_center_type}:{self.work_center_id}"
 
 
 class WorkCenter(ProductionSortableModel):
@@ -66,6 +158,69 @@ class WorkCenter(ProductionSortableModel):
 
     def __str__(self) -> str:
         return f"{self.public_code} · {self.name}"
+
+
+class Machine(ProductionSortableModel):
+    public_code = models.CharField(
+        max_length=10,
+        validators=[NUMERIC_CODE_VALIDATOR],
+    )
+    name = models.CharField(max_length=180)
+    name_en = models.CharField(max_length=180, blank=True)
+    machine_type = models.CharField(max_length=30)
+    work_center = models.ForeignKey(
+        WorkCenter,
+        on_delete=models.SET_NULL,
+        related_name="machines",
+        null=True,
+        blank=True,
+    )
+    work_center_code = models.CharField(max_length=5, blank=True)
+    manufacturer = models.CharField(max_length=120, blank=True)
+    model_number = models.CharField(max_length=60, blank=True)
+    serial_number = models.CharField(max_length=60, unique=True, null=True, blank=True)
+    purchase_date = models.DateField(null=True, blank=True)
+    installation_date = models.DateField(null=True, blank=True)
+    capacity_specs = models.JSONField(default=dict, blank=True)
+    maintenance_schedule = models.JSONField(default=dict, blank=True)
+    last_maintenance_date = models.DateField(null=True, blank=True)
+    next_maintenance_date = models.DateField(null=True, blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("operational", _("Operational")),
+            ("maintenance", _("Maintenance")),
+            ("idle", _("Idle")),
+            ("broken", _("Broken")),
+            ("retired", _("Retired")),
+        ],
+        default="operational",
+    )
+    description = models.CharField(max_length=255, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = _("Machine")
+        verbose_name_plural = _("Machines")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "public_code"),
+                name="production_machine_public_code_unique",
+            ),
+            models.UniqueConstraint(
+                fields=("company", "name"),
+                name="production_machine_name_unique",
+            ),
+        ]
+        ordering = ("company", "sort_order", "public_code")
+
+    def __str__(self) -> str:
+        return f"{self.public_code} · {self.name}"
+
+    def save(self, *args, **kwargs):
+        if self.work_center and not self.work_center_code:
+            self.work_center_code = self.work_center.public_code
+        super().save(*args, **kwargs)
 
 
 class BOMMaterial(ProductionBaseModel):
@@ -138,7 +293,7 @@ class Process(ProductionSortableModel):
     approval_status = models.CharField(max_length=20, default="draft")
     approved_at = models.DateTimeField(null=True, blank=True)
     approved_by = models.ForeignKey(
-        Person,
+        "Person",
         on_delete=models.SET_NULL,
         related_name="processes_approved",
         null=True,
@@ -178,6 +333,14 @@ class ProcessStep(ProductionSortableModel):
         related_name="process_steps",
     )
     work_center_code = models.CharField(max_length=20)
+    machine = models.ForeignKey(
+        Machine,
+        on_delete=models.SET_NULL,
+        related_name="process_steps",
+        null=True,
+        blank=True,
+    )
+    machine_code = models.CharField(max_length=10, blank=True)
     sequence_order = models.PositiveSmallIntegerField()
     personnel_requirements = models.JSONField(default=list, blank=True)
     labor_minutes_per_unit = models.DecimalField(
@@ -215,6 +378,8 @@ class ProcessStep(ProductionSortableModel):
     def save(self, *args, **kwargs):
         if not self.work_center_code:
             self.work_center_code = self.work_center.public_code
+        if self.machine and not self.machine_code:
+            self.machine_code = self.machine.public_code
         super().save(*args, **kwargs)
 
 

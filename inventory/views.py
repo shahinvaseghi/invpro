@@ -20,7 +20,7 @@ from . import models
 from . import inventory_balance
 from . import forms
 from .services import serials as serial_service
-from shared.models import Person
+from production.models import Person
 from shared.mixins import FeaturePermissionRequiredMixin
 from decimal import Decimal, InvalidOperation
 
@@ -2724,7 +2724,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             document__document_date__gt=baseline_date,
             document__document_date__lte=as_of_date,
             document__is_enabled=1,
-        ).select_related('document').order_by('document__document_date', 'id')
+        ).select_related('document', 'document__created_by').order_by('document__document_date', 'id')
         
         receipts_consignment = models.ReceiptConsignmentLine.objects.filter(
             company_id=company_id,
@@ -2733,7 +2733,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             document__document_date__gt=baseline_date,
             document__document_date__lte=as_of_date,
             document__is_enabled=1,
-        ).select_related('document').order_by('document__document_date', 'id')
+        ).select_related('document', 'document__created_by').order_by('document__document_date', 'id')
         
         # Get all issues (negative movements)
         issues_permanent = models.IssuePermanentLine.objects.filter(
@@ -2743,7 +2743,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             document__document_date__gt=baseline_date,
             document__document_date__lte=as_of_date,
             document__is_enabled=1,
-        ).select_related('document').order_by('document__document_date', 'id')
+        ).select_related('document', 'document__created_by').order_by('document__document_date', 'id')
         
         issues_consumption = models.IssueConsumptionLine.objects.filter(
             company_id=company_id,
@@ -2752,7 +2752,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             document__document_date__gt=baseline_date,
             document__document_date__lte=as_of_date,
             document__is_enabled=1,
-        ).select_related('document').order_by('document__document_date', 'id')
+        ).select_related('document', 'document__created_by').order_by('document__document_date', 'id')
         
         issues_consignment = models.IssueConsignmentLine.objects.filter(
             company_id=company_id,
@@ -2761,7 +2761,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             document__document_date__gt=baseline_date,
             document__document_date__lte=as_of_date,
             document__is_enabled=1,
-        ).select_related('document').order_by('document__document_date', 'id')
+        ).select_related('document', 'document__created_by').order_by('document__document_date', 'id')
         
         # Combine all transactions
         transactions = []
@@ -2775,6 +2775,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
                 'document_code': receipt.document.document_code,
                 'quantity': receipt.quantity,
                 'unit': receipt.unit,
+                'created_by': receipt.document.created_by.username if receipt.document.created_by else '—',
             })
         
         for receipt in receipts_consignment:
@@ -2785,6 +2786,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
                 'document_code': receipt.document.document_code,
                 'quantity': receipt.quantity,
                 'unit': receipt.unit,
+                'created_by': receipt.document.created_by.username if receipt.document.created_by else '—',
             })
         
         # Add issues
@@ -2796,6 +2798,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
                 'document_code': issue.document.document_code,
                 'quantity': issue.quantity,
                 'unit': issue.unit,
+                'created_by': issue.document.created_by.username if issue.document.created_by else '—',
             })
         
         for issue in issues_consumption:
@@ -2806,6 +2809,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
                 'document_code': issue.document.document_code,
                 'quantity': issue.quantity,
                 'unit': issue.unit,
+                'created_by': issue.document.created_by.username if issue.document.created_by else '—',
             })
         
         for issue in issues_consignment:
@@ -2816,6 +2820,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
                 'document_code': issue.document.document_code,
                 'quantity': issue.quantity,
                 'unit': issue.unit,
+                'created_by': issue.document.created_by.username if issue.document.created_by else '—',
             })
         
         # Sort by date

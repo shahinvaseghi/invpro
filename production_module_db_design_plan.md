@@ -25,6 +25,125 @@ The sections below document each table with column-level details, constraints, a
 
 ### Production Module
 
+#### Personnel Management
+
+##### Table: `production_person`
+
+| Column | Type | Constraints | Notes |
+| --- | --- | --- | --- |
+| `id` | `bigserial` | PK | Auto-increment surrogate key. |
+| `company_id` | `bigint` | `NOT NULL`, FK to `invproj_company(id)` | Tenant company owning the personnel record. |
+| `company_code` | `varchar(8)` | `NOT NULL`, check numeric | Cached company code used for cross-module joins. |
+| `public_code` | `varchar(8)` | `NOT NULL`, `UNIQUE` within company, check numeric | Internal personnel code; fallback to generated sequence if absent. |
+| `username` | `varchar(150)` | `NOT NULL`, `UNIQUE` within company | Personnel login identifier (if tied to authentication). |
+| `first_name` | `varchar(120)` | `NOT NULL` | Local script given name. |
+| `last_name` | `varchar(120)` | `NOT NULL` | Local script family name. |
+| `first_name_en` | `varchar(120)` | nullable | Optional Latin transliteration. |
+| `last_name_en` | `varchar(120)` | nullable | Optional Latin transliteration. |
+| `national_id` | `varchar(20)` | nullable, `UNIQUE` | National identifier if applicable. |
+| `personnel_code` | `varchar(30)` | nullable, `UNIQUE` | HR personnel code. |
+| `email` | `varchar(254)` | nullable, `UNIQUE` | Work email address. |
+| `phone_number` | `varchar(30)` | nullable | Primary contact number. |
+| `mobile_number` | `varchar(30)` | nullable | Secondary/mobile contact. |
+| `is_enabled` | `smallint` | `NOT NULL`, default `1`, check in (0,1) | Employment status flag. |
+| `sort_order` | `smallint` | `NOT NULL`, default `0` | Ordering for listings. |
+| `activated_at` | `timestamp with time zone` | nullable | Last enable timestamp. |
+| `deactivated_at` | `timestamp with time zone` | nullable | Last disable timestamp. |
+| `created_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Auto-populated on insert. |
+| `edited_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Update audit. |
+| `created_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Creator reference. |
+| `edited_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Last editor reference. |
+| `description` | `varchar(255)` | nullable | Short bio or role summary. |
+| `notes` | `text` | nullable | HR/operational notes. |
+| `metadata` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | Extensible attributes (certifications, shifts). |
+| `user_id` | `bigint` | nullable, FK to `invproj_user(id)`, OneToOne | Linked user account. |
+
+**Relationships:**
+- Many-to-One: `Person` → `Company` (company_id)
+- One-to-One: `Person` → `User` (user_id)
+- Many-to-Many: `Person` ↔ `CompanyUnit` (via production_person_company_units)
+
+**Additional considerations:**
+- Composite unique indexes scoped by `company_id` enforce uniqueness for fields marked "UNIQUE within company".
+- Personnel می‌توانند عضو چند واحد سازمانی باشند؛ رابطه‌ی چند-به-چند با جدول `invproj_company_unit` از طریق جدول میانی `production_person_company_units` پیاده‌سازی شده است.
+- Validate national ID, phone, and email formats within the application layer.
+
+##### Table: `production_person_assignment`
+
+| Column | Type | Constraints | Notes |
+| --- | --- | --- | --- |
+| `id` | `bigserial` | PK | Auto-increment surrogate key. |
+| `company_id` | `bigint` | `NOT NULL`, FK to `invproj_company(id)` | Owning company. |
+| `company_code` | `varchar(8)` | `NOT NULL`, check numeric | Cached company code for reporting consistency. |
+| `person_id` | `bigint` | `NOT NULL`, FK to `production_person(id)` | Personnel reference. |
+| `work_center_id` | `bigint` | `NOT NULL` | References module-specific work centers (inventory/production). |
+| `work_center_type` | `varchar(30)` | `NOT NULL` | Indicates originating module (`inventory_work_line`, `production_work_center`, etc.). |
+| `is_primary` | `smallint` | `NOT NULL`, default `0`, check in (0,1) | Marks main assignment. |
+| `is_enabled` | `smallint` | `NOT NULL`, default `1`, check in (0,1) | Active assignment flag. |
+| `assignment_start` | `date` | nullable | Start date for assignment. |
+| `assignment_end` | `date` | nullable | End date for assignment. |
+| `notes` | `text` | nullable | Additional remarks (shift info, responsibilities). |
+| `metadata` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | Extensible assignment data (certifications, hourly limits). |
+| `created_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Auto-populated on insert. |
+| `edited_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Update audit. |
+| `created_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Creator reference. |
+| `edited_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Last editor reference. |
+
+**Additional considerations:**
+- Unique constraint on `(company_id, person_id, work_center_id, work_center_type)` prevents duplicate assignments.
+- Ensure only one `is_primary=1` per person per work center type via partial unique index if needed.
+- `work_center_type` supports polymorphic references; use enumerations and application logic to resolve to actual tables.
+- Track assignment periods for reporting; optional history tables can capture changes over time.
+- Validate `company_id` alignment with both person and work center to avoid cross-company assignments.
+
+#### Core Resources
+
+##### Table: `production_machine`
+
+| Column | Type | Constraints | Notes |
+| --- | --- | --- | --- |
+| `id` | `bigserial` | PK | Auto-increment surrogate key. |
+| `company_id` | `bigint` | `NOT NULL`, FK to `invproj_company(id)` | Owning company. |
+| `company_code` | `varchar(8)` | `NOT NULL`, check numeric | Cached company code. |
+| `public_code` | `varchar(10)` | `NOT NULL`, `UNIQUE` within company, check numeric | Machine identifier code. |
+| `name` | `varchar(180)` | `NOT NULL`, `UNIQUE` within company | Machine name (local language). |
+| `name_en` | `varchar(180)` | nullable | Machine name in Latin alphabet. |
+| `machine_type` | `varchar(30)` | `NOT NULL` | Classification (e.g., `cnc`, `lathe`, `milling`, `assembly`, `packaging`). |
+| `work_center_id` | `bigint` | nullable, FK to `production_work_center(id)` | Assigned work center (if applicable). |
+| `work_center_code` | `varchar(5)` | nullable | Cached work center code. |
+| `manufacturer` | `varchar(120)` | nullable | Machine manufacturer name. |
+| `model_number` | `varchar(60)` | nullable | Manufacturer model number. |
+| `serial_number` | `varchar(60)` | nullable, `UNIQUE` | Machine serial number. |
+| `purchase_date` | `date` | nullable | Date machine was purchased. |
+| `installation_date` | `date` | nullable | Date machine was installed. |
+| `capacity_specs` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | Technical specifications (max load, speed, dimensions, etc.). |
+| `maintenance_schedule` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | Maintenance intervals and requirements. |
+| `last_maintenance_date` | `date` | nullable | Date of last maintenance. |
+| `next_maintenance_date` | `date` | nullable | Scheduled next maintenance date. |
+| `status` | `varchar(20)` | `NOT NULL`, default `'operational'` | Machine status (`operational`, `maintenance`, `idle`, `broken`, `retired`). |
+| `description` | `varchar(255)` | nullable | Short description. |
+| `notes` | `text` | nullable | Operational notes. |
+| `is_enabled` | `smallint` | `NOT NULL`, default `1`, check in (0,1) | Active flag. |
+| `sort_order` | `smallint` | `NOT NULL`, default `0` | Ordering for listings. |
+| `activated_at` | `timestamp with time zone` | nullable | Last enable timestamp. |
+| `deactivated_at` | `timestamp with time zone` | nullable | Last disable timestamp. |
+| `created_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Auto-populated on insert. |
+| `edited_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Update audit. |
+| `created_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Creator reference. |
+| `edited_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Last editor reference. |
+| `metadata` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | Extensible attributes (warranty info, service contracts). |
+
+**Relationships:**
+- Many-to-One: `Machine` → `Company` (company_id)
+- Many-to-One: `Machine` → `WorkCenter` (work_center_id, nullable)
+
+**Additional considerations:**
+- Unique constraint on `(company_id, public_code)` and `(company_id, name)` ensures uniqueness per company.
+- `capacity_specs` can store structured data like `{"max_load_kg": 500, "max_speed_rpm": 3000, "dimensions": {"length": 2000, "width": 1500, "height": 1800}}`.
+- `maintenance_schedule` can store intervals like `{"daily": ["lubrication"], "weekly": ["cleaning"], "monthly": ["calibration"]}`.
+- Index on `(company_id, status, work_center_id)` for filtering operational machines by work center.
+- Consider linking to `ProcessStep` to track which machines are used in which production steps.
+
 #### Table: `production_bom_material`
 
 | Column | Type | Constraints | Notes |
@@ -77,7 +196,7 @@ Additional considerations:
 | `is_primary` | `smallint` | `NOT NULL`, default `0`, check in (0,1) | Flags primary process for the item. |
 | `approval_status` | `varchar(20)` | `NOT NULL`, default `'draft'` | Workflow state (`draft`, `pending`, `approved`, `archived`). |
 | `approved_at` | `timestamp with time zone` | nullable | Timestamp of approval. |
-| `approved_by_id` | `bigint` | nullable, FK to `invproj_person(id)` | Approver reference. |
+| `approved_by_id` | `bigint` | nullable, FK to `production_person(id)` | Approver reference. |
 | `metadata` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | Extensible info (documents, routing references). |
 | `notes` | `text` | nullable | Additional engineering notes. |
 | `is_enabled` | `smallint` | `NOT NULL`, default `1`, check in (0,1) | Soft-delete flag. |
@@ -106,6 +225,8 @@ Additional considerations:
 | `process_id` | `bigint` | `NOT NULL`, FK to `production_process(id)` | Parent production process. |
 | `work_center_id` | `bigint` | `NOT NULL`, FK to `production_work_center(id)` | Selected work center for the step. |
 | `work_center_code` | `varchar(20)` | `NOT NULL` | Cached work center code. |
+| `machine_id` | `bigint` | nullable, FK to `production_machine(id)` | Required machine for this step (if applicable). |
+| `machine_code` | `varchar(10)` | nullable | Cached machine code. |
 | `sequence_order` | `smallint` | `NOT NULL` | Execution order of the step. |
 | `personnel_requirements` | `jsonb` | `NOT NULL`, default `'[]'::jsonb` | List of required personnel roles/IDs for the work center. |
 | `labor_minutes_per_unit` | `numeric(18,6)` | `NOT NULL` | Human labor minutes per finished unit. |
@@ -125,7 +246,8 @@ Additional considerations:
 
 - Unique constraint on `(company_id, process_id, work_center_id, sequence_order)` maintains ordering and avoids duplicates.
 - `personnel_requirements` can store structures like `[{ "role": "Operator", "count": 2 }, { "person_id": ... }]`; enforce format at application layer.
-- Validate `work_center_id` belongs to the same company (or company unit) as the process.
+- Validate `work_center_id` and `machine_id` belong to the same company as the process.
+- If `machine_id` is specified, validate it belongs to the selected `work_center_id`.
 - Use aggregated labor/machine minutes to plan capacity and costing.
 - Consider separate table for personnel assignments if explicit references per step are required instead of JSON.
 

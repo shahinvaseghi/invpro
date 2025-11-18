@@ -1,39 +1,358 @@
 {% extends "base.html" %}
+{% load i18n access_tags %}
 
-{% block title %}Dashboard · invproj{% endblock %}
+{% block title %}{% trans "Dashboard" %} · invproj{% endblock %}
 
 {% block content %}
 <section class="page-section">
   <header class="section-header">
-    <h1>Platform Overview</h1>
-    <p>Quick snapshot of inventory, production, and QC activities.</p>
+    <h1>{% trans "Dashboard" %}</h1>
+    <p>{% trans "Overview of your inventory management system" %}</p>
   </header>
+
   <div class="dashboard-grid">
-    <article class="card">
-      <h2>Inventory</h2>
-      <ul>
-        <li><strong>Master Data:</strong> manage item catalog, suppliers, warehouses.</li>
-        <li><strong>Transactions:</strong> capture receipts, issues, and stocktaking adjustments.</li>
-        <li><strong>Traceability:</strong> track lot numbers for critical items.</li>
-      </ul>
-    </article>
-    <article class="card">
-      <h2>Production</h2>
-      <ul>
-        <li><strong>BOM & Processes:</strong> define materials, steps, and work centers.</li>
-        <li><strong>Orders:</strong> plan, release, and monitor production jobs.</li>
-        <li><strong>Performance:</strong> record production output, scrap, cycle times.</li>
-      </ul>
-    </article>
-    <article class="card">
-      <h2>Quality Control</h2>
-      <ul>
-        <li><strong>Inspections:</strong> review temporary receipts pending approval.</li>
-        <li><strong>Decisions:</strong> approve, reject, or log deviations with notes.</li>
-        <li><strong>Attachments:</strong> keep inspection evidence accessible.</li>
-      </ul>
-    </article>
+    <!-- Inventory Overview -->
+    <div class="dashboard-card card-primary">
+      <div class="card-header">
+        <h2>{% trans "Inventory Overview" %}</h2>
+        <span class="card-icon">📦</span>
+      </div>
+      <div class="card-body">
+        <div class="stat-row">
+          <div class="stat-item">
+            <span class="stat-label">{% trans "Total Items" %}</span>
+            <span class="stat-value">{{ stats.total_items|default:0 }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">{% trans "Warehouses" %}</span>
+            <span class="stat-value">{{ stats.total_warehouses|default:0 }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">{% trans "Suppliers" %}</span>
+            <span class="stat-value">{{ stats.total_suppliers|default:0 }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <a href="{% url 'inventory:items' %}" class="card-link">{% trans "View All Items" %} →</a>
+      </div>
+    </div>
+
+    <!-- Receipts -->
+    <div class="dashboard-card card-success">
+      <div class="card-header">
+        <h2>{% trans "Receipts" %}</h2>
+        <span class="card-icon">📥</span>
+      </div>
+      <div class="card-body">
+        <div class="stat-row">
+          <div class="stat-item">
+            <span class="stat-label">{% trans "Today" %}</span>
+            <span class="stat-value">{{ stats.permanent_receipts_today|default:0 }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">{% trans "Total" %}</span>
+            <span class="stat-value">{{ stats.total_permanent_receipts|default:0 }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">{% trans "Last 7 Days" %}</span>
+            <span class="stat-value">{{ stats.recent_receipts|default:0 }}</span>
+          </div>
+        </div>
+        {% if stats.temp_receipts_pending > 0 or stats.temp_receipts_qc_pending > 0 %}
+        <div class="stat-alert">
+          <span class="alert-icon">⚠️</span>
+          <div>
+            {% if stats.temp_receipts_pending > 0 %}
+            <span>{{ stats.temp_receipts_pending }} {% trans "Draft" %}</span>
+            {% endif %}
+            {% if stats.temp_receipts_qc_pending > 0 %}
+            <span>{{ stats.temp_receipts_qc_pending }} {% trans "QC Pending" %}</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      <div class="card-footer">
+        <div class="card-link-dropdown">
+          <button type="button" class="card-link" id="receipts-dropdown-btn">{% trans "View Receipts" %} ▼</button>
+          <div class="card-link-menu" id="receipts-dropdown-menu">
+            {% if user_feature_permissions|feature_allowed:'inventory.receipts.temporary' %}
+              <a href="{% url 'inventory:receipt_temporary' %}" class="card-link-item">{% trans "Temporary Receipts" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.receipts.permanent' %}
+              <a href="{% url 'inventory:receipt_permanent' %}" class="card-link-item">{% trans "Permanent Receipts" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.receipts.consignment' %}
+              <a href="{% url 'inventory:receipt_consignment' %}" class="card-link-item">{% trans "Consignment Receipts" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Issues -->
+    <div class="dashboard-card card-warning">
+      <div class="card-header">
+        <h2>{% trans "Issues" %}</h2>
+        <span class="card-icon">📤</span>
+      </div>
+      <div class="card-body">
+        <div class="stat-row">
+          <div class="stat-item">
+            <span class="stat-label">{% trans "Today" %}</span>
+            <span class="stat-value">{{ stats.permanent_issues_today|default:0 }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">{% trans "Total" %}</span>
+            <span class="stat-value">{{ stats.total_permanent_issues|default:0 }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">{% trans "Last 7 Days" %}</span>
+            <span class="stat-value">{{ stats.recent_issues|default:0 }}</span>
+          </div>
+        </div>
+        {% if stats.consumption_issues_today > 0 %}
+        <div class="stat-info">
+          <span class="info-icon">ℹ️</span>
+          <span>{{ stats.consumption_issues_today }} {% trans "Consumption Issues Today" %}</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="card-footer">
+        <div class="card-link-dropdown">
+          <button type="button" class="card-link" id="issues-dropdown-btn">{% trans "View Issues" %} ▼</button>
+          <div class="card-link-menu" id="issues-dropdown-menu">
+            {% if user_feature_permissions|feature_allowed:'inventory.issues.permanent' %}
+              <a href="{% url 'inventory:issue_permanent' %}" class="card-link-item">{% trans "Permanent Issues" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.issues.consumption' %}
+              <a href="{% url 'inventory:issue_consumption' %}" class="card-link-item">{% trans "Consumption Issues" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.issues.consignment' %}
+              <a href="{% url 'inventory:issue_consignment' %}" class="card-link-item">{% trans "Consignment Issues" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Requests -->
+    <div class="dashboard-card card-info">
+      <div class="card-header">
+        <h2>{% trans "Pending Requests" %}</h2>
+        <span class="card-icon">📋</span>
+      </div>
+      <div class="card-body">
+        <div class="stat-row">
+          <div class="stat-item">
+            <span class="stat-label">{% trans "Purchase" %}</span>
+            <span class="stat-value">{{ stats.pending_purchase_requests|default:0 }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">{% trans "Warehouse" %}</span>
+            <span class="stat-value">{{ stats.pending_warehouse_requests|default:0 }}</span>
+          </div>
+        </div>
+        {% if stats.pending_purchase_requests > 0 or stats.pending_warehouse_requests > 0 %}
+        <div class="stat-alert">
+          <span class="alert-icon">🔔</span>
+          <span>{% trans "Action Required" %}</span>
+        </div>
+        {% else %}
+        <div class="stat-success">
+          <span class="success-icon">✅</span>
+          <span>{% trans "All Clear" %}</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="card-footer">
+        <a href="{% url 'inventory:purchase_requests' %}" class="card-link">{% trans "View Requests" %} →</a>
+      </div>
+    </div>
+
+    <!-- Stocktaking -->
+    <div class="dashboard-card card-danger">
+      <div class="card-header">
+        <h2>{% trans "Stocktaking" %}</h2>
+        <span class="card-icon">🔍</span>
+      </div>
+      <div class="card-body">
+        <div class="stat-row">
+          <div class="stat-item">
+            <span class="stat-label">{% trans "Deficit" %}</span>
+            <span class="stat-value">{{ stats.deficit_records|default:0 }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">{% trans "Surplus" %}</span>
+            <span class="stat-value">{{ stats.surplus_records|default:0 }}</span>
+          </div>
+        </div>
+        {% if stats.deficit_records > 0 or stats.surplus_records > 0 %}
+        <div class="stat-alert">
+          <span class="alert-icon">⚠️</span>
+          <span>{% trans "Adjustments Pending" %}</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="card-footer">
+        <a href="{% url 'inventory:stocktaking_deficit' %}" class="card-link">{% trans "View Stocktaking" %} →</a>
+      </div>
+    </div>
+
+    <!-- Quality Control -->
+    <div class="dashboard-card card-secondary">
+      <div class="card-header">
+        <h2>{% trans "Quality Control" %}</h2>
+        <span class="card-icon">🔬</span>
+      </div>
+      <div class="card-body">
+        <div class="stat-row">
+          <div class="stat-item stat-full">
+            <span class="stat-label">{% trans "Pending Inspections" %}</span>
+            <span class="stat-value">{{ stats.temp_receipts_qc_pending|default:0 }}</span>
+          </div>
+        </div>
+        {% if stats.temp_receipts_qc_pending > 0 %}
+        <div class="stat-alert">
+          <span class="alert-icon">⏱️</span>
+          <span>{% trans "Awaiting QC Approval" %}</span>
+        </div>
+        {% else %}
+        <div class="stat-success">
+          <span class="success-icon">✅</span>
+          <span>{% trans "No Pending Inspections" %}</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="card-footer">
+        <a href="{% url 'inventory:receipt_temporary' %}" class="card-link">{% trans "View QC Queue" %} →</a>
+      </div>
+    </div>
   </div>
 </section>
-{% endblock %}
 
+<style>
+.card-link-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.card-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 0;
+  font-family: inherit;
+}
+
+.card-link:hover {
+  color: var(--color-secondary);
+}
+
+.card-link-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+  z-index: 1000;
+  padding: 8px 0;
+  margin-bottom: 8px;
+  min-width: 200px;
+}
+
+[dir="rtl"] .card-link-menu {
+  left: auto;
+  right: 0;
+}
+
+.card-link-dropdown:hover .card-link-menu,
+.card-link-dropdown.active .card-link-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.card-link-item {
+  display: block;
+  padding: 10px 20px;
+  color: var(--color-text);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: all 0.15s ease;
+  border-left: 3px solid transparent;
+}
+
+[dir="rtl"] .card-link-item {
+  border-left: none;
+  border-right: 3px solid transparent;
+}
+
+.card-link-item:hover {
+  background-color: var(--color-light);
+  color: var(--color-primary);
+  border-left-color: var(--color-primary);
+}
+
+[dir="rtl"] .card-link-item:hover {
+  border-left: none;
+  border-right-color: var(--color-primary);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Card link dropdowns
+  const receiptsBtn = document.getElementById('receipts-dropdown-btn');
+  const receiptsMenu = document.getElementById('receipts-dropdown-menu');
+  const issuesBtn = document.getElementById('issues-dropdown-btn');
+  const issuesMenu = document.getElementById('issues-dropdown-menu');
+  
+  function toggleDropdown(btn, menu, otherMenu) {
+    if (!btn || !menu) return;
+    
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const isActive = btn.closest('.card-link-dropdown').classList.contains('active');
+      
+      // Close other dropdowns
+      document.querySelectorAll('.card-link-dropdown').forEach(dropdown => {
+        dropdown.classList.remove('active');
+      });
+      
+      // Toggle current dropdown
+      if (!isActive) {
+        btn.closest('.card-link-dropdown').classList.add('active');
+      }
+    });
+  }
+  
+  toggleDropdown(receiptsBtn, receiptsMenu, issuesMenu);
+  toggleDropdown(issuesBtn, issuesMenu, receiptsMenu);
+  
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.card-link-dropdown')) {
+      document.querySelectorAll('.card-link-dropdown').forEach(dropdown => {
+        dropdown.classList.remove('active');
+      });
+    }
+  });
+});
+</script>
+{% endblock %}

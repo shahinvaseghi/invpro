@@ -9,9 +9,194 @@
     <link rel="stylesheet" href="{% static 'css/base.css' %}" />
   </head>
   <body>
-    <div class="app-shell">
+    <div class="app-shell sidebar-collapsed">
       <header class="app-header">
-        <div class="logo">invproj</div>
+        <div class="header-left">
+          <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle" title="{% trans 'Toggle Sidebar' %}">
+            <span class="toggle-icon">☰</span>
+          </button>
+          <div class="logo">invproj</div>
+          <nav class="top-menu-nav">
+            {% block top_menu %}
+            {% load access_tags %}
+            <!-- Shared Menu -->
+            <div class="top-menu-item">
+              <button type="button" class="top-menu-btn" data-menu="shared">
+                <span class="menu-icon">🔧</span>
+                <span class="menu-label">{% trans "Shared" %}</span>
+              </button>
+              <div class="dropdown-menu" id="menu-shared">
+                <a href="{% url 'ui:dashboard' %}" class="dropdown-item">{% trans "Dashboard" %}</a>
+                {% if user_feature_permissions|feature_allowed:'shared.companies' %}
+                  <a href="{% url 'shared:companies' %}" class="dropdown-item">{% trans "Companies" %}</a>
+                {% endif %}
+                {% if user_feature_permissions|feature_allowed:'shared.company_units' %}
+                  <a href="{% url 'shared:company_units' %}" class="dropdown-item">{% trans "Company Units" %}</a>
+                {% endif %}
+                {% if user_feature_permissions|feature_allowed:'shared.users' or user_feature_permissions|feature_allowed:'shared.groups' or user_feature_permissions|feature_allowed:'shared.access_levels' %}
+                  <div class="dropdown-submenu">
+                    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="shared-users">
+                      <span>{% trans "Users" %}</span>
+                      <span class="dropdown-arrow">▶</span>
+                    </button>
+                    <div class="dropdown-menu-sub" id="shared-users">
+                      {% if user_feature_permissions|feature_allowed:'shared.users' %}
+                        <a href="{% url 'shared:users' %}" class="dropdown-item-sub">{% trans "Users" %}</a>
+                      {% endif %}
+                      {% if user_feature_permissions|feature_allowed:'shared.groups' %}
+                        <a href="{% url 'shared:groups' %}" class="dropdown-item-sub">{% trans "Groups" %}</a>
+                      {% endif %}
+                      {% if user_feature_permissions|feature_allowed:'shared.access_levels' %}
+                        <a href="{% url 'shared:access_levels' %}" class="dropdown-item-sub">{% trans "Access Levels" %}</a>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Inventory Menu -->
+            <div class="top-menu-item">
+              <button type="button" class="top-menu-btn" data-menu="inventory">
+                <span class="menu-icon">📦</span>
+                <span class="menu-label">{% trans "Inventory" %}</span>
+              </button>
+              <div class="dropdown-menu" id="menu-inventory">
+                {% if user_feature_permissions|feature_allowed:'inventory.master.items' or user_feature_permissions|feature_allowed:'inventory.master.items:create' or user_feature_permissions|feature_allowed:'inventory.master.item_serials' or user_feature_permissions|feature_allowed:'inventory.balance' %}
+                  <div class="dropdown-submenu">
+                    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="inventory-items">
+                      <span>{% trans "Items" %}</span>
+                      <span class="dropdown-arrow">▶</span>
+                    </button>
+                    <div class="dropdown-menu-sub" id="inventory-items">
+                      {% if user_feature_permissions|feature_allowed:'inventory.master.items:create' %}
+                        <a href="{% url 'inventory:item_create' %}" class="dropdown-item-sub">{% trans "Create Item" %}</a>
+                      {% endif %}
+                      {% if user_feature_permissions|feature_allowed:'inventory.master.items' %}
+                        <a href="{% url 'inventory:items' %}" class="dropdown-item-sub">{% trans "Edit Items" %}</a>
+                      {% endif %}
+                      {% if user_feature_permissions|feature_allowed:'inventory.master.item_serials' %}
+                        <a href="{% url 'inventory:item_serials' %}" class="dropdown-item-sub">{% trans "Item Serials" %}</a>
+                      {% endif %}
+                      {% if user_feature_permissions|feature_allowed:'inventory.balance' %}
+                        <a href="{% url 'inventory:inventory_balance' %}" class="dropdown-item-sub">{% trans "Inventory Balance" %}</a>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endif %}
+                {% if user_feature_permissions|feature_allowed:'inventory.master.warehouses' %}
+                  <a href="{% url 'inventory:warehouses' %}" class="dropdown-item">{% trans "Warehouses" %}</a>
+                {% endif %}
+                {% if user_feature_permissions|feature_allowed:'inventory.suppliers.list' %}
+                  <a href="{% url 'inventory:suppliers' %}" class="dropdown-item">{% trans "Suppliers" %}</a>
+                {% endif %}
+                {% if user_feature_permissions|feature_allowed:'inventory.receipts.temporary' or user_feature_permissions|feature_allowed:'inventory.receipts.permanent' or user_feature_permissions|feature_allowed:'inventory.receipts.consignment' %}
+                  <div class="dropdown-submenu">
+                    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="inventory-receipts">
+                      <span>{% trans "Receipts" %}</span>
+                      <span class="dropdown-arrow">▶</span>
+                    </button>
+                    <div class="dropdown-menu-sub" id="inventory-receipts">
+                      {% if user_feature_permissions|feature_allowed:'inventory.receipts.temporary' %}
+                        <a href="{% url 'inventory:receipt_temporary' %}" class="dropdown-item-sub">{% trans "Temporary Receipts" %}</a>
+                      {% endif %}
+                      {% if user_feature_permissions|feature_allowed:'inventory.receipts.permanent' %}
+                        <a href="{% url 'inventory:receipt_permanent' %}" class="dropdown-item-sub">{% trans "Permanent Receipts" %}</a>
+                      {% endif %}
+                      {% if user_feature_permissions|feature_allowed:'inventory.receipts.consignment' %}
+                        <a href="{% url 'inventory:receipt_consignment' %}" class="dropdown-item-sub">{% trans "Consignment Receipts" %}</a>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endif %}
+                {% if user_feature_permissions|feature_allowed:'inventory.issues.permanent' or user_feature_permissions|feature_allowed:'inventory.issues.consumption' or user_feature_permissions|feature_allowed:'inventory.issues.consignment' %}
+                  <div class="dropdown-submenu">
+                    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="inventory-issues">
+                      <span>{% trans "Issues" %}</span>
+                      <span class="dropdown-arrow">▶</span>
+                    </button>
+                    <div class="dropdown-menu-sub" id="inventory-issues">
+                      {% if user_feature_permissions|feature_allowed:'inventory.issues.permanent' %}
+                        <a href="{% url 'inventory:issue_permanent' %}" class="dropdown-item-sub">{% trans "Permanent Issues" %}</a>
+                      {% endif %}
+                      {% if user_feature_permissions|feature_allowed:'inventory.issues.consumption' %}
+                        <a href="{% url 'inventory:issue_consumption' %}" class="dropdown-item-sub">{% trans "Consumption Issues" %}</a>
+                      {% endif %}
+                      {% if user_feature_permissions|feature_allowed:'inventory.issues.consignment' %}
+                        <a href="{% url 'inventory:issue_consignment' %}" class="dropdown-item-sub">{% trans "Consignment Issues" %}</a>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endif %}
+                {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' %}
+                  <a href="{% url 'inventory:purchase_requests' %}" class="dropdown-item">{% trans "Purchase Requests" %}</a>
+                {% endif %}
+                {% if user_feature_permissions|feature_allowed:'inventory.requests.warehouse' %}
+                  <a href="{% url 'inventory:warehouse_requests' %}" class="dropdown-item">{% trans "Warehouse Requests" %}</a>
+                {% endif %}
+                {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' or user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' or user_feature_permissions|feature_allowed:'inventory.stocktaking.records' %}
+                  <div class="dropdown-submenu">
+                    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="inventory-stocktaking">
+                      <span>{% trans "Stocktaking" %}</span>
+                      <span class="dropdown-arrow">▶</span>
+                    </button>
+                    <div class="dropdown-menu-sub" id="inventory-stocktaking">
+                      {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' %}
+                        <a href="{% url 'inventory:stocktaking_deficit' %}" class="dropdown-item-sub">{% trans "Deficit Records" %}</a>
+                      {% endif %}
+                      {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' %}
+                        <a href="{% url 'inventory:stocktaking_surplus' %}" class="dropdown-item-sub">{% trans "Surplus Records" %}</a>
+                      {% endif %}
+                      {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.records' %}
+                        <a href="{% url 'inventory:stocktaking_records' %}" class="dropdown-item-sub">{% trans "Stocktaking Records" %}</a>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Production Menu -->
+            {% if user_feature_permissions|feature_allowed:'production.personnel' or user_feature_permissions|feature_allowed:'production.machines' or user_feature_permissions|feature_allowed:'inventory.master.work_lines' or request.user.is_superuser %}
+            <div class="top-menu-item">
+              <button type="button" class="top-menu-btn" data-menu="production">
+                <span class="menu-icon">⚙️</span>
+                <span class="menu-label">{% trans "Production" %}</span>
+              </button>
+              <div class="dropdown-menu" id="menu-production">
+                {% if user_feature_permissions|feature_allowed:'production.personnel' %}
+                  <a href="{% url 'production:personnel' %}" class="dropdown-item">{% trans "Personnel" %}</a>
+                {% endif %}
+                {% if user_feature_permissions|feature_allowed:'production.machines' %}
+                  <a href="{% url 'production:machines' %}" class="dropdown-item">{% trans "Machines" %}</a>
+                {% endif %}
+                {% if user_feature_permissions|feature_allowed:'inventory.master.work_lines' %}
+                  <a href="{% url 'inventory:work_lines' %}" class="dropdown-item">{% trans "Work Lines" %}</a>
+                {% endif %}
+                {% if request.user.is_superuser %}
+                  <a href="#" class="dropdown-item">{% trans "BOM" %}</a>
+                  <a href="#" class="dropdown-item">{% trans "Processes" %}</a>
+                  <a href="#" class="dropdown-item">{% trans "Orders" %}</a>
+                {% endif %}
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- Quality Control Menu -->
+            {% if request.user.is_superuser %}
+            <div class="top-menu-item">
+              <button type="button" class="top-menu-btn" data-menu="qc">
+                <span class="menu-icon">🔬</span>
+                <span class="menu-label">{% trans "Quality Control" %}</span>
+              </button>
+              <div class="dropdown-menu" id="menu-qc">
+                <a href="#" class="dropdown-item">{% trans "Inspections" %}</a>
+              </div>
+            </div>
+            {% endif %}
+            {% endblock %}
+          </nav>
+        </div>
         <nav class="top-nav">
           {% block top_nav %}
           <!-- Company Selector -->
@@ -19,7 +204,7 @@
           <form action="{% url 'set_active_company' %}" method="post" class="company-switcher">
             {% csrf_token %}
             <input name="next" type="hidden" value="{{ request.get_full_path }}" />
-            <label for="company-select" style="margin-right: 8px; font-size: 0.9rem; color: #d1d5db;">
+            <label for="company-select" style="margin-right: 8px; font-size: 0.9rem; color: #fff;">
               {% trans "Company" %}:
             </label>
             <select name="company_id" id="company-select" onchange="this.form.submit()" class="company-select">
@@ -58,7 +243,7 @@
           {% endblock %}
         </nav>
       </header>
-      <aside class="app-sidebar">
+      <aside class="app-sidebar collapsed" id="app-sidebar">
         {% block sidebar %}
           {% include "ui/components/sidebar.html" %}
         {% endblock %}
@@ -73,17 +258,197 @@
       </main>
     </div>
     <script>
-      // Toggle submenu functionality
       document.addEventListener('DOMContentLoaded', function() {
-        const expandableLinks = document.querySelectorAll('.nav-expandable');
-        expandableLinks.forEach(link => {
-          link.addEventListener('click', function(e) {
+        // Load saved state
+        const savedState = localStorage.getItem('sidebar-sections-state');
+        const sectionsState = savedState ? JSON.parse(savedState) : {};
+        const savedGroups = localStorage.getItem('sidebar-groups-state');
+        const groupsState = savedGroups ? JSON.parse(savedGroups) : {};
+
+        // Initialize main sections
+        const sections = document.querySelectorAll('.sidebar-section');
+        sections.forEach(section => {
+          const sectionName = section.getAttribute('data-section');
+          const isCollapsed = sectionsState[sectionName] === false;
+          
+          if (isCollapsed) {
+            section.classList.add('collapsed');
+          }
+        });
+
+        // Initialize nav groups
+        const navGroups = document.querySelectorAll('.nav-group');
+        navGroups.forEach(group => {
+          const header = group.querySelector('.nav-group-header');
+          if (header) {
+            const submenuId = header.getAttribute('data-submenu');
+            const isExpanded = groupsState[submenuId] === true;
+            
+            if (isExpanded) {
+              group.classList.add('expanded');
+            }
+          }
+        });
+
+        // Toggle main section
+        function toggleSection(section) {
+          const sectionName = section.getAttribute('data-section');
+          const isCollapsed = section.classList.contains('collapsed');
+          
+          section.classList.toggle('collapsed');
+          sectionsState[sectionName] = !isCollapsed;
+          
+          localStorage.setItem('sidebar-sections-state', JSON.stringify(sectionsState));
+        }
+
+        // Toggle nav group
+        function toggleNavGroup(group) {
+          const header = group.querySelector('.nav-group-header');
+          if (!header) return;
+          
+          const submenuId = header.getAttribute('data-submenu');
+          const isExpanded = group.classList.contains('expanded');
+          
+          group.classList.toggle('expanded');
+          groupsState[submenuId] = !isExpanded;
+          
+          localStorage.setItem('sidebar-groups-state', JSON.stringify(groupsState));
+        }
+
+        // Section headers
+        document.querySelectorAll('.section-header').forEach(btn => {
+          btn.addEventListener('click', function(e) {
             e.preventDefault();
-            const submenuId = this.getAttribute('data-submenu');
-            const submenu = document.getElementById(submenuId);
-            if (submenu) {
-              submenu.classList.toggle('open');
-              this.classList.toggle('expanded');
+            const section = this.closest('.sidebar-section');
+            if (section) {
+              toggleSection(section);
+            }
+          });
+        });
+
+        // Nav group headers
+        document.querySelectorAll('.nav-group-header').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const group = this.closest('.nav-group');
+            if (group) {
+              toggleNavGroup(group);
+            }
+          });
+        });
+
+        // Top menu dropdowns
+        const menuButtons = document.querySelectorAll('.top-menu-btn');
+        const dropdowns = document.querySelectorAll('.dropdown-menu');
+        
+        menuButtons.forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const menuId = this.getAttribute('data-menu');
+            const dropdown = document.getElementById(`menu-${menuId}`);
+            
+            // Close other dropdowns
+            dropdowns.forEach(d => {
+              if (d !== dropdown) {
+                d.classList.remove('open');
+              }
+            });
+            
+            // Toggle current dropdown
+            if (dropdown) {
+              dropdown.classList.toggle('open');
+            }
+          });
+        });
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+          if (!e.target.closest('.top-menu-item')) {
+            dropdowns.forEach(d => {
+              d.classList.remove('open');
+            });
+          }
+        });
+
+        // Toggle sidebar
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.getElementById('app-sidebar');
+        const appShell = document.querySelector('.app-shell');
+        
+        if (sidebarToggle && sidebar && appShell) {
+          // Load saved state
+          const sidebarState = localStorage.getItem('sidebar-open');
+          const isOpen = sidebarState === 'true';
+          
+          if (!isOpen) {
+            sidebar.classList.add('collapsed');
+            appShell.classList.add('sidebar-collapsed');
+          }
+          
+          sidebarToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            
+            if (isCollapsed) {
+              sidebar.classList.remove('collapsed');
+              appShell.classList.remove('sidebar-collapsed');
+              localStorage.setItem('sidebar-open', 'true');
+            } else {
+              sidebar.classList.add('collapsed');
+              appShell.classList.add('sidebar-collapsed');
+              localStorage.setItem('sidebar-open', 'false');
+            }
+          });
+        }
+
+        // Dropdown submenus - click to toggle
+        document.querySelectorAll('.dropdown-submenu').forEach(submenu => {
+          const submenuEl = submenu.querySelector('.dropdown-menu-sub');
+          const toggleBtn = submenu.querySelector('.dropdown-toggle');
+          const dropdownMenu = submenu.closest('.dropdown-menu');
+          
+          if (!submenuEl || !toggleBtn) return;
+          
+          // Click to toggle submenu
+          toggleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const isOpen = submenuEl.classList.contains('open');
+            
+            // Close all other submenus
+            document.querySelectorAll('.dropdown-submenu').forEach(otherSubmenu => {
+              if (otherSubmenu !== submenu) {
+                const otherSubmenuEl = otherSubmenu.querySelector('.dropdown-menu-sub');
+                if (otherSubmenuEl) {
+                  otherSubmenuEl.classList.remove('open');
+                  otherSubmenu.classList.remove('active');
+                }
+              }
+            });
+            
+            // Toggle current submenu
+            if (isOpen) {
+              submenuEl.classList.remove('open');
+              submenu.classList.remove('active');
+            } else {
+              submenuEl.classList.add('open');
+              submenu.classList.add('active');
+              
+              // Allow dropdown to show items below the submenu
+              if (dropdownMenu) {
+                dropdownMenu.style.overflowY = 'auto';
+              }
+            }
+          });
+          
+          // Close submenu when clicking outside
+          document.addEventListener('click', function(e) {
+            if (!submenu.contains(e.target)) {
+              submenuEl.classList.remove('open');
+              submenu.classList.remove('active');
             }
           });
         });
