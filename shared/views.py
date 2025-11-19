@@ -2,13 +2,14 @@
 Views for shared module.
 """
 from django.contrib import messages
-from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate, get_user_model, login as auth_login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponseRedirect
+from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
@@ -715,3 +716,36 @@ class AccessLevelDeleteView(FeaturePermissionRequiredMixin, DeleteView):
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'shared'
         return context
+
+
+def custom_login(request):
+    """
+    Custom login view with beautiful UI.
+    """
+    from django.utils.translation import get_language
+    
+    if request.user.is_authenticated:
+        return redirect('ui:dashboard')
+    
+    current_lang = get_language()
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            auth_login(request, user)
+            next_url = request.POST.get('next') or request.GET.get('next') or 'ui:dashboard'
+            return redirect(next_url)
+        else:
+            return render(request, 'login.html', {
+                'form': {'errors': True},
+                'next': request.POST.get('next', ''),
+                'LANGUAGE_CODE': current_lang
+            })
+    
+    return render(request, 'login.html', {
+        'next': request.GET.get('next', ''),
+        'LANGUAGE_CODE': current_lang
+    })

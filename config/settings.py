@@ -182,6 +182,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'shared.User'
 
+# Authentication URLs
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/fa/'  # Redirect to Persian version after login
+LOGOUT_REDIRECT_URL = '/login/'
+
 
 # ---------------------------------------------------------------------------
 # Django REST framework
