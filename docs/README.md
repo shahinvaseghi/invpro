@@ -6,6 +6,7 @@ This directory contains all project documentation files organized by topic and p
 
 ### Core Documentation
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
+- **[UI_UX_CHANGELOG.md](UI_UX_CHANGELOG.md)** - **Detailed UI/UX design improvements and changelog**
 - **[FEATURES.md](FEATURES.md)** - Complete feature list and capabilities
 - **[DEVELOPMENT.md](DEVELOPMENT.md)** - Development guidelines, workflows, and best practices
 

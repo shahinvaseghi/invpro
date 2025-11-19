@@ -561,6 +561,7 @@ This project includes comprehensive documentation organized by module and purpos
 |------|-------------|
 | `README.md` | This file - platform overview, setup, and architecture guide |
 | `docs/CHANGELOG.md` | Version history and release notes |
+| `docs/UI_UX_CHANGELOG.md` | **Detailed UI/UX design improvements and changelog** |
 | `docs/FEATURES.md` | Feature list and capabilities |
 | `docs/DEVELOPMENT.md` | Development guidelines and workflows |
 | `docs/DATABASE_DOCUMENTATION.md` | Database schema and relationships |

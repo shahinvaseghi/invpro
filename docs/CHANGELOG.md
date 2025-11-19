@@ -13,6 +13,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Complete Persian translations for all UI elements and messages
 - Enhanced dashboard design with minimal, modern styling
 - Improved top menu button layout with proper text wrapping for long labels
+- **Custom login page** (`/login/`) with professional UI/UX design:
+  - Gradient animated backgrounds with floating shapes
+  - Glass morphism card design with backdrop blur effects
+  - Modern input fields with emoji icons and smooth transitions
+  - Language switcher integrated into login page
+  - Auto-focus on username field
+  - Responsive design for mobile devices
+  - Pulse animation for logo
+  - Shimmer effect on login button
+  - Animated error messages with shake effect
+- Version query strings for CSS files to prevent browser caching issues
 
 ### Changed
 - Default language changed from English to Persian (`LANGUAGE_CODE = 'fa'`)
@@ -20,6 +31,50 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Dashboard cards redesigned with gradient backgrounds, hover animations, and improved spacing
 - Menu button font size reduced to 0.65rem for better text fitting
 - Menu icons reduced in size to provide more space for labels
+- **Login system**: Replaced Django admin login with custom login page at `/login/`
+- **Button styling** enhanced across all pages:
+  - Gradient backgrounds instead of solid colors
+  - Box shadows and hover transform effects (translateY)
+  - Padding increased from 10px×20px to 12px×24px
+  - Added ::before pseudo-element for shimmer effect
+  - Minimum width of 120px for form action buttons
+- **Form inputs** redesigned with professional styling:
+  - Border thickness increased from 1px to 2px
+  - Padding increased from 8px×12px to 12px×16px
+  - Enhanced hover states with border color and shadow changes
+  - Focus states with blue glow and subtle translateY animation
+  - Custom dropdown arrow for select elements
+  - Textarea minimum height increased from 80px to 100px
+- **Table styling** improvements:
+  - Striped rows (alternating background colors)
+  - Hover effects with background change and shadow
+  - Header with gradient background
+  - Padding increased from 12px×16px to 16px×20px
+  - Action buttons padding increased from 8px×14px to 10px×18px
+- **Form sections** enhanced with:
+  - Gradient backgrounds (white to subtle blue tint)
+  - Padding increased from 32px to 36px
+  - Hover effects with border and shadow changes
+  - Decorative colored bar before section titles
+- **Status badges** redesigned:
+  - Gradient backgrounds for all states
+  - Colored borders matching status
+  - Hover transform effects
+  - Padding increased from 4px×10px to 6px×14px
+  - Text uppercase with letter-spacing
+- **Alert messages** enhanced:
+  - Gradient backgrounds
+  - Emoji icons (✓, ✗, ⚠, ℹ) before text
+  - Slide-down animation on appear
+  - Border thickness increased to 2px
+  - Padding increased from 12px×16px to 16px×20px
+- **Spacing improvements** throughout the application:
+  - Table action buttons gap: 8px → 12px
+  - Form action buttons gap: 16px → 20px
+  - Form fields gap: 24px → 28px
+  - Form section spacing: 40px → 32px between sections
+  - Filter form gap: 20px → 24px
+  - Label margins increased for better readability
 
 ### Fixed
 - Top menu button text overflow issue - English labels no longer overflow from buttons
@@ -28,6 +83,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Dashboard visual design - made more minimal and modern with better card styling
 - User edit form: Groups and superuser checkbox now save correctly - fixed issue where group selections and superuser status were not persisted when editing users
 - Purchase Request and Warehouse Request forms now correctly redirect to list view after successful save
+- **Button spacing issues**: Increased gaps between action buttons to prevent visual crowding
+- **Form field spacing**: Improved spacing between fields and labels for better readability
+- **Visual crowding**: Added proper breathing room throughout the application
+- **CSS caching issues**: Added version query strings to force browser cache refresh
 
 ### Changed
 - **BREAKING**: Person model removed from inventory module - all request/approval fields now use Django User model directly
