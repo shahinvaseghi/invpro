@@ -23,7 +23,6 @@ class PersonForm(forms.ModelForm):
     class Meta:
         model = Person
         fields = [
-            'public_code',
             'first_name',
             'last_name',
             'first_name_en',
@@ -40,7 +39,6 @@ class PersonForm(forms.ModelForm):
             'company_units',
         ]
         widgets = {
-            'public_code': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '8'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
             'first_name_en': forms.TextInput(attrs={'class': 'form-control'}),
@@ -59,7 +57,6 @@ class PersonForm(forms.ModelForm):
             ),
         }
         labels = {
-            'public_code': _('Code'),
             'first_name': _('First Name'),
             'last_name': _('Last Name'),
             'first_name_en': _('First Name (English)'),
@@ -123,7 +120,6 @@ class MachineForm(forms.ModelForm):
     class Meta:
         model = Machine
         fields = [
-            'public_code',
             'name',
             'name_en',
             'machine_type',
@@ -143,7 +139,6 @@ class MachineForm(forms.ModelForm):
             'is_enabled',
         ]
         widgets = {
-            'public_code': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '10'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'name_en': forms.TextInput(attrs={'class': 'form-control'}),
             'machine_type': forms.TextInput(attrs={'class': 'form-control'}),
@@ -163,7 +158,6 @@ class MachineForm(forms.ModelForm):
             'is_enabled': forms.Select(attrs={'class': 'form-control'}),
         }
         labels = {
-            'public_code': _('Code'),
             'name': _('Name'),
             'name_en': _('Name (English)'),
             'machine_type': _('Machine Type'),

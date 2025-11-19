@@ -11,11 +11,11 @@ Defines all production entities. Structure:
   - `ProductionSortableModel`: adds `sort_order`.
 
 - **Core Resources**
-  - `WorkCenter`: identifies work centers/lines, with per-company unique `public_code` and name.
-  - `Machine`: production machines and equipment with specifications, maintenance tracking, and work center assignments.
+  - `WorkCenter`: identifies work centers/lines, with per-company unique `public_code` and name. Automatically generates 5-digit `public_code` on save.
+  - `Machine`: production machines and equipment with specifications, maintenance tracking, and work center assignments. Automatically generates 10-digit `public_code` on save using `generate_sequential_code()`.
 
 - **Personnel Management**
-  - `Person`: personnel directory entry with optional linkage to `User`. هر شخص می‌تواند عضو چند واحد سازمانی از همان شرکت باشد (`ManyToMany` با `CompanyUnit`).
+  - `Person`: personnel directory entry with optional linkage to `User`. هر شخص می‌تواند عضو چند واحد سازمانی از همان شرکت باشد (`ManyToMany` با `CompanyUnit`). Automatically generates 8-digit `public_code` on save using `generate_sequential_code()`.
   - `PersonAssignment`: assigns a person to a work center (inventory/production/etc.) with optional primary flag and date range.
 
 - **Bill of Materials**
@@ -35,12 +35,19 @@ Defines all production entities. Structure:
 
 All models inherit audit fields and apply `save()` overrides to populate cached codes where necessary. Personnel models (`Person`, `PersonAssignment`) were moved from the `shared` module to better align with production workflows and resource management.
 
+**Automatic Code Generation:**
+- `Person.public_code`: Auto-generated 8-digit sequential code per company (not user-editable)
+- `Machine.public_code`: Auto-generated 10-digit sequential code per company (not user-editable)
+- `WorkCenter.public_code`: Auto-generated 5-digit sequential code per company
+- Codes are generated using `inventory.utils.codes.generate_sequential_code()` function
+- Users cannot manually enter codes; they are automatically assigned on save
+
 ## forms.py
 
 Defines ModelForms for production entities:
 
-- `PersonForm`: Create and edit personnel records with username sync checkbox feature and multi-select for company units.
-- `MachineForm`: Create and edit machine records with work center assignment, specifications, and maintenance tracking.
+- `PersonForm`: Create and edit personnel records with username sync checkbox feature and multi-select for company units. Does not include `public_code` field (auto-generated).
+- `MachineForm`: Create and edit machine records with work center assignment, specifications, and maintenance tracking. Does not include `public_code` field (auto-generated).
 
 ## views.py
 

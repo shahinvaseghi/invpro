@@ -11,7 +11,6 @@ This document describes the forms used in the production module for managing per
 **Model:** `Person`
 
 **Fields:**
-- `public_code` (8 digits) - Unique person code
 - `first_name` - First name (Persian)
 - `last_name` - Last name (Persian)
 - `first_name_en` - First name (English)
@@ -26,6 +25,9 @@ This document describes the forms used in the production module for managing per
 - `notes` - Detailed notes
 - `is_enabled` - Active/Inactive status
 - `company_units` - Multiple company units assignment (Many-to-Many)
+
+**Auto-Generated Fields:**
+- `public_code` (8 digits) - Automatically generated sequential code per company. Not user-editable. Generated on save using `generate_sequential_code()`.
 
 **Special Field: `use_personnel_code_as_username`**
 - Checkbox field (not saved to database)
@@ -94,7 +96,6 @@ class PersonCreateView(FeaturePermissionRequiredMixin, CreateView):
 **Model:** `Machine`
 
 **Fields:**
-- `public_code` (10 digits) - Unique machine code
 - `name` - Machine name (Persian)
 - `name_en` - Machine name (English)
 - `machine_type` - Machine type classification (CNC, lathe, milling, assembly, packaging, etc.)
@@ -113,8 +114,11 @@ class PersonCreateView(FeaturePermissionRequiredMixin, CreateView):
 - `notes` - Operational notes
 - `is_enabled` - Active/Inactive status
 
+**Auto-Generated Fields:**
+- `public_code` (10 digits) - Automatically generated sequential code per company. Not user-editable. Generated on save using `generate_sequential_code()`.
+
 **Validation:**
-- Code must be unique per company
+- Code is automatically generated and guaranteed to be unique per company
 - Name must be unique per company
 - Serial number must be unique (if provided)
 - Work center must belong to the active company
@@ -145,12 +149,19 @@ class MachineCreateView(FeaturePermissionRequiredMixin, CreateView):
 ## Form Features
 
 ### Auto-populated Fields
-The following fields are set automatically by views:
+The following fields are set automatically by views or models:
 - `company_id` - From active session company
+- `public_code` - Auto-generated sequential code (Person: 8 digits, Machine: 10 digits)
 - `created_by` - From request.user
 - `edited_by` - From request.user
 - `created_at` - Auto timestamp
 - `updated_at` - Auto timestamp
+
+**Code Generation:**
+- Codes are generated using `inventory.utils.codes.generate_sequential_code()`
+- Generation happens in model's `save()` method before database insert
+- Codes are scoped per company (each company has its own sequence starting from 1)
+- Users cannot see or edit the code field in forms
 
 ### CSS Classes
 All form fields use consistent styling:

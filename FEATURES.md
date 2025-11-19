@@ -228,7 +228,7 @@ python manage.py makemessages -l fa
 **Location**: `/production/personnel/`
 
 **Features**:
-- 8-digit unique person code
+- Auto-generated 8-digit unique person code (not user-editable)
 - Persian and English names
 - National ID and personnel code
 - **Smart Username**: Checkbox to auto-sync with personnel code
@@ -260,7 +260,8 @@ python manage.py makemessages -l fa
 **Location**: `/production/machines/`
 
 **Features**:
-- Machine code and name (Persian/English)
+- Auto-generated 10-digit machine code (not user-editable)
+- Machine name (Persian/English)
 - Machine type classification (CNC, lathe, milling, assembly, packaging, etc.)
 - Work center assignment
 - Manufacturer and model information

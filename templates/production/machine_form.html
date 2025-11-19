@@ -34,14 +34,6 @@
         
         <div class="form-row">
           <div class="form-field">
-            <label for="{{ form.public_code.id_for_label }}">{{ form.public_code.label }} *</label>
-            {{ form.public_code }}
-            {% if form.public_code.errors %}
-              <span class="error">{{ form.public_code.errors.0 }}</span>
-            {% endif %}
-          </div>
-          
-          <div class="form-field">
             <label for="{{ form.is_enabled.id_for_label }}">{{ form.is_enabled.label }}</label>
             {{ form.is_enabled }}
           </div>

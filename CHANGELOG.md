@@ -36,6 +36,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Custom CRUD forms for production entities:
   - PersonForm with username sync checkbox feature و انتخاب چند واحد سازمانی (moved from Shared module)
   - MachineForm for machine management
+- Automatic code generation for production entities:
+  - Person: 8-digit sequential code auto-generated per company (not user-editable)
+  - Machine: 10-digit sequential code auto-generated per company (not user-editable)
+  - Codes generated using `generate_sequential_code()` utility function
 - Generic reusable templates for forms and delete confirmations
 - Comprehensive form documentation (README_FORMS.md for inventory and shared)
 - Persian/English internationalization (i18n) with full RTL support
@@ -122,6 +126,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Prevents form submission failures due to missing auto-generated fields
 
 ### Changed
+- Automatic code generation for Person and Machine models:
+  - `public_code` fields are now `editable=False` in models
+  - Codes are automatically generated on save using `generate_sequential_code()`
+  - Code fields removed from PersonForm and MachineForm (users cannot enter codes)
+  - Code fields removed from form templates (machine_form.html, person_form.html)
 - Personnel management moved from Shared module (`shared_person`) to Production module (`production_person`)
   - All personnel-related models, views, forms, and templates moved to production app
   - Database tables renamed from `shared_person*` to `production_person*`

@@ -17,6 +17,8 @@ from shared.models import (
     TimeStampedModel,
 )
 
+from inventory.utils.codes import generate_sequential_code
+
 
 
 POSITIVE_DECIMAL = MinValueValidator(Decimal("0"))
@@ -47,6 +49,7 @@ class Person(
     public_code = models.CharField(
         max_length=8,
         validators=[NUMERIC_CODE_VALIDATOR],
+        editable=False,
     )
     username = models.CharField(max_length=150)
     first_name = models.CharField(max_length=120)
@@ -94,6 +97,15 @@ class Person(
 
     def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}"
+
+    def save(self, *args, **kwargs):
+        if not self.public_code and self.company_id:
+            self.public_code = generate_sequential_code(
+                self.__class__,
+                company_id=self.company_id,
+                width=8,
+            )
+        super().save(*args, **kwargs)
 
 
 class PersonAssignment(
@@ -164,6 +176,7 @@ class Machine(ProductionSortableModel):
     public_code = models.CharField(
         max_length=10,
         validators=[NUMERIC_CODE_VALIDATOR],
+        editable=False,
     )
     name = models.CharField(max_length=180)
     name_en = models.CharField(max_length=180, blank=True)
@@ -218,6 +231,12 @@ class Machine(ProductionSortableModel):
         return f"{self.public_code} · {self.name}"
 
     def save(self, *args, **kwargs):
+        if not self.public_code and self.company_id:
+            self.public_code = generate_sequential_code(
+                self.__class__,
+                company_id=self.company_id,
+                width=10,
+            )
         if self.work_center and not self.work_center_code:
             self.work_center_code = self.work_center.public_code
         super().save(*args, **kwargs)

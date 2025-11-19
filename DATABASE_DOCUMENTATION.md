@@ -384,7 +384,7 @@ This document provides a comprehensive mapping between the user interface (menus
 | id | BigInt | Primary key | Auto-increment |
 | company_id | BigInt | Company reference | FK to shared_company, Not null |
 | company_code | CharField(8) | Company code (cached) | Optional |
-| public_code | CharField(8) | Unique person code within company | Unique per company, Not null |
+| public_code | CharField(8) | Unique person code within company | Auto-generated, Unique per company, Not null, Not editable |
 | username | CharField(150) | Username | Unique per company, Not null |
 | first_name | CharField(120) | First name | Not null |
 | last_name | CharField(120) | Last name | Not null |
@@ -410,6 +410,67 @@ This document provides a comprehensive mapping between the user interface (menus
 - Many-to-One: `Person` → `Company` (company_id)
 - One-to-One: `Person` → `User` (user_id)
 - Many-to-Many: `Person` ↔ `CompanyUnit` (via production_person_company_units)
+
+**Code Generation:**
+- `public_code` is automatically generated on save using `generate_sequential_code()` utility
+- Code is 8-digit numeric, scoped per company
+- Users cannot manually enter or edit the code
+- Code field is not displayed in forms
+
+#### production_machine
+**Purpose**: Stores machine/equipment information for production
+
+| Field | Type | Description | Constraints |
+|-------|------|-------------|-------------|
+| id | BigInt | Primary key | Auto-increment |
+| company_id | BigInt | Company reference | FK to shared_company, Not null |
+| company_code | CharField(8) | Company code (cached) | Optional |
+| public_code | CharField(10) | Unique machine code within company | Auto-generated, Unique per company, Not null, Not editable |
+| name | CharField(180) | Machine name | Unique per company, Not null |
+| name_en | CharField(180) | English machine name | Optional |
+| machine_type | CharField(30) | Machine type classification | Not null |
+| work_center_id | BigInt | Assigned work center | FK to production_workcenter, Optional |
+| work_center_code | CharField(5) | Work center code (cached) | Optional |
+| manufacturer | CharField(120) | Manufacturer name | Optional |
+| model_number | CharField(60) | Model number | Optional |
+| serial_number | CharField(60) | Serial number | Unique, Optional |
+| purchase_date | Date | Purchase date | Optional |
+| installation_date | Date | Installation date | Optional |
+| capacity_specs | JSONField | Technical specifications | Default: {} |
+| maintenance_schedule | JSONField | Maintenance schedule | Default: {} |
+| last_maintenance_date | Date | Last maintenance date | Optional |
+| next_maintenance_date | Date | Next maintenance date | Optional |
+| status | CharField(20) | Machine status | Default: 'operational' |
+| description | CharField(255) | Description | Optional |
+| notes | TextField | Notes | Optional |
+| sort_order | SmallInt | Display order | Default: 0 |
+| is_enabled | SmallInt | Active status | Default: 1 |
+| metadata | JSONField | Additional metadata | Default: {} |
+| created_at | DateTime | Creation timestamp | Auto-set |
+| created_by_id | BigInt | Creator user | FK to shared_user, Optional |
+| edited_at | DateTime | Last edit timestamp | Auto-update |
+| edited_by_id | BigInt | Last editor user | FK to shared_user, Optional |
+| enabled_at | DateTime | Enable timestamp | Optional |
+| enabled_by_id | BigInt | User who enabled | FK to shared_user, Optional |
+| disabled_at | DateTime | Disable timestamp | Optional |
+| disabled_by_id | BigInt | User who disabled | FK to shared_user, Optional |
+
+**Relationships:**
+- Many-to-One: `Machine` → `Company` (company_id)
+- Many-to-One: `Machine` → `WorkCenter` (work_center_id)
+
+**Code Generation:**
+- `public_code` is automatically generated on save using `generate_sequential_code()` utility
+- Code is 10-digit numeric, scoped per company
+- Users cannot manually enter or edit the code
+- Code field is not displayed in forms
+
+**Status Choices:**
+- `operational`: Machine is operational and ready for use
+- `maintenance`: Machine is under maintenance
+- `idle`: Machine is idle/not in use
+- `broken`: Machine is broken and needs repair
+- `retired`: Machine is retired/decommissioned
 
 #### shared_user
 **Purpose**: User authentication and authorization (extends Django's AbstractUser)
