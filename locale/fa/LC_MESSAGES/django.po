@@ -157,13 +157,6 @@ msgstr "هدف / یادداشت‌ها"
 msgid "Selected warehouse is not permitted for this item."
 msgstr "انبار انتخاب‌شده برای این کالا مجاز نیست."
 
-#: inventory/forms.py:586
-msgid "Selected warehouse request is for a different item."
-msgstr "درخواست انبار انتخاب‌شده مربوط به کالای دیگری است."
-
-#: inventory/forms.py:590
-msgid "Selected warehouse request is for a different warehouse."
-msgstr "درخواست انبار انتخاب‌شده مربوط به انبار دیگری است."
 
 #: inventory/forms.py:436 inventory/forms.py:462 inventory/forms.py:490
 #: inventory/forms.py:516 inventory/forms.py:553 shared/forms.py:62
@@ -560,11 +553,11 @@ msgstr "درخواست انبار"
 
 #: inventory/forms.py:1241 inventory/forms.py:1391
 msgid "Selected warehouse request is for a different item."
-msgstr "Selected warehouse request is for a different item."
+msgstr "درخواست انبار انتخاب‌شده مربوط به کالای دیگری است."
 
 #: inventory/forms.py:1243 inventory/forms.py:1393
 msgid "Selected warehouse request is for a different warehouse."
-msgstr "Selected warehouse request is for a different warehouse."
+msgstr "درخواست انبار انتخاب‌شده مربوط به انبار دیگری است."
 
 #: inventory/forms.py:1356
 msgid "Contract Code"
@@ -704,21 +697,21 @@ msgstr "اقلام"
 
 #: inventory/models.py:353
 msgid "Item Specification"
-msgstr "Item Specification"
+msgstr "مشخصات کالا"
 
 #: inventory/models.py:354
 #, fuzzy
 #| msgid "Inspections"
 msgid "Item Specifications"
-msgstr "بازرسی‌ها"
+msgstr "مشخصات کالاها"
 
 #: inventory/models.py:401
 msgid "Item Unit Conversion"
-msgstr "Item Unit Conversion"
+msgstr "تبدیل واحد کالا"
 
 #: inventory/models.py:402
 msgid "Item Unit Conversions"
-msgstr "Item Unit Conversions"
+msgstr "تبدیل‌های واحد کالا"
 
 #: inventory/models.py:439
 #, fuzzy
@@ -734,11 +727,11 @@ msgstr "انبارها"
 
 #: inventory/models.py:483
 msgid "Item Substitute"
-msgstr "Item Substitute"
+msgstr "کالای جایگزین"
 
 #: inventory/models.py:484
 msgid "Item Substitutes"
-msgstr "Item Substitutes"
+msgstr "کالاهای جایگزین"
 
 #: inventory/models.py:529 shared/permissions.py:199
 #: templates/inventory/receipt_temporary.html:117
@@ -1915,7 +1908,7 @@ msgstr "شرکت‌ها"
 
 #: shared/forms.py:152
 msgid "Select one or more organizational units."
-msgstr "Select one or more organizational units."
+msgstr "یک یا چند واحد سازمانی انتخاب کنید."
 
 #: shared/forms.py:155 shared/views.py:244 shared/views.py:274
 msgid "Please select a company first."
@@ -1947,11 +1940,11 @@ msgstr "واحد والد باید متعلق به همان شرکت باشد."
 #: templates/shared/groups_list.html:12 templates/shared/groups_list.html:15
 #: templates/shared/users_list.html:56 templates/ui/components/sidebar.html:13
 msgid "Groups"
-msgstr "Groups"
+msgstr "گروه‌ها"
 
 #: shared/forms.py:255
 msgid "Assign the user to one or more groups."
-msgstr "Assign the user to one or more groups."
+msgstr "کاربر را به یک یا چند گروه اختصاص دهید."
 
 #: shared/forms.py:294 shared/forms.py:312
 #: templates/inventory/item_types.html:44
@@ -2380,7 +2373,7 @@ msgstr "لغو"
 
 #: shared/views.py:748
 msgid "Create Access Level"
-msgstr "Create Access Level"
+msgstr "ایجاد سطح دسترسی"
 
 #: shared/views.py:757
 #, fuzzy
@@ -2390,7 +2383,7 @@ msgstr "شخص با موفقیت ایجاد شد."
 
 #: shared/views.py:770
 msgid "Edit Access Level"
-msgstr "Edit Access Level"
+msgstr "ویرایش سطح دسترسی"
 
 #: shared/views.py:778
 #, fuzzy
@@ -2687,7 +2680,7 @@ msgstr "هیچ قلمی یافت نشد"
 
 #: templates/inventory/inventory_balance.html:147
 msgid "No items with inventory activity found for the selected filters."
-msgstr "No items with inventory activity found for the selected filters."
+msgstr "هیچ کالایی با فعالیت موجودی برای فیلترهای انتخاب‌شده یافت نشد."
 
 #: templates/inventory/inventory_balance.html:152
 msgid "Select a Warehouse"
@@ -2699,11 +2692,11 @@ msgstr "لطفاً یک انبار برای مشاهده موجودی انتخا
 
 #: templates/inventory/inventory_balance.html:159
 msgid "Error"
-msgstr "Error"
+msgstr "خطا"
 
 #: templates/inventory/inventory_balance.html:170
 msgid "No data to export"
-msgstr "No data to export"
+msgstr "داده‌ای برای خروجی وجود ندارد"
 
 #: templates/inventory/issue_consignment.html:8
 #: templates/inventory/issue_consumption.html:8
@@ -2748,14 +2741,14 @@ msgstr "جستجو"
 #: templates/inventory/issue_permanent.html:57
 #: templates/inventory/receipt_temporary.html:71
 msgid "Document code or item"
-msgstr "Document code or item"
+msgstr "کد سند یا کالا"
 
 #: templates/inventory/issue_permanent.html:141
 #: templates/inventory/receipt_temporary.html:178
 #: templates/inventory/stocktaking_deficit.html:84
 #: templates/inventory/stocktaking_records.html:85
 msgid "View"
-msgstr "View"
+msgstr "مشاهده"
 
 #: templates/inventory/issue_permanent.html:143
 #: templates/inventory/receipt_form.html:24
@@ -2764,7 +2757,7 @@ msgstr "View"
 #: templates/inventory/stocktaking_form.html:21
 #: templates/inventory/stocktaking_records.html:89
 msgid "Locked"
-msgstr "Locked"
+msgstr "قفل شده"
 
 #: templates/inventory/issue_permanent.html:146
 #: templates/inventory/item_types.html:50
@@ -2788,7 +2781,7 @@ msgstr "ویرایش"
 #: templates/inventory/stocktaking_form.html:27
 #: templates/inventory/stocktaking_records.html:95
 msgid "Lock"
-msgstr "Lock"
+msgstr "قفل"
 
 #: templates/inventory/issue_permanent.html:166
 #, fuzzy
@@ -2956,7 +2949,7 @@ msgstr "ویرایش"
 #: templates/inventory/receipt_form.html:38
 #: templates/inventory/stocktaking_form.html:35
 msgid "This document is locked and can no longer be edited or deleted."
-msgstr "This document is locked and can no longer be edited or deleted."
+msgstr "این سند قفل شده و دیگر قابل ویرایش یا حذف نیست."
 
 #: templates/inventory/receipt_temporary.html:16
 #: templates/inventory/receipt_temporary.html:206
@@ -2967,25 +2960,25 @@ msgstr "رسیدها"
 
 #: templates/inventory/receipt_temporary.html:122
 msgid "Converted"
-msgstr "Converted"
+msgstr "تبدیل شده"
 
 #: templates/inventory/receipt_temporary.html:157
 msgid "Awaiting QC"
-msgstr "Awaiting QC"
+msgstr "در انتظار کنترل کیفیت"
 
 #: templates/inventory/receipt_temporary.html:159
 msgid "Closed"
-msgstr "Closed"
+msgstr "بسته شده"
 
 #: templates/inventory/receipt_temporary.html:168
 #: templates/shared/access_levels_list.html:66
 msgid "Yes"
-msgstr "Yes"
+msgstr "بله"
 
 #: templates/inventory/receipt_temporary.html:170
 #: templates/shared/access_levels_list.html:68
 msgid "No"
-msgstr "No"
+msgstr "خیر"
 
 #: templates/inventory/receipt_temporary.html:203
 #, fuzzy
@@ -3087,7 +3080,7 @@ msgstr "با ایجاد اولین قلم شروع کنید."
 #: templates/shared/access_level_confirm_delete.html:4
 #: templates/shared/access_level_confirm_delete.html:16
 msgid "Delete Access Level"
-msgstr "Delete Access Level"
+msgstr "حذف سطح دسترسی"
 
 #: templates/shared/access_level_confirm_delete.html:21
 #, python-format
@@ -3111,27 +3104,27 @@ msgstr ""
 
 #: templates/shared/access_level_form.html:51
 msgid "Feature"
-msgstr "Feature"
+msgstr "قابلیت"
 
 #: templates/shared/access_level_form.html:52
 msgid "View Scope"
-msgstr "View Scope"
+msgstr "محدوده مشاهده"
 
 #: templates/shared/access_level_form.html:68
 msgid "None"
-msgstr "None"
+msgstr "هیچکدام"
 
 #: templates/shared/access_level_form.html:72
 msgid "Own"
-msgstr "Own"
+msgstr "خود"
 
 #: templates/shared/access_level_form.html:80
 msgid "Not applicable"
-msgstr "Not applicable"
+msgstr "قابل اعمال نیست"
 
 #: templates/shared/access_level_form.html:94
 msgid "No extra actions available."
-msgstr "No extra actions available."
+msgstr "هیچ عملیات اضافی در دسترس نیست."
 
 #: templates/shared/access_levels_list.html:19
 #: templates/shared/access_levels_list.html:109
@@ -3160,7 +3153,7 @@ msgstr "پاک کردن"
 
 #: templates/shared/access_levels_list.html:54
 msgid "Global"
-msgstr "Global"
+msgstr "سراسری"
 
 #: templates/shared/access_levels_list.html:96
 #: templates/shared/groups_list.html:118 templates/shared/users_list.html:122
@@ -3176,7 +3169,7 @@ msgstr "هیچ پرسنلی یافت نشد"
 
 #: templates/shared/access_levels_list.html:108
 msgid "Start by defining an access level and assigning feature permissions."
-msgstr "Start by defining an access level and assigning feature permissions."
+msgstr "با تعریف یک سطح دسترسی و اختصاص مجوزهای قابلیت شروع کنید."
 
 #: templates/shared/companies.html:19
 msgid "Create Company +"
@@ -3245,7 +3238,7 @@ msgstr "ایجاد شخص +"
 
 #: templates/shared/groups_list.html:30
 msgid "Group name"
-msgstr "Group name"
+msgstr "نام گروه"
 
 #: templates/shared/groups_list.html:129
 #, fuzzy
@@ -3255,7 +3248,7 @@ msgstr "هیچ شرکتی یافت نشد"
 
 #: templates/shared/groups_list.html:130
 msgid "Start by creating a group and assigning access levels."
-msgstr "Start by creating a group and assigning access levels."
+msgstr "با ایجاد یک گروه و اختصاص سطوح دسترسی شروع کنید."
 
 #: templates/shared/person_confirm_delete.html:4
 #: templates/shared/person_confirm_delete.html:14
@@ -3269,11 +3262,11 @@ msgstr "آیا واقعاً می‌خواهید این شخص را حذف کنی
 
 #: templates/shared/person_form.html:33
 msgid "Organizational Units"
-msgstr "Organizational Units"
+msgstr "واحدهای سازمانی"
 
 #: templates/shared/person_form.html:44
 msgid "No units available for this company."
-msgstr "No units available for this company."
+msgstr "هیچ واحدی برای این شرکت در دسترس نیست."
 
 #: templates/shared/personnel.html:19 templates/shared/personnel.html:118
 msgid "Create Person +"
@@ -3327,7 +3320,7 @@ msgstr "ایجاد شخص +"
 
 #: templates/shared/users_list.html:30
 msgid "Username, email or name"
-msgstr "Username, email or name"
+msgstr "نام کاربری، ایمیل یا نام"
 
 #: templates/shared/users_list.html:133
 #, fuzzy

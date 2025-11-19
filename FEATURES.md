@@ -49,16 +49,22 @@ class InventoryBaseView(LoginRequiredMixin):
 ## 2. Internationalization (i18n)
 
 ### Supported Languages
-- **Persian (Farsi)** - Primary language with full RTL support
+- **Persian (Farsi)** - Primary language with full RTL support (default)
 - **English** - Secondary language
 
 ### Features
+- **Default Language**: Application opens in Persian by default (`LANGUAGE_CODE = 'fa'`)
 - **Language Switcher**: Header dropdown for instant language switching
-- **RTL/LTR Auto-Detection**: Layout automatically adjusts
+- **RTL/LTR Auto-Detection**: Layout automatically adjusts based on selected language
 - **Font Optimization**: Vazir font for Persian, system fonts for English
-- **Complete Translation**: All UI strings translated
+- **Complete Translations**: All UI elements, messages, form labels, and error messages are fully translated to Persian
+- **Translation Management**: Translation files in `locale/fa/LC_MESSAGES/django.po` with compiled `.mo` files
 - **Form Labels**: All form fields have Persian/English labels
 - **Error Messages**: Validation errors in user's language
+- **UI Improvements**: 
+  - Top menu buttons with flexible width (85-100px) and proper text wrapping for long labels
+  - Enhanced dashboard design with modern, minimal styling and gradient backgrounds
+  - Improved card layouts with hover animations and better spacing
 
 ## 2.1 Date Display (Jalali/Gregorian Conversion)
 

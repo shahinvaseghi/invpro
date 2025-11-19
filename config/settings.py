@@ -138,11 +138,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'fa'
 
 LANGUAGES = [
-    ("en", "English"),
     ("fa", "Persian"),
+    ("en", "English"),
 ]
 
 TIME_ZONE = env.str("DJANGO_TIME_ZONE")
@@ -154,6 +154,12 @@ USE_TZ = True
 LOCALE_PATHS = [
     BASE_DIR / "locale",
 ]
+
+# Language prefix in URLs
+# If False, the default language (fa) won't have a prefix in URLs
+# If True, all languages including default will have prefixes (e.g., /fa/, /en/)
+# Setting to False means /dashboard/ will be Persian, /en/dashboard/ will be English
+USE_L10N = True
 
 
 # Static files (CSS, JavaScript, Images)

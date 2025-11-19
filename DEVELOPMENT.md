@@ -396,6 +396,11 @@ class ItemTypeTestCase(TestCase):
 
 ## 7. Internationalization
 
+### Default Language
+- **Persian (Farsi)** is the default language (`LANGUAGE_CODE = 'fa'`)
+- Application opens in Persian by default for all new users
+- Users can switch to English using the language switcher in the header
+
 ### Adding Translatable Strings
 ```python
 # In Python code

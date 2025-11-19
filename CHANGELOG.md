@@ -9,6 +9,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Default language set to Persian (Farsi) - application now opens in Persian by default
+- Complete Persian translations for all UI elements and messages
+- Enhanced dashboard design with minimal, modern styling
+- Improved top menu button layout with proper text wrapping for long labels
+
+### Changed
+- Default language changed from English to Persian (`LANGUAGE_CODE = 'fa'`)
+- Top menu buttons now have flexible width (85-100px) to accommodate text properly
+- Dashboard cards redesigned with gradient backgrounds, hover animations, and improved spacing
+- Menu button font size reduced to 0.65rem for better text fitting
+- Menu icons reduced in size to provide more space for labels
+
+### Fixed
+- Top menu button text overflow issue - English labels no longer overflow from buttons
+- Missing Persian translations for common UI elements (View, Lock, Locked, Yes/No, Error, etc.)
+- Duplicate translation entries in django.po file causing compilation errors
+- Dashboard visual design - made more minimal and modern with better card styling
+
+### Added
 - Machine management in Production module (`production_machine` table)
   - Machine code, name, type classification
   - Work center assignment

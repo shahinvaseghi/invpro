@@ -141,8 +141,10 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 'total_permanent_issues': total_permanent_issues,
                 'pending_purchase_requests': pending_purchase_requests,
                 'pending_warehouse_requests': pending_warehouse_requests,
+                'total_pending_requests': pending_purchase_requests + pending_warehouse_requests,
                 'deficit_records': deficit_records,
                 'surplus_records': surplus_records,
+                'total_stocktaking_records': deficit_records + surplus_records,
                 'recent_receipts': recent_receipts,
                 'recent_issues': recent_issues,
             }

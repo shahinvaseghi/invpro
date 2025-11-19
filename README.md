@@ -449,11 +449,15 @@ CSS classes defined in `static/css/base.css`:
 
 ### 10.4 Internationalization
 
-All templates use Django i18n:
-- `{% load i18n %}` at top of each template
-- `{% trans "Text" %}` for translatable strings
-- `locale/fa/LC_MESSAGES/django.po` contains Persian translations
-- Automatic RTL support via `dir="{{ LANGUAGE_CODE }}"` on `<html>`
+The platform supports Persian (Farsi) and English with full RTL/LTR support:
+- **Default language**: Persian (`LANGUAGE_CODE = 'fa'`) - application opens in Persian by default
+- **Language switcher**: Available in header for instant language switching
+- All templates use Django i18n:
+  - `{% load i18n %}` at top of each template
+  - `{% trans "Text" %}` for translatable strings
+  - `locale/fa/LC_MESSAGES/django.po` contains Persian translations
+  - Automatic RTL support via `dir="{{ LANGUAGE_CODE }}"` on `<html>`
+- **Complete translations**: All UI elements, messages, form labels, and error messages are fully translated to Persian
 
 ### 10.5 Date Handling (Jalali/Gregorian)
 
