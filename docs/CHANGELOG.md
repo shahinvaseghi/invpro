@@ -27,6 +27,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Duplicate translation entries in django.po file causing compilation errors
 - Dashboard visual design - made more minimal and modern with better card styling
 - User edit form: Groups and superuser checkbox now save correctly - fixed issue where group selections and superuser status were not persisted when editing users
+- Purchase Request and Warehouse Request forms now correctly redirect to list view after successful save
+
+### Changed
+- **BREAKING**: Person model removed from inventory module - all request/approval fields now use Django User model directly
+  - `PurchaseRequest.requested_by` changed from Person to User
+  - `WarehouseRequest.requester` changed from Person to User
+  - Removed `requested_by_code`, `requester_code`, `approved_by`, `approved_by_code`, `rejected_by`, `cancelled_by` fields
+  - Person model now only used in Production module for workforce management
+- Enhanced sidebar navigation with modern styling:
+  - Gradient backgrounds and hover effects
+  - Icon indicators (📁, 📄, 📝) for better visual hierarchy
+  - Improved spacing and animations
+  - Clearer section headers with visual indicators
 
 ### Added
 - Machine management in Production module (`production_machine` table)

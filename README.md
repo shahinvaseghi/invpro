@@ -219,7 +219,7 @@ Implements master data, suppliers, documents, and stock adjustments.
 Key behaviours:
 - Codes and sequences are auto-populated in `save()` overrides (e.g., `Item`, `ItemLot`, `PurchaseRequest`).
 - Purchase and warehouse requests have dedicated create/edit/approve pages, enforce approver permissions, lock after approval, and only expose approved/locked requests for selection in permanent/consignment receipts.
-- Approval workflows use Django `User` accounts (never `Person`) for every approver field; requester-side analytics can still rely on `Person`. Refer to `docs/approval_workflow.md` for the end-to-end flow.
+- **IMPORTANT**: Approval workflows use Django `User` accounts for ALL requester and approver fields (never `Person`). The `Person` model is ONLY used in Production module for workforce management. Refer to `docs/approval_workflow.md` for the end-to-end flow.
 - All models inherit auditing and multi-company mixins.
 - Django admin dashboards are set up for quick data verification (`inventory/admin.py`).
 - **Warehouse Restrictions**: Items can only be received/issued in warehouses explicitly configured in `ItemWarehouse` relationship. Strict validation enforced in forms (server-side and client-side).
@@ -344,7 +344,7 @@ For automated seeding, consider writing Django fixtures or custom management com
 
 ## 8. Deployment Checklist
 
-Refer to `system_requirements.md` for a comprehensive deployment guide. Highlights:
+Refer to `docs/system_requirements.md` for a comprehensive deployment guide. Highlights:
 
 - Configure HTTPS (Nginx reverse proxy or IIS proxy depending on OS)
 - Set up Gunicorn (Linux) or Waitress / wfastcgi (Windows)
@@ -560,22 +560,22 @@ This project includes comprehensive documentation organized by module and purpos
 | File | Description |
 |------|-------------|
 | `README.md` | This file - platform overview, setup, and architecture guide |
-| `CHANGELOG.md` | Version history and release notes |
-| `FEATURES.md` | Feature list and capabilities |
-| `DEVELOPMENT.md` | Development guidelines and workflows |
-| `DATABASE_DOCUMENTATION.md` | Database schema and relationships |
-| `system_requirements.md` | System requirements and deployment guide |
-| `ui_guidelines.md` | UI/UX guidelines and component documentation |
+| `docs/CHANGELOG.md` | Version history and release notes |
+| `docs/FEATURES.md` | Feature list and capabilities |
+| `docs/DEVELOPMENT.md` | Development guidelines and workflows |
+| `docs/DATABASE_DOCUMENTATION.md` | Database schema and relationships |
+| `docs/system_requirements.md` | System requirements and deployment guide |
+| `docs/ui_guidelines.md` | UI/UX guidelines and component documentation |
 | `docs/approval_workflow.md` | Approval workflow reference for purchase/warehouse/stocktaking |
 
 ### 14.2 Module Design Plans
 
 | File | Description |
 |------|-------------|
-| `shared_module_db_design_plan.md` | Shared module database design specifications |
-| `inventory_module_db_design_plan.md` | Inventory module database design specifications |
-| `production_module_db_design_plan.md` | Production module database design specifications |
-| `qc_module_db_design_plan.md` | Quality Control module database design specifications |
+| `docs/shared_module_db_design_plan.md` | Shared module database design specifications |
+| `docs/inventory_module_db_design_plan.md` | Inventory module database design specifications |
+| `docs/production_module_db_design_plan.md` | Production module database design specifications |
+| `docs/qc_module_db_design_plan.md` | Quality Control module database design specifications |
 
 ### 14.3 Module README Files
 

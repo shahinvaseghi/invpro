@@ -65,7 +65,6 @@ def active_company(request):
         context['notification_count'] = 0
         
         if company_id:
-            from production.models import Person
             from inventory import models as inventory_models
             from django.utils import timezone
             
@@ -119,47 +118,39 @@ def active_company(request):
                 })
             
             # 2. User's requests that were approved (recently - last 7 days)
-            # Get current person for requested_by/requester lookup
-            current_person = Person.objects.filter(
-                user=request.user,
-                company_id=company_id,
-                is_enabled=1
-            ).first()
+            week_ago = timezone.now() - timezone.timedelta(days=7)
             
-            if current_person:
-                week_ago = timezone.now() - timezone.timedelta(days=7)
-                
-                approved_purchase_requests = inventory_models.PurchaseRequest.objects.filter(
-                    company_id=company_id,
-                    requested_by=current_person,
-                    status=inventory_models.PurchaseRequest.Status.APPROVED,
-                    approved_at__gte=week_ago,
-                    is_enabled=1
-                ).count()
-                
-                if approved_purchase_requests > 0:
-                    notifications.append({
-                        'type': 'approved',
-                        'message': f'{approved_purchase_requests} درخواست خرید شما تایید شد',
-                        'url': 'inventory:purchase_requests',
-                        'count': approved_purchase_requests,
-                    })
-                
-                approved_warehouse_requests = inventory_models.WarehouseRequest.objects.filter(
-                    company_id=company_id,
-                    requester=current_person,
-                    request_status='approved',
-                    approved_at__gte=week_ago,
-                    is_enabled=1
-                ).count()
-                
-                if approved_warehouse_requests > 0:
-                    notifications.append({
-                        'type': 'approved',
-                        'message': f'{approved_warehouse_requests} درخواست انبار شما تایید شد',
-                        'url': 'inventory:warehouse_requests',
-                        'count': approved_warehouse_requests,
-                    })
+            approved_purchase_requests = inventory_models.PurchaseRequest.objects.filter(
+                company_id=company_id,
+                requested_by=request.user,
+                status=inventory_models.PurchaseRequest.Status.APPROVED,
+                approved_at__gte=week_ago,
+                is_enabled=1
+            ).count()
+            
+            if approved_purchase_requests > 0:
+                notifications.append({
+                    'type': 'approved',
+                    'message': f'{approved_purchase_requests} درخواست خرید شما تایید شد',
+                    'url': 'inventory:purchase_requests',
+                    'count': approved_purchase_requests,
+                })
+            
+            approved_warehouse_requests = inventory_models.WarehouseRequest.objects.filter(
+                company_id=company_id,
+                requester=request.user,
+                request_status='approved',
+                approved_at__gte=week_ago,
+                is_enabled=1
+            ).count()
+            
+            if approved_warehouse_requests > 0:
+                notifications.append({
+                    'type': 'approved',
+                    'message': f'{approved_warehouse_requests} درخواست انبار شما تایید شد',
+                    'url': 'inventory:warehouse_requests',
+                    'count': approved_warehouse_requests,
+                })
             
             context['notifications'] = notifications
             context['notification_count'] = sum(n['count'] for n in notifications)

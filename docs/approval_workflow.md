@@ -1,6 +1,6 @@
 # Approval Workflow Guide
 
-Approval steps across the platform (purchase requests, warehouse requests, and stocktaking records) are now fully **user-based**. Django's `User` model owns every approval, while the Production module's `Person` records remain focused on work-center staffing and man-hour analytics.
+Approval steps across the platform (purchase requests, warehouse requests, and stocktaking records) are now fully **user-based**. Django's `User` model owns every approval and request creation. The Production module's `Person` records remain focused solely on work-center staffing, work line assignments, and man-hour analytics.
 
 Use this guide whenever you need to troubleshoot approver visibility, wire new approval-enabled features, or explain the experience to stakeholders.
 
@@ -17,7 +17,7 @@ Use this guide whenever you need to troubleshoot approver visibility, wire new a
 
 | Aspect | Details |
 | --- | --- |
-| Requester | Still linked to `production.Person` for compatibility with line-level workforce KPIs. |
+| Requester | ForeignKey to Django `User` (`requested_by`). Directly tracks which user created the request. |
 | Approver | ForeignKey to Django `User` (`approver_id`). |
 | Form | `PurchaseRequestForm` pulls approvers via `get_feature_approvers("inventory.requests.purchase", company_id)` and requires a selection. |
 | View | `PurchaseRequestApproveView` checks that the active user matches `approver_id` **and** belongs to the allowed approver list. Non-matching users receive a localized error. |
@@ -27,16 +27,23 @@ Use this guide whenever you need to troubleshoot approver visibility, wire new a
 
 - The approval panel is rendered only if `request.user.id == purchase_request.approver_id`.
 - Users without approval permission never see approve/reject actions thanks to a combination of template checks (`approver_user_ids`) and server-side validation.
+- Users can only edit their own draft requests (`requested_by == request.user`).
 
 ## Warehouse Requests
 
 | Aspect | Details |
 | --- | --- |
-| Requester | Remains a `Person` to align with staffing and departmental reporting. |
-| Approver | ForeignKey to Django `User`, surfaced through `get_feature_approvers("inventory.requests.warehouse", company_id)`. |
-| Form | `WarehouseRequestForm` enforces approver selection and filters items/warehouses/units based on company scope. |
-| View | `WarehouseRequestApproveView` mirrors the purchase flow: only the designated approver (and users with the permission) can approve. |
-| Locking | Sets `request_status = "approved"`, stamps `approved_at`, optionally stores `approved_by` (person) for work-line metrics, and locks the document for downstream issue generation. |
+| Requester | ForeignKey to Django `User` (`requester`). Directly tracks which user created the request. |
+| Approver | Django `User` filtered by warehouse-request approval permission (`approver`). |
+| Form | `WarehouseRequestForm` invokes `get_feature_approvers("inventory.requests.warehouse", company_id)` and displays only users with approval authority. |
+| View | `WarehouseRequestApproveView` ensures the current user is the designated approver before allowing the POST. |
+| Locking | On approval, `request_status` changes to `approved`, `approved_at` and `is_locked=1` are recorded. |
+
+### Visibility Rules
+
+- The approval panel is rendered only if `request.user.id == warehouse_request.approver_id`.
+- Users without approval permission never see approve/reject actions.
+- Users can only edit their own draft requests (`requester == request.user`).
 
 ## Stocktaking Records
 
@@ -67,13 +74,61 @@ Use this guide whenever you need to troubleshoot approver visibility, wire new a
 5. **Locking**: After approval, confirm `is_locked`/status fields change and the record becomes selectable in downstream forms.
 6. **Notifications**: With pending approvals, confirm the bell badge count and dropdown entries. After approval, ensure requesters receive the "approved" notification.
 
-## When to Touch `Person`
+## When to Use `Person` vs `User`
 
-`production.Person` is still the authoritative source for:
+### Use `User` for:
 
-- Staffing rosters inside production work lines.
-- Department/unit membership and man-hour calculations.
-- Linking requesters to physical employees for analytics.
+- **All inventory requests**: Purchase requests, warehouse requests
+- **All approval workflows**: Approvers, approval tracking
+- **Document creation tracking**: Who created/edited documents
+- **Notifications**: Who should receive approval notifications
+- **Access control**: Permission checks, authentication
 
-Do **not** reintroduce `Person` into approval fields; all approval controls must stay user-based.
+### Use `Person` ONLY for:
 
+- **Production module operations**:
+  - Staffing rosters inside production work lines
+  - Work line assignments and capacity planning
+  - Man-hour calculations and labor cost tracking
+  - Department/unit membership for production analytics
+  - Shift scheduling and attendance tracking
+
+**Important**: Do **not** reintroduce `Person` into inventory module. All inventory operations must use Django `User` directly.
+
+## Model Changes (Breaking)
+
+### PurchaseRequest
+- ✅ `requested_by`: Changed from `Person` to `User`
+- ❌ `requested_by_code`: **REMOVED**
+- ✅ `approver`: Remains `User` (already was `User`)
+
+### WarehouseRequest
+- ✅ `requester`: Changed from `Person` to `User`
+- ❌ `requester_code`: **REMOVED**
+- ✅ `approver`: Remains `User` (already was `User`)
+- ❌ `approved_by`: **REMOVED**
+- ❌ `approved_by_code`: **REMOVED**
+- ❌ `rejected_by`: **REMOVED**
+- ❌ `cancelled_by`: **REMOVED**
+
+### Migration
+- Migration `0023_remove_person_from_inventory` handles all these changes
+- Existing data in removed fields will be lost
+- Ensure you have backups before applying this migration
+
+## Code References
+
+### Forms
+- `inventory/forms.py`: `get_feature_approvers()` function
+- `inventory/forms.py`: `PurchaseRequestForm`, `WarehouseRequestForm`
+
+### Views
+- `inventory/views.py`: `PurchaseRequestCreateView`, `PurchaseRequestApproveView`
+- `inventory/views.py`: `WarehouseRequestCreateView`, `WarehouseRequestApproveView`
+
+### Context Processors
+- `shared/context_processors.py`: `active_company()` - handles notifications
+
+### Templates
+- `templates/base.html`: Notification bell UI
+- `templates/ui/dashboard.html`: Dashboard with approval stats

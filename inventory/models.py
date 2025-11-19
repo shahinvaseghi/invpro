@@ -16,7 +16,6 @@ from shared.models import (
     TimeStampedModel,
     User,
 )
-from production.models import Person
 from .utils.codes import generate_sequential_code
 
 
@@ -704,11 +703,10 @@ class PurchaseRequest(InventoryBaseModel, LockableModel):
     request_code = models.CharField(max_length=20, unique=True)
     request_date = models.DateField(default=timezone.now)
     requested_by = models.ForeignKey(
-        Person,
+        User,
         on_delete=models.PROTECT,
         related_name="purchase_requests",
     )
-    requested_by_code = models.CharField(max_length=8, validators=[NUMERIC_CODE_VALIDATOR])
     item = models.ForeignKey(
         Item,
         on_delete=models.PROTECT,
@@ -780,8 +778,6 @@ class PurchaseRequest(InventoryBaseModel, LockableModel):
     def save(self, *args, **kwargs):
         if not self.request_code:
             self.request_code = self._generate_request_code()
-        if not self.requested_by_code:
-            self.requested_by_code = self.requested_by.public_code
         if not self.item_code:
             self.item_code = self.item.item_code
         super().save(*args, **kwargs)
@@ -1924,11 +1920,10 @@ class WarehouseRequest(InventoryBaseModel, LockableModel):
     warehouse_code = models.CharField(max_length=8, validators=[NUMERIC_CODE_VALIDATOR])
     
     requester = models.ForeignKey(
-        Person,
+        User,
         on_delete=models.PROTECT,
         related_name="warehouse_requests",
     )
-    requester_code = models.CharField(max_length=8, validators=[NUMERIC_CODE_VALIDATOR])
     approver = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -1979,28 +1974,9 @@ class WarehouseRequest(InventoryBaseModel, LockableModel):
     submitted_at = models.DateTimeField(null=True, blank=True)
     
     approved_at = models.DateTimeField(null=True, blank=True)
-    approved_by = models.ForeignKey(
-        Person,
-        on_delete=models.SET_NULL,
-        related_name="warehouse_requests_approved",
-        null=True,
-        blank=True,
-    )
-    approved_by_code = models.CharField(
-        max_length=8,
-        validators=[NUMERIC_CODE_VALIDATOR],
-        blank=True,
-    )
     approval_notes = models.TextField(blank=True)
     
     rejected_at = models.DateTimeField(null=True, blank=True)
-    rejected_by = models.ForeignKey(
-        Person,
-        on_delete=models.SET_NULL,
-        related_name="warehouse_requests_rejected",
-        null=True,
-        blank=True,
-    )
     rejection_reason = models.TextField(blank=True)
     
     issued_at = models.DateTimeField(null=True, blank=True)
@@ -2015,13 +1991,6 @@ class WarehouseRequest(InventoryBaseModel, LockableModel):
     )
     
     cancelled_at = models.DateTimeField(null=True, blank=True)
-    cancelled_by = models.ForeignKey(
-        Person,
-        on_delete=models.SET_NULL,
-        related_name="warehouse_requests_cancelled",
-        null=True,
-        blank=True,
-    )
     cancellation_reason = models.TextField(blank=True)
     
     notes = models.TextField(blank=True)
@@ -2068,11 +2037,6 @@ class WarehouseRequest(InventoryBaseModel, LockableModel):
             self.item_code = self.item.item_code
         if self.warehouse and not self.warehouse_code:
             self.warehouse_code = self.warehouse.public_code
-        if self.requester and not self.requester_code:
-            self.requester_code = self.requester.public_code
         if self.department_unit and not self.department_unit_code:
             self.department_unit_code = self.department_unit.public_code
-        if self.approved_by and not self.approved_by_code:
-            self.approved_by_code = self.approved_by.public_code
-        
         super().save(*args, **kwargs)

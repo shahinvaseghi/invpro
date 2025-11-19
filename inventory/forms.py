@@ -45,7 +45,7 @@ from .models import (
     ReceiptConsignmentLine,
 )
 from shared.models import CompanyUnit
-from production.models import Person
+# Person model removed - only used in production module
 from .services import serials as serial_service
 from .fields import JalaliDateField
 from .widgets import JalaliDateInput

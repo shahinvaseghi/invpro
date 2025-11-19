@@ -106,7 +106,7 @@ class SupplierItemAdmin(admin.ModelAdmin):
 class PurchaseRequestAdmin(admin.ModelAdmin):
     list_display = ("company", "request_code", "item", "quantity_requested", "status", "priority")
     list_filter = ("company", "status", "priority")
-    search_fields = ("request_code", "item__item_code", "requested_by__first_name", "requested_by__last_name")
+    search_fields = ("request_code", "item__item_code", "requested_by__username")
 
 
 @admin.register(models.ReceiptTemporary)
@@ -183,5 +183,5 @@ class StocktakingRecordAdmin(admin.ModelAdmin):
 class WarehouseRequestAdmin(admin.ModelAdmin):
     list_display = ("company", "request_code", "item", "quantity_requested", "request_status", "priority", "needed_by_date")
     list_filter = ("company", "request_status", "priority", "warehouse", "request_date")
-    search_fields = ("request_code", "item_code", "requester_code", "purpose")
-    readonly_fields = ("request_code", "item_code", "warehouse_code", "requester_code", "department_unit_code", "approved_by_code")
+    search_fields = ("request_code", "item_code", "purpose")
+    readonly_fields = ("request_code", "item_code", "warehouse_code", "department_unit_code")

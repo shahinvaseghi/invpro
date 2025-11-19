@@ -845,16 +845,12 @@ class PurchaseRequestListView(InventoryBaseView, ListView):
         context['status_filter'] = self.request.GET.get('status', '')
         context['priority_filter'] = self.request.GET.get('priority', '')
         context['search_term'] = self.request.GET.get('search', '')
-        current_person = Person.objects.filter(company_id=company_id, user=self.request.user).first()
-        context['current_person'] = current_person
         approver_queryset = forms.get_purchase_request_approvers(company_id)
         approver_ids = set(approver_queryset.values_list('id', flat=True))
         for pr in context['purchase_requests']:
-            requested_by_id = getattr(pr, 'requested_by_id', None)
             pr.can_current_user_edit = (
                 pr.status == models.PurchaseRequest.Status.DRAFT
-                and current_person
-                and requested_by_id == getattr(current_person, 'id', None)
+                and pr.requested_by_id == self.request.user.id
             )
             pr.can_current_user_approve = (
                 pr.status == models.PurchaseRequest.Status.DRAFT
@@ -876,17 +872,13 @@ class PurchaseRequestCreateView(PurchaseRequestFormMixin, CreateView):
         if not company_id:
             form.add_error(None, _('شرکت فعال مشخص نشده است.'))
             return self.form_invalid(form)
-        requester = Person.objects.filter(company_id=company_id, user=self.request.user).first()
-        if not requester:
-            form.add_error(None, _('برای این شرکت پروفایل پرسنلی متصل به کاربر فعلی یافت نشد.'))
-            return self.form_invalid(form)
         form.instance.company_id = company_id
-        form.instance.requested_by = requester
+        form.instance.requested_by = self.request.user
         form.instance.request_date = timezone.now().date()
         form.instance.status = models.PurchaseRequest.Status.DRAFT
-        response = super().form_valid(form)
+        self.object = form.save()
         messages.success(self.request, _('درخواست خرید با موفقیت ثبت شد.'))
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self):
         return [
@@ -1065,16 +1057,12 @@ class WarehouseRequestListView(InventoryBaseView, ListView):
         context['status_filter'] = self.request.GET.get('status', '')
         context['priority_filter'] = self.request.GET.get('priority', '')
         context['search_term'] = self.request.GET.get('search', '')
-        current_person = Person.objects.filter(company_id=company_id, user=self.request.user).first()
-        context['current_person'] = current_person
         approver_queryset = forms.get_feature_approvers("inventory.requests.warehouse", company_id)
         approver_ids = set(approver_queryset.values_list('id', flat=True))
         for wr in context['requests']:
-            requester_id = getattr(wr, 'requester_id', None)
             wr.can_current_user_edit = (
                 wr.request_status == 'draft'
-                and current_person
-                and requester_id == getattr(current_person, 'id', None)
+                and wr.requester_id == self.request.user.id
             )
             wr.can_current_user_approve = (
                 wr.request_status == 'draft'
@@ -1096,17 +1084,13 @@ class WarehouseRequestCreateView(WarehouseRequestFormMixin, CreateView):
         if not company_id:
             form.add_error(None, _('شرکت فعال مشخص نشده است.'))
             return self.form_invalid(form)
-        requester = Person.objects.filter(company_id=company_id, user=self.request.user).first()
-        if not requester:
-            form.add_error(None, _('برای این شرکت پروفایل پرسنلی متصل به کاربر فعلی یافت نشد.'))
-            return self.form_invalid(form)
         form.instance.company_id = company_id
-        form.instance.requester = requester
+        form.instance.requester = self.request.user
         form.instance.request_date = timezone.now().date()
         form.instance.request_status = 'draft'
-        response = super().form_valid(form)
+        self.object = form.save()
         messages.success(self.request, _('درخواست انبار با موفقیت ثبت شد.'))
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self):
         return [
@@ -1180,14 +1164,8 @@ class WarehouseRequestApproveView(InventoryBaseView, View):
         now = timezone.now()
         warehouse_request.request_status = 'approved'
         warehouse_request.approved_at = now
-        # Get person for approved_by (for work line tracking)
-        from production.models import Person
-        current_person = Person.objects.filter(company_id=company_id, user=request.user).first()
-        if current_person:
-            warehouse_request.approved_by = current_person
-            warehouse_request.approved_by_code = current_person.public_code
         warehouse_request.is_locked = 1
-        update_fields = ['request_status', 'approved_at', 'approved_by', 'approved_by_code', 'approver', 'is_locked']
+        update_fields = ['request_status', 'approved_at', 'approver', 'is_locked']
         if hasattr(warehouse_request, 'locked_at'):
             warehouse_request.locked_at = now
             update_fields.append('locked_at')
