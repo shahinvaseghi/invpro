@@ -3439,3 +3439,12 @@ msgstr "بازرسی‌ها"
 
 #~ msgid "3-letter country code (e.g., IRN)"
 #~ msgstr "کد 3 حرفی کشور (مثال: IRN)"
+
+msgid "Notifications"
+msgstr "اعلان‌ها"
+
+msgid "No notifications"
+msgstr "اعلانی وجود ندارد"
+
+msgid "Click to view"
+msgstr "برای مشاهده کلیک کنید"

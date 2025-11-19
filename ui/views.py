@@ -113,6 +113,38 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             is_enabled=1
         ).count()
         
+        # Pending Approvals
+        # Purchase requests awaiting approval (draft with approver assigned)
+        pending_purchase_approvals = inventory_models.PurchaseRequest.objects.filter(
+            company_id=company_id,
+            status=inventory_models.PurchaseRequest.Status.DRAFT,
+            approver__isnull=False,
+            is_enabled=1
+        ).count()
+        
+        # Warehouse requests awaiting approval (draft with approver assigned)
+        pending_warehouse_approvals = inventory_models.WarehouseRequest.objects.filter(
+            company_id=company_id,
+            request_status='draft',
+            approver__isnull=False,
+            is_enabled=1
+        ).count()
+        
+        # Stocktaking records awaiting approval (records module)
+        pending_stocktaking_approvals = inventory_models.StocktakingRecord.objects.filter(
+            company_id=company_id,
+            approval_status='pending',
+            approver__isnull=False,
+            is_locked=0,
+            is_enabled=1
+        ).count()
+        
+        total_pending_approvals = (
+            pending_purchase_approvals +
+            pending_warehouse_approvals +
+            pending_stocktaking_approvals
+        )
+        
         # Recent activity (last 7 days)
         week_ago = today - timezone.timedelta(days=7)
         recent_receipts = inventory_models.ReceiptPermanent.objects.filter(
@@ -145,6 +177,10 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 'deficit_records': deficit_records,
                 'surplus_records': surplus_records,
                 'total_stocktaking_records': deficit_records + surplus_records,
+                'pending_purchase_approvals': pending_purchase_approvals,
+                'pending_warehouse_approvals': pending_warehouse_approvals,
+                'pending_stocktaking_approvals': pending_stocktaking_approvals,
+                'total_pending_approvals': total_pending_approvals,
                 'recent_receipts': recent_receipts,
                 'recent_issues': recent_issues,
             }

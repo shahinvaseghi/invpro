@@ -631,13 +631,15 @@ Stocktaking records now support a formal approval workflow with designated appro
 #### Features
 - Auto-generated codes following `PRQ-YYYYMM-XXXXXX`.
 - Dedicated create/edit forms with item-aware unit dropdown (default unit + defined conversions).
-- Approver selection restricted to personnel (from production module) granted the purchase-request approval permission.
+- Approver selection restricted to Django `User` accounts whose roles grant the purchase-request approval permission.
 - Approval action locks the request (`is_locked=1`), records timestamp, and exposes it to permanent/consignment receipt forms.
 - Receipt forms validate that the selected request matches both item and company before updating fulfillment quantities.
 - User-entered unit/quantity/price values are preserved for display while normalized values are stored for calculation.
 
 #### Use Cases
 - Procurement of raw materials, packaging, services, or maintenance spares that require managerial approval prior to receipt.
+
+> Detailed approval steps (permissions, locking, notifications) are documented in `docs/approval_workflow.md`.
 
 ### Warehouse Requests
 
@@ -649,8 +651,8 @@ Internal material requisition workflow
 - **Item Selection**: From company's item catalog
 - **Quantity Request**: With unit of measure restricted to the item's primary/alternate units
 - **Priority**: Low, Normal, High, Urgent
-- **Requester**: Linked to Person
-- **Approver**: Optional designated approver filtered by warehouse-request approval permission
+- **Requester**: Linked to `production.Person` for staffing analytics
+- **Approver**: Django `User` filtered by warehouse-request approval permission
 - **Department**: Requesting unit/department
 - **Approval Workflow**:
   1. Draft
@@ -665,6 +667,8 @@ Internal material requisition workflow
 - Department requesting supplies
 - Maintenance requesting spare parts
 - Quality control requesting samples
+
+> Refer to `docs/approval_workflow.md` for the full approval lifecycle and dashboard/notification hooks.
 
 ---
 
@@ -725,6 +729,15 @@ Internal material requisition workflow
   - `APPROVE` برای stocktaking records نیز پشتیبانی می‌شود.
 - Dedicated Shared module UI برای مدیریت کاربران، گروه‌ها و سطوح دسترسی:
   - **User Management**:
+    - Create and edit user accounts with full profile information
+    - Group assignments (ManyToMany relationship with Django groups)
+    - Superuser status management (checkbox properly saves)
+    - Staff user status
+    - Active/Inactive status
+    - Default company selection
+    - Password management (set on create, optional change on update)
+    - Company access management via `UserCompanyAccessFormSet`
+    - **Fixed Issues**: Group selections and superuser status now save correctly in edit form
     - فرم‌های ایجاد/ویرایش کاربر همراه با تعیین رمز، گروه‌ها و دسترسی شرکت‌ها
     - `groups` field uses `CheckboxSelectMultiple` widget for intuitive multi-selection
     - Users can be assigned to multiple groups simultaneously

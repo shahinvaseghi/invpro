@@ -219,6 +219,7 @@ Implements master data, suppliers, documents, and stock adjustments.
 Key behaviours:
 - Codes and sequences are auto-populated in `save()` overrides (e.g., `Item`, `ItemLot`, `PurchaseRequest`).
 - Purchase and warehouse requests have dedicated create/edit/approve pages, enforce approver permissions, lock after approval, and only expose approved/locked requests for selection in permanent/consignment receipts.
+- Approval workflows use Django `User` accounts (never `Person`) for every approver field; requester-side analytics can still rely on `Person`. Refer to `docs/approval_workflow.md` for the end-to-end flow.
 - All models inherit auditing and multi-company mixins.
 - Django admin dashboards are set up for quick data verification (`inventory/admin.py`).
 - **Warehouse Restrictions**: Items can only be received/issued in warehouses explicitly configured in `ItemWarehouse` relationship. Strict validation enforced in forms (server-side and client-side).
@@ -565,6 +566,7 @@ This project includes comprehensive documentation organized by module and purpos
 | `DATABASE_DOCUMENTATION.md` | Database schema and relationships |
 | `system_requirements.md` | System requirements and deployment guide |
 | `ui_guidelines.md` | UI/UX guidelines and component documentation |
+| `docs/approval_workflow.md` | Approval workflow reference for purchase/warehouse/stocktaking |
 
 ### 14.2 Module Design Plans
 

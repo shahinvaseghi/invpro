@@ -221,6 +221,7 @@ class UserBaseForm(forms.ModelForm):
             self.instance.groups.set(self._pending_groups)
 
     def save(self, commit=True):
+        # Store groups before calling super().save() to ensure they're available
         self._pending_groups = self.cleaned_data.get('groups')
         user = super().save(commit=commit)
         if commit:
@@ -228,8 +229,21 @@ class UserBaseForm(forms.ModelForm):
         return user
 
     def save_m2m(self):
-        super().save_m2m()
-        self._store_groups()
+        # Store groups BEFORE calling super().save_m2m() which may clear them
+        # Use _pending_groups if set, otherwise fall back to cleaned_data
+        groups_to_set = None
+        if hasattr(self, '_pending_groups') and self._pending_groups is not None:
+            # Convert QuerySet to list of IDs to avoid stale queryset issues
+            groups_to_set = list(self._pending_groups.values_list('id', flat=True))
+        elif hasattr(self, 'cleaned_data') and 'groups' in self.cleaned_data:
+            # Convert QuerySet to list of IDs
+            groups_to_set = list(self.cleaned_data['groups'].values_list('id', flat=True))
+        
+        # Don't call super().save_m2m() because it will try to save 'groups' field
+        # which is not in the form's Meta.fields, and may clear existing groups
+        # Instead, set groups directly
+        if groups_to_set is not None:
+            self.instance.groups.set(groups_to_set)
 
 
 class UserCreateForm(UserBaseForm):
@@ -292,13 +306,27 @@ class UserUpdateForm(UserBaseForm):
         return cleaned_data
 
     def save(self, commit=True):
+        # Ensure _pending_groups is set before calling super().save()
+        if not hasattr(self, '_pending_groups') or self._pending_groups is None:
+            self._pending_groups = self.cleaned_data.get('groups')
+        
         user = super().save(commit=False)
         new_password = self.cleaned_data.get('new_password1')
         if new_password:
             user.set_password(new_password)
         if commit:
             user.save()
+            # Save groups directly after user is saved
+            if hasattr(self, '_pending_groups') and self._pending_groups is not None:
+                groups_to_set = list(self._pending_groups.values_list('id', flat=True))
+                user.groups.set(groups_to_set)
+            # Call save_m2m for any other M2M fields
             self.save_m2m()
+        else:
+            # Even if commit=False, we need to ensure _pending_groups is set
+            # so save_m2m() can use it later
+            if not hasattr(self, '_pending_groups') or self._pending_groups is None:
+                self._pending_groups = self.cleaned_data.get('groups')
         return user
 
 

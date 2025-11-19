@@ -353,9 +353,9 @@ class UserCreateView(FeaturePermissionRequiredMixin, UserAccessFormsetMixin, Cre
             return self.render_to_response(self.get_context_data(form=form, access_formset=access_formset))
 
         with transaction.atomic():
-            self.object = form.save(commit=False)
-            self.object.save()
-            form.save_m2m()
+            # Save the core user fields (including role toggles & groups)
+            self.object = form.save()
+            # Persist company access rows
             access_formset.instance = self.object
             access_formset.save()
         messages.success(self.request, _('User created successfully.'))
@@ -384,9 +384,8 @@ class UserUpdateView(FeaturePermissionRequiredMixin, UserAccessFormsetMixin, Upd
             return self.render_to_response(self.get_context_data(form=form, access_formset=access_formset))
 
         with transaction.atomic():
-            self.object = form.save(commit=False)
-            self.object.save()
-            form.save_m2m()
+            # Persist user core data before saving company access rows
+            self.object = form.save()
             access_formset.instance = self.object
             access_formset.save()
         messages.success(self.request, _('User updated successfully.'))

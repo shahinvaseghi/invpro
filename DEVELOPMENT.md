@@ -321,6 +321,16 @@ python manage.py compilemessages -l fa
 - `forms.PurchaseRequestForm` و `forms.WarehouseRequestForm` هر دو `company_id` را از ویو دریافت می‌کنند و بر اساس کالا، واحد و (برای حواله داخلی) انبارهای مجاز را پویا فیلتر می‌کنند.
 - فیلد «approver» تنها کاربرانی را نمایش می‌دهد که در `FEATURE_PERMISSION_MAP` برای اکشن `approve` همان منو سطح دسترسی دارند؛ قبل از استفاده در UI، سطح دسترسی مناسب را در نقش‌ها تعریف کنید.
 - پس از تایید، `is_locked=1` روی درخواست‌ها تنظیم می‌شود و تنها همین درخواست‌های تاییدشده/قفل‌شده در فرم‌های رسید دائم و امانی قابل انتخاب هستند؛ منطق فرم‌ها تطابق کالا و انبار را پیش از ذخیره بررسی می‌کند.
+- ارتباطات «درخواست‌کننده» همچنان به `production.Person` متصل می‌مانند تا گزارش‌گیری نفر-ساعت حفظ شود، اما همه‌ی فیلدهای «approver» باید به Django `User` اشاره کنند. برای جزئیات کامل جریان تأیید، به `docs/approval_workflow.md` مراجعه کنید.
+
+### User Management Forms Notes
+- `UserCreateForm` و `UserUpdateForm` از `UserBaseForm` ارث‌بری می‌کنند و مدیریت کامل کاربران را فراهم می‌کنند.
+- **Group Assignments**: گروه‌ها به‌صورت ManyToMany ذخیره می‌شوند. در `UserUpdateForm.save()`، گروه‌ها مستقیماً بعد از `user.save()` ذخیره می‌شوند تا از پایداری اطمینان حاصل شود.
+- **Superuser Status**: وضعیت superuser به‌درستی ذخیره می‌شود.
+- **Password Management**: 
+  - در `UserCreateForm`: رمز عبور با `set_password()` تنظیم می‌شود
+  - در `UserUpdateForm`: رمز عبور فقط در صورت ارائه `new_password1` تغییر می‌کند
+- **Company Access**: دسترسی شرکت‌ها از طریق `UserCompanyAccessFormSet` در view مدیریت می‌شود (نه در خود فرم).
 
 #### Step 9: Run Migrations
 ```bash

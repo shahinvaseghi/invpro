@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Missing Persian translations for common UI elements (View, Lock, Locked, Yes/No, Error, etc.)
 - Duplicate translation entries in django.po file causing compilation errors
 - Dashboard visual design - made more minimal and modern with better card styling
+- User edit form: Groups and superuser checkbox now save correctly - fixed issue where group selections and superuser status were not persisted when editing users
 
 ### Added
 - Machine management in Production module (`production_machine` table)

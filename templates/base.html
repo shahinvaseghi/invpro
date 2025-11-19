@@ -199,6 +199,39 @@
         </div>
         <nav class="top-nav">
           {% block top_nav %}
+          <!-- Notifications -->
+          {% if request.user.is_authenticated %}
+          <div class="notification-bell">
+            <button type="button" class="notification-btn" id="notification-btn" title="{% trans 'Notifications' %}">
+              <span class="notification-icon">🔔</span>
+              {% if notification_count > 0 %}
+              <span class="notification-badge">{{ notification_count }}</span>
+              {% endif %}
+            </button>
+            <div class="notification-dropdown" id="notification-dropdown">
+              {% if notifications %}
+              <div class="notification-header">
+                <h3>{% trans "Notifications" %}</h3>
+                <span class="notification-count-badge">{{ notification_count }}</span>
+              </div>
+              <div class="notification-list">
+                {% for notification in notifications %}
+                <a href="{% url notification.url %}" class="notification-item notification-{{ notification.type }}">
+                  <div class="notification-message">{{ notification.message }}</div>
+                  <div class="notification-time">{% trans "Click to view" %}</div>
+                </a>
+                {% endfor %}
+              </div>
+              {% else %}
+              <div class="notification-empty">
+                <div class="notification-empty-icon">🔔</div>
+                <div class="notification-empty-text">{% trans "No notifications" %}</div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+          
           <!-- Company Selector -->
           {% if request.user.is_authenticated and user_companies|length > 1 %}
           <form action="{% url 'set_active_company' %}" method="post" class="company-switcher">
@@ -371,6 +404,25 @@
           }
         });
 
+        // Notification dropdown
+        const notificationBtn = document.getElementById('notification-btn');
+        const notificationDropdown = document.getElementById('notification-dropdown');
+        
+        if (notificationBtn && notificationDropdown) {
+          notificationBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            notificationDropdown.classList.toggle('open');
+          });
+          
+          // Close dropdown when clicking outside
+          document.addEventListener('click', function(e) {
+            if (!e.target.closest('.notification-bell')) {
+              notificationDropdown.classList.remove('open');
+            }
+          });
+        }
+        
         // Toggle sidebar
         const sidebarToggle = document.getElementById('sidebar-toggle');
         const sidebar = document.getElementById('app-sidebar');

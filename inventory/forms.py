@@ -56,11 +56,9 @@ User = get_user_model()
 
 def get_purchase_request_approvers(company_id):
     """
-    Get queryset of Person objects that can approve purchase requests.
-    For now, returns all active Person objects in the company.
-    In future, this can be filtered by role/permission.
+    Get queryset of User objects that can approve purchase requests.
     """
-    return Person.objects.filter(company_id=company_id, is_enabled=1).order_by('first_name', 'last_name')
+    return get_feature_approvers("inventory.requests.purchase", company_id)
 
 UNIT_CHOICES = [
     ("", _("--- انتخاب کنید ---")),
@@ -104,10 +102,11 @@ def generate_document_code(model, company_id, prefix: str) -> str:
 
 def get_feature_approvers(feature_code: str, company_id: int):
     if not company_id:
-        return Person.objects.none()
+        return User.objects.none()
 
     approved_users = User.objects.filter(
-        Q(
+        Q(is_superuser=True)
+        | Q(
             company_accesses__company_id=company_id,
             company_accesses__access_level__permissions__resource_code=feature_code,
             company_accesses__access_level__permissions__can_approve=1,
@@ -118,14 +117,7 @@ def get_feature_approvers(feature_code: str, company_id: int):
         )
     ).distinct()
 
-    return (
-        Person.objects.filter(
-            company_id=company_id,
-            user__in=approved_users,
-            is_enabled=1,
-        )
-        .order_by('first_name', 'last_name', 'public_code')
-    )
+    return approved_users.order_by('username', 'first_name', 'last_name')
 
 
 class PurchaseRequestForm(forms.ModelForm):
@@ -174,10 +166,13 @@ class PurchaseRequestForm(forms.ModelForm):
             approvers = get_feature_approvers("inventory.requests.purchase", self.company_id)
             self.fields['approver'].queryset = approvers
             self.fields['approver'].empty_label = _("--- انتخاب کنید ---")
-            self.fields['approver'].label_from_instance = lambda obj: f"{obj.first_name} {obj.last_name} · {obj.public_code}"
+            self.fields['approver'].label_from_instance = lambda obj: f"{obj.get_full_name() or obj.username} · {obj.username}"
         else:
             self.fields['item'].queryset = Item.objects.none()
-            self.fields['approver'].queryset = Person.objects.none()
+            self.fields['approver'].queryset = User.objects.none()
+
+        if 'approver' in self.fields:
+            self.fields['approver'].required = True
 
         self._set_unit_choices()
 
@@ -252,8 +247,16 @@ class PurchaseRequestForm(forms.ModelForm):
 
     def clean_approver(self):
         approver = self.cleaned_data.get('approver')
-        if approver and self.company_id and approver.company_id != self.company_id:
-            raise forms.ValidationError(_('Selected approver must belong to the active company.'))
+        if approver and self.company_id:
+            # Check if user has access to this company
+            from shared.models import UserCompanyAccess
+            has_access = UserCompanyAccess.objects.filter(
+                user=approver,
+                company_id=self.company_id,
+                is_enabled=1
+            ).exists()
+            if not has_access:
+                raise forms.ValidationError(_('Selected approver must have access to the active company.'))
         return approver
 
     def clean(self):
@@ -319,12 +322,15 @@ class WarehouseRequestForm(forms.ModelForm):
             approvers = get_feature_approvers("inventory.requests.warehouse", self.company_id)
             self.fields['approver'].queryset = approvers
             self.fields['approver'].empty_label = _("--- انتخاب کنید ---")
-            self.fields['approver'].label_from_instance = lambda obj: f"{obj.first_name} {obj.last_name} · {obj.public_code}"
+            self.fields['approver'].label_from_instance = lambda obj: f"{obj.get_full_name() or obj.username} · {obj.username}"
         else:
             self.fields['item'].queryset = Item.objects.none()
             self.fields['warehouse'].queryset = Warehouse.objects.none()
             self.fields['department_unit'].queryset = CompanyUnit.objects.none()
-            self.fields['approver'].queryset = Person.objects.none()
+            self.fields['approver'].queryset = User.objects.none()
+
+        if 'approver' in self.fields:
+            self.fields['approver'].required = True
 
         self._set_unit_choices()
         self._set_warehouse_queryset()
@@ -438,8 +444,16 @@ class WarehouseRequestForm(forms.ModelForm):
 
     def clean_approver(self):
         approver = self.cleaned_data.get('approver')
-        if approver and self.company_id and approver.company_id != self.company_id:
-            raise forms.ValidationError(_('Selected approver must belong to the active company.'))
+        if approver and self.company_id:
+            # Check if user has access to this company
+            from shared.models import UserCompanyAccess
+            has_access = UserCompanyAccess.objects.filter(
+                user=approver,
+                company_id=self.company_id,
+                is_enabled=1
+            ).exists()
+            if not has_access:
+                raise forms.ValidationError(_('Selected approver must have access to the active company.'))
         return approver
 
     def clean(self):
@@ -1985,12 +1999,10 @@ class StocktakingBaseForm(forms.ModelForm):
             self.fields['confirmed_by'].label_from_instance = confirmed_by_label
         if 'approver' in self.fields:
             from shared.models import User
-            # Get users who have access to this company
-            self.fields['approver'].queryset = User.objects.filter(
-                company_accesses__company_id=self.company_id,
-                company_accesses__is_enabled=1,
-                is_active=True
-            ).distinct()
+            # Get users who can approve stocktaking records
+            approvers = get_feature_approvers("inventory.stocktaking.records", self.company_id)
+            self.fields['approver'].queryset = approvers
+            self.fields['approver'].empty_label = _("--- انتخاب کنید ---")
             def approver_label(obj):
                 full_name = obj.get_full_name()
                 return f"{obj.username} - {full_name}" if full_name else obj.username

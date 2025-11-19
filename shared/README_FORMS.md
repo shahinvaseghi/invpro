@@ -160,6 +160,86 @@ labels = {
 
 ---
 
+### 2. UserCreateForm / UserUpdateForm
+**Purpose:** Create and edit user accounts with group assignments, company access, and password management
+
+**Model:** `User` (Django's custom user model)
+
+**Base Class:** `UserBaseForm`
+
+**Fields (UserBaseForm):**
+- `username` - Unique username
+- `email` - Email address (unique)
+- `first_name` - First name (Persian)
+- `last_name` - Last name (Persian)
+- `first_name_en` - First name (English)
+- `last_name_en` - Last name (English)
+- `phone_number` - Phone number
+- `mobile_number` - Mobile number
+- `is_active` - Active/Inactive status (checkbox)
+- `is_staff` - Staff user status (checkbox)
+- `is_superuser` - Superuser status (checkbox)
+- `default_company` - Default company for user login
+- `groups` - Multiple choice field for Django groups (checkbox list)
+
+**UserCreateForm Additional Fields:**
+- `password1` - Password (required)
+- `password2` - Password confirmation (required)
+
+**UserUpdateForm Additional Fields:**
+- `new_password1` - New password (optional)
+- `new_password2` - Confirm new password (optional)
+
+**Special Features:**
+- **Group Management**: Groups are saved using ManyToMany relationship. The form handles group assignments correctly by saving them directly after the user is saved.
+- **Superuser Status**: Superuser checkbox is properly saved and persisted.
+- **Company Access**: Managed via `UserCompanyAccessFormSet` in the view (not in the form itself).
+- **Password Handling**: 
+  - `UserCreateForm`: Sets password using `set_password()` method
+  - `UserUpdateForm`: Only sets password if `new_password1` is provided
+- **M2M Field Handling**: Groups are saved directly in `UserUpdateForm.save()` before calling `save_m2m()` to ensure they persist correctly.
+
+**Validation:**
+- Password fields must match (for both create and update)
+- Email must be unique
+- Username must be unique
+
+**Technical Implementation:**
+- `UserBaseForm` stores groups in `_pending_groups` attribute
+- `UserUpdateForm.save()` saves groups directly after `user.save()` to ensure persistence
+- `save_m2m()` method handles group assignments, converting QuerySet to list of IDs to avoid stale queryset issues
+
+**Example:**
+```python
+# Create user
+form = UserCreateForm(data={
+    'username': 'john_doe',
+    'email': 'john@example.com',
+    'first_name': 'جان',
+    'last_name': 'دو',
+    'is_active': 'on',
+    'groups': [1, 2],  # Group IDs
+    'password1': 'secure_password',
+    'password2': 'secure_password',
+})
+
+# Update user
+form = UserUpdateForm(data={
+    'username': 'john_doe',
+    'email': 'john@example.com',
+    'is_active': 'on',
+    'is_superuser': 'on',
+    'groups': [1],  # Group IDs
+    'new_password1': '',  # Leave empty to keep current password
+    'new_password2': '',
+}, instance=user)
+```
+
+**Known Issues Fixed:**
+- Previously, group selections and superuser status were not saved correctly in `UserUpdateForm`. This has been fixed by saving groups directly after `user.save()` and ensuring `save_m2m()` properly handles group assignments.
+
+---
+
 ### 3. AccessLevelForm
 **Purpose:** Create and edit access level roles with permission matrix
 

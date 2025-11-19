@@ -858,13 +858,10 @@ class PurchaseRequestListView(InventoryBaseView, ListView):
             )
             pr.can_current_user_approve = (
                 pr.status == models.PurchaseRequest.Status.DRAFT
-                and current_person
-                and (
-                    (pr.approver_id and pr.approver_id == current_person.id)
-                    or (not pr.approver_id and current_person.id in approver_ids)
-                )
+                and pr.approver_id
+                and pr.approver_id == self.request.user.id
             )
-        context['approver_person_ids'] = list(approver_ids)
+        context['approver_user_ids'] = list(approver_ids)
         return context
 
 
@@ -945,25 +942,22 @@ class PurchaseRequestApproveView(InventoryBaseView, View):
             messages.info(request, _('این درخواست قبلاً تایید شده است.'))
             return HttpResponseRedirect(reverse('inventory:purchase_requests'))
 
-        current_person = Person.objects.filter(company_id=company_id, user=request.user).first()
-        if not current_person:
-            messages.error(request, _('برای این شرکت پروفایل پرسنلی متصل به کاربر فعلی یافت نشد.'))
+        if not purchase_request.approver_id:
+            messages.error(request, _('برای این درخواست هنوز تاییدکننده تعیین نشده است.'))
             return HttpResponseRedirect(reverse('inventory:purchase_requests'))
 
-        if purchase_request.approver_id and purchase_request.approver_id != current_person.id:
+        if purchase_request.approver_id != request.user.id:
             messages.error(request, _('تنها تاییدکننده تعیین‌شده می‌تواند این درخواست را تایید کند.'))
             return HttpResponseRedirect(reverse('inventory:purchase_requests'))
 
-        allowed_person_ids = set(forms.get_purchase_request_approvers(company_id).values_list('id', flat=True))
-        if current_person.id not in allowed_person_ids:
+        allowed_user_ids = set(forms.get_purchase_request_approvers(company_id).values_list('id', flat=True))
+        if request.user.id not in allowed_user_ids:
             messages.error(request, _('شما مجوز تایید درخواست خرید را ندارید.'))
             return HttpResponseRedirect(reverse('inventory:purchase_requests'))
 
         now = timezone.now()
         purchase_request.status = models.PurchaseRequest.Status.APPROVED
         purchase_request.approved_at = now
-        if not purchase_request.approver_id:
-            purchase_request.approver = current_person
         purchase_request.is_locked = 1
         update_fields = ['status', 'approved_at', 'approver', 'is_locked']
         if hasattr(purchase_request, 'locked_at'):
@@ -1084,13 +1078,10 @@ class WarehouseRequestListView(InventoryBaseView, ListView):
             )
             wr.can_current_user_approve = (
                 wr.request_status == 'draft'
-                and current_person
-                and (
-                    (wr.approver_id and wr.approver_id == current_person.id)
-                    or (not wr.approver_id and current_person.id in approver_ids)
-                )
+                and wr.approver_id
+                and wr.approver_id == self.request.user.id
             )
-        context['approver_person_ids'] = list(approver_ids)
+        context['approver_user_ids'] = list(approver_ids)
         return context
 
 
@@ -1173,27 +1164,28 @@ class WarehouseRequestApproveView(InventoryBaseView, View):
             messages.info(request, _('این درخواست قبلاً تایید شده است.'))
             return HttpResponseRedirect(reverse('inventory:warehouse_requests'))
 
-        current_person = Person.objects.filter(company_id=company_id, user=request.user).first()
-        if not current_person:
-            messages.error(request, _('برای این شرکت پروفایل پرسنلی متصل به کاربر فعلی یافت نشد.'))
+        if not warehouse_request.approver_id:
+            messages.error(request, _('برای این درخواست هنوز تاییدکننده تعیین نشده است.'))
             return HttpResponseRedirect(reverse('inventory:warehouse_requests'))
 
-        if warehouse_request.approver_id and warehouse_request.approver_id != current_person.id:
+        if warehouse_request.approver_id != request.user.id:
             messages.error(request, _('تنها تاییدکننده تعیین‌شده می‌تواند این درخواست را تایید کند.'))
             return HttpResponseRedirect(reverse('inventory:warehouse_requests'))
 
-        allowed_person_ids = set(forms.get_feature_approvers("inventory.requests.warehouse", company_id).values_list('id', flat=True))
-        if current_person.id not in allowed_person_ids:
+        allowed_user_ids = set(forms.get_feature_approvers("inventory.requests.warehouse", company_id).values_list('id', flat=True))
+        if request.user.id not in allowed_user_ids:
             messages.error(request, _('شما مجوز تایید درخواست انبار را ندارید.'))
             return HttpResponseRedirect(reverse('inventory:warehouse_requests'))
 
         now = timezone.now()
         warehouse_request.request_status = 'approved'
         warehouse_request.approved_at = now
-        warehouse_request.approved_by = current_person
-        warehouse_request.approved_by_code = current_person.public_code
-        if not warehouse_request.approver_id:
-            warehouse_request.approver = current_person
+        # Get person for approved_by (for work line tracking)
+        from production.models import Person
+        current_person = Person.objects.filter(company_id=company_id, user=request.user).first()
+        if current_person:
+            warehouse_request.approved_by = current_person
+            warehouse_request.approved_by_code = current_person.public_code
         warehouse_request.is_locked = 1
         update_fields = ['request_status', 'approved_at', 'approved_by', 'approved_by_code', 'approver', 'is_locked']
         if hasattr(warehouse_request, 'locked_at'):

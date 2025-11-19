@@ -131,6 +131,31 @@
     </div>
     {% endif %}
 
+    <!-- Pending Approvals -->
+    {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' or user_feature_permissions|feature_allowed:'inventory.requests.warehouse' or user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' or user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' %}
+    <div class="dashboard-card card-purple">
+      <div class="card-icon-bg">✅</div>
+      <div class="card-content">
+        <div class="stat-value">{{ stats.total_pending_approvals|default:0 }}</div>
+        <div class="stat-label">{% trans "Pending Approvals" %}</div>
+        <div class="card-link-dropdown">
+          <button type="button" class="card-link" id="approvals-dropdown-btn">{% trans "More info" %} →</button>
+          <div class="card-link-menu" id="approvals-dropdown-menu">
+            {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' %}
+              <a href="{% url 'inventory:purchase_requests' %}" class="card-link-item">{% trans "Purchase Requests" %} ({{ stats.pending_purchase_approvals|default:0 }})</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.requests.warehouse' %}
+              <a href="{% url 'inventory:warehouse_requests' %}" class="card-link-item">{% trans "Warehouse Requests" %} ({{ stats.pending_warehouse_approvals|default:0 }})</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' or user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' %}
+              <a href="{% url 'inventory:stocktaking_records' %}" class="card-link-item">{% trans "Stocktaking Records" %} ({{ stats.pending_stocktaking_approvals|default:0 }})</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Quality Control -->
     {% if user_feature_permissions|feature_allowed:'inventory.receipts.temporary' %}
     <div class="dashboard-card card-blue">
@@ -295,6 +320,10 @@ document.addEventListener('DOMContentLoaded', function() {
   
   toggleDropdown(receiptsBtn, receiptsMenu, issuesMenu);
   toggleDropdown(issuesBtn, issuesMenu, receiptsMenu);
+  
+  const approvalsBtn = document.getElementById('approvals-dropdown-btn');
+  const approvalsMenu = document.getElementById('approvals-dropdown-menu');
+  toggleDropdown(approvalsBtn, approvalsMenu, null);
   
   // Close dropdowns when clicking outside
   document.addEventListener('click', function(e) {

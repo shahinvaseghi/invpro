@@ -14,6 +14,7 @@ from shared.models import (
     MetadataModel,
     SortableModel,
     TimeStampedModel,
+    User,
 )
 from production.models import Person
 from .utils.codes import generate_sequential_code
@@ -734,7 +735,7 @@ class PurchaseRequest(InventoryBaseModel, LockableModel):
     reference_document_id = models.BigIntegerField(null=True, blank=True)
     reference_document_code = models.CharField(max_length=30, blank=True)
     approver = models.ForeignKey(
-        Person,
+        User,
         on_delete=models.SET_NULL,
         related_name="purchase_requests_approved",
         null=True,
@@ -1929,15 +1930,10 @@ class WarehouseRequest(InventoryBaseModel, LockableModel):
     )
     requester_code = models.CharField(max_length=8, validators=[NUMERIC_CODE_VALIDATOR])
     approver = models.ForeignKey(
-        Person,
+        User,
         on_delete=models.SET_NULL,
         related_name="warehouse_requests_to_approve",
         null=True,
-        blank=True,
-    )
-    approver_code = models.CharField(
-        max_length=8,
-        validators=[NUMERIC_CODE_VALIDATOR],
         blank=True,
     )
     
@@ -2076,8 +2072,6 @@ class WarehouseRequest(InventoryBaseModel, LockableModel):
             self.requester_code = self.requester.public_code
         if self.department_unit and not self.department_unit_code:
             self.department_unit_code = self.department_unit.public_code
-        if self.approver and not self.approver_code:
-            self.approver_code = self.approver.public_code
         if self.approved_by and not self.approved_by_code:
             self.approved_by_code = self.approved_by.public_code
         
