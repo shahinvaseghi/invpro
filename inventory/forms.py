@@ -817,6 +817,7 @@ class ItemForm(forms.ModelForm):
         fields = [
             'type', 'category', 'subcategory',
             'user_segment', 'name', 'name_en',
+            'secondary_batch_number',
             'is_sellable', 'has_lot_tracking', 'requires_temporary_receipt',
             'tax_id', 'tax_title', 'min_stock',
             'default_unit', 'primary_unit',
@@ -830,6 +831,7 @@ class ItemForm(forms.ModelForm):
             'user_segment': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '2'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'name_en': forms.TextInput(attrs={'class': 'form-control'}),
+            'secondary_batch_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '50'}),
             'tax_id': forms.TextInput(attrs={'class': 'form-control'}),
             'tax_title': forms.TextInput(attrs={'class': 'form-control'}),
             'min_stock': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
@@ -844,6 +846,7 @@ class ItemForm(forms.ModelForm):
             'user_segment': _('کد کاربری (۲ رقم)'),
             'name': _('نام (فارسی)'),
             'name_en': _('نام (English)'),
+            'secondary_batch_number': _('بچ نامبر ثانویه'),
             'tax_id': _('شناسه مالیاتی'),
             'tax_title': _('عنوان مالیاتی'),
             'min_stock': _('حداقل موجودی'),

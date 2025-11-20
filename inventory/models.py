@@ -306,6 +306,7 @@ class Item(InventorySortableModel):
     item_code = models.CharField(max_length=7, validators=[NUMERIC_CODE_VALIDATOR], blank=True, help_text="7-digit code: User(2) + Sequence(5)")
     full_item_code = models.CharField(max_length=16, unique=True, validators=[NUMERIC_CODE_VALIDATOR], blank=True, help_text="16-digit complete code: Type(3) + Category(3) + SubCategory(3) + ItemCode(7)")
     batch_number = models.CharField(max_length=20)
+    secondary_batch_number = models.CharField(max_length=50, blank=True, help_text=_("User-defined secondary batch number"))
     name = models.CharField(max_length=180, unique=True)
     name_en = models.CharField(max_length=180, unique=True)
     is_sellable = models.PositiveSmallIntegerField(default=0)
@@ -1070,6 +1071,7 @@ class ItemSerial(InventoryBaseModel):
     )
     lot_code = models.CharField(max_length=30, blank=True)
     serial_code = models.CharField(max_length=50, unique=True)
+    secondary_serial_code = models.CharField(max_length=50, blank=True, help_text=_("User-defined secondary serial number"))
     receipt_document = models.ForeignKey(
         "ReceiptPermanent",
         on_delete=models.PROTECT,

@@ -3254,7 +3254,12 @@ class ReceiptSerialAssignmentBaseView(FeaturePermissionRequiredMixin, View):
 
     def get_context_data(self):
         required = self.get_required_serials()
-        serials = self.receipt.serials.order_by('serial_code')
+        # Get serials by receipt_document, not ManyToMany (serials may not be linked via M2M yet)
+        serials = models.ItemSerial.objects.filter(
+            receipt_document=self.receipt,
+            company=self.receipt.company,
+            is_enabled=1
+        ).order_by('serial_code')
         context = {
             'receipt': self.receipt,
             'serials': serials,
@@ -3354,7 +3359,13 @@ class ReceiptLineSerialAssignmentBaseView(FeaturePermissionRequiredMixin, View):
 
     def get_context_data(self):
         required = self.get_required_serials()
-        serials = self.line.serials.order_by('serial_code')
+        # Get serials by receipt_line_reference, not ManyToMany (serials may not be linked via M2M yet)
+        line_reference = f"{self.line.__class__.__name__}:{self.line.pk}"
+        serials = models.ItemSerial.objects.filter(
+            receipt_line_reference=line_reference,
+            company=self.line.company,
+            is_enabled=1
+        ).order_by('serial_code')
         context = {
             'line': self.line,
             'document': self.document,
@@ -3730,13 +3741,13 @@ def get_item_available_serials(request):
 
         warehouse = get_object_or_404(models.Warehouse, pk=warehouse_id, company_id=company_id, is_enabled=1)
 
-        # Get available serials: same company, same item, same warehouse, status AVAILABLE or RESERVED
-        # Exclude ISSUED, CONSUMED, DAMAGED, RETURNED serials
+        # Get available serials: same company, same item, same warehouse, status AVAILABLE only
+        # Exclude RESERVED (already reserved for issues), ISSUED, CONSUMED, DAMAGED, RETURNED serials
         serials = models.ItemSerial.objects.filter(
             company_id=company_id,
             item=item,
             current_warehouse=warehouse,
-            current_status__in=[models.ItemSerial.Status.AVAILABLE, models.ItemSerial.Status.RESERVED]
+            current_status=models.ItemSerial.Status.AVAILABLE  # Only show AVAILABLE serials, not RESERVED ones
         ).order_by('serial_code')
 
         serials_data = [
@@ -3755,6 +3766,34 @@ def get_item_available_serials(request):
         })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_http_methods(["POST"])
+@login_required
+def update_serial_secondary_code(request, serial_id):
+    """API endpoint to update secondary serial code for a serial."""
+    try:
+        company_id = request.session.get('active_company_id')
+        if not company_id:
+            return JsonResponse({'error': 'No active company'}, status=400)
+        
+        import json
+        data = json.loads(request.body)
+        secondary_serial_code = data.get('secondary_serial_code', '').strip()
+        
+        serial = get_object_or_404(
+            models.ItemSerial,
+            pk=serial_id,
+            company_id=company_id,
+            is_enabled=1
+        )
+        
+        serial.secondary_serial_code = secondary_serial_code
+        serial.save(update_fields=['secondary_serial_code'])
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'error': str(e), 'success': False}, status=500)
 
 
 @require_http_methods(["GET"])
