@@ -3406,6 +3406,183 @@ def get_item_allowed_units(request):
 
 @require_http_methods(["GET"])
 @login_required
+def get_filtered_categories(request):
+    """API endpoint to get categories that have items of specific type."""
+    company_id = request.session.get('active_company_id')
+    if not company_id:
+        return JsonResponse({'error': 'No active company'}, status=400)
+
+    try:
+        type_id = request.GET.get('type_id')
+
+        # Get categories that have at least one item
+        categories_with_items = models.ItemCategory.objects.filter(
+            company_id=company_id,
+            is_enabled=1
+        )
+        
+        if type_id:
+            # Filter to only categories that have items of this type
+            categories_with_items = categories_with_items.filter(
+                items__type_id=type_id,
+                items__is_enabled=1,
+                items__company_id=company_id
+            ).distinct()
+        else:
+            # Get all categories that have any items
+            categories_with_items = categories_with_items.filter(
+                items__is_enabled=1,
+                items__company_id=company_id
+            ).distinct()
+
+        categories_with_items = categories_with_items.order_by('name')
+
+        categories_data = [
+            {'value': str(cat.pk), 'label': cat.name}
+            for cat in categories_with_items
+        ]
+
+        return JsonResponse({'categories': categories_data})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def get_filtered_subcategories(request):
+    """API endpoint to get subcategories that have items of specific type/category."""
+    company_id = request.session.get('active_company_id')
+    if not company_id:
+        return JsonResponse({'error': 'No active company'}, status=400)
+
+    try:
+        type_id = request.GET.get('type_id')
+        category_id = request.GET.get('category_id')
+
+        # Get subcategories that have at least one item
+        subcategories_with_items = models.ItemSubcategory.objects.filter(
+            company_id=company_id,
+            is_enabled=1
+        )
+        
+        # Build filter for items
+        item_filter = Q(items__is_enabled=1, items__company_id=company_id)
+        if type_id:
+            item_filter &= Q(items__type_id=type_id)
+        if category_id:
+            item_filter &= Q(items__category_id=category_id)
+        
+        subcategories_with_items = subcategories_with_items.filter(item_filter).distinct()
+        subcategories_with_items = subcategories_with_items.order_by('name')
+
+        subcategories_data = [
+            {'value': str(subcat.pk), 'label': subcat.name}
+            for subcat in subcategories_with_items
+        ]
+
+        return JsonResponse({'subcategories': subcategories_data})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def get_filtered_items(request):
+    """API endpoint to get filtered items based on type, category, subcategory."""
+    company_id = request.session.get('active_company_id')
+    if not company_id:
+        return JsonResponse({'error': 'No active company'}, status=400)
+
+    try:
+        type_id = request.GET.get('type_id')
+        category_id = request.GET.get('category_id')
+        subcategory_id = request.GET.get('subcategory_id')
+
+        # Start with all enabled items in company
+        items = models.Item.objects.filter(
+            company_id=company_id,
+            is_enabled=1
+        ).select_related('type', 'category', 'subcategory')
+
+        # Apply filters
+        if type_id:
+            items = items.filter(type_id=type_id)
+        if category_id:
+            items = items.filter(category_id=category_id)
+        if subcategory_id:
+            items = items.filter(subcategory_id=subcategory_id)
+
+        items = items.order_by('item_code')
+
+        items_data = [
+            {
+                'value': str(item.pk),
+                'label': f"{item.item_code} - {item.name}",
+                'type_id': str(item.type_id) if item.type_id else '',
+                'category_id': str(item.category_id) if item.category_id else '',
+                'subcategory_id': str(item.subcategory_id) if item.subcategory_id else '',
+            }
+            for item in items
+        ]
+
+        return JsonResponse({'items': items_data})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def get_item_units(request):
+    """API endpoint to get units for an item."""
+    item_id = request.GET.get('item_id')
+    if not item_id:
+        return JsonResponse({'error': 'item_id parameter required'}, status=400)
+
+    try:
+        company_id = request.session.get('active_company_id')
+        if not company_id:
+            return JsonResponse({'error': 'No active company'}, status=400)
+
+        item = get_object_or_404(models.Item, pk=item_id, company_id=company_id, is_enabled=1)
+
+        units_data = []
+        
+        # Add primary unit first (base unit)
+        if item.primary_unit:
+            units_data.append({
+                'value': f'base_{item.primary_unit}',  # Special value to indicate base unit
+                'label': f"{item.primary_unit} (واحد اصلی)",
+                'is_base': True,
+                'unit_name': item.primary_unit
+            })
+
+        # Get conversion units for this item
+        units = models.ItemUnit.objects.filter(
+            item=item,
+            company_id=company_id,
+            is_enabled=1
+        ).order_by('to_unit')
+
+        for u in units:
+            units_data.append({
+                'value': str(u.pk),
+                'label': f"{u.to_unit} ({u.from_quantity} {u.from_unit} = {u.to_quantity} {u.to_unit})",
+                'is_base': False,
+                'unit_name': u.to_unit
+            })
+
+        # Include item type_id, category_id, subcategory_id for auto-setting material_type and filters
+        response_data = {
+            'units': units_data,
+            'item_type_id': item.type_id if item.type else None,
+            'item_type_name': item.type.name if item.type else None,
+            'category_id': item.category_id if item.category else None,
+            'subcategory_id': item.subcategory_id if item.subcategory else None,
+        }
+
+        return JsonResponse(response_data)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
 def get_item_allowed_warehouses(request):
     """API endpoint to get allowed warehouses for an item."""
     item_id = request.GET.get('item_id')

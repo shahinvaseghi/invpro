@@ -94,6 +94,17 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.DELETE_OWN,
         ],
     ),
+    "production.bom": FeaturePermission(
+        code="production.bom",
+        label=_("BOM (Bill of Materials)"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
     "shared.users": FeaturePermission(
         code="shared.users",
         label=_("Users"),

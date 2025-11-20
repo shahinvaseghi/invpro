@@ -242,33 +242,98 @@ class Machine(ProductionSortableModel):
         super().save(*args, **kwargs)
 
 
-class BOMMaterial(ProductionBaseModel):
+class BOM(ProductionBaseModel):
+    """
+    Bill of Materials Header - سند فهرست مواد اولیه
+    Similar to ReceiptDocument/IssueDocument structure
+    """
+    bom_code = models.CharField(
+        max_length=16,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        unique=True,
+    )
     finished_item = models.ForeignKey(
         "inventory.Item",
         on_delete=models.PROTECT,
-        related_name="bom_materials",
+        related_name="boms",
     )
     finished_item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
+    version = models.CharField(max_length=10, default="1.0")
+    is_active = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=1,
+    )
+    description = models.CharField(max_length=255, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = _("BOM")
+        verbose_name_plural = _("BOMs")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "finished_item", "version"),
+                name="production_bom_unique_version",
+            ),
+        ]
+        ordering = ("company", "finished_item", "-version")
+
+    def __str__(self) -> str:
+        return f"{self.bom_code} · {self.finished_item}"
+
+    def save(self, *args, **kwargs):
+        if not self.bom_code and self.company_id:
+            self.bom_code = generate_sequential_code(
+                self.__class__,
+                company_id=self.company_id,
+                field='bom_code',
+                width=16,
+            )
+        if not self.finished_item_code and self.finished_item_id:
+            self.finished_item_code = self.finished_item.item_code
+        super().save(*args, **kwargs)
+
+
+class BOMMaterial(ProductionBaseModel):
+    """
+    BOM Material Line - خط فهرست مواد اولیه
+    Similar to ReceiptLine/IssueLine structure
+    """
+    
+    bom = models.ForeignKey(
+        BOM,
+        on_delete=models.CASCADE,
+        related_name="materials",
+    )
     material_item = models.ForeignKey(
         "inventory.Item",
         on_delete=models.PROTECT,
         related_name="material_in_boms",
     )
     material_item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
-    material_type = models.CharField(max_length=30, default="raw")
+    material_type = models.ForeignKey(
+        "inventory.ItemType",
+        on_delete=models.PROTECT,
+        related_name="bom_materials",
+        verbose_name=_("Material Type"),
+        help_text=_("Type/category of the material"),
+    )
     quantity_per_unit = models.DecimalField(
         max_digits=18,
         decimal_places=6,
         validators=[POSITIVE_DECIMAL],
     )
-    unit = models.CharField(max_length=30)
+    unit = models.CharField(
+        max_length=50,
+        verbose_name=_("Unit"),
+        help_text=_("Unit of measurement for this material"),
+    )
     scrap_allowance = models.DecimalField(
         max_digits=5,
         decimal_places=2,
         default=Decimal("0.00"),
         validators=[POSITIVE_DECIMAL],
     )
-    sequence_order = models.PositiveSmallIntegerField(default=0)
+    line_number = models.PositiveSmallIntegerField(default=1)
     is_optional = models.PositiveSmallIntegerField(default=0)
     description = models.CharField(max_length=255, blank=True)
     notes = models.TextField(blank=True)
@@ -278,20 +343,25 @@ class BOMMaterial(ProductionBaseModel):
         verbose_name_plural = _("BOM Materials")
         constraints = [
             models.UniqueConstraint(
-                fields=("company", "finished_item", "material_item", "sequence_order"),
-                name="production_bom_material_unique_order",
+                fields=("bom", "material_item"),
+                name="production_bom_material_unique",
+            ),
+            models.UniqueConstraint(
+                fields=("bom", "line_number"),
+                name="production_bom_material_line_unique",
             ),
         ]
-        ordering = ("company", "finished_item", "sequence_order")
+        ordering = ("bom", "line_number")
 
     def __str__(self) -> str:
-        return f"{self.finished_item_code} ← {self.material_item_code}"
+        return f"{self.bom.bom_code} · Line {self.line_number}"
 
     def save(self, *args, **kwargs):
-        if not self.finished_item_code:
-            self.finished_item_code = self.finished_item.item_code
-        if not self.material_item_code:
+        if not self.material_item_code and self.material_item_id:
             self.material_item_code = self.material_item.item_code
+        # Auto-assign company from BOM
+        if not self.company_id and self.bom_id:
+            self.company_id = self.bom.company_id
         super().save(*args, **kwargs)
 
 

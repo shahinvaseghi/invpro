@@ -8,6 +8,265 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+---
+
+## [2025-11-20b] - BOM Enhanced Cascading Filters & Unit Management
+
+### Added
+- **New Inventory API Endpoints for BOM Cascading Filters**:
+  - `get_filtered_categories()`: Returns categories that contain at least one item of specified type
+  - `get_filtered_subcategories()`: Returns subcategories filtered by type and/or category
+  - `get_filtered_items()`: Returns items filtered by type, category, and subcategory
+  - All APIs respect company scope and only return enabled (is_enabled=1) items
+  
+- **Enhanced BOM Material Line Form**:
+  - `material_category_filter`: New filter field (ModelChoiceField) for Category selection
+  - `material_subcategory_filter`: New filter field (ModelChoiceField) for Subcategory selection
+  - Cascading flow: Type → Category → Subcategory → Item → Unit
+  - Each filter only shows options that contain items matching previous selections
+  
+- **Primary Unit Support in BOM**:
+  - `get_item_units()` API now includes item's `primary_unit` as first option
+  - Primary unit labeled as "واحد اصلی" (Base Unit) in dropdown
+  - Format: `{unit_name} (واحد اصلی)` for primary unit
+  - Conversion units follow with conversion ratio in label
+  
+- **Master Data Menu in Top Navigation**:
+  - Added "Master Data" submenu under Inventory in top navbar
+  - Links to Item Types, Item Categories, Item Subcategories
+  - Permission-based visibility for each submenu item
+  
+- **JavaScript Cascading Functions for Material Lines**:
+  - `filterCategories(typeSelect, idx)`: Populates category dropdown based on type
+  - `filterSubcategories(categorySelect, idx)`: Populates subcategory dropdown based on type+category
+  - `filterItems(subcategorySelect, idx)`: Populates item dropdown based on type+category+subcategory
+  - `loadItemUnits(itemSelect, idx)`: Populates unit dropdown with primary_unit + conversion units
+  - Each material line operates independently with its own index
+  
+### Changed
+- **BOMMaterial.material_type Field**:
+  - Changed from `CharField` with hardcoded choices to `ForeignKey` to `inventory.ItemType`
+  - Now uses user-defined item types instead of system-defined list
+  - Provides flexibility for different material classification schemes per company
+  - Updated form to use `ModelChoiceField` populated from `ItemType.objects.filter(company=...)`
+  
+- **BOMMaterial.unit Field**:
+  - Changed from `ForeignKey` to `inventory.ItemUnit` back to `CharField(max_length=30)`
+  - Reason: Item's `primary_unit` is stored as string field, not as ItemUnit object
+  - Now stores unit name (string) which can be either primary_unit or conversion unit name
+  - Form uses `ChoiceField` populated dynamically from `get_item_units` API
+  - Unit dropdown disabled until item is selected
+  
+- **BOM Form UX Improvements**:
+  - Material type dropdown now populated from database (ItemType)
+  - Category/Subcategory filters intelligently show only relevant options
+  - Reduced dropdown clutter by filtering out empty categories/subcategories
+  - Unit selection now includes base unit prominently as first option
+  
+- **API Response Format**:
+  - `get_item_units` now returns array with structure:
+    ```json
+    {
+      "units": [
+        {"value": "base_kg", "label": "کیلوگرم (واحد اصلی)", "is_base": true, "unit_name": "کیلوگرم"},
+        {"value": "gram", "label": "گرم (1 کیلوگرم = 1000 گرم)"}
+      ]
+    }
+    ```
+  - Base unit prefixed with "base_" to distinguish from conversion units
+  
+### Fixed
+- **Unit Dropdown Not Showing Base Unit**:
+  - Fixed `get_item_units` API to read from `item.primary_unit` instead of non-existent `item.base_unit`
+  - Fixed `BOMMaterialLineForm.__init__` to use `item.primary_unit`
+  - Now correctly displays both primary unit and conversion units
+  
+- **Categories/Subcategories Showing Empty Options**:
+  - Fixed API queries to use `.filter(items__type_id=...).distinct()` 
+  - Only returns categories/subcategories that actually contain items of selected type
+  - Eliminates confusion from seeing empty options in cascading dropdowns
+  
+- **UI/CSS Box Overlap in BOM Form**:
+  - Adjusted CSS grid layout in `bom_form.html`
+  - Changed to `grid-template-columns: repeat(auto-fit, minmax(250px, 1fr))`
+  - Added `gap: 1.5rem` for proper spacing
+  - Fixed responsive behavior on smaller screens
+
+### Documentation
+- **Updated production/README_BOM.md**:
+  - Documented new `material_type` as ForeignKey to ItemType
+  - Added API Endpoints section with all 4 new APIs
+  - Updated JavaScript section with cascading filter functions
+  - Clarified `unit` field as CharField storing unit names
+  - Added details about primary_unit vs conversion units
+  
+- **Updated production/README_FORMS.md**:
+  - Enhanced BOMMaterialLineForm documentation
+  - Documented `material_category_filter` and `material_subcategory_filter` fields
+  - Added complete cascading behavior flow (5 steps)
+  - Documented all JavaScript cascading functions with code examples
+  - Added API endpoint references
+  - Clarified that filter fields are not saved to database
+  
+- **Updated locale/fa/LC_MESSAGES/django.po**:
+  - Added translations: "Master Data", "Category", "Subcategory"
+  - Added loading messages: "Loading categories...", "Loading items..."
+  - Added error messages for cascading filter failures
+  - Compiled with `compilemessages`
+
+### Database Migrations
+- **0009_bom_material_type_to_fk.py**: Changed `BOMMaterial.material_type` to ForeignKey(ItemType)
+- **0010_bom_unit_to_fk.py**: Changed `BOMMaterial.unit` to ForeignKey(ItemUnit) - later reverted
+- **0011_bom_unit_back_to_char.py**: Reverted `BOMMaterial.unit` back to CharField to support primary_unit
+
+### Technical Notes
+- **Why CharField for unit?**: 
+  - Item's primary_unit is a CharField, not a foreign key
+  - ItemUnit model only covers conversion units (e.g., kg→gram)
+  - To support both primary and conversion units, we store the unit name as string
+  - Form validation ensures the unit name matches either primary_unit or exists in ItemUnit
+  
+- **Cascading Filter Independence**:
+  - Each material line in the formset has its own set of cascading filters
+  - JavaScript uses row index (idx) to target correct dropdowns
+  - No interference between different material lines
+  - Allows different material types in same BOM
+  
+- **Performance Consideration**:
+  - Filtered APIs use `.distinct()` to avoid duplicate entries
+  - Queries optimized to check `items__type_id` directly without loading all items
+  - Company scope filter applied at database level
+  - Only enabled items (is_enabled=1) are considered
+
+---
+
+## [2025-11-20] - BOM Module Implementation
+
+### Added
+- **BOM (Bill of Materials) Complete Implementation**:
+  - Header-Line Architecture: `BOM` model (header) and `BOMMaterial` model (lines)
+  - Version control for BOMs with unique constraint on (company, finished_item, version)
+  - Auto-generated 16-digit `bom_code` per company using sequential code generation
+  - Material type classification: Raw, Semi-Finished, Component, Packaging
+  - Scrap allowance percentage (0-100%) for waste calculation
+  - Optional/Required material flags
+  - Effective/Expiry date tracking for BOM validity
+  - Active/Inactive status management
+  - Complete CRUD views: List, Create, Update, Delete
+  - Permissions: `production.bom` with view_all, create, edit_own, delete_own actions
+
+- **BOM Forms**:
+  - `BOMForm`: Header form with cascading filters (Type → Category → Item) for finished product selection
+  - `BOMMaterialLineForm`: Material line form with cascading filters for material and unit selection
+  - `BOMMaterialLineFormSet`: Django inline formset with dynamic add/remove functionality
+  - Minimum 1 material line validation
+  - Company-scoped dropdowns to ensure data isolation
+  - Unit validation to ensure selected unit belongs to selected material
+
+- **BOM Templates**:
+  - `bom_list.html`: List view with expand/collapse material details, filter by finished item
+  - `bom_form.html`: Multi-section form with:
+    - Finished product selection section with cascading dropdowns
+    - Dynamic material lines table with JavaScript add/remove functionality
+    - Material type badges with color coding (Raw=Blue, Semi-Finished=Yellow, Component=Green, Packaging=Red)
+    - Line numbering and TOTAL_FORMS management
+    - Form validation with Persian error messages
+  - `bom_confirm_delete.html`: Delete confirmation with material count display
+
+- **JavaScript Features**:
+  - Dynamic formset line addition with automatic field name/id updating
+  - Line removal with minimum 1 line validation
+  - Auto-increment line numbers
+  - TOTAL_FORMS counter management
+  - Cascading dropdown filtering for both finished item and materials
+  - Client-side form validation before submission
+
+- **Database Migrations**:
+  - `0006_bom_restructure.py`: Custom migration to restructure BOM from single-model to header-line architecture
+  - Drops old `BOMMaterial` table and creates new `BOM` and `BOMMaterial` tables
+  - `0007_*.py`: Auto-generated migration for ProductionBaseModel fields
+
+- **Production Module Enhancements**:
+  - Transfer to Line Requests placeholder (`/production/transfer-requests/`)
+  - Performance Records placeholder (`/production/performance-records/`)
+  - Updated sidebar menu with BOM link and permission checks
+  - Sidebar sections now collapsed by default (user can expand as needed)
+
+- **Documentation**:
+  - `production/README_BOM.md`: Complete 500+ line documentation covering:
+    - BOM architecture and database schema
+    - Model field descriptions and methods
+    - Form structure and validation
+    - View implementation details
+    - Template and JavaScript functionality
+    - Permission system
+    - Usage instructions with examples
+    - Practical BOM examples (office chair, L-shaped desk)
+    - Material calculation examples
+    - Migration history
+  - Updated `production/README.md` with BOM section and automatic code generation details
+  - Updated `production/README_FORMS.md` with BOMForm, BOMMaterialLineForm, and BOMMaterialLineFormSet documentation
+  - Updated main `README.md` with comprehensive BOM feature description
+
+- **Persian Translations**:
+  - All BOM-related terms translated to Persian
+  - Form labels, field names, error messages
+  - Material type choices
+  - Success/error messages
+  - Compiled translations with `compilemessages`
+
+### Changed
+- **BOM Model Architecture**: Completely redesigned from single-model to header-line structure
+  - Old: `BOMMaterial` standalone model with `finished_item` FK
+  - New: `BOM` header model + `BOMMaterial` line model with `bom` FK
+  - Enables multiple BOM versions per finished item
+  - Better data organization and version control
+  - CASCADE delete for material lines when parent BOM is deleted
+
+- **Sidebar Navigation**:
+  - All sections now collapsed by default on page load
+  - User state saved in localStorage but defaults to collapsed if no state exists
+  - Provides cleaner initial view and user control over menu visibility
+
+- **Permission System**:
+  - Added `production.bom` to `FEATURE_PERMISSION_MAP` with full CRUD actions
+
+- **Admin Interface**:
+  - Added `BOMAdmin` with list display, filters, and search
+  - Added `BOMMaterialInline` for inline material editing
+  - Updated `BOMMaterialAdmin` to reflect new model structure
+
+### Fixed
+- Resolved migration conflicts when introducing BOM header-line architecture
+- Fixed duplicate msgid entries in `locale/fa/LC_MESSAGES/django.po`
+- Corrected cascading dropdown filtering in BOM forms
+- Fixed TOTAL_FORMS management in dynamic formset
+- Resolved unit validation to ensure unit belongs to selected material item
+
+### Technical Details
+- **Database Constraints**:
+  - UniqueConstraint on (company, finished_item, version) for BOM
+  - UniqueConstraint on (bom, material_item, line_number) for BOMMaterial
+  - Foreign key protections (PROTECT for items, CASCADE for materials)
+
+- **Code Generation**:
+  - `BOM.bom_code`: 16-digit sequential per company
+  - `BOM.finished_item_code`: Cached from finished_item
+  - `BOMMaterial.material_item_code`: Cached from material_item
+
+- **Transaction Safety**:
+  - All BOM create/update operations wrapped in `transaction.atomic()`
+  - Ensures data consistency between header and lines
+
+- **Form Architecture**:
+  - Inline formset with extra=3, can_delete=True, min_num=1
+  - Company-scoped queryset filtering in form __init__
+  - Cascading filter fields not saved to database
+
+---
+
+## [Previous Updates]
+
 ### Added
 - Default language set to Persian (Farsi) - application now opens in Persian by default
 - Complete Persian translations for all UI elements and messages

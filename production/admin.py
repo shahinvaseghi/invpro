@@ -10,11 +10,20 @@ class WorkCenterAdmin(admin.ModelAdmin):
     search_fields = ("public_code", "name", "name_en")
 
 
+@admin.register(models.BOM)
+class BOMAdmin(admin.ModelAdmin):
+    list_display = ("bom_code", "company", "finished_item_code", "version", "is_active", "is_enabled")
+    list_filter = ("company", "is_active", "is_enabled")
+    search_fields = ("bom_code", "finished_item_code")
+    readonly_fields = ("bom_code", "finished_item_code")
+
+
 @admin.register(models.BOMMaterial)
 class BOMMaterialAdmin(admin.ModelAdmin):
-    list_display = ("company", "finished_item_code", "material_item_code", "quantity_per_unit", "unit")
+    list_display = ("company", "bom", "material_item_code", "quantity_per_unit", "unit", "line_number")
     list_filter = ("company", "material_type")
-    search_fields = ("finished_item_code", "material_item_code")
+    search_fields = ("bom__bom_code", "material_item_code")
+    readonly_fields = ("material_item_code",)
 
 
 @admin.register(models.Process)

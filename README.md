@@ -227,19 +227,53 @@ Key behaviours:
 
 ### 3.3 Production (`production`)
 
-Implements manufacturing definitions and order tracking.
+Implements manufacturing definitions, BOM management, and order tracking.
 
-- **Resources**: `WorkCenter`, `Machine` (production machines/equipment)
-- **Personnel**: `Person`, `PersonAssignment` (personnel directory and work-center assignments)
-- **BOM**: `BOMMaterial` (links finished items to materials with scrap allowance)
+- **Resources**: `WorkCenter`, `Machine` (production machines/equipment with auto-generated codes)
+- **Personnel**: `Person`, `PersonAssignment` (personnel directory and work-center assignments, moved from shared module)
+- **BOM (Bill of Materials)**: 
+  - **Header-Line Architecture**: `BOM` (header with version control) and `BOMMaterial` (material lines)
+  - **Version Control**: Multiple BOM versions per finished item with unique constraint on (company, finished_item, version)
+  - **Multi-line Forms**: Dynamic formset with cascading filters (Type → Category → Subcategory → Item → Unit)
+  - **Material Types**: User-defined via `ItemType` (e.g., Raw, Semi-Finished, Component, Packaging) with scrap allowance support
+  - **Smart Filtering**: Categories/subcategories dynamically filtered to show only options containing items of selected type
+  - **Unit Management**: Supports both primary unit and conversion units for each material
+  - **Auto-generated Code**: 16-digit `bom_code` per company
+  - **Complete Documentation**: See `production/README_BOM.md` for detailed BOM documentation
 - **Process Definition**: `Process`, `ProcessStep` (with labor/machine minutes, personnel requirements)
 - **Orders**: `ProductOrder` (tracks revisions, BOM references, status), `OrderPerformance`
-- **Material Transfer**: `TransferToLine`, `TransferToLineItem` (staging materials from inventory to production lines)
+- **Material Transfer**: `TransferToLine`, `TransferToLineItem` (staging materials from inventory to production lines) - *Placeholder*
+- **Performance Records**: Production performance tracking - *Placeholder*
 
-Behaviours:
-- Cross-module FK references to `inventory.Item` and `inventory.Warehouse` with cached codes.
-- Unique constraints enforce one primary process per item revision and prevent duplicate transfer lines.
-- Admin registrations provide immediate CRUD interfaces for manufacturing teams.
+**Key Features:**
+- **Enhanced Cascading Dropdowns**: 
+  - Finished Item: Type → Category → Item
+  - Material Lines: Type → Category → Subcategory → Item → Unit (5 levels)
+  - Smart filtering: Only show categories/subcategories containing items of selected type
+  - Independent cascading per material line (multiple materials with different types in one BOM)
+- **Dynamic Formsets**: JavaScript-powered add/remove lines for BOM materials with automatic field indexing
+- **Automatic Code Generation**: Person (8-digit), Machine (10-digit), BOM (16-digit), WorkCenter (5-digit)
+- **Transaction Safety**: All BOM operations wrapped in `transaction.atomic()`
+- **Cross-module Integration**: FK references to `inventory.Item`, `inventory.ItemType`, and `inventory.Warehouse` with cached codes
+- **Unique Constraints**: Enforce one primary process per item revision, prevent duplicate BOM materials
+- **Admin Interface**: Complete CRUD interfaces for manufacturing teams
+- **RESTful APIs**: JSON endpoints for cascading filter data (`get_filtered_categories`, `get_filtered_subcategories`, `get_filtered_items`, `get_item_units`)
+
+**Forms & UI:**
+- `BOMForm`: Header form with cascading finished item selection (Type → Category → Item)
+- `BOMMaterialLineForm`: Material line with 5-level cascading (Type → Category → Subcategory → Item → Unit)
+  - Category/Subcategory filters intelligently show only populated options
+  - Unit dropdown includes primary unit + all conversion units
+- `BOMMaterialLineFormSet`: Inline formset with dynamic add/remove (minimum 1 line required)
+- Expand/collapse material details in list views
+- Material type badges with color coding (dynamically generated from user-defined types)
+
+**Permissions:**
+- `production.personnel`: Personnel management
+- `production.machines`: Machine management
+- `production.bom`: BOM management
+- `production.transfer_requests`: Transfer requests (placeholder)
+- `production.performance_records`: Performance records (placeholder)
 
 ### 3.4 Quality Control (`qc`)
 - **UI**: Consumes inspection data for dashboards (see `ui` module)

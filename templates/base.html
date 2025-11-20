@@ -84,6 +84,28 @@
                     </div>
                   </div>
                 {% endif %}
+                
+                <!-- Master Data -->
+                {% if user_feature_permissions|feature_allowed:'inventory.master.item_types' or user_feature_permissions|feature_allowed:'inventory.master.item_categories' or user_feature_permissions|feature_allowed:'inventory.master.item_subcategories' %}
+                  <div class="dropdown-submenu">
+                    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="inventory-master">
+                      <span>{% trans "Master Data" %}</span>
+                      <span class="dropdown-arrow">▶</span>
+                    </button>
+                    <div class="dropdown-menu-sub" id="inventory-master">
+                      {% if user_feature_permissions|feature_allowed:'inventory.master.item_types' %}
+                        <a href="{% url 'inventory:item_types' %}" class="dropdown-item-sub">{% trans "Item Types" %}</a>
+                      {% endif %}
+                      {% if user_feature_permissions|feature_allowed:'inventory.master.item_categories' %}
+                        <a href="{% url 'inventory:item_categories' %}" class="dropdown-item-sub">{% trans "Item Categories" %}</a>
+                      {% endif %}
+                      {% if user_feature_permissions|feature_allowed:'inventory.master.item_subcategories' %}
+                        <a href="{% url 'inventory:item_subcategories' %}" class="dropdown-item-sub">{% trans "Item Subcategories" %}</a>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endif %}
+                
                 {% if user_feature_permissions|feature_allowed:'inventory.master.warehouses' %}
                   <a href="{% url 'inventory:warehouses' %}" class="dropdown-item">{% trans "Warehouses" %}</a>
                 {% endif %}
@@ -173,8 +195,12 @@
                 {% if user_feature_permissions|feature_allowed:'inventory.master.work_lines' %}
                   <a href="{% url 'inventory:work_lines' %}" class="dropdown-item">{% trans "Work Lines" %}</a>
                 {% endif %}
+                {% if user_feature_permissions|feature_allowed:'production.bom' or request.user.is_superuser %}
+                  <a href="{% url 'production:bom_list' %}" class="dropdown-item">{% trans "BOM" %}</a>
+                {% endif %}
                 {% if request.user.is_superuser %}
-                  <a href="#" class="dropdown-item">{% trans "BOM" %}</a>
+                  <a href="{% url 'production:transfer_requests' %}" class="dropdown-item">{% trans "Transfer to Line" %}</a>
+                  <a href="{% url 'production:performance_records' %}" class="dropdown-item">{% trans "Performance" %}</a>
                   <a href="#" class="dropdown-item">{% trans "Processes" %}</a>
                   <a href="#" class="dropdown-item">{% trans "Orders" %}</a>
                 {% endif %}
@@ -298,28 +324,30 @@
         const savedGroups = localStorage.getItem('sidebar-groups-state');
         const groupsState = savedGroups ? JSON.parse(savedGroups) : {};
 
-        // Initialize main sections
+        // Initialize main sections - Default: collapsed unless explicitly opened
         const sections = document.querySelectorAll('.sidebar-section');
         sections.forEach(section => {
           const sectionName = section.getAttribute('data-section');
-          const isCollapsed = sectionsState[sectionName] === false;
+          // If no saved state OR saved state is false, collapse it
+          const shouldBeOpen = sectionsState[sectionName] === true;
           
-          if (isCollapsed) {
+          if (!shouldBeOpen) {
             section.classList.add('collapsed');
           }
         });
 
-        // Initialize nav groups
+        // Initialize nav groups - Default: collapsed unless explicitly opened
         const navGroups = document.querySelectorAll('.nav-group');
         navGroups.forEach(group => {
           const header = group.querySelector('.nav-group-header');
           if (header) {
             const submenuId = header.getAttribute('data-submenu');
-            const isExpanded = groupsState[submenuId] === true;
+            const shouldBeExpanded = groupsState[submenuId] === true;
             
-            if (isExpanded) {
+            if (shouldBeExpanded) {
               group.classList.add('expanded');
             }
+            // No need for else - default is collapsed
           }
         });
 
@@ -329,7 +357,8 @@
           const isCollapsed = section.classList.contains('collapsed');
           
           section.classList.toggle('collapsed');
-          sectionsState[sectionName] = !isCollapsed;
+          // Save as true if opening (was collapsed), false if closing
+          sectionsState[sectionName] = isCollapsed;
           
           localStorage.setItem('sidebar-sections-state', JSON.stringify(sectionsState));
         }
@@ -343,6 +372,7 @@
           const isExpanded = group.classList.contains('expanded');
           
           group.classList.toggle('expanded');
+          // Save as true if expanding (was not expanded), false if collapsing
           groupsState[submenuId] = !isExpanded;
           
           localStorage.setItem('sidebar-groups-state', JSON.stringify(groupsState));
