@@ -875,17 +875,7 @@
 
     <div class="form-actions">
       {% if not document_is_locked %}
-      <button type="button" class="btn btn-primary" onclick="
-        console.log('=== BUTTON ONCLICK ===');
-        var form = document.getElementById('receipt-form');
-        console.log('Form found:', form);
-        if (form) {
-          console.log('Calling form.submit()');
-          form.submit();
-        } else {
-          alert('Form not found!');
-        }
-      ">{% trans "Save" %}</button>
+      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
       {% endif %}
       <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Cancel" %}</a>
     </div>
@@ -895,19 +885,11 @@
 <script>
 // Direct test - attach to button IMMEDIATELY when script loads
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('=== TESTING BUTTON ATTACHMENT ===');
   const btn = document.querySelector('button[type="submit"]');
-  console.log('Found submit button:', btn);
   if (btn) {
-    console.log('Button text:', btn.textContent);
-    console.log('Button classes:', btn.className);
-    console.log('Button onclick:', btn.onclick);
     
     // Force attach a click listener
     btn.addEventListener('click', function(e) {
-      console.log('=== DIRECT BUTTON CLICK LISTENER FIRED! ===');
-      console.log('Event:', e);
-      console.log('Default prevented:', e.defaultPrevented);
     }, true);
   } else {
     console.error('Submit button NOT FOUND!');
@@ -1368,23 +1350,13 @@ window.addEventListener('error', function(e) {
 
 // Log all form submissions (even if prevented) - CAPTURE PHASE
 document.addEventListener('submit', function(e) {
-  console.log('=== FORM SUBMIT DETECTED (GLOBAL - CAPTURE) ===');
-  console.log('Form:', e.target);
-  console.log('Form ID:', e.target.id);
-  console.log('Form action:', e.target.action);
-  console.log('Form method:', e.target.method);
-  console.log('Target form has ID receipt-form?', e.target.id === 'receipt-form');
 }, true); // Use capture phase
 
 // Also listen in bubble phase
 document.addEventListener('submit', function(e) {
-  console.log('=== FORM SUBMIT DETECTED (GLOBAL - BUBBLE) ===');
-  console.log('Form:', e.target);
 }, false); // Bubble phase
 
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('=== SCRIPT LOADED ===');
-  console.log('Current URL:', window.location.href);
   
   const formsetContainer = document.getElementById('lines-formset');
   const totalFormsInput = document.querySelector('input[name$="-TOTAL_FORMS"]');
@@ -1395,18 +1367,13 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Save selected serials to localStorage before form submission (for error recovery)
   const form = document.getElementById('receipt-form');
-  console.log('Form element found:', form ? 'YES' : 'NO');
   
   if (form) {
-    console.log('Attaching submit event listener to form...');
     form.addEventListener('submit', function(e) {
-      console.log('Form submit event triggered!');
       
       // Debug: Log all form data
       const formData = new FormData(form);
-      console.log('Form data being submitted:');
       for (let [key, value] of formData.entries()) {
-        console.log(key + ': ' + value);
       }
       
       // Check if all required fields in line 1 are filled
@@ -1415,13 +1382,8 @@ document.addEventListener('DOMContentLoaded', function() {
       const line0Unit = document.querySelector('select[name="lines-0-unit"]');
       const line0Quantity = document.querySelector('input[name="lines-0-quantity"]');
       const line0DestChoice = document.querySelector('select[name*="lines-0-destination_type_choice"]');
+      const line0DestType = document.querySelector('select[name*="lines-0-destination_type"]');
       
-      console.log('Line 0 validation:');
-      console.log('- Item:', line0Item ? line0Item.value : 'NOT FOUND');
-      console.log('- Warehouse:', line0Warehouse ? line0Warehouse.value : 'NOT FOUND');
-      console.log('- Unit:', line0Unit ? line0Unit.value : 'NOT FOUND');
-      console.log('- Quantity:', line0Quantity ? line0Quantity.value : 'NOT FOUND');
-      console.log('- Dest Choice:', line0DestChoice ? line0DestChoice.value : 'NOT FOUND');
       
       // Check for any empty required fields
       let missingFields = [];
@@ -1429,7 +1391,12 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!line0Warehouse || !line0Warehouse.value) missingFields.push('Warehouse');
       if (!line0Unit || !line0Unit.value) missingFields.push('Unit');
       if (!line0Quantity || !line0Quantity.value) missingFields.push('Quantity');
-      if (!line0DestChoice || !line0DestChoice.value) missingFields.push('Destination Type');
+      
+      // Only check destination_type_choice for Consumption Issues (it has destination_type_choice field)
+      // For Permanent/Consignment Issues, destination_type is optional
+      if (line0DestChoice && !line0DestChoice.value) {
+        missingFields.push('Destination Type');
+      }
       
       if (missingFields.length > 0) {
         console.error('Missing required fields:', missingFields.join(', '));
@@ -1451,17 +1418,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
       
-      console.log('Form validation passed, submitting...');
     });
     
     // Also attach listener to submit button directly
     const submitButton = form.querySelector('button[type="submit"]');
-    console.log('Submit button found:', submitButton ? 'YES' : 'NO');
     if (submitButton) {
       submitButton.addEventListener('click', function(e) {
-        console.log('Submit button clicked!');
-        console.log('Button type:', this.type);
-        console.log('Form:', this.form);
       });
     }
     
@@ -1563,18 +1525,15 @@ document.addEventListener('DOMContentLoaded', function() {
     unitSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
     
     const url = unitChoicesUrl + '?item_id=' + itemId;
-    console.log('Fetching units from:', url);
     
     fetch(url)
       .then(response => {
-        console.log('Response status:', response.status);
         if (!response.ok) {
           throw new Error('Network response was not ok: ' + response.status);
         }
         return response.json();
       })
       .then(data => {
-        console.log('Received data:', data);
         if (data.error) {
           console.error('Error fetching units:', data.error);
           unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
@@ -1587,9 +1546,6 @@ document.addEventListener('DOMContentLoaded', function() {
         unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
         
         if (data.units && data.units.length > 0) {
-          console.log('Adding units:', data.units);
-          console.log('unitSelect element:', unitSelect);
-          console.log('unitSelect tagName:', unitSelect.tagName);
           let hasSelectedValue = false;
           data.units.forEach(function(unit) {
             const option = document.createElement('option');
@@ -1600,10 +1556,7 @@ document.addEventListener('DOMContentLoaded', function() {
               hasSelectedValue = true;
             }
             unitSelect.appendChild(option);
-            console.log('Added option:', unit.value, unit.label);
           });
-          console.log('unitSelect.innerHTML after adding:', unitSelect.innerHTML);
-          console.log('unitSelect.options.length:', unitSelect.options.length);
           
           // If no value was selected and we have a default unit, select it
           if (!hasSelectedValue && data.default_unit && data.units.length > 0) {
@@ -1612,13 +1565,11 @@ document.addEventListener('DOMContentLoaded', function() {
               if (unitSelect.options[i].value === data.default_unit) {
                 unitSelect.options[i].selected = true;
                 unitSelect.value = data.default_unit;
-                console.log('Auto-selected default unit:', data.default_unit);
                 break;
               }
             }
           }
         } else {
-          console.log('No units found, using default_unit:', data.default_unit);
           // If no units found, at least show default unit
           if (data.default_unit) {
             const option = document.createElement('option');
@@ -1667,18 +1618,15 @@ document.addEventListener('DOMContentLoaded', function() {
     warehouseSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
     
     const url = warehouseChoicesUrl + '?item_id=' + itemId;
-    console.log('Fetching warehouses from:', url);
     
     fetch(url)
       .then(response => {
-        console.log('Warehouse response status:', response.status);
         if (!response.ok) {
           throw new Error('Network response was not ok: ' + response.status);
         }
         return response.json();
       })
       .then(data => {
-        console.log('Received warehouse data:', data);
         if (data.error) {
           console.error('Error fetching warehouses:', data.error);
           warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
@@ -1690,7 +1638,6 @@ document.addEventListener('DOMContentLoaded', function() {
         warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
         
         if (data.warehouses && data.warehouses.length > 0) {
-          console.log('Adding warehouses:', data.warehouses);
           data.warehouses.forEach(function(warehouse) {
             const option = document.createElement('option');
             option.value = warehouse.value;
@@ -1699,7 +1646,6 @@ document.addEventListener('DOMContentLoaded', function() {
               option.selected = true;
             }
             warehouseSelect.appendChild(option);
-            console.log('Added warehouse option:', warehouse.value, warehouse.label);
           });
         }
         
@@ -1790,7 +1736,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return; // No temporary receipt selected
       }
       
-      console.log('Temporary receipt selected:', tempReceiptId);
       
       // Fetch temporary receipt data
       fetch(temporaryReceiptDataUrl + '?temporary_receipt_id=' + tempReceiptId)
@@ -1802,7 +1747,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
           }
           
-          console.log('Temporary receipt data:', data);
           
           // Check if a line with this item already exists
           const existingLine = formsetContainer.querySelector(`select[name*="-item"][value="${data.item_id}"]`);
@@ -1843,7 +1787,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 supplierSelect.value = data.supplier_id;
               }
               
-              console.log('Updated existing line with temporary receipt data');
               return;
             }
           }
@@ -1967,7 +1910,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
           }
           
-          console.log('Added new line from temporary receipt data');
         })
         .catch(error => {
           console.error('Error fetching temporary receipt data:', error);
@@ -2094,7 +2036,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update hidden consumption_type field
             if (newConsumptionTypeHidden) {
               newConsumptionTypeHidden.value = value;
-              console.log('Set consumption_type (new form) to:', value);
             }
             
             if (newCompanyUnitFieldContainer) {
@@ -2445,18 +2386,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
     const consumptionTypeHidden = lineForm.querySelector('input[name*="-consumption_type"]');
     
-    console.log('Setting up destination type choice for line form');
-    console.log('- choiceSelect:', choiceSelect);
-    console.log('- consumptionTypeHidden:', consumptionTypeHidden);
     
     function toggleFields() {
       const value = choiceSelect.value;
-      console.log('Destination type choice changed to:', value);
       
       // Update hidden consumption_type field
       if (consumptionTypeHidden) {
         consumptionTypeHidden.value = value;
-        console.log('Set consumption_type to:', value);
       }
       
       if (companyUnitFieldContainer) {
@@ -2492,11 +2428,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   
-  console.log('=== SCRIPT INITIALIZATION COMPLETE ===');
-  console.log('All event listeners attached successfully');
 });
 
-console.log('=== SCRIPT FILE LOADED (outside DOMContentLoaded) ===');
 </script>
 {% endblock %}
 

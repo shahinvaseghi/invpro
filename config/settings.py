@@ -246,14 +246,9 @@ LOGGING = {
         },
     },
     'loggers': {
-        'production.views': {
+        'django': {
             'handlers': ['console'],
-            'level': 'DEBUG',  # Changed to DEBUG to see all logs
-            'propagate': False,
-        },
-        'production.forms': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': 'INFO',
             'propagate': False,
         },
     },

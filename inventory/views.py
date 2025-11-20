@@ -300,16 +300,21 @@ class ItemUnitFormsetMixin:
                 context['units_formset'] = self.get_unit_formset(data=self.request.POST)
             else:
                 context['units_formset'] = self.get_unit_formset()
+        # Add empty form for JavaScript to clone
+        if 'units_formset' in context:
+            context['units_formset_empty'] = context['units_formset'].empty_form
         return context
 
     def form_invalid(self, form):
         company_id = getattr(form.instance, "company_id", None) or self.request.session.get('active_company_id')
-        return self.render_to_response(
-            self.get_context_data(
-                form=form,
-                units_formset=self.build_unit_formset(data=self.request.POST, instance=form.instance, company_id=company_id),
-            )
+        context = self.get_context_data(
+            form=form,
+            units_formset=self.build_unit_formset(data=self.request.POST, instance=form.instance, company_id=company_id),
         )
+        # Add empty form for JavaScript
+        if 'units_formset' in context:
+            context['units_formset_empty'] = context['units_formset'].empty_form
+        return self.render_to_response(context)
 
     def _generate_unit_code(self, company):
         last_code = (
@@ -458,21 +463,58 @@ class ItemCreateView(ItemUnitFormsetMixin, InventoryBaseView, CreateView):
         kwargs['company_id'] = self.request.session.get('active_company_id')
         return kwargs
     
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+    
     def form_valid(self, form):
         company_id = self.request.session.get('active_company_id')
+        
         form.instance.company_id = company_id
         form.instance.created_by = self.request.user
         form.instance.edited_by = self.request.user
-        units_formset = self.build_unit_formset(data=self.request.POST, company_id=company_id)
-        if not units_formset.is_valid():
-            return self.render_to_response(
-                self.get_context_data(form=form, units_formset=units_formset)
-            )
+        
+        # Build formset with instance=None for new items
+        # Use a temporary instance to build the formset
+        temp_instance = models.Item(company_id=company_id)
+        units_formset = self.build_unit_formset(data=self.request.POST, instance=temp_instance, company_id=company_id)
+        
+        # Check if there are any forms with data in POST
+        has_forms_with_data = False
+        prefix = units_formset.prefix or 'units'
+        total_forms = int(self.request.POST.get(f'{prefix}-TOTAL_FORMS', 0))
+        
+        for i in range(total_forms):
+            # Check if any visible field has data
+            visible_fields = ['from_quantity', 'from_unit', 'to_quantity', 'to_unit', 'description', 'notes']
+            for field in visible_fields:
+                field_name = f'{prefix}-{i}-{field}'
+                if self.request.POST.get(field_name):
+                    has_forms_with_data = True
+                    break
+            if has_forms_with_data:
+                break
+        
+        # Validate formset only if there are forms with data
+        if has_forms_with_data:
+            formset_valid = units_formset.is_valid()
+            
+            if not formset_valid:
+                return self.render_to_response(
+                    self.get_context_data(form=form, units_formset=units_formset)
+                )
+        
+        # Save the item first
         self.object = form.save()
-        units_formset.instance = self.object
-        self._save_unit_formset(units_formset)
+        
+        # Now rebuild formset with the saved instance and save units
+        if has_forms_with_data:
+            units_formset = self.build_unit_formset(data=self.request.POST, instance=self.object, company_id=company_id)
+            if units_formset.is_valid():
+                self._save_unit_formset(units_formset)
+        
         ordered = self._get_ordered_warehouses(form)
         self._sync_item_warehouses(self.object, ordered, self.request.user)
+        
         messages.success(self.request, _('کالا با موفقیت ایجاد شد.'))
         return HttpResponseRedirect(self.get_success_url())
     
@@ -1772,30 +1814,23 @@ class IssueConsumptionCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
         return super().form_invalid(form)
 
     def form_valid(self, form):
-        import logging
-        logger = logging.getLogger(__name__)
-        
         form.instance.company_id = self.request.session.get('active_company_id')
         form.instance.created_by = self.request.user
         form.instance.edited_by = self.request.user
         
         # Save document first
         self.object = form.save()
-        logger.info(f"Created IssueConsumption document: {self.object.document_code} (ID: {self.object.id})")
         
         # Handle line formset
         lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
         if not lines_formset.is_valid():
-            logger.warning(f"Formset is not valid for document {self.object.document_code}")
             # Add formset errors to form for display
             if lines_formset.non_form_errors():
                 for error in lines_formset.non_form_errors():
-                    logger.warning(f"Formset non-form error: {error}")
                     form.add_error(None, error)
             # Also add individual form errors for better debugging
             for idx, line_form in enumerate(lines_formset.forms):
                 if line_form.errors:
-                    logger.warning(f"Line {idx + 1} has errors: {line_form.errors}")
                     for field, errors in line_form.errors.items():
                         for error in errors:
                             error_msg = _('Line %(line)d - %(field)s: %(error)s') % {
@@ -1804,8 +1839,6 @@ class IssueConsumptionCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
                                 'error': error
                             }
                             form.add_error(None, error_msg)
-                elif line_form.cleaned_data:
-                    logger.info(f"Line {idx + 1} cleaned_data: item={line_form.cleaned_data.get('item')}, destination_type_choice={line_form.cleaned_data.get('destination_type_choice')}")
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
@@ -1816,35 +1849,27 @@ class IssueConsumptionCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
         for idx, line_form in enumerate(lines_formset.forms):
             # Skip empty forms (no item)
             if not line_form.cleaned_data:
-                logger.debug(f"Line {idx + 1}: No cleaned_data, skipping")
                 continue
             # Skip deleted forms
             if line_form.cleaned_data.get('DELETE', False):
-                logger.debug(f"Line {idx + 1}: Marked for deletion, skipping")
                 continue
             # Skip forms without item
             if not line_form.cleaned_data.get('item'):
-                logger.debug(f"Line {idx + 1}: No item selected, skipping")
                 continue
             # Check if form has validation errors
             if line_form.errors:
                 # Collect error messages for display
                 item_name = str(line_form.cleaned_data.get('item', 'Item'))
-                logger.warning(f"Line {idx + 1} (item: {item_name}) has validation errors: {line_form.errors}")
                 for field, errors in line_form.errors.items():
                     for error in errors:
                         form_errors.append(f"{item_name}: {field}: {error}")
                 # Form has errors, don't count it as valid but keep the formset to show errors
                 continue
             # This form is valid
-            logger.info(f"Line {idx + 1} is valid: item={line_form.cleaned_data.get('item')}")
             valid_lines.append(line_form)
-        
-        logger.info(f"Found {len(valid_lines)} valid lines out of {len(lines_formset.forms)} total forms")
         
         if not valid_lines:
             # No valid lines, show error and delete the document
-            logger.warning(f"No valid lines found for document {self.object.document_code}, deleting document")
             self.object.delete()
             if form_errors:
                 for error_msg in form_errors:
@@ -1857,10 +1882,8 @@ class IssueConsumptionCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
         
-        logger.info(f"Saving {len(valid_lines)} valid lines for document {self.object.document_code}")
         self._save_line_formset(lines_formset)
         
-        logger.info(f"Successfully created IssueConsumption {self.object.document_code} with {len(valid_lines)} lines")
         messages.success(self.request, _('حواله مصرف با موفقیت ایجاد شد.'))
         return HttpResponseRedirect(self.get_success_url())
 
@@ -3509,7 +3532,7 @@ def get_filtered_categories(request):
 
 @login_required
 def get_filtered_subcategories(request):
-    """API endpoint to get subcategories that have items of specific type/category."""
+    """API endpoint to get subcategories filtered by category (and optionally type)."""
     company_id = request.session.get('active_company_id')
     if not company_id:
         return JsonResponse({'error': 'No active company'}, status=400)
@@ -3518,25 +3541,28 @@ def get_filtered_subcategories(request):
         type_id = request.GET.get('type_id')
         category_id = request.GET.get('category_id')
 
-        # Get subcategories that have at least one item
-        subcategories_with_items = models.ItemSubcategory.objects.filter(
+        # Base query: all enabled subcategories in company
+        subcategories = models.ItemSubcategory.objects.filter(
             company_id=company_id,
             is_enabled=1
         )
         
-        # Build filter for items
-        item_filter = Q(items__is_enabled=1, items__company_id=company_id)
-        if type_id:
-            item_filter &= Q(items__type_id=type_id)
+        # If category_id is provided, filter by category (REQUIRED for form)
         if category_id:
-            item_filter &= Q(items__category_id=category_id)
+            subcategories = subcategories.filter(category_id=category_id)
+        else:
+            # If no category_id, return empty (category is required)
+            return JsonResponse({'subcategories': []})
         
-        subcategories_with_items = subcategories_with_items.filter(item_filter).distinct()
-        subcategories_with_items = subcategories_with_items.order_by('name')
+        # If type_id is provided, optionally filter by type (but don't require items to exist)
+        # This is just a hint, not a strict filter
+        # We still return all subcategories of the category, even if they don't have items yet
+        
+        subcategories = subcategories.order_by('name')
 
         subcategories_data = [
             {'value': str(subcat.pk), 'label': subcat.name}
-            for subcat in subcategories_with_items
+            for subcat in subcategories
         ]
 
         return JsonResponse({'subcategories': subcategories_data})

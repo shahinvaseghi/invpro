@@ -891,6 +891,7 @@ class ItemForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+        
         item_type = cleaned_data.get('type')
         category = cleaned_data.get('category')
         subcategory = cleaned_data.get('subcategory')
@@ -966,6 +967,58 @@ class ItemUnitFormSet(forms.BaseInlineFormSet):
         for form in self.forms:
             if hasattr(form, 'set_company_id'):
                 form.set_company_id(self.company_id)
+    
+    def clean(self):
+        """Override clean to skip validation for completely empty forms."""
+        cleaned_data = super().clean()
+        # Mark completely empty forms as valid (they will be ignored in save)
+        for form in self.forms:
+            if form.cleaned_data:
+                # Check if form is empty (only DELETE checkbox or all fields empty)
+                non_delete_fields = {k: v for k, v in form.cleaned_data.items() if k != 'DELETE'}
+                if not any(v for v in non_delete_fields.values() if v):
+                    # Form is empty - clear errors
+                    form._errors = {}
+        return cleaned_data
+    
+    def is_valid(self):
+        """Override is_valid to allow empty formsets."""
+        # If formset is completely empty (no forms), it's still valid
+        if not self.forms or self.total_form_count() == 0:
+            return True
+        
+        # Call parent validation first to populate cleaned_data
+        valid = super().is_valid()
+        
+        # If validation failed, check if all forms are empty (after clean)
+        if not valid:
+            all_empty = True
+            for form in self.forms:
+                # Check if form has any non-empty fields (excluding DELETE and hidden fields)
+                if form.cleaned_data:
+                    non_delete_fields = {k: v for k, v in form.cleaned_data.items() 
+                                       if k != 'DELETE' and k not in ['id', 'public_code']}
+                    if any(v for v in non_delete_fields.values() if v):
+                        all_empty = False
+                        break
+                # Also check if form has any data in POST (for new forms)
+                elif form.data:
+                    # Check if any visible fields have values
+                    visible_fields = ['from_quantity', 'from_unit', 'to_quantity', 'to_unit', 'description', 'notes']
+                    has_data = any(form.data.get(f'{form.prefix}-{field}') for field in visible_fields)
+                    if has_data:
+                        all_empty = False
+                        break
+            
+            # If all forms are empty, formset is valid (units are optional)
+            if all_empty:
+                # Clear all errors
+                self._errors = []
+                for form in self.forms:
+                    form._errors = {}
+                return True
+        
+        return valid
 
 
 ItemUnitFormSet = inlineformset_factory(
@@ -973,7 +1026,7 @@ ItemUnitFormSet = inlineformset_factory(
     ItemUnit,
     form=ItemUnitForm,
     formset=ItemUnitFormSet,
-    extra=2,
+    extra=0,  # No empty rows by default - user adds rows as needed
     can_delete=True,
 )
 
@@ -2839,6 +2892,54 @@ class IssueLineBaseForm(forms.ModelForm):
         
         self._validate_unit(cleaned_data)
         self._normalize_quantity(cleaned_data)
+        
+        # Validate inventory balance for issue forms (only for IssueLineBaseForm subclasses)
+        if warehouse and item and self.company_id and hasattr(self, '_normalize_quantity'):
+            # Only validate if this is an issue form (not receipt)
+            # Check if this form is for an issue by checking the model
+            from .models import IssuePermanentLine, IssueConsumptionLine, IssueConsignmentLine
+            if isinstance(self.instance, (IssuePermanentLine, IssueConsumptionLine, IssueConsignmentLine)) or \
+               (hasattr(self, 'Meta') and hasattr(self.Meta, 'model') and 
+                issubclass(self.Meta.model, (IssuePermanentLine, IssueConsumptionLine, IssueConsignmentLine))):
+                quantity = cleaned_data.get('quantity')
+                if quantity:
+                    try:
+                        from . import inventory_balance
+                        from datetime import date
+                        from django.utils import timezone
+                        
+                        # Calculate current balance
+                        balance_info = inventory_balance.calculate_item_balance(
+                            company_id=self.company_id,
+                            warehouse_id=warehouse.id,
+                            item_id=item.id,
+                            as_of_date=timezone.now().date()
+                        )
+                        
+                        current_balance = Decimal(str(balance_info['current_balance']))
+                        issue_quantity = Decimal(str(quantity))
+                        
+                        # If editing, add back the old quantity (if it exists)
+                        if self.instance.pk:
+                            old_quantity = Decimal(str(self.instance.quantity or 0))
+                            available_balance = current_balance + old_quantity
+                        else:
+                            available_balance = current_balance
+                        
+                        # Check if we have enough inventory
+                        if issue_quantity > available_balance:
+                            self.add_error(
+                                'quantity',
+                                _('موجودی کافی نیست. موجودی فعلی: %(balance)s، مقدار درخواستی: %(requested)s') % {
+                                    'balance': available_balance,
+                                    'requested': issue_quantity
+                                }
+                            )
+                    except Exception as e:
+                        # If balance calculation fails, don't block the form
+                        # (might be due to missing stocktaking baseline)
+                        pass
+        
         return cleaned_data
     
     def save(self, commit=True):
@@ -2863,11 +2964,11 @@ class IssuePermanentLineForm(IssueLineBaseForm):
     """Form for permanent issue line items."""
     
     destination_type = forms.ModelChoiceField(
-        queryset=WorkLine.objects.none(),
+        queryset=CompanyUnit.objects.none(),
         required=False,
-        label=_('Work Line'),
+        label=_('واحد کاری'),
         widget=forms.Select(attrs={'class': 'form-control'}),
-        help_text=_('Select the work line that receives this issue.'),
+        help_text=_('واحد کاری که این حواله را دریافت می‌کند.'),
     )
     
     class Meta:
@@ -2897,59 +2998,84 @@ class IssuePermanentLineForm(IssueLineBaseForm):
     
     def __init__(self, *args, company_id=None, **kwargs):
         super().__init__(*args, company_id=company_id, **kwargs)
-        
-        # Set destination_type (WorkLine) queryset
+        self._update_destination_type_queryset()
+    
+    def _update_destination_type_queryset(self):
+        """Update destination_type (CompanyUnit) queryset after company_id is set."""
         if self.company_id and 'destination_type' in self.fields:
-            self.fields['destination_type'].queryset = WorkLine.objects.filter(
+            self.fields['destination_type'].queryset = CompanyUnit.objects.filter(
                 company_id=self.company_id, is_enabled=1
-            ).order_by('warehouse__name', 'name')
-            self.fields['destination_type'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name} ({obj.warehouse.name if obj.warehouse else ''})"
+            ).order_by('name')
+            self.fields['destination_type'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
             self.fields['destination_type'].empty_label = _("--- انتخاب کنید ---")
             
-            # If editing and instance has destination_type, try to find matching WorkLine
+            # If editing and instance has destination_type, try to find matching CompanyUnit
             if not self.is_bound and getattr(self.instance, 'pk', None):
-                if self.instance.destination_type == 'work_line' and self.instance.destination_id:
-                    # If destination_type is 'work_line', use destination_id
+                if self.instance.destination_type == 'company_unit' and self.instance.destination_id:
+                    # If destination_type is 'company_unit', use destination_id
                     try:
-                        work_line = WorkLine.objects.get(
+                        company_unit = CompanyUnit.objects.get(
                             company_id=self.company_id,
                             id=self.instance.destination_id
                         )
-                        self.initial['destination_type'] = work_line.id
-                    except WorkLine.DoesNotExist:
+                        self.initial['destination_type'] = company_unit.id
+                    except CompanyUnit.DoesNotExist:
                         pass
                 elif self.instance.destination_type and not self.instance.destination_id:
-                    # Try to find WorkLine by code (for old data)
+                    # Try to find CompanyUnit by code (for old data)
                     try:
-                        work_line = WorkLine.objects.get(
+                        company_unit = CompanyUnit.objects.get(
                             company_id=self.company_id,
                             public_code=self.instance.destination_type
                         )
-                        self.initial['destination_type'] = work_line.id
-                    except WorkLine.DoesNotExist:
+                        self.initial['destination_type'] = company_unit.id
+                    except CompanyUnit.DoesNotExist:
+                        pass
+            
+            # If editing and instance has destination_type, try to find matching CompanyUnit
+            if not self.is_bound and getattr(self.instance, 'pk', None):
+                if self.instance.destination_type == 'company_unit' and self.instance.destination_id:
+                    # If destination_type is 'company_unit', use destination_id
+                    try:
+                        company_unit = CompanyUnit.objects.get(
+                            company_id=self.company_id,
+                            id=self.instance.destination_id
+                        )
+                        self.initial['destination_type'] = company_unit.id
+                    except CompanyUnit.DoesNotExist:
+                        pass
+                elif self.instance.destination_type and not self.instance.destination_id:
+                    # Try to find CompanyUnit by code (for old data)
+                    try:
+                        company_unit = CompanyUnit.objects.get(
+                            company_id=self.company_id,
+                            public_code=self.instance.destination_type
+                        )
+                        self.initial['destination_type'] = company_unit.id
+                    except CompanyUnit.DoesNotExist:
                         pass
     
     def clean_destination_type(self):
-        """Validate destination_type (WorkLine)."""
-        work_line = self.cleaned_data.get('destination_type')
-        # Store work_line for later use in save()
-        self._destination_work_line = work_line
-        return work_line
+        """Validate destination_type (CompanyUnit)."""
+        company_unit = self.cleaned_data.get('destination_type')
+        # Store company_unit for later use in save()
+        self._destination_company_unit = company_unit
+        return company_unit
     
     def save(self, commit=True):
         """Save with destination_type handling."""
         instance = super().save(commit=False)
         
-        # Handle destination_type (WorkLine)
-        work_line = getattr(self, '_destination_work_line', None)
-        if work_line is None:
-            # Try to get from cleaned_data if _destination_work_line not set
-            work_line = self.cleaned_data.get('destination_type')
+        # Handle destination_type (CompanyUnit)
+        company_unit = getattr(self, '_destination_company_unit', None)
+        if company_unit is None:
+            # Try to get from cleaned_data if _destination_company_unit not set
+            company_unit = self.cleaned_data.get('destination_type')
         
-        if work_line and isinstance(work_line, WorkLine):
-            instance.destination_type = 'work_line'
-            instance.destination_id = work_line.id
-            instance.destination_code = work_line.public_code
+        if company_unit and isinstance(company_unit, CompanyUnit):
+            instance.destination_type = 'company_unit'
+            instance.destination_id = company_unit.id
+            instance.destination_code = company_unit.public_code
         else:
             # Set default empty value if not provided
             instance.destination_type = ''
@@ -3171,11 +3297,11 @@ class IssueConsignmentLineForm(IssueLineBaseForm):
     )
     
     destination_type = forms.ModelChoiceField(
-        queryset=WorkLine.objects.none(),
+        queryset=CompanyUnit.objects.none(),
         required=False,
-        label=_('Work Line'),
+        label=_('واحد کاری'),
         widget=forms.Select(attrs={'class': 'form-control'}),
-        help_text=_('Select the work line that receives this issue.'),
+        help_text=_('واحد کاری که این حواله را دریافت می‌کند.'),
     )
     
     class Meta:
@@ -3201,7 +3327,10 @@ class IssueConsignmentLineForm(IssueLineBaseForm):
     
     def __init__(self, *args, company_id=None, **kwargs):
         super().__init__(*args, company_id=company_id, **kwargs)
-        
+        self._update_destination_type_queryset()
+    
+    def _update_destination_type_queryset(self):
+        """Update destination_type (CompanyUnit) queryset after company_id is set."""
         if self.company_id:
             if 'consignment_receipt' in self.fields:
                 self.fields['consignment_receipt'].queryset = ReceiptConsignment.objects.filter(
@@ -3209,52 +3338,55 @@ class IssueConsignmentLineForm(IssueLineBaseForm):
                 ).order_by('-document_date', 'document_code')
                 self.fields['consignment_receipt'].label_from_instance = lambda obj: f"{obj.document_code}"
             
-            # Set destination_type (WorkLine) queryset
+            # Set destination_type (CompanyUnit) queryset
             if 'destination_type' in self.fields:
-                self.fields['destination_type'].queryset = WorkLine.objects.filter(
+                self.fields['destination_type'].queryset = CompanyUnit.objects.filter(
                     company_id=self.company_id, is_enabled=1
-                ).order_by('warehouse__name', 'name')
-                self.fields['destination_type'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name} ({obj.warehouse.name if obj.warehouse else ''})"
+                ).order_by('name')
+                self.fields['destination_type'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
                 self.fields['destination_type'].empty_label = _("--- انتخاب کنید ---")
                 
-                # If editing and instance has destination_type, try to find matching WorkLine
+                # If editing and instance has destination_type, try to find matching CompanyUnit
                 if not self.is_bound and getattr(self.instance, 'pk', None):
-                    if self.instance.destination_type == 'work_line' and self.instance.destination_id:
+                    if self.instance.destination_type == 'company_unit' and self.instance.destination_id:
                         try:
-                            work_line = WorkLine.objects.get(
+                            company_unit = CompanyUnit.objects.get(
                                 company_id=self.company_id,
                                 id=self.instance.destination_id
                             )
-                            self.initial['destination_type'] = work_line.id
-                        except WorkLine.DoesNotExist:
+                            self.initial['destination_type'] = company_unit.id
+                        except CompanyUnit.DoesNotExist:
                             pass
                     elif self.instance.destination_type and not self.instance.destination_id:
                         try:
-                            work_line = WorkLine.objects.get(
+                            company_unit = CompanyUnit.objects.get(
                                 company_id=self.company_id,
                                 public_code=self.instance.destination_type
                             )
-                            self.initial['destination_type'] = work_line.id
-                        except WorkLine.DoesNotExist:
+                            self.initial['destination_type'] = company_unit.id
+                        except CompanyUnit.DoesNotExist:
                             pass
     
     def clean_destination_type(self):
-        """Validate destination_type (WorkLine)."""
-        work_line = self.cleaned_data.get('destination_type')
-        self._destination_work_line = work_line
-        return work_line
+        """Validate destination_type (CompanyUnit)."""
+        company_unit = self.cleaned_data.get('destination_type')
+        self._destination_company_unit = company_unit
+        return company_unit
     
     def save(self, commit=True):
         """Save with destination_type handling."""
         instance = super().save(commit=False)
         
-        # Handle destination_type (WorkLine)
-        work_line = getattr(self, '_destination_work_line', None) or self.cleaned_data.get('destination_type')
+        # Handle destination_type (CompanyUnit)
+        company_unit = getattr(self, '_destination_company_unit', None)
+        if company_unit is None:
+            # Try to get from cleaned_data if _destination_company_unit not set
+            company_unit = self.cleaned_data.get('destination_type')
         
-        if work_line and isinstance(work_line, WorkLine):
-            instance.destination_type = 'work_line'
-            instance.destination_id = work_line.id
-            instance.destination_code = work_line.public_code
+        if company_unit and isinstance(company_unit, CompanyUnit):
+            instance.destination_type = 'company_unit'
+            instance.destination_id = company_unit.id
+            instance.destination_code = company_unit.public_code
         else:
             instance.destination_type = ''
             instance.destination_id = None
@@ -3784,6 +3916,9 @@ class BaseLineFormSet(forms.BaseInlineFormSet):
             # Update querysets after company_id is set
             if hasattr(form, '_update_querysets_after_company_id'):
                 form._update_querysets_after_company_id()
+            # Also update destination_type queryset if method exists
+            if hasattr(form, '_update_destination_type_queryset'):
+                form._update_destination_type_queryset()
     
     def clean(self):
         """Validate that at least one line has an item."""

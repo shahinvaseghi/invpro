@@ -881,7 +881,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const rowUnitValue = row.dataset.unitValue;
         if (rowUnitValue) {
           currentUnit = rowUnitValue;
-          console.log(`📌 Restoring unit from row data: ${rowUnitValue}`);
         }
       }
       
@@ -916,12 +915,8 @@ document.addEventListener('DOMContentLoaded', function() {
               const unitOption = unitSelect.querySelector(`option[value="${currentUnit}"]`);
               if (unitOption) {
                 unitSelect.value = currentUnit;
-                console.log(`✅ Restored unit value: ${currentUnit}`);
                 // Clear the data attribute after successful restore
                 delete row.dataset.unitValue;
-              } else {
-                console.warn(`⚠️ Unit value "${currentUnit}" not found in loaded units`);
-                // Keep the data attribute in case units are reloaded later
               }
             }
           } else {
@@ -933,17 +928,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const typeSelect = row.querySelector('select[name*="material_type"]');
             if (typeSelect) {
               // Check if the type exists in the dropdown
-              let typeFound = false;
               for (let i = 0; i < typeSelect.options.length; i++) {
                 if (typeSelect.options[i].value == data.item_type_id) {
                   typeSelect.value = data.item_type_id;
-                  typeFound = true;
-                  console.log(`✅ Auto-set material_type to: ${data.item_type_id} (${data.item_type_name})`);
                   break;
                 }
-              }
-              if (!typeFound) {
-                console.warn(`⚠️  material_type ${data.item_type_id} not found in dropdown`);
               }
             }
           }
@@ -985,7 +974,6 @@ document.addEventListener('DOMContentLoaded', function() {
             for (let i = 0; i < typeSelect.options.length; i++) {
               if (typeSelect.options[i].value == data.item_type_id) {
                 typeSelect.value = data.item_type_id;
-                console.log(`✅ Auto-set material_type to: ${data.item_type_id} (${data.item_type_name})`);
                 
                 // Step 2: Load and set category
                 if (data.category_id) {
@@ -993,7 +981,6 @@ document.addEventListener('DOMContentLoaded', function() {
                   // Wait a bit for categories to load, then set category
                   setTimeout(() => {
                     categorySelect.value = data.category_id;
-                    console.log(`✅ Restored category: ${data.category_id}`);
                     
                     // Step 3: Load and set subcategory
                     if (data.subcategory_id) {
@@ -1001,7 +988,6 @@ document.addEventListener('DOMContentLoaded', function() {
                       // Wait a bit for subcategories to load, then set subcategory
                       setTimeout(() => {
                         subcategorySelect.value = data.subcategory_id;
-                        console.log(`✅ Restored subcategory: ${data.subcategory_id}`);
                       }, 300);
                     }
                   }, 300);
@@ -1028,10 +1014,7 @@ document.addEventListener('DOMContentLoaded', function() {
               const unitOption = unitSelect.querySelector(`option[value="${savedUnitValue}"]`);
               if (unitOption) {
                 unitSelect.value = savedUnitValue;
-                console.log(`✅ Restored unit value: ${savedUnitValue}`);
                 delete row.dataset.unitValue;
-              } else {
-                console.warn(`⚠️ Unit value "${savedUnitValue}" not found in loaded units`);
               }
             }
           } else {
@@ -1059,72 +1042,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize filters on page load
   initializeCascadingFilters();
   
-  // Display stored logs on page
-  function displayStoredLogs() {
-    const logs = JSON.parse(localStorage.getItem('bom_form_logs') || '[]');
-    const logsSection = document.getElementById('debug-logs-section');
-    const logsContent = document.getElementById('debug-logs-content');
-    
-    if (logs.length > 0 && logsSection && logsContent) {
-      logsSection.style.display = 'block';
-      logsContent.innerHTML = '';
-      
-      logs.slice(-30).forEach(function(log) {
-        const logDiv = document.createElement('div');
-        logDiv.style.padding = '5px';
-        logDiv.style.marginBottom = '5px';
-        logDiv.style.borderLeft = '3px solid ' + (log.level === 'error' ? '#dc2626' : log.level === 'warn' ? '#f59e0b' : '#3b82f6');
-        logDiv.style.backgroundColor = log.level === 'error' ? '#fee2e2' : log.level === 'warn' ? '#fef3c7' : '#dbeafe';
-        
-        const time = new Date(log.timestamp).toLocaleTimeString();
-        logDiv.innerHTML = `<strong>[${time}]</strong> <span style="color: ${log.level === 'error' ? '#dc2626' : log.level === 'warn' ? '#f59e0b' : '#3b82f6'}">${log.level.toUpperCase()}</span>: ${log.message}`;
-        if (log.data) {
-          const dataDiv = document.createElement('pre');
-          dataDiv.style.margin = '5px 0 0 20px';
-          dataDiv.style.fontSize = '12px';
-          dataDiv.textContent = JSON.stringify(log.data, null, 2);
-          logDiv.appendChild(dataDiv);
-        }
-        logsContent.appendChild(logDiv);
-      });
-    }
-  }
-  
-  function clearDebugLogs() {
-    localStorage.removeItem('bom_form_logs');
-    const logsSection = document.getElementById('debug-logs-section');
-    if (logsSection) {
-      logsSection.style.display = 'none';
-    }
-    alert('Logs cleared!');
-  }
-  
-  // Log error messages on page load
-  document.addEventListener('DOMContentLoaded', function() {
-    // Display stored logs
-    displayStoredLogs();
-    
-    const errorMessages = document.querySelectorAll('.alert-error, .error');
-    if (errorMessages.length > 0) {
-      console.group("⚠️ Error Messages Found on Page Load");
-      errorMessages.forEach(function(msg, index) {
-        console.error(`Error ${index + 1}:`, msg.textContent.trim());
-      });
-      console.groupEnd();
-      
-      // Store in localStorage
-      const errorTexts = Array.from(errorMessages).map(msg => msg.textContent.trim());
-      const logs = JSON.parse(localStorage.getItem('bom_form_logs') || '[]');
-      logs.push({
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: 'Error messages found on page load',
-        data: {errors: errorTexts}
-      });
-      localStorage.setItem('bom_form_logs', JSON.stringify(logs));
-      displayStoredLogs(); // Refresh display
-    }
-  });
   
   
   // ====================================================================
@@ -1132,217 +1049,39 @@ document.addEventListener('DOMContentLoaded', function() {
   // ====================================================================
   const form = document.getElementById('bom-form');
   if (form) {
-    // Store logs in localStorage to persist across page reloads
-    const logToStorage = function(level, message, data = null) {
-      const timestamp = new Date().toISOString();
-      const logEntry = {timestamp, level, message, data};
-      const logs = JSON.parse(localStorage.getItem('bom_form_logs') || '[]');
-      logs.push(logEntry);
-      // Keep only last 100 logs
-      if (logs.length > 100) logs.shift();
-      localStorage.setItem('bom_form_logs', JSON.stringify(logs));
-      
-      // Also log to console
-      if (level === 'error') {
-        console.error(`[${timestamp}] ${message}`, data || '');
-      } else if (level === 'warn') {
-        console.warn(`[${timestamp}] ${message}`, data || '');
-      } else {
-        console.log(`[${timestamp}] ${message}`, data || '');
-      }
-    };
-    
-    // Display stored logs on page load
-    const storedLogs = JSON.parse(localStorage.getItem('bom_form_logs') || '[]');
-    if (storedLogs.length > 0) {
-      console.group("📜 Previous Form Submission Logs");
-      storedLogs.slice(-20).forEach(log => {
-        const method = log.level === 'error' ? console.error : log.level === 'warn' ? console.warn : console.log;
-        method(`[${log.timestamp}] ${log.message}`, log.data || '');
-      });
-      console.groupEnd();
-    }
-    
-    // Log form data before submit
     form.addEventListener('submit', function(e) {
-      logToStorage('info', "=".repeat(50));
-      logToStorage('info', "🚀 FORM SUBMIT - Starting validation");
-      logToStorage('info', "=".repeat(50));
-      
       // CRITICAL: Enable all unit selects before submission (disabled fields are not submitted!)
       const allUnitSelects = form.querySelectorAll('select[name*="-unit"]');
-      allUnitSelects.forEach(function(unitSelect, idx) {
+      allUnitSelects.forEach(function(unitSelect) {
         if (unitSelect.disabled) {
           const materialSelect = unitSelect.closest('.material-row')?.querySelector('[name*="material_item"]');
           if (materialSelect && materialSelect.value) {
             unitSelect.disabled = false;
-            logToStorage('info', `✅ Enabled disabled unit select ${idx + 1} before submission (has material: ${materialSelect.value})`);
           }
         }
       });
       
-      // Create FormData to see all form values
-      const formData = new FormData(form);
-      const formDataObj = {};
-      for (let [key, value] of formData.entries()) {
-        formDataObj[key] = value;
-      }
-      logToStorage('info', "📋 ALL FORM DATA", formDataObj);
-      
-      let hasErrors = false;
-      
-      // Log all form field values
-      const finishedItem = document.getElementById('id_finished_item');
-      const version = document.querySelector('[name="version"]');
-      const isActive = document.querySelector('[name="is_active"]');
-      const isEnabled = document.querySelector('[name="is_enabled"]');
-      
-      const fieldValues = {
-        finished_item: finishedItem ? finishedItem.value : "NOT FOUND",
-        version: version ? version.value : "NOT FOUND",
-        is_active: isActive ? isActive.value : "NOT FOUND",
-        is_enabled: isEnabled ? isEnabled.value : "NOT FOUND",
-      };
-      logToStorage('info', "📝 Form fields", fieldValues);
-      
-      // Check if is_enabled is missing
-      if (!isEnabled) {
-        const availableFields = Array.from(form.querySelectorAll('[name]')).map(el => el.name);
-        logToStorage('error', "❌ ERROR: is_enabled field NOT FOUND in DOM!", {
-          lookingFor: "[name='is_enabled']",
-          availableFields: availableFields
-        });
-        hasErrors = true;
-      } else if (!isEnabled.value) {
-        logToStorage('error', "⚠️  WARNING: is_enabled field is empty!", {
-          currentValue: isEnabled.value,
-          willCauseValidationFailure: true
-        });
-        hasErrors = true;
-      } else {
-        logToStorage('info', "✅ is_enabled field found", {value: isEnabled.value});
-      }
-      
       // Check if at least one material is added
       const materialRows = tbody.querySelectorAll('.material-row');
       let validRowCount = 0;
-      const rowDetails = [];
       
-      logToStorage('info', `Found ${materialRows.length} material rows`);
-      
-      materialRows.forEach(function(row, index) {
+      materialRows.forEach(function(row) {
         const materialSelect = row.querySelector('[name*="material_item"]');
-        const unitSelect = row.querySelector('[name*="-unit"]');
         const deleteCheckbox = row.querySelector('[name*="DELETE"]');
-        
-        // CRITICAL: Enable unit select before submission (disabled fields are not submitted!)
-        if (unitSelect && materialSelect && materialSelect.value) {
-          unitSelect.disabled = false;
-          logToStorage('info', `Enabled unit select for row ${index + 1} before submission`);
-        }
-        
-        // Save unit value to row's data attribute for restoration after reload
-        if (unitSelect && unitSelect.value) {
-          row.dataset.unitValue = unitSelect.value;
-        }
-        
-        const rowData = {
-          rowNumber: index + 1,
-          material_item: materialSelect ? materialSelect.value : "NOT FOUND",
-          unit: unitSelect ? (unitSelect.disabled ? "DISABLED!" : unitSelect.value) : "NOT FOUND",
-          DELETE: deleteCheckbox ? deleteCheckbox.checked : "NOT FOUND",
-        };
         
         // Count only if material is selected and not marked for deletion
         if (materialSelect && materialSelect.value && 
             (!deleteCheckbox || !deleteCheckbox.checked)) {
           validRowCount++;
-          rowData.isValid = true;
-          logToStorage('info', `✓ Row ${index + 1} is valid`, rowData);
-        } else {
-          rowData.isValid = false;
-          logToStorage('warn', `✗ Row ${index + 1} is invalid or empty`, rowData);
         }
-        
-        rowDetails.push(rowData);
       });
       
-      logToStorage('info', `Valid material rows: ${validRowCount}`, {rowDetails});
-      
       if (validRowCount === 0) {
-        logToStorage('error', "ERROR: No valid material rows found!", {totalRows: materialRows.length});
         alert('لطفاً حداقل یک ماده اولیه اضافه کنید.');
-        hasErrors = true;
-      }
-      
-      if (hasErrors) {
-        logToStorage('error', "FORM SUBMIT - Validation failed, preventing submit", {hasErrors});
         e.preventDefault();
         return false;
       }
-      
-      logToStorage('info', "FORM SUBMIT - Validation passed, submitting form");
-      logToStorage('info', "=".repeat(50));
-      
-      // Intercept form submission to log response
-      const originalSubmit = form.submit;
-      form.submit = function() {
-        logToStorage('info', "📤 Form is being submitted...");
-        return originalSubmit.apply(this, arguments);
-      };
     });
-    
-    // Also intercept fetch/XHR if form uses AJAX
-    const originalFetch = window.fetch;
-    window.fetch = function(...args) {
-      logToStorage('info', "🌐 Fetch called", {url: args[0]});
-      return originalFetch.apply(this, args).then(response => {
-        logToStorage('info', "📥 Fetch response", {
-          status: response.status,
-          statusText: response.statusText,
-          url: args[0]
-        });
-        return response;
-      }).catch(error => {
-        logToStorage('error', "❌ Fetch error", {error: error.message, url: args[0]});
-        throw error;
-      });
-    };
-    
-    // Add button to view stored logs
-    const logViewerBtn = document.createElement('button');
-    logViewerBtn.type = 'button';
-    logViewerBtn.textContent = '📜 View Logs';
-    logViewerBtn.className = 'btn btn-secondary';
-    logViewerBtn.style.marginLeft = '10px';
-    logViewerBtn.onclick = function() {
-      const logs = JSON.parse(localStorage.getItem('bom_form_logs') || '[]');
-      console.group("📜 All Stored Form Logs");
-      logs.forEach(log => {
-        const method = log.level === 'error' ? console.error : log.level === 'warn' ? console.warn : console.log;
-        method(`[${log.timestamp}] ${log.message}`, log.data || '');
-      });
-      console.groupEnd();
-      alert(`Total logs: ${logs.length}\nCheck console for details.`);
-    };
-    
-    // Add clear logs button
-    const clearLogsBtn = document.createElement('button');
-    clearLogsBtn.type = 'button';
-    clearLogsBtn.textContent = '🗑️ Clear Logs';
-    clearLogsBtn.className = 'btn btn-secondary';
-    clearLogsBtn.style.marginLeft = '10px';
-    clearLogsBtn.onclick = function() {
-      localStorage.removeItem('bom_form_logs');
-      alert('Logs cleared!');
-    };
-    
-    // Add buttons to form actions
-    const formActions = document.querySelector('.form-actions');
-    if (formActions) {
-      formActions.appendChild(logViewerBtn);
-      formActions.appendChild(clearLogsBtn);
-    }
   }
   
   

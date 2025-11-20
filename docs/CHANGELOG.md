@@ -8,6 +8,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+- **Inventory Balance Validation in Issue Forms**: Added validation to prevent issuing more items than available inventory. The system now checks current balance before allowing issue creation/editing, and displays an error message if insufficient inventory is available.
+
+### Changed
+- **Issue Forms Destination Type**: 
+  - **Permanent Issues**: Changed `destination_type` field from `WorkLine` to `CompanyUnit` (optional). Only organizational units can be selected as destination.
+  - **Consignment Issues**: Changed `destination_type` field from `WorkLine` to `CompanyUnit` (optional). Only organizational units can be selected as destination.
+  - **Consumption Issues**: Remains unchanged - supports both `CompanyUnit` and `WorkLine` selection via `destination_type_choice` field.
+- **JavaScript Form Validation**: Updated validation logic to only check `destination_type_choice` for Consumption Issues. For Permanent/Consignment Issues, `destination_type` is optional and validation is skipped if the field doesn't exist.
+
+### Changed
+- **Removed Debug Logging**: Cleaned up all temporary debug logging code from:
+  - `inventory/views.py` - Removed all logger.debug/info/warning/error calls (including ItemCreateView and IssueConsumptionView)
+  - `inventory/forms.py` - Removed all logger.debug calls
+  - `production/views.py` - Removed all logger.debug/info/warning/error calls and unused import logging
+  - `production/forms.py` - Removed all logger.debug calls and unused import logging
+  - `templates/inventory/item_form.html` - Removed console.log calls (kept essential error handling)
+  - `templates/inventory/receipt_form.html` - Removed all console.log/warn calls (66 instances, kept console.error for error handling)
+  - `templates/production/bom_form.html` - Removed localStorage logging, debug logs section, and console.log/warn calls (kept console.error for error handling)
+- **Logging Configuration**: Simplified LOGGING configuration in `config/settings.py` - removed DEBUG level loggers for inventory and production modules
+- **Code Cleanup**: Removed all temporary debugging code added during development and bug fixing to improve code maintainability
+
+### Fixed
+- **Item Form Subcategory Filtering**: Fixed issue where subcategories were not properly filtered by category
+  - Updated `get_filtered_subcategories` API to return all subcategories for a category (not just those with items)
+  - Added JavaScript cascading dropdown logic to filter subcategories when category changes
+  - Subcategories now properly clear and reload when category selection changes
+
 ---
 
 ## [2025-11-20c] - BOM Form Validation & Edit Mode Fixes

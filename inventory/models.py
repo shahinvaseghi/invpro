@@ -335,14 +335,32 @@ class Item(InventorySortableModel):
         return f"{self.item_code} · {self.name}"
 
     def save(self, *args, **kwargs):
+        # Copy codes from type, category, subcategory if not set
+        if self.type and not self.type_code:
+            self.type_code = self.type.public_code
+        if self.category and not self.category_code:
+            self.category_code = self.category.public_code
+        if self.subcategory and not self.subcategory_code:
+            self.subcategory_code = self.subcategory.public_code
+        
+        # Generate sequence_segment if not set
+        if not self.sequence_segment:
+            self.sequence_segment = self._generate_sequence_segment()
+        
+        # Generate item_code if not set
         if not self.item_code:
             # Item code: User(2) + Sequence(5) = 7 digits
             self.item_code = f"{self.user_segment}{self.sequence_segment}"
+        
+        # Generate full_item_code if not set
         if not self.full_item_code:
             # Full item code: Type(3) + Category(3) + SubCategory(3) + ItemCode(7) = 16 digits
             self.full_item_code = f"{self.type_code}{self.category_code}{self.subcategory_code}{self.item_code}"
+        
+        # Generate batch_number if not set
         if not self.batch_number:
             self.batch_number = self._generate_batch_number()
+        
         super().save(*args, **kwargs)
 
     def _generate_sequence_segment(self) -> str:

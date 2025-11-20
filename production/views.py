@@ -390,9 +390,6 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
         return kwargs
     
     def get_context_data(self, **kwargs):
-        import logging
-        logger = logging.getLogger(__name__)
-        
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'production'
         context['form_title'] = _('Create BOM')
@@ -400,10 +397,6 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
         company_id = self.request.session.get('active_company_id')
         
         if self.request.POST:
-            logger.info("=" * 50)
-            logger.info("BOM CREATE - POST request received")
-            logger.info(f"POST data: {dict(list(self.request.POST.items())[:30])}")  # First 30 items
-            
             # Create formset from POST data without instance (since object doesn't exist yet)
             context['formset'] = BOMMaterialLineFormSet(
                 self.request.POST,
@@ -413,20 +406,14 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
             
             # Show form errors if form is invalid
             form = context.get('form')
-            if form:
-                logger.info(f"Form is_valid: {form.is_valid()}")
-                if form.errors:
-                    logger.error("=" * 50)
-                    logger.error("FORM VALIDATION FAILED")
-                    logger.error(f"Form errors: {form.errors}")
-                    for field, errors in form.errors.items():
-                        for error in errors:
-                            if field == '__all__':
-                                messages.error(self.request, f"❌ {error}")
-                            else:
-                                field_label = form.fields[field].label if field in form.fields else field
-                                messages.error(self.request, f"❌ {field_label}: {error}")
-                                logger.error(f"  Field '{field}' ({field_label}): {error}")
+            if form and form.errors:
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        if field == '__all__':
+                            messages.error(self.request, f"❌ {error}")
+                        else:
+                            field_label = form.fields[field].label if field in form.fields else field
+                            messages.error(self.request, f"❌ {field_label}: {error}")
         else:
             # Create empty formset with only 'extra' number of forms
             context['formset'] = BOMMaterialLineFormSet(
@@ -437,35 +424,23 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
         return context
     
     def form_valid(self, form):
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info("=" * 50)
-        logger.info("BOM CREATE - form_valid called")
-        logger.info(f"Form data: {form.cleaned_data}")
-        logger.info(f"Form errors: {form.errors}")
-        
         # Auto-set company and created_by
         active_company_id = self.request.session.get('active_company_id')
         if not active_company_id:
-            logger.error("No active company ID in session")
             messages.error(self.request, _('Please select a company first.'))
             return self.form_invalid(form)
         
-        logger.info(f"Active company ID: {active_company_id}")
         form.instance.company_id = active_company_id
         form.instance.created_by = self.request.user
         
         # Set default is_enabled if not provided
         if not form.instance.is_enabled:
             form.instance.is_enabled = 1
-            logger.info("Set default is_enabled=1")
         
         # Save BOM first
         try:
             self.object = form.save()
-            logger.info(f"BOM saved successfully: {self.object.bom_code}")
         except Exception as e:
-            logger.error(f"Error saving BOM: {str(e)}")
             messages.error(self.request, f"Error saving BOM: {str(e)}")
             return self.form_invalid(form)
         
@@ -477,46 +452,14 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
             form_kwargs={'company_id': active_company_id}
         )
         
-        logger.info(f"Formset created with {len(formset.forms)} forms")
-        logger.info(f"POST data keys: {list(self.request.POST.keys())[:20]}...")  # First 20 keys
-        
-        # Log all POST data for materials
-        material_keys = [k for k in self.request.POST.keys() if k.startswith('materials-')]
-        logger.info(f"Material-related POST keys: {len(material_keys)} keys")
-        for key in material_keys[:20]:  # First 20 keys
-            value = self.request.POST.get(key)
-            # Log unit values prominently
-            if 'unit' in key.lower():
-                logger.info(f"  🔵 {key}: {value}")
-            else:
-                logger.info(f"  {key}: {value}")
-        
         # Validate formset
         is_valid = formset.is_valid()
-        logger.info(f"Formset is_valid: {is_valid}")
-        logger.info(f"Formset total_forms: {formset.total_form_count()}")
-        logger.info(f"Formset initial_forms: {formset.initial_form_count()}")
-        # extra_form_count() may not exist for all formset types
         try:
             extra_forms = formset.extra_form_count() if hasattr(formset, 'extra_form_count') else (formset.total_form_count() - formset.initial_form_count())
-            logger.info(f"Formset extra_forms: {extra_forms}")
         except AttributeError:
             extra_forms = formset.total_form_count() - formset.initial_form_count()
-            logger.info(f"Formset extra_forms (calculated): {extra_forms}")
         
         if not is_valid:
-            logger.error("=" * 50)
-            logger.error("FORMSET VALIDATION FAILED")
-            logger.error(f"Formset errors: {formset.errors}")
-            logger.error(f"Formset non_form_errors: {formset.non_form_errors()}")
-            
-            for i, line_form in enumerate(formset):
-                if line_form.errors:
-                    logger.error(f"Line {i+1} errors: {line_form.errors}")
-                if hasattr(line_form, 'cleaned_data') and line_form.cleaned_data:
-                    logger.info(f"Line {i+1} cleaned_data: {line_form.cleaned_data}")
-                else:
-                    logger.warning(f"Line {i+1} has no cleaned_data")
             # Delete the BOM we just created since formset is invalid
             self.object.delete()
             # Recreate context with formset errors
@@ -545,35 +488,21 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
             return self.render_to_response(context)
         
         # Save formset with line numbers
-        logger.info("=" * 50)
-        logger.info("SAVING MATERIAL LINES")
-        logger.info(f"Total forms in formset: {len(formset.forms)}")
-        logger.info(f"Formset instance: {formset.instance}")
-        logger.info(f"Formset instance ID: {formset.instance.id if formset.instance else 'None'}")
         
         # First, save the formset normally
         try:
             instances = formset.save(commit=False)
-            logger.info(f"Formset.save(commit=False) returned {len(instances)} instances")
             
             # Now set additional fields and save each instance
             line_number = 1
             saved_count = 0
             for i, line_instance in enumerate(instances):
-                logger.info(f"Processing instance {i+1}:")
-                logger.info(f"  Instance: {line_instance}")
-                logger.info(f"  material_item: {line_instance.material_item} (ID: {line_instance.material_item.id if line_instance.material_item else 'None'})")
-                logger.info(f"  material_type: {line_instance.material_type} (ID: {line_instance.material_type.id if line_instance.material_type else 'None'})")
-                logger.info(f"  unit: {line_instance.unit}")
-                logger.info(f"  quantity_per_unit: {line_instance.quantity_per_unit}")
                 
                 # Validate required fields
                 if not line_instance.material_item:
-                    logger.error(f"  ❌ material_item is None, skipping line {line_number}")
                     continue
                 
                 if not line_instance.unit:
-                    logger.error(f"  ❌ unit is None, skipping line {line_number}")
                     continue
                 
                 # Set additional fields
@@ -585,43 +514,31 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
                 # Auto-fill material_item_code
                 if line_instance.material_item:
                     line_instance.material_item_code = line_instance.material_item.item_code
-                    logger.info(f"  material_item_code set to: {line_instance.material_item_code}")
                 
                 # Set material_type if not set
                 if not line_instance.material_type:
                     if line_instance.material_item and line_instance.material_item.type:
                         line_instance.material_type = line_instance.material_item.type
-                        logger.info(f"  ✅ material_type auto-set to: {line_instance.material_type.id} ({line_instance.material_type.name})")
                     else:
-                        logger.error(f"  ❌ Cannot set material_type: material_item has no type!")
                         messages.error(self.request, f"Material item {line_instance.material_item.item_code} has no type assigned.")
                         continue
                 
                 # Save the instance
                 try:
                     line_instance.save()
-                    logger.info(f"  ✅ Line {line_number} saved successfully (ID: {line_instance.id})")
                     saved_count += 1
                     line_number += 1
                 except Exception as e:
-                    logger.error(f"  ❌ Error saving line {line_number}: {str(e)}")
-                    logger.error(f"  Exception type: {type(e).__name__}")
                     import traceback
-                    logger.error(f"  Traceback: {traceback.format_exc()}")
                     messages.error(self.request, f"Error saving material line {line_number}: {str(e)}")
             
             # Delete any forms marked for deletion
             for obj in formset.deleted_objects:
-                logger.info(f"Deleting material line: {obj}")
                 obj.delete()
             
-            logger.info(f"Total material lines saved: {saved_count}")
-            logger.info("=" * 50)
             
         except Exception as e:
-            logger.error(f"❌ Error in formset.save(): {str(e)}")
             import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
             messages.error(self.request, f"Error saving material lines: {str(e)}")
             # Delete the BOM we created
             self.object.delete()
@@ -630,7 +547,6 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
             return self.render_to_response(context)
         
         if saved_count == 0:
-            logger.error("⚠️  WARNING: No material lines were saved!")
             messages.warning(self.request, _('BOM created but no material lines were saved. Please check the form data.'))
         else:
             messages.success(self.request, _('BOM created successfully with %(count)s material line(s).') % {'count': saved_count})
@@ -678,37 +594,14 @@ class BOMUpdateView(FeaturePermissionRequiredMixin, UpdateView):
         return context
     
     def form_valid(self, form):
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info("=" * 50)
-        logger.info("BOM UPDATE - form_valid called")
-        logger.info(f"Form data: {form.cleaned_data}")
-        
         context = self.get_context_data()
         formset = context['formset']
         
-        logger.info(f"Formset created with {len(formset.forms)} forms")
-        logger.info(f"Formset instance: {formset.instance}")
-        logger.info(f"Formset instance ID: {formset.instance.id if formset.instance else 'None'}")
         
         # Validate formset
         is_valid = formset.is_valid()
-        logger.info(f"Formset is_valid: {is_valid}")
         
         if not is_valid:
-            logger.error("=" * 50)
-            logger.error("FORMSET VALIDATION FAILED")
-            logger.error(f"Formset errors: {formset.errors}")
-            logger.error(f"Formset non_form_errors: {formset.non_form_errors()}")
-            
-            for i, line_form in enumerate(formset):
-                if line_form.errors:
-                    logger.error(f"Line {i+1} errors: {line_form.errors}")
-                if hasattr(line_form, 'cleaned_data') and line_form.cleaned_data:
-                    logger.info(f"Line {i+1} cleaned_data: {line_form.cleaned_data}")
-                else:
-                    logger.warning(f"Line {i+1} has no cleaned_data")
-            
             # Show formset errors prominently
             if formset.non_form_errors():
                 for error in formset.non_form_errors():
@@ -732,39 +625,25 @@ class BOMUpdateView(FeaturePermissionRequiredMixin, UpdateView):
         # Save BOM
         try:
             self.object = form.save()
-            logger.info(f"BOM updated successfully: {self.object.bom_code}")
         except Exception as e:
-            logger.error(f"Error updating BOM: {str(e)}")
             messages.error(self.request, f"Error updating BOM: {str(e)}")
             return self.form_invalid(form)
         
         # Save formset with line numbers
-        logger.info("=" * 50)
-        logger.info("SAVING MATERIAL LINES")
-        logger.info(f"Total forms in formset: {len(formset.forms)}")
         
         try:
             instances = formset.save(commit=False)
-            logger.info(f"Formset.save(commit=False) returned {len(instances)} instances")
             
             # Now set additional fields and save each instance
             line_number = 1
             saved_count = 0
             for i, line_instance in enumerate(instances):
-                logger.info(f"Processing instance {i+1}:")
-                logger.info(f"  Instance: {line_instance}")
-                logger.info(f"  material_item: {line_instance.material_item} (ID: {line_instance.material_item.id if line_instance.material_item else 'None'})")
-                logger.info(f"  material_type: {line_instance.material_type} (ID: {line_instance.material_type.id if line_instance.material_type else 'None'})")
-                logger.info(f"  unit: {line_instance.unit}")
-                logger.info(f"  quantity_per_unit: {line_instance.quantity_per_unit}")
                 
                 # Validate required fields
                 if not line_instance.material_item:
-                    logger.error(f"  ❌ material_item is None, skipping line {line_number}")
                     continue
                 
                 if not line_instance.unit:
-                    logger.error(f"  ❌ unit is None, skipping line {line_number}")
                     continue
                 
                 # Set additional fields
@@ -775,43 +654,31 @@ class BOMUpdateView(FeaturePermissionRequiredMixin, UpdateView):
                 # Auto-fill material_item_code
                 if line_instance.material_item:
                     line_instance.material_item_code = line_instance.material_item.item_code
-                    logger.info(f"  material_item_code set to: {line_instance.material_item_code}")
                 
                 # Set material_type if not set
                 if not line_instance.material_type:
                     if line_instance.material_item and line_instance.material_item.type:
                         line_instance.material_type = line_instance.material_item.type
-                        logger.info(f"  ✅ material_type auto-set to: {line_instance.material_type.id} ({line_instance.material_type.name})")
                     else:
-                        logger.error(f"  ❌ Cannot set material_type: material_item has no type!")
                         messages.error(self.request, f"Material item {line_instance.material_item.item_code} has no type assigned.")
                         continue
                 
                 # Save the instance
                 try:
                     line_instance.save()
-                    logger.info(f"  ✅ Line {line_number} saved successfully (ID: {line_instance.id})")
                     saved_count += 1
                     line_number += 1
                 except Exception as e:
-                    logger.error(f"  ❌ Error saving line {line_number}: {str(e)}")
-                    logger.error(f"  Exception type: {type(e).__name__}")
                     import traceback
-                    logger.error(f"  Traceback: {traceback.format_exc()}")
                     messages.error(self.request, f"Error saving material line {line_number}: {str(e)}")
             
             # Delete marked lines
             for deleted_obj in formset.deleted_objects:
-                logger.info(f"Deleting material line: {deleted_obj}")
                 deleted_obj.delete()
             
-            logger.info(f"Total material lines saved: {saved_count}")
-            logger.info("=" * 50)
             
         except Exception as e:
-            logger.error(f"❌ Error saving formset: {str(e)}")
             import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
             messages.error(self.request, f"Error saving material lines: {str(e)}")
             return self.form_invalid(form)
         

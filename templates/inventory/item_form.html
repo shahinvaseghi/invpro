@@ -11,7 +11,7 @@
     {% endfor %}
   {% endif %}
 
-  <form method="post" class="entity-form">
+  <form method="post" class="entity-form" id="item-form" onsubmit="return handleFormSubmit(event)">
     {% csrf_token %}
     {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
 
@@ -63,7 +63,7 @@
       {{ units_formset.management_form }}
       {% for hidden in units_formset.hidden_fields %}{{ hidden }}{% endfor %}
 
-      <div class="unit-formset">
+      <div class="unit-formset" id="unit-formset">
         {% for unit_form in units_formset %}
           <div class="unit-form">
             {% for hidden in unit_form.hidden_fields %}{{ hidden }}{% endfor %}
@@ -116,6 +116,14 @@
             {% endif %}
           </div>
         {% endfor %}
+      </div>
+      <button type="button" id="add-unit-row" class="btn btn-secondary" style="margin-top: 1rem;">
+        + {% trans "Add Unit Conversion" %}
+      </button>
+      
+      <!-- Empty form template for cloning -->
+      <div id="empty-unit-form" style="display: none;">
+        {{ units_formset.empty_form }}
       </div>
     </div>
 
@@ -192,4 +200,141 @@
   cursor: pointer;
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Unit formset handling
+  const formsetContainer = document.getElementById('unit-formset');
+  const addButton = document.getElementById('add-unit-row');
+  const managementForm = document.querySelector('[name="units-TOTAL_FORMS"]');
+  
+  if (formsetContainer && addButton && managementForm) {
+    const emptyFormTemplate = document.getElementById('empty-unit-form');
+    
+    addButton.addEventListener('click', function() {
+      const totalForms = parseInt(managementForm.value);
+      
+      // Clone the empty form template
+      const newForm = emptyFormTemplate.cloneNode(true);
+      newForm.style.display = 'block';
+      newForm.id = '';
+      
+      // Update all form field names and IDs to use the new index
+      const formFields = newForm.querySelectorAll('input, select, textarea, label');
+      formFields.forEach(function(field) {
+        if (field.name) {
+          field.name = field.name.replace(/__prefix__/g, totalForms);
+        }
+        if (field.id) {
+          field.id = field.id.replace(/__prefix__/g, totalForms);
+        }
+        if (field.getAttribute('for')) {
+          field.setAttribute('for', field.getAttribute('for').replace(/__prefix__/g, totalForms));
+        }
+      });
+      
+      // Add the new form to the formset container
+      formsetContainer.appendChild(newForm);
+      
+      // Update the total forms count
+      managementForm.value = totalForms + 1;
+    });
+    
+    // Handle delete checkboxes
+    formsetContainer.addEventListener('change', function(e) {
+      if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('DELETE')) {
+        const form = e.target.closest('.unit-form');
+        if (form && e.target.checked) {
+          form.style.opacity = '0.5';
+        } else if (form) {
+          form.style.opacity = '1';
+        }
+      }
+    });
+  }
+  
+  // Category/Subcategory cascading
+  const categorySelect = document.getElementById('id_category');
+  const subcategorySelect = document.getElementById('id_subcategory');
+  const typeSelect = document.getElementById('id_type');
+  
+  function loadSubcategories(categoryId, typeId, selectedSubcategoryId = null) {
+    if (!subcategorySelect) return;
+    
+    subcategorySelect.innerHTML = '<option value="">--- انتخاب کنید ---</option>';
+    subcategorySelect.disabled = true;
+    
+    if (!categoryId) {
+      return;
+    }
+    
+    const url = new URL('{% url "inventory:filtered_subcategories" %}', window.location.origin);
+    if (typeId) url.searchParams.set('type_id', typeId);
+    if (categoryId) url.searchParams.set('category_id', categoryId);
+    
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          return;
+        }
+        
+        subcategorySelect.innerHTML = '<option value="">--- انتخاب کنید ---</option>';
+        if (data.subcategories && data.subcategories.length > 0) {
+          data.subcategories.forEach(sub => {
+            const option = document.createElement('option');
+            option.value = sub.value;
+            option.textContent = sub.label;
+            if (selectedSubcategoryId && sub.value === selectedSubcategoryId.toString()) {
+              option.selected = true;
+            }
+            subcategorySelect.appendChild(option);
+          });
+        }
+        subcategorySelect.disabled = false;
+      })
+      .catch(error => {
+        subcategorySelect.disabled = false;
+      });
+  }
+  
+  if (categorySelect) {
+    categorySelect.addEventListener('change', function() {
+      const categoryId = this.value;
+      const typeId = typeSelect ? typeSelect.value : null;
+      loadSubcategories(categoryId, typeId);
+    });
+  }
+  
+  if (typeSelect) {
+    typeSelect.addEventListener('change', function() {
+      const typeId = this.value;
+      const categoryId = categorySelect ? categorySelect.value : null;
+      if (categoryId) {
+        loadSubcategories(categoryId, typeId);
+      }
+    });
+  }
+  
+  // Load subcategories on page load if category is already selected
+  if (categorySelect && categorySelect.value) {
+    const categoryId = categorySelect.value;
+    const typeId = typeSelect ? typeSelect.value : null;
+    const subcategoryId = subcategorySelect ? subcategorySelect.value : null;
+    loadSubcategories(categoryId, typeId, subcategoryId);
+  }
+});
+
+function handleFormSubmit(event) {
+  const form = event.target;
+  
+  // Check form validation
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return false;
+  }
+  
+  return true;
+}
+</script>
 {% endblock %}

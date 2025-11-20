@@ -39,7 +39,10 @@ Contains all inventory-related entities. Major groups:
   - `IssuePermanent`, `IssueConsumption`, `IssueConsignment`: outbound document variants برای حالات دائم، مصرفی و امانی. این مدل‌ها اکنون **header-only** هستند و فقط اطلاعات سربرگ سند (کد سند، تاریخ، واحد سازمانی مقصد، یادداشت‌ها) را نگه می‌دارند.
   - `ReceiptPermanent`, `ReceiptConsignment`: inbound document variants که اکنون **header-only** هستند و فقط اطلاعات سربرگ سند (کد سند، تاریخ، تأمین‌کننده، یادداشت‌ها) را نگه می‌دارند.
   - **Line Models**: هر نوع سند دارای مدل‌های Line مربوطه است:
-    - `IssuePermanentLine`, `IssueConsumptionLine`, `IssueConsignmentLine`: ردیف‌های حواله که شامل کالا، انبار، مقدار، واحد و فیلدهای خاص هر نوع (مثل `destination_type`, `consumption_type`) هستند.
+    - `IssuePermanentLine`, `IssueConsumptionLine`, `IssueConsignmentLine`: ردیف‌های حواله که شامل کالا، انبار، مقدار، واحد و فیلدهای خاص هر نوع هستند:
+      - **`IssuePermanentLine`**: فیلد `destination_type` به صورت اختیاری واحد کاری (`CompanyUnit`) را نگه می‌دارد.
+      - **`IssueConsumptionLine`**: فیلد `consumption_type` می‌تواند واحد کاری (`company_unit`) یا خط کاری (`work_line`) باشد که از طریق `destination_type_choice` در فرم انتخاب می‌شود.
+      - **`IssueConsignmentLine`**: فیلد `destination_type` به صورت اختیاری واحد کاری (`CompanyUnit`) را نگه می‌دارد.
     - `ReceiptPermanentLine`, `ReceiptConsignmentLine`: ردیف‌های رسید که شامل کالا، انبار، مقدار، واحد و اطلاعات قیمت‌گذاری هستند.
   - هر Line می‌تواند **چندین سریال** داشته باشد (از طریق `ManyToManyField` به `ItemSerial`). سریال‌ها در سطح Line مدیریت می‌شوند، نه در سطح سند.
   - برای هر Line که کالای آن `has_lot_tracking=1` دارد، یک دکمه «Assign Serials» یا «Manage Serials» در فرم سند نمایش داده می‌شود که کاربر را به صفحه اختصاصی مدیریت سریال آن Line می‌برد.
@@ -69,6 +72,7 @@ Each model enforces unique constraints tailored to multi-company setups and uses
   - از `LineFormsetMixin` استفاده می‌کنند تا فرم‌ست ردیف‌ها را مدیریت کنند.
   - امکان انتخاب واحد سازمانی مقصد (و برای حواله مصرف، خط تولید) را در سطح سند فراهم می‌کنند.
   - همان منطق انتخاب واحد کالا را به کار می‌گیرند.
+  - **اعتبارسنجی موجودی**: قبل از ذخیره، موجودی فعلی هر کالا در انبار انتخاب شده بررسی می‌شود و در صورت ناکافی بودن موجودی، خطا نمایش داده می‌شود. در حالت ویرایش، مقدار قبلی به موجودی اضافه می‌شود تا امکان تغییر مقدار وجود داشته باشد.
   - برای هر ردیف که کالای آن `has_lot_tracking=1` دارد، دکمه «Assign Serials» (یا «View Serials» برای سند قفل‌شده) نمایش داده می‌شود.
   - دکمه‌ی «قفل» روی سند امکان جلوگیری از ویرایش یا حذف بعد از نهایی‌سازی را می‌دهد و قبل از قفل، تمام ردیف‌های سریال‌دار را از نظر تطابق تعداد سریال با مقدار بررسی می‌کند.
 - `IssueLineSerialAssignmentBaseView` و کلاس‌های مشتق (`IssuePermanentLineSerialAssignmentView`, `IssueConsumptionLineSerialAssignmentView`, `IssueConsignmentLineSerialAssignmentView`): ویوهای اختصاصی برای مدیریت سریال‌های هر ردیف حواله. هر Line می‌تواند صفحه اختصاصی خود را داشته باشد.
@@ -117,12 +121,16 @@ Each model enforces unique constraints tailored to multi-company setups and uses
 
 - علاوه بر فرم‌های قبلی، مجموعه‌ی زیر فرم‌ها برای سندهای انبار پیاده‌سازی شده‌اند:
   - **فرم‌های سربرگ سند**: `ReceiptTemporaryForm`, `ReceiptPermanentForm`, `ReceiptConsignmentForm`, `IssuePermanentForm`, `IssueConsumptionForm`, `IssueConsignmentForm` که مسئول تولید خودکار کد/تاریخ سند هستند، فیلد وضعیت را پنهان می‌کنند و فقط اطلاعات سربرگ سند را مدیریت می‌کنند.
-  - **فرم‌های ردیف**: `IssuePermanentLineForm`, `IssueConsumptionLineForm`, `IssueConsignmentLineForm`, `ReceiptPermanentLineForm`, `ReceiptConsignmentLineForm` که فیلدهای هر ردیف (کالا، انبار، مقدار، واحد، قیمت و غیره) را مدیریت می‌کنند.
+  - **فرم‌های ردیف**: `IssuePermanentLineForm`, `IssueConsumptionLineForm`, `IssueConsignmentLineForm`, `ReceiptPermanentLineForm`, `ReceiptConsignmentLineForm` که فیلدهای هر ردیف (کالا، انبار، مقدار، واحد، قیمت و غیره) را مدیریت می‌کنند:
+    - **`IssuePermanentLineForm`**: فیلد `destination_type` به صورت اختیاری واحد کاری (`CompanyUnit`) را می‌پذیرد. این فیلد از `WorkLine` به `CompanyUnit` تغییر یافته است.
+    - **`IssueConsumptionLineForm`**: فیلد `destination_type_choice` امکان انتخاب بین واحد کاری (`company_unit`) یا خط کاری (`work_line`) را فراهم می‌کند. فیلدهای `destination_company_unit` و `destination_work_line` به صورت پویا نمایش داده می‌شوند.
+    - **`IssueConsignmentLineForm`**: فیلد `destination_type` به صورت اختیاری واحد کاری (`CompanyUnit`) را می‌پذیرد. این فیلد از `WorkLine` به `CompanyUnit` تغییر یافته است.
+    - **اعتبارسنجی موجودی**: تمام فرم‌های ردیف حواله (`IssuePermanentLineForm`, `IssueConsumptionLineForm`, `IssueConsignmentLineForm`) اکنون قبل از ذخیره، موجودی فعلی کالا در انبار انتخاب شده را بررسی می‌کنند. در صورت ناکافی بودن موجودی، خطا نمایش داده می‌شود. در حالت ویرایش، مقدار قبلی به موجودی اضافه می‌شود تا امکان تغییر مقدار وجود داشته باشد.
   - **فرم‌ست‌های ردیف**: `IssuePermanentLineFormSet`, `IssueConsumptionLineFormSet`, `IssueConsignmentLineFormSet`, `ReceiptPermanentLineFormSet`, `ReceiptConsignmentLineFormSet` که چندین ردیف را در یک فرم مدیریت می‌کنند.
   - **فرم اختصاص سریال**: `IssueLineSerialAssignmentForm` که برای انتخاب سریال‌های یک ردیف حواله استفاده می‌شود و لیست سریال‌های موجود را به صورت checkbox نمایش می‌دهد.
   - برای کالاهای دارای سریال (lot tracking)، فرم‌های ردیف بررسی می‌کنند که مقدار پس از تبدیل واحد دقیقاً عدد صحیح باشد؛ در غیر این صورت پیام خطا نشان داده می‌شود و ذخیره انجام نمی‌شود.
   - منطق داخلی فرم‌ها از گراف تبدیل واحد (`ItemUnit`) برای محاسبه‌ی ضرایب استفاده می‌کند تا قیمت‌های واردشده با واحد جایگزین به قیمت واحد اصلی تبدیل شود.
-  - `BaseLineFormSet`: کلاس پایه برای فرم‌ست‌های ردیف که `company_id` را به درستی به فرم‌های داخلی منتقل می‌کند.
+  - `BaseLineFormSet`: کلاس پایه برای فرم‌ست‌های ردیف که `company_id` را به درستی به فرم‌های داخلی منتقل می‌کند و متد `_update_destination_type_queryset()` را برای به‌روزرسانی queryset واحدهای کاری فراخوانی می‌کند.
 - فرم‌های جدید `StocktakingDeficitForm`, `StocktakingSurplusForm`, `StocktakingRecordForm` کد سند را با پیشوند `STD/STS/STR` تولید کرده، واحدهای مجاز کالا، انبارهای مجاز و فیلدهای JSON مخفی (متادیتا/مستندات) را مدیریت می‌کنند و اختلاف مقدار/ارزش را به‌صورت خودکار محاسبه می‌کنند.
 - `ItemForm`, `ItemUnitForm` و `ItemUnitFormSet` همچنان برای مدیریت کالا و تبدیل واحدهای آن استفاده می‌شوند و `ItemForm` اکنون فیلد چندانتخابی «انبارهای مجاز» دارد که بعد از ذخیره، رکوردهای `ItemWarehouse` را ایجاد/به‌روزرسانی و اولین انتخاب را به عنوان `is_primary=1` تنظیم می‌کند.
 - **Validation انبارهای مجاز**: همه فرم‌های رسید و حواله (`ReceiptLineBaseForm`, `IssueLineBaseForm`) اکنون validation انبارهای مجاز را اعمال می‌کنند. اگر کالا انبار مجاز نداشته باشد، خطا داده می‌شود. اگر انبار انتخاب شده در لیست انبارهای مجاز نباشد، خطا داده می‌شود. این validation در سمت سرور (Python) و سمت کلاینت (JavaScript) اعمال می‌شود.

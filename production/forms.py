@@ -391,36 +391,25 @@ class BOMMaterialLineForm(forms.ModelForm):
     
     def clean_is_optional(self):
         """Convert Boolean checkbox value to integer (0 or 1) for database storage."""
-        import logging
-        logger = logging.getLogger('production.forms')
-        
         value = self.cleaned_data.get('is_optional')
         
         # BooleanField returns True/False, convert to 1/0
         if value is True:
             result = 1
-            logger.debug("is_optional checked (True) → 1")
         else:
             result = 0
-            logger.debug(f"is_optional unchecked (False/None) → 0 (value was: {value})")
         
         return result
     
     def clean(self):
         """Clean form data and remove filter fields from cleaned_data."""
-        import logging
-        logger = logging.getLogger('production.forms')
-        
         cleaned_data = super().clean()
-        logger.debug(f"BOMMaterialLineForm.clean() - cleaned_data keys: {list(cleaned_data.keys())}")
         
         # Remove filter fields from cleaned_data (they're not saved to DB)
         # These are UI-only fields for cascading dropdowns
         if 'material_category_filter' in cleaned_data:
-            logger.debug("Removing material_category_filter from cleaned_data")
             del cleaned_data['material_category_filter']
         if 'material_subcategory_filter' in cleaned_data:
-            logger.debug("Removing material_subcategory_filter from cleaned_data")
             del cleaned_data['material_subcategory_filter']
         
         # If material_item is selected, unit is required
@@ -428,7 +417,6 @@ class BOMMaterialLineForm(forms.ModelForm):
         unit = cleaned_data.get('unit')
         material_type = cleaned_data.get('material_type')
         
-        logger.debug(f"material_item: {material_item}, unit: {unit}, material_type: {material_type}")
         
         # Auto-set material_type from material_item if not provided
         if material_item and not material_type:
@@ -444,32 +432,23 @@ class BOMMaterialLineForm(forms.ModelForm):
                 
                 if item.type:
                     cleaned_data['material_type'] = item.type
-                    logger.info(f"✅ Auto-set material_type to: {item.type.id} ({item.type.name}) from material_item")
-                else:
-                    logger.error(f"❌ material_item {item.item_code} has no type!")
             except Exception as e:
-                logger.error(f"❌ Error getting material_type from material_item: {str(e)}")
-                import traceback
-                logger.error(f"Traceback: {traceback.format_exc()}")
+                pass
         
         if material_item and not unit:
-            logger.error(f"Validation error: material_item selected but unit is missing")
             self.add_error('unit', _('Please select a unit for the selected material.'))
         
         # Ensure is_optional is set (should already be set by clean_is_optional, but just in case)
         if 'is_optional' not in cleaned_data or cleaned_data.get('is_optional') is None:
             cleaned_data['is_optional'] = 0
-            logger.debug("is_optional not set in cleaned_data, setting to 0")
         
         # If no material_item, don't require other fields (empty form)
         if not material_item:
-            logger.debug("No material_item, clearing optional fields for empty form")
             # Clear required fields for empty forms
             for field in ['material_type', 'quantity_per_unit', 'unit']:
                 if field in cleaned_data and not cleaned_data[field]:
                     cleaned_data[field] = None
         
-        logger.debug(f"BOMMaterialLineForm.clean() - returning cleaned_data with keys: {list(cleaned_data.keys())}")
         return cleaned_data
     
     def full_clean(self):
