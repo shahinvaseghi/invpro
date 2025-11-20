@@ -122,6 +122,12 @@
         {% if show_conversion %}
         <th>{% trans "Converted" %}</th>
         {% endif %}
+        {% if show_temporary_receipt %}
+        <th>{% trans "Temporary Receipt" %}</th>
+        {% endif %}
+        {% if show_purchase_request %}
+        <th>{% trans "Purchase Request" %}</th>
+        {% endif %}
         <th>{% trans "Actions" %}</th>
       </tr>
     </thead>
@@ -241,10 +247,36 @@
           {% endif %}
           {% if show_conversion %}
           <td>
-            {% if receipt.is_converted %}
+            {% if receipt.is_converted and receipt.converted_receipt %}
+              <a href="{% url permanent_receipt_url_name receipt.converted_receipt.pk %}" class="badge badge-active" style="text-decoration: none;">
+                ✓ {{ receipt.converted_receipt.document_code }}
+              </a>
+            {% elif receipt.is_converted %}
               <span class="badge badge-active">✓ {% trans "Yes" %}</span>
             {% else %}
               <span class="badge badge-inactive">{% trans "No" %}</span>
+            {% endif %}
+          </td>
+          {% endif %}
+          {% if show_temporary_receipt %}
+          <td>
+            {% if receipt.temporary_receipt %}
+              <a href="{% url temporary_receipt_url_name receipt.temporary_receipt.pk %}" class="badge badge-info" style="text-decoration: none;">
+                {{ receipt.temporary_receipt.document_code }}
+              </a>
+            {% else %}
+              <span style="color: #6b7280;">—</span>
+            {% endif %}
+          </td>
+          {% endif %}
+          {% if show_purchase_request %}
+          <td>
+            {% if receipt.purchase_request %}
+              <a href="{% url purchase_request_url_name receipt.purchase_request.pk %}" class="badge badge-info" style="text-decoration: none;">
+                {{ receipt.purchase_request.request_code }}
+              </a>
+            {% else %}
+              <span style="color: #6b7280;">—</span>
             {% endif %}
           </td>
           {% endif %}
@@ -264,6 +296,14 @@
                 <a href="{% url edit_url_name receipt.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
                   {% trans "Edit" %}
                 </a>
+                {% if receipt.status == 0 %}
+                  <form method="post" action="{% url 'inventory:receipt_temporary_send_to_qc' receipt.pk %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans 'Are you sure you want to send this receipt to QC inspection?' %}');">
+                      {% trans "Send to QC" %}
+                    </button>
+                  </form>
+                {% endif %}
                 {% if serial_url_name and receipt.item.has_lot_tracking %}
                   <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
                     {% trans "Manage Serials" %}
@@ -299,7 +339,7 @@
         {% endfor %}
       {% else %}
         <tr>
-          <td colspan="{% if show_qc and show_conversion %}10{% elif show_qc or show_conversion %}9{% else %}8{% endif %}">
+          <td colspan="{% if show_qc and show_conversion and show_temporary_receipt and show_purchase_request %}12{% elif show_qc and show_conversion and show_temporary_receipt %}11{% elif show_qc and show_conversion and show_purchase_request %}11{% elif show_qc and show_temporary_receipt and show_purchase_request %}11{% elif show_conversion and show_temporary_receipt and show_purchase_request %}11{% elif show_qc and show_conversion %}10{% elif show_qc and show_temporary_receipt %}10{% elif show_qc and show_purchase_request %}10{% elif show_conversion and show_temporary_receipt %}10{% elif show_conversion and show_purchase_request %}10{% elif show_temporary_receipt and show_purchase_request %}10{% elif show_qc or show_conversion or show_temporary_receipt or show_purchase_request %}9{% else %}8{% endif %}">
             <div class="empty-state">
               <div class="empty-state-icon">📥</div>
               <h3>{{ empty_heading|default:_("No records found.") }}</h3>

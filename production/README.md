@@ -19,8 +19,8 @@ Defines all production entities. Structure:
   - `PersonAssignment`: assigns a person to a work center (inventory/production/etc.) with optional primary flag and date range.
 
 - **Bill of Materials**
-  - `BOM`: Bill of Materials header defining a finished item's material requirements with version control, effective/expiry dates, and approval workflow. Automatically generates unique 16-digit `bom_code` on save. Each finished item can have multiple versions with unique constraint on (company, finished_item, version).
-  - `BOMMaterial`: BOM line items connecting materials to the BOM header. Stores material item, type (raw/semi-finished/component/packaging), quantity per unit, unit, scrap allowance percentage, and line number for ordering. Automatically caches material item code. CASCADE delete when parent BOM is deleted.
+  - `BOM`: Bill of Materials header defining a finished item's material requirements with version control and approval workflow. Automatically generates unique 16-digit `bom_code` on save. Each finished item can have multiple versions with unique constraint on (company, finished_item, version).
+  - `BOMMaterial`: BOM line items connecting materials to the BOM header. Stores material item, type (FK to ItemType - user-defined), quantity per unit, unit (CharField - stores unit name), scrap allowance percentage, optional flag (0=Required, 1=Optional), and line number for ordering. Automatically caches material item code. CASCADE delete when parent BOM is deleted.
 
 - **Process Definitions**
   - `Process`: describes a production process for a finished item; stores BOM reference, revision, approval state, and primary flag. Populates cached finished item code. References `Person` for approval workflow.
@@ -51,9 +51,9 @@ Defines ModelForms for production entities:
 
 - `PersonForm`: Create and edit personnel records with username sync checkbox feature and multi-select for company units. Does not include `public_code` field (auto-generated).
 - `MachineForm`: Create and edit machine records with work center assignment, specifications, and maintenance tracking. Does not include `public_code` field (auto-generated).
-- `BOMForm`: Create and edit BOM headers with cascading filters for finished item selection (Type → Category → Item). Includes version, effective/expiry dates, and status fields.
-- `BOMMaterialLineForm`: Form for individual BOM material lines with cascading filters for material selection. Includes material type, quantity, unit, scrap allowance, and optional flag.
-- `BOMMaterialLineFormSet`: Django inline formset factory for managing multiple material lines within a BOM. Supports dynamic add/remove of lines with minimum 1 line validation.
+- `BOMForm`: Create and edit BOM headers with cascading filters for finished item selection (Type → Category → Subcategory → Item). Includes version, description, notes, active flag, and status fields.
+- `BOMMaterialLineForm`: Form for individual BOM material lines with cascading filters for material selection. Includes material type (FK to ItemType), category/subcategory filters (UI-only), material item, quantity, unit (CharField), scrap allowance, optional flag (BooleanField in form, stores as 0/1), and description. Auto-sets material_type from material_item if not provided.
+- `BOMMaterialLineFormSet`: Django inline formset factory for managing multiple material lines within a BOM. Supports dynamic add/remove of lines with minimum 1 line validation. Shows 1 empty form initially (extra=1).
 
 ## views.py
 
@@ -73,8 +73,8 @@ Provides CRUD views for production resources:
 
 - **BOM Management**:
   - `BOMListView`: List all BOMs with expand/collapse material details, filtering by finished item
-  - `BOMCreateView`: Create new BOM with header form and inline material formset using transaction.atomic()
-  - `BOMUpdateView`: Update BOM header and materials with formset validation
+  - `BOMCreateView`: Create new BOM with header form and inline material formset. Handles formset validation, auto-sets company/created_by, saves BOM header first then material lines. Includes comprehensive logging for debugging.
+  - `BOMUpdateView`: Update BOM header and materials with formset validation. Handles edit mode value restoration, auto-sets edited_by, saves with proper line numbering. Includes comprehensive logging for debugging.
   - `BOMDeleteView`: Delete BOM and cascade delete all material lines
 
 - **Transfer Requests** (Placeholder):

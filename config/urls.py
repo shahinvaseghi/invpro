@@ -41,4 +41,5 @@ urlpatterns += i18n_patterns(
     path("shared/", include("shared.urls")),
     path("inventory/", include("inventory.urls")),
     path("production/", include("production.urls")),
+    path("qc/", include("qc.urls")),
 )

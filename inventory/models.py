@@ -1608,6 +1608,14 @@ class IssuePermanent(InventoryDocumentBase):
         validators=[NUMERIC_CODE_VALIDATOR],
         blank=True,
     )
+    warehouse_request = models.ForeignKey(
+        "WarehouseRequest",
+        on_delete=models.SET_NULL,
+        related_name="permanent_issues",
+        null=True,
+        blank=True,
+    )
+    warehouse_request_code = models.CharField(max_length=20, blank=True)
     issue_metadata = models.JSONField(default=dict, blank=True)
 
     class Meta:
@@ -1621,6 +1629,8 @@ class IssuePermanent(InventoryDocumentBase):
     def save(self, *args, **kwargs):
         if self.department_unit and not self.department_unit_code:
             self.department_unit_code = self.department_unit.public_code
+        if self.warehouse_request and not self.warehouse_request_code:
+            self.warehouse_request_code = self.warehouse_request.request_code
         super().save(*args, **kwargs)
 
 

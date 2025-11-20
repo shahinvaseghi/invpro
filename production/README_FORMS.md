@@ -260,7 +260,7 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
 - `quantity_per_unit` - Quantity needed per 1 unit of finished product
 - `unit` - Unit of measurement (CharField - can be primary_unit or conversion unit name)
 - `scrap_allowance` - Waste percentage (0-100%)
-- `is_optional` - Optional flag (0=Required, 1=Optional)
+- `is_optional` - Optional flag (BooleanField in form, stores as 0=Required, 1=Optional in database)
 - `description` - Brief description
 - `notes` - Detailed notes
 - `line_number` - Line ordering (hidden field, auto-managed)
@@ -303,6 +303,36 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
 - `/inventory/api/filtered-subcategories/?type_id=X&category_id=Y` - Get subcategories with items
 - `/inventory/api/filtered-items/?type_id=X&category_id=Y&subcategory_id=Z` - Get filtered items
 - `/inventory/api/item-units/?item_id=X` - Get primary_unit + conversion units for item X
+  - **Enhanced Response** (as of 2025-11-20c):
+    ```json
+    {
+      "units": [
+        {"value": "base_kg", "label": "کیلوگرم (واحد اصلی)", "is_base": true, "unit_name": "کیلوگرم"},
+        {"value": "gram", "label": "گرم (1 کیلوگرم = 1000 گرم)", "unit_name": "گرم"}
+      ],
+      "item_type_id": "1",
+      "item_type_name": "خام",
+      "category_id": "3",
+      "subcategory_id": "2"
+    }
+    ```
+  - Returns `category_id` and `subcategory_id` for easier edit mode restoration
+
+**Special Field: `is_optional`**
+- Form field type: `BooleanField` with `CheckboxInput` widget
+- Database storage: `PositiveSmallIntegerField` (0 = Required, 1 = Optional)
+- Conversion handled in `clean_is_optional()` method:
+  ```python
+  def clean_is_optional(self):
+      """Convert Boolean checkbox value to integer (0 or 1) for database storage."""
+      value = self.cleaned_data.get('is_optional')
+      if value is True:
+          return 1  # Optional
+      else:
+          return 0  # Required
+  ```
+- When checkbox is checked → stores `1` (optional)
+- When checkbox is unchecked → stores `0` (required)
 
 **Validation:**
 ```python
@@ -311,14 +341,25 @@ def clean(self):
     material_item = cleaned_data.get('material_item')
     unit = cleaned_data.get('unit')
     
-    # Validate unit exists for material item (either primary_unit or in ItemUnit)
-    if material_item and unit:
-        if not ItemUnit.objects.filter(
-            item=material_item,
-            to_unit=unit,
-            company_id=self.company_id
-        ).exists():
-            self.add_error('unit', _("The selected unit must belong to the selected material item."))
+    # Remove filter fields from cleaned_data (they're not saved to DB)
+    if 'material_category_filter' in cleaned_data:
+        del cleaned_data['material_category_filter']
+    if 'material_subcategory_filter' in cleaned_data:
+        del cleaned_data['material_subcategory_filter']
+    
+    # Auto-set material_type from material_item if not provided
+    if material_item and not cleaned_data.get('material_type'):
+        cleaned_data['material_type'] = material_item.type
+    
+    # Validate unit is required if material_item is selected
+    if material_item and not unit:
+        self.add_error('unit', _('Please select a unit for the selected material.'))
+    
+    # If no material_item, don't require other fields (empty form)
+    if not material_item:
+        for field in ['material_type', 'quantity_per_unit', 'unit']:
+            if field in cleaned_data and not cleaned_data[field]:
+                cleaned_data[field] = None
     
     return cleaned_data
 ```
@@ -329,7 +370,7 @@ BOMMaterialLineFormSet = inlineformset_factory(
     BOM,                        # Parent model
     BOMMaterial,                # Child model
     form=BOMMaterialLineForm,   # Form class
-    extra=3,                    # 3 empty forms by default
+    extra=1,                    # 1 empty form by default (changed from 3)
     can_delete=True,            # Show DELETE checkbox
     min_num=1,                  # At least 1 line required
     validate_min=True           # Validate minimum
@@ -349,7 +390,7 @@ BOMMaterialLineFormSet = inlineformset_factory(
     BOM,
     BOMMaterial,
     form=BOMMaterialLineForm,
-    extra=3,         # Show 3 empty forms initially
+    extra=1,         # Show 1 empty form initially (changed from 3)
     can_delete=True, # Allow deletion of existing lines
     min_num=1,       # Require at least 1 line
     validate_min=True
@@ -393,7 +434,60 @@ function renumberLines() {
 }
 ```
 
-#### 2. Cascading Filters (Each Line Independent)
+#### 2. Edit Mode Value Restoration
+When editing an existing BOM, the form automatically restores all values (type, category, subcategory, unit) for each material line:
+
+```javascript
+// On page load: if item is already selected (edit mode)
+if (itemSelect.value) {
+    const itemId = itemSelect.value;
+    
+    // Save current unit value before making API calls
+    let savedUnitValue = unitSelect.value || row.dataset.unitValue;
+    
+    // Load item units API which returns type_id, category_id, subcategory_id, and units
+    fetch('/inventory/api/item-units/?item_id=' + itemId)
+        .then(response => response.json())
+        .then(data => {
+            // Step 1: Auto-set material_type
+            if (data.item_type_id) {
+                typeSelect.value = data.item_type_id;
+                
+                // Step 2: Load and set category
+                if (data.category_id) {
+                    filterCategories();
+                    setTimeout(() => {
+                        categorySelect.value = data.category_id;
+                        
+                        // Step 3: Load and set subcategory
+                        if (data.subcategory_id) {
+                            filterSubcategories();
+                            setTimeout(() => {
+                                subcategorySelect.value = data.subcategory_id;
+                            }, 300);
+                        }
+                    }, 300);
+                }
+            }
+            
+            // Step 4: Load and restore unit
+            // Populate unit dropdown and restore saved value
+        });
+}
+```
+
+**Restoration Flow:**
+1. Material type auto-set from item's `type_id`
+2. Category dropdown populated based on type, then value restored from `category_id`
+3. Subcategory dropdown populated based on type+category, then value restored from `subcategory_id`
+4. Unit dropdown populated with primary_unit + conversion units, then value restored from saved value
+
+**Important Notes:**
+- Unit value is saved to `row.dataset.unitValue` before page reload to preserve selection
+- All unit selects are enabled before form submission (disabled fields are not submitted)
+- Sequential API calls use `setTimeout` to ensure dropdowns are populated before values are set
+
+#### 3. Cascading Filters (Each Line Independent)
 ```javascript
 // Filter Categories based on Material Type
 function filterCategories(typeSelect, idx) {

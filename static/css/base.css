@@ -137,6 +137,15 @@ body {
   transition: all 0.2s ease;
   color: #fff;
   padding: 8px 6px;
+  font-family: inherit;
+  font-size: inherit;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.top-menu-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
 }
 
 .top-menu-btn:hover {

@@ -1189,7 +1189,8 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        queryset = queryset.select_related('created_by')
+        # Prefetch converted_receipt for linking
+        queryset = queryset.select_related('created_by', 'converted_receipt')
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -1201,6 +1202,7 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
         context['create_label'] = _('Temporary Receipt')
         context['show_qc'] = True
         context['show_conversion'] = True
+        context['permanent_receipt_url_name'] = 'inventory:receipt_permanent_edit'  # URL name for permanent receipt link
         context['empty_heading'] = _('No Temporary Receipts Found')
         context['empty_text'] = _('Start by creating your first temporary receipt.')
         self.add_delete_permissions_to_context(context, 'inventory.receipts.temporary')
@@ -1216,11 +1218,12 @@ class ReceiptPermanentListView(InventoryBaseView, ListView):
     def get_queryset(self):
         queryset = super().get_queryset()
         # Prefetch lines with related items, warehouses, and suppliers for efficient display
+        # Also prefetch temporary_receipt and purchase_request for linking
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse',
             'lines__supplier'
-        ).select_related('created_by')
+        ).select_related('created_by', 'temporary_receipt', 'purchase_request')
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -1232,9 +1235,13 @@ class ReceiptPermanentListView(InventoryBaseView, ListView):
         context['create_label'] = _('Permanent Receipt')
         context['show_qc'] = False
         context['show_conversion'] = False
+        context['show_temporary_receipt'] = True  # Show link to temporary receipt
+        context['show_purchase_request'] = True  # Show link to purchase request
         context['empty_heading'] = _('No Permanent Receipts Found')
         context['empty_text'] = _('Start by creating your first permanent receipt.')
         context['serial_url_name'] = 'inventory:receipt_permanent_serials'
+        context['temporary_receipt_url_name'] = 'inventory:receipt_temporary_edit'  # URL name for temporary receipt link
+        context['purchase_request_url_name'] = 'inventory:purchase_request_edit'  # URL name for purchase request link
         
         self.add_delete_permissions_to_context(context, 'inventory.receipts.permanent')
         return context
@@ -1425,8 +1432,10 @@ class ReceiptTemporaryCreateView(ReceiptFormMixin, CreateView):
     def form_valid(self, form):
         form.instance.company_id = self.request.session.get('active_company_id')
         form.instance.created_by = self.request.user
+        # Set status to AWAITING_INSPECTION so it appears in QC module
+        form.instance.status = models.ReceiptTemporary.Status.AWAITING_INSPECTION
         response = super().form_valid(form)
-        messages.success(self.request, _('رسید موقت با موفقیت ایجاد شد.'))
+        messages.success(self.request, _('رسید موقت با موفقیت ایجاد شد و برای بازرسی QC ارسال شد.'))
         return response
 
     def get_fieldsets(self):
@@ -1974,6 +1983,44 @@ class ReceiptTemporaryLockView(DocumentLockView):
     success_message = _('رسید موقت قفل شد و دیگر قابل ویرایش نیست.')
 
 
+class ReceiptTemporarySendToQCView(FeaturePermissionRequiredMixin, InventoryBaseView, View):
+    """View to send a temporary receipt to QC inspection."""
+    feature_code = 'inventory.receipts.temporary'
+    required_action = 'edit_own'
+    allow_own_scope = True
+    
+    def post(self, request, *args, **kwargs):
+        receipt = get_object_or_404(
+            models.ReceiptTemporary,
+            pk=kwargs['pk'],
+            company_id=request.session.get('active_company_id'),
+            is_enabled=1
+        )
+        
+        # Check if already locked
+        if receipt.is_locked:
+            messages.error(request, _('This receipt is already locked and cannot be sent to QC.'))
+            return HttpResponseRedirect(reverse('inventory:receipt_temporary'))
+        
+        # Check if already converted
+        if receipt.is_converted:
+            messages.error(request, _('This receipt has already been converted to a permanent receipt.'))
+            return HttpResponseRedirect(reverse('inventory:receipt_temporary'))
+        
+        # Check if already in QC
+        if receipt.status == models.ReceiptTemporary.Status.AWAITING_INSPECTION:
+            messages.info(request, _('This receipt is already awaiting QC inspection.'))
+            return HttpResponseRedirect(reverse('inventory:receipt_temporary'))
+        
+        # Update status to AWAITING_INSPECTION
+        receipt.status = models.ReceiptTemporary.Status.AWAITING_INSPECTION
+        receipt.edited_by = request.user
+        receipt.save(update_fields=['status', 'edited_by'])
+        
+        messages.success(request, _('Temporary receipt has been sent to QC inspection.'))
+        return HttpResponseRedirect(reverse('inventory:receipt_temporary'))
+
+
 class DocumentDeleteViewBase(FeaturePermissionRequiredMixin, DocumentLockProtectedMixin, InventoryBaseView, DeleteView):
     """Base class for document delete views with permission checking."""
     owner_field = None  # Disable owner check, we handle it manually
@@ -2299,7 +2346,7 @@ class IssuePermanentListView(InventoryBaseView, ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        queryset = queryset.select_related('created_by', 'department_unit').prefetch_related(
+        queryset = queryset.select_related('created_by', 'department_unit', 'warehouse_request').prefetch_related(
             'lines__item',
             'lines__warehouse',
         )
@@ -2312,6 +2359,8 @@ class IssuePermanentListView(InventoryBaseView, ListView):
         context['delete_url_name'] = 'inventory:issue_permanent_delete'
         context['lock_url_name'] = 'inventory:issue_permanent_lock'
         context['create_label'] = _('Permanent Issue')
+        context['show_warehouse_request'] = True  # Show link to warehouse request
+        context['warehouse_request_url_name'] = 'inventory:warehouse_request_edit'  # URL name for warehouse request link
         # serial_url_name removed - serial assignment is done per line in edit view, not from list
         context['serial_url_name'] = None
         self.add_delete_permissions_to_context(context, 'inventory.issues.permanent')
@@ -3610,6 +3659,47 @@ def get_item_allowed_warehouses(request):
         ]
 
         return JsonResponse({'warehouses': warehouses_data})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+@login_required
+def get_temporary_receipt_data(request):
+    """API endpoint to get temporary receipt data for auto-filling permanent receipt lines."""
+    temporary_receipt_id = request.GET.get('temporary_receipt_id')
+    if not temporary_receipt_id:
+        return JsonResponse({'error': 'temporary_receipt_id parameter required'}, status=400)
+
+    try:
+        company_id = request.session.get('active_company_id')
+        if not company_id:
+            return JsonResponse({'error': 'No active company'}, status=400)
+
+        temp_receipt = get_object_or_404(
+            models.ReceiptTemporary,
+            pk=temporary_receipt_id,
+            company_id=company_id
+        )
+
+        # Return temporary receipt data for auto-filling
+        data = {
+            'item_id': temp_receipt.item_id,
+            'item_code': temp_receipt.item.item_code,
+            'item_name': temp_receipt.item.name,
+            'warehouse_id': temp_receipt.warehouse_id,
+            'warehouse_code': temp_receipt.warehouse.public_code,
+            'warehouse_name': temp_receipt.warehouse.name,
+            'quantity': str(temp_receipt.quantity),
+            'entered_quantity': str(temp_receipt.entered_quantity) if temp_receipt.entered_quantity else str(temp_receipt.quantity),
+            'unit': temp_receipt.unit,
+            'entered_unit': temp_receipt.entered_unit if temp_receipt.entered_unit else temp_receipt.unit,
+            'supplier_id': temp_receipt.supplier_id if temp_receipt.supplier else None,
+            'supplier_code': temp_receipt.supplier.public_code if temp_receipt.supplier else None,
+            'supplier_name': temp_receipt.supplier.name if temp_receipt.supplier else None,
+        }
+
+        return JsonResponse(data)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 

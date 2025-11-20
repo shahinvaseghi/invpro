@@ -19,6 +19,14 @@
           <nav class="top-menu-nav">
             {% block top_menu %}
             {% load access_tags %}
+            <!-- Dashboard Menu (First Item) -->
+            <div class="top-menu-item">
+              <button type="button" class="top-menu-btn" onclick="window.location.href='{% url 'ui:dashboard' %}';">
+                <span class="menu-icon">📊</span>
+                <span class="menu-label">{% trans "Dashboard" %}</span>
+              </button>
+            </div>
+            
             <!-- Shared Menu -->
             <div class="top-menu-item">
               <button type="button" class="top-menu-btn" data-menu="shared">
@@ -26,7 +34,6 @@
                 <span class="menu-label">{% trans "Shared" %}</span>
               </button>
               <div class="dropdown-menu" id="menu-shared">
-                <a href="{% url 'ui:dashboard' %}" class="dropdown-item">{% trans "Dashboard" %}</a>
                 {% if user_feature_permissions|feature_allowed:'shared.companies' %}
                   <a href="{% url 'shared:companies' %}" class="dropdown-item">{% trans "Companies" %}</a>
                 {% endif %}
@@ -216,7 +223,7 @@
                 <span class="menu-label">{% trans "Quality Control" %}</span>
               </button>
               <div class="dropdown-menu" id="menu-qc">
-                <a href="#" class="dropdown-item">{% trans "Inspections" %}</a>
+                <a href="{% url 'qc:temporary_receipts' %}" class="dropdown-item">{% trans "Inspections" %}</a>
               </div>
             </div>
             {% endif %}

@@ -1309,21 +1309,13 @@ class ReceiptTemporaryForm(ReceiptBaseForm):
 class ReceiptPermanentForm(forms.ModelForm):
     """Header-only form for permanent receipt documents with multi-line support."""
 
-    requires_temporary_receipt = forms.BooleanField(
-        required=False,
-        label=_('Requires Temporary Receipt'),
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-    )
-
     class Meta:
         model = ReceiptPermanent
         fields = [
             'document_code',
             'document_date',
-            'requires_temporary_receipt',
             'temporary_receipt',
             'purchase_request',
-            'warehouse_request',
         ]
         widgets = {
             'document_code': forms.HiddenInput(),
@@ -1347,8 +1339,13 @@ class ReceiptPermanentForm(forms.ModelForm):
         
         if self.company_id:
             if 'temporary_receipt' in self.fields:
+                # Only show temporary receipts that are QC approved and not yet converted
                 self.fields['temporary_receipt'].queryset = ReceiptTemporary.objects.filter(
-                    company_id=self.company_id
+                    company_id=self.company_id,
+                    qc_approved_by__isnull=False,  # Must be QC approved
+                    qc_approved_at__isnull=False,   # Must have approval date
+                    is_converted=0,  # Not yet converted
+                    is_enabled=1
                 ).order_by('-document_date', 'document_code')
                 self.fields['temporary_receipt'].label_from_instance = lambda obj: f"{obj.document_code}"
             
@@ -1358,14 +1355,6 @@ class ReceiptPermanentForm(forms.ModelForm):
                 ).order_by('-request_date', 'request_code')
                 self.fields['purchase_request'].label_from_instance = lambda obj: f"{obj.request_code}"
             
-            if 'warehouse_request' in self.fields:
-                self.fields['warehouse_request'].queryset = WarehouseRequest.objects.filter(
-                    company_id=self.company_id
-                ).order_by('-needed_by_date', 'request_code')
-                self.fields['warehouse_request'].label_from_instance = lambda obj: f"{obj.request_code}"
-        
-        if self.instance.pk:
-            self.fields['requires_temporary_receipt'].initial = bool(self.instance.requires_temporary_receipt)
 
     def clean_document_code(self):
         """Auto-generate document_code if not provided."""
@@ -1401,10 +1390,6 @@ class ReceiptPermanentForm(forms.ModelForm):
                 pr = cleaned_data.get('purchase_request')
                 if pr.company_id != self.company_id:
                     self.add_error('purchase_request', _('Selected purchase request belongs to a different company.'))
-            if cleaned_data.get('warehouse_request'):
-                wr = cleaned_data.get('warehouse_request')
-                if wr.company_id != self.company_id:
-                    self.add_error('warehouse_request', _('Selected warehouse request belongs to a different company.'))
         return cleaned_data
 
     def save(self, commit=True):
@@ -1413,7 +1398,11 @@ class ReceiptPermanentForm(forms.ModelForm):
             instance.document_code = generate_document_code(ReceiptPermanent, instance.company_id, "PRM")
         if not instance.document_date:
             instance.document_date = timezone.now().date()
-        instance.requires_temporary_receipt = 1 if self.cleaned_data.get('requires_temporary_receipt') else 0
+        # Automatically set requires_temporary_receipt based on whether temporary_receipt is selected
+        if self.cleaned_data.get('temporary_receipt'):
+            instance.requires_temporary_receipt = 1
+        else:
+            instance.requires_temporary_receipt = 0
         
         if commit:
             instance.save()

@@ -38,6 +38,7 @@ urlpatterns = [
     path('api/item-units/', views.get_item_units, name='item_units'),
     path('api/item-allowed-warehouses/', views.get_item_allowed_warehouses, name='item_allowed_warehouses'),
     path('api/item-available-serials/', views.get_item_available_serials, name='item_available_serials'),
+    path('api/temporary-receipt-data/', views.get_temporary_receipt_data, name='temporary_receipt_data'),
     path('api/warehouse-work-lines/', views.get_warehouse_work_lines, name='warehouse_work_lines'),
     
     # Master Data - Warehouses
@@ -72,6 +73,7 @@ urlpatterns = [
     path('receipts/temporary/<int:pk>/edit/', views.ReceiptTemporaryUpdateView.as_view(), name='receipt_temporary_edit'),
     path('receipts/temporary/<int:pk>/delete/', views.ReceiptTemporaryDeleteView.as_view(), name='receipt_temporary_delete'),
     path('receipts/temporary/<int:pk>/lock/', views.ReceiptTemporaryLockView.as_view(), name='receipt_temporary_lock'),
+    path('receipts/temporary/<int:pk>/send-to-qc/', views.ReceiptTemporarySendToQCView.as_view(), name='receipt_temporary_send_to_qc'),
     path('receipts/permanent/', views.ReceiptPermanentListView.as_view(), name='receipt_permanent'),
     path('receipts/permanent/create/', views.ReceiptPermanentCreateView.as_view(), name='receipt_permanent_create'),
     path('receipts/permanent/<int:pk>/edit/', views.ReceiptPermanentUpdateView.as_view(), name='receipt_permanent_edit'),

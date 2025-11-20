@@ -10,6 +10,71 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2025-11-20c] - BOM Form Validation & Edit Mode Fixes
+
+### Fixed
+- **`is_optional` Validation Error**:
+  - Changed `is_optional` field from `IntegerField` to `BooleanField` in form
+  - Added `clean_is_optional()` method to convert checkbox Boolean value (True/False) to integer (1/0) for database storage
+  - Fixed validation error "Enter a whole number" when checkbox was unchecked
+  - Checkbox now properly saves as 0 (required) when unchecked or 1 (optional) when checked
+
+- **Unit Field Clearing on Form Submit**:
+  - Fixed issue where unit dropdown values were not being submitted when field was disabled
+  - Added JavaScript code to enable all unit selects before form submission
+  - Disabled fields are not included in form submission, causing unit values to be lost
+  - Unit values now properly restore after validation errors or page reload
+
+- **`extra_form_count()` AttributeError in Create View**:
+  - Fixed `AttributeError: 'BOMMaterialFormFormSet' object has no attribute 'extra_form_count'`
+  - Added check for method existence using `hasattr()`
+  - Fallback to calculated value: `total_form_count() - initial_form_count()`
+  - Added try/except block for better error handling
+
+- **Values Not Restoring in Edit Mode**:
+  - Fixed issue where category, subcategory, and unit values were not restored when editing existing BOM
+  - Enhanced `get_item_units` API to return `category_id` and `subcategory_id` in addition to `item_type_id`
+  - Added JavaScript logic to restore all values (type, category, subcategory, unit) on page load in edit mode
+  - Material lines now properly display previously selected values when editing BOM
+
+### Changed
+- **Enhanced `get_item_units` API Response**:
+  - Now returns `category_id` and `subcategory_id` along with existing `item_type_id`, `item_type_name`, and `units`
+  - Response structure:
+    ```json
+    {
+      "units": [...],
+      "item_type_id": "1",
+      "item_type_name": "خام",
+      "category_id": "3",
+      "subcategory_id": "2"
+    }
+    ```
+  - Allows single API call to restore all related values in edit mode
+
+- **BOMMaterialLineForm.is_optional Field**:
+  - Changed from `IntegerField` to `BooleanField` with `CheckboxInput` widget
+  - Added `clean_is_optional()` method for Boolean → Integer conversion
+  - Removed `is_optional` from `Meta.widgets` as it's now defined explicitly
+
+- **JavaScript Form Submission Handler**:
+  - Added code to enable all disabled unit selects before form submission
+  - Ensures all unit values are included in POST data
+  - Logs unit values prominently for debugging
+
+- **JavaScript Page Load Handler**:
+  - Added comprehensive value restoration logic for edit mode
+  - Restores material_type, category, subcategory, and unit from item selection
+  - Uses cascading API calls to populate dropdowns in correct order
+  - Handles timing issues with setTimeout for sequential dropdown population
+
+### Technical Details
+- **Form Field Type Change**: `is_optional` uses `BooleanField` in form but stores as `PositiveSmallIntegerField(0/1)` in database
+- **API Enhancement**: `get_item_units` endpoint now includes category/subcategory for easier edit mode restoration
+- **Validation Timing**: `clean_is_optional()` runs after Django's default checkbox handling, converting to integer format
+
+---
+
 ## [2025-11-20b] - BOM Enhanced Cascading Filters & Unit Management
 
 ### Added
