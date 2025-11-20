@@ -17,6 +17,12 @@ urlpatterns = [
     path('machines/<int:pk>/edit/', views.MachineUpdateView.as_view(), name='machine_edit'),
     path('machines/<int:pk>/delete/', views.MachineDeleteView.as_view(), name='machine_delete'),
     
+    # Work Lines (خطوط کاری)
+    path('work-lines/', views.WorkLineListView.as_view(), name='work_lines'),
+    path('work-lines/create/', views.WorkLineCreateView.as_view(), name='work_line_create'),
+    path('work-lines/<int:pk>/edit/', views.WorkLineUpdateView.as_view(), name='work_line_edit'),
+    path('work-lines/<int:pk>/delete/', views.WorkLineDeleteView.as_view(), name='work_line_delete'),
+    
     # BOM (Bill of Materials - فهرست مواد اولیه)
     path('bom/', views.BOMListView.as_view(), name='bom_list'),
     path('bom/create/', views.BOMCreateView.as_view(), name='bom_create'),

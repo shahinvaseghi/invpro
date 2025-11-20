@@ -90,3 +90,10 @@ class MachineAdmin(admin.ModelAdmin):
     list_display = ("public_code", "name", "machine_type", "work_center", "status", "is_enabled")
     list_filter = ("company", "machine_type", "status", "is_enabled")
     search_fields = ("public_code", "name", "name_en", "manufacturer", "model_number", "serial_number")
+
+
+@admin.register(models.WorkLine)
+class WorkLineAdmin(admin.ModelAdmin):
+    list_display = ("company", "warehouse", "public_code", "name", "is_enabled")
+    list_filter = ("company", "warehouse", "is_enabled")
+    search_fields = ("public_code", "name", "name_en")

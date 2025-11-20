@@ -31,11 +31,8 @@ class WarehouseAdmin(admin.ModelAdmin):
     search_fields = ("public_code", "name", "name_en")
 
 
-@admin.register(models.WorkLine)
-class WorkLineAdmin(admin.ModelAdmin):
-    list_display = ("company", "warehouse", "public_code", "name", "is_enabled")
-    list_filter = ("company", "warehouse", "is_enabled")
-    search_fields = ("public_code", "name", "name_en")
+# WorkLine moved to production module
+# Register it in production/admin.py instead
 
 
 @admin.register(models.Item)

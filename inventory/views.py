@@ -576,11 +576,21 @@ class WarehouseListView(InventoryBaseView, ListView):
     paginate_by = 50
 
 
-class WorkLineListView(InventoryBaseView, ListView):
-    model = models.WorkLine
-    template_name = 'inventory/work_lines.html'
-    context_object_name = 'work_lines'
-    paginate_by = 50
+# WorkLine views moved to production module
+# Import them here for backward compatibility if needed
+try:
+    from production.views import (
+        WorkLineListView,
+        WorkLineCreateView,
+        WorkLineUpdateView,
+        WorkLineDeleteView,
+    )
+except ImportError:
+    # If production module is not installed, views won't be available
+    WorkLineListView = None
+    WorkLineCreateView = None
+    WorkLineUpdateView = None
+    WorkLineDeleteView = None
 
 
 # Supplier Views
@@ -3838,8 +3848,17 @@ def get_warehouse_work_lines(request):
 
         warehouse = get_object_or_404(models.Warehouse, pk=warehouse_id, company_id=company_id, is_enabled=1)
 
-        # Get work lines for this warehouse
-        work_lines = models.WorkLine.objects.filter(
+        # Get work lines for this warehouse (from production module)
+        try:
+            from production.models import WorkLine
+        except ImportError:
+            # If production module is not installed, return empty list
+            return JsonResponse({
+                'work_lines': [],
+                'count': 0
+            })
+        
+        work_lines = WorkLine.objects.filter(
             company_id=company_id,
             warehouse=warehouse,
             is_enabled=1

@@ -750,6 +750,56 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Bulk operations
 - Template customization
 
+## [Unreleased]
+
+### Added
+- **WorkLine Model Migration to Production Module**: `WorkLine` has been moved from `inventory` module to `production` module as it is primarily a production concept. The model now supports:
+  - Optional warehouse assignment (only if inventory module is installed)
+  - ManyToMany relationships with `Person` (personnel) and `Machine`
+  - Automatic 5-digit `public_code` generation
+- **WorkLine Management Views**: Complete CRUD views for work lines in production module:
+  - `WorkLineListView`: List all work lines with personnel and machines display
+  - `WorkLineCreateView`: Create new work lines with personnel and machines assignment
+  - `WorkLineUpdateView`: Update existing work lines
+  - `WorkLineDeleteView`: Delete work lines with confirmation
+- **WorkLine Forms**: `WorkLineForm` in production module with support for:
+  - Optional warehouse selection (hidden if inventory module not installed)
+  - Personnel multi-select (filtered by company)
+  - Machines multi-select (filtered by company)
+- **WorkLine Templates**: New templates in `templates/production/`:
+  - `work_lines.html`: List view with personnel and machines display
+  - `work_line_form.html`: Create/edit form
+  - `work_line_confirm_delete.html`: Delete confirmation
+- **WorkLine Permissions**: New permission `production.work_lines` with actions (view_own, view_all, create, edit_own, delete_own)
+- **WorkLine URLs**: New URL patterns in `production/urls.py`:
+  - `/production/work-lines/` - List view
+  - `/production/work-lines/create/` - Create view
+  - `/production/work-lines/<id>/edit/` - Edit view
+  - `/production/work-lines/<id>/delete/` - Delete view
+
+### Changed
+- **WorkLine Location**: `WorkLine` model moved from `inventory.models` to `production.models`
+- **WorkLine Admin**: `WorkLineAdmin` moved from `inventory.admin` to `production.admin`
+- **WorkLine Forms**: `WorkLineForm` moved from `inventory.forms` to `production.forms`
+- **WorkLine Views**: All work line views moved from `inventory.views` to `production.views`
+- **WorkLine URLs**: All work line URLs moved from `inventory.urls` to `production.urls`
+- **WorkLine Permission**: Permission code changed from `inventory.master.work_lines` to `production.work_lines`
+- **Sidebar Navigation**: Work Lines link moved from Inventory section to Production section in sidebar
+- **IssueConsumptionLine**: Updated to reference `production.WorkLine` instead of `inventory.WorkLine` (optional dependency)
+- **Inventory Forms**: `IssueConsumptionLineForm` updated to handle optional `WorkLine` import from production module
+
+### Migration Notes
+- **Database Migrations**: Four migrations created to move `WorkLine` from inventory to production:
+  - `inventory.0026_add_personnel_machines_to_workline`: Added ManyToMany fields (reverted in later migration)
+  - `inventory.0027_move_workline_to_production`: Removed fields from inventory WorkLine
+  - `production.0013_move_workline_to_production`: Created WorkLine in production module
+  - `inventory.0028_move_workline_to_production`: Updated IssueConsumptionLine foreign key and deleted inventory WorkLine
+- **Backward Compatibility**: `inventory` module can work without `production` module installed. `WorkLine` references in `IssueConsumptionLine` are optional and handled gracefully.
+
+### Notes
+- **Personnel (`Person`)**: Personnel management is part of the Production module, not Inventory. The `Person` model is used for workforce management in production workflows and can optionally be assigned to work lines.
+- **WorkLine**: Work lines are part of the Production module, not Inventory. They can optionally be associated with warehouses (if inventory module is installed) and are primarily used in production workflows, though they can also be referenced in inventory consumption issues.
+
 ### Planned for v0.4.0
 - Integration with external ERPs
 - Automated backup system

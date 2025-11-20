@@ -173,7 +173,7 @@
     </div>
   </div>
 
-  {% if user_feature_permissions|feature_allowed:'production.personnel' or user_feature_permissions|feature_allowed:'production.machines' or user_feature_permissions|feature_allowed:'inventory.master.work_lines' or request.user.is_superuser %}
+  {% if user_feature_permissions|feature_allowed:'production.personnel' or user_feature_permissions|feature_allowed:'production.machines' or user_feature_permissions|feature_allowed:'production.work_lines' or request.user.is_superuser %}
     <div class="sidebar-section" data-section="production">
       <button type="button" class="section-header" data-target="production">
         <span class="section-title">{% trans "Production" %}</span>
@@ -186,8 +186,8 @@
         {% if user_feature_permissions|feature_allowed:'production.machines' %}
           <a href="{% url 'production:machines' %}" class="nav-link">{% trans "Machines" %}</a>
         {% endif %}
-        {% if user_feature_permissions|feature_allowed:'inventory.master.work_lines' %}
-          <a href="{% url 'inventory:work_lines' %}" class="nav-link">{% trans "Work Lines" %}</a>
+        {% if user_feature_permissions|feature_allowed:'production.work_lines' %}
+          <a href="{% url 'production:work_lines' %}" class="nav-link">{% trans "Work Lines" %}</a>
         {% endif %}
         {% if user_feature_permissions|feature_allowed:'production.bom' or request.user.is_superuser %}
           <a href="{% url 'production:bom_list' %}" class="nav-link">{% trans "BOM" %}</a>

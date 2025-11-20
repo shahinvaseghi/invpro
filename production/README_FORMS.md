@@ -1,7 +1,9 @@
 # Production Module Forms Documentation
 
 ## Overview
-This document describes the forms used in the production module for managing personnel, machines, and BOM (Bill of Materials).
+This document describes the forms used in the production module for managing personnel, machines, work lines, and BOM (Bill of Materials).
+
+**Note**: Personnel (`Person`) and Work Lines (`WorkLine`) are part of the Production module, not Inventory. They are used for production workflows and can optionally be referenced in inventory consumption issues.
 
 ## Form Classes
 
@@ -146,7 +148,70 @@ class MachineCreateView(FeaturePermissionRequiredMixin, CreateView):
 
 ---
 
-### 3. BOMForm
+### 3. WorkLineForm
+**Purpose:** Create and edit work lines with personnel and machines assignment
+
+**Model:** `WorkLine`
+
+**Fields:**
+- `warehouse` - Optional warehouse assignment (FK to inventory.Warehouse, only if inventory module is installed)
+- `name` - Work line name (Persian)
+- `name_en` - Work line name (English)
+- `description` - Brief description
+- `notes` - Detailed notes
+- `sort_order` - Display order
+- `is_enabled` - Active/Inactive status
+- `personnel` - Multiple personnel assignment (ManyToMany to Person)
+- `machines` - Multiple machines assignment (ManyToMany to Machine)
+
+**Auto-Generated Fields:**
+- `public_code` (5 digits) - Automatically generated sequential code per company. Not user-editable. Generated on save using `generate_sequential_code()`.
+
+**Special Features:**
+- Warehouse field is optional and hidden if inventory module is not installed
+- Personnel and machines dropdowns filtered by active company
+- ManyToMany relationships saved via `form.save_m2m()` in views
+- Warehouse field is hidden if inventory module is not installed
+
+**Validation:**
+- Name must be unique per company (and per warehouse if warehouse is assigned)
+- Warehouse must belong to the active company (if provided)
+- Personnel and machines must belong to the active company
+
+**Usage in Views:**
+```python
+class WorkLineCreateView(FeaturePermissionRequiredMixin, CreateView):
+    model = WorkLine
+    form_class = WorkLineForm
+    template_name = 'production/work_line_form.html'
+    success_url = reverse_lazy('production:work_lines')
+    feature_code = 'production.work_lines'
+    required_action = 'create'
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['company_id'] = self.request.session.get('active_company_id')
+        return kwargs
+    
+    def form_valid(self, form):
+        form.instance.company_id = self.request.session.get('active_company_id')
+        form.instance.created_by = self.request.user
+        response = super().form_valid(form)
+        # Save Many-to-Many relationships
+        form.save_m2m()
+        messages.success(self.request, _('Work line created successfully.'))
+        return response
+```
+
+**Important Notes:**
+- `WorkLine` is part of the Production module, not Inventory
+- Warehouse assignment is optional (only if inventory module is installed)
+- Work lines can be used in inventory consumption issues as destination
+- Personnel and machines are filtered by company and enabled status
+
+---
+
+### 4. BOMForm
 **Purpose:** Create and edit BOM (Bill of Materials) headers
 
 **Model:** `BOM`
@@ -249,7 +314,7 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
 
 ---
 
-### 4. BOMMaterialLineForm
+### 5. BOMMaterialLineForm
 **Purpose:** Create and edit individual BOM material lines
 
 **Model:** `BOMMaterial`
@@ -379,7 +444,7 @@ BOMMaterialLineFormSet = inlineformset_factory(
 
 ---
 
-### 5. BOMMaterialLineFormSet
+### 6. BOMMaterialLineFormSet
 **Purpose:** Manage multiple material lines within a single BOM
 
 **Type:** Django Inline Formset (inlineformset_factory)

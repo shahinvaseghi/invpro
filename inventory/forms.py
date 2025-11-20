@@ -21,7 +21,7 @@ from .models import (
     SupplierSubcategory,
     SupplierItem,
     Warehouse,
-    WorkLine,
+    # WorkLine moved to production module
     ItemUnit,
     ItemWarehouse,
     ReceiptTemporary,
@@ -559,6 +559,23 @@ class WarehouseForm(forms.ModelForm):
             'sort_order': _('Sort Order'),
             'is_enabled': _('Status'),
         }
+
+
+# WorkLine moved to production module
+# Import it here for use in IssueConsumptionLineForm
+try:
+    from production.models import WorkLine
+except ImportError:
+    # If production module is not installed, WorkLine won't be available
+    WorkLine = None
+
+# WorkLineForm moved to production module
+# Import it here for backward compatibility
+try:
+    from production.forms import WorkLineForm
+except ImportError:
+    # If production module is not installed, WorkLineForm won't be available
+    WorkLineForm = None
 
 
 class SupplierForm(forms.ModelForm):
@@ -3111,14 +3128,14 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
     )
     
     destination_work_line = forms.ModelChoiceField(
-        queryset=WorkLine.objects.none(),
+        queryset=None,  # Will be set in __init__ if WorkLine is available
         required=False,
         label=_('خط کاری'),
         widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_destination_work_line'}),
     )
     
     work_line = forms.ModelChoiceField(
-        queryset=WorkLine.objects.none(),
+        queryset=None,  # Will be set in __init__ if WorkLine is available
         required=False,
         label=_('Work Line'),
         widget=forms.Select(attrs={'class': 'form-control'}),
@@ -3165,12 +3182,16 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
         if not self.company_id:
             return
         
-        # Set work_line queryset
-        if 'work_line' in self.fields:
+        # Set work_line queryset (only if production module is installed)
+        if 'work_line' in self.fields and WorkLine:
             self.fields['work_line'].queryset = WorkLine.objects.filter(
                 company_id=self.company_id, is_enabled=1
             ).order_by('warehouse__name', 'name')
             self.fields['work_line'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name} ({obj.warehouse.name if obj.warehouse else ''})"
+        elif 'work_line' in self.fields:
+            # If production module is not installed, hide work_line field
+            self.fields['work_line'].widget = forms.HiddenInput()
+            self.fields['work_line'].required = False
         
         # Set destination_company_unit queryset
         if 'destination_company_unit' in self.fields:
@@ -3180,13 +3201,17 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
             self.fields['destination_company_unit'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
             self.fields['destination_company_unit'].empty_label = _("--- انتخاب کنید ---")
         
-        # Set destination_work_line queryset (initially all work lines, will be filtered by JavaScript based on warehouse)
-        if 'destination_work_line' in self.fields:
+        # Set destination_work_line queryset (only if production module is installed)
+        if 'destination_work_line' in self.fields and WorkLine:
             self.fields['destination_work_line'].queryset = WorkLine.objects.filter(
                 company_id=self.company_id, is_enabled=1
             ).select_related('warehouse').order_by('warehouse__name', 'name')
             self.fields['destination_work_line'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name} ({obj.warehouse.name if obj.warehouse else ''})"
             self.fields['destination_work_line'].empty_label = _("--- انتخاب کنید ---")
+        elif 'destination_work_line' in self.fields:
+            # If production module is not installed, hide destination_work_line field
+            self.fields['destination_work_line'].widget = forms.HiddenInput()
+            self.fields['destination_work_line'].required = False
         
         # If editing, set initial values based on consumption_type
         if not self.is_bound and getattr(self.instance, 'pk', None):

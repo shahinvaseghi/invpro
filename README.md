@@ -205,7 +205,8 @@ Each model includes constraints to enforce per-company uniqueness of codes and n
 
 Implements master data, suppliers, documents, and stock adjustments.
 
-- **Master Data**: `ItemType`, `ItemCategory`, `ItemSubcategory`, `Warehouse`, `WorkLine`
+- **Master Data**: `ItemType`, `ItemCategory`, `ItemSubcategory`, `Warehouse`
+  - **Note**: `WorkLine` has been moved to the `production` module as it is primarily a production concept, though it can optionally be used in inventory consumption issues.
 - **Items**: `Item` (auto-generates composite `item_code`, `batch_number`), `ItemSpec`, `ItemUnit`, `ItemWarehouse`, `ItemSubstitute`
 - **Suppliers**: `Supplier`, `SupplierCategory`, `SupplierSubcategory`, `SupplierItem`
 - **Requests & Receipts**:
@@ -229,7 +230,8 @@ Key behaviours:
 
 Implements manufacturing definitions, BOM management, and order tracking.
 
-- **Resources**: `WorkCenter`, `Machine` (production machines/equipment with auto-generated codes)
+- **Resources**: `WorkCenter`, `WorkLine`, `Machine` (production machines/equipment with auto-generated codes)
+  - `WorkLine`: production work lines that can be assigned personnel and machines. Each work line can optionally be associated with a warehouse (if inventory module is installed). Automatically generates 5-digit `public_code` on save. Used primarily in production but can also be referenced in inventory consumption issues.
 - **Personnel**: `Person`, `PersonAssignment` (personnel directory and work-center assignments, moved from shared module)
 - **BOM (Bill of Materials)**: 
   - **Header-Line Architecture**: `BOM` (header with version control) and `BOMMaterial` (material lines)
@@ -252,7 +254,7 @@ Implements manufacturing definitions, BOM management, and order tracking.
   - Smart filtering: Only show categories/subcategories containing items of selected type
   - Independent cascading per material line (multiple materials with different types in one BOM)
 - **Dynamic Formsets**: JavaScript-powered add/remove lines for BOM materials with automatic field indexing
-- **Automatic Code Generation**: Person (8-digit), Machine (10-digit), BOM (16-digit), WorkCenter (5-digit)
+- **Automatic Code Generation**: Person (8-digit), Machine (10-digit), BOM (16-digit), WorkCenter (5-digit), WorkLine (5-digit)
 - **Transaction Safety**: All BOM operations wrapped in `transaction.atomic()`
 - **Cross-module Integration**: FK references to `inventory.Item`, `inventory.ItemType`, and `inventory.Warehouse` with cached codes
 - **Unique Constraints**: Enforce one primary process per item revision, prevent duplicate BOM materials
@@ -271,6 +273,7 @@ Implements manufacturing definitions, BOM management, and order tracking.
 **Permissions:**
 - `production.personnel`: Personnel management
 - `production.machines`: Machine management
+- `production.work_lines`: Work line management
 - `production.bom`: BOM management
 - `production.transfer_requests`: Transfer requests (placeholder)
 - `production.performance_records`: Performance records (placeholder)

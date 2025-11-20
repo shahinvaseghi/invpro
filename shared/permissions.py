@@ -203,8 +203,8 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.DELETE_OWN,
         ],
     ),
-    "inventory.master.work_lines": FeaturePermission(
-        code="inventory.master.work_lines",
+    "production.work_lines": FeaturePermission(
+        code="production.work_lines",
         label=_("Work Lines"),
         actions=[
             PermissionAction.VIEW_OWN,

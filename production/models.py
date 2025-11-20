@@ -20,6 +20,13 @@ from shared.models import (
 from inventory.utils.codes import generate_sequential_code
 
 
+# Import Warehouse for WorkLine (optional dependency)
+try:
+    from inventory.models import Warehouse
+except ImportError:
+    Warehouse = None
+
+
 
 POSITIVE_DECIMAL = MinValueValidator(Decimal("0"))
 
@@ -170,6 +177,83 @@ class WorkCenter(ProductionSortableModel):
 
     def __str__(self) -> str:
         return f"{self.public_code} · {self.name}"
+
+
+class WorkLine(ProductionSortableModel):
+    """
+    Work Line - خط کاری
+    Used in production module and optionally in inventory module (for consumption issues).
+    Can be associated with a warehouse (if inventory module is installed).
+    """
+    public_code = models.CharField(
+        max_length=5,
+        validators=[NUMERIC_CODE_VALIDATOR],
+    )
+    warehouse = models.ForeignKey(
+        'inventory.Warehouse',
+        on_delete=models.SET_NULL,
+        related_name="work_lines",
+        null=True,
+        blank=True,
+        help_text=_("Warehouse (optional, only if inventory module is installed)"),
+    )
+    name = models.CharField(max_length=150)
+    name_en = models.CharField(max_length=150)
+    description = models.CharField(max_length=255, blank=True)
+    notes = models.TextField(blank=True)
+    personnel = models.ManyToManyField(
+        'Person',
+        related_name='work_lines',
+        blank=True,
+        help_text=_("Personnel assigned to this work line"),
+    )
+    machines = models.ManyToManyField(
+        'Machine',
+        related_name='work_lines',
+        blank=True,
+        help_text=_("Machines assigned to this work line"),
+    )
+
+    class Meta:
+        verbose_name = _("Work Line")
+        verbose_name_plural = _("Work Lines")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "warehouse", "public_code"),
+                name="production_work_line_public_code_unique",
+                condition=models.Q(warehouse__isnull=False),
+            ),
+            models.UniqueConstraint(
+                fields=("company", "public_code"),
+                name="production_work_line_public_code_unique_no_warehouse",
+                condition=models.Q(warehouse__isnull=True),
+            ),
+            models.UniqueConstraint(
+                fields=("company", "warehouse", "name"),
+                name="production_work_line_name_unique",
+                condition=models.Q(warehouse__isnull=False),
+            ),
+            models.UniqueConstraint(
+                fields=("company", "name"),
+                name="production_work_line_name_unique_no_warehouse",
+                condition=models.Q(warehouse__isnull=True),
+            ),
+        ]
+        ordering = ("company", "warehouse", "sort_order", "public_code")
+
+    def __str__(self) -> str:
+        if self.warehouse:
+            return f"{self.warehouse} · {self.name}"
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.public_code and self.company_id:
+            self.public_code = generate_sequential_code(
+                self.__class__,
+                company_id=self.company_id,
+                width=5,
+            )
+        super().save(*args, **kwargs)
 
 
 class Machine(ProductionSortableModel):

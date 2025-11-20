@@ -234,52 +234,13 @@ class Warehouse(InventorySortableModel):
         super().save(*args, **kwargs)
 
 
-class WorkLine(InventorySortableModel):
-    public_code = models.CharField(
-        max_length=5,
-        validators=[NUMERIC_CODE_VALIDATOR],
-    )
-    warehouse = models.ForeignKey(
-        Warehouse,
-        on_delete=models.CASCADE,
-        related_name="work_lines",
-    )
-    name = models.CharField(max_length=150)
-    name_en = models.CharField(max_length=150)
-    description = models.CharField(max_length=255, blank=True)
-    notes = models.TextField(blank=True)
-
-    class Meta:
-        verbose_name = _("Work Line")
-        verbose_name_plural = _("Work Lines")
-        constraints = [
-            models.UniqueConstraint(
-                fields=("company", "warehouse", "public_code"),
-                name="inventory_work_line_public_code_unique",
-            ),
-            models.UniqueConstraint(
-                fields=("company", "warehouse", "name"),
-                name="inventory_work_line_name_unique",
-            ),
-            models.UniqueConstraint(
-                fields=("company", "warehouse", "name_en"),
-                name="inventory_work_line_name_en_unique",
-            ),
-        ]
-        ordering = ("company", "warehouse", "sort_order", "public_code")
-
-    def __str__(self) -> str:
-        return f"{self.warehouse} · {self.name}"
-
-    def save(self, *args, **kwargs):
-        if not self.public_code and self.company_id and self.warehouse_id:
-            self.public_code = generate_sequential_code(
-                self.__class__,
-                company_id=self.company_id,
-                width=5,
-                extra_filters={"warehouse": self.warehouse},
-            )
-        super().save(*args, **kwargs)
+# WorkLine moved to production module
+# Import it here for backward compatibility in IssueConsumptionLine
+try:
+    from production.models import WorkLine
+except ImportError:
+    # If production module is not installed, WorkLine won't be available
+    WorkLine = None
 
 
 class Item(InventorySortableModel):
@@ -1354,11 +1315,12 @@ class IssueConsumptionLine(IssueLineBase):
     )
     cost_center_code = models.CharField(max_length=30, blank=True)
     work_line = models.ForeignKey(
-        "inventory.WorkLine",
+        "production.WorkLine",
         on_delete=models.SET_NULL,
         related_name="consumption_issue_lines",
         null=True,
         blank=True,
+        help_text=_("Work line (optional, only if production module is installed)"),
     )
     work_line_code = models.CharField(
         max_length=5,

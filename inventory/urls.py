@@ -48,8 +48,8 @@ urlpatterns = [
     path('warehouses/<int:pk>/edit/', views.WarehouseUpdateView.as_view(), name='warehouse_edit'),
     path('warehouses/<int:pk>/delete/', views.WarehouseDeleteView.as_view(), name='warehouse_delete'),
     
-    # Master Data - Work Lines
-    path('work-lines/', views.WorkLineListView.as_view(), name='work_lines'),
+    # Work Lines moved to production module
+    # URLs are now in production/urls.py
     
     # Suppliers
     path('supplier-categories/', views.SupplierCategoryListView.as_view(), name='supplier_categories'),

@@ -13,7 +13,8 @@ Contains all inventory-related entities. Major groups:
 
 - **Master Data**
   - `ItemType`, `ItemCategory`, `ItemSubcategory`: hierarchical classification with per-company uniqueness constraints.
-  - `Warehouse`, `WorkLine`: physical storage and work areas, each scoped by company.
+  - `Warehouse`: physical storage locations, each scoped by company.
+  - **Note**: `WorkLine` has been moved to the `production` module as it is primarily a production concept, though it can optionally be used in inventory consumption issues.
 
 - **Item Definitions**
   - `Item`: central product/part definition. Automatically generates `item_code`, `sequence_segment`, and `batch_number` based on type/category/subcategory and current month. Supports optional `secondary_batch_number` (user-defined secondary batch number).
@@ -123,7 +124,7 @@ Each model enforces unique constraints tailored to multi-company setups and uses
   - **فرم‌های سربرگ سند**: `ReceiptTemporaryForm`, `ReceiptPermanentForm`, `ReceiptConsignmentForm`, `IssuePermanentForm`, `IssueConsumptionForm`, `IssueConsignmentForm` که مسئول تولید خودکار کد/تاریخ سند هستند، فیلد وضعیت را پنهان می‌کنند و فقط اطلاعات سربرگ سند را مدیریت می‌کنند.
   - **فرم‌های ردیف**: `IssuePermanentLineForm`, `IssueConsumptionLineForm`, `IssueConsignmentLineForm`, `ReceiptPermanentLineForm`, `ReceiptConsignmentLineForm` که فیلدهای هر ردیف (کالا، انبار، مقدار، واحد، قیمت و غیره) را مدیریت می‌کنند:
     - **`IssuePermanentLineForm`**: فیلد `destination_type` به صورت اختیاری واحد کاری (`CompanyUnit`) را می‌پذیرد. این فیلد از `WorkLine` به `CompanyUnit` تغییر یافته است.
-    - **`IssueConsumptionLineForm`**: فیلد `destination_type_choice` امکان انتخاب بین واحد کاری (`company_unit`) یا خط کاری (`work_line`) را فراهم می‌کند. فیلدهای `destination_company_unit` و `destination_work_line` به صورت پویا نمایش داده می‌شوند.
+    - **`IssueConsumptionLineForm`**: فیلد `destination_type_choice` امکان انتخاب بین واحد کاری (`company_unit`) یا خط کاری (`work_line`) را فراهم می‌کند. فیلدهای `destination_company_unit` و `destination_work_line` به صورت پویا نمایش داده می‌شوند. **نکته**: `WorkLine` از ماژول `production` استفاده می‌شود (اختیاری - فقط در صورت نصب ماژول production).
     - **`IssueConsignmentLineForm`**: فیلد `destination_type` به صورت اختیاری واحد کاری (`CompanyUnit`) را می‌پذیرد. این فیلد از `WorkLine` به `CompanyUnit` تغییر یافته است.
     - **اعتبارسنجی موجودی**: تمام فرم‌های ردیف حواله (`IssuePermanentLineForm`, `IssueConsumptionLineForm`, `IssueConsignmentLineForm`) اکنون قبل از ذخیره، موجودی فعلی کالا در انبار انتخاب شده را بررسی می‌کنند. در صورت ناکافی بودن موجودی، خطا نمایش داده می‌شود. در حالت ویرایش، مقدار قبلی به موجودی اضافه می‌شود تا امکان تغییر مقدار وجود داشته باشد.
   - **فرم‌ست‌های ردیف**: `IssuePermanentLineFormSet`, `IssueConsumptionLineFormSet`, `IssueConsignmentLineFormSet`, `ReceiptPermanentLineFormSet`, `ReceiptConsignmentLineFormSet` که چندین ردیف را در یک فرم مدیریت می‌کنند.

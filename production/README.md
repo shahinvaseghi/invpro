@@ -12,6 +12,7 @@ Defines all production entities. Structure:
 
 - **Core Resources**
   - `WorkCenter`: identifies work centers/lines, with per-company unique `public_code` and name. Automatically generates 5-digit `public_code` on save.
+  - `WorkLine`: production work lines that can be assigned personnel and machines. Each work line can optionally be associated with a warehouse (if inventory module is installed). Automatically generates 5-digit `public_code` on save. Used primarily in production but can also be referenced in inventory consumption issues.
   - `Machine`: production machines and equipment with specifications, maintenance tracking, and work center assignments. Automatically generates 10-digit `public_code` on save using `generate_sequential_code()`.
 
 - **Personnel Management**
@@ -40,6 +41,7 @@ All models inherit audit fields and apply `save()` overrides to populate cached 
 - `Person.public_code`: Auto-generated 8-digit sequential code per company (not user-editable)
 - `Machine.public_code`: Auto-generated 10-digit sequential code per company (not user-editable)
 - `WorkCenter.public_code`: Auto-generated 5-digit sequential code per company
+- `WorkLine.public_code`: Auto-generated 5-digit sequential code per company (not user-editable)
 - `BOM.bom_code`: Auto-generated 16-digit sequential code per company (not user-editable)
 - Codes are generated using `inventory.utils.codes.generate_sequential_code()` function
 - Users cannot manually enter codes; they are automatically assigned on save
@@ -51,6 +53,7 @@ Defines ModelForms for production entities:
 
 - `PersonForm`: Create and edit personnel records with username sync checkbox feature and multi-select for company units. Does not include `public_code` field (auto-generated).
 - `MachineForm`: Create and edit machine records with work center assignment, specifications, and maintenance tracking. Does not include `public_code` field (auto-generated).
+- `WorkLineForm`: Create and edit work lines with optional warehouse assignment (if inventory module is installed), personnel and machines ManyToMany fields. Does not include `public_code` field (auto-generated).
 - `BOMForm`: Create and edit BOM headers with cascading filters for finished item selection (Type → Category → Subcategory → Item). Includes version, description, notes, active flag, and status fields.
 - `BOMMaterialLineForm`: Form for individual BOM material lines with cascading filters for material selection. Includes material type (FK to ItemType), category/subcategory filters (UI-only), material item, quantity, unit (CharField), scrap allowance, optional flag (BooleanField in form, stores as 0/1), and description. Auto-sets material_type from material_item if not provided.
 - `BOMMaterialLineFormSet`: Django inline formset factory for managing multiple material lines within a BOM. Supports dynamic add/remove of lines with minimum 1 line validation. Shows 1 empty form initially (extra=1).
@@ -70,6 +73,12 @@ Provides CRUD views for production resources:
   - `MachineCreateView`: Create new machine records
   - `MachineUpdateView`: Update existing machine records
   - `MachineDeleteView`: Delete machine records (with confirmation)
+
+- **Work Line Management**:
+  - `WorkLineListView`: List all work lines for the active company with personnel and machines display
+  - `WorkLineCreateView`: Create new work line records with personnel and machines assignment
+  - `WorkLineUpdateView`: Update existing work line records
+  - `WorkLineDeleteView`: Delete work line records (with confirmation)
 
 - **BOM Management**:
   - `BOMListView`: List all BOMs with expand/collapse material details, filtering by finished item
@@ -97,6 +106,10 @@ URL patterns for production module:
 - `/production/machines/create/` - Create machine
 - `/production/machines/<id>/edit/` - Edit machine
 - `/production/machines/<id>/delete/` - Delete machine
+- `/production/work-lines/` - Work lines list
+- `/production/work-lines/create/` - Create work line
+- `/production/work-lines/<id>/edit/` - Edit work line
+- `/production/work-lines/<id>/delete/` - Delete work line
 - `/production/bom/` - BOM list with material details
 - `/production/bom/create/` - Create new BOM with materials
 - `/production/bom/<id>/edit/` - Edit BOM and materials
@@ -114,6 +127,9 @@ Production module templates:
 - `production/machines.html`: Machines list view with filtering by work center and status
 - `production/machine_form.html`: Machine create/edit form with work center assignment and specifications
 - `production/machine_confirm_delete.html`: Machine deletion confirmation page
+- `production/work_lines.html`: Work lines list view with personnel and machines display
+- `production/work_line_form.html`: Work line create/edit form with optional warehouse, personnel and machines assignment
+- `production/work_line_confirm_delete.html`: Work line deletion confirmation page
 - `production/bom_list.html`: BOM list with expand/collapse material details, filter by finished item, material type badges
 - `production/bom_form.html`: Multi-section form with cascading dropdowns for finished item selection and dynamic formset for materials with JavaScript add/remove functionality
 - `production/bom_confirm_delete.html`: BOM deletion confirmation with material count display
@@ -154,8 +170,9 @@ Production module URLs are registered in `production/urls.py` and included in th
 
 Production module uses the centralized permission system defined in `shared/permissions.py`:
 
-- `production.personnel`: Personnel management with actions (view_own, view_all, create, edit_own, delete_own)
+- `production.personnel`: Personnel management with actions (view_own, view_all, create, edit_own, delete_own) - **Personnel is part of Production module, not Inventory**
 - `production.machines`: Machine management with actions (view_own, view_all, create, edit_own, delete_own)
+- `production.work_lines`: Work line management with actions (view_own, view_all, create, edit_own, delete_own) - **WorkLine is part of Production module, not Inventory**
 - `production.bom`: BOM (Bill of Materials) management with actions (view_own, view_all, create, edit_own, delete_own)
 - `production.transfer_requests`: Transfer to line requests (placeholder)
 - `production.performance_records`: Production performance records (placeholder)
