@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- **Secondary Batch Number for Items**: Added optional `secondary_batch_number` field to `Item` model allowing users to define a custom secondary batch number in addition to the auto-generated batch number. This field is displayed in the item definition form and can be used for external batch tracking.
+- **Secondary Serial Number for Item Serials**: Added optional `secondary_serial_code` field to `ItemSerial` model allowing users to define a custom secondary serial number in addition to the auto-generated serial code. This field can be managed on the serial assignment page during receipt creation and updated via API endpoint `/inventory/api/update-serial-secondary-code/`.
 - **Inventory Balance Validation in Issue Forms**: Added validation to prevent issuing more items than available inventory. The system now checks current balance before allowing issue creation/editing, and displays an error message if insufficient inventory is available.
 
 ### Changed

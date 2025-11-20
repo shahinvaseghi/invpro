@@ -16,13 +16,13 @@ Contains all inventory-related entities. Major groups:
   - `Warehouse`, `WorkLine`: physical storage and work areas, each scoped by company.
 
 - **Item Definitions**
-  - `Item`: central product/part definition. Automatically generates `item_code`, `sequence_segment`, and `batch_number` based on type/category/subcategory and current month.
+  - `Item`: central product/part definition. Automatically generates `item_code`, `sequence_segment`, and `batch_number` based on type/category/subcategory and current month. Supports optional `secondary_batch_number` (user-defined secondary batch number).
   - `ItemSpec`: JSON specification per item; caches `item_code`.
   - `ItemUnit`: unit conversions; caches `item_code`.
   - `ItemWarehouse`: mapping between items and warehouses (primary flag support).
   - `ItemSubstitute`: defines substitute relationships and quantities between items; caches both source and target codes.
   - `ItemLot`: traceability record for lot-controlled items; generates `LOT-MMYY-XXXXXX` format codes.
-  - `ItemSerial`: per-unit tracking for serialised assets (current status, location, linked documents) with automatic creation when receipts are locked.
+  - `ItemSerial`: per-unit tracking for serialised assets (current status, location, linked documents) with automatic creation when receipts are locked. Supports optional `secondary_serial_code` (user-defined secondary serial number).
   - `ItemSerialHistory`: immutable audit log documenting every serial event (reservation, release, issue, consumption, return).
 
 - **Supplier Relations**
