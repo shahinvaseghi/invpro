@@ -3,6 +3,7 @@ URL configuration for shared module.
 """
 from django.urls import path
 from . import views
+from .views.auth import mark_notification_read
 
 app_name = 'shared'
 
@@ -27,5 +28,6 @@ urlpatterns = [
     path('access-levels/create/', views.AccessLevelCreateView.as_view(), name='access_level_create'),
     path('access-levels/<int:pk>/edit/', views.AccessLevelUpdateView.as_view(), name='access_level_edit'),
     path('access-levels/<int:pk>/delete/', views.AccessLevelDeleteView.as_view(), name='access_level_delete'),
+    path('mark-notification-read/', mark_notification_read, name='mark_notification_read'),
 ]
 

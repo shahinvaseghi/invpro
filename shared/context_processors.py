@@ -70,6 +70,12 @@ def active_company(request):
             
             notifications = []
             
+            # Get read notifications from session
+            read_notifications_list = request.session.get('read_notifications', [])
+            if not isinstance(read_notifications_list, list):
+                read_notifications_list = []
+            read_notifications = set(read_notifications_list)
+            
             # 1. Requests awaiting approval (user is approver)
             pending_purchase_approvals = inventory_models.PurchaseRequest.objects.filter(
                 company_id=company_id,
@@ -78,9 +84,11 @@ def active_company(request):
                 is_enabled=1
             ).count()
             
-            if pending_purchase_approvals > 0:
+            notification_key = f'approval_pending_purchase_{company_id}'
+            if pending_purchase_approvals > 0 and notification_key not in read_notifications:
                 notifications.append({
                     'type': 'approval_pending',
+                    'key': notification_key,
                     'message': f'{pending_purchase_approvals} درخواست خرید در انتظار تایید',
                     'url': 'inventory:purchase_requests',
                     'count': pending_purchase_approvals,
@@ -93,9 +101,11 @@ def active_company(request):
                 is_enabled=1
             ).count()
             
-            if pending_warehouse_approvals > 0:
+            notification_key = f'approval_pending_warehouse_{company_id}'
+            if pending_warehouse_approvals > 0 and notification_key not in read_notifications:
                 notifications.append({
                     'type': 'approval_pending',
+                    'key': notification_key,
                     'message': f'{pending_warehouse_approvals} درخواست انبار در انتظار تایید',
                     'url': 'inventory:warehouse_requests',
                     'count': pending_warehouse_approvals,
@@ -109,9 +119,11 @@ def active_company(request):
                 is_enabled=1
             ).count()
             
-            if pending_stocktaking_approvals > 0:
+            notification_key = f'approval_pending_stocktaking_{company_id}'
+            if pending_stocktaking_approvals > 0 and notification_key not in read_notifications:
                 notifications.append({
                     'type': 'approval_pending',
+                    'key': notification_key,
                     'message': f'{pending_stocktaking_approvals} سند شمارش در انتظار تایید',
                     'url': 'inventory:stocktaking_records',
                     'count': pending_stocktaking_approvals,
@@ -128,9 +140,11 @@ def active_company(request):
                 is_enabled=1
             ).count()
             
-            if approved_purchase_requests > 0:
+            notification_key = f'approved_purchase_{company_id}'
+            if approved_purchase_requests > 0 and notification_key not in read_notifications:
                 notifications.append({
                     'type': 'approved',
+                    'key': notification_key,
                     'message': f'{approved_purchase_requests} درخواست خرید شما تایید شد',
                     'url': 'inventory:purchase_requests',
                     'count': approved_purchase_requests,
@@ -144,9 +158,11 @@ def active_company(request):
                 is_enabled=1
             ).count()
             
-            if approved_warehouse_requests > 0:
+            notification_key = f'approved_warehouse_{company_id}'
+            if approved_warehouse_requests > 0 and notification_key not in read_notifications:
                 notifications.append({
                     'type': 'approved',
+                    'key': notification_key,
                     'message': f'{approved_warehouse_requests} درخواست انبار شما تایید شد',
                     'url': 'inventory:warehouse_requests',
                     'count': approved_warehouse_requests,

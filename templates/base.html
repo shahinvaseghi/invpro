@@ -251,7 +251,10 @@
               </div>
               <div class="notification-list">
                 {% for notification in notifications %}
-                <a href="{% url notification.url %}" class="notification-item notification-{{ notification.type }}">
+                <a href="{% url notification.url %}" 
+                   class="notification-item notification-{{ notification.type }}"
+                   data-notification-key="{{ notification.key }}"
+                   onclick="event.preventDefault(); markNotificationAsRead('{{ notification.key }}', '{% url notification.url %}');">
                   <div class="notification-message">{{ notification.message }}</div>
                   <div class="notification-time">{% trans "Click to view" %}</div>
                 </a>
@@ -286,10 +289,10 @@
           {% endif %}
           
           <!-- Language Switcher -->
-          <form action="{% url 'set_language' %}" method="post" class="language-switcher">
+          <form action="{% url 'set_language' %}" method="post" class="language-switcher" id="language-switcher-form">
             {% csrf_token %}
-            <input name="next" type="hidden" value="{{ request.get_full_path }}" />
-            <select name="language" onchange="this.form.submit()" class="language-select">
+            <input name="next" type="hidden" id="language-next-input" value="" />
+            <select name="language" onchange="updateLanguageNext(); this.form.submit();" class="language-select">
               {% get_current_language as LANGUAGE_CODE %}
               {% get_available_languages as LANGUAGES %}
               {% for lang_code, lang_name in LANGUAGES %}
@@ -299,15 +302,37 @@
               {% endfor %}
             </select>
           </form>
+          <script>
+            function updateLanguageNext() {
+              // Get current path and remove language prefix if exists
+              let currentPath = window.location.pathname;
+              // Remove /fa/ or /en/ prefix
+              currentPath = currentPath.replace(/^\/(fa|en)\//, '/');
+              // If path is empty, use /
+              if (!currentPath || currentPath === '/') {
+                currentPath = '/';
+              }
+              document.getElementById('language-next-input').value = currentPath;
+            }
+            // Set initial value
+            updateLanguageNext();
+          </script>
           
           <!-- User Info -->
-          <span class="company-context">
+          <div class="user-info-container">
+            <span class="company-context">
+              {% if request.user.is_authenticated %}
+                👤 {{ request.user.username }}
+              {% else %}
+                {% trans "Guest" %}
+              {% endif %}
+            </span>
             {% if request.user.is_authenticated %}
-              👤 {{ request.user.username }}
-            {% else %}
-              {% trans "Guest" %}
+            <a href="{% url 'logout' %}" class="logout-btn" title="{% trans 'Logout' %}">
+              {% trans "Logout" %}
+            </a>
             {% endif %}
-          </span>
+          </div>
           {% endblock %}
         </nav>
       </header>
@@ -544,6 +569,63 @@
           });
         });
       });
+      
+      // Mark notification as read
+      function markNotificationAsRead(notificationKey, redirectUrl) {
+        // Get CSRF token from any form on the page
+        let csrfToken = null;
+        const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfInput) {
+          csrfToken = csrfInput.value;
+        } else {
+          // Try to get from cookie
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith('csrftoken=')) {
+              csrfToken = cookie.substring('csrftoken='.length);
+              break;
+            }
+          }
+        }
+        
+        if (!csrfToken) {
+          // If no CSRF token found, just redirect
+          console.warn('CSRF token not found, redirecting without marking as read');
+          window.location.href = redirectUrl;
+          return;
+        }
+        
+        // Use fetch API to mark notification as read, then redirect
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', csrfToken);
+        formData.append('notification_key', notificationKey);
+        formData.append('next', redirectUrl);
+        
+        fetch('{% url "shared:mark_notification_read" %}', {
+          method: 'POST',
+          body: formData,
+          credentials: 'same-origin',
+          headers: {
+            'X-CSRFToken': csrfToken
+          }
+        })
+        .then(response => {
+          if (response.ok || response.redirected) {
+            // Redirect to the target URL
+            window.location.href = redirectUrl;
+          } else {
+            console.error('Failed to mark notification as read');
+            // Still redirect even if marking failed
+            window.location.href = redirectUrl;
+          }
+        })
+        .catch(error => {
+          console.error('Error marking notification as read:', error);
+          // Still redirect even if there's an error
+          window.location.href = redirectUrl;
+        });
+      }
     </script>
     {% block extra_scripts %}{% endblock %}
   </body>
