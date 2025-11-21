@@ -138,11 +138,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'fa'
 
 LANGUAGES = [
-    ("en", "English"),
     ("fa", "Persian"),
+    ("en", "English"),
 ]
 
 TIME_ZONE = env.str("DJANGO_TIME_ZONE")
@@ -154,6 +154,12 @@ USE_TZ = True
 LOCALE_PATHS = [
     BASE_DIR / "locale",
 ]
+
+# Language prefix in URLs
+# If False, the default language (fa) won't have a prefix in URLs
+# If True, all languages including default will have prefixes (e.g., /fa/, /en/)
+# Setting to False means /dashboard/ will be Persian, /en/dashboard/ will be English
+USE_L10N = True
 
 
 # Static files (CSS, JavaScript, Images)
@@ -175,6 +181,13 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'shared.User'
+
+# Authentication URLs
+LOGIN_URL = '/login/'
+# Use '/' to let Django's i18n_patterns handle language prefix automatically
+# This respects user's language preference and works with both /fa/ and /en/
+LOGIN_REDIRECT_URL = '/'  # Redirect to root, Django will add language prefix automatically
+LOGOUT_REDIRECT_URL = '/login/'
 
 
 # ---------------------------------------------------------------------------
@@ -213,3 +226,32 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 CORS_ALLOW_ALL_ORIGINS = env.bool("DJANGO_CORS_ALLOW_ALL", default=True)
 CORS_ALLOWED_ORIGINS = env.list("DJANGO_CORS_ALLOWED_ORIGINS", default=[])
 CORS_ALLOWED_ORIGIN_REGEXES = env.list("DJANGO_CORS_ALLOWED_ORIGIN_REGEXES", default=[])
+
+
+# ---------------------------------------------------------------------------
+# Logging configuration
+# ---------------------------------------------------------------------------
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

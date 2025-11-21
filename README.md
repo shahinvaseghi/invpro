@@ -40,9 +40,9 @@ This README documents:
 
 | Module / App | Purpose | Key Prefix |
 | ------------ | ------- | ---------- |
-| `shared` | Cross-cutting entities: companies, users, access hierarchy, personnel | `invproj_` |
+| `shared` | Cross-cutting entities: companies, users, access hierarchy | `invproj_` |
 | `inventory` | Master data, suppliers, receipts/issues, stocktaking | `inventory_` |
-| `production` | BOM, process definitions, production orders, line transfers | `production_` |
+| `production` | BOM, process definitions, production orders, line transfers, personnel, machines | `production_` |
 | `qc` | Quality inspections linked to temporary receipts | `qc_` |
 | `ui` | Template-based UI shell, navigation, and dashboards | — |
 
@@ -166,7 +166,7 @@ invproj/
 |----------------------------|-------------|
 | `config/settings.py`       | Environment-aware settings, app registration, DRF/CORS configs, `AUTH_USER_MODEL`. |
 | `config/urls.py`           | Routes admin + root → `ui.urls`. |
-| `shared/models.py`         | Base mixins + shared entities (companies, users, access, personnel). |
+| `shared/models.py`         | Base mixins + shared entities (companies, users, access). |
 | `inventory/models.py`      | Inventory-specific models following design document. |
 | `production/models.py`     | BOM, processes, orders, transfer entities. |
 | `qc/models.py`             | Temporary receipt inspection model. |
@@ -195,7 +195,6 @@ This module hosts cross-cutting entities and mixins.
   - `CompanyUnit`: hierarchical units per company
   - `AccessLevel`, `AccessLevelPermission`: role/permission matrix
   - `UserCompanyAccess`: mapping users to companies with access levels
-  - `Person`, `PersonAssignment`: personnel directory and work-center assignments
 - **Permissions Catalog**: `shared/permissions.py` exposes a central `FEATURE_PERMISSION_MAP` that enumerates menu-level features (رسیدها، حواله‌ها، درخواست‌ها) همراه با اکشن‌های دقیق مثل `view_own`, `view_all`, `create`, `edit_own`, `edit_other`, `delete_own`, `delete_other`, `lock_*`, `unlock_*`, `approve`, `reject`, `cancel`. این نقشه مستقیماً برای ساخت `AccessLevelPermission` و کنترل نمایش منوها استفاده خواهد شد. **نکته**: `DELETE_OTHER` به تمام اسناد اضافه شده است تا امکان حذف اسناد سایر کاربران فراهم شود و `APPROVE` برای stocktaking records نیز پشتیبانی می‌شود.
 - **Document Deletion**: قابلیت حذف برای تمام انواع اسناد (رسیدها، حواله‌ها، شمارش موجودی) پیاده‌سازی شده است. دکمه‌های حذف به صورت شرطی بر اساس دسترسی کاربر (`DELETE_OWN` و `DELETE_OTHER`) نمایش داده می‌شوند. اسناد قفل‌شده قابل حذف نیستند. کلاس پایه `DocumentDeleteViewBase` برای پیاده‌سازی یکپارچه استفاده می‌شود.
 - **User & Access Management**: مسیرهای `/shared/users/`, `/shared/groups/`, `/shared/access-levels/` اکنون صفحات کامل لیست/ایجاد/ویرایش/حذف دارند؛ شامل فرم‌ست دسترسی شرکت برای کاربران، نگاشت گروه‌ها به `AccessLevel` و ماتریس اکشن‌ها بر اساس `FEATURE_PERMISSION_MAP`.
@@ -206,7 +205,8 @@ Each model includes constraints to enforce per-company uniqueness of codes and n
 
 Implements master data, suppliers, documents, and stock adjustments.
 
-- **Master Data**: `ItemType`, `ItemCategory`, `ItemSubcategory`, `Warehouse`, `WorkLine`
+- **Master Data**: `ItemType`, `ItemCategory`, `ItemSubcategory`, `Warehouse`
+  - **Note**: `WorkLine` has been moved to the `production` module as it is primarily a production concept, though it can optionally be used in inventory consumption issues.
 - **Items**: `Item` (auto-generates composite `item_code`, `batch_number`), `ItemSpec`, `ItemUnit`, `ItemWarehouse`, `ItemSubstitute`
 - **Suppliers**: `Supplier`, `SupplierCategory`, `SupplierSubcategory`, `SupplierItem`
 - **Requests & Receipts**:
@@ -220,6 +220,7 @@ Implements master data, suppliers, documents, and stock adjustments.
 Key behaviours:
 - Codes and sequences are auto-populated in `save()` overrides (e.g., `Item`, `ItemLot`, `PurchaseRequest`).
 - Purchase and warehouse requests have dedicated create/edit/approve pages, enforce approver permissions, lock after approval, and only expose approved/locked requests for selection in permanent/consignment receipts.
+- **IMPORTANT**: Approval workflows use Django `User` accounts for ALL requester and approver fields (never `Person`). The `Person` model is ONLY used in Production module for workforce management. Refer to `docs/approval_workflow.md` for the end-to-end flow.
 - All models inherit auditing and multi-company mixins.
 - Django admin dashboards are set up for quick data verification (`inventory/admin.py`).
 - **Warehouse Restrictions**: Items can only be received/issued in warehouses explicitly configured in `ItemWarehouse` relationship. Strict validation enforced in forms (server-side and client-side).
@@ -227,18 +228,55 @@ Key behaviours:
 
 ### 3.3 Production (`production`)
 
-Implements manufacturing definitions and order tracking.
+Implements manufacturing definitions, BOM management, and order tracking.
 
-- **Resources**: `WorkCenter`
-- **BOM**: `BOMMaterial` (links finished items to materials with scrap allowance)
+- **Resources**: `WorkCenter`, `WorkLine`, `Machine` (production machines/equipment with auto-generated codes)
+  - `WorkLine`: production work lines that can be assigned personnel and machines. Each work line can optionally be associated with a warehouse (if inventory module is installed). Automatically generates 5-digit `public_code` on save. Used primarily in production but can also be referenced in inventory consumption issues.
+- **Personnel**: `Person`, `PersonAssignment` (personnel directory and work-center assignments, moved from shared module)
+- **BOM (Bill of Materials)**: 
+  - **Header-Line Architecture**: `BOM` (header with version control) and `BOMMaterial` (material lines)
+  - **Version Control**: Multiple BOM versions per finished item with unique constraint on (company, finished_item, version)
+  - **Multi-line Forms**: Dynamic formset with cascading filters (Type → Category → Subcategory → Item → Unit)
+  - **Material Types**: User-defined via `ItemType` (e.g., Raw, Semi-Finished, Component, Packaging) with scrap allowance support
+  - **Smart Filtering**: Categories/subcategories dynamically filtered to show only options containing items of selected type
+  - **Unit Management**: Supports both primary unit and conversion units for each material
+  - **Auto-generated Code**: 16-digit `bom_code` per company
+  - **Complete Documentation**: See `production/README_BOM.md` for detailed BOM documentation
 - **Process Definition**: `Process`, `ProcessStep` (with labor/machine minutes, personnel requirements)
 - **Orders**: `ProductOrder` (tracks revisions, BOM references, status), `OrderPerformance`
-- **Material Transfer**: `TransferToLine`, `TransferToLineItem` (staging materials from inventory to production lines)
+- **Material Transfer**: `TransferToLine`, `TransferToLineItem` (staging materials from inventory to production lines) - *Placeholder*
+- **Performance Records**: Production performance tracking - *Placeholder*
 
-Behaviours:
-- Cross-module FK references to `inventory.Item` and `inventory.Warehouse` with cached codes.
-- Unique constraints enforce one primary process per item revision and prevent duplicate transfer lines.
-- Admin registrations provide immediate CRUD interfaces for manufacturing teams.
+**Key Features:**
+- **Enhanced Cascading Dropdowns**: 
+  - Finished Item: Type → Category → Item
+  - Material Lines: Type → Category → Subcategory → Item → Unit (5 levels)
+  - Smart filtering: Only show categories/subcategories containing items of selected type
+  - Independent cascading per material line (multiple materials with different types in one BOM)
+- **Dynamic Formsets**: JavaScript-powered add/remove lines for BOM materials with automatic field indexing
+- **Automatic Code Generation**: Person (8-digit), Machine (10-digit), BOM (16-digit), WorkCenter (5-digit), WorkLine (5-digit)
+- **Transaction Safety**: All BOM operations wrapped in `transaction.atomic()`
+- **Cross-module Integration**: FK references to `inventory.Item`, `inventory.ItemType`, and `inventory.Warehouse` with cached codes
+- **Unique Constraints**: Enforce one primary process per item revision, prevent duplicate BOM materials
+- **Admin Interface**: Complete CRUD interfaces for manufacturing teams
+- **RESTful APIs**: JSON endpoints for cascading filter data (`get_filtered_categories`, `get_filtered_subcategories`, `get_filtered_items`, `get_item_units`)
+
+**Forms & UI:**
+- `BOMForm`: Header form with cascading finished item selection (Type → Category → Item)
+- `BOMMaterialLineForm`: Material line with 5-level cascading (Type → Category → Subcategory → Item → Unit)
+  - Category/Subcategory filters intelligently show only populated options
+  - Unit dropdown includes primary unit + all conversion units
+- `BOMMaterialLineFormSet`: Inline formset with dynamic add/remove (minimum 1 line required)
+- Expand/collapse material details in list views
+- Material type badges with color coding (dynamically generated from user-defined types)
+
+**Permissions:**
+- `production.personnel`: Personnel management
+- `production.machines`: Machine management
+- `production.work_lines`: Work line management
+- `production.bom`: BOM management
+- `production.transfer_requests`: Transfer requests (placeholder)
+- `production.performance_records`: Performance records (placeholder)
 
 ### 3.4 Quality Control (`qc`)
 - **UI**: Consumes inspection data for dashboards (see `ui` module)
@@ -252,7 +290,7 @@ Provides the initial UI foundation, base layout, and navigation scaffolding.
 - **Routing**: Root URL includes `ui.urls`, mapping `/` to the dashboard.
 - **Templates**:
   - `templates/base.html`: global shell with header, sidebar, and content container.
-  - `templates/ui/components/sidebar.html`: modular navigation شامل بخش «Shared» (Companies، Personnel، Users، Groups، Access Levels) و زیرمنوهای Inventory/Production/QC؛ آماده برای اعمال محدودیت سطح دسترسی مبتنی بر `FEATURE_PERMISSION_MAP`.
+  - `templates/ui/components/sidebar.html`: modular navigation شامل بخش «Shared» (Companies، Users، Groups، Access Levels) و زیرمنوهای Inventory/Production (شامل Personnel و Machines)/QC؛ آماده برای اعمال محدودیت سطح دسترسی مبتنی بر `FEATURE_PERMISSION_MAP`.
   - `templates/ui/dashboard.html`: highlights module capabilities and next actions.
 - **Context Processors**: `ui.context_processors.active_module` exposes `active_module` placeholder.
 - **Static Assets**: `static/css/base.css` contains baseline typography, layout grid, and card styling.
@@ -332,7 +370,7 @@ To experiment with the domain:
 2. Populate base data via Django admin:
    - `Company`, `User`, `UserCompanyAccess`
    - `ItemType`, `ItemCategory`, `Item`, `Supplier`
-   - `WorkCenter`, `Process` definitions
+   - `WorkCenter`, `Machine`, `Person`, `Process` definitions
 3. Record transactions:
    - Temporary → Permanent receipt flow
    - Production order creation and performance tracking
@@ -343,7 +381,7 @@ For automated seeding, consider writing Django fixtures or custom management com
 
 ## 8. Deployment Checklist
 
-Refer to `system_requirements.md` for a comprehensive deployment guide. Highlights:
+Refer to `docs/system_requirements.md` for a comprehensive deployment guide. Highlights:
 
 - Configure HTTPS (Nginx reverse proxy or IIS proxy depending on OS)
 - Set up Gunicorn (Linux) or Waitress / wfastcgi (Windows)
@@ -449,11 +487,15 @@ CSS classes defined in `static/css/base.css`:
 
 ### 10.4 Internationalization
 
-All templates use Django i18n:
-- `{% load i18n %}` at top of each template
-- `{% trans "Text" %}` for translatable strings
-- `locale/fa/LC_MESSAGES/django.po` contains Persian translations
-- Automatic RTL support via `dir="{{ LANGUAGE_CODE }}"` on `<html>`
+The platform supports Persian (Farsi) and English with full RTL/LTR support:
+- **Default language**: Persian (`LANGUAGE_CODE = 'fa'`) - application opens in Persian by default
+- **Language switcher**: Available in header for instant language switching
+- All templates use Django i18n:
+  - `{% load i18n %}` at top of each template
+  - `{% trans "Text" %}` for translatable strings
+  - `locale/fa/LC_MESSAGES/django.po` contains Persian translations
+  - Automatic RTL support via `dir="{{ LANGUAGE_CODE }}"` on `<html>`
+- **Complete translations**: All UI elements, messages, form labels, and error messages are fully translated to Persian
 
 ### 10.5 Date Handling (Jalali/Gregorian)
 
@@ -555,21 +597,23 @@ This project includes comprehensive documentation organized by module and purpos
 | File | Description |
 |------|-------------|
 | `README.md` | This file - platform overview, setup, and architecture guide |
-| `CHANGELOG.md` | Version history and release notes |
-| `FEATURES.md` | Feature list and capabilities |
-| `DEVELOPMENT.md` | Development guidelines and workflows |
-| `DATABASE_DOCUMENTATION.md` | Database schema and relationships |
-| `system_requirements.md` | System requirements and deployment guide |
-| `ui_guidelines.md` | UI/UX guidelines and component documentation |
+| `docs/CHANGELOG.md` | Version history and release notes |
+| `docs/UI_UX_CHANGELOG.md` | **Detailed UI/UX design improvements and changelog** |
+| `docs/FEATURES.md` | Feature list and capabilities |
+| `docs/DEVELOPMENT.md` | Development guidelines and workflows |
+| `docs/DATABASE_DOCUMENTATION.md` | Database schema and relationships |
+| `docs/system_requirements.md` | System requirements and deployment guide |
+| `docs/ui_guidelines.md` | UI/UX guidelines and component documentation |
+| `docs/approval_workflow.md` | Approval workflow reference for purchase/warehouse/stocktaking |
 
 ### 14.2 Module Design Plans
 
 | File | Description |
 |------|-------------|
-| `shared_module_db_design_plan.md` | Shared module database design specifications |
-| `inventory_module_db_design_plan.md` | Inventory module database design specifications |
-| `production_module_db_design_plan.md` | Production module database design specifications |
-| `qc_module_db_design_plan.md` | Quality Control module database design specifications |
+| `docs/shared_module_db_design_plan.md` | Shared module database design specifications |
+| `docs/inventory_module_db_design_plan.md` | Inventory module database design specifications |
+| `docs/production_module_db_design_plan.md` | Production module database design specifications |
+| `docs/qc_module_db_design_plan.md` | Quality Control module database design specifications |
 
 ### 14.3 Module README Files
 
@@ -580,7 +624,7 @@ This project includes comprehensive documentation organized by module and purpos
 | `inventory/README.md` | Inventory module overview and models |
 | `inventory/README_FORMS.md` | Inventory module forms documentation |
 | `inventory/README_BALANCE.md` | Inventory balance calculation logic |
-| `production/README.md` | Production module overview and models |
+| `production/README.md` | Production module overview and models (includes Personnel and Machines) |
 | `qc/README.md` | Quality Control module overview |
 | `ui/README.md` | UI module templates and components |
 | `templates/inventory/README.md` | Inventory template documentation |

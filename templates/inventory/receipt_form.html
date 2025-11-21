@@ -875,17 +875,7 @@
 
     <div class="form-actions">
       {% if not document_is_locked %}
-      <button type="button" class="btn btn-primary" onclick="
-        console.log('=== BUTTON ONCLICK ===');
-        var form = document.getElementById('receipt-form');
-        console.log('Form found:', form);
-        if (form) {
-          console.log('Calling form.submit()');
-          form.submit();
-        } else {
-          alert('Form not found!');
-        }
-      ">{% trans "Save" %}</button>
+      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
       {% endif %}
       <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Cancel" %}</a>
     </div>
@@ -895,19 +885,11 @@
 <script>
 // Direct test - attach to button IMMEDIATELY when script loads
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('=== TESTING BUTTON ATTACHMENT ===');
   const btn = document.querySelector('button[type="submit"]');
-  console.log('Found submit button:', btn);
   if (btn) {
-    console.log('Button text:', btn.textContent);
-    console.log('Button classes:', btn.className);
-    console.log('Button onclick:', btn.onclick);
     
     // Force attach a click listener
     btn.addEventListener('click', function(e) {
-      console.log('=== DIRECT BUTTON CLICK LISTENER FIRED! ===');
-      console.log('Event:', e);
-      console.log('Default prevented:', e.defaultPrevented);
     }, true);
   } else {
     console.error('Submit button NOT FOUND!');
@@ -1368,44 +1350,30 @@ window.addEventListener('error', function(e) {
 
 // Log all form submissions (even if prevented) - CAPTURE PHASE
 document.addEventListener('submit', function(e) {
-  console.log('=== FORM SUBMIT DETECTED (GLOBAL - CAPTURE) ===');
-  console.log('Form:', e.target);
-  console.log('Form ID:', e.target.id);
-  console.log('Form action:', e.target.action);
-  console.log('Form method:', e.target.method);
-  console.log('Target form has ID receipt-form?', e.target.id === 'receipt-form');
 }, true); // Use capture phase
 
 // Also listen in bubble phase
 document.addEventListener('submit', function(e) {
-  console.log('=== FORM SUBMIT DETECTED (GLOBAL - BUBBLE) ===');
-  console.log('Form:', e.target);
 }, false); // Bubble phase
 
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('=== SCRIPT LOADED ===');
-  console.log('Current URL:', window.location.href);
   
   const formsetContainer = document.getElementById('lines-formset');
   const totalFormsInput = document.querySelector('input[name$="-TOTAL_FORMS"]');
   const addLineBtn = document.getElementById('add-line-btn');
   const unitChoicesUrl = '{% url "inventory:item_allowed_units" %}';
   const warehouseChoicesUrl = '{% url "inventory:item_allowed_warehouses" %}';
+  const temporaryReceiptDataUrl = '{% url "inventory:temporary_receipt_data" %}';
   
   // Save selected serials to localStorage before form submission (for error recovery)
   const form = document.getElementById('receipt-form');
-  console.log('Form element found:', form ? 'YES' : 'NO');
   
   if (form) {
-    console.log('Attaching submit event listener to form...');
     form.addEventListener('submit', function(e) {
-      console.log('Form submit event triggered!');
       
       // Debug: Log all form data
       const formData = new FormData(form);
-      console.log('Form data being submitted:');
       for (let [key, value] of formData.entries()) {
-        console.log(key + ': ' + value);
       }
       
       // Check if all required fields in line 1 are filled
@@ -1414,13 +1382,8 @@ document.addEventListener('DOMContentLoaded', function() {
       const line0Unit = document.querySelector('select[name="lines-0-unit"]');
       const line0Quantity = document.querySelector('input[name="lines-0-quantity"]');
       const line0DestChoice = document.querySelector('select[name*="lines-0-destination_type_choice"]');
+      const line0DestType = document.querySelector('select[name*="lines-0-destination_type"]');
       
-      console.log('Line 0 validation:');
-      console.log('- Item:', line0Item ? line0Item.value : 'NOT FOUND');
-      console.log('- Warehouse:', line0Warehouse ? line0Warehouse.value : 'NOT FOUND');
-      console.log('- Unit:', line0Unit ? line0Unit.value : 'NOT FOUND');
-      console.log('- Quantity:', line0Quantity ? line0Quantity.value : 'NOT FOUND');
-      console.log('- Dest Choice:', line0DestChoice ? line0DestChoice.value : 'NOT FOUND');
       
       // Check for any empty required fields
       let missingFields = [];
@@ -1428,7 +1391,12 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!line0Warehouse || !line0Warehouse.value) missingFields.push('Warehouse');
       if (!line0Unit || !line0Unit.value) missingFields.push('Unit');
       if (!line0Quantity || !line0Quantity.value) missingFields.push('Quantity');
-      if (!line0DestChoice || !line0DestChoice.value) missingFields.push('Destination Type');
+      
+      // Only check destination_type_choice for Consumption Issues (it has destination_type_choice field)
+      // For Permanent/Consignment Issues, destination_type is optional
+      if (line0DestChoice && !line0DestChoice.value) {
+        missingFields.push('Destination Type');
+      }
       
       if (missingFields.length > 0) {
         console.error('Missing required fields:', missingFields.join(', '));
@@ -1450,17 +1418,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
       
-      console.log('Form validation passed, submitting...');
     });
     
     // Also attach listener to submit button directly
     const submitButton = form.querySelector('button[type="submit"]');
-    console.log('Submit button found:', submitButton ? 'YES' : 'NO');
     if (submitButton) {
       submitButton.addEventListener('click', function(e) {
-        console.log('Submit button clicked!');
-        console.log('Button type:', this.type);
-        console.log('Form:', this.form);
       });
     }
     
@@ -1562,18 +1525,15 @@ document.addEventListener('DOMContentLoaded', function() {
     unitSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
     
     const url = unitChoicesUrl + '?item_id=' + itemId;
-    console.log('Fetching units from:', url);
     
     fetch(url)
       .then(response => {
-        console.log('Response status:', response.status);
         if (!response.ok) {
           throw new Error('Network response was not ok: ' + response.status);
         }
         return response.json();
       })
       .then(data => {
-        console.log('Received data:', data);
         if (data.error) {
           console.error('Error fetching units:', data.error);
           unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
@@ -1586,9 +1546,6 @@ document.addEventListener('DOMContentLoaded', function() {
         unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
         
         if (data.units && data.units.length > 0) {
-          console.log('Adding units:', data.units);
-          console.log('unitSelect element:', unitSelect);
-          console.log('unitSelect tagName:', unitSelect.tagName);
           let hasSelectedValue = false;
           data.units.forEach(function(unit) {
             const option = document.createElement('option');
@@ -1599,10 +1556,7 @@ document.addEventListener('DOMContentLoaded', function() {
               hasSelectedValue = true;
             }
             unitSelect.appendChild(option);
-            console.log('Added option:', unit.value, unit.label);
           });
-          console.log('unitSelect.innerHTML after adding:', unitSelect.innerHTML);
-          console.log('unitSelect.options.length:', unitSelect.options.length);
           
           // If no value was selected and we have a default unit, select it
           if (!hasSelectedValue && data.default_unit && data.units.length > 0) {
@@ -1611,13 +1565,11 @@ document.addEventListener('DOMContentLoaded', function() {
               if (unitSelect.options[i].value === data.default_unit) {
                 unitSelect.options[i].selected = true;
                 unitSelect.value = data.default_unit;
-                console.log('Auto-selected default unit:', data.default_unit);
                 break;
               }
             }
           }
         } else {
-          console.log('No units found, using default_unit:', data.default_unit);
           // If no units found, at least show default unit
           if (data.default_unit) {
             const option = document.createElement('option');
@@ -1666,18 +1618,15 @@ document.addEventListener('DOMContentLoaded', function() {
     warehouseSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
     
     const url = warehouseChoicesUrl + '?item_id=' + itemId;
-    console.log('Fetching warehouses from:', url);
     
     fetch(url)
       .then(response => {
-        console.log('Warehouse response status:', response.status);
         if (!response.ok) {
           throw new Error('Network response was not ok: ' + response.status);
         }
         return response.json();
       })
       .then(data => {
-        console.log('Received warehouse data:', data);
         if (data.error) {
           console.error('Error fetching warehouses:', data.error);
           warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
@@ -1689,7 +1638,6 @@ document.addEventListener('DOMContentLoaded', function() {
         warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
         
         if (data.warehouses && data.warehouses.length > 0) {
-          console.log('Adding warehouses:', data.warehouses);
           data.warehouses.forEach(function(warehouse) {
             const option = document.createElement('option');
             option.value = warehouse.value;
@@ -1698,7 +1646,6 @@ document.addEventListener('DOMContentLoaded', function() {
               option.selected = true;
             }
             warehouseSelect.appendChild(option);
-            console.log('Added warehouse option:', warehouse.value, warehouse.label);
           });
         }
         
@@ -1750,6 +1697,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Make sure we're not inside a line-form (to avoid duplicates)
     if (!singleItemSelect.closest('.line-form')) {
       const singleUnitSelect = document.querySelector('select[name="unit"]:not([name*="-"])');
+      const singleWarehouseSelect = document.querySelector('select[name="warehouse"]:not([name*="-"])');
+      
       if (singleUnitSelect && !singleUnitSelect.closest('.line-form')) {
         // Load units if item is already selected (for edit mode)
         if (singleItemSelect.value) {
@@ -1761,7 +1710,212 @@ document.addEventListener('DOMContentLoaded', function() {
           updateUnitChoices(singleItemSelect, singleUnitSelect);
         });
       }
+      
+      // Handle warehouse filtering for single-line forms
+      if (singleWarehouseSelect && !singleWarehouseSelect.closest('.line-form')) {
+        // Load allowed warehouses if item is already selected (for edit mode)
+        if (singleItemSelect.value) {
+          updateWarehouseChoices(singleItemSelect, singleWarehouseSelect);
+        }
+        
+        // Attach change handler for warehouse filtering
+        singleItemSelect.addEventListener('change', function() {
+          updateWarehouseChoices(singleItemSelect, singleWarehouseSelect);
+        });
+      }
     }
+  }
+  
+  // Handle temporary_receipt auto-fill for permanent receipts
+  const temporaryReceiptSelect = document.querySelector('select[name="temporary_receipt"]');
+  if (temporaryReceiptSelect && formsetContainer && totalFormsInput && addLineBtn) {
+    temporaryReceiptSelect.addEventListener('change', function() {
+      const tempReceiptId = this.value;
+      
+      if (!tempReceiptId) {
+        return; // No temporary receipt selected
+      }
+      
+      
+      // Fetch temporary receipt data
+      fetch(temporaryReceiptDataUrl + '?temporary_receipt_id=' + tempReceiptId)
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            console.error('Error fetching temporary receipt data:', data.error);
+            alert('خطا در بارگذاری اطلاعات رسید موقت: ' + data.error);
+            return;
+          }
+          
+          
+          // Check if a line with this item already exists
+          const existingLine = formsetContainer.querySelector(`select[name*="-item"][value="${data.item_id}"]`);
+          if (existingLine) {
+            // If line exists, update it
+            const lineForm = existingLine.closest('.line-form');
+            if (lineForm) {
+              // Update existing line
+              const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+              const quantityInput = lineForm.querySelector('input[name*="-quantity"]');
+              const unitSelect = lineForm.querySelector('select[name*="-unit"]');
+              const supplierSelect = lineForm.querySelector('select[name*="-supplier"]');
+              
+              if (warehouseSelect && data.warehouse_id) {
+                warehouseSelect.value = data.warehouse_id;
+                // Trigger warehouse change to update units if needed
+                if (warehouseSelect.dispatchEvent) {
+                  warehouseSelect.dispatchEvent(new Event('change'));
+                }
+              }
+              
+              if (quantityInput && data.entered_quantity) {
+                quantityInput.value = data.entered_quantity;
+              }
+              
+              if (unitSelect && data.entered_unit) {
+                // First, update units for the item
+                if (existingLine && typeof updateUnitChoices === 'function') {
+                  updateUnitChoices(existingLine, unitSelect);
+                  // Then set the unit after units are loaded
+                  setTimeout(() => {
+                    unitSelect.value = data.entered_unit;
+                  }, 300);
+                }
+              }
+              
+              if (supplierSelect && data.supplier_id) {
+                supplierSelect.value = data.supplier_id;
+              }
+              
+              return;
+            }
+          }
+          
+          // Add new line with temporary receipt data
+          const totalForms = parseInt(totalFormsInput.value);
+          const newFormIndex = totalForms;
+          
+          // Clone the last form (or first if none exists)
+          const lastForm = formsetContainer.querySelector('.line-form:last-child');
+          if (!lastForm) {
+            console.error('No line form found to clone');
+            return;
+          }
+          
+          const newForm = lastForm.cloneNode(true);
+          
+          // Update form indices
+          newForm.querySelectorAll('input, select, textarea').forEach(function(input) {
+            const name = input.name;
+            if (name) {
+              input.name = name.replace(/-(\d+)-/, '-' + newFormIndex + '-');
+              input.id = input.id ? input.id.replace(/-(\d+)-/, '-' + newFormIndex + '-') : '';
+            }
+          });
+          
+          // Update line number
+          const lineHeader = newForm.querySelector('.line-header h4');
+          if (lineHeader) {
+            lineHeader.textContent = '{% trans "Line" %} ' + (newFormIndex + 1);
+          }
+          
+          // Reset delete checkbox
+          const deleteCheckbox = newForm.querySelector('input[type="checkbox"][name*="DELETE"]');
+          if (deleteCheckbox) {
+            deleteCheckbox.checked = false;
+            newForm.classList.remove('deleted');
+          }
+          
+          // Set values from temporary receipt
+          const itemSelect = newForm.querySelector('select[name*="-item"]');
+          const warehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
+          const quantityInput = newForm.querySelector('input[name*="-quantity"]');
+          const unitSelect = newForm.querySelector('select[name*="-unit"]');
+          const supplierSelect = newForm.querySelector('select[name*="-supplier"]');
+          
+          if (itemSelect && data.item_id) {
+            itemSelect.value = data.item_id;
+            
+            // Load units for the item
+            if (unitSelect && typeof updateUnitChoices === 'function') {
+              updateUnitChoices(itemSelect, unitSelect);
+              
+              // Set unit after units are loaded
+              setTimeout(() => {
+                if (data.entered_unit) {
+                  // Try to find the unit in the options
+                  const unitOption = Array.from(unitSelect.options).find(opt => opt.value === data.entered_unit);
+                  if (unitOption) {
+                    unitSelect.value = data.entered_unit;
+                  } else {
+                    // If unit not found, create a new option
+                    const option = document.createElement('option');
+                    option.value = data.entered_unit;
+                    option.textContent = data.entered_unit;
+                    unitSelect.appendChild(option);
+                    unitSelect.value = data.entered_unit;
+                  }
+                }
+              }, 300);
+            }
+            
+            // Load warehouses for the item
+            if (warehouseSelect && typeof updateWarehouseChoices === 'function') {
+              updateWarehouseChoices(itemSelect, warehouseSelect);
+              
+              // Set warehouse after warehouses are loaded
+              setTimeout(() => {
+                if (data.warehouse_id) {
+                  warehouseSelect.value = data.warehouse_id;
+                }
+              }, 300);
+            }
+          }
+          
+          if (quantityInput && data.entered_quantity) {
+            quantityInput.value = data.entered_quantity;
+          }
+          
+          if (supplierSelect && data.supplier_id) {
+            supplierSelect.value = data.supplier_id;
+          }
+          
+          // Add to container
+          formsetContainer.appendChild(newForm);
+          
+          // Update total forms
+          totalFormsInput.value = totalForms + 1;
+          
+          // Re-attach event handlers for the new line
+          if (deleteCheckbox) {
+            deleteCheckbox.addEventListener('change', function() {
+              const lineForm = this.closest('.line-form');
+              if (this.checked) {
+                lineForm.classList.add('deleted');
+              } else {
+                lineForm.classList.remove('deleted');
+              }
+            });
+          }
+          
+          if (itemSelect && unitSelect) {
+            itemSelect.addEventListener('change', function() {
+              updateUnitChoices(itemSelect, unitSelect);
+            });
+          }
+          
+          if (itemSelect && warehouseSelect) {
+            itemSelect.addEventListener('change', function() {
+              updateWarehouseChoices(itemSelect, warehouseSelect);
+            });
+          }
+          
+        })
+        .catch(error => {
+          console.error('Error fetching temporary receipt data:', error);
+          alert('خطا در بارگذاری اطلاعات رسید موقت');
+        });
+    });
   }
   
   // Add new line functionality
@@ -1882,7 +2036,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update hidden consumption_type field
             if (newConsumptionTypeHidden) {
               newConsumptionTypeHidden.value = value;
-              console.log('Set consumption_type (new form) to:', value);
             }
             
             if (newCompanyUnitFieldContainer) {
@@ -2233,18 +2386,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
     const consumptionTypeHidden = lineForm.querySelector('input[name*="-consumption_type"]');
     
-    console.log('Setting up destination type choice for line form');
-    console.log('- choiceSelect:', choiceSelect);
-    console.log('- consumptionTypeHidden:', consumptionTypeHidden);
     
     function toggleFields() {
       const value = choiceSelect.value;
-      console.log('Destination type choice changed to:', value);
       
       // Update hidden consumption_type field
       if (consumptionTypeHidden) {
         consumptionTypeHidden.value = value;
-        console.log('Set consumption_type to:', value);
       }
       
       if (companyUnitFieldContainer) {
@@ -2280,11 +2428,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   
-  console.log('=== SCRIPT INITIALIZATION COMPLETE ===');
-  console.log('All event listeners attached successfully');
 });
 
-console.log('=== SCRIPT FILE LOADED (outside DOMContentLoaded) ===');
 </script>
 {% endblock %}
 

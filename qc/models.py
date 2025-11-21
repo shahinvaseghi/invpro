@@ -9,9 +9,9 @@ from shared.models import (
     ActivatableModel,
     CompanyScopedModel,
     MetadataModel,
-    Person,
     TimeStampedModel,
 )
+from production.models import Person
 
 
 NUMERIC_CODE_VALIDATOR = RegexValidator(
@@ -74,11 +74,12 @@ class ReceiptInspection(QCBaseModel):
     )
     approved_at = models.DateTimeField(null=True, blank=True)
     approved_by = models.ForeignKey(
-        Person,
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         related_name="receipt_inspections_approved",
         null=True,
         blank=True,
+        help_text=_("User who approved this inspection"),
     )
     approval_notes = models.TextField(blank=True)
     attachments = models.JSONField(default=list, blank=True)

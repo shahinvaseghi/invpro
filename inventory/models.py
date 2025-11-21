@@ -12,9 +12,9 @@ from shared.models import (
     CompanyScopedModel,
     LockableModel,
     MetadataModel,
-    Person,
     SortableModel,
     TimeStampedModel,
+    User,
 )
 from .utils.codes import generate_sequential_code
 
@@ -234,52 +234,13 @@ class Warehouse(InventorySortableModel):
         super().save(*args, **kwargs)
 
 
-class WorkLine(InventorySortableModel):
-    public_code = models.CharField(
-        max_length=5,
-        validators=[NUMERIC_CODE_VALIDATOR],
-    )
-    warehouse = models.ForeignKey(
-        Warehouse,
-        on_delete=models.CASCADE,
-        related_name="work_lines",
-    )
-    name = models.CharField(max_length=150)
-    name_en = models.CharField(max_length=150)
-    description = models.CharField(max_length=255, blank=True)
-    notes = models.TextField(blank=True)
-
-    class Meta:
-        verbose_name = _("Work Line")
-        verbose_name_plural = _("Work Lines")
-        constraints = [
-            models.UniqueConstraint(
-                fields=("company", "warehouse", "public_code"),
-                name="inventory_work_line_public_code_unique",
-            ),
-            models.UniqueConstraint(
-                fields=("company", "warehouse", "name"),
-                name="inventory_work_line_name_unique",
-            ),
-            models.UniqueConstraint(
-                fields=("company", "warehouse", "name_en"),
-                name="inventory_work_line_name_en_unique",
-            ),
-        ]
-        ordering = ("company", "warehouse", "sort_order", "public_code")
-
-    def __str__(self) -> str:
-        return f"{self.warehouse} · {self.name}"
-
-    def save(self, *args, **kwargs):
-        if not self.public_code and self.company_id and self.warehouse_id:
-            self.public_code = generate_sequential_code(
-                self.__class__,
-                company_id=self.company_id,
-                width=5,
-                extra_filters={"warehouse": self.warehouse},
-            )
-        super().save(*args, **kwargs)
+# WorkLine moved to production module
+# Import it here for backward compatibility in IssueConsumptionLine
+try:
+    from production.models import WorkLine
+except ImportError:
+    # If production module is not installed, WorkLine won't be available
+    WorkLine = None
 
 
 class Item(InventorySortableModel):
@@ -306,6 +267,7 @@ class Item(InventorySortableModel):
     item_code = models.CharField(max_length=7, validators=[NUMERIC_CODE_VALIDATOR], blank=True, help_text="7-digit code: User(2) + Sequence(5)")
     full_item_code = models.CharField(max_length=16, unique=True, validators=[NUMERIC_CODE_VALIDATOR], blank=True, help_text="16-digit complete code: Type(3) + Category(3) + SubCategory(3) + ItemCode(7)")
     batch_number = models.CharField(max_length=20)
+    secondary_batch_number = models.CharField(max_length=50, blank=True, help_text=_("User-defined secondary batch number"))
     name = models.CharField(max_length=180, unique=True)
     name_en = models.CharField(max_length=180, unique=True)
     is_sellable = models.PositiveSmallIntegerField(default=0)
@@ -334,27 +296,67 @@ class Item(InventorySortableModel):
         return f"{self.item_code} · {self.name}"
 
     def save(self, *args, **kwargs):
+        # Copy codes from type, category, subcategory if not set
+        if self.type and not self.type_code:
+            self.type_code = self.type.public_code
+        if self.category and not self.category_code:
+            self.category_code = self.category.public_code
+        if self.subcategory and not self.subcategory_code:
+            self.subcategory_code = self.subcategory.public_code
+        
+        # Generate sequence_segment if not set
+        if not self.sequence_segment:
+            self.sequence_segment = self._generate_sequence_segment()
+        
+        # Generate item_code if not set
         if not self.item_code:
             # Item code: User(2) + Sequence(5) = 7 digits
             self.item_code = f"{self.user_segment}{self.sequence_segment}"
+        
+        # Generate full_item_code if not set
         if not self.full_item_code:
             # Full item code: Type(3) + Category(3) + SubCategory(3) + ItemCode(7) = 16 digits
             self.full_item_code = f"{self.type_code}{self.category_code}{self.subcategory_code}{self.item_code}"
+        
+        # Generate batch_number if not set
         if not self.batch_number:
             self.batch_number = self._generate_batch_number()
+        
         super().save(*args, **kwargs)
 
     def _generate_sequence_segment(self) -> str:
+        """
+        Generate sequence segment based on existing item codes with the same user_segment.
+        This ensures that if user enters "10" as user_segment, the system will check
+        all existing item codes starting with "10" and generate the next sequential number.
+        """
+        # Find all items with the same user_segment (first 2 digits)
         queryset = Item.objects.filter(
             company=self.company,
-            type=self.type,
-            category=self.category,
-            subcategory=self.subcategory,
             user_segment=self.user_segment,
         ).exclude(pk=self.pk)
-        last_value = queryset.order_by("-sequence_segment").values_list("sequence_segment", flat=True).first()
-        if last_value:
-            return str(int(last_value) + 1).zfill(5)
+        
+        # Get all existing item_codes that start with this user_segment
+        existing_codes = queryset.exclude(item_code='').values_list("item_code", flat=True)
+        
+        # Extract sequence segments from existing codes
+        sequence_values = []
+        for code in existing_codes:
+            if code and len(code) >= 7 and code.startswith(self.user_segment):
+                try:
+                    # Extract the 5-digit sequence segment (last 5 digits)
+                    seq = code[2:7]  # Skip first 2 digits (user_segment), get next 5
+                    if seq.isdigit():
+                        sequence_values.append(int(seq))
+                except (ValueError, IndexError):
+                    continue
+        
+        # Find the maximum sequence value and add 1
+        if sequence_values:
+            max_seq = max(sequence_values)
+            return str(max_seq + 1).zfill(5)
+        
+        # If no existing codes found, start from 00001
         return "00001"
 
     def _generate_batch_number(self) -> str:
@@ -703,11 +705,10 @@ class PurchaseRequest(InventoryBaseModel, LockableModel):
     request_code = models.CharField(max_length=20, unique=True)
     request_date = models.DateField(default=timezone.now)
     requested_by = models.ForeignKey(
-        Person,
+        User,
         on_delete=models.PROTECT,
         related_name="purchase_requests",
     )
-    requested_by_code = models.CharField(max_length=8, validators=[NUMERIC_CODE_VALIDATOR])
     item = models.ForeignKey(
         Item,
         on_delete=models.PROTECT,
@@ -734,7 +735,7 @@ class PurchaseRequest(InventoryBaseModel, LockableModel):
     reference_document_id = models.BigIntegerField(null=True, blank=True)
     reference_document_code = models.CharField(max_length=30, blank=True)
     approver = models.ForeignKey(
-        Person,
+        User,
         on_delete=models.SET_NULL,
         related_name="purchase_requests_approved",
         null=True,
@@ -779,8 +780,6 @@ class PurchaseRequest(InventoryBaseModel, LockableModel):
     def save(self, *args, **kwargs):
         if not self.request_code:
             self.request_code = self._generate_request_code()
-        if not self.requested_by_code:
-            self.requested_by_code = self.requested_by.public_code
         if not self.item_code:
             self.item_code = self.item.item_code
         super().save(*args, **kwargs)
@@ -1073,6 +1072,7 @@ class ItemSerial(InventoryBaseModel):
     )
     lot_code = models.CharField(max_length=30, blank=True)
     serial_code = models.CharField(max_length=50, unique=True)
+    secondary_serial_code = models.CharField(max_length=50, blank=True, help_text=_("User-defined secondary serial number"))
     receipt_document = models.ForeignKey(
         "ReceiptPermanent",
         on_delete=models.PROTECT,
@@ -1337,11 +1337,12 @@ class IssueConsumptionLine(IssueLineBase):
     )
     cost_center_code = models.CharField(max_length=30, blank=True)
     work_line = models.ForeignKey(
-        "inventory.WorkLine",
+        "production.WorkLine",
         on_delete=models.SET_NULL,
         related_name="consumption_issue_lines",
         null=True,
         blank=True,
+        help_text=_("Work line (optional, only if production module is installed)"),
     )
     work_line_code = models.CharField(
         max_length=5,
@@ -1611,6 +1612,14 @@ class IssuePermanent(InventoryDocumentBase):
         validators=[NUMERIC_CODE_VALIDATOR],
         blank=True,
     )
+    warehouse_request = models.ForeignKey(
+        "WarehouseRequest",
+        on_delete=models.SET_NULL,
+        related_name="permanent_issues",
+        null=True,
+        blank=True,
+    )
+    warehouse_request_code = models.CharField(max_length=20, blank=True)
     issue_metadata = models.JSONField(default=dict, blank=True)
 
     class Meta:
@@ -1624,6 +1633,8 @@ class IssuePermanent(InventoryDocumentBase):
     def save(self, *args, **kwargs):
         if self.department_unit and not self.department_unit_code:
             self.department_unit_code = self.department_unit.public_code
+        if self.warehouse_request and not self.warehouse_request_code:
+            self.warehouse_request_code = self.warehouse_request.request_code
         super().save(*args, **kwargs)
 
 
@@ -1923,21 +1934,15 @@ class WarehouseRequest(InventoryBaseModel, LockableModel):
     warehouse_code = models.CharField(max_length=8, validators=[NUMERIC_CODE_VALIDATOR])
     
     requester = models.ForeignKey(
-        Person,
+        User,
         on_delete=models.PROTECT,
         related_name="warehouse_requests",
     )
-    requester_code = models.CharField(max_length=8, validators=[NUMERIC_CODE_VALIDATOR])
     approver = models.ForeignKey(
-        Person,
+        User,
         on_delete=models.SET_NULL,
         related_name="warehouse_requests_to_approve",
         null=True,
-        blank=True,
-    )
-    approver_code = models.CharField(
-        max_length=8,
-        validators=[NUMERIC_CODE_VALIDATOR],
         blank=True,
     )
     
@@ -1983,28 +1988,9 @@ class WarehouseRequest(InventoryBaseModel, LockableModel):
     submitted_at = models.DateTimeField(null=True, blank=True)
     
     approved_at = models.DateTimeField(null=True, blank=True)
-    approved_by = models.ForeignKey(
-        Person,
-        on_delete=models.SET_NULL,
-        related_name="warehouse_requests_approved",
-        null=True,
-        blank=True,
-    )
-    approved_by_code = models.CharField(
-        max_length=8,
-        validators=[NUMERIC_CODE_VALIDATOR],
-        blank=True,
-    )
     approval_notes = models.TextField(blank=True)
     
     rejected_at = models.DateTimeField(null=True, blank=True)
-    rejected_by = models.ForeignKey(
-        Person,
-        on_delete=models.SET_NULL,
-        related_name="warehouse_requests_rejected",
-        null=True,
-        blank=True,
-    )
     rejection_reason = models.TextField(blank=True)
     
     issued_at = models.DateTimeField(null=True, blank=True)
@@ -2019,13 +2005,6 @@ class WarehouseRequest(InventoryBaseModel, LockableModel):
     )
     
     cancelled_at = models.DateTimeField(null=True, blank=True)
-    cancelled_by = models.ForeignKey(
-        Person,
-        on_delete=models.SET_NULL,
-        related_name="warehouse_requests_cancelled",
-        null=True,
-        blank=True,
-    )
     cancellation_reason = models.TextField(blank=True)
     
     notes = models.TextField(blank=True)
@@ -2072,13 +2051,6 @@ class WarehouseRequest(InventoryBaseModel, LockableModel):
             self.item_code = self.item.item_code
         if self.warehouse and not self.warehouse_code:
             self.warehouse_code = self.warehouse.public_code
-        if self.requester and not self.requester_code:
-            self.requester_code = self.requester.public_code
         if self.department_unit and not self.department_unit_code:
             self.department_unit_code = self.department_unit.public_code
-        if self.approver and not self.approver_code:
-            self.approver_code = self.approver.public_code
-        if self.approved_by and not self.approved_by_code:
-            self.approved_by_code = self.approved_by.public_code
-        
         super().save(*args, **kwargs)

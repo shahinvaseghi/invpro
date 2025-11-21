@@ -11,7 +11,7 @@ Defines:
   - `inspection_code`, `inspection_date`, `inspection_status`
   - `inspector`, `inspector_code` (cached from `Person.public_code`)
   - `inspection_results` JSON payload and `attachments`
-  - Decision workflow fields (`approval_decision`, `approved_by`, `approved_at`, `approval_notes`)
+  - Decision workflow fields (`approval_decision`, `approved_by` (ForeignKey to User, not Person), `approved_at`, `approval_notes`)
   - Optional `nonconformity_flag` and `nonconformity_report_id`
   
 `save()` auto-populates `temporary_receipt_code` and `inspector_code` to avoid repeated joins when rendering dashboards.
@@ -30,7 +30,7 @@ Registers `ReceiptInspection` and configures filters (status, decision, nonconfo
 
 Provides coverage for:
 - Auto-filling cached codes (`temporary_receipt_code`, `inspector_code`)
-- Approval linkage to another `Person`
+- Approval linkage to a `User` (not `Person`)
 
 Executed via `python manage.py test qc`.
 

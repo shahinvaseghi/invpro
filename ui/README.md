@@ -372,12 +372,13 @@ document.querySelectorAll('.nav-expandable').forEach(link => {
 ## Internationalization (i18n)
 
 ### Supported Languages
-- **English** (en): Default
-- **Persian** (fa): Full RTL support
+- **Persian** (fa): Default language with full RTL support
+- **English** (en): Secondary language
 
 ### Translation Files
-- `locale/fa/LC_MESSAGES/django.po`: Persian translations (268 strings)
+- `locale/fa/LC_MESSAGES/django.po`: Persian translations (complete coverage)
 - Compiled to `django.mo` for runtime use
+- All UI elements, messages, form labels, and error messages are fully translated
 
 ### Usage in Templates
 ```django
@@ -386,11 +387,12 @@ document.querySelectorAll('.nav-expandable').forEach(link => {
 ```
 
 ### Language Switching Flow
-1. User selects language from dropdown
-2. Form POSTs to `/i18n/setlang/`
-3. Django sets `django_language` cookie
-4. Page reloads with new language
-5. `<html>` tag `dir` attribute updates (rtl/ltr)
+1. Application opens in Persian by default (`LANGUAGE_CODE = 'fa'`)
+2. User can select language from dropdown in header
+3. Form POSTs to `/i18n/setlang/`
+4. Django sets `django_language` cookie
+5. Page reloads with new language
+6. `<html>` tag `dir` attribute updates (rtl/ltr)
 
 ---
 

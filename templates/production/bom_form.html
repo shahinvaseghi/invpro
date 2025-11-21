@@ -1,0 +1,1130 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ form_title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <a href="{% url 'production:bom_list' %}">{% trans "BOM" %}</a>
+      <span>/</span>
+      <span>{{ form_title }}</span>
+    </nav>
+    
+    <h1 class="page-title">{{ form_title }}</h1>
+  </div>
+
+  <div class="form-container">
+    {% if messages %}
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    {% endif %}
+    
+    <!-- Debug Logs Section (only visible if logs exist) -->
+    <div id="debug-logs-section" style="display: none; margin-bottom: 1rem; padding: 1rem; background: #f5f5f5; border-radius: 4px; max-height: 300px; overflow-y: auto;">
+      <h4 style="margin-top: 0;">📜 Debug Logs</h4>
+      <div id="debug-logs-content"></div>
+      <button type="button" onclick="clearDebugLogs()" class="btn btn-secondary" style="margin-top: 10px;">Clear Logs</button>
+    </div>
+
+    <form method="post" class="bom-form" id="bom-form">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-error">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <!-- بخش 1: محصول نهایی -->
+      <div class="form-section">
+        <h3>{% trans "Finished Product Selection" %}</h3>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.item_type.id_for_label }}">{% trans "Item Type" %}</label>
+            {{ form.item_type }}
+            {% if form.item_type.errors %}
+              <span class="error">{{ form.item_type.errors.0 }}</span>
+            {% endif %}
+          </div>
+
+          <div class="form-field">
+            <label for="{{ form.item_category.id_for_label }}">{% trans "Category" %}</label>
+            {{ form.item_category }}
+            {% if form.item_category.errors %}
+              <span class="error">{{ form.item_category.errors.0 }}</span>
+            {% endif %}
+          </div>
+
+          <div class="form-field">
+            <label for="{{ form.item_subcategory.id_for_label }}">{% trans "Subcategory" %}</label>
+            {{ form.item_subcategory }}
+            {% if form.item_subcategory.errors %}
+              <span class="error">{{ form.item_subcategory.errors.0 }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field full-width">
+            <label for="{{ form.finished_item.id_for_label }}">{{ form.finished_item.label }} *</label>
+            {{ form.finished_item }}
+            {% if form.finished_item.errors %}
+              <span class="error">{{ form.finished_item.errors.0 }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.version.id_for_label }}">{{ form.version.label }}</label>
+            {{ form.version }}
+            {% if form.version.errors %}
+              <span class="error">{{ form.version.errors.0 }}</span>
+            {% endif %}
+          </div>
+
+          <div class="form-field">
+            <label for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
+            {{ form.is_active }}
+            {% if form.is_active.errors %}
+              <span class="error">{{ form.is_active.errors.0 }}</span>
+            {% endif %}
+          </div>
+
+          <div class="form-field">
+            <label for="{{ form.is_enabled.id_for_label }}">{{ form.is_enabled.label }} *</label>
+            {{ form.is_enabled }}
+            {% if form.is_enabled.errors %}
+              <span class="error">{{ form.is_enabled.errors.0 }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field full-width">
+            <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+            {{ form.description }}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field full-width">
+            <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+            {{ form.notes }}
+          </div>
+        </div>
+      </div>
+
+      <!-- بخش 2: مواد اولیه (Formset) -->
+      <div class="form-section">
+        <h3>{% trans "Materials" %}</h3>
+        
+        {{ formset.management_form }}
+        
+        {% if formset.non_form_errors %}
+          <div class="alert alert-error">
+            {{ formset.non_form_errors }}
+          </div>
+        {% endif %}
+
+        <div class="materials-table-wrapper">
+          <table class="materials-table" id="materials-table">
+            <thead>
+              <tr>
+                <th style="width: 40px;">{% trans "Line" %}</th>
+                <th style="width: 150px;">{% trans "Material Type" %}</th>
+                <th style="width: 150px;">{% trans "Category" %}</th>
+                <th style="width: 150px;">{% trans "Subcategory" %}</th>
+                <th>{% trans "Material/Component" %}</th>
+                <th style="width: 100px;">{% trans "Quantity" %}</th>
+                <th style="width: 80px;">{% trans "Unit" %}</th>
+                <th style="width: 70px;">{% trans "Scrap %" %}</th>
+                <th style="width: 70px;">{% trans "Optional" %}</th>
+                <th style="width: 60px;">{% trans "Delete" %}</th>
+              </tr>
+            </thead>
+            <tbody id="materials-tbody">
+              {% for form in formset %}
+                <tr class="material-row {% if form.instance.pk %}existing{% else %}new{% endif %}" data-form-idx="{{ forloop.counter0 }}">
+                  <td class="line-number">{{ forloop.counter }}</td>
+                  <td>
+                    {{ form.id }}
+                    {{ form.material_type }}
+                    {% if form.material_type.errors %}
+                      <span class="error">{{ form.material_type.errors.0 }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {{ form.material_category_filter }}
+                    {% if form.material_category_filter.errors %}
+                      <span class="error">{{ form.material_category_filter.errors.0 }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {{ form.material_subcategory_filter }}
+                    {% if form.material_subcategory_filter.errors %}
+                      <span class="error">{{ form.material_subcategory_filter.errors.0 }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {{ form.material_item }}
+                    {% if form.material_item.errors %}
+                      <span class="error">{{ form.material_item.errors.0 }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {{ form.quantity_per_unit }}
+                    {% if form.quantity_per_unit.errors %}
+                      <span class="error">{{ form.quantity_per_unit.errors.0 }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {{ form.unit }}
+                    {% if form.unit.errors %}
+                      <span class="error">{{ form.unit.errors.0 }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {{ form.scrap_allowance }}
+                    {% if form.scrap_allowance.errors %}
+                      <span class="error">{{ form.scrap_allowance.errors.0 }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center">
+                    {{ form.is_optional }}
+                  </td>
+                  <td class="text-center">
+                    {% if form.instance.pk %}
+                      {{ form.DELETE }}
+                      <label for="{{ form.DELETE.id_for_label }}" class="delete-label">🗑️</label>
+                    {% else %}
+                      <button type="button" class="btn-remove-line" onclick="removeLine(this)">×</button>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="formset-actions">
+          <button type="button" class="btn btn-secondary" id="add-material-line">
+            ➕ {% trans "Add Material Line" %}
+          </button>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+        <a href="{% url 'production:bom_list' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+.form-container {
+  max-width: 1400px;
+  margin: 2rem auto;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.bom-form .form-section {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.bom-form .form-section:last-of-type {
+  border-bottom: none;
+}
+
+.bom-form .form-section h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #1f2937;
+  background: linear-gradient(135deg, rgba(0, 70, 255, 0.08) 0%, rgba(115, 200, 210, 0.08) 100%);
+  padding: 12px 16px;
+  border-radius: 6px;
+}
+
+.bom-form .form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.bom-form .form-field {
+  flex: 1;
+  min-width: 280px;
+}
+
+.bom-form .form-field.full-width {
+  flex: 1 1 100%;
+  width: 100%;
+}
+
+.bom-form label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.bom-form .form-control,
+.bom-form select,
+.bom-form input[type="text"],
+.bom-form input[type="number"],
+.bom-form input[type="date"],
+.bom-form textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  background: white;
+  box-sizing: border-box;
+}
+
+.bom-form .form-control:hover,
+.bom-form select:hover,
+.bom-form input:hover,
+.bom-form textarea:hover {
+  border-color: #9ca3af;
+}
+
+.bom-form .form-control:focus,
+.bom-form select:focus,
+.bom-form input:focus,
+.bom-form textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.bom-form textarea.form-control {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.bom-form .error {
+  display: block;
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .bom-form .form-field {
+    min-width: 100%;
+    flex: 1 1 100%;
+  }
+}
+
+.materials-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+.materials-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.materials-table thead {
+  background: #f3f4f6;
+}
+
+.materials-table th {
+  padding: 12px 8px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+  font-size: 0.875rem;
+}
+
+.materials-table td {
+  padding: 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.materials-table .line-number {
+  text-align: center;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.materials-table select,
+.materials-table input {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.materials-table input[type="checkbox"] {
+  width: auto;
+  height: 1.25rem;
+}
+
+.btn-remove-line {
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-remove-line:hover {
+  background: #b91c1c;
+}
+
+.delete-label {
+  cursor: pointer;
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.formset-actions {
+  margin-top: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+  padding-top: 2rem;
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.alert-success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.alert-error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.text-center {
+  text-align: center;
+}
+
+[dir="rtl"] .materials-table th {
+  text-align: right;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // ====================================================================
+  // Cascading Dropdowns for Finished Item Selection (Type → Category → Subcategory → Item)
+  // ====================================================================
+  const itemTypeSelect = document.getElementById('id_item_type');
+  const itemCategorySelect = document.getElementById('id_item_category');
+  const itemSubcategorySelect = document.getElementById('id_item_subcategory');
+  const finishedItemSelect = document.getElementById('id_finished_item');
+  
+  // Filter categories when type changes
+  if (itemTypeSelect && itemCategorySelect) {
+    itemTypeSelect.addEventListener('change', function() {
+      const selectedType = this.value;
+      
+      // Clear subsequent selects
+      itemCategorySelect.innerHTML = '<option value="">--------</option>';
+      itemSubcategorySelect.innerHTML = '<option value="">--------</option>';
+      finishedItemSelect.innerHTML = '<option value="">--------</option>';
+      
+      if (!selectedType) {
+        return;
+      }
+      
+      // Show loading
+      itemCategorySelect.innerHTML = '<option value="">{% trans "Loading categories..." %}</option>';
+      itemCategorySelect.disabled = true;
+      
+      // Fetch filtered categories
+      fetch('/inventory/api/filtered-categories/?type_id=' + selectedType)
+        .then(response => response.json())
+        .then(data => {
+          itemCategorySelect.innerHTML = '<option value="">--------</option>';
+          
+          if (data.categories && data.categories.length > 0) {
+            data.categories.forEach(function(cat) {
+              const option = document.createElement('option');
+              option.value = cat.value;
+              option.textContent = cat.label;
+              itemCategorySelect.appendChild(option);
+            });
+          }
+          
+          itemCategorySelect.disabled = false;
+        })
+        .catch(error => {
+          console.error('Error loading categories:', error);
+          itemCategorySelect.innerHTML = '<option value="">{% trans "Error loading categories" %}</option>';
+          itemCategorySelect.disabled = false;
+        });
+    });
+  }
+  
+  // Filter subcategories when category changes
+  if (itemCategorySelect && itemSubcategorySelect) {
+    itemCategorySelect.addEventListener('change', function() {
+      const selectedCategory = this.value;
+      const selectedType = itemTypeSelect.value;
+      
+      // Clear subsequent selects
+      itemSubcategorySelect.innerHTML = '<option value="">--------</option>';
+      finishedItemSelect.innerHTML = '<option value="">--------</option>';
+      
+      if (!selectedCategory) {
+        return;
+      }
+      
+      // Show loading
+      itemSubcategorySelect.innerHTML = '<option value="">{% trans "Loading subcategories..." %}</option>';
+      itemSubcategorySelect.disabled = true;
+      
+      // Fetch filtered subcategories
+      fetch('/inventory/api/filtered-subcategories/?type_id=' + selectedType + '&category_id=' + selectedCategory)
+        .then(response => response.json())
+        .then(data => {
+          itemSubcategorySelect.innerHTML = '<option value="">--------</option>';
+          
+          if (data.subcategories && data.subcategories.length > 0) {
+            data.subcategories.forEach(function(subcat) {
+              const option = document.createElement('option');
+              option.value = subcat.value;
+              option.textContent = subcat.label;
+              itemSubcategorySelect.appendChild(option);
+            });
+          }
+          
+          itemSubcategorySelect.disabled = false;
+        })
+        .catch(error => {
+          console.error('Error loading subcategories:', error);
+          itemSubcategorySelect.innerHTML = '<option value="">{% trans "Error loading subcategories" %}</option>';
+          itemSubcategorySelect.disabled = false;
+        });
+    });
+  }
+  
+  // Filter items when subcategory changes
+  if (itemSubcategorySelect && finishedItemSelect) {
+    itemSubcategorySelect.addEventListener('change', function() {
+      const selectedSubcategory = this.value;
+      const selectedCategory = itemCategorySelect.value;
+      const selectedType = itemTypeSelect.value;
+      
+      // Clear item select
+      finishedItemSelect.innerHTML = '<option value="">--------</option>';
+      
+      if (!selectedSubcategory) {
+        return;
+      }
+      
+      // Show loading
+      finishedItemSelect.innerHTML = '<option value="">{% trans "Loading items..." %}</option>';
+      finishedItemSelect.disabled = true;
+      
+      // Fetch filtered items
+      fetch('/inventory/api/filtered-items/?type_id=' + selectedType + '&category_id=' + selectedCategory + '&subcategory_id=' + selectedSubcategory)
+        .then(response => response.json())
+        .then(data => {
+          finishedItemSelect.innerHTML = '<option value="">--------</option>';
+          
+          if (data.items && data.items.length > 0) {
+            data.items.forEach(function(item) {
+              const option = document.createElement('option');
+              option.value = item.value;
+              option.textContent = item.label;
+              finishedItemSelect.appendChild(option);
+            });
+          }
+          
+          finishedItemSelect.disabled = false;
+        })
+        .catch(error => {
+          console.error('Error loading items:', error);
+          finishedItemSelect.innerHTML = '<option value="">{% trans "Error loading items" %}</option>';
+          finishedItemSelect.disabled = false;
+        });
+    });
+  }
+  
+  
+  // ====================================================================
+  // Formset Management (Add/Remove Material Lines)
+  // ====================================================================
+  const totalFormsInput = document.querySelector('#id_materials-TOTAL_FORMS');
+  const addLineBtn = document.getElementById('add-material-line');
+  const tbody = document.getElementById('materials-tbody');
+  
+  if (addLineBtn && tbody && totalFormsInput) {
+    // Add new line button
+    addLineBtn.addEventListener('click', function() {
+      const currentCount = parseInt(totalFormsInput.value);
+      
+      // Get the last row as template (or first if none exist)
+      const rows = tbody.querySelectorAll('.material-row');
+      const templateRow = rows[rows.length - 1] || rows[0];
+      
+      if (!templateRow) {
+        console.error('No template row found');
+        return;
+      }
+      
+      const newRow = templateRow.cloneNode(true);
+      newRow.classList.remove('existing');
+      newRow.classList.add('new');
+      
+      // Update form index in all fields
+      newRow.querySelectorAll('[name],[id],[for]').forEach(function(elem) {
+        ['name', 'id', 'for'].forEach(function(attr) {
+          if (elem.hasAttribute(attr)) {
+            const val = elem.getAttribute(attr);
+            elem.setAttribute(attr, val.replace(/-\d+-/, `-${currentCount}-`));
+          }
+        });
+      });
+      
+      // Clear values
+      newRow.querySelectorAll('select').forEach(function(field) {
+        field.selectedIndex = 0;
+      });
+      
+      newRow.querySelectorAll('input[type="text"], input[type="number"]').forEach(function(field) {
+        field.value = '';
+      });
+      
+      newRow.querySelectorAll('input[type="checkbox"]').forEach(function(field) {
+        field.checked = false;
+      });
+      
+      newRow.querySelectorAll('textarea').forEach(function(field) {
+        field.value = '';
+      });
+      
+      // Clear error messages
+      newRow.querySelectorAll('.error').forEach(function(error) {
+        error.remove();
+      });
+      
+      // Update line number
+      newRow.querySelector('.line-number').textContent = currentCount + 1;
+      newRow.setAttribute('data-form-idx', currentCount);
+      
+      // Update delete button (remove checkbox DELETE field if exists, add remove button)
+      const deleteCell = newRow.querySelector('td:last-child');
+      deleteCell.innerHTML = '<button type="button" class="btn-remove-line" onclick="removeLine(this)">×</button>';
+      
+      // Add to table
+      tbody.appendChild(newRow);
+      
+      // Update total forms count
+      totalFormsInput.value = currentCount + 1;
+      
+      // Update line numbers for all rows
+      updateLineNumbers();
+      
+      // Setup cascading filters for new row
+      setupRowCascading(newRow);
+    });
+  }
+  
+  
+  // ====================================================================
+  // Cascading Filters for Material Lines (Type → Category → Subcategory → Item)
+  // ====================================================================
+  // Note: This uses a simple approach - filtering existing options
+  // In production, consider using AJAX to load filtered data from server
+  
+  // Store all options for each row on page load
+  function initializeCascadingFilters() {
+    const rows = tbody.querySelectorAll('.material-row');
+    rows.forEach(function(row) {
+      setupRowCascading(row);
+    });
+  }
+  
+  function setupRowCascading(row) {
+    const typeSelect = row.querySelector('select[name*="material_type"]');
+    const categorySelect = row.querySelector('select[name*="material_category_filter"]');
+    const subcategorySelect = row.querySelector('select[name*="material_subcategory_filter"]');
+    const itemSelect = row.querySelector('select[name*="material_item"]');
+    const unitSelect = row.querySelector('select[name*="-unit"]');
+    
+    if (!typeSelect || !categorySelect || !subcategorySelect || !itemSelect || !unitSelect) {
+      return;
+    }
+    
+    // Disable unit select until item is selected
+    if (!itemSelect.value) {
+      unitSelect.disabled = true;
+      unitSelect.innerHTML = '<option value="">ابتدا ماده را انتخاب کنید</option>';
+    } else {
+      unitSelect.disabled = false;
+    }
+    
+    // Filter categories based on type
+    function filterCategories() {
+      const selectedType = typeSelect.value;
+      const currentCategory = categorySelect.value;
+      
+      if (!selectedType) {
+        // If no type selected, show all categories
+        return;
+      }
+      
+      // Show loading
+      categorySelect.innerHTML = '<option value="">در حال بارگذاری...</option>';
+      categorySelect.disabled = true;
+      
+      // Fetch filtered categories
+      fetch('/inventory/api/filtered-categories/?type_id=' + selectedType)
+        .then(response => response.json())
+        .then(data => {
+          categorySelect.innerHTML = '<option value="">--------</option>';
+          
+          if (data.categories && data.categories.length > 0) {
+            data.categories.forEach(function(cat) {
+              const option = document.createElement('option');
+              option.value = cat.value;
+              option.textContent = cat.label;
+              categorySelect.appendChild(option);
+            });
+            
+            // Restore selection if it's still in filtered list
+            if (currentCategory && data.categories.some(cat => cat.value === currentCategory)) {
+              categorySelect.value = currentCategory;
+            } else {
+              // Clear subcategory if category was cleared
+              subcategorySelect.value = '';
+              filterSubcategories();
+            }
+          }
+          
+          categorySelect.disabled = false;
+        })
+        .catch(error => {
+          console.error('Error loading categories:', error);
+          categorySelect.innerHTML = '<option value="">خطا در بارگذاری</option>';
+          categorySelect.disabled = false;
+        });
+    }
+    
+    // Filter subcategories based on type and category
+    function filterSubcategories() {
+      const selectedType = typeSelect.value;
+      const selectedCategory = categorySelect.value;
+      const currentSubcategory = subcategorySelect.value;
+      
+      if (!selectedType && !selectedCategory) {
+        // If nothing selected, show all subcategories
+        return;
+      }
+      
+      // Show loading
+      subcategorySelect.innerHTML = '<option value="">در حال بارگذاری...</option>';
+      subcategorySelect.disabled = true;
+      
+      // Build API URL
+      let apiUrl = '/inventory/api/filtered-subcategories/?';
+      if (selectedType) apiUrl += 'type_id=' + selectedType + '&';
+      if (selectedCategory) apiUrl += 'category_id=' + selectedCategory + '&';
+      
+      // Fetch filtered subcategories
+      fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+          subcategorySelect.innerHTML = '<option value="">--------</option>';
+          
+          if (data.subcategories && data.subcategories.length > 0) {
+            data.subcategories.forEach(function(subcat) {
+              const option = document.createElement('option');
+              option.value = subcat.value;
+              option.textContent = subcat.label;
+              subcategorySelect.appendChild(option);
+            });
+            
+            // Restore selection if it's still in filtered list
+            if (currentSubcategory && data.subcategories.some(sub => sub.value === currentSubcategory)) {
+              subcategorySelect.value = currentSubcategory;
+            } else {
+              filterItems();
+            }
+          }
+          
+          subcategorySelect.disabled = false;
+        })
+        .catch(error => {
+          console.error('Error loading subcategories:', error);
+          subcategorySelect.innerHTML = '<option value="">خطا در بارگذاری</option>';
+          subcategorySelect.disabled = false;
+        });
+    }
+    
+    // Filter items based on selections using API
+    function filterItems() {
+      const selectedType = typeSelect.value;
+      const selectedCategory = categorySelect.value;
+      const selectedSubcategory = subcategorySelect.value;
+      const currentValue = itemSelect.value;
+      
+      // Build API URL with filters
+      let apiUrl = '/inventory/api/filtered-items/?';
+      if (selectedType) apiUrl += 'type_id=' + selectedType + '&';
+      if (selectedCategory) apiUrl += 'category_id=' + selectedCategory + '&';
+      if (selectedSubcategory) apiUrl += 'subcategory_id=' + selectedSubcategory + '&';
+      
+      // Show loading
+      itemSelect.innerHTML = '<option value="">در حال بارگذاری...</option>';
+      itemSelect.disabled = true;
+      
+      // Fetch filtered items
+      fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+          itemSelect.innerHTML = '<option value="">--------</option>';
+          
+          if (data.items && data.items.length > 0) {
+            data.items.forEach(function(item) {
+              const option = document.createElement('option');
+              option.value = item.value;
+              option.textContent = item.label;
+              itemSelect.appendChild(option);
+            });
+            
+            // Restore selection if it's still in filtered list
+            if (currentValue && data.items.some(item => item.value === currentValue)) {
+              itemSelect.value = currentValue;
+            }
+          } else {
+            itemSelect.innerHTML = '<option value="">هیچ کالایی یافت نشد</option>';
+          }
+          
+          itemSelect.disabled = false;
+          
+          // If item was cleared, clear unit too
+          if (!itemSelect.value) {
+            unitSelect.disabled = true;
+            unitSelect.innerHTML = '<option value="">ابتدا ماده را انتخاب کنید</option>';
+          }
+        })
+        .catch(error => {
+          console.error('Error loading items:', error);
+          itemSelect.innerHTML = '<option value="">خطا در بارگذاری کالاها</option>';
+          itemSelect.disabled = false;
+        });
+    }
+    
+    // Add event listeners
+    typeSelect.addEventListener('change', function() {
+      categorySelect.value = '';
+      subcategorySelect.value = '';
+      filterCategories();
+      filterItems();
+    });
+    
+    categorySelect.addEventListener('change', function() {
+      subcategorySelect.value = '';
+      filterSubcategories();
+      filterItems();
+    });
+    
+    subcategorySelect.addEventListener('change', filterItems);
+    
+    // When material item changes, load units for that item
+    itemSelect.addEventListener('change', function() {
+      const itemId = this.value;
+      
+      // Save current selected unit BEFORE clearing the select
+      // Priority: 1) current select value, 2) row's data attribute (set during form submission), 3) empty
+      let currentUnit = unitSelect.value;
+      if (!currentUnit) {
+        // Try to get from the row's data attribute (set during form submission or page load)
+        const rowUnitValue = row.dataset.unitValue;
+        if (rowUnitValue) {
+          currentUnit = rowUnitValue;
+        }
+      }
+      
+      if (!itemId) {
+        unitSelect.disabled = true;
+        unitSelect.innerHTML = '<option value="">ابتدا ماده را انتخاب کنید</option>';
+        return;
+      }
+      
+      // Enable and show loading
+      unitSelect.disabled = false;
+      unitSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
+      
+      // Fetch units for selected item
+      fetch('/inventory/api/item-units/?item_id=' + itemId)
+        .then(response => response.json())
+        .then(data => {
+          unitSelect.innerHTML = '<option value="">{% trans "Select Unit" %}</option>';
+          
+          if (data.units && data.units.length > 0) {
+            data.units.forEach(function(unit) {
+              const option = document.createElement('option');
+              // Use unit_name as value (not the pk)
+              option.value = unit.unit_name;
+              option.textContent = unit.label;
+              unitSelect.appendChild(option);
+            });
+            
+            // Restore previously selected unit if exists
+            if (currentUnit) {
+              // Check if the unit exists in the loaded options
+              const unitOption = unitSelect.querySelector(`option[value="${currentUnit}"]`);
+              if (unitOption) {
+                unitSelect.value = currentUnit;
+                // Clear the data attribute after successful restore
+                delete row.dataset.unitValue;
+              }
+            }
+          } else {
+            unitSelect.innerHTML = '<option value="">{% trans "No units defined" %}</option>';
+          }
+          
+          // Auto-set material_type if item_type_id is provided
+          if (data.item_type_id) {
+            const typeSelect = row.querySelector('select[name*="material_type"]');
+            if (typeSelect) {
+              // Check if the type exists in the dropdown
+              for (let i = 0; i < typeSelect.options.length; i++) {
+                if (typeSelect.options[i].value == data.item_type_id) {
+                  typeSelect.value = data.item_type_id;
+                  break;
+                }
+              }
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error loading units:', error);
+          unitSelect.innerHTML = '<option value="">{% trans "Error loading units" %}</option>';
+        });
+    });
+    
+    // On page load: if item is already selected (edit mode), restore type, category, subcategory, and unit
+    if (itemSelect.value) {
+      const itemId = itemSelect.value;
+      
+      // Save current unit value before making API calls
+      let savedUnitValue = unitSelect.value;
+      if (!savedUnitValue && unitSelect.selectedIndex > 0) {
+        const unitOption = unitSelect.options[unitSelect.selectedIndex];
+        if (unitOption && unitOption.value) {
+          savedUnitValue = unitOption.value;
+        }
+      }
+      if (!savedUnitValue) {
+        savedUnitValue = row.dataset.unitValue;
+      }
+      if (savedUnitValue) {
+        row.dataset.unitValue = savedUnitValue;
+      }
+      
+      // Load item units API which now returns type_id, category_id, subcategory_id, and units
+      unitSelect.disabled = false;
+      unitSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
+      
+      fetch('/inventory/api/item-units/?item_id=' + itemId)
+        .then(response => response.json())
+        .then(data => {
+          // Step 1: Set material_type
+          if (data.item_type_id) {
+            for (let i = 0; i < typeSelect.options.length; i++) {
+              if (typeSelect.options[i].value == data.item_type_id) {
+                typeSelect.value = data.item_type_id;
+                
+                // Step 2: Load and set category
+                if (data.category_id) {
+                  filterCategories();
+                  // Wait a bit for categories to load, then set category
+                  setTimeout(() => {
+                    categorySelect.value = data.category_id;
+                    
+                    // Step 3: Load and set subcategory
+                    if (data.subcategory_id) {
+                      filterSubcategories();
+                      // Wait a bit for subcategories to load, then set subcategory
+                      setTimeout(() => {
+                        subcategorySelect.value = data.subcategory_id;
+                      }, 300);
+                    }
+                  }, 300);
+                }
+                break;
+              }
+            }
+          }
+          
+          // Step 4: Load and restore unit
+          unitSelect.innerHTML = '<option value="">{% trans "Select Unit" %}</option>';
+          
+          if (data.units && data.units.length > 0) {
+            data.units.forEach(function(unit) {
+              const option = document.createElement('option');
+              // Use unit_name as value
+              option.value = unit.unit_name;
+              option.textContent = unit.label;
+              unitSelect.appendChild(option);
+            });
+            
+            // Restore previously selected unit if exists
+            if (savedUnitValue) {
+              const unitOption = unitSelect.querySelector(`option[value="${savedUnitValue}"]`);
+              if (unitOption) {
+                unitSelect.value = savedUnitValue;
+                delete row.dataset.unitValue;
+              }
+            }
+          } else {
+            unitSelect.innerHTML = '<option value="">{% trans "No units defined" %}</option>';
+          }
+        })
+        .catch(error => {
+          console.error('Error loading item details:', error);
+          unitSelect.innerHTML = '<option value="">{% trans "Error loading units" %}</option>';
+        });
+    }
+  }
+  
+  function getSelectOptions(selectElement) {
+    const options = [];
+    for (let i = 0; i < selectElement.options.length; i++) {
+      options.push({
+        value: selectElement.options[i].value,
+        text: selectElement.options[i].text
+      });
+    }
+    return options;
+  }
+  
+  // Initialize filters on page load
+  initializeCascadingFilters();
+  
+  
+  
+  // ====================================================================
+  // Form Validation
+  // ====================================================================
+  const form = document.getElementById('bom-form');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      // CRITICAL: Enable all unit selects before submission (disabled fields are not submitted!)
+      const allUnitSelects = form.querySelectorAll('select[name*="-unit"]');
+      allUnitSelects.forEach(function(unitSelect) {
+        if (unitSelect.disabled) {
+          const materialSelect = unitSelect.closest('.material-row')?.querySelector('[name*="material_item"]');
+          if (materialSelect && materialSelect.value) {
+            unitSelect.disabled = false;
+          }
+        }
+      });
+      
+      // Check if at least one material is added
+      const materialRows = tbody.querySelectorAll('.material-row');
+      let validRowCount = 0;
+      
+      materialRows.forEach(function(row) {
+        const materialSelect = row.querySelector('[name*="material_item"]');
+        const deleteCheckbox = row.querySelector('[name*="DELETE"]');
+        
+        // Count only if material is selected and not marked for deletion
+        if (materialSelect && materialSelect.value && 
+            (!deleteCheckbox || !deleteCheckbox.checked)) {
+          validRowCount++;
+        }
+      });
+      
+      if (validRowCount === 0) {
+        alert('لطفاً حداقل یک ماده اولیه اضافه کنید.');
+        e.preventDefault();
+        return false;
+      }
+    });
+  }
+  
+  
+  // ====================================================================
+  // Helper Functions
+  // ====================================================================
+  function updateLineNumbers() {
+    const rows = tbody.querySelectorAll('.material-row');
+    rows.forEach(function(row, index) {
+      row.querySelector('.line-number').textContent = index + 1;
+    });
+  }
+});
+
+
+// ====================================================================
+// Remove Line Function (Global)
+// ====================================================================
+function removeLine(button) {
+  const row = button.closest('.material-row');
+  const tbody = document.getElementById('materials-tbody');
+  const rows = tbody.querySelectorAll('.material-row');
+  
+  // Don't allow removing if only one row left
+  if (rows.length <= 1) {
+    alert('حداقل یک ردیف باید باقی بماند.');
+    return;
+  }
+  
+  row.remove();
+  
+  // Update line numbers
+  tbody.querySelectorAll('.material-row .line-number').forEach(function(cell, index) {
+    cell.textContent = index + 1;
+  });
+  
+  // Update TOTAL_FORMS if this was a new row (not from database)
+  if (row.classList.contains('new')) {
+    const totalFormsInput = document.querySelector('#id_materials-TOTAL_FORMS');
+    if (totalFormsInput) {
+      totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
+    }
+  }
+}
+</script>
+{% endblock %}

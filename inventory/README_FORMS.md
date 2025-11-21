@@ -110,6 +110,7 @@ The form automatically filters available categories based on the user's active c
 - سه فلگ `is_sellable`, `has_lot_tracking`, `requires_temporary_receipt`
 - `tax_id`, `tax_title`, `min_stock`
 - `default_unit`, `primary_unit` (از `UNIT_CHOICES` انتخاب می‌شوند، آماده برای متر/کیلو/عدد/بسته و …)
+- `secondary_batch_number` (اختیاری): بچ نامبر ثانویه که کاربر می‌تواند به صورت دستی وارد کند (علاوه بر بچ نامبر خودکار تولید شده توسط سیستم)
 - `allowed_warehouses` (چندانتخابی): انبارهایی که کالا مجاز است در آن‌ها دریافت/نگهداری شود؛ نخستین انتخاب به عنوان انبار اصلی ثبت می‌شود. **مهم**: اگر کالا هیچ انبار مجازی نداشته باشد، نمی‌تواند در هیچ انباری رسید یا حواله شود (validation سخت).
 - `description`, `notes`
 - `sort_order`, `is_enabled`
@@ -185,7 +186,7 @@ The form automatically filters available categories based on the user's active c
 
 - **پشتیبانی چند ردیف**: از `IssuePermanentLineFormSet` استفاده می‌کند. حداقل 1 ردیف الزامی است. هر ردیف می‌تواند کالا، انبار، مقدار، واحد و مقصد جداگانه داشته باشد.
 - در هر ردیف، فیلدهای اصلی: `item`, `warehouse`, `unit`, `quantity`
-- در هر ردیف، مقصد: `destination_type` (always `WorkLine`) و `destination_id`/`destination_code` برای تعیین خط کاری مقصد
+- در هر ردیف، مقصد: `destination_type` (اختیاری، `CompanyUnit`) و `destination_id`/`destination_code` برای تعیین واحد کاری مقصد. **نکته**: `WorkLine` از ماژول `production` استفاده می‌شود (اختیاری - فقط در صورت نصب ماژول production).
 - بخش مالی شامل `unit_price`, `currency`, `tax_amount`, `discount_amount`, `total_amount` است؛ فیلد `currency` اکنون یک لیست انتخابی با گزینه‌های محدود (`IRT` = تومان، `IRR` = ریال، `USD` = دلار) است تا ورود مقادیر متفرقه جلوگیری شود.
 - کد سند و تاریخ (با `JalaliDateField`) به صورت خودکار تولید می‌شود و فیلدها در فرم مخفی هستند.
 - در هر ردیف، انتخاب واحد کالا مانند فرم‌های رسید محدود به واحدهای تعریف‌شده‌ی همان کالا است.
@@ -203,7 +204,7 @@ The form automatically filters available categories based on the user's active c
 - **پشتیبانی چند ردیف**: از `IssueConsumptionLineFormSet` استفاده می‌کند. حداقل 1 ردیف الزامی است.
 - در هر ردیف، علاوه بر فیلدهای پایه (کالا، انبار، واحد، مقدار)، می‌توان مقصد را انتخاب کرد:
   - ابتدا `destination_type_choice` انتخاب می‌شود: "Company Unit" یا "Work Line"
-  - سپس بر اساس انتخاب، `destination_company_unit` یا `destination_work_line` نمایش داده می‌شود
+  - سپس بر اساس انتخاب، `destination_company_unit` یا `destination_work_line` نمایش داده می‌شود. **نکته**: `destination_work_line` از ماژول `production` استفاده می‌شود (اختیاری - فقط در صورت نصب ماژول production).
 - در هر ردیف، `warehouse` **فقط انبارهای مجاز** کالای انتخاب شده را نمایش می‌دهد (filtered by `ItemWarehouse`). اگر کالا انبار مجاز نداشته باشد، خطا داده می‌شود.
 - فیلدهای مرجع شامل `reference_document_*` و `production_transfer_*` هستند.
 - هزینه‌ی واحد و مجموع هزینه قابل ثبت است؛ سیستم کد سند و تاریخ (با `JalaliDateField`) را به صورت خودکار مقداردهی می‌کند و واحد کالا را با منطق تبدیل واحد نرمال می‌نماید.
@@ -221,7 +222,7 @@ The form automatically filters available categories based on the user's active c
 - در هر ردیف، انتخاب کالا/انبار و مقدار مشابه سایر فرم‌ها انجام می‌شود.
 - در هر ردیف، `warehouse` **فقط انبارهای مجاز** کالای انتخاب شده را نمایش می‌دهد (filtered by `ItemWarehouse`). اگر کالا انبار مجاز نداشته باشد، خطا داده می‌شود.
 - کاربر باید رسید امانی مبنا (`consignment_receipt`) را انتخاب کند؛ کد آن به صورت خودکار در مدل ذخیره می‌شود.
-- در هر ردیف، مقصد: `destination_type` (always `WorkLine`) و `destination_id`/`destination_code` برای تعیین خط کاری مقصد
+- در هر ردیف، مقصد: `destination_type` (اختیاری، `CompanyUnit`) و `destination_id`/`destination_code` برای تعیین واحد کاری مقصد. **نکته**: `WorkLine` از ماژول `production` استفاده می‌شود (اختیاری - فقط در صورت نصب ماژول production).
 - کد سند و تاریخ (با `JalaliDateField`) به شکل خودکار ساخته می‌شود و واحد کالا محدود به واحدهای تعریف‌شده است.
 - برای کالاهای دارای سریال، مقدار باید به صورت عدد صحیح ثبت شود و فرم در غیر این صورت خطا برمی‌گرداند.
 - فیلد سریال در این فرم اختیاری است؛ مدیریت انتخاب/رزرو سریال از طریق دکمه‌ی «Assign Serials» برای هر ردیف انجام می‌شود.

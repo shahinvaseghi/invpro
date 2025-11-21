@@ -1,169 +1,219 @@
 {% load i18n access_tags %}
 <nav class="sidebar-nav">
-  <ul>
-    <li class="nav-section-title">{% trans "Shared" %}</li>
-    <li><a href="{% url 'ui:dashboard' %}" class="nav-link">{% trans "Dashboard" %}</a></li>
-    {% if user_feature_permissions|feature_allowed:'shared.companies' %}
-      <li><a href="{% url 'shared:companies' %}" class="nav-link">{% trans "Companies" %}</a></li>
-    {% endif %}
-    {% if user_feature_permissions|feature_allowed:'shared.company_units' %}
-      <li><a href="{% url 'shared:company_units' %}" class="nav-link">{% trans "Company Units" %}</a></li>
-    {% endif %}
-    {% if user_feature_permissions|feature_allowed:'shared.personnel' %}
-      <li><a href="{% url 'shared:personnel' %}" class="nav-link">{% trans "Personnel" %}</a></li>
-    {% endif %}
-    {% if user_feature_permissions|feature_allowed:'shared.users' or user_feature_permissions|feature_allowed:'shared.groups' or user_feature_permissions|feature_allowed:'shared.access_levels' %}
-      <li>
-        <a href="#" class="nav-link nav-expandable" data-submenu="shared-users">{% trans "Users" %}</a>
-        <ul class="nav-submenu" id="shared-users">
-          {% if user_feature_permissions|feature_allowed:'shared.users' %}
-            <li><a href="{% url 'shared:users' %}" class="nav-link-sub">{% trans "Users" %}</a></li>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'shared.groups' %}
-            <li><a href="{% url 'shared:groups' %}" class="nav-link-sub">{% trans "Groups" %}</a></li>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'shared.access_levels' %}
-            <li><a href="{% url 'shared:access_levels' %}" class="nav-link-sub">{% trans "Access Levels" %}</a></li>
-          {% endif %}
-        </ul>
-      </li>
-    {% endif %}
-  </ul>
-
-  <ul>
-    <li class="nav-section-title">{% trans "Inventory" %}</li>
-    {% if user_feature_permissions|feature_allowed:'inventory.master.item_types' or user_feature_permissions|feature_allowed:'inventory.master.item_categories' or user_feature_permissions|feature_allowed:'inventory.master.item_subcategories' or user_feature_permissions|feature_allowed:'inventory.master.warehouses' %}
-      <li>
-        <a href="#" class="nav-link nav-expandable" data-submenu="inventory-master">{% trans "Master Data" %}</a>
-        <ul class="nav-submenu" id="inventory-master">
-          {% if user_feature_permissions|feature_allowed:'inventory.master.item_types' %}
-            <li><a href="{% url 'inventory:item_types' %}" class="nav-link-sub">{% trans "Item Types" %}</a></li>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'inventory.master.item_categories' %}
-            <li><a href="{% url 'inventory:item_categories' %}" class="nav-link-sub">{% trans "Item Categories" %}</a></li>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'inventory.master.item_subcategories' %}
-            <li><a href="{% url 'inventory:item_subcategories' %}" class="nav-link-sub">{% trans "Item Subcategories" %}</a></li>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'inventory.master.warehouses' %}
-            <li><a href="{% url 'inventory:warehouses' %}" class="nav-link-sub">{% trans "Warehouses" %}</a></li>
-          {% endif %}
-        </ul>
-      </li>
-    {% endif %}
-
-    {% if user_feature_permissions|feature_allowed:'inventory.master.items' or user_feature_permissions|feature_allowed:'inventory.balance' %}
-      <li>
-        <a href="#" class="nav-link nav-expandable" data-submenu="inventory-items">{% trans "Items" %}</a>
-        <ul class="nav-submenu" id="inventory-items">
-          {% if user_feature_permissions|feature_allowed:'inventory.master.items:create' %}
-            <li><a href="{% url 'inventory:item_create' %}" class="nav-link-sub">{% trans "Create Item" %}</a></li>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'inventory.master.items' %}
-            <li><a href="{% url 'inventory:items' %}" class="nav-link-sub">{% trans "Edit Items" %}</a></li>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'inventory.master.item_serials' %}
-            <li><a href="{% url 'inventory:item_serials' %}" class="nav-link-sub">{% trans "Item Serials" %}</a></li>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'inventory.balance' %}
-            <li><a href="{% url 'inventory:inventory_balance' %}" class="nav-link-sub">{% trans "Inventory Balance" %}</a></li>
-          {% endif %}
-        </ul>
-      </li>
-    {% endif %}
-
-    {% if user_feature_permissions|feature_allowed:'inventory.suppliers.categories' or user_feature_permissions|feature_allowed:'inventory.suppliers.list' %}
-      <li>
-        <a href="#" class="nav-link nav-expandable" data-submenu="inventory-suppliers">{% trans "Suppliers" %}</a>
-        <ul class="nav-submenu" id="inventory-suppliers">
-          {% if user_feature_permissions|feature_allowed:'inventory.suppliers.categories' %}
-            <li><a href="{% url 'inventory:supplier_categories' %}" class="nav-link-sub">{% trans "Supplier Categories" %}</a></li>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'inventory.suppliers.list' %}
-            <li><a href="{% url 'inventory:suppliers' %}" class="nav-link-sub">{% trans "Supplier List" %}</a></li>
-          {% endif %}
-        </ul>
-      </li>
-    {% endif %}
-
-    {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' %}
-      <li><a href="{% url 'inventory:purchase_requests' %}" class="nav-link">{% trans "Purchase Requests" %}</a></li>
-    {% endif %}
-    {% if user_feature_permissions|feature_allowed:'inventory.requests.warehouse' %}
-      <li><a href="{% url 'inventory:warehouse_requests' %}" class="nav-link">{% trans "Warehouse Requests" %}</a></li>
-    {% endif %}
-
-    {% if user_feature_permissions|feature_allowed:'inventory.receipts.temporary' or user_feature_permissions|feature_allowed:'inventory.receipts.permanent' or user_feature_permissions|feature_allowed:'inventory.receipts.consignment' %}
-      <li>
-        <a href="#" class="nav-link nav-expandable" data-submenu="inventory-receipts">{% trans "Receipts" %}</a>
-        <ul class="nav-submenu" id="inventory-receipts">
-          {% if user_feature_permissions|feature_allowed:'inventory.receipts.temporary' %}
-            <li><a href="{% url 'inventory:receipt_temporary' %}" class="nav-link-sub">{% trans "Temporary Receipts" %}</a></li>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'inventory.receipts.permanent' %}
-            <li><a href="{% url 'inventory:receipt_permanent' %}" class="nav-link-sub">{% trans "Permanent Receipts" %}</a></li>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'inventory.receipts.consignment' %}
-            <li><a href="{% url 'inventory:receipt_consignment' %}" class="nav-link-sub">{% trans "Consignment Receipts" %}</a></li>
-          {% endif %}
-        </ul>
-      </li>
-    {% endif %}
-
-    {% if user_feature_permissions|feature_allowed:'inventory.issues.permanent' or user_feature_permissions|feature_allowed:'inventory.issues.consumption' or user_feature_permissions|feature_allowed:'inventory.issues.consignment' %}
-      <li>
-        <a href="#" class="nav-link nav-expandable" data-submenu="inventory-issues">{% trans "Issues" %}</a>
-        <ul class="nav-submenu" id="inventory-issues">
-          {% if user_feature_permissions|feature_allowed:'inventory.issues.permanent' %}
-            <li><a href="{% url 'inventory:issue_permanent' %}" class="nav-link-sub">{% trans "Permanent Issues" %}</a></li>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'inventory.issues.consumption' %}
-            <li><a href="{% url 'inventory:issue_consumption' %}" class="nav-link-sub">{% trans "Consumption Issues" %}</a></li>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'inventory.issues.consignment' %}
-            <li><a href="{% url 'inventory:issue_consignment' %}" class="nav-link-sub">{% trans "Consignment Issues" %}</a></li>
-          {% endif %}
-        </ul>
-      </li>
-    {% endif %}
-
-    {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' or user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' or user_feature_permissions|feature_allowed:'inventory.stocktaking.records' %}
-      <li>
-        <a href="#" class="nav-link nav-expandable" data-submenu="inventory-stocktaking">{% trans "Stocktaking" %}</a>
-        <ul class="nav-submenu" id="inventory-stocktaking">
-          {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' %}
-            <li><a href="{% url 'inventory:stocktaking_deficit' %}" class="nav-link-sub">{% trans "Deficit Records" %}</a></li>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' %}
-            <li><a href="{% url 'inventory:stocktaking_surplus' %}" class="nav-link-sub">{% trans "Surplus Records" %}</a></li>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.records' %}
-            <li><a href="{% url 'inventory:stocktaking_records' %}" class="nav-link-sub">{% trans "Stocktaking Records" %}</a></li>
-          {% endif %}
-        </ul>
-      </li>
-    {% endif %}
-  </ul>
-
-  {% if user_feature_permissions|feature_allowed:'inventory.master.work_lines' or request.user.is_superuser %}
-    <ul>
-      <li class="nav-section-title">{% trans "Production" %}</li>
-      {% if user_feature_permissions|feature_allowed:'inventory.master.work_lines' %}
-        <li><a href="{% url 'inventory:work_lines' %}" class="nav-link">{% trans "Work Lines" %}</a></li>
+  <div class="sidebar-section" data-section="shared">
+    <button type="button" class="section-header" data-target="shared">
+      <span class="section-title">{% trans "Shared" %}</span>
+      <span class="section-icon">▼</span>
+    </button>
+    <div class="section-content" id="shared">
+      <a href="{% url 'ui:dashboard' %}" class="nav-link">{% trans "Dashboard" %}</a>
+      {% if user_feature_permissions|feature_allowed:'shared.companies' %}
+        <a href="{% url 'shared:companies' %}" class="nav-link">{% trans "Companies" %}</a>
       {% endif %}
-      {% if request.user.is_superuser %}
-        <li><a href="#" class="nav-link">{% trans "BOM" %}</a></li>
-        <li><a href="#" class="nav-link">{% trans "Processes" %}</a></li>
-        <li><a href="#" class="nav-link">{% trans "Orders" %}</a></li>
+      {% if user_feature_permissions|feature_allowed:'shared.company_units' %}
+        <a href="{% url 'shared:company_units' %}" class="nav-link">{% trans "Company Units" %}</a>
       {% endif %}
-    </ul>
+      {% if user_feature_permissions|feature_allowed:'shared.users' or user_feature_permissions|feature_allowed:'shared.groups' or user_feature_permissions|feature_allowed:'shared.access_levels' %}
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="shared-users">
+            <span>{% trans "Users" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="shared-users">
+            {% if user_feature_permissions|feature_allowed:'shared.users' %}
+              <a href="{% url 'shared:users' %}" class="nav-link-sub">{% trans "Users" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'shared.groups' %}
+              <a href="{% url 'shared:groups' %}" class="nav-link-sub">{% trans "Groups" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'shared.access_levels' %}
+              <a href="{% url 'shared:access_levels' %}" class="nav-link-sub">{% trans "Access Levels" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="sidebar-section" data-section="inventory">
+    <button type="button" class="section-header" data-target="inventory">
+      <span class="section-title">{% trans "Inventory" %}</span>
+      <span class="section-icon">▼</span>
+    </button>
+    <div class="section-content" id="inventory">
+      {% if user_feature_permissions|feature_allowed:'inventory.master.item_types' or user_feature_permissions|feature_allowed:'inventory.master.item_categories' or user_feature_permissions|feature_allowed:'inventory.master.item_subcategories' or user_feature_permissions|feature_allowed:'inventory.master.warehouses' %}
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="inventory-master">
+            <span>{% trans "Master Data" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="inventory-master">
+            {% if user_feature_permissions|feature_allowed:'inventory.master.item_types' %}
+              <a href="{% url 'inventory:item_types' %}" class="nav-link-sub">{% trans "Item Types" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.master.item_categories' %}
+              <a href="{% url 'inventory:item_categories' %}" class="nav-link-sub">{% trans "Item Categories" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.master.item_subcategories' %}
+              <a href="{% url 'inventory:item_subcategories' %}" class="nav-link-sub">{% trans "Item Subcategories" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.master.warehouses' %}
+              <a href="{% url 'inventory:warehouses' %}" class="nav-link-sub">{% trans "Warehouses" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      {% if user_feature_permissions|feature_allowed:'inventory.master.items' or user_feature_permissions|feature_allowed:'inventory.balance' %}
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="inventory-items">
+            <span>{% trans "Items" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="inventory-items">
+            {% if user_feature_permissions|feature_allowed:'inventory.master.items:create' %}
+              <a href="{% url 'inventory:item_create' %}" class="nav-link-sub">{% trans "Create Item" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.master.items' %}
+              <a href="{% url 'inventory:items' %}" class="nav-link-sub">{% trans "Edit Items" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.master.item_serials' %}
+              <a href="{% url 'inventory:item_serials' %}" class="nav-link-sub">{% trans "Item Serials" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.balance' %}
+              <a href="{% url 'inventory:inventory_balance' %}" class="nav-link-sub">{% trans "Inventory Balance" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      {% if user_feature_permissions|feature_allowed:'inventory.suppliers.categories' or user_feature_permissions|feature_allowed:'inventory.suppliers.list' %}
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="inventory-suppliers">
+            <span>{% trans "Suppliers" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="inventory-suppliers">
+            {% if user_feature_permissions|feature_allowed:'inventory.suppliers.categories' %}
+              <a href="{% url 'inventory:supplier_categories' %}" class="nav-link-sub">{% trans "Supplier Categories" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.suppliers.list' %}
+              <a href="{% url 'inventory:suppliers' %}" class="nav-link-sub">{% trans "Supplier List" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' %}
+        <a href="{% url 'inventory:purchase_requests' %}" class="nav-link">{% trans "Purchase Requests" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'inventory.requests.warehouse' %}
+        <a href="{% url 'inventory:warehouse_requests' %}" class="nav-link">{% trans "Warehouse Requests" %}</a>
+      {% endif %}
+
+      {% if user_feature_permissions|feature_allowed:'inventory.receipts.temporary' or user_feature_permissions|feature_allowed:'inventory.receipts.permanent' or user_feature_permissions|feature_allowed:'inventory.receipts.consignment' %}
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="inventory-receipts">
+            <span>{% trans "Receipts" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="inventory-receipts">
+            {% if user_feature_permissions|feature_allowed:'inventory.receipts.temporary' %}
+              <a href="{% url 'inventory:receipt_temporary' %}" class="nav-link-sub">{% trans "Temporary Receipts" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.receipts.permanent' %}
+              <a href="{% url 'inventory:receipt_permanent' %}" class="nav-link-sub">{% trans "Permanent Receipts" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.receipts.consignment' %}
+              <a href="{% url 'inventory:receipt_consignment' %}" class="nav-link-sub">{% trans "Consignment Receipts" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      {% if user_feature_permissions|feature_allowed:'inventory.issues.permanent' or user_feature_permissions|feature_allowed:'inventory.issues.consumption' or user_feature_permissions|feature_allowed:'inventory.issues.consignment' %}
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="inventory-issues">
+            <span>{% trans "Issues" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="inventory-issues">
+            {% if user_feature_permissions|feature_allowed:'inventory.issues.permanent' %}
+              <a href="{% url 'inventory:issue_permanent' %}" class="nav-link-sub">{% trans "Permanent Issues" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.issues.consumption' %}
+              <a href="{% url 'inventory:issue_consumption' %}" class="nav-link-sub">{% trans "Consumption Issues" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.issues.consignment' %}
+              <a href="{% url 'inventory:issue_consignment' %}" class="nav-link-sub">{% trans "Consignment Issues" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' or user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' or user_feature_permissions|feature_allowed:'inventory.stocktaking.records' %}
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="inventory-stocktaking">
+            <span>{% trans "Stocktaking" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="inventory-stocktaking">
+            {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' %}
+              <a href="{% url 'inventory:stocktaking_deficit' %}" class="nav-link-sub">{% trans "Deficit Records" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' %}
+              <a href="{% url 'inventory:stocktaking_surplus' %}" class="nav-link-sub">{% trans "Surplus Records" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.records' %}
+              <a href="{% url 'inventory:stocktaking_records' %}" class="nav-link-sub">{% trans "Stocktaking Records" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if user_feature_permissions|feature_allowed:'production.personnel' or user_feature_permissions|feature_allowed:'production.machines' or user_feature_permissions|feature_allowed:'production.work_lines' or user_feature_permissions|feature_allowed:'production.bom' or user_feature_permissions|feature_allowed:'production.processes' or request.user.is_superuser %}
+    <div class="sidebar-section" data-section="production">
+      <button type="button" class="section-header" data-target="production">
+        <span class="section-title">{% trans "Production" %}</span>
+        <span class="section-icon">▼</span>
+      </button>
+      <div class="section-content" id="production">
+        {% if user_feature_permissions|feature_allowed:'production.personnel' %}
+          <a href="{% url 'production:personnel' %}" class="nav-link">{% trans "Personnel" %}</a>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.machines' %}
+          <a href="{% url 'production:machines' %}" class="nav-link">{% trans "Machines" %}</a>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.work_lines' %}
+          <a href="{% url 'production:work_lines' %}" class="nav-link">{% trans "Work Lines" %}</a>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.bom' or request.user.is_superuser %}
+          <a href="{% url 'production:bom_list' %}" class="nav-link">{% trans "BOM" %}</a>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.processes' or request.user.is_superuser %}
+          <a href="{% url 'production:processes' %}" class="nav-link">{% trans "Processes" %}</a>
+        {% endif %}
+        {% if request.user.is_superuser %}
+          <a href="{% url 'production:transfer_requests' %}" class="nav-link">{% trans "Transfer to Line Requests" %}</a>
+          <a href="{% url 'production:performance_records' %}" class="nav-link">{% trans "Performance Records" %}</a>
+          <a href="#" class="nav-link">{% trans "Orders" %}</a>
+        {% endif %}
+      </div>
+    </div>
   {% endif %}
 
   {% if request.user.is_superuser %}
-    <ul>
-      <li class="nav-section-title">{% trans "Quality Control" %}</li>
-      <li><a href="#" class="nav-link">{% trans "Inspections" %}</a></li>
-    </ul>
+    <div class="sidebar-section" data-section="qc">
+      <button type="button" class="section-header" data-target="qc">
+        <span class="section-title">{% trans "Quality Control" %}</span>
+        <span class="section-icon">▼</span>
+      </button>
+      <div class="section-content" id="qc">
+        <a href="{% url 'qc:temporary_receipts' %}" class="nav-link">{% trans "Temporary Receipts" %}</a>
+      </div>
+    </div>
   {% endif %}
 </nav>
 

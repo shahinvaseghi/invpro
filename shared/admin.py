@@ -83,15 +83,3 @@ class GroupProfileAdmin(admin.ModelAdmin):
     search_fields = ("group__name", "description")
 
 
-@admin.register(models.Person)
-class PersonAdmin(admin.ModelAdmin):
-    list_display = ("public_code", "first_name", "last_name", "company", "is_enabled")
-    list_filter = ("company", "is_enabled")
-    search_fields = ("public_code", "first_name", "last_name", "company__display_name")
-
-
-@admin.register(models.PersonAssignment)
-class PersonAssignmentAdmin(admin.ModelAdmin):
-    list_display = ("person", "company", "work_center_type", "work_center_id", "is_primary", "is_enabled")
-    list_filter = ("company", "work_center_type", "is_primary", "is_enabled")
-    search_fields = ("person__first_name", "person__last_name", "work_center_type", "work_center_id")

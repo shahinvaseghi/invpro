@@ -72,8 +72,8 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.DELETE_OWN,
         ],
     ),
-    "shared.personnel": FeaturePermission(
-        code="shared.personnel",
+    "production.personnel": FeaturePermission(
+        code="production.personnel",
         label=_("Personnel"),
         actions=[
             PermissionAction.VIEW_OWN,
@@ -81,6 +81,40 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
             PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "production.machines": FeaturePermission(
+        code="production.machines",
+        label=_("Machines"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "production.bom": FeaturePermission(
+        code="production.bom",
+        label=_("BOM (Bill of Materials)"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "production.processes": FeaturePermission(
+        code="production.processes",
+        label=_("Processes"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
         ],
     ),
     "shared.users": FeaturePermission(
@@ -181,8 +215,8 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.DELETE_OWN,
         ],
     ),
-    "inventory.master.work_lines": FeaturePermission(
-        code="inventory.master.work_lines",
+    "production.work_lines": FeaturePermission(
+        code="production.work_lines",
         label=_("Work Lines"),
         actions=[
             PermissionAction.VIEW_OWN,
@@ -414,6 +448,21 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+        ],
+    ),
+    # QC – Inspections
+    "qc.inspections": FeaturePermission(
+        code="qc.inspections",
+        label=_("QC Inspections"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+            PermissionAction.CANCEL,
         ],
     ),
 }

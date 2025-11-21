@@ -43,7 +43,12 @@ def generate_receipt_serials(receipt, user=None) -> int:
         raise SerialQuantityMismatch(_("Quantity must be a whole number when tracking serials."))
 
     required = int(quantity_decimal)
-    existing = receipt.serials.count()
+    # Count serials by receipt_document, not ManyToMany (serials may not be linked via M2M yet)
+    existing = ItemSerial.objects.filter(
+        receipt_document=receipt,
+        company=receipt.company,
+        is_enabled=1
+    ).count()
     if existing >= required:
         return 0
 
@@ -51,7 +56,26 @@ def generate_receipt_serials(receipt, user=None) -> int:
     created = 0
 
     for sequence in range(existing + 1, required + 1):
-        serial_code = _build_serial_code(receipt, sequence)
+        # Find a unique serial_code by incrementing sequence if needed
+        max_attempts = 100  # Prevent infinite loop
+        attempt = 0
+        current_sequence = sequence
+        
+        while attempt < max_attempts:
+            serial_code = _build_serial_code(receipt, current_sequence)
+            
+            # Check if serial_code already exists
+            if not ItemSerial.objects.filter(serial_code=serial_code).exists():
+                break  # Found unique serial_code
+            
+            # Try next sequence
+            current_sequence += 1
+            attempt += 1
+        
+        if attempt >= max_attempts:
+            # Could not find unique serial_code after max attempts
+            raise SerialTrackingError(_("Could not generate unique serial code after %(attempts)s attempts.") % {'attempts': max_attempts})
+        
         serial = ItemSerial.objects.create(
             company=receipt.company,
             item=item,
@@ -66,6 +90,9 @@ def generate_receipt_serials(receipt, user=None) -> int:
             created_by=user,
             edited_by=user,
         )
+        # Also add to ManyToMany relationship if receipt has serials field
+        if hasattr(receipt, 'serials'):
+            receipt.serials.add(serial)
         ItemSerialHistory.objects.create(
             company=receipt.company,
             item=item,
@@ -357,7 +384,13 @@ def generate_receipt_line_serials(receipt_line, user=None) -> int:
         raise SerialQuantityMismatch(_("Quantity must be a whole number when tracking serials."))
 
     required = int(quantity_decimal)
-    existing = receipt_line.serials.count()
+    # Count serials by receipt_line_reference, not ManyToMany (serials may not be linked via M2M yet)
+    line_reference = f"{receipt_line.__class__.__name__}:{receipt_line.pk}"
+    existing = ItemSerial.objects.filter(
+        receipt_line_reference=line_reference,
+        company=receipt_line.company,
+        is_enabled=1
+    ).count()
     if existing >= required:
         return 0
 
@@ -366,7 +399,26 @@ def generate_receipt_line_serials(receipt_line, user=None) -> int:
     document = receipt_line.document
 
     for sequence in range(existing + 1, required + 1):
-        serial_code = _build_serial_code_for_line(receipt_line, sequence)
+        # Find a unique serial_code by incrementing sequence if needed
+        max_attempts = 100  # Prevent infinite loop
+        attempt = 0
+        current_sequence = sequence
+        
+        while attempt < max_attempts:
+            serial_code = _build_serial_code_for_line(receipt_line, current_sequence)
+            
+            # Check if serial_code already exists
+            if not ItemSerial.objects.filter(serial_code=serial_code).exists():
+                break  # Found unique serial_code
+            
+            # Try next sequence
+            current_sequence += 1
+            attempt += 1
+        
+        if attempt >= max_attempts:
+            # Could not find unique serial_code after max attempts
+            raise SerialTrackingError(_("Could not generate unique serial code after %(attempts)s attempts.") % {'attempts': max_attempts})
+        
         serial = ItemSerial.objects.create(
             company=receipt_line.company,
             item=item,
@@ -382,6 +434,8 @@ def generate_receipt_line_serials(receipt_line, user=None) -> int:
             created_by=user,
             edited_by=user,
         )
+        # Also add to ManyToMany relationship
+        receipt_line.serials.add(serial)
         ItemSerialHistory.objects.create(
             company=receipt_line.company,
             item=item,

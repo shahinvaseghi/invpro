@@ -10,11 +10,20 @@ class WorkCenterAdmin(admin.ModelAdmin):
     search_fields = ("public_code", "name", "name_en")
 
 
+@admin.register(models.BOM)
+class BOMAdmin(admin.ModelAdmin):
+    list_display = ("bom_code", "company", "finished_item_code", "version", "is_active", "is_enabled")
+    list_filter = ("company", "is_active", "is_enabled")
+    search_fields = ("bom_code", "finished_item_code")
+    readonly_fields = ("bom_code", "finished_item_code")
+
+
 @admin.register(models.BOMMaterial)
 class BOMMaterialAdmin(admin.ModelAdmin):
-    list_display = ("company", "finished_item_code", "material_item_code", "quantity_per_unit", "unit")
+    list_display = ("company", "bom", "material_item_code", "quantity_per_unit", "unit", "line_number")
     list_filter = ("company", "material_type")
-    search_fields = ("finished_item_code", "material_item_code")
+    search_fields = ("bom__bom_code", "material_item_code")
+    readonly_fields = ("material_item_code",)
 
 
 @admin.register(models.Process)
@@ -60,3 +69,31 @@ class TransferToLineItemAdmin(admin.ModelAdmin):
     list_display = ("company", "transfer", "material_item_code", "quantity_required", "quantity_transferred")
     list_filter = ("company", "transfer")
     search_fields = ("transfer__transfer_code", "material_item_code")
+
+
+@admin.register(models.Person)
+class PersonAdmin(admin.ModelAdmin):
+    list_display = ("public_code", "first_name", "last_name", "company", "is_enabled")
+    list_filter = ("company", "is_enabled")
+    search_fields = ("public_code", "first_name", "last_name", "company__display_name")
+
+
+@admin.register(models.PersonAssignment)
+class PersonAssignmentAdmin(admin.ModelAdmin):
+    list_display = ("person", "company", "work_center_type", "work_center_id", "is_primary", "is_enabled")
+    list_filter = ("company", "work_center_type", "is_primary", "is_enabled")
+    search_fields = ("person__first_name", "person__last_name", "work_center_type", "work_center_id")
+
+
+@admin.register(models.Machine)
+class MachineAdmin(admin.ModelAdmin):
+    list_display = ("public_code", "name", "machine_type", "work_center", "status", "is_enabled")
+    list_filter = ("company", "machine_type", "status", "is_enabled")
+    search_fields = ("public_code", "name", "name_en", "manufacturer", "model_number", "serial_number")
+
+
+@admin.register(models.WorkLine)
+class WorkLineAdmin(admin.ModelAdmin):
+    list_display = ("company", "warehouse", "public_code", "name", "is_enabled")
+    list_filter = ("company", "warehouse", "is_enabled")
+    search_fields = ("public_code", "name", "name_en")

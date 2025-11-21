@@ -104,6 +104,9 @@
         <th>{% trans "Work Line" %}</th>
         <th>Destination</th>
         <th>Posted</th>
+        {% if show_warehouse_request %}
+        <th>{% trans "Warehouse Request" %}</th>
+        {% endif %}
         <th>{% trans "Actions" %}</th>
       </tr>
     </thead>
@@ -193,6 +196,17 @@
               <span class="badge badge-draft">{% trans "Draft" %}</span>
             {% endif %}
           </td>
+          {% if show_warehouse_request %}
+          <td>
+            {% if issue.warehouse_request %}
+              <a href="{% url warehouse_request_url_name issue.warehouse_request.pk %}" class="badge badge-info" style="text-decoration: none;">
+                {{ issue.warehouse_request.request_code }}
+              </a>
+            {% else %}
+              <span style="color: #6b7280;">—</span>
+            {% endif %}
+          </td>
+          {% endif %}
           <td>
             <div class="action-buttons">
               {% if issue.is_locked %}
@@ -234,7 +248,7 @@
         {% endfor %}
       {% else %}
         <tr>
-          <td colspan="11">
+          <td colspan="{% if show_warehouse_request %}12{% else %}11{% endif %}">
             <div class="empty-state">
               <div class="empty-state-icon">📤</div>
               <h3>{% trans "No Issues Found" %}</h3>

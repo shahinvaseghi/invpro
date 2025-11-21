@@ -52,63 +52,7 @@ form = CompanyForm(data={
 
 ---
 
-### 2. PersonForm
-**Purpose:** Create and edit personnel records
-
-**Model:** `Person`
-
-**Fields:**
-- `public_code` (8 digits) - Unique person code
-- `first_name` - First name (Persian)
-- `last_name` - Last name (Persian)
-- `first_name_en` - First name (English)
-- `last_name_en` - Last name (English)
-- `national_id` - National identification number
-- `personnel_code` - Employee/Personnel code
-- `username` - System username
-- `phone_number` - Phone number
-- `mobile_number` - Mobile number
-- `email` - Email address
-- `description` - Brief description
-- `notes` - Detailed notes
-- `is_enabled` - Active/Inactive status
-
-**Special Field: `use_personnel_code_as_username`**
-- Checkbox field (not saved to database)
-- When checked: username automatically syncs with personnel_code
-- When unchecked: user can enter custom username
-- JavaScript automatically enables/disables username field
-
-**Validation:**
-```python
-def clean(self):
-    cleaned_data = super().clean()
-    use_personnel_code = cleaned_data.get('use_personnel_code_as_username')
-    personnel_code = cleaned_data.get('personnel_code')
-    username = cleaned_data.get('username')
-    
-    if use_personnel_code:
-        if not personnel_code:
-            raise forms.ValidationError(_('Personnel Code is required when using it as username.'))
-        cleaned_data['username'] = personnel_code
-    else:
-        if not username:
-            raise forms.ValidationError(_('Username is required when not using personnel code.'))
-    
-    return cleaned_data
-```
-
-**Dynamic Behavior:**
-```javascript
-// When checkbox is checked:
-- username field becomes read-only
-- username field background turns gray
-- username syncs with personnel_code changes
-
-// When checkbox is unchecked:
-- username field becomes editable
-- user can enter custom username
-```
+**Note**: `PersonForm` has been moved to the Production module. See `production/README_FORMS.md` for documentation.
 
 ---
 
@@ -116,7 +60,6 @@ def clean(self):
 
 ### Auto-populated Fields
 The following fields are set automatically by views:
-- `company_id` - From active session company (Person only)
 - `created_by` - From request.user
 - `edited_by` - From request.user
 - `created_at` - Auto timestamp
@@ -210,12 +153,90 @@ All labels, help text, and error messages support Persian/English:
 ```python
 labels = {
     'public_code': _('Code'),
-    'first_name': _('First Name'),
-    'use_personnel_code_as_username': _('Use Personnel Code as Username'),
+    'legal_name': _('Legal Name'),
+    'display_name': _('Display Name'),
 }
-
-help_text = _('If checked, username will be same as personnel code')
 ```
+
+---
+
+### 2. UserCreateForm / UserUpdateForm
+**Purpose:** Create and edit user accounts with group assignments, company access, and password management
+
+**Model:** `User` (Django's custom user model)
+
+**Base Class:** `UserBaseForm`
+
+**Fields (UserBaseForm):**
+- `username` - Unique username
+- `email` - Email address (unique)
+- `first_name` - First name (Persian)
+- `last_name` - Last name (Persian)
+- `first_name_en` - First name (English)
+- `last_name_en` - Last name (English)
+- `phone_number` - Phone number
+- `mobile_number` - Mobile number
+- `is_active` - Active/Inactive status (checkbox)
+- `is_staff` - Staff user status (checkbox)
+- `is_superuser` - Superuser status (checkbox)
+- `default_company` - Default company for user login
+- `groups` - Multiple choice field for Django groups (checkbox list)
+
+**UserCreateForm Additional Fields:**
+- `password1` - Password (required)
+- `password2` - Password confirmation (required)
+
+**UserUpdateForm Additional Fields:**
+- `new_password1` - New password (optional)
+- `new_password2` - Confirm new password (optional)
+
+**Special Features:**
+- **Group Management**: Groups are saved using ManyToMany relationship. The form handles group assignments correctly by saving them directly after the user is saved.
+- **Superuser Status**: Superuser checkbox is properly saved and persisted.
+- **Company Access**: Managed via `UserCompanyAccessFormSet` in the view (not in the form itself).
+- **Password Handling**: 
+  - `UserCreateForm`: Sets password using `set_password()` method
+  - `UserUpdateForm`: Only sets password if `new_password1` is provided
+- **M2M Field Handling**: Groups are saved directly in `UserUpdateForm.save()` before calling `save_m2m()` to ensure they persist correctly.
+
+**Validation:**
+- Password fields must match (for both create and update)
+- Email must be unique
+- Username must be unique
+
+**Technical Implementation:**
+- `UserBaseForm` stores groups in `_pending_groups` attribute
+- `UserUpdateForm.save()` saves groups directly after `user.save()` to ensure persistence
+- `save_m2m()` method handles group assignments, converting QuerySet to list of IDs to avoid stale queryset issues
+
+**Example:**
+```python
+# Create user
+form = UserCreateForm(data={
+    'username': 'john_doe',
+    'email': 'john@example.com',
+    'first_name': 'جان',
+    'last_name': 'دو',
+    'is_active': 'on',
+    'groups': [1, 2],  # Group IDs
+    'password1': 'secure_password',
+    'password2': 'secure_password',
+})
+
+# Update user
+form = UserUpdateForm(data={
+    'username': 'john_doe',
+    'email': 'john@example.com',
+    'is_active': 'on',
+    'is_superuser': 'on',
+    'groups': [1],  # Group IDs
+    'new_password1': '',  # Leave empty to keep current password
+    'new_password2': '',
+}, instance=user)
+```
+
+**Known Issues Fixed:**
+- Previously, group selections and superuser status were not saved correctly in `UserUpdateForm`. This has been fixed by saving groups directly after `user.save()` and ensuring `save_m2m()` properly handles group assignments.
 
 ---
 
@@ -279,33 +300,6 @@ class AccessLevelCreateView(FeaturePermissionRequiredMixin, AccessLevelPermissio
 
 ---
 
-## JavaScript Integration
-
-### Username Sync Feature
-Located in `templates/shared/person_form.html`:
-
-```javascript
-document.addEventListener('DOMContentLoaded', function() {
-  const checkbox = document.getElementById('use_personnel_code');
-  const personnelCodeField = document.getElementById('personnel_code_field');
-  const usernameField = document.getElementById('username_field');
-  
-  function syncUsername() {
-    if (checkbox && checkbox.checked) {
-      usernameField.value = personnelCodeField.value;
-      usernameField.readOnly = true;
-      usernameField.style.backgroundColor = '#f3f4f6';
-    } else {
-      usernameField.readOnly = false;
-      usernameField.style.backgroundColor = '';
-    }
-  }
-  
-  checkbox.addEventListener('change', syncUsername);
-  personnelCodeField.addEventListener('input', syncUsername);
-});
-```
-
 ---
 
 ## Security Considerations
@@ -316,12 +310,6 @@ When a new company is created:
 2. `UserCompanyAccess` record is created
 3. Company becomes visible in creator's company list
 4. Company becomes selectable in header dropdown
-
-### Person Scope
-- Persons are scoped to their company
-- Users can only see persons in their active company
-- Company ID is validated before creating persons
-- QuerySets are filtered by `company_id` in views
 
 ---
 
@@ -346,17 +334,17 @@ Fields marked with `*` are required:
 ### Success Messages
 ```python
 messages.success(self.request, _('Company created successfully.'))
-messages.success(self.request, _('Person updated successfully.'))
+messages.success(self.request, _('Company updated successfully.'))
 ```
 
 ---
 
 ## Future Enhancements
 
-1. Add photo upload for personnel
-2. Implement digital signature for companies
-3. Add multi-step wizard for company registration
-4. Implement employee hierarchy (manager relationships)
-5. Add role-based field visibility
-6. Implement document attachments (contracts, IDs)
+1. Implement digital signature for companies
+2. Add multi-step wizard for company registration
+3. Add role-based field visibility
+4. Implement document attachments (contracts, IDs)
+5. Add company logo upload
+6. Implement company hierarchy (parent/child companies)
 

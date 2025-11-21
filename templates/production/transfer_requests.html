@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Transfer to Line Requests" %}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span class="separator">/</span>
+      <span>{% trans "Production" %}</span>
+      <span class="separator">/</span>
+      <span>{% trans "Transfer to Line Requests" %}</span>
+    </nav>
+    <h1 class="page-title">{% trans "Transfer to Line Requests" %}</h1>
+  </div>
+
+  <div class="module-content">
+    <div class="page-section">
+      <!-- Action buttons -->
+      <div class="section-actions" style="margin-bottom: 24px;">
+        <button class="btn btn-primary" disabled>
+          + {% trans "Create Transfer Request" %}
+        </button>
+      </div>
+
+      <!-- Placeholder message -->
+      <div class="empty-state" style="text-align: center; padding: 64px 24px;">
+        <div class="empty-state-icon" style="font-size: 64px; margin-bottom: 16px;">📋</div>
+        <h3>{% trans "Transfer to Line Requests" %}</h3>
+        <p style="color: #6b7280; margin-top: 8px;">
+          {% trans "This feature is under development. Coming soon..." %}
+        </p>
+        <p style="color: #9ca3af; margin-top: 16px; font-size: 14px;">
+          {% trans "Transfer requests will allow you to move materials from warehouse to production lines." %}
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

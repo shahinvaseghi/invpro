@@ -1,0 +1,143 @@
+"""
+Personnel (Person) CRUD views for production module.
+"""
+from typing import Any, Dict, Optional
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponseRedirect
+from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
+from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+
+from shared.mixins import FeaturePermissionRequiredMixin
+from production.forms import PersonForm
+from production.models import Person
+
+
+class PersonnelListView(FeaturePermissionRequiredMixin, ListView):
+    """
+    List all personnel (Person objects) for the active company.
+    """
+    model = Person
+    template_name = 'production/personnel.html'
+    context_object_name = 'personnel'
+    paginate_by = 50
+    feature_code = 'production.personnel'
+    
+    def get_queryset(self):
+        """Filter personnel by active company."""
+        active_company_id: Optional[int] = self.request.session.get('active_company_id')
+        
+        if not active_company_id:
+            return Person.objects.none()
+        
+        return Person.objects.filter(
+            company_id=active_company_id,
+            is_enabled=1
+        ).select_related('company').prefetch_related('company_units').order_by('public_code')
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add active module to context."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'production'
+        return context
+
+
+class PersonCreateView(FeaturePermissionRequiredMixin, CreateView):
+    """Create a new person."""
+    model = Person
+    form_class = PersonForm
+    template_name = 'production/person_form.html'
+    success_url = reverse_lazy('production:personnel')
+    feature_code = 'production.personnel'
+    required_action = 'create'
+
+    def get_form_kwargs(self) -> Dict[str, Any]:
+        """Add company_id to form kwargs."""
+        kwargs = super().get_form_kwargs()
+        kwargs['company_id'] = self.request.session.get('active_company_id')
+        kwargs['request'] = self.request
+        return kwargs
+    
+    def form_valid(self, form: PersonForm) -> HttpResponseRedirect:
+        """Auto-set company and created_by."""
+        active_company_id: Optional[int] = self.request.session.get('active_company_id')
+        if not active_company_id:
+            messages.error(self.request, _('Please select a company first.'))
+            return self.form_invalid(form)
+        
+        form.instance.company_id = active_company_id
+        form.instance.created_by = self.request.user
+        messages.success(self.request, _('Person created successfully.'))
+        return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add active module and form title to context."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'production'
+        context['form_title'] = _('Create Person')
+        return context
+
+
+class PersonUpdateView(FeaturePermissionRequiredMixin, UpdateView):
+    """Update an existing person."""
+    model = Person
+    form_class = PersonForm
+    template_name = 'production/person_form.html'
+    success_url = reverse_lazy('production:personnel')
+    feature_code = 'production.personnel'
+    required_action = 'edit_own'
+
+    def get_form_kwargs(self) -> Dict[str, Any]:
+        """Add company_id to form kwargs."""
+        kwargs = super().get_form_kwargs()
+        kwargs['company_id'] = self.object.company_id
+        return kwargs
+    
+    def get_queryset(self):
+        """Filter by active company."""
+        active_company_id: Optional[int] = self.request.session.get('active_company_id')
+        if not active_company_id:
+            return Person.objects.none()
+        return Person.objects.filter(company_id=active_company_id)
+    
+    def form_valid(self, form: PersonForm) -> HttpResponseRedirect:
+        """Auto-set edited_by."""
+        form.instance.edited_by = self.request.user
+        messages.success(self.request, _('Person updated successfully.'))
+        return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add active module and form title to context."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'production'
+        context['form_title'] = _('Edit Person')
+        return context
+
+
+class PersonDeleteView(FeaturePermissionRequiredMixin, DeleteView):
+    """Delete a person."""
+    model = Person
+    success_url = reverse_lazy('production:personnel')
+    template_name = 'production/person_confirm_delete.html'
+    feature_code = 'production.personnel'
+    required_action = 'delete_own'
+    
+    def get_queryset(self):
+        """Filter by active company."""
+        active_company_id: Optional[int] = self.request.session.get('active_company_id')
+        if not active_company_id:
+            return Person.objects.none()
+        return Person.objects.filter(company_id=active_company_id)
+    
+    def delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect:
+        """Delete person and show success message."""
+        messages.success(self.request, _('Person deleted successfully.'))
+        return super().delete(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add active module to context."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'production'
+        return context
+

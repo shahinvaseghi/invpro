@@ -1,39 +1,338 @@
 {% extends "base.html" %}
+{% load i18n access_tags %}
 
-{% block title %}Dashboard · invproj{% endblock %}
+{% block title %}{% trans "Dashboard" %} · invproj{% endblock %}
 
 {% block content %}
-<section class="page-section">
-  <header class="section-header">
-    <h1>Platform Overview</h1>
-    <p>Quick snapshot of inventory, production, and QC activities.</p>
+<section class="page-section dashboard-section">
+  <header class="dashboard-header">
+    <h1>{% trans "Dashboard" %}</h1>
+    <p class="dashboard-subtitle">{% trans "Overview of your inventory management system" %}</p>
   </header>
+
   <div class="dashboard-grid">
-    <article class="card">
-      <h2>Inventory</h2>
-      <ul>
-        <li><strong>Master Data:</strong> manage item catalog, suppliers, warehouses.</li>
-        <li><strong>Transactions:</strong> capture receipts, issues, and stocktaking adjustments.</li>
-        <li><strong>Traceability:</strong> track lot numbers for critical items.</li>
-      </ul>
-    </article>
-    <article class="card">
-      <h2>Production</h2>
-      <ul>
-        <li><strong>BOM & Processes:</strong> define materials, steps, and work centers.</li>
-        <li><strong>Orders:</strong> plan, release, and monitor production jobs.</li>
-        <li><strong>Performance:</strong> record production output, scrap, cycle times.</li>
-      </ul>
-    </article>
-    <article class="card">
-      <h2>Quality Control</h2>
-      <ul>
-        <li><strong>Inspections:</strong> review temporary receipts pending approval.</li>
-        <li><strong>Decisions:</strong> approve, reject, or log deviations with notes.</li>
-        <li><strong>Attachments:</strong> keep inspection evidence accessible.</li>
-      </ul>
-    </article>
+    <!-- User Info Card -->
+    <div class="dashboard-card card-info">
+      <div class="card-icon-bg">👤</div>
+      <div class="card-content">
+        <div class="user-info-name">{{ user.get_full_name|default:user.username }}</div>
+        <div class="user-info-company">{{ active_company.display_name|default:"" }}</div>
+        <div class="user-info-date" id="current-date-time"></div>
+      </div>
+    </div>
+
+    <!-- Total Items -->
+    {% if user_feature_permissions|feature_allowed:'inventory.master.items' %}
+    <div class="dashboard-card card-blue">
+      <div class="card-icon-bg">🛒</div>
+      <div class="card-content">
+        <div class="stat-value">{{ stats.total_items|default:0 }}</div>
+        <div class="stat-label">{% trans "Total Items" %}</div>
+        <a href="{% url 'inventory:items' %}" class="card-link">{% trans "More info" %} →</a>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Total Warehouses -->
+    {% if user_feature_permissions|feature_allowed:'inventory.master.warehouses' %}
+    <div class="dashboard-card card-green">
+      <div class="card-icon-bg">🏢</div>
+      <div class="card-content">
+        <div class="stat-value">{{ stats.total_warehouses|default:0 }}</div>
+        <div class="stat-label">{% trans "Total Warehouses" %}</div>
+        <a href="{% url 'inventory:warehouses' %}" class="card-link">{% trans "More info" %} →</a>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Total Suppliers -->
+    {% if user_feature_permissions|feature_allowed:'inventory.suppliers.list' %}
+    <div class="dashboard-card card-orange">
+      <div class="card-icon-bg">👥</div>
+      <div class="card-content">
+        <div class="stat-value">{{ stats.total_suppliers|default:0 }}</div>
+        <div class="stat-label">{% trans "Total Suppliers" %}</div>
+        <a href="{% url 'inventory:suppliers' %}" class="card-link">{% trans "More info" %} →</a>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Total Receipts -->
+    {% if user_feature_permissions|feature_allowed:'inventory.receipts.temporary' or user_feature_permissions|feature_allowed:'inventory.receipts.permanent' or user_feature_permissions|feature_allowed:'inventory.receipts.consignment' %}
+    <div class="dashboard-card card-blue">
+      <div class="card-icon-bg">📥</div>
+      <div class="card-content">
+        <div class="stat-value">{{ stats.total_permanent_receipts|default:0 }}</div>
+        <div class="stat-label">{% trans "Total Receipts" %}</div>
+        <div class="card-link-dropdown">
+          <button type="button" class="card-link" id="receipts-dropdown-btn">{% trans "More info" %} →</button>
+          <div class="card-link-menu" id="receipts-dropdown-menu">
+            {% if user_feature_permissions|feature_allowed:'inventory.receipts.temporary' %}
+              <a href="{% url 'inventory:receipt_temporary' %}" class="card-link-item">{% trans "Temporary Receipts" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.receipts.permanent' %}
+              <a href="{% url 'inventory:receipt_permanent' %}" class="card-link-item">{% trans "Permanent Receipts" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.receipts.consignment' %}
+              <a href="{% url 'inventory:receipt_consignment' %}" class="card-link-item">{% trans "Consignment Receipts" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Total Issues -->
+    {% if user_feature_permissions|feature_allowed:'inventory.issues.permanent' or user_feature_permissions|feature_allowed:'inventory.issues.consumption' or user_feature_permissions|feature_allowed:'inventory.issues.consignment' %}
+    <div class="dashboard-card card-green">
+      <div class="card-icon-bg">📤</div>
+      <div class="card-content">
+        <div class="stat-value">{{ stats.total_permanent_issues|default:0 }}</div>
+        <div class="stat-label">{% trans "Total Issues" %}</div>
+        <div class="card-link-dropdown">
+          <button type="button" class="card-link" id="issues-dropdown-btn">{% trans "More info" %} →</button>
+          <div class="card-link-menu" id="issues-dropdown-menu">
+            {% if user_feature_permissions|feature_allowed:'inventory.issues.permanent' %}
+              <a href="{% url 'inventory:issue_permanent' %}" class="card-link-item">{% trans "Permanent Issues" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.issues.consumption' %}
+              <a href="{% url 'inventory:issue_consumption' %}" class="card-link-item">{% trans "Consumption Issues" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.issues.consignment' %}
+              <a href="{% url 'inventory:issue_consignment' %}" class="card-link-item">{% trans "Consignment Issues" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Pending Requests -->
+    {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' or user_feature_permissions|feature_allowed:'inventory.requests.warehouse' %}
+    <div class="dashboard-card card-orange">
+      <div class="card-icon-bg">📋</div>
+      <div class="card-content">
+        <div class="stat-value">{{ stats.total_pending_requests|default:0 }}</div>
+        <div class="stat-label">{% trans "Pending Requests" %}</div>
+        <a href="{% url 'inventory:purchase_requests' %}" class="card-link">{% trans "More info" %} →</a>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Stocktaking -->
+    {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' or user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' %}
+    <div class="dashboard-card card-red">
+      <div class="card-icon-bg">🔍</div>
+      <div class="card-content">
+        <div class="stat-value">{{ stats.total_stocktaking_records|default:0 }}</div>
+        <div class="stat-label">{% trans "Stocktaking Records" %}</div>
+        <a href="{% url 'inventory:stocktaking_deficit' %}" class="card-link">{% trans "More info" %} →</a>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Pending Approvals -->
+    {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' or user_feature_permissions|feature_allowed:'inventory.requests.warehouse' or user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' or user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' %}
+    <div class="dashboard-card card-purple">
+      <div class="card-icon-bg">✅</div>
+      <div class="card-content">
+        <div class="stat-value">{{ stats.total_pending_approvals|default:0 }}</div>
+        <div class="stat-label">{% trans "Pending Approvals" %}</div>
+        <div class="card-link-dropdown">
+          <button type="button" class="card-link" id="approvals-dropdown-btn">{% trans "More info" %} →</button>
+          <div class="card-link-menu" id="approvals-dropdown-menu">
+            {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' %}
+              <a href="{% url 'inventory:purchase_requests' %}" class="card-link-item">{% trans "Purchase Requests" %} ({{ stats.pending_purchase_approvals|default:0 }})</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.requests.warehouse' %}
+              <a href="{% url 'inventory:warehouse_requests' %}" class="card-link-item">{% trans "Warehouse Requests" %} ({{ stats.pending_warehouse_approvals|default:0 }})</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' or user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' %}
+              <a href="{% url 'inventory:stocktaking_records' %}" class="card-link-item">{% trans "Stocktaking Records" %} ({{ stats.pending_stocktaking_approvals|default:0 }})</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Quality Control -->
+    {% if user_feature_permissions|feature_allowed:'inventory.receipts.temporary' %}
+    <div class="dashboard-card card-blue">
+      <div class="card-icon-bg">🔬</div>
+      <div class="card-content">
+        <div class="stat-value">{{ stats.temp_receipts_qc_pending|default:0 }}</div>
+        <div class="stat-label">{% trans "Pending QC Inspections" %}</div>
+        <a href="{% url 'inventory:receipt_temporary' %}" class="card-link">{% trans "More info" %} →</a>
+      </div>
+    </div>
+    {% endif %}
   </div>
 </section>
-{% endblock %}
 
+<style>
+.card-link-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.card-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 0;
+  font-family: inherit;
+}
+
+.card-link:hover {
+  color: var(--color-secondary);
+}
+
+.card-link-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+  z-index: 1000;
+  padding: 8px 0;
+  margin-bottom: 8px;
+  min-width: 200px;
+}
+
+[dir="rtl"] .card-link-menu {
+  left: auto;
+  right: 0;
+}
+
+.card-link-dropdown:hover .card-link-menu,
+.card-link-dropdown.active .card-link-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.card-link-item {
+  display: block;
+  padding: 10px 20px;
+  color: var(--color-text);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: all 0.15s ease;
+  border-left: 3px solid transparent;
+}
+
+[dir="rtl"] .card-link-item {
+  border-left: none;
+  border-right: 3px solid transparent;
+}
+
+.card-link-item:hover {
+  background-color: var(--color-light);
+  color: var(--color-primary);
+  border-left-color: var(--color-primary);
+}
+
+[dir="rtl"] .card-link-item:hover {
+  border-left: none;
+  border-right-color: var(--color-primary);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Update date and time
+  function updateDateTime() {
+    const now = new Date();
+    const dateTimeEl = document.getElementById('current-date-time');
+    if (dateTimeEl) {
+      const options = { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        weekday: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      };
+      try {
+        const dateTimeStr = now.toLocaleString('fa-IR', options);
+        dateTimeEl.textContent = dateTimeStr;
+      } catch (e) {
+        // Fallback to English if Persian locale is not supported
+        const dateStr = now.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric',
+          weekday: 'long'
+        });
+        const timeStr = now.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          second: '2-digit'
+        });
+        dateTimeEl.textContent = dateStr + ' - ' + timeStr;
+      }
+    }
+  }
+  
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+  
+  // Card link dropdowns
+  const receiptsBtn = document.getElementById('receipts-dropdown-btn');
+  const receiptsMenu = document.getElementById('receipts-dropdown-menu');
+  const issuesBtn = document.getElementById('issues-dropdown-btn');
+  const issuesMenu = document.getElementById('issues-dropdown-menu');
+  
+  function toggleDropdown(btn, menu, otherMenu) {
+    if (!btn || !menu) return;
+    
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const isActive = btn.closest('.card-link-dropdown').classList.contains('active');
+      
+      // Close other dropdowns
+      document.querySelectorAll('.card-link-dropdown').forEach(dropdown => {
+        dropdown.classList.remove('active');
+      });
+      
+      // Toggle current dropdown
+      if (!isActive) {
+        btn.closest('.card-link-dropdown').classList.add('active');
+      }
+    });
+  }
+  
+  toggleDropdown(receiptsBtn, receiptsMenu, issuesMenu);
+  toggleDropdown(issuesBtn, issuesMenu, receiptsMenu);
+  
+  const approvalsBtn = document.getElementById('approvals-dropdown-btn');
+  const approvalsMenu = document.getElementById('approvals-dropdown-menu');
+  toggleDropdown(approvalsBtn, approvalsMenu, null);
+  
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.card-link-dropdown')) {
+      document.querySelectorAll('.card-link-dropdown').forEach(dropdown => {
+        dropdown.classList.remove('active');
+      });
+    }
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "Temporary Receipts - QC Inspection" %}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "QC" %}</span>
+<span class="separator">/</span>
+<span>{% trans "Temporary Receipts" %}</span>
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions">
+  <button onclick="window.print()" class="btn btn-secondary">
+    {% trans "Print" %}
+  </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h1>{% trans "Temporary Receipts - QC Inspection" %}</h1>
+  
+  <!-- Stats Summary -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">{% trans "Awaiting QC" %}</div>
+      <div class="stat-value" style="color: #f59e0b;">{{ receipts|length }}</div>
+    </div>
+  </div>
+
+  <!-- Receipts Table -->
+  <div class="data-table-container">
+    <style>
+      .action-buttons {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .badge-pending {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background-color: #f59e0b;
+        color: #ffffff;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+      .approval-form {
+        display: inline-block;
+        margin: 0;
+      }
+      .approval-notes {
+        margin-top: 0.5rem;
+        width: 100%;
+        min-width: 200px;
+      }
+    </style>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>{% trans "Document Code" %}</th>
+          <th>{% trans "Document Date" %}</th>
+          <th>{% trans "Item" %}</th>
+          <th>{% trans "Quantity" %}</th>
+          <th>{% trans "Warehouse" %}</th>
+          <th>{% trans "Supplier" %}</th>
+          <th>{% trans "Created By" %}</th>
+          <th>{% trans "Status" %}</th>
+          <th>{% trans "Actions" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if receipts %}
+          {% for receipt in receipts %}
+          <tr>
+            <td><code>{{ receipt.document_code }}</code></td>
+            <td>{{ receipt.document_date|jalali_date }}</td>
+            <td>
+              <strong>{{ receipt.item.name }}</strong><br>
+              <small style="color: #6b7280;"><code>{{ receipt.item_code }}</code></small>
+            </td>
+            <td style="text-align: right;">
+              {{ receipt.quantity|floatformat:2 }} {{ receipt.unit }}
+            </td>
+            <td>{{ receipt.warehouse.name }}</td>
+            <td>
+              {% if receipt.supplier %}
+                {{ receipt.supplier.name }}
+              {% else %}
+                <span style="color: #6b7280;">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if receipt.created_by %}
+                {{ receipt.created_by.get_full_name|default:receipt.created_by.username }}
+              {% else %}
+                <span style="color: #6b7280;">—</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge badge-pending">{% trans "Awaiting QC" %}</span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <form method="post" action="{% url 'qc:temporary_receipt_approve' receipt.pk %}" class="approval-form" onsubmit="return confirm('{% trans 'Are you sure you want to approve this receipt for QC?' %}');">
+                  {% csrf_token %}
+                  <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                    <input type="text" name="approval_notes" placeholder="{% trans 'Approval notes (optional)' %}" class="form-control approval-notes" style="display: inline-block;">
+                    <button type="submit" class="btn btn-success" style="padding: 4px 12px; font-size: 0.85rem;">
+                      ✓ {% trans "Approve" %}
+                    </button>
+                  </div>
+                </form>
+                <form method="post" action="{% url 'qc:temporary_receipt_reject' receipt.pk %}" class="approval-form" onsubmit="return confirm('{% trans 'Are you sure you want to reject this receipt for QC?' %}');">
+                  {% csrf_token %}
+                  <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                    <input type="text" name="rejection_notes" placeholder="{% trans 'Rejection notes (required)' %}" class="form-control approval-notes" style="display: inline-block;" required>
+                    <button type="submit" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;">
+                      ✗ {% trans "Reject" %}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="9">
+              <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <h3>{% trans "No Receipts Awaiting QC" %}</h3>
+                <p>{% trans "There are no temporary receipts awaiting QC inspection." %}</p>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if is_paginated %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page=1">&laquo; {% trans "First" %}</a>
+      <a href="?page={{ page_obj.previous_page_number }}">{% trans "Previous" %}</a>
+    {% endif %}
+
+    <span class="current">
+      {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}">{% trans "Next" %}</a>
+      <a href="?page={{ page_obj.paginator.num_pages }}">{% trans "Last" %} &raquo;</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
