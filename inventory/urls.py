@@ -3,6 +3,8 @@ URL configuration for the inventory module.
 """
 from django.urls import path
 from . import views
+# Import API endpoints from refactored module (with Type Hints)
+from .views import api as views_api
 
 app_name = 'inventory'
 
@@ -31,16 +33,18 @@ urlpatterns = [
     path('items/<int:pk>/edit/', views.ItemUpdateView.as_view(), name='item_edit'),
     path('items/<int:pk>/delete/', views.ItemDeleteView.as_view(), name='item_delete'),
     path('item-serials/', views.ItemSerialListView.as_view(), name='item_serials'),
-    path('api/item-allowed-units/', views.get_item_allowed_units, name='item_allowed_units'),
-    path('api/filtered-categories/', views.get_filtered_categories, name='filtered_categories'),
-    path('api/filtered-subcategories/', views.get_filtered_subcategories, name='filtered_subcategories'),
-    path('api/filtered-items/', views.get_filtered_items, name='filtered_items'),
-    path('api/item-units/', views.get_item_units, name='item_units'),
-    path('api/item-allowed-warehouses/', views.get_item_allowed_warehouses, name='item_allowed_warehouses'),
-    path('api/item-available-serials/', views.get_item_available_serials, name='item_available_serials'),
-    path('api/serial/<int:serial_id>/update-secondary/', views.update_serial_secondary_code, name='update_serial_secondary_code'),
-    path('api/temporary-receipt-data/', views.get_temporary_receipt_data, name='temporary_receipt_data'),
-    path('api/warehouse-work-lines/', views.get_warehouse_work_lines, name='warehouse_work_lines'),
+    
+    # API endpoints (from refactored views.api module with Type Hints)
+    path('api/item-allowed-units/', views_api.get_item_allowed_units, name='item_allowed_units'),
+    path('api/filtered-categories/', views_api.get_filtered_categories, name='filtered_categories'),
+    path('api/filtered-subcategories/', views_api.get_filtered_subcategories, name='filtered_subcategories'),
+    path('api/filtered-items/', views_api.get_filtered_items, name='filtered_items'),
+    path('api/item-units/', views_api.get_item_units, name='item_units'),
+    path('api/item-allowed-warehouses/', views_api.get_item_allowed_warehouses, name='item_allowed_warehouses'),
+    path('api/item-available-serials/', views_api.get_item_available_serials, name='item_available_serials'),
+    path('api/serial/<int:serial_id>/update-secondary/', views_api.update_serial_secondary_code, name='update_serial_secondary_code'),
+    path('api/temporary-receipt-data/', views_api.get_temporary_receipt_data, name='temporary_receipt_data'),
+    path('api/warehouse-work-lines/', views_api.get_warehouse_work_lines, name='warehouse_work_lines'),
     
     # Master Data - Warehouses
     path('warehouses/', views.WarehouseListView.as_view(), name='warehouses'),
@@ -136,4 +140,3 @@ urlpatterns = [
     path('balance/details/<int:item_id>/<int:warehouse_id>/', views.InventoryBalanceDetailsView.as_view(), name='balance_details'),
     path('api/balance/', views.InventoryBalanceAPIView.as_view(), name='inventory_balance_api'),
 ]
-

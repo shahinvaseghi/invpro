@@ -325,16 +325,38 @@ class Item(InventorySortableModel):
         super().save(*args, **kwargs)
 
     def _generate_sequence_segment(self) -> str:
+        """
+        Generate sequence segment based on existing item codes with the same user_segment.
+        This ensures that if user enters "10" as user_segment, the system will check
+        all existing item codes starting with "10" and generate the next sequential number.
+        """
+        # Find all items with the same user_segment (first 2 digits)
         queryset = Item.objects.filter(
             company=self.company,
-            type=self.type,
-            category=self.category,
-            subcategory=self.subcategory,
             user_segment=self.user_segment,
         ).exclude(pk=self.pk)
-        last_value = queryset.order_by("-sequence_segment").values_list("sequence_segment", flat=True).first()
-        if last_value:
-            return str(int(last_value) + 1).zfill(5)
+        
+        # Get all existing item_codes that start with this user_segment
+        existing_codes = queryset.exclude(item_code='').values_list("item_code", flat=True)
+        
+        # Extract sequence segments from existing codes
+        sequence_values = []
+        for code in existing_codes:
+            if code and len(code) >= 7 and code.startswith(self.user_segment):
+                try:
+                    # Extract the 5-digit sequence segment (last 5 digits)
+                    seq = code[2:7]  # Skip first 2 digits (user_segment), get next 5
+                    if seq.isdigit():
+                        sequence_values.append(int(seq))
+                except (ValueError, IndexError):
+                    continue
+        
+        # Find the maximum sequence value and add 1
+        if sequence_values:
+            max_seq = max(sequence_values)
+            return str(max_seq + 1).zfill(5)
+        
+        # If no existing codes found, start from 00001
         return "00001"
 
     def _generate_batch_number(self) -> str:

@@ -172,6 +172,14 @@
 - `docs/CHANGELOG.md`
 - `docs/UI_UX_CHANGELOG.md`
 
+### مستندات جدید
+- `docs/ARCHITECTURE.md` - نمودار معماری و ساختار سیستم
+- `docs/API_DOCUMENTATION.md` - مستندات کامل API endpoints
+- `docs/DEPLOYMENT.md` - راهنمای کامل deployment
+- `docs/REFACTORING_STATUS.md` - وضعیت refactoring پروژه (به‌روزرسانی شده)
+- `docs/CODE_STRUCTURE.md` - راهنمای کامل ساختار کد و organization
+- `docs/REFACTORING_GUIDE.md` - راهنمای کامل refactoring برای تیم جدید
+
 ---
 
 ## 📝 یادداشت
@@ -183,5 +191,5 @@
 
 ---
 
-**آخرین به‌روزرسانی**: 2025-11-21
+**آخرین به‌روزرسانی**: 2025-11-21 (Refactoring کامل شد - 100%)
 

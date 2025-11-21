@@ -73,6 +73,8 @@ DATABASE_URL=postgres://invproj_user:your_password@localhost:5432/invproj_db
 
 ## 2. Project Structure
 
+### 2.1. Directory Structure
+
 ```
 invproj/
 ├── config/              # Django settings and main URLs
@@ -81,23 +83,69 @@ invproj/
 │   └── wsgi.py
 ├── shared/              # Shared entities (User, Company, Person)
 │   ├── models.py
-│   ├── views.py
+│   ├── views/           # Refactored views (package-based)
+│   │   ├── __init__.py
+│   │   ├── base.py
+│   │   ├── auth.py
+│   │   ├── companies.py
+│   │   ├── company_units.py
+│   │   ├── users.py
+│   │   ├── groups.py
+│   │   └── access_levels.py
+│   ├── views.py         # Backward compatibility
 │   ├── forms.py
 │   ├── urls.py
-│   ├── admin.py
-│   └── context_processors.py
+│   └── ...
 ├── inventory/           # Inventory management
 │   ├── models.py
-│   ├── views.py
+│   ├── views/           # Refactored views (package-based)
+│   │   ├── __init__.py
+│   │   ├── base.py
+│   │   ├── api.py
+│   │   ├── master_data.py
+│   │   ├── requests.py
+│   │   ├── receipts.py
+│   │   ├── issues.py
+│   │   ├── stocktaking.py
+│   │   └── balance.py
+│   ├── views.py         # Backward compatibility
 │   ├── forms.py
 │   ├── urls.py
-│   ├── admin.py
-│   └── inventory_balance.py
+│   └── ...
 ├── production/          # Production management
 │   ├── models.py
+│   ├── views.py         # Needs refactoring
+│   ├── forms.py        # Needs refactoring
 │   └── ...
 ├── qc/                  # Quality control
+│   ├── models.py
+│   ├── views/           # Refactored views (package-based)
+│   │   ├── __init__.py
+│   │   ├── base.py
+│   │   └── inspections.py
+│   ├── views.py         # Backward compatibility
 │   └── ...
+```
+
+### 2.2. Refactored Structure
+
+پس از refactoring، views و forms به صورت package-based سازماندهی شده‌اند:
+
+#### Views (Refactored):
+- **inventory/views/**: 9 فایل refactored (4,309 خط)
+- **shared/views/**: 8 فایل refactored (751 خط)
+- **qc/views/**: 3 فایل refactored (147 خط)
+- **production/views/**: 7 فایل refactored (1,142 خط)
+
+#### Forms (Refactored):
+- **production/forms/**: 6 فایل refactored (813 خط)
+
+#### Forms (Pending):
+- **inventory/forms.py**: 4,026 خط (بزرگترین فایل باقی‌مانده)
+
+**جمع کل**: 33 فایل refactored، 7,162 خط کد
+
+برای جزئیات بیشتر، به `docs/REFACTORING_STATUS.md` و `docs/CODE_STRUCTURE.md` مراجعه کنید.
 ├── ui/                  # UI templates and views
 │   ├── views.py
 │   └── urls.py
@@ -121,13 +169,30 @@ invproj/
 
 ## 3. Coding Standards
 
-### Python Style
+### 3.1. Python Style
 - Follow PEP 8
-- Use type hints where appropriate
+- **Type Hints**: استفاده اجباری از Type Hints برای تمام functions و methods
 - Maximum line length: 120 characters
-- Use meaningful variable names
+- Use meaningful variable names (نام‌های فارسی قابل فهم)
+- Best practices زبان Python را رعایت کنید
 
-### Django Conventions
+### 3.2. Type Hints (اجباری)
+
+```python
+from typing import Dict, Any, Optional, List
+
+def get_item(self, item_id: int) -> Optional[Item]:
+    """Get item by ID."""
+    pass
+
+def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+    """Add context data."""
+    context = super().get_context_data(**kwargs)
+    return context
+```
+
+### 3.3. Django Conventions
+
 ```python
 # Model naming
 class ItemType(models.Model):  # CamelCase, singular
@@ -145,6 +210,24 @@ urlpatterns = [
 # Template naming
 templates/inventory/item_types.html  # snake_case
 ```
+
+### 3.4. Refactored Views Structure
+
+برای views جدید، از ساختار package-based استفاده کنید:
+
+```python
+# inventory/views/master_data.py
+from typing import Dict, Any
+from django.views.generic import ListView
+from inventory.views.base import InventoryBaseView
+
+class ItemTypeListView(InventoryBaseView, ListView):
+    """List view for item types."""
+    model = models.ItemType
+    # ...
+```
+
+برای جزئیات بیشتر، به `docs/CODE_STRUCTURE.md` مراجعه کنید.
 
 ### Documentation
 ```python
