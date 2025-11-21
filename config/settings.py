@@ -184,7 +184,9 @@ AUTH_USER_MODEL = 'shared.User'
 
 # Authentication URLs
 LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/fa/'  # Redirect to Persian version after login
+# Use '/' to let Django's i18n_patterns handle language prefix automatically
+# This respects user's language preference and works with both /fa/ and /en/
+LOGIN_REDIRECT_URL = '/'  # Redirect to root, Django will add language prefix automatically
 LOGOUT_REDIRECT_URL = '/login/'
 
 
