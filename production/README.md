@@ -24,7 +24,7 @@ Defines all production entities. Structure:
   - `BOMMaterial`: BOM line items connecting materials to the BOM header. Stores material item, type (FK to ItemType - user-defined), quantity per unit, unit (CharField - stores unit name), scrap allowance percentage, optional flag (0=Required, 1=Optional), and line number for ordering. Automatically caches material item code. CASCADE delete when parent BOM is deleted.
 
 - **Process Definitions**
-  - `Process`: describes a production process for a finished item; stores BOM reference, revision, approval state, and primary flag. Populates cached finished item code. References `Person` for approval workflow.
+  - `Process`: describes a production process for a finished item; stores optional BOM reference, optional revision, work lines assignment (ManyToMany), and primary flag. Populates cached finished item code from BOM if provided. References `User` (not `Person`) for approval workflow via `approved_by` field. **Note**: `effective_from` and `effective_to` fields have been removed. `revision` is now optional. `approval_status` is managed via approval workflow in list view, not in form.
   - `ProcessStep`: details each step within a process (work center, optional machine assignment, sequence, labor/machine minutes, setup time). Caches work center code and machine code when machine is assigned.
 
 - **Production Orders**
@@ -57,6 +57,7 @@ Defines ModelForms for production entities:
 - `BOMForm`: Create and edit BOM headers with cascading filters for finished item selection (Type → Category → Subcategory → Item). Includes version, description, notes, active flag, and status fields.
 - `BOMMaterialLineForm`: Form for individual BOM material lines with cascading filters for material selection. Includes material type (FK to ItemType), category/subcategory filters (UI-only), material item, quantity, unit (CharField), scrap allowance, optional flag (BooleanField in form, stores as 0/1), and description. Auto-sets material_type from material_item if not provided.
 - `BOMMaterialLineFormSet`: Django inline formset factory for managing multiple material lines within a BOM. Supports dynamic add/remove of lines with minimum 1 line validation. Shows 1 empty form initially (extra=1).
+- `ProcessForm`: Create and edit production processes. Includes optional BOM selection, optional revision, work lines multi-select (ManyToMany), description, is_primary flag (optional), approved_by (ForeignKey to User, filtered to show only users with APPROVE permission for production.processes), notes, is_enabled, and sort_order. **Note**: `effective_from` and `effective_to` fields have been removed. `approval_status` is not in form (managed via approval workflow in list view). **Important**: `approved_by` uses `User` model, not `Person` model.
 
 ## views.py
 
@@ -86,6 +87,12 @@ Provides CRUD views for production resources:
   - `BOMUpdateView`: Update BOM header and materials with formset validation. Handles edit mode value restoration, auto-sets edited_by, saves with proper line numbering. Includes comprehensive logging for debugging.
   - `BOMDeleteView`: Delete BOM and cascade delete all material lines
 
+- **Process Management**:
+  - `ProcessListView`: List all processes for the active company with BOM, work lines, and status display. Filters by active company, uses select_related for BOM/finished_item/approved_by and prefetch_related for work_lines.
+  - `ProcessCreateView`: Create new process records. Auto-sets company_id and created_by. Sets finished_item from BOM if provided. Saves ManyToMany work_lines relationship via form.save_m2m().
+  - `ProcessUpdateView`: Update existing process records. Auto-sets edited_by. Sets finished_item from BOM if changed. Saves ManyToMany work_lines relationship via form.save_m2m().
+  - `ProcessDeleteView`: Delete process records (with confirmation). Filters by active company.
+
 - **Transfer Requests** (Placeholder):
   - `TransferToLineRequestListView`: List transfer requests to production lines
 
@@ -114,6 +121,10 @@ URL patterns for production module:
 - `/production/bom/create/` - Create new BOM with materials
 - `/production/bom/<id>/edit/` - Edit BOM and materials
 - `/production/bom/<id>/delete/` - Delete BOM (cascade)
+- `/production/processes/` - Processes list
+- `/production/processes/create/` - Create process
+- `/production/processes/<id>/edit/` - Edit process
+- `/production/processes/<id>/delete/` - Delete process
 - `/production/transfer-requests/` - Transfer to line requests (placeholder)
 - `/production/performance-records/` - Performance records (placeholder)
 
@@ -133,6 +144,9 @@ Production module templates:
 - `production/bom_list.html`: BOM list with expand/collapse material details, filter by finished item, material type badges
 - `production/bom_form.html`: Multi-section form with cascading dropdowns for finished item selection and dynamic formset for materials with JavaScript add/remove functionality
 - `production/bom_confirm_delete.html`: BOM deletion confirmation with material count display
+- `production/processes.html`: Processes list view with BOM, work lines, and status display. Shows empty state if no processes exist.
+- `production/process_form.html`: Process create/edit form with optional BOM selection, optional revision, work lines multi-select, description, is_primary, approved_by (filtered by approve permission), notes, is_enabled, and sort_order fields.
+- `production/process_confirm_delete.html`: Process deletion confirmation page
 
 ## admin.py
 

@@ -1,7 +1,7 @@
 # Production Module Forms Documentation
 
 ## Overview
-This document describes the forms used in the production module for managing personnel, machines, work lines, and BOM (Bill of Materials).
+This document describes the forms used in the production module for managing personnel, machines, work lines, BOM (Bill of Materials), and Processes.
 
 **Note**: Personnel (`Person`) and Work Lines (`WorkLine`) are part of the Production module, not Inventory. They are used for production workflows and can optionally be referenced in inventory consumption issues.
 
@@ -444,7 +444,85 @@ BOMMaterialLineFormSet = inlineformset_factory(
 
 ---
 
-### 6. BOMMaterialLineFormSet
+### 6. ProcessForm
+**Purpose:** Create and edit production processes
+
+**Model:** `Process`
+
+**Fields:**
+- `bom` - Optional BOM (Bill of Materials) selection (ForeignKey to BOM)
+- `work_lines` - Multiple work lines assignment (ManyToMany to WorkLine, required=False)
+- `revision` - Optional revision string (CharField, blank=True)
+- `description` - Brief description (CharField, blank=True)
+- `is_primary` - Primary process flag (PositiveSmallIntegerField, default=0)
+- `approved_by` - Approver (ForeignKey to User, optional, filtered to show only users with APPROVE permission)
+- `notes` - Detailed notes (Textarea, blank=True)
+- `is_enabled` - Active/Inactive status (PositiveSmallIntegerField)
+- `sort_order` - Display order (PositiveSmallIntegerField, default=0)
+
+**Removed Fields:**
+- `effective_from` - Removed (was DateField)
+- `effective_to` - Removed (was DateField)
+- `approval_status` - Removed from form (managed via approval workflow in list view, still exists in model)
+
+**Auto-Generated Fields:**
+- `process_code` (16 digits) - Automatically generated sequential code per company. Not user-editable. Generated on save using `generate_sequential_code()`.
+- `finished_item_code` - Cached from BOM.finished_item.item_code if BOM is provided
+- `bom_code` - Cached from BOM.bom_code if BOM is provided
+
+**Special Features:**
+- BOM field is optional (required=False). If BOM is selected, finished_item is automatically set from BOM.finished_item.
+- Work lines multi-select filtered by active company and enabled status
+- Approved_by field is filtered to show only User records (not Person) that have APPROVE permission for `production.processes` feature:
+  - Queries AccessLevelPermission for access levels with `can_approve=1` for `production.processes`
+  - Finds UserCompanyAccess records with those access levels for the active company
+  - Filters User records (not Person) to show only those users with approve permission
+- Revision is optional (blank=True). Unique constraint only applies when revision is not empty.
+
+**Validation:**
+- BOM must belong to the active company (if provided)
+- Work lines must belong to the active company
+- Approved_by must be a User (not Person) with approve permission for production.processes (if provided)
+- Revision must be unique per company and finished_item (only when not empty)
+
+**Usage in Views:**
+```python
+class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
+    model = Process
+    form_class = ProcessForm
+    template_name = 'production/process_form.html'
+    success_url = reverse_lazy('production:processes')
+    feature_code = 'production.processes'
+    required_action = 'create'
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['company_id'] = self.request.session.get('active_company_id')
+        kwargs['request'] = self.request  # Required for approve permission filtering
+        return kwargs
+    
+    def form_valid(self, form):
+        form.instance.company_id = self.request.session.get('active_company_id')
+        form.instance.created_by = self.request.user
+        # Set finished_item from BOM if provided
+        if form.cleaned_data.get('bom'):
+            form.instance.finished_item = form.cleaned_data['bom'].finished_item
+        response = super().form_valid(form)
+        # Save Many-to-Many relationships
+        form.save_m2m()
+        messages.success(self.request, _('Process created successfully.'))
+        return response
+```
+
+**Important Notes:**
+- Process approval is managed via approval workflow in the list view (processes.html), not in the form
+- The `approved_by` field in the form is for selecting who can approve, but actual approval happens via a separate approval action in the list view
+- BOM and revision are optional, allowing processes to be created without a BOM or revision
+- Work lines can be assigned after process creation via edit view
+
+---
+
+### 7. BOMMaterialLineFormSet
 **Purpose:** Manage multiple material lines within a single BOM
 
 **Type:** Django Inline Formset (inlineformset_factory)

@@ -105,6 +105,18 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.DELETE_OWN,
         ],
     ),
+    "production.processes": FeaturePermission(
+        code="production.processes",
+        label=_("Processes"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+        ],
+    ),
     "shared.users": FeaturePermission(
         code="shared.users",
         label=_("Users"),
@@ -436,6 +448,21 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+        ],
+    ),
+    # QC – Inspections
+    "qc.inspections": FeaturePermission(
+        code="qc.inspections",
+        label=_("QC Inspections"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+            PermissionAction.CANCEL,
         ],
     ),
 }

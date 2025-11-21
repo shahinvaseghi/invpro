@@ -29,6 +29,12 @@ urlpatterns = [
     path('bom/<int:pk>/edit/', views.BOMUpdateView.as_view(), name='bom_edit'),
     path('bom/<int:pk>/delete/', views.BOMDeleteView.as_view(), name='bom_delete'),
     
+    # Processes (فرایندهای تولید)
+    path('processes/', views.ProcessListView.as_view(), name='processes'),
+    path('processes/create/', views.ProcessCreateView.as_view(), name='process_create'),
+    path('processes/<int:pk>/edit/', views.ProcessUpdateView.as_view(), name='process_edit'),
+    path('processes/<int:pk>/delete/', views.ProcessDeleteView.as_view(), name='process_delete'),
+    
     # Transfer to Line Requests (درخواست انتقال به پای کار)
     path('transfer-requests/', views.TransferToLineRequestListView.as_view(), name='transfer_requests'),
     

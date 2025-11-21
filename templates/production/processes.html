@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Processes" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="production-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <span>{% trans "Processes" %}</span>
+    </nav>
+    
+    <h1 class="page-title">{% trans "Processes" %}</h1>
+    
+    <div class="page-actions">
+      <a href="{% url 'production:process_create' %}" class="btn btn-primary">
+        + {% trans "Create" %} {% trans "Process" %}
+      </a>
+    </div>
+  </div>
+
+  <div class="data-table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>{% trans "Code" %}</th>
+          <th>{% trans "Finished Item" %}</th>
+          <th>{% trans "BOM" %}</th>
+          <th>{% trans "Revision" %}</th>
+          <th>{% trans "Work Lines" %}</th>
+          <th>{% trans "Status" %}</th>
+          <th>{% trans "Actions" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if processes %}
+          {% for process in processes %}
+          <tr>
+            <td><code>{{ process.process_code }}</code></td>
+            <td><strong>{{ process.finished_item.name }}</strong></td>
+            <td>
+              {% if process.bom %}
+                <code>{{ process.bom.bom_code }}</code>
+              {% else %}
+                <span style="color: #9ca3af;">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if process.revision %}
+                {{ process.revision }}
+              {% else %}
+                <span style="color: #9ca3af;">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if process.work_lines.exists %}
+                <ul style="margin: 0; padding-right: 1.5rem; list-style: none;">
+                  {% for work_line in process.work_lines.all|slice:":3" %}
+                  <li>{{ work_line.name }}</li>
+                  {% endfor %}
+                  {% if process.work_lines.count > 3 %}
+                  <li><em>{% trans "and" %} {{ process.work_lines.count|add:"-3" }} {% trans "more" %}</em></li>
+                  {% endif %}
+                </ul>
+              {% else %}
+                <span style="color: #9ca3af;">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if process.is_enabled %}
+                <span class="badge badge-active">{% trans "Active" %}</span>
+              {% else %}
+                <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'production:process_edit' process.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem; margin-left: 0.25rem;">
+                {% trans "Edit" %}
+              </a>
+              <a href="{% url 'production:process_delete' process.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem; margin-left: 0.25rem;">
+                {% trans "Delete" %}
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <div class="empty-state-icon">⚙️</div>
+                <h3>{% trans "No Processes Found" %}</h3>
+                <p>{% trans "Start by creating your first process." %}</p>
+                <a href="{% url 'production:process_create' %}" class="btn btn-primary">
+                  + {% trans "Create" %} {% trans "Process" %}
+                </a>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+

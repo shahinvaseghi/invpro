@@ -450,27 +450,44 @@ class BOMMaterial(ProductionBaseModel):
 
 
 class Process(ProductionSortableModel):
-    process_code = models.CharField(max_length=30)
+    process_code = models.CharField(
+        max_length=16,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        editable=False,
+    )
     finished_item = models.ForeignKey(
         "inventory.Item",
         on_delete=models.PROTECT,
         related_name="production_processes",
     )
     finished_item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
-    bom_code = models.CharField(max_length=30)
-    revision = models.CharField(max_length=10)
+    bom = models.ForeignKey(
+        "BOM",
+        on_delete=models.PROTECT,
+        related_name="processes",
+        null=True,
+        blank=True,
+        help_text=_("Bill of Materials for this process"),
+    )
+    bom_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR], blank=True)
+    work_lines = models.ManyToManyField(
+        "WorkLine",
+        related_name="processes",
+        blank=True,
+        help_text=_("Work lines assigned to this process"),
+    )
+    revision = models.CharField(max_length=10, blank=True)
     description = models.CharField(max_length=255, blank=True)
-    effective_from = models.DateField(null=True, blank=True)
-    effective_to = models.DateField(null=True, blank=True)
     is_primary = models.PositiveSmallIntegerField(default=0)
     approval_status = models.CharField(max_length=20, default="draft")
     approved_at = models.DateTimeField(null=True, blank=True)
     approved_by = models.ForeignKey(
-        "Person",
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         related_name="processes_approved",
         null=True,
         blank=True,
+        help_text=_("User who approved this process"),
     )
     notes = models.TextField(blank=True)
 
@@ -481,6 +498,7 @@ class Process(ProductionSortableModel):
             models.UniqueConstraint(
                 fields=("company", "finished_item", "revision"),
                 name="production_process_revision_unique",
+                condition=~models.Q(revision=''),
             ),
         ]
         ordering = ("company", "finished_item", "sort_order", "revision")
@@ -489,8 +507,17 @@ class Process(ProductionSortableModel):
         return f"{self.process_code} · {self.revision}"
 
     def save(self, *args, **kwargs):
-        if not self.finished_item_code:
+        if not self.process_code and self.company_id:
+            self.process_code = generate_sequential_code(
+                self.__class__,
+                company_id=self.company_id,
+                width=16,
+                field='process_code',
+            )
+        if not self.finished_item_code and self.finished_item:
             self.finished_item_code = self.finished_item.item_code
+        if self.bom and not self.bom_code:
+            self.bom_code = self.bom.bom_code
         super().save(*args, **kwargs)
 
 

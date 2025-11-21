@@ -800,6 +800,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Personnel (`Person`)**: Personnel management is part of the Production module, not Inventory. The `Person` model is used for workforce management in production workflows and can optionally be assigned to work lines.
 - **WorkLine**: Work lines are part of the Production module, not Inventory. They can optionally be associated with warehouses (if inventory module is installed) and are primarily used in production workflows, though they can also be referenced in inventory consumption issues.
 
+### Added
+- **Process Form Enhancements**: Updated `ProcessForm` to support optional BOM and revision fields, removed effective date fields, and implemented approve permission-based filtering for `approved_by` field.
+- **Process Model Updates**: Made `revision` field optional (`blank=True`), removed `effective_from` and `effective_to` fields, and updated unique constraint to only apply when revision is not empty.
+- **Process Approval Workflow**: Removed `approval_status` from form (managed via approval workflow in list view). `approved_by` field changed from `ForeignKey` to `Person` to `ForeignKey` to `User` (consistent with application design where all approvals use User accounts). Field now filters to show only users with APPROVE permission for `production.processes` feature.
+- **Process Permission**: Added `APPROVE` action to `production.processes` permission in `shared/permissions.py`.
+
+### Changed
+- **Process Form**: Removed `effective_from`, `effective_to`, and `approval_status` fields from `ProcessForm`. Made `bom` and `revision` fields optional.
+- **Process List View**: Updated to handle optional BOM and revision fields, displaying "—" when not set.
+- **Process Views**: Updated `ProcessCreateView` and `ProcessUpdateView` to pass `request` parameter to form for approve permission filtering.
+
+### Migration Notes
+- **Database Migrations**: 
+  - **Process model** (4 migrations):
+    - `production.0015_remove_effective_dates_from_process`: Removed unique constraint and made revision optional
+    - `production.0016_remove_effective_dates_from_process`: Removed `effective_from` and `effective_to` fields
+    - `production.0017_fix_process_revision_constraint`: Fixed unique constraint to only apply when revision is not empty
+    - `production.0018_change_process_approved_by_to_user`: Changed `approved_by` field from `ForeignKey` to `Person` to `ForeignKey` to `User` (consistent with application design where all approvals use User accounts)
+  - **QC model** (1 migration):
+    - `qc.0005_change_receipt_inspection_approved_by_to_user`: Changed `ReceiptInspection.approved_by` field from `ForeignKey` to `Person` to `ForeignKey` to `User` (consistent with application design where all approvals use User accounts)
+
 ### Planned for v0.4.0
 - Integration with external ERPs
 - Automated backup system

@@ -32,15 +32,7 @@ class ReceiptInspectionTests(TestCase):
             is_enabled=1,
             sort_order=1,
         )
-        self.approver = shared_models.Person.objects.create(
-            company=self.company,
-            public_code="00000011",
-            username="approver1",
-            first_name="Maryam",
-            last_name="Ghasemi",
-            is_enabled=1,
-            sort_order=2,
-        )
+        # approved_by is now a User, not Person - no need to create approver Person
 
         self.item_type = inventory_models.ItemType.objects.create(
             company=self.company,
@@ -115,14 +107,15 @@ class ReceiptInspectionTests(TestCase):
         self.assertEqual(inspection.inspector_code, self.inspector.public_code)
 
     def test_receipt_inspection_approval_fields(self):
+        # approved_by is now a User, not Person
         inspection = qc_models.ReceiptInspection.objects.create(
             company=self.company,
             temporary_receipt=self.temporary_receipt,
             inspection_code="QC-INS-002",
             inspector=self.inspector,
             approval_decision=qc_models.ReceiptInspection.ApprovalDecision.APPROVED,
-            approved_by=self.approver,
+            approved_by=self.user,  # Use User instead of Person
             is_enabled=1,
         )
-        self.assertEqual(inspection.approved_by, self.approver)
+        self.assertEqual(inspection.approved_by, self.user)
         self.assertIn("QC-", inspection.inspection_code)
