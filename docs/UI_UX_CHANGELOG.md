@@ -4,6 +4,39 @@ This document tracks all UI/UX design improvements made to the invproj platform.
 
 ---
 
+## November 2024 - UI Enhancements & Bug Fixes
+
+### Notification System Improvements
+**Date**: November 22, 2024
+
+#### Changes
+- **Notification Read Tracking**: Implemented notification read tracking system
+  - Notifications are now marked as read when clicked
+  - Read notifications are stored in session and excluded from display
+  - Badge count automatically updates after marking notifications as read
+  - Uses `fetch` API for smooth AJAX-based marking without page reload
+  
+- **Notification Display**:
+  - Notification dropdown in header shows all pending notifications
+  - Each notification is clickable and redirects to related page
+  - Read notifications disappear from the list after clicking
+
+### Header Improvements
+**Date**: November 22, 2024
+
+#### Changes
+- **Logout Button**: Added logout button next to username in header
+  - Clean design matching header style
+  - Hover effects for better UX
+  - Positioned in user info container for better organization
+
+- **Language Switcher Fix**: Fixed language switching behavior
+  - Language switcher now properly redirects to current page after language change
+  - JavaScript removes language prefix from URL before redirect
+  - Works correctly with Django's `i18n_patterns` URL handling
+
+---
+
 ## November 2024 - Major UI/UX Overhaul
 
 ### Custom Login Page

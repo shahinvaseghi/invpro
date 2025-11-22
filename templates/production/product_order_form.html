@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{{ form_title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <a href="{% url 'production:product_orders' %}">{% trans "Product Orders" %}</a>
+      <span>/</span>
+      <span>{{ form_title }}</span>
+    </nav>
+    
+    <h1 class="page-title">{{ form_title }}</h1>
+  </div>
+
+  <div class="form-container">
+    {% if messages %}
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    {% endif %}
+    
+    <form method="post" class="product-order-form">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-error">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <div class="form-section">
+        <h3>{% trans "Order Information" %}</h3>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.bom.id_for_label }}">{{ form.bom.label }} *</label>
+            {{ form.bom }}
+            {% if form.bom.errors %}
+              <div class="field-errors">
+                {{ form.bom.errors }}
+              </div>
+            {% endif %}
+            {% if form.bom.help_text %}
+              <small class="help-text">{{ form.bom.help_text }}</small>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.quantity_planned.id_for_label }}">{{ form.quantity_planned.label }} *</label>
+            {{ form.quantity_planned }}
+            {% if form.quantity_planned.errors %}
+              <div class="field-errors">
+                {{ form.quantity_planned.errors }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.approved_by.id_for_label }}">{{ form.approved_by.label }}</label>
+            {{ form.approved_by }}
+            {% if form.approved_by.errors %}
+              <div class="field-errors">
+                {{ form.approved_by.errors }}
+              </div>
+            {% endif %}
+            {% if form.approved_by.help_text %}
+              <small class="help-text">{{ form.approved_by.help_text }}</small>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.due_date.id_for_label }}">{{ form.due_date.label }}</label>
+            {{ form.due_date }}
+            {% if form.due_date.errors %}
+              <div class="field-errors">
+                {{ form.due_date.errors }}
+              </div>
+            {% endif %}
+          </div>
+          
+          <div class="form-field">
+            <label for="{{ form.priority.id_for_label }}">{{ form.priority.label }}</label>
+            {{ form.priority }}
+            {% if form.priority.errors %}
+              <div class="field-errors">
+                {{ form.priority.errors }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.customer_reference.id_for_label }}">{{ form.customer_reference.label }}</label>
+            {{ form.customer_reference }}
+            {% if form.customer_reference.errors %}
+              <div class="field-errors">
+                {{ form.customer_reference.errors }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+            {{ form.notes }}
+            {% if form.notes.errors %}
+              <div class="field-errors">
+                {{ form.notes.errors }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+        <a href="{% url 'production:product_orders' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Jalali DatePicker Library (Local) -->
+<link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">
+<script src="{% static 'js/jalali-datepicker/jalali-datepicker.min.js' %}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize Jalali DatePicker for all inputs with jalali-date-input class or data-jalali attribute
+  var jalaliInputs = document.querySelectorAll('input.jalali-date-input, input[data-jalali="true"]');
+  
+  jalaliInputs.forEach(function(input) {
+    // Add data-jdp attribute for auto-initialization
+    input.setAttribute('data-jdp', '');
+    input.setAttribute('data-jdp-only-date', ''); // Only date, no time
+  });
+  
+  // Start watching for Jalali DatePicker initialization
+  if (typeof jalaliDatepicker !== 'undefined') {
+    jalaliDatepicker.startWatch({
+      date: true,
+      time: false,
+      separatorChars: {
+        date: '/',
+        between: ' ',
+        time: ':'
+      },
+      persianDigits: false,
+      autoShow: true,
+      autoHide: true,
+      hideAfterChange: true,
+      showTodayBtn: true,
+      showEmptyBtn: true,
+      showCloseBtn: true,
+      useDropDownYears: true,
+      zIndex: 1000
+    });
+  } else {
+    console.error('Jalali DatePicker library not loaded!');
+  }
+});
+</script>
+{% endblock %}
+

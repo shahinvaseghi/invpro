@@ -28,7 +28,7 @@ Defines all production entities. Structure:
   - `ProcessStep`: details each step within a process (work center, optional machine assignment, sequence, labor/machine minutes, setup time). Caches work center code and machine code when machine is assigned.
 
 - **Production Orders**
-  - `ProductOrder`: plans execution for a finished item with BOM/process reference, planned quantity, priority, and status. Caches finished item and process codes.
+  - `ProductOrder`: plans execution for a finished item with BOM selection, planned quantity, approver assignment, priority, due date, customer reference, and status. Automatically generates unique 8-digit `order_code` per company. References `BOM` (ForeignKey, required) and `User` (for approver, optional). Caches finished item code from BOM and process code if process is assigned. Made `process` field nullable to allow orders without process assignment.
   - `OrderPerformance`: records daily/periodic production results including produced/received/scrapped quantities, cycle times, labor/machine usage, and optional shift context. Enforces one record per order per date and caches order/finished item codes.
 
 - **Material Transfer**
@@ -43,6 +43,7 @@ All models inherit audit fields and apply `save()` overrides to populate cached 
 - `WorkCenter.public_code`: Auto-generated 5-digit sequential code per company
 - `WorkLine.public_code`: Auto-generated 5-digit sequential code per company (not user-editable)
 - `BOM.bom_code`: Auto-generated 16-digit sequential code per company (not user-editable)
+- `ProductOrder.order_code`: Auto-generated 8-digit sequential code per company with prefix "PO" (not user-editable)
 - Codes are generated using `inventory.utils.codes.generate_sequential_code()` function
 - Users cannot manually enter codes; they are automatically assigned on save
 - All codes are company-scoped (each company has independent sequences starting from 1)
@@ -58,6 +59,7 @@ Defines ModelForms for production entities:
 - `BOMMaterialLineForm`: Form for individual BOM material lines with cascading filters for material selection. Includes material type (FK to ItemType), category/subcategory filters (UI-only), material item, quantity, unit (CharField), scrap allowance, optional flag (BooleanField in form, stores as 0/1), and description. Auto-sets material_type from material_item if not provided.
 - `BOMMaterialLineFormSet`: Django inline formset factory for managing multiple material lines within a BOM. Supports dynamic add/remove of lines with minimum 1 line validation. Shows 1 empty form initially (extra=1).
 - `ProcessForm`: Create and edit production processes. Includes optional BOM selection, optional revision, work lines multi-select (ManyToMany), description, is_primary flag (optional), approved_by (ForeignKey to User, filtered to show only users with APPROVE permission for production.processes), notes, is_enabled, and sort_order. **Note**: `effective_from` and `effective_to` fields have been removed. `approval_status` is not in form (managed via approval workflow in list view). **Important**: `approved_by` uses `User` model, not `Person` model.
+- `ProductOrderForm`: Create and edit production orders. Includes BOM selection (required, filtered by company and enabled status), quantity_planned (required, must be positive), approved_by (ForeignKey to User, optional, filtered to show only users with APPROVE permission for production.product_orders), due_date (JalaliDateField, optional), priority (ChoiceField), customer_reference (optional), notes (optional), and is_enabled. Auto-sets finished_item from selected BOM. Uses `JalaliDateInput` widget for due_date field with Persian date picker.
 
 ## views.py
 
@@ -125,6 +127,10 @@ URL patterns for production module:
 - `/production/processes/create/` - Create process
 - `/production/processes/<id>/edit/` - Edit process
 - `/production/processes/<id>/delete/` - Delete process
+- `/production/product-orders/` - Product orders list
+- `/production/product-orders/create/` - Create product order
+- `/production/product-orders/<id>/edit/` - Edit product order
+- `/production/product-orders/<id>/delete/` - Delete product order
 - `/production/transfer-requests/` - Transfer to line requests (placeholder)
 - `/production/performance-records/` - Performance records (placeholder)
 
@@ -147,6 +153,9 @@ Production module templates:
 - `production/processes.html`: Processes list view with BOM, work lines, and status display. Shows empty state if no processes exist.
 - `production/process_form.html`: Process create/edit form with optional BOM selection, optional revision, work lines multi-select, description, is_primary, approved_by (filtered by approve permission), notes, is_enabled, and sort_order fields.
 - `production/process_confirm_delete.html`: Process deletion confirmation page
+- `production/product_orders.html`: Product orders list view with BOM, quantity, status, and actions (edit/delete)
+- `production/product_order_form.html`: Product order create/edit form with BOM selection, quantity, approver, due date (with Persian date picker), priority, customer reference, and notes
+- `production/product_order_confirm_delete.html`: Product order deletion confirmation page
 
 ## admin.py
 
@@ -188,6 +197,7 @@ Production module uses the centralized permission system defined in `shared/perm
 - `production.machines`: Machine management with actions (view_own, view_all, create, edit_own, delete_own)
 - `production.work_lines`: Work line management with actions (view_own, view_all, create, edit_own, delete_own) - **WorkLine is part of Production module, not Inventory**
 - `production.bom`: BOM (Bill of Materials) management with actions (view_own, view_all, create, edit_own, delete_own)
+- `production.product_orders`: Product orders management with actions (view_own, view_all, create, edit_own, delete_own, approve)
 - `production.transfer_requests`: Transfer to line requests (placeholder)
 - `production.performance_records`: Production performance records (placeholder)
 

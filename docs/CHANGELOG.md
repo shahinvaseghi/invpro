@@ -9,9 +9,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- **Product Orders Management**: Complete implementation of Product Orders in Production module
+  - `ProductOrder` model with BOM selection, quantity planning, approver assignment, and priority management
+  - `ProductOrderForm` with BOM selection, quantity validation, and approver filtering based on permissions
+  - CRUD views: `ProductOrderListView`, `ProductOrderCreateView`, `ProductOrderUpdateView`, `ProductOrderDeleteView`
+  - Templates: `product_orders.html`, `product_order_form.html`, `product_order_confirm_delete.html`
+  - Permission: `production.product_orders` with actions (view_own, view_all, create, edit_own, delete_own, approve)
+  - Auto-generated 8-digit `order_code` per company using sequential code generation
+  - BOM selection filters to show only enabled BOMs for the active company
+  - Approver field filters to show only users with APPROVE permission for `production.product_orders`
+  - Navigation links added to sidebar and top menu with permission checks
+- **Jalali Date Picker Integration**: Local implementation of Persian date picker
+  - Integrated [JalaliDatePicker](https://github.com/majidh1/JalaliDatePicker) library (no dependencies, lightweight)
+  - Library files stored locally in `/static/js/jalali-datepicker/` and `/static/css/jalali-datepicker/`
+  - No external CDN dependencies - all files served from local static files
+  - `JalaliDateInput` widget enhanced with `data-jdp` and `data-jdp-only-date` attributes for auto-initialization
+  - Automatic date picker initialization for all inputs with `jalali-date-input` class or `data-jalali="true"` attribute
+  - Date picker configured for Persian calendar with date-only mode (no time selection)
+  - Applied to `ProductOrderForm.due_date` field and all other Jalali date fields throughout the application
+
+### Fixed
+- **Jalali Date Picker Not Displaying**: Fixed issue where Persian date picker was not showing when clicking on date input fields
+  - Integrated JalaliDatePicker library locally (no CDN dependencies) - library files stored in `/static/js/jalali-datepicker/` and `/static/css/jalali-datepicker/`
+  - Enhanced `JalaliDateInput` widget with `data-jdp` and `data-jdp-only-date` attributes for auto-initialization
+  - Added JavaScript initialization code in templates to automatically initialize date picker for all Jalali date inputs
+  - Date picker now displays correctly when clicking on date fields, allowing users to select dates from a visual Persian calendar
+  - Applied to all forms using `JalaliDateField` or `JalaliDateInput` widget throughout the application
+- **Production Module Form Initialization Error**: Fixed `TypeError: BaseModelForm.__init__() got an unexpected keyword argument 'request'` in production module create views
+  - Removed `kwargs['request']` from `get_form_kwargs()` in all production create/update views:
+    - `WorkLineCreateView` - Removed unnecessary `request` parameter
+    - `PersonCreateView` - Removed unnecessary `request` parameter
+    - `MachineCreateView` - Removed unnecessary `request` parameter
+    - `BOMCreateView` - Removed unnecessary `request` parameter
+    - `ProcessCreateView` and `ProcessUpdateView` - Removed unnecessary `request` parameter
+  - Removed unused `request` parameter from `ProcessForm.__init__()` method
+  - Forms now only receive `company_id` parameter which is sufficient for all filtering needs
+  - All production module create buttons (machines, work lines, personnel, BOM, processes) now work correctly without errors
+
+### Added
 - **Secondary Batch Number for Items**: Added optional `secondary_batch_number` field to `Item` model allowing users to define a custom secondary batch number in addition to the auto-generated batch number. This field is displayed in the item definition form and can be used for external batch tracking.
 - **Secondary Serial Number for Item Serials**: Added optional `secondary_serial_code` field to `ItemSerial` model allowing users to define a custom secondary serial number in addition to the auto-generated serial code. This field can be managed on the serial assignment page during receipt creation and updated via API endpoint `/inventory/api/update-serial-secondary-code/`.
 - **Inventory Balance Validation in Issue Forms**: Added validation to prevent issuing more items than available inventory. The system now checks current balance before allowing issue creation/editing, and displays an error message if insufficient inventory is available.
+- **Notification Read Tracking**: Added notification read tracking system using session storage. Users can mark notifications as read by clicking on them, and read notifications are stored in session to prevent them from appearing again. Notifications are tracked using unique keys (e.g., `approval_pending_purchase_{company_id}`).
+- **Logout Button in Header**: Added logout button next to username in the header for easy access to logout functionality. The button has a clean design matching the header style with hover effects.
 
 ### Changed
 - **Issue Forms Destination Type**: 
@@ -37,6 +77,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Updated `get_filtered_subcategories` API to return all subcategories for a category (not just those with items)
   - Added JavaScript cascading dropdown logic to filter subcategories when category changes
   - Subcategories now properly clear and reload when category selection changes
+- **Item Code Generation Logic**: Fixed issue where items with the same `user_segment` (first 2 digits) would all get the same code (e.g., all `1000001`)
+  - Updated `_generate_sequence_segment()` method in `Item` model to check all existing item codes with the same `user_segment`
+  - Now extracts sequence segments from all existing codes and generates the next sequential number
+  - Example: If `1000001` and `1000002` exist, the next item will get `1000003`
+  - Works correctly even if items have different types/categories but same `user_segment`
+- **Language Switcher Redirect**: Fixed issue where language switching would not properly redirect to the current page
+  - Added JavaScript function `updateLanguageNext()` to remove language prefix from current URL
+  - Language switcher now properly redirects to the same page after language change
+  - Works correctly with Django's `i18n_patterns` URL handling
+- **LOGIN_REDIRECT_URL Hardcoded Prefix**: Fixed hardcoded `/fa/` prefix in `LOGIN_REDIRECT_URL` setting
+  - Changed from `/fa/` to `/` to let Django's `i18n_patterns` handle language prefix automatically
+  - Now respects user's language preference (works with both `/fa/` and `/en/`)
+  - Resolves conflict with Django's i18n URL handling
+- **Notification Read Status**: Fixed issue where notifications would not be marked as read after clicking
+  - Added `mark_notification_read` view in `shared/views/auth.py`
+  - Implemented notification tracking using session storage with unique keys
+  - Added JavaScript using `fetch` API to mark notifications as read before redirecting
+  - Read notifications are now properly stored in session and excluded from display
 
 ---
 

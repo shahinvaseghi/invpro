@@ -46,7 +46,52 @@ class InventoryBaseView(LoginRequiredMixin):
 
 ---
 
-## 2. Internationalization (i18n)
+## 2. Notification System
+
+### Overview
+The platform includes a comprehensive notification system for tracking pending approvals and important events.
+
+### Key Features
+- **Notification Types**:
+  - Pending Approval Requests (Purchase, Warehouse, Stocktaking)
+  - Approved Requests (recently approved within 7 days)
+- **Read Tracking**: Notifications can be marked as read by clicking on them
+- **Session-Based Storage**: Read notifications are stored in user session
+- **Badge Counter**: Shows count of unread notifications in header
+- **Dropdown Display**: Clickable notification dropdown with all pending notifications
+
+### Technical Implementation
+```python
+# Notification tracking in context processor
+def active_company(request):
+    # Get read notifications from session
+    read_notifications = request.session.get('read_notifications', [])
+    read_notifications = set(read_notifications)
+    
+    # Filter notifications based on read status
+    if notification_key not in read_notifications:
+        notifications.append({...})
+
+# Mark notification as read
+@login_required
+@require_POST
+def mark_notification_read(request):
+    notification_key = request.POST.get('notification_key')
+    read_notifications = request.session.get('read_notifications', [])
+    read_notifications.add(notification_key)
+    request.session['read_notifications'] = list(read_notifications)
+```
+
+### User Experience
+1. Notifications appear in header bell icon with badge count
+2. User clicks on notification dropdown to view all notifications
+3. Clicking on a notification marks it as read and redirects to related page
+4. Read notifications disappear from the list
+5. Badge count updates automatically
+
+---
+
+## 3. Internationalization (i18n)
 
 ### Supported Languages
 - **Persian (Farsi)** - Primary language with full RTL support (default)

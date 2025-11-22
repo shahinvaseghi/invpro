@@ -58,10 +58,9 @@ class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
     required_action = 'create'
     
     def get_form_kwargs(self) -> Dict[str, Any]:
-        """Add company_id and request to form kwargs."""
+        """Add company_id to form kwargs."""
         kwargs = super().get_form_kwargs()
         kwargs['company_id'] = self.request.session.get('active_company_id')
-        kwargs['request'] = self.request
         return kwargs
     
     def form_valid(self, form: ProcessForm) -> HttpResponseRedirect:
@@ -95,10 +94,9 @@ class ProcessUpdateView(FeaturePermissionRequiredMixin, UpdateView):
     required_action = 'edit_own'
     
     def get_form_kwargs(self) -> Dict[str, Any]:
-        """Add company_id and request to form kwargs."""
+        """Add company_id to form kwargs."""
         kwargs = super().get_form_kwargs()
         kwargs['company_id'] = self.object.company_id
-        kwargs['request'] = self.request
         return kwargs
     
     def get_queryset(self):

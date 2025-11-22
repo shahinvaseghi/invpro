@@ -173,7 +173,7 @@
     </div>
   </div>
 
-  {% if user_feature_permissions|feature_allowed:'production.personnel' or user_feature_permissions|feature_allowed:'production.machines' or user_feature_permissions|feature_allowed:'production.work_lines' or user_feature_permissions|feature_allowed:'production.bom' or user_feature_permissions|feature_allowed:'production.processes' or request.user.is_superuser %}
+  {% if user_feature_permissions|feature_allowed:'production.personnel' or user_feature_permissions|feature_allowed:'production.machines' or user_feature_permissions|feature_allowed:'production.work_lines' or user_feature_permissions|feature_allowed:'production.bom' or user_feature_permissions|feature_allowed:'production.processes' or user_feature_permissions|feature_allowed:'production.product_orders' or request.user.is_superuser %}
     <div class="sidebar-section" data-section="production">
       <button type="button" class="section-header" data-target="production">
         <span class="section-title">{% trans "Production" %}</span>
@@ -195,10 +195,12 @@
         {% if user_feature_permissions|feature_allowed:'production.processes' or request.user.is_superuser %}
           <a href="{% url 'production:processes' %}" class="nav-link">{% trans "Processes" %}</a>
         {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.product_orders' or request.user.is_superuser %}
+          <a href="{% url 'production:product_orders' %}" class="nav-link">{% trans "Product Orders" %}</a>
+        {% endif %}
         {% if request.user.is_superuser %}
           <a href="{% url 'production:transfer_requests' %}" class="nav-link">{% trans "Transfer to Line Requests" %}</a>
           <a href="{% url 'production:performance_records' %}" class="nav-link">{% trans "Performance Records" %}</a>
-          <a href="#" class="nav-link">{% trans "Orders" %}</a>
         {% endif %}
       </div>
     </div>

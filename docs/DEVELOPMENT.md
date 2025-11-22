@@ -494,6 +494,39 @@ class ItemTypeTestCase(TestCase):
 - Application opens in Persian by default for all new users
 - Users can switch to English using the language switcher in the header
 
+### Language Switching
+- **Language Switcher**: Dropdown in header allows switching between Persian and English
+- **Auto Redirect**: After language change, user is redirected to the same page with new language
+- **URL Handling**: Language prefix (`/fa/` or `/en/`) is automatically added/removed by Django's `i18n_patterns`
+- **JavaScript Support**: `updateLanguageNext()` function removes language prefix from current URL before redirect
+- **Login Redirect**: `LOGIN_REDIRECT_URL` is set to `/` to let Django handle language prefix automatically
+
+### Notification System
+
+#### Implementation
+- Notifications are calculated in `shared/context_processors.active_company()`
+- Read notifications are tracked in session using unique keys
+- Notification keys format: `{type}_{subtype}_{company_id}` (e.g., `approval_pending_purchase_1`)
+
+#### Marking Notifications as Read
+```javascript
+// JavaScript in base.html
+function markNotificationAsRead(notificationKey, redirectUrl) {
+  // Use fetch API to mark notification as read
+  fetch('/shared/mark-notification-read/', {
+    method: 'POST',
+    body: formData,
+    headers: { 'X-CSRFToken': csrfToken }
+  })
+  .then(response => window.location.href = redirectUrl);
+}
+```
+
+#### Session Storage
+- Read notifications stored as list in `request.session['read_notifications']`
+- Converted to set for fast lookup during notification filtering
+- Persists across page loads until user logs out
+
 ### Adding Translatable Strings
 ```python
 # In Python code

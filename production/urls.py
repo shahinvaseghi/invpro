@@ -35,6 +35,12 @@ urlpatterns = [
     path('processes/<int:pk>/edit/', views.ProcessUpdateView.as_view(), name='process_edit'),
     path('processes/<int:pk>/delete/', views.ProcessDeleteView.as_view(), name='process_delete'),
     
+    # Product Orders (سفارشات تولید)
+    path('product-orders/', views.ProductOrderListView.as_view(), name='product_orders'),
+    path('product-orders/create/', views.ProductOrderCreateView.as_view(), name='product_order_create'),
+    path('product-orders/<int:pk>/edit/', views.ProductOrderUpdateView.as_view(), name='product_order_edit'),
+    path('product-orders/<int:pk>/delete/', views.ProductOrderDeleteView.as_view(), name='product_order_delete'),
+    
     # Transfer to Line Requests (درخواست انتقال به پای کار)
     path('transfer-requests/', views.TransferToLineRequestListView.as_view(), name='transfer_requests'),
     

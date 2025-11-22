@@ -29,6 +29,9 @@ from production.forms.work_line import WorkLineForm
 # Import process forms
 from production.forms.process import ProcessForm
 
+# Import product order forms
+from production.forms.product_order import ProductOrderForm
+
 __all__ = [
     # Person forms
     'PersonForm',
@@ -42,5 +45,7 @@ __all__ = [
     'WorkLineForm',
     # Process forms
     'ProcessForm',
+    # Product Order forms
+    'ProductOrderForm',
 ]
 

@@ -51,6 +51,14 @@ from production.views.process import (
     ProcessDeleteView,
 )
 
+# Import product order views
+from production.views.product_order import (
+    ProductOrderListView,
+    ProductOrderCreateView,
+    ProductOrderUpdateView,
+    ProductOrderDeleteView,
+)
+
 # Import placeholder views
 from production.views.placeholders import (
     TransferToLineRequestListView,
@@ -83,6 +91,11 @@ __all__ = [
     'ProcessCreateView',
     'ProcessUpdateView',
     'ProcessDeleteView',
+    # Product Order views
+    'ProductOrderListView',
+    'ProductOrderCreateView',
+    'ProductOrderUpdateView',
+    'ProductOrderDeleteView',
     # Placeholder views
     'TransferToLineRequestListView',
     'PerformanceRecordListView',

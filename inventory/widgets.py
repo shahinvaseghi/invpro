@@ -20,6 +20,8 @@ class JalaliDateInput(forms.DateInput):
         # Add Jalali date picker attributes
         attrs.setdefault('class', 'jalali-date-input')
         attrs.setdefault('data-jalali', 'true')
+        attrs.setdefault('data-jdp', '')  # For JalaliDatePicker library
+        attrs.setdefault('data-jdp-only-date', '')  # Only date, no time
         super().__init__(attrs, format)
     
     def format_value(self, value):

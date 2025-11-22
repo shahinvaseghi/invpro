@@ -606,13 +606,24 @@ class ProductOrder(ProductionBaseModel):
         related_name="production_orders",
     )
     finished_item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
+    bom = models.ForeignKey(
+        "BOM",
+        on_delete=models.PROTECT,
+        related_name="product_orders",
+        verbose_name=_("BOM"),
+        help_text=_("Bill of Materials for this order"),
+        null=True,
+        blank=True,
+    )
     bom_code = models.CharField(max_length=30)
     process = models.ForeignKey(
         Process,
         on_delete=models.PROTECT,
         related_name="product_orders",
+        null=True,
+        blank=True,
     )
-    process_code = models.CharField(max_length=30)
+    process_code = models.CharField(max_length=30, blank=True)
     quantity_planned = models.DecimalField(
         max_digits=18,
         decimal_places=6,
@@ -621,6 +632,15 @@ class ProductOrder(ProductionBaseModel):
     unit = models.CharField(max_length=30)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PLANNED)
     priority = models.CharField(max_length=10, choices=Priority.choices, default=Priority.NORMAL)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="approved_product_orders",
+        null=True,
+        blank=True,
+        verbose_name=_("Approver"),
+        help_text=_("User who can approve this order"),
+    )
     customer_reference = models.CharField(max_length=60, blank=True)
     notes = models.TextField(blank=True)
 
@@ -635,7 +655,9 @@ class ProductOrder(ProductionBaseModel):
     def save(self, *args, **kwargs):
         if not self.finished_item_code:
             self.finished_item_code = self.finished_item.item_code
-        if not self.process_code:
+        if self.bom and not self.bom_code:
+            self.bom_code = self.bom.bom_code
+        if self.process and not self.process_code:
             self.process_code = self.process.process_code
         super().save(*args, **kwargs)
 

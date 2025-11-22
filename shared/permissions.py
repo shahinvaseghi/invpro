@@ -117,6 +117,18 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.APPROVE,
         ],
     ),
+    "production.product_orders": FeaturePermission(
+        code="production.product_orders",
+        label=_("Product Orders"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+        ],
+    ),
     "shared.users": FeaturePermission(
         code="shared.users",
         label=_("Users"),
