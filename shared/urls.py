@@ -28,6 +28,10 @@ urlpatterns = [
     path('access-levels/create/', views.AccessLevelCreateView.as_view(), name='access_level_create'),
     path('access-levels/<int:pk>/edit/', views.AccessLevelUpdateView.as_view(), name='access_level_edit'),
     path('access-levels/<int:pk>/delete/', views.AccessLevelDeleteView.as_view(), name='access_level_delete'),
+    path('smtp-servers/', views.SMTPServerListView.as_view(), name='smtp_servers'),
+    path('smtp-servers/create/', views.SMTPServerCreateView.as_view(), name='smtp_server_create'),
+    path('smtp-servers/<int:pk>/edit/', views.SMTPServerUpdateView.as_view(), name='smtp_server_edit'),
+    path('smtp-servers/<int:pk>/delete/', views.SMTPServerDeleteView.as_view(), name='smtp_server_delete'),
     path('mark-notification-read/', mark_notification_read, name='mark_notification_read'),
 ]
 

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Delete SMTP Server" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <a href="{% url 'shared:smtp_servers' %}">{% trans "SMTP Servers" %}</a>
+      <span>/</span>
+      <span>{% trans "Delete" %}</span>
+    </nav>
+    
+    <h1 class="page-title">{% trans "Delete SMTP Server" %}</h1>
+  </div>
+
+  <div class="form-container">
+    <div class="alert alert-warning">
+      <h3>{% trans "Are you sure you want to delete this SMTP server configuration?" %}</h3>
+      <p>{% trans "This action cannot be undone." %}</p>
+    </div>
+    
+    <div class="info-banner">
+      <div><strong>{% trans "Name" %}:</strong> {{ smtp_server.name }}</div>
+      <div><strong>{% trans "Host" %}:</strong> {{ smtp_server.host }}</div>
+      <div><strong>{% trans "Port" %}:</strong> {{ smtp_server.port }}</div>
+      <div><strong>{% trans "From Email" %}:</strong> {{ smtp_server.from_email }}</div>
+      <div><strong>{% trans "Status" %}:</strong> 
+        {% if smtp_server.is_enabled == 1 %}
+          <span class="badge badge-success">{% trans "Active" %}</span>
+        {% else %}
+          <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+        {% endif %}
+      </div>
+    </div>
+    
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-actions">
+        <button type="submit" class="btn btn-danger">{% trans "Delete" %}</button>
+        <a href="{% url 'shared:smtp_servers' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+.form-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.alert-warning {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.info-banner {
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.info-banner div {
+  margin-bottom: 0.5rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+  padding-top: 2rem;
+}
+</style>
+{% endblock %}
+

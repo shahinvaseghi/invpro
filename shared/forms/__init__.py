@@ -57,3 +57,12 @@ __all__.extend([
     'AccessLevelForm',
 ])
 
+# Import SMTP server forms
+from shared.forms.smtp_server import (
+    SMTPServerForm,
+)
+
+__all__.extend([
+    'SMTPServerForm',
+])
+

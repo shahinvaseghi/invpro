@@ -40,6 +40,9 @@
                 {% if user_feature_permissions|feature_allowed:'shared.company_units' %}
                   <a href="{% url 'shared:company_units' %}" class="dropdown-item">{% trans "Company Units" %}</a>
                 {% endif %}
+                {% if user_feature_permissions|feature_allowed:'shared.smtp_servers' or user.is_superuser %}
+                  <a href="{% url 'shared:smtp_servers' %}" class="dropdown-item">{% trans "SMTP Servers" %}</a>
+                {% endif %}
                 {% if user_feature_permissions|feature_allowed:'shared.users' or user_feature_permissions|feature_allowed:'shared.groups' or user_feature_permissions|feature_allowed:'shared.access_levels' %}
                   <div class="dropdown-submenu">
                     <button type="button" class="dropdown-item dropdown-toggle" data-submenu="shared-users">

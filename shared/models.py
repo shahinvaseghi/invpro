@@ -31,6 +31,7 @@ __all__ = [
     "AccessLevelPermission",
     "GroupProfile",
     "UserCompanyAccess",
+    "SMTPServer",
     "NUMERIC_CODE_VALIDATOR",
     "ENABLED_FLAG_CHOICES",
 ]
@@ -366,4 +367,89 @@ class UserCompanyAccess(TimeStampedModel, ActivatableModel, MetadataModel):
     def __str__(self) -> str:
         return f"{self.user} @ {self.company}"
 
+
+class SMTPServer(TimeStampedModel, ActivatableModel, MetadataModel):
+    """
+    SMTP Server configuration for sending email notifications.
+    Global configuration (not company-scoped).
+    """
+    name = models.CharField(
+        max_length=120,
+        unique=True,
+        verbose_name=_("Server Name"),
+        help_text=_("A descriptive name for this SMTP server configuration"),
+    )
+    host = models.CharField(
+        max_length=255,
+        verbose_name=_("SMTP Host"),
+        help_text=_("SMTP server hostname or IP address (e.g., smtp.gmail.com)"),
+    )
+    port = models.PositiveIntegerField(
+        default=587,
+        verbose_name=_("SMTP Port"),
+        help_text=_("SMTP server port (usually 587 for TLS, 465 for SSL, 25 for plain)"),
+    )
+    use_tls = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=1,
+        verbose_name=_("Use TLS"),
+        help_text=_("Enable TLS encryption for SMTP connection"),
+    )
+    use_ssl = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=0,
+        verbose_name=_("Use SSL"),
+        help_text=_("Enable SSL encryption for SMTP connection (usually for port 465)"),
+    )
+    username = models.CharField(
+        max_length=255,
+        verbose_name=_("Username"),
+        help_text=_("SMTP authentication username (usually email address)"),
+    )
+    password = models.CharField(
+        max_length=255,
+        verbose_name=_("Password"),
+        help_text=_("SMTP authentication password or app-specific password"),
+    )
+    from_email = models.EmailField(
+        max_length=255,
+        verbose_name=_("From Email"),
+        help_text=_("Default sender email address"),
+    )
+    from_name = models.CharField(
+        max_length=120,
+        blank=True,
+        verbose_name=_("From Name"),
+        help_text=_("Default sender name (optional)"),
+    )
+    timeout = models.PositiveIntegerField(
+        default=10,
+        verbose_name=_("Connection Timeout"),
+        help_text=_("Connection timeout in seconds"),
+    )
+    description = models.TextField(
+        blank=True,
+        verbose_name=_("Description"),
+        help_text=_("Additional notes about this SMTP configuration"),
+    )
+
+    class Meta:
+        verbose_name = _("SMTP Server")
+        verbose_name_plural = _("SMTP Servers")
+        ordering = ("name",)
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.host}:{self.port})"
+
+    def get_connection_config(self) -> dict:
+        """Get SMTP connection configuration dictionary."""
+        return {
+            'host': self.host,
+            'port': self.port,
+            'use_tls': bool(self.use_tls),
+            'use_ssl': bool(self.use_ssl),
+            'username': self.username,
+            'password': self.password,
+            'timeout': self.timeout,
+        }
 

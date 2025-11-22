@@ -74,6 +74,17 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.DELETE_OWN,
         ],
     ),
+    "shared.smtp_servers": FeaturePermission(
+        code="shared.smtp_servers",
+        label=_("SMTP Servers"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
     "production.personnel": FeaturePermission(
         code="production.personnel",
         label=_("Personnel"),

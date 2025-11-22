@@ -58,6 +58,14 @@ from shared.views.access_levels import (
     AccessLevelDeleteView,
 )
 
+# Import SMTP server views
+from shared.views.smtp_server import (
+    SMTPServerListView,
+    SMTPServerCreateView,
+    SMTPServerUpdateView,
+    SMTPServerDeleteView,
+)
+
 __all__ = [
     # Base mixins
     'UserAccessFormsetMixin',
@@ -90,5 +98,10 @@ __all__ = [
     'AccessLevelCreateView',
     'AccessLevelUpdateView',
     'AccessLevelDeleteView',
+    # SMTP server views
+    'SMTPServerListView',
+    'SMTPServerCreateView',
+    'SMTPServerUpdateView',
+    'SMTPServerDeleteView',
 ]
 
