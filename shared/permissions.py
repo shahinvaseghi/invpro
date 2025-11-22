@@ -129,6 +129,19 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.APPROVE,
         ],
     ),
+    "production.transfer_requests": FeaturePermission(
+        code="production.transfer_requests",
+        label=_("Transfer to Line Requests"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+        ],
+    ),
     "shared.users": FeaturePermission(
         code="shared.users",
         label=_("Users"),

@@ -11,6 +11,7 @@ from shared.models import (
     CompanyScopedModel,
     CompanyUnit,
     ENABLED_FLAG_CHOICES,
+    LockableModel,
     MetadataModel,
     NUMERIC_CODE_VALIDATOR,
     SortableModel,
@@ -739,12 +740,11 @@ class OrderPerformance(ProductionBaseModel):
         super().save(*args, **kwargs)
 
 
-class TransferToLine(ProductionBaseModel):
+class TransferToLine(ProductionBaseModel, LockableModel):
     class Status(models.TextChoices):
-        DRAFT = "draft", _("Draft")
-        ISSUED = "issued", _("Issued")
-        DELIVERED = "delivered", _("Delivered")
-        CANCELLED = "cancelled", _("Cancelled")
+        PENDING_APPROVAL = "pending_approval", _("Pending Approval")
+        APPROVED = "approved", _("Approved")
+        REJECTED = "rejected", _("Rejected")
 
     transfer_code = models.CharField(max_length=30, unique=True)
     order = models.ForeignKey(
@@ -754,7 +754,16 @@ class TransferToLine(ProductionBaseModel):
     )
     order_code = models.CharField(max_length=30)
     transfer_date = models.DateField(default=timezone.now)
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING_APPROVAL)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="approved_transfers",
+        null=True,
+        blank=True,
+        verbose_name=_("Approver"),
+        help_text=_("User who can approve this transfer request"),
+    )
     notes = models.TextField(blank=True)
 
     class Meta:
@@ -805,6 +814,8 @@ class TransferToLineItem(ProductionBaseModel):
         WorkCenter,
         on_delete=models.PROTECT,
         related_name="transfer_items",
+        null=True,
+        blank=True,
     )
     destination_location_code = models.CharField(max_length=30, blank=True)
     material_scrap_allowance = models.DecimalField(
@@ -812,6 +823,12 @@ class TransferToLineItem(ProductionBaseModel):
         decimal_places=2,
         default=Decimal("0.00"),
         validators=[POSITIVE_DECIMAL],
+    )
+    is_extra = models.PositiveSmallIntegerField(
+        default=0,
+        choices=ENABLED_FLAG_CHOICES,
+        verbose_name=_("Extra Request"),
+        help_text=_("Whether this item is an extra request (not from BOM)"),
     )
     notes = models.TextField(blank=True)
 

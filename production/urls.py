@@ -42,7 +42,12 @@ urlpatterns = [
     path('product-orders/<int:pk>/delete/', views.ProductOrderDeleteView.as_view(), name='product_order_delete'),
     
     # Transfer to Line Requests (درخواست انتقال به پای کار)
-    path('transfer-requests/', views.TransferToLineRequestListView.as_view(), name='transfer_requests'),
+    path('transfer-requests/', views.TransferToLineListView.as_view(), name='transfer_requests'),
+    path('transfer-requests/create/', views.TransferToLineCreateView.as_view(), name='transfer_request_create'),
+    path('transfer-requests/<int:pk>/edit/', views.TransferToLineUpdateView.as_view(), name='transfer_request_edit'),
+    path('transfer-requests/<int:pk>/delete/', views.TransferToLineDeleteView.as_view(), name='transfer_request_delete'),
+    path('transfer-requests/<int:pk>/approve/', views.TransferToLineApproveView.as_view(), name='transfer_request_approve'),
+    path('transfer-requests/<int:pk>/reject/', views.TransferToLineRejectView.as_view(), name='transfer_request_reject'),
     
     # Performance Records (سند عملکرد)
     path('performance-records/', views.PerformanceRecordListView.as_view(), name='performance_records'),

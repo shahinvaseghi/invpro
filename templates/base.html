@@ -211,8 +211,10 @@
                 {% if user_feature_permissions|feature_allowed:'production.product_orders' or request.user.is_superuser %}
                   <a href="{% url 'production:product_orders' %}" class="dropdown-item">{% trans "Product Orders" %}</a>
                 {% endif %}
+                {% if user_feature_permissions|feature_allowed:'production.transfer_requests' or request.user.is_superuser %}
+                  <a href="{% url 'production:transfer_requests' %}" class="dropdown-item">{% trans "Transfer to Line Requests" %}</a>
+                {% endif %}
                 {% if request.user.is_superuser %}
-                  <a href="{% url 'production:transfer_requests' %}" class="dropdown-item">{% trans "Transfer to Line" %}</a>
                   <a href="{% url 'production:performance_records' %}" class="dropdown-item">{% trans "Performance" %}</a>
                 {% endif %}
               </div>

@@ -1,0 +1,706 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+{% load jalali_tags %}
+
+{% block title %}{{ form_title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <a href="{% url 'production:transfer_requests' %}">{% trans "Transfer to Line Requests" %}</a>
+      <span>/</span>
+      <span>{{ form_title }}</span>
+    </nav>
+    
+    <h1 class="page-title">{{ form_title }}</h1>
+  </div>
+
+  <div class="form-container">
+    {% if messages %}
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    {% endif %}
+    
+    {% if object and object.pk %}
+      <div class="info-banner">
+        <div><strong>{% trans "Transfer Code" %}:</strong> {{ object.transfer_code }}</div>
+        <div><strong>{% trans "Transfer Date" %}:</strong> {{ object.transfer_date|jalali_date }}</div>
+        <div><strong>{% trans "Status" %}:</strong> {{ object.get_status_display }}</div>
+        <div class="lock-status">
+          <strong>{% trans "Lock Status" %}:</strong>
+          {% if object.is_locked == 1 %}
+            <span class="badge badge-locked">{% trans "Locked" %}</span>
+          {% else %}
+            <span class="badge badge-unlocked">{% trans "Editable" %}</span>
+          {% endif %}
+        </div>
+      </div>
+      
+      {% if object.is_locked == 1 %}
+      <div class="alert alert-info">
+        {% trans "This transfer request is locked and can no longer be edited." %}
+      </div>
+      {% endif %}
+    {% endif %}
+    
+    <form method="post" class="transfer-to-line-form" id="transfer-form">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-error">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <div class="form-section">
+        <h3>{% trans "Transfer Information" %}</h3>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.order.id_for_label }}">{{ form.order.label }} *</label>
+            {{ form.order }}
+            {% if form.order.errors %}
+              <div class="field-errors">
+                {{ form.order.errors }}
+              </div>
+            {% endif %}
+            {% if form.order.help_text %}
+              <small class="help-text">{{ form.order.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="form-field">
+            <label for="{{ form.transfer_date.id_for_label }}">{{ form.transfer_date.label }} *</label>
+            {{ form.transfer_date }}
+            {% if form.transfer_date.errors %}
+              <div class="field-errors">
+                {{ form.transfer_date.errors }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.approved_by.id_for_label }}">{{ form.approved_by.label }}</label>
+            {{ form.approved_by }}
+            {% if form.approved_by.errors %}
+              <div class="field-errors">
+                {{ form.approved_by.errors }}
+              </div>
+            {% endif %}
+            {% if form.approved_by.help_text %}
+              <small class="help-text">{{ form.approved_by.help_text }}</small>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+            {{ form.notes }}
+            {% if form.notes.errors %}
+              <div class="field-errors">
+                {{ form.notes.errors }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {% if object and object.pk and bom_items %}
+      <div class="form-section">
+        <h3>{% trans "BOM Items" %} <small>({% trans "Read-only" %})</small></h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>{% trans "Material Item" %}</th>
+              <th>{% trans "Quantity Required" %}</th>
+              <th>{% trans "Unit" %}</th>
+              <th>{% trans "Source Warehouse" %}</th>
+              <th>{% trans "Scrap Allowance (%)" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in bom_items %}
+            <tr>
+              <td>{{ item.material_item.item_code }} - {{ item.material_item.name }}</td>
+              <td>{{ item.quantity_required }}</td>
+              <td>{{ item.unit }}</td>
+              <td>{{ item.source_warehouse.name|default:"-" }}</td>
+              <td>{{ item.material_scrap_allowance }}%</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      {% if not object or not object.pk or not is_locked %}
+      <div class="form-section">
+        <h3>{% trans "Extra Request Items" %}</h3>
+        <p class="form-text">{% trans "Add additional items that are not in the BOM." %}</p>
+        
+        {{ formset.management_form }}
+        
+        {% if formset.non_form_errors %}
+          <div class="alert alert-error">
+            {{ formset.non_form_errors }}
+          </div>
+        {% endif %}
+        
+        <div class="table-responsive">
+        <table class="data-table" id="extra-items-table">
+          <thead>
+            <tr>
+              <th>{% trans "Material Type" %}</th>
+              <th>{% trans "Category" %}</th>
+              <th>{% trans "Subcategory" %}</th>
+              <th>{% trans "Material Item" %}</th>
+              <th>{% trans "Quantity Required" %}</th>
+              <th>{% trans "Unit" %}</th>
+              <th>{% trans "Source Warehouse" %}</th>
+              <th>{% trans "Destination Work Center" %}</th>
+              <th>{% trans "Scrap Allowance (%)" %}</th>
+              <th>{% trans "Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody id="formset-container">
+            {% for item_form in formset %}
+            <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
+              {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
+              <td>
+                {{ item_form.material_type }}
+                {% if item_form.material_type.errors %}
+                  <div class="field-errors">{{ item_form.material_type.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ item_form.material_category_filter }}
+                {% if item_form.material_category_filter.errors %}
+                  <div class="field-errors">{{ item_form.material_category_filter.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ item_form.material_subcategory_filter }}
+                {% if item_form.material_subcategory_filter.errors %}
+                  <div class="field-errors">{{ item_form.material_subcategory_filter.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ item_form.material_item }}
+                {% if item_form.material_item.errors %}
+                  <div class="field-errors">{{ item_form.material_item.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ item_form.quantity_required }}
+                {% if item_form.quantity_required.errors %}
+                  <div class="field-errors">{{ item_form.quantity_required.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ item_form.unit }}
+                {% if item_form.unit.errors %}
+                  <div class="field-errors">{{ item_form.unit.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ item_form.source_warehouse }}
+                {% if item_form.source_warehouse.errors %}
+                  <div class="field-errors">{{ item_form.source_warehouse.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ item_form.destination_work_center }}
+                {% if item_form.destination_work_center.errors %}
+                  <div class="field-errors">{{ item_form.destination_work_center.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ item_form.material_scrap_allowance }}
+                {% if item_form.material_scrap_allowance.errors %}
+                  <div class="field-errors">{{ item_form.material_scrap_allowance.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {% if formset.can_delete %}
+                  {{ item_form.DELETE }}
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+        
+        <button type="button" id="add-extra-item-btn" class="btn btn-success">{% trans "Add Extra Item +" %}</button>
+      </div>
+      {% endif %}
+
+      <div class="form-actions">
+        {% if not object %}
+          <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+        {% else %}
+          {% if object.is_locked != 1 %}
+            <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+          {% endif %}
+        {% endif %}
+        <a href="{% url 'production:transfer_requests' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% block extra_css %}
+<style>
+.table-responsive {
+  overflow-x: auto;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+#extra-items-table {
+  min-width: 1200px;
+  width: 100%;
+}
+
+#extra-items-table th,
+#extra-items-table td {
+  white-space: nowrap;
+  min-width: 120px;
+  padding: 8px 12px;
+}
+
+#extra-items-table th:nth-child(1),
+#extra-items-table td:nth-child(1) {
+  min-width: 150px; /* Material Type */
+}
+
+#extra-items-table th:nth-child(2),
+#extra-items-table td:nth-child(2) {
+  min-width: 150px; /* Category */
+}
+
+#extra-items-table th:nth-child(3),
+#extra-items-table td:nth-child(3) {
+  min-width: 150px; /* Subcategory */
+}
+
+#extra-items-table th:nth-child(4),
+#extra-items-table td:nth-child(4) {
+  min-width: 200px; /* Material Item */
+}
+
+#extra-items-table th:nth-child(5),
+#extra-items-table td:nth-child(5) {
+  min-width: 120px; /* Quantity */
+}
+
+#extra-items-table th:nth-child(6),
+#extra-items-table td:nth-child(6) {
+  min-width: 100px; /* Unit */
+}
+
+#extra-items-table th:nth-child(7),
+#extra-items-table td:nth-child(7) {
+  min-width: 150px; /* Source Warehouse */
+}
+
+#extra-items-table th:nth-child(8),
+#extra-items-table td:nth-child(8) {
+  min-width: 180px; /* Destination Work Center */
+}
+
+#extra-items-table th:nth-child(9),
+#extra-items-table td:nth-child(9) {
+  min-width: 120px; /* Scrap Allowance */
+}
+
+#extra-items-table th:nth-child(10),
+#extra-items-table td:nth-child(10) {
+  min-width: 80px; /* Actions */
+}
+
+.form-container {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.inventory-module {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Jalali DatePicker Library (Local) -->
+<link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">
+<script src="{% static 'js/jalali-datepicker/jalali-datepicker.min.js' %}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize Jalali DatePicker
+  var jalaliInputs = document.querySelectorAll('input.jalali-date-input, input[data-jalali="true"]');
+  
+  jalaliInputs.forEach(function(input) {
+    input.setAttribute('data-jdp', '');
+    input.setAttribute('data-jdp-only-date', '');
+  });
+  
+  if (typeof jalaliDatepicker !== 'undefined') {
+    jalaliDatepicker.startWatch({
+      date: true,
+      time: false,
+      separatorChars: {
+        date: '/',
+        between: ' ',
+        time: ':'
+      },
+      persianDigits: false,
+      autoShow: true,
+      autoHide: true,
+      hideAfterChange: true,
+      showTodayBtn: true,
+      showEmptyBtn: true,
+      showCloseBtn: true,
+      useDropDownYears: true,
+      zIndex: 1000
+    });
+  }
+  
+  // Formset management for extra items
+  var formsetContainer = document.getElementById('formset-container');
+  var addBtn = document.getElementById('add-extra-item-btn');
+  var totalFormsInput = document.querySelector('#id_items-TOTAL_FORMS');
+  var formCount = formsetContainer ? formsetContainer.children.length : 0;
+  
+  if (addBtn && formsetContainer && totalFormsInput) {
+    addBtn.addEventListener('click', function() {
+      var newForm = formsetContainer.lastElementChild.cloneNode(true);
+      var formIndex = formCount;
+      formCount++;
+      
+      // Update data-row-index
+      newForm.setAttribute('data-row-index', formIndex);
+      
+      // Update field names and IDs
+      newForm.querySelectorAll('input, select, textarea').forEach(function(field) {
+        if (field.name) {
+          field.name = field.name.replace(/items-\d+-/, 'items-' + formIndex + '-');
+        }
+        if (field.id) {
+          field.id = field.id.replace(/id_items-\d+-/, 'id_items-' + formIndex + '-');
+        }
+        field.value = '';
+      });
+      
+      // Update labels
+      newForm.querySelectorAll('label').forEach(function(label) {
+        if (label.getAttribute('for')) {
+          label.setAttribute('for', label.getAttribute('for').replace(/id_items-\d+-/, 'id_items-' + formIndex + '-'));
+        }
+      });
+      
+      // Update DELETE checkbox
+      var deleteCheckbox = newForm.querySelector('input[type="checkbox"][name$="-DELETE"]');
+      if (deleteCheckbox) {
+        deleteCheckbox.checked = false;
+      }
+      
+      // Clear errors
+      newForm.querySelectorAll('.field-errors').forEach(function(error) {
+        error.textContent = '';
+      });
+      
+      formsetContainer.appendChild(newForm);
+      totalFormsInput.value = formCount;
+      
+      // Setup cascading filters for new row
+      setTimeout(function() {
+        setupRowCascading(newForm);
+      }, 100);
+    });
+  }
+  
+  // Handle DELETE checkboxes
+  if (formsetContainer) {
+    formsetContainer.addEventListener('change', function(e) {
+      if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
+        var row = e.target.closest('.formset-row');
+        if (row && e.target.checked) {
+          row.style.display = 'none';
+        } else if (row && !e.target.checked) {
+          row.style.display = '';
+        }
+      }
+    });
+  }
+  
+  // ====================================================================
+  // Cascading Filters for Extra Items (Type → Category → Subcategory → Item)
+  // ====================================================================
+  
+  function setupRowCascading(row) {
+    // Extract row index from data attribute or field name
+    var rowIndex = row.dataset.rowIndex;
+    if (!rowIndex) {
+      // Try to extract from any field name
+      var firstField = row.querySelector('[name]');
+      if (firstField && firstField.name) {
+        var nameMatch = firstField.name.match(/items-(\d+)-/);
+        if (nameMatch) {
+          rowIndex = nameMatch[1];
+          row.setAttribute('data-row-index', rowIndex);
+        } else {
+          return; // Cannot determine row index
+        }
+      } else {
+        return; // No fields found
+      }
+    }
+    
+    var typeSelect = row.querySelector('select[name="items-' + rowIndex + '-material_type"]');
+    var categorySelect = row.querySelector('select[name="items-' + rowIndex + '-material_category_filter"]');
+    var subcategorySelect = row.querySelector('select[name="items-' + rowIndex + '-material_subcategory_filter"]');
+    var itemSelect = row.querySelector('select[name="items-' + rowIndex + '-material_item"]');
+    var unitSelect = row.querySelector('select[name="items-' + rowIndex + '-unit"]');
+    
+    if (!typeSelect || !categorySelect || !subcategorySelect || !itemSelect) {
+      return;
+    }
+    
+    // Filter categories based on type
+    function filterCategories() {
+      var selectedType = typeSelect.value;
+      var currentCategory = categorySelect.value;
+      
+      if (!selectedType) {
+        categorySelect.innerHTML = '<option value="">--------</option>';
+        subcategorySelect.innerHTML = '<option value="">--------</option>';
+        itemSelect.innerHTML = '<option value="">--------</option>';
+        if (unitSelect) {
+          unitSelect.innerHTML = '<option value="">--------</option>';
+          unitSelect.disabled = true;
+        }
+        return;
+      }
+      
+      categorySelect.innerHTML = '<option value="">{% trans "Loading categories..." %}</option>';
+      categorySelect.disabled = true;
+      
+      fetch('/inventory/api/filtered-categories/?type_id=' + selectedType)
+        .then(response => response.json())
+        .then(data => {
+          categorySelect.innerHTML = '<option value="">--------</option>';
+          
+          if (data.categories && data.categories.length > 0) {
+            data.categories.forEach(function(cat) {
+              var option = document.createElement('option');
+              option.value = cat.value;
+              option.textContent = cat.label;
+              categorySelect.appendChild(option);
+            });
+            
+            if (currentCategory && data.categories.some(function(c) { return c.value === currentCategory; })) {
+              categorySelect.value = currentCategory;
+            } else {
+              subcategorySelect.value = '';
+              itemSelect.innerHTML = '<option value="">--------</option>';
+            }
+          }
+          
+          categorySelect.disabled = false;
+          filterSubcategories();
+        })
+        .catch(error => {
+          console.error('Error loading categories:', error);
+          categorySelect.innerHTML = '<option value="">--------</option>';
+          categorySelect.disabled = false;
+        });
+    }
+    
+    // Filter subcategories based on type and category
+    function filterSubcategories() {
+      var selectedType = typeSelect.value;
+      var selectedCategory = categorySelect.value;
+      var currentSubcategory = subcategorySelect.value;
+      
+      if (!selectedType || !selectedCategory) {
+        subcategorySelect.innerHTML = '<option value="">--------</option>';
+        itemSelect.innerHTML = '<option value="">--------</option>';
+        if (unitSelect) {
+          unitSelect.innerHTML = '<option value="">--------</option>';
+          unitSelect.disabled = true;
+        }
+        return;
+      }
+      
+      subcategorySelect.innerHTML = '<option value="">{% trans "Loading subcategories..." %}</option>';
+      subcategorySelect.disabled = true;
+      
+      fetch('/inventory/api/filtered-subcategories/?type_id=' + selectedType + '&category_id=' + selectedCategory)
+        .then(response => response.json())
+        .then(data => {
+          subcategorySelect.innerHTML = '<option value="">--------</option>';
+          
+          if (data.subcategories && data.subcategories.length > 0) {
+            data.subcategories.forEach(function(subcat) {
+              var option = document.createElement('option');
+              option.value = subcat.value;
+              option.textContent = subcat.label;
+              subcategorySelect.appendChild(option);
+            });
+            
+            if (currentSubcategory && data.subcategories.some(function(s) { return s.value === currentSubcategory; })) {
+              subcategorySelect.value = currentSubcategory;
+            } else {
+              itemSelect.innerHTML = '<option value="">--------</option>';
+            }
+          }
+          
+          subcategorySelect.disabled = false;
+          filterItems();
+        })
+        .catch(error => {
+          console.error('Error loading subcategories:', error);
+          subcategorySelect.innerHTML = '<option value="">--------</option>';
+          subcategorySelect.disabled = false;
+        });
+    }
+    
+    // Filter items based on type, category, and subcategory
+    function filterItems() {
+      var selectedType = typeSelect.value;
+      var selectedCategory = categorySelect.value;
+      var selectedSubcategory = subcategorySelect.value;
+      var currentItem = itemSelect.value;
+      
+      if (!selectedType || !selectedCategory || !selectedSubcategory) {
+        itemSelect.innerHTML = '<option value="">--------</option>';
+        if (unitSelect) {
+          unitSelect.innerHTML = '<option value="">--------</option>';
+          unitSelect.disabled = true;
+        }
+        return;
+      }
+      
+      itemSelect.innerHTML = '<option value="">{% trans "Loading items..." %}</option>';
+      itemSelect.disabled = true;
+      
+      fetch('/inventory/api/filtered-items/?type_id=' + selectedType + '&category_id=' + selectedCategory + '&subcategory_id=' + selectedSubcategory)
+        .then(response => response.json())
+        .then(data => {
+          itemSelect.innerHTML = '<option value="">--------</option>';
+          
+          if (data.items && data.items.length > 0) {
+            data.items.forEach(function(item) {
+              var option = document.createElement('option');
+              option.value = item.value;
+              option.textContent = item.label;
+              itemSelect.appendChild(option);
+            });
+            
+            if (currentItem && data.items.some(function(i) { return i.value === currentItem; })) {
+              itemSelect.value = currentItem;
+              loadItemUnits(itemSelect, rowIndex);
+            }
+          }
+          
+          itemSelect.disabled = false;
+        })
+        .catch(error => {
+          console.error('Error loading items:', error);
+          itemSelect.innerHTML = '<option value="">--------</option>';
+          itemSelect.disabled = false;
+        });
+    }
+    
+    // Load units when material item is selected
+    function loadItemUnits(materialItemSelect, idx) {
+      var itemId = materialItemSelect.value;
+      var unitSel = document.querySelector('select[name="items-' + idx + '-unit"]');
+      
+      if (!itemId || !unitSel) {
+        if (unitSel) {
+          unitSel.innerHTML = '<option value="">--------</option>';
+          unitSel.disabled = true;
+        }
+        return;
+      }
+      
+      unitSel.disabled = true;
+      unitSel.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
+      
+      fetch('/inventory/api/item-units/?item_id=' + itemId)
+        .then(response => response.json())
+        .then(data => {
+          if (data.units && data.units.length > 0) {
+            unitSel.innerHTML = '<option value="">--------</option>';
+            data.units.forEach(function(unit) {
+              var option = document.createElement('option');
+              option.value = unit.value;
+              option.textContent = unit.label;
+              unitSel.appendChild(option);
+            });
+            unitSel.disabled = false;
+          } else {
+            unitSel.innerHTML = '<option value="">--------</option>';
+            unitSel.disabled = true;
+          }
+        })
+        .catch(error => {
+          console.error('Error loading units:', error);
+          unitSel.innerHTML = '<option value="">--------</option>';
+          unitSel.disabled = true;
+        });
+    }
+    
+    // Attach event listeners
+    typeSelect.addEventListener('change', filterCategories);
+    categorySelect.addEventListener('change', filterSubcategories);
+    subcategorySelect.addEventListener('change', filterItems);
+    itemSelect.addEventListener('change', function() {
+      loadItemUnits(itemSelect, rowIndex);
+    });
+    
+    // Initialize if values exist (edit mode)
+    if (typeSelect.value) {
+      filterCategories();
+      setTimeout(function() {
+        if (categorySelect.value) {
+          filterSubcategories();
+          setTimeout(function() {
+            if (subcategorySelect.value) {
+              filterItems();
+              setTimeout(function() {
+                if (itemSelect.value) {
+                  loadItemUnits(itemSelect, rowIndex);
+                }
+              }, 300);
+            }
+          }, 300);
+        }
+      }, 300);
+    }
+  }
+  
+  // Initialize cascading filters for all existing rows
+  if (formsetContainer) {
+    formsetContainer.querySelectorAll('.formset-row').forEach(function(row) {
+      setupRowCascading(row);
+    });
+  }
+});
+</script>
+{% endblock %}
+{% endblock %}
+

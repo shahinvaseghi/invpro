@@ -101,6 +101,8 @@ body {
 
 .app-content {
   padding: 32px;
+  overflow-x: auto;
+  max-width: 100%;
 }
 
 .logo {
@@ -1578,6 +1580,8 @@ body {
   border-radius: 8px;
   padding: 24px;
   margin-top: 16px;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .custom-form {

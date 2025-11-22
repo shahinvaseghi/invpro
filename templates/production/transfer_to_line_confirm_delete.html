@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load jalali_tags %}
+
+{% block title %}{% trans "Delete Transfer Request" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <a href="{% url 'production:transfer_requests' %}">{% trans "Transfer to Line Requests" %}</a>
+      <span>/</span>
+      <span>{% trans "Delete" %}</span>
+    </nav>
+    
+    <h1 class="page-title">{% trans "Delete Transfer Request" %}</h1>
+  </div>
+
+  <div class="form-container">
+    <div class="alert alert-warning">
+      <h3>{% trans "Are you sure you want to delete this transfer request?" %}</h3>
+      <p>{% trans "This action cannot be undone." %}</p>
+    </div>
+    
+    <div class="info-banner">
+      <div><strong>{% trans "Transfer Code" %}:</strong> {{ object.transfer_code }}</div>
+      <div><strong>{% trans "Product Order" %}:</strong> {{ object.order_code }}</div>
+      <div><strong>{% trans "Transfer Date" %}:</strong> {{ object.transfer_date|jalali_date }}</div>
+      <div><strong>{% trans "Status" %}:</strong> {{ object.get_status_display }}</div>
+      <div><strong>{% trans "Total Items" %}:</strong> {{ object.items.count }}</div>
+    </div>
+    
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-actions">
+        <button type="submit" class="btn btn-danger">{% trans "Delete" %}</button>
+        <a href="{% url 'production:transfer_requests' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

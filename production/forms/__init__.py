@@ -32,6 +32,13 @@ from production.forms.process import ProcessForm
 # Import product order forms
 from production.forms.product_order import ProductOrderForm
 
+# Import transfer to line forms
+from production.forms.transfer_to_line import (
+    TransferToLineForm,
+    TransferToLineItemForm,
+    TransferToLineItemFormSet,
+)
+
 __all__ = [
     # Person forms
     'PersonForm',
@@ -47,5 +54,9 @@ __all__ = [
     'ProcessForm',
     # Product Order forms
     'ProductOrderForm',
+    # Transfer to Line forms
+    'TransferToLineForm',
+    'TransferToLineItemForm',
+    'TransferToLineItemFormSet',
 ]
 
