@@ -442,6 +442,76 @@ python manage.py makemessages -l fa
   - `reject`: Reject transfer requests
   - `create_issue_from_transfer`: Create consumption issues from approved transfer requests
 
+### Performance Records (Production Module)
+**Location**: `/production/performance-records/`
+
+**Purpose**: Track production performance, material waste, labor time, and machine usage for product orders.
+
+**Key Features**:
+- Product order selection (required) - must have a process assigned
+- Transfer request selection (optional) - to auto-populate materials from transfer document
+- Performance date selection (Jalali date picker)
+- Planned quantity (auto-populated from order)
+- Actual produced quantity (user-entered, cannot exceed planned quantity)
+- Approver assignment - filters to show only users with APPROVE permission for `production.performance_records`
+- Status workflow: pending_approval → approved/rejected
+- Lockable documents (inherits from `LockableModel`)
+
+**Materials Section**:
+- Auto-populated from selected transfer request (if transfer is selected)
+- Material items from transfer document with issued quantities
+- Waste quantity tracking for each material
+- Read-only material items (cannot be edited after creation)
+- Only waste quantities can be updated
+
+**Personnel Section**:
+- Add personnel who worked on the order
+- Filter personnel by process work lines (only personnel assigned to work lines in the order's process)
+- Work minutes tracking for each person
+- Work line assignment (optional)
+- Dynamic formset with add/remove functionality
+
+**Machines Section**:
+- Add machines used in the order
+- Filter machines by process work lines (only machines assigned to work lines in the order's process)
+- Work minutes tracking for each machine
+- Work line assignment (optional)
+- Dynamic formset with add/remove functionality
+
+**Receipt Creation**:
+- Create permanent or temporary receipt from approved performance records
+- Receipt type determined by `finished_item.requires_temporary_receipt`:
+  - If `requires_temporary_receipt = 1`: Only temporary receipt can be created
+  - If `requires_temporary_receipt = 0`: User can choose permanent or temporary receipt
+- Receipt quantity = actual produced quantity from performance record
+- Receipt warehouse selection (required)
+- Only available for approved and locked performance records
+- Requires `CREATE_RECEIPT` permission
+
+**Auto-Generated Codes**:
+- `performance_code`: Auto-generated `PR-XXXXXXXX` (8 digits) per company using sequential code generation
+
+**Actions**:
+- Create: Create new performance records with materials, personnel, and machines
+- Edit: Edit performance records (only if not locked)
+- Delete: Delete performance records (only if pending approval and not locked)
+- Approve: Approve performance records (requires APPROVE permission, locks document)
+- Reject: Reject performance records (requires REJECT permission, allows re-editing)
+- Create Receipt: Create permanent or temporary receipt from approved performance records (requires `CREATE_RECEIPT` permission)
+
+**Permissions**:
+- `production.performance_records` feature with actions:
+  - `view_own`: View own performance records
+  - `view_all`: View all performance records
+  - `create`: Create new performance records
+  - `edit_own`: Edit own performance records (only if not locked)
+  - `edit_other`: Edit other users' performance records (only if not locked)
+  - `delete_own`: Delete own performance records (only if pending approval and not locked)
+  - `delete_other`: Delete other users' performance records (only if pending approval and not locked)
+  - `approve`: Approve performance records (locks document)
+  - `reject`: Reject performance records (allows re-editing)
+  - `create_receipt`: Create permanent or temporary receipt from approved performance records
+
 ---
 
 ## 5. Form Features
@@ -518,6 +588,7 @@ python manage.py makemessages -l fa
 - Processes (Production Module)
 - Product Orders (Production Module)
 - Transfer to Line Requests (Production Module)
+- Performance Records (Production Module)
 
 ---
 

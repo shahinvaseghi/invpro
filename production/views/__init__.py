@@ -69,9 +69,15 @@ from production.views.transfer_to_line import (
     TransferToLineRejectView,
 )
 
-# Import placeholder views
-from production.views.placeholders import (
+# Import performance record views
+from production.views.performance_record import (
     PerformanceRecordListView,
+    PerformanceRecordCreateView,
+    PerformanceRecordUpdateView,
+    PerformanceRecordDeleteView,
+    PerformanceRecordApproveView,
+    PerformanceRecordRejectView,
+    PerformanceRecordCreateReceiptView,
 )
 
 __all__ = [
@@ -112,7 +118,13 @@ __all__ = [
     'TransferToLineDeleteView',
     'TransferToLineApproveView',
     'TransferToLineRejectView',
-    # Placeholder views
+    # Performance Record views
     'PerformanceRecordListView',
+    'PerformanceRecordCreateView',
+    'PerformanceRecordUpdateView',
+    'PerformanceRecordDeleteView',
+    'PerformanceRecordApproveView',
+    'PerformanceRecordRejectView',
+    'PerformanceRecordCreateReceiptView',
 ]
 

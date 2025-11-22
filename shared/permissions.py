@@ -36,6 +36,7 @@ class PermissionAction(Enum):
     REJECT = "reject"
     CANCEL = "cancel"
     CREATE_TRANSFER_FROM_ORDER = "create_transfer_from_order"
+    CREATE_RECEIPT = "create_receipt"
 
 
 @dataclass(frozen=True)
@@ -142,6 +143,22 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.DELETE_OWN,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
+        ],
+    ),
+    "production.performance_records": FeaturePermission(
+        code="production.performance_records",
+        label=_("Performance Records"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_OTHER,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_OTHER,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+            PermissionAction.CREATE_RECEIPT,
         ],
     ),
     "shared.users": FeaturePermission(

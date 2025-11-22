@@ -1,0 +1,588 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+{% load jalali_tags %}
+{% load access_tags %}
+
+{% block title %}{{ form_title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <a href="{% url 'production:performance_records' %}">{% trans "Performance Records" %}</a>
+      <span>/</span>
+      <span>{{ form_title }}</span>
+    </nav>
+    
+    <h1 class="page-title">{{ form_title }}</h1>
+  </div>
+
+  <div class="form-container">
+    {% if messages %}
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    {% endif %}
+    
+    {% if object and object.pk %}
+      <div class="info-banner">
+        <div><strong>{% trans "Performance Code" %}:</strong> {{ object.performance_code }}</div>
+        <div><strong>{% trans "Performance Date" %}:</strong> {{ object.performance_date|jalali_date }}</div>
+        <div><strong>{% trans "Status" %}:</strong> {{ object.get_status_display }}</div>
+        <div class="lock-status">
+          <strong>{% trans "Lock Status" %}:</strong>
+          {% if object.is_locked == 1 %}
+            <span class="badge badge-locked">{% trans "Locked" %}</span>
+          {% else %}
+            <span class="badge badge-unlocked">{% trans "Editable" %}</span>
+          {% endif %}
+        </div>
+      </div>
+      
+      {% if object.is_locked == 1 %}
+      <div class="alert alert-info">
+        {% trans "This performance record is locked and can no longer be edited." %}
+      </div>
+      {% endif %}
+    {% endif %}
+    
+    <form method="post" class="performance-record-form" id="performance-form">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-error">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <div class="form-section">
+        <h3>{% trans "Performance Information" %}</h3>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.order.id_for_label }}">{{ form.order.label }} *</label>
+            {{ form.order }}
+            {% if form.order.errors %}
+              <div class="field-errors">
+                {{ form.order.errors }}
+              </div>
+            {% endif %}
+            {% if form.order.help_text %}
+              <small class="help-text">{{ form.order.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="form-field">
+            <label for="{{ form.transfer.id_for_label }}">{{ form.transfer.label }}</label>
+            {{ form.transfer }}
+            {% if form.transfer.errors %}
+              <div class="field-errors">
+                {{ form.transfer.errors }}
+              </div>
+            {% endif %}
+            {% if form.transfer.help_text %}
+              <small class="help-text">{{ form.transfer.help_text }}</small>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.performance_date.id_for_label }}">{{ form.performance_date.label }} *</label>
+            {{ form.performance_date }}
+            {% if form.performance_date.errors %}
+              <div class="field-errors">
+                {{ form.performance_date.errors }}
+              </div>
+            {% endif %}
+          </div>
+          
+          <div class="form-field">
+            <label for="{{ form.approved_by.id_for_label }}">{{ form.approved_by.label }}</label>
+            {{ form.approved_by }}
+            {% if form.approved_by.errors %}
+              <div class="field-errors">
+                {{ form.approved_by.errors }}
+              </div>
+            {% endif %}
+            {% if form.approved_by.help_text %}
+              <small class="help-text">{{ form.approved_by.help_text }}</small>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.quantity_planned.id_for_label }}">{{ form.quantity_planned.label }} *</label>
+            {{ form.quantity_planned }}
+            {% if form.quantity_planned.errors %}
+              <div class="field-errors">
+                {{ form.quantity_planned.errors }}
+              </div>
+            {% endif %}
+            {% if form.quantity_planned.help_text %}
+              <small class="help-text">{{ form.quantity_planned.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="form-field">
+            <label for="{{ form.quantity_actual.id_for_label }}">{{ form.quantity_actual.label }} *</label>
+            {{ form.quantity_actual }}
+            {% if form.quantity_actual.errors %}
+              <div class="field-errors">
+                {{ form.quantity_actual.errors }}
+              </div>
+            {% endif %}
+            {% if form.quantity_actual.help_text %}
+              <small class="help-text">{{ form.quantity_actual.help_text }}</small>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+            {{ form.notes }}
+            {% if form.notes.errors %}
+              <div class="field-errors">
+                {{ form.notes.errors }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Materials Section -->
+      <div class="form-section">
+        <h3>{% trans "Materials (Waste Tracking)" %}</h3>
+        <p class="form-text">{% trans "Materials from transfer document. Enter waste quantity for each material." %}</p>
+        
+        {{ material_formset.management_form }}
+        
+        {% if material_formset.non_form_errors %}
+          <div class="alert alert-error">
+            {{ material_formset.non_form_errors }}
+          </div>
+        {% endif %}
+        
+        <div class="table-responsive">
+        <table class="data-table" id="materials-table">
+          <thead>
+            <tr>
+              <th>{% trans "Material Item" %}</th>
+              <th>{% trans "Required Quantity" %}</th>
+              <th>{% trans "Waste Quantity" %}</th>
+              <th>{% trans "Unit" %}</th>
+              <th>{% trans "Notes" %}</th>
+            </tr>
+          </thead>
+          <tbody id="materials-formset-container">
+            {% for material_form in material_formset %}
+            <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
+              {% for hidden in material_form.hidden_fields %}{{ hidden }}{% endfor %}
+              <td>
+                {% if material_form.material_item.value %}
+                  {{ material_form.material_item }}
+                {% else %}
+                  {{ material_form.material_item }}
+                {% endif %}
+                {% if material_form.material_item.errors %}
+                  <div class="field-errors">{{ material_form.material_item.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ material_form.quantity_required }}
+                {% if material_form.quantity_required.errors %}
+                  <div class="field-errors">{{ material_form.quantity_required.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ material_form.quantity_waste }}
+                {% if material_form.quantity_waste.errors %}
+                  <div class="field-errors">{{ material_form.quantity_waste.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ material_form.unit }}
+                {% if material_form.unit.errors %}
+                  <div class="field-errors">{{ material_form.unit.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ material_form.notes }}
+                {% if material_form.notes.errors %}
+                  <div class="field-errors">{{ material_form.notes.errors }}</div>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <!-- Persons Section -->
+      <div class="form-section">
+        <h3>{% trans "Personnel (Labor Time)" %}</h3>
+        <p class="form-text">{% trans "Add personnel who worked on this order and enter their work minutes." %}</p>
+        
+        {{ person_formset.management_form }}
+        
+        {% if person_formset.non_form_errors %}
+          <div class="alert alert-error">
+            {{ person_formset.non_form_errors }}
+          </div>
+        {% endif %}
+        
+        <div class="table-responsive">
+        <table class="data-table" id="persons-table">
+          <thead>
+            <tr>
+              <th>{% trans "Person" %}</th>
+              <th>{% trans "Work Minutes" %}</th>
+              <th>{% trans "Work Line" %}</th>
+              <th>{% trans "Notes" %}</th>
+              <th>{% trans "Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody id="persons-formset-container">
+            {% for person_form in person_formset %}
+            <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
+              {% for hidden in person_form.hidden_fields %}{{ hidden }}{% endfor %}
+              <td>
+                {{ person_form.person }}
+                {% if person_form.person.errors %}
+                  <div class="field-errors">{{ person_form.person.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ person_form.work_minutes }}
+                {% if person_form.work_minutes.errors %}
+                  <div class="field-errors">{{ person_form.work_minutes.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ person_form.work_line }}
+                {% if person_form.work_line.errors %}
+                  <div class="field-errors">{{ person_form.work_line.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ person_form.notes }}
+                {% if person_form.notes.errors %}
+                  <div class="field-errors">{{ person_form.notes.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {% if person_formset.can_delete %}
+                  {{ person_form.DELETE }}
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+        
+        <button type="button" id="add-person-btn" class="btn btn-success">{% trans "Add Person +" %}</button>
+      </div>
+
+      <!-- Machines Section -->
+      <div class="form-section">
+        <h3>{% trans "Machines (Machine Usage Time)" %}</h3>
+        <p class="form-text">{% trans "Add machines used in this order and enter their work minutes." %}</p>
+        
+        {{ machine_formset.management_form }}
+        
+        {% if machine_formset.non_form_errors %}
+          <div class="alert alert-error">
+            {{ machine_formset.non_form_errors }}
+          </div>
+        {% endif %}
+        
+        <div class="table-responsive">
+        <table class="data-table" id="machines-table">
+          <thead>
+            <tr>
+              <th>{% trans "Machine" %}</th>
+              <th>{% trans "Work Minutes" %}</th>
+              <th>{% trans "Work Line" %}</th>
+              <th>{% trans "Notes" %}</th>
+              <th>{% trans "Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody id="machines-formset-container">
+            {% for machine_form in machine_formset %}
+            <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
+              {% for hidden in machine_form.hidden_fields %}{{ hidden }}{% endfor %}
+              <td>
+                {{ machine_form.machine }}
+                {% if machine_form.machine.errors %}
+                  <div class="field-errors">{{ machine_form.machine.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ machine_form.work_minutes }}
+                {% if machine_form.work_minutes.errors %}
+                  <div class="field-errors">{{ machine_form.work_minutes.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ machine_form.work_line }}
+                {% if machine_form.work_line.errors %}
+                  <div class="field-errors">{{ machine_form.work_line.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ machine_form.notes }}
+                {% if machine_form.notes.errors %}
+                  <div class="field-errors">{{ machine_form.notes.errors }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {% if machine_formset.can_delete %}
+                  {{ machine_form.DELETE }}
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+        
+        <button type="button" id="add-machine-btn" class="btn btn-success">{% trans "Add Machine +" %}</button>
+      </div>
+
+      <!-- Create Receipt Section (only for approved and locked records) -->
+      {% if object and object.pk and object.status == 'approved' and object.is_locked == 1 %}
+        {% if user_feature_permissions|feature_allowed:'production.performance_records:create_receipt' or user.is_superuser %}
+        <div class="form-section">
+          <h3>{% trans "Create Receipt" %}</h3>
+          <p class="form-text">{% trans "Create a receipt for the actual quantity produced." %}</p>
+          <a href="{% url 'production:performance_record_create_receipt' object.pk %}" class="btn btn-primary" onclick="return confirm('{% trans "Create receipt for this performance record?" %}')">
+            {% trans "Create Receipt" %}
+          </a>
+        </div>
+        {% endif %}
+      {% endif %}
+
+      <div class="form-actions">
+        {% if not object %}
+          <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+        {% else %}
+          {% if object.is_locked != 1 %}
+            <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+          {% endif %}
+        {% endif %}
+        <a href="{% url 'production:performance_records' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% block extra_css %}
+<style>
+.table-responsive {
+  overflow-x: auto;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+#materials-table,
+#persons-table,
+#machines-table {
+  min-width: 800px;
+  width: 100%;
+}
+
+#materials-table th,
+#materials-table td,
+#persons-table th,
+#persons-table td,
+#machines-table th,
+#machines-table td {
+  white-space: nowrap;
+  min-width: 120px;
+  padding: 8px 12px;
+}
+
+.form-container {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.inventory-module {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/jalali-datepicker/jalali-datepicker.min.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize Jalali Date Picker
+  var performanceDateInput = document.getElementById('id_performance_date');
+  if (performanceDateInput) {
+    jalaliDatepicker.startWatch({
+      minDate: 'attr',
+      maxDate: 'attr',
+    });
+    performanceDateInput.addEventListener('focus', function() {
+      jalaliDatepicker.show(this);
+    });
+  }
+
+  // Auto-populate materials when transfer is selected
+  var orderSelect = document.getElementById('id_order');
+  var transferSelect = document.getElementById('id_transfer');
+  var quantityPlannedInput = document.getElementById('id_quantity_planned');
+  var quantityActualInput = document.getElementById('id_quantity_actual');
+
+  if (orderSelect && transferSelect) {
+    function updateTransferOptions() {
+      var orderId = orderSelect.value;
+      if (!orderId) {
+        transferSelect.innerHTML = '<option value="">--------</option>';
+        return;
+      }
+
+      // Filter transfers by selected order
+      var options = transferSelect.querySelectorAll('option');
+      options.forEach(function(option) {
+        if (option.value) {
+          // Check if this transfer belongs to the selected order
+          // This is a simplified check - in real implementation, you might need an API call
+          option.style.display = '';
+        }
+      });
+    }
+
+    orderSelect.addEventListener('change', function() {
+      updateTransferOptions();
+      // Auto-populate quantity_planned from order
+      if (orderSelect.options[orderSelect.selectedIndex]) {
+        var orderText = orderSelect.options[orderSelect.selectedIndex].text;
+        // Extract quantity from order text if available, or make API call
+      }
+    });
+
+    transferSelect.addEventListener('change', function() {
+      // When transfer is selected, materials should be auto-populated
+      // This will be handled server-side in the view
+    });
+  }
+
+  // Formset management for persons
+  var addPersonBtn = document.getElementById('add-person-btn');
+  var personsFormsetContainer = document.getElementById('persons-formset-container');
+  var totalPersonsInput = document.querySelector('#id_persons-TOTAL_FORMS');
+
+  if (addPersonBtn && personsFormsetContainer && totalPersonsInput) {
+    addPersonBtn.addEventListener('click', function() {
+      var currentFormCount = parseInt(totalPersonsInput.value);
+      var newFormIndex = currentFormCount;
+
+      var newFormRow = personsFormsetContainer.lastElementChild.cloneNode(true);
+      newFormRow.setAttribute('data-row-index', newFormIndex);
+
+      newFormRow.querySelectorAll('input, select, textarea').forEach(function(field) {
+        if (field.name) {
+          field.name = field.name.replace(/persons-(\d+)-/, `persons-${newFormIndex}-`);
+        }
+        if (field.id) {
+          field.id = field.id.replace(/id_persons-(\d+)-/, `id_persons-${newFormIndex}-`);
+        }
+        if (field.type !== 'hidden' && field.type !== 'checkbox') {
+          field.value = '';
+        }
+        if (field.type === 'checkbox') {
+          field.checked = false;
+        }
+      });
+
+      newFormRow.querySelectorAll('.field-errors').forEach(function(error) {
+        error.textContent = '';
+      });
+
+      personsFormsetContainer.appendChild(newFormRow);
+      totalPersonsInput.value = newFormIndex + 1;
+    });
+  }
+
+  // Formset management for machines
+  var addMachineBtn = document.getElementById('add-machine-btn');
+  var machinesFormsetContainer = document.getElementById('machines-formset-container');
+  var totalMachinesInput = document.querySelector('#id_machines-TOTAL_FORMS');
+
+  if (addMachineBtn && machinesFormsetContainer && totalMachinesInput) {
+    addMachineBtn.addEventListener('click', function() {
+      var currentFormCount = parseInt(totalMachinesInput.value);
+      var newFormIndex = currentFormCount;
+
+      var newFormRow = machinesFormsetContainer.lastElementChild.cloneNode(true);
+      newFormRow.setAttribute('data-row-index', newFormIndex);
+
+      newFormRow.querySelectorAll('input, select, textarea').forEach(function(field) {
+        if (field.name) {
+          field.name = field.name.replace(/machines-(\d+)-/, `machines-${newFormIndex}-`);
+        }
+        if (field.id) {
+          field.id = field.id.replace(/id_machines-(\d+)-/, `id_machines-${newFormIndex}-`);
+        }
+        if (field.type !== 'hidden' && field.type !== 'checkbox') {
+          field.value = '';
+        }
+        if (field.type === 'checkbox') {
+          field.checked = false;
+        }
+      });
+
+      newFormRow.querySelectorAll('.field-errors').forEach(function(error) {
+        error.textContent = '';
+      });
+
+      machinesFormsetContainer.appendChild(newFormRow);
+      totalMachinesInput.value = newFormIndex + 1;
+    });
+  }
+
+  // Handle DELETE checkboxes
+  if (personsFormsetContainer) {
+    personsFormsetContainer.addEventListener('change', function(e) {
+      if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
+        var row = e.target.closest('.formset-row');
+        if (row && e.target.checked) {
+          row.style.display = 'none';
+        } else if (row && !e.target.checked) {
+          row.style.display = '';
+        }
+      }
+    });
+  }
+
+  if (machinesFormsetContainer) {
+    machinesFormsetContainer.addEventListener('change', function(e) {
+      if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
+        var row = e.target.closest('.formset-row');
+        if (row && e.target.checked) {
+          row.style.display = 'none';
+        } else if (row && !e.target.checked) {
+          row.style.display = '';
+        }
+      }
+    });
+  }
+});
+</script>
+{% endblock %}
+{% endblock %}
+

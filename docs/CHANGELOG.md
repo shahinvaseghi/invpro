@@ -66,6 +66,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Forms dynamically add/remove WorkLine option based on module availability
   - Updated `inventory/models.py`, `inventory/forms/issue.py`, `inventory/forms/base.py`, and `inventory/views/api.py` to use optional imports
   - See [MODULE_DEPENDENCIES.md](MODULE_DEPENDENCIES.md) for detailed documentation
+- **Performance Records Management**: Complete implementation of Performance Records in Production module
+  - `PerformanceRecord` model with order selection, performance date, planned/actual quantities, approver assignment, and status tracking
+  - `PerformanceRecordMaterial` model for tracking material waste from transfer documents
+  - `PerformanceRecordPerson` model for tracking labor time (work minutes) for personnel
+  - `PerformanceRecordMachine` model for tracking machine usage time (work minutes) for machines
+  - `PerformanceRecordForm` with order selection, transfer selection (optional), performance date (Jalali), quantity validation, and approver filtering
+  - `PerformanceRecordMaterialFormSet` for managing material waste tracking
+  - `PerformanceRecordPersonFormSet` for managing personnel work time
+  - `PerformanceRecordMachineFormSet` for managing machine usage time
+  - CRUD views: `PerformanceRecordListView`, `PerformanceRecordCreateView`, `PerformanceRecordUpdateView`, `PerformanceRecordDeleteView`
+  - Approval workflow views: `PerformanceRecordApproveView`, `PerformanceRecordRejectView`
+  - Receipt creation view: `PerformanceRecordCreateReceiptView` (creates permanent or temporary receipt from approved performance records)
+  - Templates: `performance_record_list.html`, `performance_record_form.html`, `performance_record_confirm_delete.html`
+  - Permission: `production.performance_records` with actions (view_own, view_all, create, edit_own, edit_other, delete_own, delete_other, approve, reject, create_receipt)
+  - Auto-generated `performance_code` with "PR-" prefix and 8-digit sequential number per company
+  - Order selection requires process assignment (validated in form)
+  - Transfer request selection (optional) - auto-populates materials from transfer document
+  - Materials auto-populated from transfer request items (if transfer is selected)
+  - Material waste tracking: quantity_issued (from transfer) and quantity_wasted (user-entered)
+  - Personnel filtering: Only personnel assigned to work lines in the order's process
+  - Machine filtering: Only machines assigned to work lines in the order's process
+  - Work minutes tracking for both personnel and machines
+  - Planned quantity auto-populated from order
+  - Actual quantity validation: Cannot exceed planned quantity
+  - Receipt creation:
+    - Receipt type determined by `finished_item.requires_temporary_receipt`:
+      - If `requires_temporary_receipt = 1`: Only temporary receipt can be created
+      - If `requires_temporary_receipt = 0`: User can choose permanent or temporary receipt
+    - Receipt quantity = actual produced quantity from performance record
+    - Receipt warehouse selection (required)
+    - Only available for approved and locked performance records
+    - Requires `CREATE_RECEIPT` permission
+  - Lockable documents (inherits from `LockableModel`)
+  - Status workflow: pending_approval → approved/rejected
+  - Navigation links added to sidebar and top menu with permission checks
+  - Migration: `0021_performancerecord_performancerecordperson_and_more.py`
 
 ### Fixed
 - **Jalali Date Picker Not Displaying**: Fixed issue where Persian date picker was not showing when clicking on date input fields

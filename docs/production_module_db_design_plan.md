@@ -331,6 +331,136 @@ Additional considerations:
 - Use `total_run_minutes` and `quantity_produced` to compute actual cycle time, compare against planned values from process steps.
 - Store downtime, yield, and efficiency metrics in `metadata` or companion analytics tables as needed.
 
+**Note**: The `production_order_performance` table design above is a legacy design. The current implementation uses a normalized structure with separate tables for materials, personnel, and machines. See `production_performance_record` tables below.
+
+#### Table: `production_performance_record`
+
+| Column | Type | Constraints | Notes |
+| --- | --- | --- | --- |
+| `id` | `bigserial` | PK | Auto-increment surrogate key. |
+| `company_id` | `bigint` | `NOT NULL`, FK to `invproj_company(id)` | Owning company. |
+| `company_code` | `varchar(8)` | `NOT NULL`, check numeric | Cached company code. |
+| `performance_code` | `varchar(30)` | `NOT NULL`, `UNIQUE` within company | Auto-generated code with "PR-" prefix and 8-digit sequential number. |
+| `order_id` | `bigint` | `NOT NULL`, FK to `production_product_order(id)` | Production order being reported (must have a process). |
+| `order_code` | `varchar(30)` | `NOT NULL` | Cached production order code. |
+| `transfer_id` | `bigint` | nullable, FK to `production_transfer_to_line(id)` | Optional transfer request reference (for auto-populating materials). |
+| `report_date` | `date` | `NOT NULL`, default `now()` | Date of performance report (Jalali calendar). |
+| `quantity_planned` | `numeric(18,6)` | `NOT NULL` | Planned quantity from order (auto-populated). |
+| `quantity_actual` | `numeric(18,6)` | `NOT NULL` | Actual quantity produced (user-entered, cannot exceed planned). |
+| `unit` | `varchar(30)` | `NOT NULL` | Unit of measure (auto-populated from order). |
+| `status` | `varchar(20)` | `NOT NULL`, default `'pending_approval'` | Workflow state (`pending_approval`, `approved`, `rejected`). |
+| `approved_by_id` | `bigint` | nullable, FK to `invproj_user(id)` | User who can approve this performance record (filtered by APPROVE permission). |
+| `is_locked` | `smallint` | `NOT NULL`, default `0`, check in (0,1) | Lock flag (inherited from LockableModel). |
+| `locked_at` | `timestamp with time zone` | nullable | Timestamp when document was locked. |
+| `locked_by_id` | `bigint` | nullable, FK to `invproj_user(id)` | User who locked the document. |
+| `unlocked_at` | `timestamp with time zone` | nullable | Timestamp when document was unlocked. |
+| `unlocked_by_id` | `bigint` | nullable, FK to `invproj_user(id)` | User who unlocked the document. |
+| `notes` | `text` | nullable | Additional remarks (issues, downtime). |
+| `metadata` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | Extensible attributes (downtime breakdown, quality data). |
+| `created_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Auto-populated on insert. |
+| `edited_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Update audit. |
+| `created_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Creator reference. |
+| `edited_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Last editor reference. |
+| `is_enabled` | `smallint` | `NOT NULL`, default `1`, check in (0,1) | Soft-delete flag. |
+
+Additional considerations:
+
+- Unique constraint on `(company_id, order_id, report_date)` ensures one performance record per order per day.
+- Auto-generated `performance_code` using sequential code generation (8 digits with "PR-" prefix).
+- `order_id` must reference a `ProductOrder` with a process assigned (validated in form).
+- `transfer_id` is optional - if selected, materials are auto-populated from transfer document.
+- `quantity_actual` cannot exceed `quantity_planned` (validated in form).
+- `approved_by_id` filters to show only users with APPROVE permission for `production.performance_records`.
+- Inherits from `LockableModel` - documents are locked after approval.
+- Use companion detail tables (`production_performance_record_material`, `production_performance_record_person`, `production_performance_record_machine`) for granular tracking.
+- Can create permanent or temporary receipts from approved performance records (requires `CREATE_RECEIPT` permission).
+- Receipt type determined by `finished_item.requires_temporary_receipt`:
+  - If `requires_temporary_receipt = 1`: Only temporary receipt can be created
+  - If `requires_temporary_receipt = 0`: User can choose permanent or temporary receipt
+
+#### Table: `production_performance_record_material`
+
+| Column | Type | Constraints | Notes |
+| --- | --- | --- | --- |
+| `id` | `bigserial` | PK | Auto-increment surrogate key. |
+| `company_id` | `bigint` | `NOT NULL`, FK to `invproj_company(id)` | Owning company. |
+| `company_code` | `varchar(8)` | `NOT NULL`, check numeric | Cached company code. |
+| `performance_record_id` | `bigint` | `NOT NULL`, FK to `production_performance_record(id)` | Parent performance record. |
+| `transfer_item_id` | `bigint` | nullable, FK to `production_transfer_to_line_item(id)` | Reference to transfer item (if material came from transfer). |
+| `material_item_id` | `bigint` | `NOT NULL`, FK to `inventory_item(id)` | Material item. |
+| `material_item_code` | `varchar(16)` | `NOT NULL` | Cached material item code. |
+| `quantity_issued` | `numeric(18,6)` | `NOT NULL` | Quantity issued from transfer (read-only). |
+| `quantity_wasted` | `numeric(18,6)` | `NOT NULL`, default `0` | Quantity wasted (user-entered). |
+| `unit` | `varchar(30)` | `NOT NULL` | Unit of measure (auto-populated from item). |
+| `notes` | `text` | nullable | Line-specific notes. |
+| `created_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Auto-populated on insert. |
+| `edited_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Update audit. |
+| `created_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Creator reference. |
+| `edited_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Last editor reference. |
+| `is_enabled` | `smallint` | `NOT NULL`, default `1`, check in (0,1) | Soft-delete flag. |
+
+Additional considerations:
+
+- Unique constraint on `(company_id, performance_record_id, material_item_id)` prevents duplicate materials.
+- Materials are auto-populated from transfer request items (if transfer is selected).
+- `quantity_issued` is read-only (copied from transfer item).
+- `quantity_wasted` can be updated by user (cannot exceed `quantity_issued`).
+- Material items cannot be edited after creation (read-only).
+
+#### Table: `production_performance_record_person`
+
+| Column | Type | Constraints | Notes |
+| --- | --- | --- | --- |
+| `id` | `bigserial` | PK | Auto-increment surrogate key. |
+| `company_id` | `bigint` | `NOT NULL`, FK to `invproj_company(id)` | Owning company. |
+| `company_code` | `varchar(8)` | `NOT NULL`, check numeric | Cached company code. |
+| `performance_record_id` | `bigint` | `NOT NULL`, FK to `production_performance_record(id)` | Parent performance record. |
+| `person_id` | `bigint` | `NOT NULL`, FK to `production_person(id)` | Personnel who worked on the order. |
+| `person_code` | `varchar(8)` | `NOT NULL` | Cached person code. |
+| `work_line_id` | `bigint` | nullable, FK to `production_work_line(id)` | Work line assignment (optional). |
+| `work_line_code` | `varchar(5)` | nullable | Cached work line code. |
+| `minutes_worked` | `numeric(10,2)` | `NOT NULL` | Work minutes for this person (user-entered). |
+| `notes` | `text` | nullable | Line-specific notes. |
+| `created_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Auto-populated on insert. |
+| `edited_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Update audit. |
+| `created_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Creator reference. |
+| `edited_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Last editor reference. |
+| `is_enabled` | `smallint` | `NOT NULL`, default `1`, check in (0,1) | Soft-delete flag. |
+
+Additional considerations:
+
+- Unique constraint on `(company_id, performance_record_id, person_id)` prevents duplicate personnel entries.
+- Personnel filtered by process work lines (only personnel assigned to work lines in the order's process).
+- `work_line_id` is optional but helps track which work line the person was assigned to.
+- `minutes_worked` tracks labor time for analytics and cost calculation.
+
+#### Table: `production_performance_record_machine`
+
+| Column | Type | Constraints | Notes |
+| --- | --- | --- | --- |
+| `id` | `bigserial` | PK | Auto-increment surrogate key. |
+| `company_id` | `bigint` | `NOT NULL`, FK to `invproj_company(id)` | Owning company. |
+| `company_code` | `varchar(8)` | `NOT NULL`, check numeric | Cached company code. |
+| `performance_record_id` | `bigint` | `NOT NULL`, FK to `production_performance_record(id)` | Parent performance record. |
+| `machine_id` | `bigint` | `NOT NULL`, FK to `production_machine(id)` | Machine used in the order. |
+| `machine_code` | `varchar(10)` | `NOT NULL` | Cached machine code. |
+| `work_line_id` | `bigint` | nullable, FK to `production_work_line(id)` | Work line assignment (optional). |
+| `work_line_code` | `varchar(5)` | nullable | Cached work line code. |
+| `minutes_worked` | `numeric(10,2)` | `NOT NULL` | Work minutes for this machine (user-entered). |
+| `notes` | `text` | nullable | Line-specific notes. |
+| `created_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Auto-populated on insert. |
+| `edited_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Update audit. |
+| `created_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Creator reference. |
+| `edited_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Last editor reference. |
+| `is_enabled` | `smallint` | `NOT NULL`, default `1`, check in (0,1) | Soft-delete flag. |
+
+Additional considerations:
+
+- Unique constraint on `(company_id, performance_record_id, machine_id)` prevents duplicate machine entries.
+- Machines filtered by process work lines (only machines assigned to work lines in the order's process).
+- `work_line_id` is optional but helps track which work line the machine was assigned to.
+- `minutes_worked` tracks machine usage time for analytics and cost calculation.
+
 #### Table: `production_transfer_to_line`
 
 | Column | Type | Constraints | Notes |

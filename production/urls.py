@@ -51,5 +51,11 @@ urlpatterns = [
     
     # Performance Records (سند عملکرد)
     path('performance-records/', views.PerformanceRecordListView.as_view(), name='performance_records'),
+    path('performance-records/create/', views.PerformanceRecordCreateView.as_view(), name='performance_record_create'),
+    path('performance-records/<int:pk>/edit/', views.PerformanceRecordUpdateView.as_view(), name='performance_record_edit'),
+    path('performance-records/<int:pk>/delete/', views.PerformanceRecordDeleteView.as_view(), name='performance_record_delete'),
+    path('performance-records/<int:pk>/approve/', views.PerformanceRecordApproveView.as_view(), name='performance_record_approve'),
+    path('performance-records/<int:pk>/reject/', views.PerformanceRecordRejectView.as_view(), name='performance_record_reject'),
+    path('performance-records/<int:pk>/create-receipt/', views.PerformanceRecordCreateReceiptView.as_view(), name='performance_record_create_receipt'),
 ]
 

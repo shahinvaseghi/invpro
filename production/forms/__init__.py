@@ -39,6 +39,17 @@ from production.forms.transfer_to_line import (
     TransferToLineItemFormSet,
 )
 
+# Import performance record forms
+from production.forms.performance_record import (
+    PerformanceRecordForm,
+    PerformanceRecordMaterialForm,
+    PerformanceRecordPersonForm,
+    PerformanceRecordMachineForm,
+    PerformanceRecordMaterialFormSet,
+    PerformanceRecordPersonFormSet,
+    PerformanceRecordMachineFormSet,
+)
+
 __all__ = [
     # Person forms
     'PersonForm',
@@ -58,5 +69,13 @@ __all__ = [
     'TransferToLineForm',
     'TransferToLineItemForm',
     'TransferToLineItemFormSet',
+    # Performance Record forms
+    'PerformanceRecordForm',
+    'PerformanceRecordMaterialForm',
+    'PerformanceRecordPersonForm',
+    'PerformanceRecordMachineForm',
+    'PerformanceRecordMaterialFormSet',
+    'PerformanceRecordPersonFormSet',
+    'PerformanceRecordMachineFormSet',
 ]
 
