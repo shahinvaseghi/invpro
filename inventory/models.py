@@ -236,11 +236,8 @@ class Warehouse(InventorySortableModel):
 
 # WorkLine moved to production module
 # Import it here for backward compatibility in IssueConsumptionLine
-try:
-    from production.models import WorkLine
-except ImportError:
-    # If production module is not installed, WorkLine won't be available
-    WorkLine = None
+from shared.utils.modules import get_work_line_model
+WorkLine = get_work_line_model()
 
 
 class Item(InventorySortableModel):

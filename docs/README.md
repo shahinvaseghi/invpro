@@ -12,6 +12,7 @@ This directory contains all project documentation files organized by topic and p
 
 ### Technical Documentation
 - **[DATABASE_DOCUMENTATION.md](DATABASE_DOCUMENTATION.md)** - Database schema, tables, and relationships
+- **[MODULE_DEPENDENCIES.md](MODULE_DEPENDENCIES.md)** - Module dependencies and optional features handling
 - **[system_requirements.md](system_requirements.md)** - System requirements and deployment guide
 - **[ui_guidelines.md](ui_guidelines.md)** - UI/UX guidelines and component documentation
 

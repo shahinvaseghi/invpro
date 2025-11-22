@@ -41,10 +41,8 @@ from inventory.forms.base import (
 )
 
 # WorkLine moved to production module
-try:
-    from production.models import WorkLine
-except ImportError:
-    WorkLine = None
+from shared.utils.modules import get_work_line_model
+WorkLine = get_work_line_model()
 
 
 class IssuePermanentForm(forms.ModelForm):
@@ -946,7 +944,6 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
         choices=[
             ('', _('--- انتخاب کنید ---')),
             ('company_unit', _('واحد کاری (Company Unit)')),
-            ('work_line', _('خط کاری (Work Line)')),
         ],
         required=False,
         label=_('نوع مقصد'),
@@ -1017,6 +1014,19 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
         if not self.company_id:
             return
         
+        # Add work_line option to destination_type_choice if production module is installed
+        if WorkLine and 'destination_type_choice' in self.fields:
+            # Add work_line option to choices dynamically
+            current_choices = list(self.fields['destination_type_choice'].choices)
+            work_line_choice = ('work_line', _('خط کاری (Work Line)'))
+            if work_line_choice not in current_choices:
+                # Insert before the last empty choice
+                if current_choices and current_choices[-1][0] == '':
+                    current_choices.insert(-1, work_line_choice)
+                else:
+                    current_choices.append(work_line_choice)
+                self.fields['destination_type_choice'].choices = current_choices
+        
         # Set work_line queryset (only if production module is installed)
         if 'work_line' in self.fields and WorkLine:
             self.fields['work_line'].queryset = WorkLine.objects.filter(
@@ -1068,7 +1078,7 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
                         # Show the company unit field container (JavaScript will handle display)
                     except CompanyUnit.DoesNotExist:
                         pass
-            elif dest_type == 'work_line' and self.instance.work_line:
+            elif dest_type == 'work_line' and self.instance.work_line and WorkLine:
                 self.initial['destination_type_choice'] = 'work_line'
                 self.initial['destination_work_line'] = self.instance.work_line.id
                 # Show the work line field container (JavaScript will handle display)
@@ -1096,7 +1106,10 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
             if not dest_company_unit:
                 self.add_error('destination_company_unit', _('Please select a company unit.'))
         elif dest_type_choice == 'work_line':
-            if not dest_work_line:
+            if not WorkLine:
+                # Production module not installed, work_line option not available
+                self.add_error('destination_type_choice', _('Work line option is not available. Production module is not installed.'))
+            elif not dest_work_line:
                 self.add_error('destination_work_line', _('Please select a work line.'))
         
         return cleaned_data
@@ -1119,7 +1132,7 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
             # Store company unit code in cost_center_code for now (or we could add destination fields to model)
             if hasattr(instance, 'cost_center_code'):
                 instance.cost_center_code = dest_company_unit.public_code
-        elif dest_type_choice == 'work_line' and dest_work_line:
+        elif dest_type_choice == 'work_line' and dest_work_line and WorkLine:
             instance.consumption_type = 'work_line'
             instance.work_line = dest_work_line
             if hasattr(instance, 'cost_center_code') and instance.cost_center_code:

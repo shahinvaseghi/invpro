@@ -35,10 +35,8 @@ from inventory.fields import JalaliDateField
 from inventory.widgets import JalaliDateInput
 
 # WorkLine moved to production module
-try:
-    from production.models import WorkLine
-except ImportError:
-    WorkLine = None
+from shared.utils.modules import get_work_line_model
+WorkLine = get_work_line_model()
 
 User = get_user_model()
 

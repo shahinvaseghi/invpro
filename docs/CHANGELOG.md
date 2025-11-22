@@ -54,6 +54,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Automatic date picker initialization for all inputs with `jalali-date-input` class or `data-jalali="true"` attribute
   - Date picker configured for Persian calendar with date-only mode (no time selection)
   - Applied to `ProductOrderForm.due_date` field and all other Jalali date fields throughout the application
+- **Module Independence Support**: Inventory module can now run independently without production module
+  - Created `shared.utils.modules` utility module with functions to check module availability
+  - `is_production_installed()`: Check if production module is installed
+  - `is_qc_installed()`: Check if QC module is installed
+  - `get_work_line_model()`: Get WorkLine model if production is installed, None otherwise
+  - `get_person_model()`: Get Person model if production is installed, None otherwise
+  - All production dependencies in inventory module are now optional
+  - WorkLine selection in consumption issues is gracefully disabled when production is not installed
+  - API endpoint `/inventory/api/warehouse-work-lines/` returns empty list when production is not installed
+  - Forms dynamically add/remove WorkLine option based on module availability
+  - Updated `inventory/models.py`, `inventory/forms/issue.py`, `inventory/forms/base.py`, and `inventory/views/api.py` to use optional imports
+  - See [MODULE_DEPENDENCIES.md](MODULE_DEPENDENCIES.md) for detailed documentation
 
 ### Fixed
 - **Jalali Date Picker Not Displaying**: Fixed issue where Persian date picker was not showing when clicking on date input fields

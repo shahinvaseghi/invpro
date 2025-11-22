@@ -405,9 +405,10 @@ def get_warehouse_work_lines(request: HttpRequest) -> JsonResponse:
         warehouse = get_object_or_404(models.Warehouse, pk=warehouse_id, company_id=company_id, is_enabled=1)
 
         # Get work lines for this warehouse (from production module)
-        try:
-            from production.models import WorkLine
-        except ImportError:
+        from shared.utils.modules import get_work_line_model
+        WorkLine = get_work_line_model()
+        
+        if not WorkLine:
             # If production module is not installed, return empty list
             return JsonResponse({
                 'work_lines': [],
