@@ -59,77 +59,166 @@
         </div>
       </header>
 
-      <table class="data-table permissions-table">
-        <thead>
-          <tr>
-            <th>{% trans "Feature" %}</th>
-            <th>{% trans "View Scope" %}</th>
-            <th>{% trans "Actions" %}</th>
-            <th style="width: 150px;">{% trans "Quick Actions" %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for feature in feature_permissions %}
-          <tr data-feature-id="{{ feature.html_id }}">
-            <td>
-              <strong>{{ feature.label }}</strong>
-              <div class="muted-text code">{{ feature.code }}</div>
-            </td>
-            <td>
-              {% if feature.view_supported %}
-                <div class="radio-group">
-                  <label>
-                    <input type="radio" name="perm-{{ feature.html_id }}-view" value="none" {% if feature.view_scope == 'none' %}checked{% endif %}>
-                    {% trans "None" %}
-                  </label>
-                  <label>
-                    <input type="radio" name="perm-{{ feature.html_id }}-view" value="own" {% if feature.view_scope == 'own' %}checked{% endif %}>
-                    {% trans "Own" %}
-                  </label>
-                  <label>
-                    <input type="radio" name="perm-{{ feature.html_id }}-view" value="all" {% if feature.view_scope == 'all' %}checked{% endif %}>
-                    {% trans "All" %}
-                  </label>
-                </div>
-              {% else %}
-                <span class="muted-text">{% trans "Not applicable" %}</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if feature.actions %}
-                <div class="checkbox-grid">
-                  {% for action in feature.actions %}
-                    <label>
-                      <input type="checkbox" name="perm-{{ feature.html_id }}-{{ action.code }}" {% if action.checked %}checked{% endif %}>
-                      {{ action.label }}
-                    </label>
-                  {% endfor %}
-                </div>
-              {% else %}
-                <span class="muted-text">{% trans "No extra actions available." %}</span>
-              {% endif %}
-            </td>
-            <td>
-              <button type="button" class="btn btn-sm btn-primary select-all-row" data-feature-id="{{ feature.html_id }}">{% trans "Select All" %}</button>
-              <button type="button" class="btn btn-sm btn-secondary deselect-all-row" data-feature-id="{{ feature.html_id }}">{% trans "Deselect All" %}</button>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="module-accordions">
+        {% for module in feature_permissions %}
+        <div class="module-accordion">
+          <div class="module-accordion-header" onclick="toggleModule('{{ module.code }}')">
+            <h3>{{ module.label }}</h3>
+            <span class="accordion-icon" id="icon-{{ module.code }}">▼</span>
+          </div>
+          <div class="module-accordion-content" id="content-{{ module.code }}" style="display: none;">
+            <table class="data-table permissions-table">
+              <thead>
+                <tr>
+                  <th>{% trans "Feature" %}</th>
+                  <th>{% trans "View Scope" %}</th>
+                  <th>{% trans "Actions" %}</th>
+                  <th style="width: 150px;">{% trans "Quick Actions" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for feature in module.features %}
+                <tr data-feature-id="{{ feature.html_id }}">
+                  <td>
+                    <strong>{{ feature.label }}</strong>
+                    <div class="muted-text code">{{ feature.code }}</div>
+                  </td>
+                  <td>
+                    {% if feature.view_supported %}
+                      <select name="perm-{{ feature.html_id }}-view" class="form-control view-scope-select">
+                        <option value="none" {% if feature.view_scope == 'none' %}selected{% endif %}>{% trans "None" %}</option>
+                        <option value="own" {% if feature.view_scope == 'own' %}selected{% endif %}>{% trans "Own" %}</option>
+                        <option value="all" {% if feature.view_scope == 'all' %}selected{% endif %}>{% trans "All" %}</option>
+                      </select>
+                    {% else %}
+                      <span class="muted-text">{% trans "Not applicable" %}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if feature.actions %}
+                      <div class="checkbox-grid">
+                        {% for action in feature.actions %}
+                          <label>
+                            <input type="checkbox" name="perm-{{ feature.html_id }}-{{ action.code }}" {% if action.checked %}checked{% endif %}>
+                            {{ action.label }}
+                          </label>
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      <span class="muted-text">{% trans "No extra actions available." %}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <button type="button" class="btn btn-sm btn-primary select-all-row" data-feature-id="{{ feature.html_id }}">{% trans "Select All" %}</button>
+                    <button type="button" class="btn btn-sm btn-secondary deselect-all-row" data-feature-id="{{ feature.html_id }}">{% trans "Deselect All" %}</button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
     </section>
 
+    <style>
+      .module-accordions {
+        margin-top: 20px;
+      }
+      
+      .module-accordion {
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        overflow: hidden;
+      }
+      
+      .module-accordion-header {
+        background-color: #f8f9fa;
+        padding: 15px 20px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        user-select: none;
+        transition: background-color 0.2s;
+      }
+      
+      .module-accordion-header:hover {
+        background-color: #e9ecef;
+      }
+      
+      .module-accordion-header h3 {
+        margin: 0;
+        font-size: 1.1em;
+        font-weight: 600;
+      }
+      
+      .accordion-icon {
+        font-size: 0.9em;
+        transition: transform 0.3s;
+      }
+      
+      .module-accordion-content {
+        padding: 0;
+        background-color: #fff;
+      }
+      
+      .module-accordion-content table {
+        margin: 0;
+      }
+      
+      .view-scope-select {
+        min-width: 120px;
+      }
+      
+      .checkbox-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      
+      .checkbox-grid label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-weight: normal;
+      }
+    </style>
+
     <script>
+    // Toggle module accordion
+    function toggleModule(moduleCode) {
+      const content = document.getElementById('content-' + moduleCode);
+      const icon = document.getElementById('icon-' + moduleCode);
+      
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.textContent = '▼';
+      } else {
+        content.style.display = 'none';
+        icon.textContent = '▶';
+      }
+    }
+    
     document.addEventListener('DOMContentLoaded', function() {
+      // Expand first module by default
+      const firstModule = document.querySelector('.module-accordion');
+      if (firstModule) {
+        const moduleCode = firstModule.querySelector('.module-accordion-content').id.replace('content-', '');
+        toggleModule(moduleCode);
+      }
+      
       // Function to select all in a row
       function selectAllRow(featureId) {
         const row = document.querySelector(`tr[data-feature-id="${featureId}"]`);
         if (!row) return;
         
-        // Select "all" radio button if view is supported
-        const viewRadio = row.querySelector(`input[name="perm-${featureId}-view"][value="all"]`);
-        if (viewRadio) {
-          viewRadio.checked = true;
+        // Select "all" in dropdown if view is supported
+        const viewSelect = row.querySelector(`select[name="perm-${featureId}-view"]`);
+        if (viewSelect) {
+          viewSelect.value = 'all';
         }
         
         // Check all checkboxes in this row
@@ -144,10 +233,10 @@
         const row = document.querySelector(`tr[data-feature-id="${featureId}"]`);
         if (!row) return;
         
-        // Select "none" radio button if view is supported
-        const viewRadio = row.querySelector(`input[name="perm-${featureId}-view"][value="none"]`);
-        if (viewRadio) {
-          viewRadio.checked = true;
+        // Select "none" in dropdown if view is supported
+        const viewSelect = row.querySelector(`select[name="perm-${featureId}-view"]`);
+        if (viewSelect) {
+          viewSelect.value = 'none';
         }
         
         // Uncheck all checkboxes in this row
