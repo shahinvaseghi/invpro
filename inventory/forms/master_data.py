@@ -14,6 +14,34 @@ from django.db.models import Q
 from django.forms import inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
+
+class IntegerCheckboxInput(forms.CheckboxInput):
+    """Checkbox widget that works with IntegerField (0/1) values."""
+    
+    def value_from_datadict(self, data, files, name):
+        """Return 1 if checked, 0 if unchecked."""
+        if name not in data:
+            return 0
+        value = data.get(name)
+        # CheckboxInput returns 'on' when checked, None when unchecked
+        return 1 if value == 'on' or value == '1' else 0
+    
+    def format_value(self, value):
+        """Format value for rendering."""
+        # Return 1 if value is truthy (1, True, etc.), 0 otherwise
+        return 1 if value and value != 0 else 0
+    
+    def get_context(self, name, value, attrs):
+        """Get context for template rendering."""
+        context = super().get_context(name, value, attrs)
+        # Only check the checkbox if value is 1
+        if value == 1 or value == '1':
+            context['widget']['attrs']['checked'] = True
+        else:
+            # Remove checked attribute if it exists
+            context['widget']['attrs'].pop('checked', None)
+        return context
+
 from inventory.models import (
     ItemType,
     ItemCategory,
@@ -339,26 +367,26 @@ class SupplierCategoryForm(forms.ModelForm):
 class ItemForm(forms.ModelForm):
     """Form for creating/editing items."""
 
-    is_sellable = forms.BooleanField(
+    is_sellable = forms.IntegerField(
         required=False,
         label=_('قابل فروش است'),
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        widget=IntegerCheckboxInput(attrs={'class': 'form-check-input'}),
     )
-    has_lot_tracking = forms.BooleanField(
+    has_lot_tracking = forms.IntegerField(
         required=False,
         label=_('نیاز به رهگیری لات دارد'),
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        widget=IntegerCheckboxInput(attrs={'class': 'form-check-input'}),
     )
-    requires_temporary_receipt = forms.BooleanField(
+    requires_temporary_receipt = forms.IntegerField(
         required=False,
         label=_('ورود از طریق رسید موقت'),
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        widget=IntegerCheckboxInput(attrs={'class': 'form-check-input'}),
     )
-    is_enabled = forms.BooleanField(
+    is_enabled = forms.IntegerField(
         required=False,
         label=_('فعال باشد'),
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-        initial=True,
+        widget=IntegerCheckboxInput(attrs={'class': 'form-check-input'}),
+        initial=1,
     )
     default_unit = forms.ChoiceField(
         choices=UNIT_CHOICES,
@@ -449,6 +477,13 @@ class ItemForm(forms.ModelForm):
         if self.instance.pk:
             selected = self.instance.warehouses.values_list('warehouse_id', flat=True)
             self.fields['allowed_warehouses'].initial = list(selected)
+            
+            # Set initial values for IntegerField checkboxes (0/1) from instance
+            # IntegerField with CheckboxInput will work correctly with 0/1 values
+            self.fields['is_sellable'].initial = self.instance.is_sellable
+            self.fields['has_lot_tracking'].initial = self.instance.has_lot_tracking
+            self.fields['requires_temporary_receipt'].initial = self.instance.requires_temporary_receipt
+            self.fields['is_enabled'].initial = self.instance.is_enabled
 
         self.fields['type'].label_from_instance = lambda obj: obj.name
         self.fields['category'].label_from_instance = lambda obj: obj.name
@@ -482,6 +517,17 @@ class ItemForm(forms.ModelForm):
             self.add_error('allowed_warehouses', _('حداقل یک انبار باید انتخاب شود.'))
         elif self.company_id and warehouses.filter(~Q(company_id=self.company_id)).exists():
             self.add_error('allowed_warehouses', _('انبارهای انتخاب شده باید متعلق به همان شرکت فعال باشند.'))
+
+        # Convert IntegerField checkbox values (from CheckboxInput) to PositiveSmallIntegerField (0/1)
+        # CheckboxInput returns 1 when checked, None/0 when unchecked
+        if 'is_sellable' in cleaned_data:
+            cleaned_data['is_sellable'] = 1 if cleaned_data.get('is_sellable') else 0
+        if 'has_lot_tracking' in cleaned_data:
+            cleaned_data['has_lot_tracking'] = 1 if cleaned_data.get('has_lot_tracking') else 0
+        if 'requires_temporary_receipt' in cleaned_data:
+            cleaned_data['requires_temporary_receipt'] = 1 if cleaned_data.get('requires_temporary_receipt') else 0
+        if 'is_enabled' in cleaned_data:
+            cleaned_data['is_enabled'] = 1 if cleaned_data.get('is_enabled') else 0
 
         return cleaned_data
 
