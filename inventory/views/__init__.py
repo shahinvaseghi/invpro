@@ -167,6 +167,16 @@ from .master_data import (
     ItemCreateView,
     ItemUpdateView,
     ItemDeleteView,
+)
+
+# Import item import/export views
+from .item_import import (
+    ItemExcelTemplateDownloadView,
+    ItemExcelImportView,
+)
+
+# Import remaining master data views
+from .master_data import (
     # Warehouses
     WarehouseListView,
     WarehouseCreateView,
@@ -294,6 +304,8 @@ __all__ = [
     'ItemCreateView',
     'ItemUpdateView',
     'ItemDeleteView',
+    'ItemExcelTemplateDownloadView',
+    'ItemExcelImportView',
     'WarehouseListView',
     'WarehouseCreateView',
     'WarehouseUpdateView',

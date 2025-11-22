@@ -12,6 +12,7 @@ This module contains CRUD views for:
 """
 from typing import Dict, Any
 from django.contrib import messages
+from django.db.models import Q
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -227,6 +228,58 @@ class ItemListView(InventoryBaseView, ListView):
     template_name = 'inventory/items.html'
     context_object_name = 'items'
     paginate_by = 50
+    
+    def get_queryset(self):
+        """Return items with filters and search, ordered by newest first."""
+        queryset = super().get_queryset()
+        queryset = queryset.select_related('type', 'category', 'subcategory')
+        
+        # Search by item code or name (Persian or English)
+        search = (self.request.GET.get('search') or '').strip()
+        if search:
+            queryset = queryset.filter(
+                Q(item_code__icontains=search) |
+                Q(name__icontains=search) |
+                Q(name_en__icontains=search)
+            )
+        
+        # Filter by item type
+        item_type_id = self.request.GET.get('type')
+        if item_type_id:
+            queryset = queryset.filter(type_id=item_type_id)
+        
+        # Filter by category
+        category_id = self.request.GET.get('category')
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+        
+        # Filter by status (is_enabled)
+        status = self.request.GET.get('status')
+        if status == '1':
+            queryset = queryset.filter(is_enabled=1)
+        elif status == '0':
+            queryset = queryset.filter(is_enabled=0)
+        
+        # Order by created_at descending (newest first), then by id descending as fallback
+        return queryset.order_by('-created_at', '-id')
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add filter context for template."""
+        context = super().get_context_data(**kwargs)
+        company_id = self.request.session.get('active_company_id')
+        
+        # Add item types for filter dropdown
+        if company_id:
+            context['item_types'] = models.ItemType.objects.filter(
+                company_id=company_id,
+                is_enabled=1,
+            ).order_by('name')
+            context['item_categories'] = models.ItemCategory.objects.filter(
+                company_id=company_id,
+                is_enabled=1,
+            ).order_by('name')
+        
+        return context
 
 
 class ItemSerialListView(FeaturePermissionRequiredMixin, InventoryBaseView, ListView):

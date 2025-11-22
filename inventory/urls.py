@@ -33,6 +33,9 @@ urlpatterns = [
     path('items/<int:pk>/edit/', views.ItemUpdateView.as_view(), name='item_edit'),
     path('items/<int:pk>/delete/', views.ItemDeleteView.as_view(), name='item_delete'),
     path('item-serials/', views.ItemSerialListView.as_view(), name='item_serials'),
+    # Item Excel Import/Export
+    path('items/excel-template/', views.ItemExcelTemplateDownloadView.as_view(), name='item_excel_template'),
+    path('items/excel-import/', views.ItemExcelImportView.as_view(), name='item_excel_import'),
     
     # API endpoints (from refactored views.api module with Type Hints)
     path('api/item-allowed-units/', views_api.get_item_allowed_units, name='item_allowed_units'),
