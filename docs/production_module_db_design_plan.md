@@ -258,18 +258,20 @@ Additional considerations:
 | `id` | `bigserial` | PK | Auto-increment surrogate key. |
 | `company_id` | `bigint` | `NOT NULL`, FK to `invproj_company(id)` | Owning company. |
 | `company_code` | `varchar(8)` | `NOT NULL`, check numeric | Cached company code. |
-| `order_code` | `varchar(30)` | `NOT NULL`, `UNIQUE` within company | Human-readable production order identifier. |
-| `order_date` | `date` | `NOT NULL` | Date the order is created. |
-| `due_date` | `date` | nullable | Target completion date. |
-| `finished_item_id` | `bigint` | `NOT NULL`, FK to `inventory_item(id)` | Item to be produced. |
+| `order_code` | `varchar(30)` | `NOT NULL`, `UNIQUE` within company | Human-readable production order identifier (auto-generated 10-digit code). |
+| `order_date` | `date` | `NOT NULL`, default `now()` | Date the order is created. |
+| `due_date` | `date` | nullable | Target completion date (Jalali calendar). |
+| `finished_item_id` | `bigint` | `NOT NULL`, FK to `inventory_item(id)` | Item to be produced (auto-populated from BOM). |
 | `finished_item_code` | `varchar(16)` | `NOT NULL` | Cached code for the produced item. |
-| `bom_code` | `varchar(30)` | `NOT NULL` | BOM code to use for material requirements. |
-| `process_id` | `bigint` | `NOT NULL`, FK to `production_process(id)` | Production process governing execution. |
-| `process_code` | `varchar(30)` | `NOT NULL` | Cached process code for traceability. |
+| `bom_id` | `bigint` | `NOT NULL`, FK to `production_bom(id)` | BOM to use for material requirements (required). |
+| `bom_code` | `varchar(30)` | `NOT NULL` | Cached BOM code for traceability. |
+| `process_id` | `bigint` | nullable, FK to `production_process(id)` | Production process governing execution (optional). |
+| `process_code` | `varchar(30)` | nullable | Cached process code for traceability. |
 | `quantity_planned` | `numeric(18,6)` | `NOT NULL` | Planned quantity to produce. |
-| `unit` | `varchar(30)` | `NOT NULL` | Unit of measure for the quantity. |
+| `unit` | `varchar(30)` | `NOT NULL` | Unit of measure for the quantity (auto-populated from finished item). |
 | `status` | `varchar(20)` | `NOT NULL`, default `'planned'` | Workflow state (`planned`, `released`, `in_progress`, `completed`, `cancelled`). |
 | `priority` | `varchar(10)` | `NOT NULL`, default `'normal'` | Priority level (`low`, `normal`, `high`, `urgent`). |
+| `approved_by_id` | `bigint` | nullable, FK to `invproj_user(id)` | User who can approve this order (filtered by APPROVE permission). |
 | `customer_reference` | `varchar(60)` | nullable | Optional customer or project reference. |
 | `notes` | `text` | nullable | Additional instructions or remarks. |
 | `metadata` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | Extensible attributes (attachments, scheduling info). |
@@ -284,8 +286,12 @@ Additional considerations:
 Additional considerations:
 
 - Unique constraint on `(company_id, order_code)` ensures order codes are unique per company.
-- Application logic should validate that `bom_code` and `process_id` correspond to the specified `finished_item_id`.
-- Use derived tables or views to explode material and routing requirements per order based on linked BOM and process.
+- Auto-generated `order_code` using sequential code generation (10 digits).
+- `bom_id` is required; `process_id` is optional.
+- `finished_item_id` and `finished_item_code` are auto-populated from selected BOM.
+- `unit` is auto-populated from finished item's primary unit.
+- `approved_by_id` filters to show only users with APPROVE permission for `production.product_orders`.
+- Users with `create_transfer_from_order` permission can optionally create transfer requests directly from the order form.
 - Integrate order status transitions with inventory reservations (materials) and production tracking events.
 
 #### Table: `production_order_performance`
@@ -332,11 +338,17 @@ Additional considerations:
 | `id` | `bigserial` | PK | Auto-increment surrogate key. |
 | `company_id` | `bigint` | `NOT NULL`, FK to `invproj_company(id)` | Owning company. |
 | `company_code` | `varchar(8)` | `NOT NULL`, check numeric | Cached company code. |
-| `transfer_code` | `varchar(30)` | `NOT NULL`, `UNIQUE` within company | Human-readable transfer document identifier. |
-| `order_id` | `bigint` | `NOT NULL`, FK to `production_product_order(id)` | Production order requiring materials. |
+| `transfer_code` | `varchar(30)` | `NOT NULL`, `UNIQUE` within company | Human-readable transfer document identifier (auto-generated 8-digit code with "TR" prefix). |
+| `order_id` | `bigint` | `NOT NULL`, FK to `production_product_order(id)` | Production order requiring materials (must have a BOM). |
 | `order_code` | `varchar(30)` | `NOT NULL` | Cached production order code. |
-| `transfer_date` | `date` | `NOT NULL` | Date of the transfer. |
-| `status` | `varchar(20)` | `NOT NULL`, default `'draft'` | Workflow state (`draft`, `issued`, `delivered`, `cancelled`). |
+| `transfer_date` | `date` | `NOT NULL`, default `now()` | Date of the transfer (Jalali calendar). |
+| `status` | `varchar(20)` | `NOT NULL`, default `'pending_approval'` | Workflow state (`pending_approval`, `approved`, `rejected`). |
+| `approved_by_id` | `bigint` | nullable, FK to `invproj_user(id)` | User who can approve this transfer request (filtered by APPROVE permission). |
+| `is_locked` | `smallint` | `NOT NULL`, default `0`, check in (0,1) | Lock flag (inherited from LockableModel). |
+| `locked_at` | `timestamp with time zone` | nullable | Timestamp when document was locked. |
+| `locked_by_id` | `bigint` | nullable, FK to `invproj_user(id)` | User who locked the document. |
+| `unlocked_at` | `timestamp with time zone` | nullable | Timestamp when document was unlocked. |
+| `unlocked_by_id` | `bigint` | nullable, FK to `invproj_user(id)` | User who unlocked the document. |
 | `notes` | `text` | nullable | Additional comments or instructions. |
 | `metadata` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | Extensible attributes (signatures, attachments). |
 | `created_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Auto-populated on insert. |
@@ -348,8 +360,15 @@ Additional considerations:
 Additional considerations:
 
 - Unique constraint on `(company_id, transfer_code)` ensures document uniqueness.
-- Use a companion detail table to store line-by-line materials, quantities, and warehouse movements.
+- Auto-generated `transfer_code` using sequential code generation (8 digits with "TR" prefix).
+- `order_id` must reference a `ProductOrder` with a BOM.
+- `approved_by_id` filters to show only users with APPROVE permission for `production.transfer_requests`.
+- Inherits from `LockableModel` - documents are locked after approval.
+- Use companion detail table (`production_transfer_to_line_item`) to store line-by-line materials, quantities, and warehouse movements.
+- BOM items are automatically populated when order is selected.
+- Extra items (not in BOM) can be added by users (only editable before lock).
 - Integrate workflow with inventory reservations/issues to maintain stock accuracy.
+- Can create consumption issues from approved transfer requests (requires `CREATE_ISSUE_FROM_TRANSFER` permission).
 
 #### Table: `production_transfer_to_line_item`
 
@@ -361,15 +380,15 @@ Additional considerations:
 | `transfer_id` | `bigint` | `NOT NULL`, FK to `production_transfer_to_line(id)` | Parent transfer document. |
 | `material_item_id` | `bigint` | `NOT NULL`, FK to `inventory_item(id)` | Material being moved. |
 | `material_item_code` | `varchar(16)` | `NOT NULL` | Cached material item code. |
-| `quantity_required` | `numeric(18,6)` | `NOT NULL` | Quantity needed per BOM * order quantity. |
+| `quantity_required` | `numeric(18,6)` | `NOT NULL` | Quantity needed per BOM * order quantity (for BOM items) or user-entered (for extra items). |
 | `quantity_transferred` | `numeric(18,6)` | `NOT NULL`, default `0` | Actual quantity transferred. |
-| `unit` | `varchar(30)` | `NOT NULL` | Unit of measure. |
-| `source_warehouse_id` | `bigint` | `NOT NULL`, FK to `inventory_warehouse(id)` | Warehouse issuing the material. |
-| `source_warehouse_code` | `varchar(5)` | `NOT NULL` | Cached source warehouse code. |
-| `destination_work_center_id` | `bigint` | `NOT NULL`, FK to `production_work_center(id)` | Work center receiving the material. |
-| `destination_warehouse_id` | `bigint` | nullable, FK to `inventory_warehouse(id)` | Staging/line-side warehouse if modeled. |
+| `unit` | `varchar(30)` | `NOT NULL` | Unit of measure (auto-populated from BOM or item). |
+| `source_warehouse_id` | `bigint` | nullable, FK to `inventory_warehouse(id)` | Warehouse issuing the material (auto-selected from ItemWarehouse for BOM items). |
+| `source_warehouse_code` | `varchar(5)` | nullable | Cached source warehouse code. |
+| `destination_work_center_id` | `bigint` | nullable, FK to `production_work_center(id)` | Work center receiving the material (optional). |
 | `destination_location_code` | `varchar(30)` | nullable | Optional location or bin at line side. |
-| `material_scrap_allowance` | `numeric(5,2)` | `NOT NULL`, default `0.00` | Scrap percentage considered for transfer. |
+| `material_scrap_allowance` | `numeric(5,2)` | `NOT NULL`, default `0.00` | Scrap percentage considered for transfer (copied from BOM for BOM items). |
+| `is_extra` | `smallint` | `NOT NULL`, default `0`, check in (0,1) | Flag to distinguish BOM items (0) from extra request items (1). |
 | `notes` | `text` | nullable | Line-specific instructions. |
 | `metadata` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | Extensible attributes (batch/lot requirements). |
 | `created_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Auto-populated on insert. |
@@ -380,11 +399,22 @@ Additional considerations:
 
 Additional considerations:
 
-- Unique constraint on `(company_id, transfer_id, material_item_id)` to prevent duplicate lines.
-- Application logic should compute `quantity_required` from BOM materials and order quantity.
+- Unique constraint on `(company_id, transfer_id, material_item_id, is_extra)` to prevent duplicate lines (allows same item as BOM and extra).
+- For BOM items (`is_extra=0`):
+  - `quantity_required` = `order.quantity_planned × bom_material.quantity_per_unit`
+  - `source_warehouse_id` auto-selected from ItemWarehouse (first allowed warehouse)
+  - `material_scrap_allowance` copied from BOM material
+  - Not editable after document creation (read-only)
+- For extra items (`is_extra=1`):
+  - `quantity_required` user-entered
+  - `source_warehouse_id` user-selected
+  - `material_scrap_allowance` user-entered
+  - Editable before document is locked
+- `destination_work_center_id` is optional (nullable).
 - Validate warehouse IDs and work centers belong to the same company; enforce permitted source-destination mappings.
 - Extend with lot/serial tracking if materials require traceability.
 - Integrate with inventory issue transactions to update stock levels upon transfer execution.
+- Cascading filters (Material Type → Category → Subcategory → Item) for extra item selection.
 
 ### Shared Considerations
 

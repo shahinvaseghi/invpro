@@ -14,10 +14,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `ProductOrderForm` with BOM selection, quantity validation, and approver filtering based on permissions
   - CRUD views: `ProductOrderListView`, `ProductOrderCreateView`, `ProductOrderUpdateView`, `ProductOrderDeleteView`
   - Templates: `product_orders.html`, `product_order_form.html`, `product_order_confirm_delete.html`
-  - Permission: `production.product_orders` with actions (view_own, view_all, create, edit_own, delete_own, approve)
-  - Auto-generated 8-digit `order_code` per company using sequential code generation
+  - Permission: `production.product_orders` with actions (view_own, view_all, create, edit_own, delete_own, approve, create_transfer_from_order)
+  - Auto-generated 10-digit `order_code` per company using sequential code generation
   - BOM selection filters to show only enabled BOMs for the active company
   - Approver field filters to show only users with APPROVE permission for `production.product_orders`
+  - Navigation links added to sidebar and top menu with permission checks
+  - **Optional Transfer Request Creation**: Users with `create_transfer_from_order` permission can optionally create a transfer request directly from the order form
+    - Checkbox to enable transfer request creation
+    - Transfer approver selection (filters to show only users with APPROVE permission for `production.transfer_requests`)
+    - Extra request items section with cascading filters (Material Type → Category → Subcategory → Item)
+    - Auto-load units when item is selected
+    - When order is saved with transfer request enabled, transfer request is automatically created with BOM items and extra items
+- **Transfer to Line Requests Management**: Complete implementation of Transfer to Line Requests in Production module
+  - `TransferToLine` model with order selection, approver assignment, and status tracking
+  - `TransferToLineItem` model with material items, quantities, warehouses, and work centers
+  - `TransferToLineForm` with order selection, transfer date, and approver filtering
+  - `TransferToLineItemForm` with cascading filters for material selection
+  - `TransferToLineItemFormSet` for managing multiple items
+  - CRUD views: `TransferToLineListView`, `TransferToLineCreateView`, `TransferToLineUpdateView`, `TransferToLineDeleteView`
+  - Approval workflow views: `TransferToLineApproveView`, `TransferToLineRejectView`
+  - Issue creation view: `TransferToLineCreateIssueView` (creates consumption issue from approved transfer request)
+  - Templates: `transfer_to_line_list.html`, `transfer_to_line_form.html`, `transfer_to_line_confirm_delete.html`
+  - Permission: `production.transfer_requests` with actions (view_own, view_all, create, edit_own, delete_own, approve, reject, create_issue_from_transfer)
+  - Auto-generated 8-digit `transfer_code` with "TR" prefix per company using sequential code generation
+  - Automatic BOM item population when product order is selected
+  - Quantity calculation: `order.quantity_planned × bom_material.quantity_per_unit`
+  - Source warehouse auto-selected from ItemWarehouse (first allowed warehouse)
+  - Extra request items section (only editable before document is locked)
+  - Cascading filters: Material Type → Category → Subcategory → Item
+  - Auto-load units when item is selected
+  - Lockable documents (inherits from `LockableModel`)
+  - Status workflow: pending_approval → approved/rejected
   - Navigation links added to sidebar and top menu with permission checks
 - **Jalali Date Picker Integration**: Local implementation of Persian date picker
   - Integrated [JalaliDatePicker](https://github.com/majidh1/JalaliDatePicker) library (no dependencies, lightweight)

@@ -18,6 +18,23 @@ class ProductOrderForm(forms.ModelForm):
         label=_('Due Date'),
     )
     
+    # Optional: Create transfer request from this order
+    create_transfer_request = forms.BooleanField(
+        required=False,
+        label=_('Create Transfer Request'),
+        help_text=_('Check to create a transfer to line request from this order'),
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+    
+    # Transfer request approver (only shown if create_transfer_request is checked)
+    transfer_approved_by = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        label=_('Transfer Request Approver'),
+        help_text=_('Select the user who can approve the transfer request'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+    
     class Meta:
         model = ProductOrder
         fields = [
@@ -96,18 +113,43 @@ class ProductOrderForm(forms.ModelForm):
             else:
                 # No approvers found, show empty queryset
                 self.fields['approved_by'].queryset = User.objects.none()
+            
+            # Filter transfer_approved_by (users with approve permission for transfer_requests)
+            from shared.models import AccessLevelPermission as ALP
+            transfer_approve_access_levels = list(ALP.objects.filter(
+                module_code='production',
+                resource_code='production.transfer_requests',
+                can_approve=1,
+            ).values_list('access_level_id', flat=True))
+            
+            transfer_approver_user_ids = list(UserCompanyAccess.objects.filter(
+                company_id=self.company_id,
+                access_level_id__in=transfer_approve_access_levels,
+                is_enabled=1,
+            ).values_list('user_id', flat=True))
+            
+            if transfer_approver_user_ids:
+                self.fields['transfer_approved_by'].queryset = User.objects.filter(
+                    id__in=transfer_approver_user_ids,
+                    is_active=True,
+                ).order_by('first_name', 'last_name', 'username')
+            else:
+                self.fields['transfer_approved_by'].queryset = User.objects.none()
         else:
             from django.contrib.auth import get_user_model
             User = get_user_model()
             
             self.fields['bom'].queryset = BOM.objects.none()
             self.fields['approved_by'].queryset = User.objects.none()
+            self.fields['transfer_approved_by'].queryset = User.objects.none()
     
     def clean(self) -> dict:
         """Validate form data."""
         cleaned_data = super().clean()
         bom = cleaned_data.get('bom')
         quantity_planned = cleaned_data.get('quantity_planned')
+        create_transfer_request = cleaned_data.get('create_transfer_request')
+        transfer_approved_by = cleaned_data.get('transfer_approved_by')
         
         # Validate BOM is selected
         if not bom:
@@ -116,6 +158,10 @@ class ProductOrderForm(forms.ModelForm):
         # Validate quantity is positive
         if quantity_planned and quantity_planned <= 0:
             raise forms.ValidationError(_('Quantity must be greater than zero.'))
+        
+        # If create_transfer_request is checked, transfer_approved_by is required
+        if create_transfer_request and not transfer_approved_by:
+            raise forms.ValidationError(_('Transfer Request Approver is required when creating a transfer request.'))
         
         # Auto-set finished_item from BOM if not already set
         if bom and not self.instance.finished_item_id:

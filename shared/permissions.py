@@ -35,6 +35,7 @@ class PermissionAction(Enum):
     APPROVE = "approve"
     REJECT = "reject"
     CANCEL = "cancel"
+    CREATE_TRANSFER_FROM_ORDER = "create_transfer_from_order"
 
 
 @dataclass(frozen=True)
@@ -127,6 +128,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.EDIT_OWN,
             PermissionAction.DELETE_OWN,
             PermissionAction.APPROVE,
+            PermissionAction.CREATE_TRANSFER_FROM_ORDER,
         ],
     ),
     "production.transfer_requests": FeaturePermission(

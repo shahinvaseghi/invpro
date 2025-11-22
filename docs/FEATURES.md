@@ -332,6 +332,118 @@ python manage.py makemessages -l fa
 
 ---
 
+### Product Orders (Production Module)
+**Location**: `/production/product-orders/`
+
+**Features**:
+- Auto-generated 10-digit unique order code (not user-editable)
+- BOM selection (required) - filters to show only enabled BOMs for the active company
+- Quantity planning with decimal precision
+- Approver assignment - filters to show only users with APPROVE permission for `production.product_orders`
+- Due date with Jalali calendar picker
+- Priority levels (low, normal, high, urgent)
+- Customer reference field
+- Notes field
+- Auto-populated finished item from selected BOM
+- Auto-populated unit from finished item
+- Status tracking (planned, released, in_progress, completed, cancelled)
+- Company-scoped (users see only their company's orders)
+
+**Optional Transfer Request Creation**:
+- Users with `create_transfer_from_order` permission can optionally create a transfer request directly from the order form
+- Checkbox to enable transfer request creation
+- Transfer approver selection (filters to show only users with APPROVE permission for `production.transfer_requests`)
+- Extra request items section (only visible when transfer request checkbox is checked)
+  - Add materials not in the BOM
+  - Cascading filters: Material Type → Category → Subcategory → Item
+  - Auto-load units when item is selected
+  - Source warehouse and destination work center selection
+  - Scrap allowance percentage
+- When order is saved with transfer request enabled:
+  - Transfer request is automatically created
+  - Items from BOM are automatically added (quantity = order quantity × BOM quantity per unit)
+  - Extra items (if any) are added to the transfer request
+  - Transfer request status is set to "Pending Approval"
+
+**CRUD Operations**:
+- Create: Create new product orders with BOM and quantity
+- Read: Filtered list by active company, sorted by order date and code
+- Update: Update order details (BOM, quantity, approver, etc.)
+- Delete: With confirmation page
+- Approve: Approve orders (requires APPROVE permission)
+
+**Permissions**:
+- `production.product_orders` feature with actions:
+  - `view_own`: View own orders
+  - `view_all`: View all orders
+  - `create`: Create new orders
+  - `edit_own`: Edit own orders
+  - `delete_own`: Delete own orders
+  - `approve`: Approve orders
+  - `create_transfer_from_order`: Create transfer requests from orders
+
+---
+
+### Transfer to Line Requests (Production Module)
+**Location**: `/production/transfer-requests/`
+
+**Features**:
+- Auto-generated 8-digit unique transfer code with "TR" prefix (not user-editable)
+- Product order selection (required) - must have a BOM
+- Transfer date with Jalali calendar picker
+- Approver assignment - filters to show only users with APPROVE permission for `production.transfer_requests`
+- Status tracking (pending_approval, approved, rejected)
+- Lockable documents (inherits from `LockableModel`)
+- Notes field
+- Company-scoped (users see only their company's transfer requests)
+
+**Automatic BOM Item Population**:
+- When a product order is selected, items from the order's BOM are automatically added
+- Quantity calculation: `order.quantity_planned × bom_material.quantity_per_unit`
+- Source warehouse auto-selected from ItemWarehouse (first allowed warehouse)
+- Scrap allowance copied from BOM material
+- Items marked as `is_extra=0` (from BOM)
+
+**Extra Request Items**:
+- Users can add materials not in the BOM
+- Only editable before document is locked
+- Cascading filters: Material Type → Category → Subcategory → Item
+- Auto-load units when item is selected
+- Source warehouse and destination work center selection
+- Scrap allowance percentage
+- Items marked as `is_extra=1` (extra request)
+
+**Workflow**:
+1. Create transfer request with order selection
+2. BOM items automatically populated
+3. Add extra items if needed (only editable before lock)
+4. Save request (status: Pending Approval)
+5. Approver reviews and approves/rejects
+6. Document is locked after approval
+7. Create consumption issue from approved transfer request (requires `CREATE_ISSUE_FROM_TRANSFER` permission)
+
+**CRUD Operations**:
+- Create: Create new transfer requests with order selection
+- Read: Filtered list by active company, sorted by transfer date and code
+- Update: Update transfer request details (only extra items editable before lock)
+- Delete: With confirmation page (only before approval)
+- Approve: Approve transfer requests (requires APPROVE permission)
+- Reject: Reject transfer requests (requires REJECT permission)
+- Create Issue: Create consumption issue from approved transfer request (requires `CREATE_ISSUE_FROM_TRANSFER` permission)
+
+**Permissions**:
+- `production.transfer_requests` feature with actions:
+  - `view_own`: View own transfer requests
+  - `view_all`: View all transfer requests
+  - `create`: Create new transfer requests
+  - `edit_own`: Edit own transfer requests (only extra items before lock)
+  - `delete_own`: Delete own transfer requests (only before approval)
+  - `approve`: Approve transfer requests
+  - `reject`: Reject transfer requests
+  - `create_issue_from_transfer`: Create consumption issues from approved transfer requests
+
+---
+
 ## 5. Form Features
 
 ### Common Features Across All Forms
@@ -401,6 +513,11 @@ python manage.py makemessages -l fa
 - Companies
 - Personnel (Production Module)
 - Machines (Production Module)
+- Work Lines (Production Module)
+- BOMs (Production Module)
+- Processes (Production Module)
+- Product Orders (Production Module)
+- Transfer to Line Requests (Production Module)
 
 ---
 
