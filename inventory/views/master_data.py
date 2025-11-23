@@ -10,9 +10,11 @@ This module contains CRUD views for:
 - Suppliers
 - Supplier Categories
 """
+import logging
 from typing import Dict, Any
 from django.contrib import messages
 from django.db.models import Q
+from django.db.models.deletion import ProtectedError
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -21,6 +23,8 @@ from .base import InventoryBaseView, ItemUnitFormsetMixin
 from shared.mixins import FeaturePermissionRequiredMixin
 from .. import models
 from .. import forms
+
+logger = logging.getLogger('inventory.views.master_data')
 
 
 # ============================================================================
@@ -382,7 +386,33 @@ class ItemCreateView(ItemUnitFormsetMixin, InventoryBaseView, CreateView):
                     self.get_context_data(form=form, units_formset=units_formset)
                 )
         
-        # Save the item first
+        # Explicitly set checkbox values BEFORE saving form
+        # IntegerCheckboxField should handle this, but we ensure values are set correctly
+        checkbox_fields = ['is_sellable', 'has_lot_tracking', 'requires_temporary_receipt', 'is_enabled']
+        for field_name in checkbox_fields:
+            # First try to get from cleaned_data (processed by IntegerCheckboxField)
+            value = form.cleaned_data.get(field_name)
+            if value is None:
+                # If not in cleaned_data, check POST directly
+                # IntegerCheckboxInput returns '1' when checked, field not in POST when unchecked
+                if field_name in self.request.POST:
+                    post_value = self.request.POST.get(field_name)
+                    if post_value in ('1', 'on', 1):
+                        value = 1
+                    else:
+                        value = 0
+                else:
+                    value = 0
+            else:
+                # Ensure value is 0 or 1
+                try:
+                    value = 1 if int(value) == 1 else 0
+                except (ValueError, TypeError):
+                    value = 0
+            # Set value directly on instance before save
+            setattr(form.instance, field_name, value)
+        
+        # Save the item (now with correct checkbox values)
         self.object = form.save()
         
         # Now rebuild formset with the saved instance and save units
@@ -430,6 +460,34 @@ class ItemUpdateView(ItemUnitFormsetMixin, InventoryBaseView, UpdateView):
                 self.get_context_data(form=form, units_formset=units_formset)
             )
         form.instance.edited_by = self.request.user
+        
+        # Explicitly update checkbox values BEFORE saving form
+        # IntegerCheckboxField should handle this, but we ensure values are set correctly
+        checkbox_fields = ['is_sellable', 'has_lot_tracking', 'requires_temporary_receipt', 'is_enabled']
+        for field_name in checkbox_fields:
+            # First try to get from cleaned_data (processed by IntegerCheckboxField)
+            value = form.cleaned_data.get(field_name)
+            if value is None:
+                # If not in cleaned_data, check POST directly
+                # IntegerCheckboxInput returns '1' when checked, field not in POST when unchecked
+                if field_name in self.request.POST:
+                    post_value = self.request.POST.get(field_name)
+                    if post_value in ('1', 'on', 1):
+                        value = 1
+                    else:
+                        value = 0
+                else:
+                    value = 0
+            else:
+                # Ensure value is 0 or 1
+                try:
+                    value = 1 if int(value) == 1 else 0
+                except (ValueError, TypeError):
+                    value = 0
+            # Set value directly on instance before save
+            setattr(form.instance, field_name, value)
+        
+        # Save form (now with correct checkbox values)
         self.object = form.save()
         units_formset.instance = self.object
         self._save_unit_formset(units_formset)
@@ -451,10 +509,50 @@ class ItemDeleteView(InventoryBaseView, DeleteView):
     template_name = 'inventory/item_confirm_delete.html'
     success_url = reverse_lazy('inventory:items')
     
-    def delete(self, request, *args, **kwargs):
-        """Show success message after deletion."""
-        messages.success(self.request, _('کالا حذف شد.'))
-        return super().delete(request, *args, **kwargs)
+    def get_context_data(self, **kwargs):
+        """Add model verbose name to context."""
+        context = super().get_context_data(**kwargs)
+        context['model_verbose_name'] = self.model._meta.verbose_name
+        return context
+    
+    def form_valid(self, form):
+        """Handle deletion with ProtectedError handling."""
+        logger.info(f"Attempting to delete item: {self.object}")
+        logger.info(f"Item ID: {self.object.pk}, Code: {self.object.full_item_code or self.object.item_code}, Name: {self.object.name}")
+        
+        try:
+            self.object.delete()
+            logger.info(f"Item {self.object.pk} deleted successfully")
+            messages.success(self.request, _('کالا با موفقیت حذف شد.'))
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(self.get_success_url())
+        except ProtectedError as e:
+            logger.error(f"ProtectedError when deleting item {self.object.pk}: {e}")
+            logger.error(f"Protected objects: {e.protected_objects}")
+            
+            # Extract model names from protected objects
+            protected_models = set()
+            protected_count = {}
+            for obj in e.protected_objects:
+                model_name = obj._meta.verbose_name
+                protected_models.add(model_name)
+                protected_count[model_name] = protected_count.get(model_name, 0) + 1
+            
+            # Create user-friendly error message
+            error_parts = []
+            for model_name, count in protected_count.items():
+                error_parts.append(f"{count} {model_name}")
+            
+            error_message = _('نمی‌توان این کالا را حذف کرد چون در {models} استفاده شده است.').format(
+                models=', '.join(error_parts)
+            )
+            
+            messages.error(self.request, error_message)
+            logger.error(f"Error message shown to user: {error_message}")
+            
+            # Redirect to list page with error message
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(self.get_success_url())
 
 
 # ============================================================================
@@ -516,10 +614,60 @@ class WarehouseDeleteView(InventoryBaseView, DeleteView):
     template_name = 'inventory/warehouse_confirm_delete.html'
     success_url = reverse_lazy('inventory:warehouses')
     
-    def delete(self, request, *args, **kwargs):
-        """Show success message after deletion."""
-        messages.success(self.request, _('Warehouse deleted successfully.'))
-        return super().delete(request, *args, **kwargs)
+    def get_context_data(self, **kwargs):
+        """Add model verbose name to context."""
+        context = super().get_context_data(**kwargs)
+        context['model_verbose_name'] = self.model._meta.verbose_name
+        return context
+    
+    def form_valid(self, form):
+        """Handle deletion with ProtectedError handling."""
+        logger.info(f"Attempting to delete warehouse: {self.object}")
+        logger.info(f"Warehouse ID: {self.object.pk}, Code: {self.object.public_code}, Name: {self.object.name}")
+        
+        try:
+            self.object.delete()
+            logger.info(f"Warehouse {self.object.pk} deleted successfully")
+            messages.success(self.request, _('انبار با موفقیت حذف شد.'))
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(self.get_success_url())
+        except ProtectedError as e:
+            logger.error(f"ProtectedError when deleting warehouse {self.object.pk}: {e}")
+            logger.error(f"Protected objects: {e.protected_objects}")
+            
+            # Model name mapping to Persian
+            model_name_map = {
+                'Consumption Issue Line': _('خط مصرف'),
+                'Permanent Receipt Line': _('خط رسید دائم'),
+                'Consumption Issue Lines': _('خطوط مصرف'),
+                'Permanent Receipt Lines': _('خطوط رسید دائم'),
+            }
+            
+            # Extract model names from protected objects
+            protected_models = set()
+            protected_count = {}
+            for obj in e.protected_objects:
+                model_name = obj._meta.verbose_name
+                # Use Persian name if available, otherwise use original
+                persian_name = model_name_map.get(model_name, model_name)
+                protected_models.add(persian_name)
+                protected_count[persian_name] = protected_count.get(persian_name, 0) + 1
+            
+            # Create user-friendly error message
+            error_parts = []
+            for model_name, count in protected_count.items():
+                error_parts.append(f"{count} {model_name}")
+            
+            error_message = _('نمی‌توان این انبار را حذف کرد چون در {models} استفاده شده است.').format(
+                models=', '.join(error_parts)
+            )
+            
+            messages.error(self.request, error_message)
+            logger.error(f"Error message shown to user: {error_message}")
+            
+            # Redirect to list page with error message
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(self.get_success_url())
 
 
 # ============================================================================

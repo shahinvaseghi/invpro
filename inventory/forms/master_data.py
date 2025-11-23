@@ -7,6 +7,7 @@ This module contains forms for:
 - Suppliers and Supplier Categories
 - Items and Item Units
 """
+import logging
 from typing import Optional, Dict, Any
 
 from django import forms
@@ -14,32 +15,126 @@ from django.db.models import Q
 from django.forms import inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
+logger = logging.getLogger('inventory.forms.master_data')
+
+
+class IntegerCheckboxField(forms.IntegerField):
+    """Integer field specifically for checkbox values (0/1)."""
+    
+    def __init__(self, **kwargs):
+        kwargs.setdefault('required', False)
+        super().__init__(**kwargs)
+    
+    def to_python(self, value):
+        """Convert value to int, defaulting to 0 if None or empty."""
+        if value is None or value == '':
+            return 0
+        # Handle 'on' from checkbox (checked state)
+        if value == 'on':
+            return 1
+        try:
+            int_val = int(value)
+            return int_val
+        except (ValueError, TypeError):
+            return 0
+    
+    def clean(self, value):
+        """Ensure value is always 0 or 1."""
+        # First convert to Python value (handles None/empty)
+        python_value = self.to_python(value)
+        # Ensure it's 0 or 1
+        # Important: We must return int, not bool, for PositiveSmallIntegerField
+        result = 1 if python_value == 1 else 0
+        return result
+    
+    def has_changed(self, initial, data):
+        """Override to ensure checkbox changes are detected correctly."""
+        # For checkboxes, we need to compare 0/1 values
+        if initial is None:
+            initial = 0
+        if data is None:
+            data = 0
+        try:
+            initial_int = int(initial) if initial is not None else 0
+            data_int = int(data) if data is not None else 0
+            return initial_int != data_int
+        except (ValueError, TypeError):
+            return True
+
 
 class IntegerCheckboxInput(forms.CheckboxInput):
     """Checkbox widget that works with IntegerField (0/1) values."""
     
     def value_from_datadict(self, data, files, name):
-        """Return 1 if checked, 0 if unchecked."""
+        """Return '1' if checked, '0' if unchecked (as string for IntegerField)."""
+        # Since we always set value="1" in HTML, if checkbox is in POST, it's checked
+        # If checkbox is not in POST, it's unchecked
         if name not in data:
-            return 0
+            # Checkbox not in POST means it's unchecked
+            return '0'
+        
+        # Checkbox is in POST, so it's checked
+        # The value will be '1' (since we set value="1" in HTML)
         value = data.get(name)
-        # CheckboxInput returns 'on' when checked, None when unchecked
-        return 1 if value == 'on' or value == '1' else 0
+        
+        # Accept '1', 'on', or 1 as checked
+        if value in ('1', 'on', 1):
+            return '1'
+        
+        # If value is anything else (shouldn't happen, but just in case)
+        return '0'
     
     def format_value(self, value):
         """Format value for rendering."""
-        # Return 1 if value is truthy (1, True, etc.), 0 otherwise
-        return 1 if value and value != 0 else 0
+        # Return the value as-is for CheckboxInput
+        # CheckboxInput uses format_value to determine if checkbox should be checked
+        # But we need to ensure the value attribute is set correctly
+        if value is None:
+            return 0
+        try:
+            int_value = int(value)
+            return int_value
+        except (ValueError, TypeError):
+            return 0
+    
+    def value_omitted_from_data(self, data, files, name):
+        """Check if checkbox value is omitted from data."""
+        # For checkboxes, if name is not in data, it means unchecked
+        return name not in data
     
     def get_context(self, name, value, attrs):
         """Get context for template rendering."""
-        context = super().get_context(name, value, attrs)
-        # Only check the checkbox if value is 1
-        if value == 1 or value == '1':
+        # Format the value to determine checked state
+        formatted_value = self.format_value(value)
+        int_value = int(formatted_value) if formatted_value is not None else 0
+        
+        # IMPORTANT: Always set value="1" in HTML so when checkbox is checked, it sends "1"
+        # The checked state is determined by the 'checked' attribute, not the value
+        # When checkbox is checked, it sends the value attribute; when unchecked, it's not in POST
+        
+        # Ensure value attribute is always "1" (not "0")
+        # This way, when checked, POST will have value="1", when unchecked, field won't be in POST
+        if 'value' in attrs:
+            attrs = attrs.copy()
+        else:
+            attrs = attrs.copy() if attrs else {}
+        
+        # Always set value="1" - checked state is controlled by 'checked' attribute
+        attrs['value'] = '1'
+        
+        # Call super() with modified attrs
+        context = super().get_context(name, formatted_value, attrs)
+        
+        # Set checked attribute based on value
+        if int_value == 1:
             context['widget']['attrs']['checked'] = True
         else:
-            # Remove checked attribute if it exists
             context['widget']['attrs'].pop('checked', None)
+        
+        # Ensure value is "1" in widget context too
+        context['widget']['value'] = '1'
+        context['widget']['attrs']['value'] = '1'
+        
         return context
 
 from inventory.models import (
@@ -367,23 +462,19 @@ class SupplierCategoryForm(forms.ModelForm):
 class ItemForm(forms.ModelForm):
     """Form for creating/editing items."""
 
-    is_sellable = forms.IntegerField(
-        required=False,
+    is_sellable = IntegerCheckboxField(
         label=_('قابل فروش است'),
         widget=IntegerCheckboxInput(attrs={'class': 'form-check-input'}),
     )
-    has_lot_tracking = forms.IntegerField(
-        required=False,
+    has_lot_tracking = IntegerCheckboxField(
         label=_('نیاز به رهگیری لات دارد'),
         widget=IntegerCheckboxInput(attrs={'class': 'form-check-input'}),
     )
-    requires_temporary_receipt = forms.IntegerField(
-        required=False,
+    requires_temporary_receipt = IntegerCheckboxField(
         label=_('ورود از طریق رسید موقت'),
         widget=IntegerCheckboxInput(attrs={'class': 'form-check-input'}),
     )
-    is_enabled = forms.IntegerField(
-        required=False,
+    is_enabled = IntegerCheckboxField(
         label=_('فعال باشد'),
         widget=IntegerCheckboxInput(attrs={'class': 'form-check-input'}),
         initial=1,
@@ -518,16 +609,28 @@ class ItemForm(forms.ModelForm):
         elif self.company_id and warehouses.filter(~Q(company_id=self.company_id)).exists():
             self.add_error('allowed_warehouses', _('انبارهای انتخاب شده باید متعلق به همان شرکت فعال باشند.'))
 
-        # Convert IntegerField checkbox values (from CheckboxInput) to PositiveSmallIntegerField (0/1)
-        # CheckboxInput returns 1 when checked, None/0 when unchecked
-        if 'is_sellable' in cleaned_data:
-            cleaned_data['is_sellable'] = 1 if cleaned_data.get('is_sellable') else 0
-        if 'has_lot_tracking' in cleaned_data:
-            cleaned_data['has_lot_tracking'] = 1 if cleaned_data.get('has_lot_tracking') else 0
-        if 'requires_temporary_receipt' in cleaned_data:
-            cleaned_data['requires_temporary_receipt'] = 1 if cleaned_data.get('requires_temporary_receipt') else 0
-        if 'is_enabled' in cleaned_data:
-            cleaned_data['is_enabled'] = 1 if cleaned_data.get('is_enabled') else 0
+        # IntegerCheckboxField already handles conversion to 0/1 in its clean() method
+        # But we need to ensure fields are ALWAYS in cleaned_data, even if not in POST
+        # IntegerCheckboxInput.value_from_datadict returns '0' or '1' as string
+        # IntegerCheckboxField.clean() will convert to int 0 or 1
+        checkbox_fields = ['is_sellable', 'has_lot_tracking', 'requires_temporary_receipt', 'is_enabled']
+        for field_name in checkbox_fields:
+            # Ensure field is always in cleaned_data
+            if field_name not in cleaned_data:
+                # If field is not in cleaned_data, it means it wasn't in POST (unchecked)
+                # IntegerCheckboxField should have handled this, but ensure it's 0
+                cleaned_data[field_name] = 0
+            else:
+                # Field is in cleaned_data, ensure it's 0 or 1
+                value = cleaned_data.get(field_name)
+                if value is None:
+                    cleaned_data[field_name] = 0
+                else:
+                    try:
+                        int_value = int(value)
+                        cleaned_data[field_name] = 1 if int_value == 1 else 0
+                    except (ValueError, TypeError):
+                        cleaned_data[field_name] = 0
 
         return cleaned_data
 
