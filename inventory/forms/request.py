@@ -9,6 +9,7 @@ from typing import Optional, Dict, Any
 
 from django import forms
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from inventory.models import (
@@ -72,8 +73,7 @@ class PurchaseRequestForm(forms.ModelForm):
             self.fields['reason_code'].required = False
 
         if self.company_id:
-            self.fields['item'].queryset = Item.objects.filter(company_id=self.company_id, is_enabled=1).order_by('name')
-            self.fields['item'].label_from_instance = lambda obj: f"{obj.name} · {obj.item_code}"
+            self._setup_item_queryset()
             approvers = get_feature_approvers("inventory.requests.purchase", self.company_id)
             self.fields['approver'].queryset = approvers
             self.fields['approver'].empty_label = _("--- انتخاب کنید ---")
@@ -86,6 +86,26 @@ class PurchaseRequestForm(forms.ModelForm):
             self.fields['approver'].required = True
 
         self._set_unit_choices()
+
+    def _setup_item_queryset(self) -> None:
+        """Setup item queryset, including instance item if editing."""
+        if self.company_id:
+            # Base queryset: enabled items
+            base_queryset = Item.objects.filter(company_id=self.company_id, is_enabled=1)
+            
+            # If editing and instance has an item, include it even if disabled
+            if hasattr(self, 'instance') and self.instance and hasattr(self.instance, 'item_id') and self.instance.item_id:
+                instance_item_id = self.instance.item_id
+                # Include instance item even if disabled
+                self.fields['item'].queryset = Item.objects.filter(
+                    Q(company_id=self.company_id, is_enabled=1) | Q(pk=instance_item_id)
+                ).order_by('name')
+            else:
+                self.fields['item'].queryset = base_queryset.order_by('name')
+            
+            self.fields['item'].label_from_instance = lambda obj: f"{obj.name} · {obj.item_code}"
+        else:
+            self.fields['item'].queryset = Item.objects.none()
 
     def _resolve_item(self, candidate: Any = None) -> Optional[Item]:
         """Resolve item from form data or instance."""
@@ -144,11 +164,28 @@ class PurchaseRequestForm(forms.ModelForm):
             return
         placeholder = UNIT_CHOICES[0]
         item = self._resolve_item()
+        
+        # Get current unit value from instance (for edit mode)
+        current_unit = None
+        if hasattr(self, 'instance') and self.instance and hasattr(self.instance, 'unit'):
+            current_unit = self.instance.unit
+        
         if item:
             allowed = [(row['value'], row['label']) for row in self._get_item_allowed_units(item)]
             unit_field.choices = [placeholder] + allowed
+            
+            # If current unit is not in allowed units, add it to choices
+            if current_unit and current_unit not in [choice[0] for choice in allowed]:
+                # Find label for current unit from UNIT_CHOICES
+                unit_label = dict(UNIT_CHOICES).get(current_unit, current_unit)
+                unit_field.choices.append((current_unit, unit_label))
         else:
+            # If no item resolved, use placeholder
             unit_field.choices = [placeholder]
+            # But if we have a current unit value, add it to choices
+            if current_unit:
+                unit_label = dict(UNIT_CHOICES).get(current_unit, current_unit)
+                unit_field.choices.append((current_unit, unit_label))
 
     def clean_unit(self) -> str:
         """Validate unit."""
@@ -232,8 +269,7 @@ class WarehouseRequestForm(forms.ModelForm):
         self.fields['department_unit'].required = False
 
         if self.company_id:
-            self.fields['item'].queryset = Item.objects.filter(company_id=self.company_id, is_enabled=1).order_by('name')
-            self.fields['item'].label_from_instance = lambda obj: f"{obj.name} · {obj.item_code}"
+            self._setup_item_queryset()
             self.fields['warehouse'].queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1).order_by('name')
             self.fields['warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
             self.fields['department_unit'].queryset = CompanyUnit.objects.filter(company_id=self.company_id, is_enabled=1).order_by('name')
@@ -252,6 +288,26 @@ class WarehouseRequestForm(forms.ModelForm):
             self.fields['approver'].required = True
 
         self._set_unit_choices()
+
+    def _setup_item_queryset(self) -> None:
+        """Setup item queryset, including instance item if editing."""
+        if self.company_id:
+            # Base queryset: enabled items
+            base_queryset = Item.objects.filter(company_id=self.company_id, is_enabled=1)
+            
+            # If editing and instance has an item, include it even if disabled
+            if hasattr(self, 'instance') and self.instance and hasattr(self.instance, 'item_id') and self.instance.item_id:
+                instance_item_id = self.instance.item_id
+                # Include instance item even if disabled
+                self.fields['item'].queryset = Item.objects.filter(
+                    Q(company_id=self.company_id, is_enabled=1) | Q(pk=instance_item_id)
+                ).order_by('name')
+            else:
+                self.fields['item'].queryset = base_queryset.order_by('name')
+            
+            self.fields['item'].label_from_instance = lambda obj: f"{obj.name} · {obj.item_code}"
+        else:
+            self.fields['item'].queryset = Item.objects.none()
 
     def _resolve_item(self, candidate: Any = None) -> Optional[Item]:
         """Resolve item from form data or instance."""
@@ -303,6 +359,19 @@ class WarehouseRequestForm(forms.ModelForm):
         label_map = {value: str(label) for value, label in UNIT_CHOICES}
         return [{'value': code, 'label': label_map.get(code, code)} for code in codes if code]
 
+    def _get_item_allowed_warehouses(self, item: Optional[Item]) -> list:
+        """Get list of allowed warehouses for an item."""
+        if not item:
+            return []
+        relations = item.warehouses.select_related('warehouse')
+        warehouses = [rel.warehouse for rel in relations if rel.warehouse.is_enabled]
+        if not warehouses:
+            warehouses = list(Warehouse.objects.filter(company_id=item.company_id, is_enabled=1))
+        return [
+            {'value': str(w.pk), 'label': f"{w.public_code} - {w.name}"}
+            for w in warehouses
+        ]
+
     def _set_unit_choices(self) -> None:
         """Set unit field choices based on selected item."""
         unit_field = self.fields.get('unit')
@@ -310,11 +379,28 @@ class WarehouseRequestForm(forms.ModelForm):
             return
         placeholder = UNIT_CHOICES[0]
         item = self._resolve_item()
+        
+        # Get current unit value from instance (for edit mode)
+        current_unit = None
+        if hasattr(self, 'instance') and self.instance and hasattr(self.instance, 'unit'):
+            current_unit = self.instance.unit
+        
         if item:
             allowed = [(row['value'], row['label']) for row in self._get_item_allowed_units(item)]
             unit_field.choices = [placeholder] + allowed
+            
+            # If current unit is not in allowed units, add it to choices
+            if current_unit and current_unit not in [choice[0] for choice in allowed]:
+                # Find label for current unit from UNIT_CHOICES
+                unit_label = dict(UNIT_CHOICES).get(current_unit, current_unit)
+                unit_field.choices.append((current_unit, unit_label))
         else:
+            # If no item resolved, use placeholder
             unit_field.choices = [placeholder]
+            # But if we have a current unit value, add it to choices
+            if current_unit:
+                unit_label = dict(UNIT_CHOICES).get(current_unit, current_unit)
+                unit_field.choices.append((current_unit, unit_label))
 
     def clean_unit(self) -> str:
         """Validate unit."""
@@ -325,6 +411,16 @@ class WarehouseRequestForm(forms.ModelForm):
             if unit and unit not in allowed:
                 raise forms.ValidationError(_('Selected unit is not configured for this item.'))
         return unit
+
+    def clean_warehouse(self) -> Any:
+        """Validate warehouse is allowed for selected item."""
+        warehouse = self.cleaned_data.get('warehouse')
+        item = self._resolve_item(self.cleaned_data.get('item'))
+        if item and warehouse:
+            allowed_ids = {int(option['value']) for option in self._get_item_allowed_warehouses(item)}
+            if warehouse.pk not in allowed_ids:
+                raise forms.ValidationError(_('Selected warehouse is not allowed for this item.'))
+        return warehouse
 
     def clean_approver(self) -> Any:
         """Validate approver has access to company."""

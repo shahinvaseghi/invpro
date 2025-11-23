@@ -1,5 +1,6 @@
 {% extends "inventory/base.html" %}
 {% load i18n %}
+{% load static %}
 
 {% block page_title %}{{ form_title }}{% endblock %}
 
@@ -231,6 +232,52 @@ if (itemSelect && unitSelect) {
   itemSelect.addEventListener("change", refreshUnitOptions);
   refreshUnitOptions();
 }
+</script>
+
+<!-- Jalali DatePicker Library -->
+<link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">
+<script src="{% static 'js/jalali-datepicker/jalali-datepicker.min.js' %}"></script>
+
+<script>
+// Initialize Jalali DatePicker for date inputs
+document.addEventListener('DOMContentLoaded', function() {
+  // Find all Jalali date inputs
+  var jalaliInputs = document.querySelectorAll('input.jalali-date-input, input[data-jalali="true"]');
+  
+  jalaliInputs.forEach(function(input) {
+    // Ensure data attributes are set
+    if (!input.hasAttribute('data-jdp')) {
+      input.setAttribute('data-jdp', '');
+    }
+    if (!input.hasAttribute('data-jdp-only-date')) {
+      input.setAttribute('data-jdp-only-date', '');
+    }
+  });
+  
+  // Start watching for Jalali DatePicker initialization
+  if (typeof jalaliDatepicker !== 'undefined') {
+    jalaliDatepicker.startWatch({
+      date: true,
+      time: false,
+      separatorChars: {
+        date: '/',
+        between: ' ',
+        time: ':'
+      },
+      persianDigits: false,
+      autoShow: true,
+      autoHide: true,
+      hideAfterChange: true,
+      showTodayBtn: true,
+      showEmptyBtn: true,
+      showCloseBtn: true,
+      useDropDownYears: true,
+      zIndex: 1000
+    });
+  } else {
+    console.error('Jalali DatePicker library not loaded!');
+  }
+});
 </script>
 {% endblock %}
 

@@ -175,9 +175,10 @@ class PurchaseRequestUpdateView(PurchaseRequestFormMixin, UpdateView):
     def get_queryset(self):
         """Filter to only draft requests created by current user."""
         queryset = super().get_queryset()
+        queryset = queryset.select_related('item', 'requested_by', 'approver')
         return queryset.filter(
             status=models.PurchaseRequest.Status.DRAFT,
-            requested_by__user=self.request.user,
+            requested_by=self.request.user,
         )
 
     def form_valid(self, form):
@@ -409,9 +410,10 @@ class WarehouseRequestUpdateView(WarehouseRequestFormMixin, UpdateView):
     def get_queryset(self):
         """Filter to only draft requests created by current user."""
         queryset = super().get_queryset()
+        queryset = queryset.select_related('item', 'warehouse', 'requester', 'approver')
         return queryset.filter(
             request_status='draft',
-            requester__user=self.request.user,
+            requester=self.request.user,
         )
 
     def form_valid(self, form):
