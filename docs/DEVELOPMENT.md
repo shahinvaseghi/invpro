@@ -415,13 +415,41 @@ python manage.py compilemessages -l fa
   - در `UserUpdateForm`: رمز عبور فقط در صورت ارائه `new_password1` تغییر می‌کند
 - **Company Access**: دسترسی شرکت‌ها از طریق `UserCompanyAccessFormSet` در view مدیریت می‌شود (نه در خود فرم).
 
-#### Step 9: Run Migrations
+#### Step 9: Register in Entity Reference System
+```bash
+# Create data migration for section registry
+python manage.py makemigrations shared --empty --name add_new_section_to_registry
+```
+
+**IMPORTANT**: Every new section MUST be registered in:
+1. **Section Registry**: Add section to `invproj_section_registry` table
+2. **Action Registry**: Add all actions to `invproj_action_registry` table
+
+See [Entity Reference System Documentation](../ENTITY_REFERENCE_SYSTEM.md#adding-new-sections-and-actions) for detailed instructions.
+
+#### Step 10: Configure Access Level Permissions
+**CRITICAL**: After creating a new section, you MUST configure its permissions in Access Levels.
+
+1. Go to `/shared/access-levels/`
+2. Create or edit an Access Level
+3. Configure permissions for your new section:
+   - View (view_own / view_all)
+   - Create
+   - Edit (edit_own / edit_other)
+   - Delete (delete_own / delete_other)
+   - Approve/Reject (if applicable)
+   - Lock/Unlock (if applicable)
+4. Assign the Access Level to appropriate users or groups
+
+**Note**: The permission system uses `FEATURE_PERMISSION_MAP` from `shared/permissions.py`. Ensure your new section's feature code is defined there with appropriate actions.
+
+#### Step 11: Run Migrations
 ```bash
 python manage.py makemigrations
 python manage.py migrate
 ```
 
-#### Step 10: Test
+#### Step 12: Test
 ```bash
 # Create test data
 python manage.py shell
@@ -715,6 +743,12 @@ python manage.py migrate
 ### Access Control
 - Centralise feature/action definitions inside `shared/permissions.py` (`FEATURE_PERMISSION_MAP` + `PermissionAction`).
 - هنگام پیاده‌سازی ویوها یا فرم‌ها، ابتدا تعیین کنید آیا کاربر نیاز به `view_own` یا `view_all` دارد؛ سپس سایر اکشن‌ها (`create`, `edit_own`, `lock_own`, `lock_other`, `unlock_*`, `approve`, `reject`, `cancel`) را از همان کاتالوگ بخوانید.
+- **CRITICAL**: Whenever a new section/feature is created, its permissions MUST be configured in Access Levels:
+  1. Register the section in Entity Reference System (Section Registry and Action Registry)
+  2. Define feature permissions in `shared/permissions.py` (`FEATURE_PERMISSION_MAP`)
+  3. Configure Access Level permissions in `/shared/access-levels/` for the new section
+  4. Assign appropriate Access Levels to users or groups
+- بدون تعیین دسترسی در Access Level، کاربران نمی‌توانند به بخش جدید دسترسی داشته باشند (حتی اگر در sidebar نمایش داده شود).
 - تا تکمیل CRUD سطوح دسترسی، صفحات `/shared/users/`, `/shared/groups/`, `/shared/access-levels/` به‌عنوان Placeholder باقی می‌مانند؛ بعد از پیاده‌سازی حتماً این مستند را با جریان کامل بروزرسانی کنید.
 
 ### Performance

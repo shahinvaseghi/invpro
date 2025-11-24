@@ -198,6 +198,12 @@ This module hosts cross-cutting entities and mixins.
 - **Permissions Catalog**: `shared/permissions.py` exposes a central `FEATURE_PERMISSION_MAP` that enumerates menu-level features (رسیدها، حواله‌ها، درخواست‌ها) همراه با اکشن‌های دقیق مثل `view_own`, `view_all`, `create`, `edit_own`, `edit_other`, `delete_own`, `delete_other`, `lock_*`, `unlock_*`, `approve`, `reject`, `cancel`. این نقشه مستقیماً برای ساخت `AccessLevelPermission` و کنترل نمایش منوها استفاده خواهد شد. **نکته**: `DELETE_OTHER` به تمام اسناد اضافه شده است تا امکان حذف اسناد سایر کاربران فراهم شود و `APPROVE` برای stocktaking records نیز پشتیبانی می‌شود.
 - **Document Deletion**: قابلیت حذف برای تمام انواع اسناد (رسیدها، حواله‌ها، شمارش موجودی) پیاده‌سازی شده است. دکمه‌های حذف به صورت شرطی بر اساس دسترسی کاربر (`DELETE_OWN` و `DELETE_OTHER`) نمایش داده می‌شوند. اسناد قفل‌شده قابل حذف نیستند. کلاس پایه `DocumentDeleteViewBase` برای پیاده‌سازی یکپارچه استفاده می‌شود.
 - **User & Access Management**: مسیرهای `/shared/users/`, `/shared/groups/`, `/shared/access-levels/` اکنون صفحات کامل لیست/ایجاد/ویرایش/حذف دارند؛ شامل فرم‌ست دسترسی شرکت برای کاربران، نگاشت گروه‌ها به `AccessLevel` و ماتریس اکشن‌ها بر اساس `FEATURE_PERMISSION_MAP`.
+- **CRITICAL - New Section Workflow**: Whenever a new section/feature is created, its permissions MUST be configured in Access Levels. The mandatory steps are:
+  1. Register section in Entity Reference System (Section Registry and Action Registry)
+  2. Define feature permissions in `shared/permissions.py` (`FEATURE_PERMISSION_MAP`)
+  3. **Configure Access Level permissions** in `/shared/access-levels/` for the new section (REQUIRED - without this, users cannot access the new section)
+  4. Assign appropriate Access Levels to users or groups
+  - See [Development Guide](../docs/DEVELOPMENT.md#creating-new-features) and [Entity Reference System Documentation](../docs/ENTITY_REFERENCE_SYSTEM.md) for detailed instructions.
 
 Each model includes constraints to enforce per-company uniqueness of codes and names. JSON fields (`metadata`, `metadata`, etc.) allow flexible extensions without schema changes.
 

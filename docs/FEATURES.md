@@ -996,6 +996,32 @@ Internal material requisition workflow
   - **Access Level Management**:
     - ماتریس انتخاب اکشن‌ها برای هر Access Level بر اساس `FEATURE_PERMISSION_MAP`
     - **Quick Action Buttons**: دکمه‌های "همه" و "هیچکدام" برای هر Feature (ردیف) و کل صفحه برای انتخاب/لغو انتخاب گروهی permissions
+    - **CRITICAL**: Whenever a new section/feature is created, its permissions MUST be configured in Access Levels. Without configuring permissions in Access Level, users will not be able to access the new section (even if it appears in the sidebar).
+
+### New Section/Feature Workflow
+
+**IMPORTANT**: When adding a new section or feature to the application, follow these mandatory steps:
+
+1. **Register in Entity Reference System**:
+   - Add section to `SectionRegistry` table
+   - Add all actions to `ActionRegistry` table
+   - See [Entity Reference System Documentation](ENTITY_REFERENCE_SYSTEM.md) for details
+
+2. **Define Feature Permissions**:
+   - Add feature code to `FEATURE_PERMISSION_MAP` in `shared/permissions.py`
+   - Define all supported actions (view, create, edit, delete, approve, etc.)
+
+3. **Configure Access Level Permissions**:
+   - Go to `/shared/access-levels/`
+   - Create or edit Access Levels that should have access to the new section
+   - Enable appropriate permissions (view_own/view_all, create, edit, delete, approve, etc.)
+   - **Without this step, the new section will not be accessible to users**
+
+4. **Assign Access Levels to Users/Groups**:
+   - Assign the configured Access Levels to appropriate users or groups
+   - Users inherit permissions through their assigned Access Levels
+
+**Failure to complete step 3 (Access Level configuration) will result in the new section being inaccessible, even if it appears in the sidebar.**
 
 ### Data Protection
 - CSRF protection on all forms

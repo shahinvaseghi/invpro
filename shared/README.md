@@ -19,8 +19,12 @@ Defines the reusable abstractions and core shared tables.
   - `AccessLevel`: named roles, supports activation flags and `is_global`.
   - `AccessLevelPermission`: ties an access level to a module/resource with CRUD/approve flags.
   - `UserCompanyAccess`: maps users to companies with the role they hold; enforces one record per user/company pair.
+  - `SectionRegistry`: Central registry for all application sections/features. Each section has a unique 6-digit code (XXYYZZ format) and nickname. Used by the Entity Reference System for cross-module action execution.
+  - `ActionRegistry`: Registry of actions available for each section. Actions define what can be done in a section (e.g., show, approve, delete). Used by the Entity Reference System for dynamic action execution.
 
 All models inherit the appropriate mixins to guarantee consistent auditing and isolation.
+
+**Important**: See [Entity Reference System Documentation](../docs/ENTITY_REFERENCE_SYSTEM.md) for details on how to add new sections and actions to the registry.
 
 ## admin.py
 

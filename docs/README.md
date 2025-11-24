@@ -48,8 +48,36 @@ All documentation has been updated to reflect:
 - Enhanced sidebar navigation with modern styling
 - Complete Persian (Farsi) translations
 - User management form fixes (groups and superuser status)
+- Entity Reference System implementation with Section Registry and Action Registry tables
+- **Important**: New section/feature workflow requires Access Level permission configuration
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
+
+## ⚠️ Important: New Section Development Workflow
+
+**CRITICAL**: When creating any new section or feature in the application, the following steps are **mandatory**:
+
+1. **Register in Entity Reference System**:
+   - Add section to `SectionRegistry` table
+   - Add all actions to `ActionRegistry` table
+   - See [Entity Reference System Documentation](ENTITY_REFERENCE_SYSTEM.md) for details
+
+2. **Define Feature Permissions**:
+   - Add feature code to `FEATURE_PERMISSION_MAP` in `shared/permissions.py`
+   - Define all supported actions (view, create, edit, delete, approve, etc.)
+
+3. **⚠️ Configure Access Level Permissions (MANDATORY)**:
+   - Go to `/shared/access-levels/` in the application
+   - Create or edit Access Levels that should have access to the new section
+   - Enable appropriate permissions for the new section
+   - **Without this step, users will NOT be able to access the new section, even if it appears in the sidebar**
+
+4. **Assign Access Levels**:
+   - Assign the configured Access Levels to appropriate users or groups
+
+For detailed step-by-step instructions, see:
+- [Development Guide](DEVELOPMENT.md#creating-new-features)
+- [Entity Reference System Documentation](ENTITY_REFERENCE_SYSTEM.md#adding-new-sections-and-actions)
 
 ## 📂 Module-Specific Documentation
 
