@@ -1,27 +1,54 @@
 """
-Views for ticketing module.
+Views package for ticketing module.
 
-This file is kept for backward compatibility.
-All views have been refactored into ticketing.views package.
+This package contains all views for the ticketing module, organized by functionality.
+All views follow the package-based structure for better organization and maintainability.
 """
-from ticketing.views import (
+
+__all__ = []
+
+# Import base classes
+from .base import (
     TicketingBaseView,
     TicketLockProtectedMixin,
+)
+
+# Import ticket views
+from .tickets import (
     TicketListView,
     TicketCreateView,
     TicketEditView,
+)
+
+# Import placeholder views
+from .placeholders import (
     TicketRespondView,
     TemplateCreateView,
+    AutoResponseView,
+)
+
+# Import category views
+from .categories import (
     TicketCategoryListView,
     TicketCategoryCreateView,
     TicketCategoryUpdateView,
     TicketCategoryDeleteView,
+)
+
+# Import subcategory views
+from .subcategories import (
     TicketSubcategoryListView,
     TicketSubcategoryCreateView,
     TicketSubcategoryUpdateView,
     TicketSubcategoryDeleteView,
-    AutoResponseView,
 )
+
+# Future imports will be added here as views are implemented
+# from .templates import (
+#     TicketTemplateListView,
+#     TicketTemplateCreateView,
+#     ...
+# )
 
 __all__ = [
     "TicketingBaseView",
@@ -41,3 +68,4 @@ __all__ = [
     "TicketSubcategoryDeleteView",
     "AutoResponseView",
 ]
+
