@@ -19,6 +19,7 @@ from django.db.models import Q
 import json
 
 from .base import InventoryBaseView, LineFormsetMixin
+from shared.mixins import FeaturePermissionRequiredMixin
 from .. import models
 from .. import forms
 from ..models import Item, ItemUnit
@@ -577,10 +578,11 @@ class WarehouseRequestApproveView(InventoryBaseView, View):
 # Create Receipt from Purchase Request Views
 # ============================================================================
 
-class CreateReceiptFromPurchaseRequestView(InventoryBaseView, TemplateView):
+class CreateReceiptFromPurchaseRequestView(FeaturePermissionRequiredMixin, InventoryBaseView, TemplateView):
     """Base view for selecting lines from purchase request to create receipt."""
     receipt_type = None  # 'temporary', 'permanent', 'consignment'
     template_name = 'inventory/create_receipt_from_purchase_request.html'
+    required_action = 'create_receipt_from_purchase_request'
     
     def get_purchase_request(self, pk: int):
         """Get purchase request and check permissions."""
@@ -696,14 +698,17 @@ class CreateReceiptFromPurchaseRequestView(InventoryBaseView, TemplateView):
 class CreateTemporaryReceiptFromPurchaseRequestView(CreateReceiptFromPurchaseRequestView):
     """View to select lines from purchase request for temporary receipt."""
     receipt_type = 'temporary'
+    feature_code = 'inventory.receipts.temporary'
 
 
 class CreatePermanentReceiptFromPurchaseRequestView(CreateReceiptFromPurchaseRequestView):
     """View to select lines from purchase request for permanent receipt."""
     receipt_type = 'permanent'
+    feature_code = 'inventory.receipts.permanent'
 
 
 class CreateConsignmentReceiptFromPurchaseRequestView(CreateReceiptFromPurchaseRequestView):
     """View to select lines from purchase request for consignment receipt."""
     receipt_type = 'consignment'
+    feature_code = 'inventory.receipts.consignment'
 

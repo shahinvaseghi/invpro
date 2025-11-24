@@ -1,0 +1,215 @@
+{% extends "inventory/base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "Create" %} {{ issue_type_name }} {% trans "from Warehouse Request" %}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span><a href="{% url 'inventory:warehouse_requests' %}">{% trans "Warehouse Requests" %}</a></span>
+<span class="separator">/</span>
+<span>{% trans "Create Issue" %}</span>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="form-container">
+  <div class="request-info" style="margin-bottom: 2rem; padding: 1.5rem; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;">
+    <h3 style="margin-top: 0;">{% trans "Warehouse Request Information" %}</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+      <div>
+        <strong>{% trans "Request Code" %}:</strong><br>
+        <code>{{ warehouse_request.request_code }}</code>
+      </div>
+      <div>
+        <strong>{% trans "Request Date" %}:</strong><br>
+        {{ warehouse_request.request_date|jalali_date }}
+      </div>
+      <div>
+        <strong>{% trans "Requester" %}:</strong><br>
+        {{ warehouse_request.requester.get_full_name|default:warehouse_request.requester.username }}
+      </div>
+      {% if warehouse_request.needed_by_date %}
+      <div>
+        <strong>{% trans "Needed By" %}:</strong><br>
+        {{ warehouse_request.needed_by_date|jalali_date }}
+      </div>
+      {% endif %}
+      <div>
+        <strong>{% trans "Warehouse" %}:</strong><br>
+        {{ warehouse_request.warehouse.name }} ({{ warehouse_request.warehouse_code }})
+      </div>
+      {% if warehouse_request.department_unit %}
+      <div>
+        <strong>{% trans "Department Unit" %}:</strong><br>
+        {{ warehouse_request.department_unit.name }} ({{ warehouse_request.department_unit_code }})
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <form method="post" class="entity-form">
+    {% csrf_token %}
+    
+    <div class="form-section">
+      <h3>{% trans "Select Quantity" %}</h3>
+      <p class="form-text">{% trans "Review the item and adjust the quantity if needed before creating the issue." %}</p>
+      
+      <div style="margin-top: 1.5rem; padding: 1.5rem; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px;">
+        <table class="data-table" style="width: 100%; margin: 0;">
+          <thead>
+            <tr>
+              <th>{% trans "Item" %}</th>
+              <th>{% trans "Unit" %}</th>
+              <th>{% trans "Requested Quantity" %}</th>
+              <th>{% trans "Already Issued" %}</th>
+              <th>{% trans "Remaining" %}</th>
+              <th>{% trans "Issue Quantity" %} *</th>
+              <th>{% trans "Notes" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <strong>{{ warehouse_request.item.name }}</strong><br>
+                <small style="color: #6b7280;"><code>{{ warehouse_request.item_code }}</code></small>
+              </td>
+              <td>{{ warehouse_request.unit }}</td>
+              <td style="text-align: right;">{{ warehouse_request.quantity_requested|floatformat:3 }}</td>
+              <td style="text-align: right; color: #10b981;">
+                {% if warehouse_request.quantity_issued %}
+                  {{ warehouse_request.quantity_issued|floatformat:3 }}
+                {% else %}
+                  0.000
+                {% endif %}
+              </td>
+              <td style="text-align: right; color: #f59e0b; font-weight: 600;">{{ remaining_quantity|floatformat:3 }}</td>
+              <td>
+                <input type="number" 
+                       name="quantity" 
+                       id="quantity"
+                       class="form-control quantity-input"
+                       value="{{ default_quantity|floatformat:3 }}"
+                       min="0"
+                       max="{{ remaining_quantity }}"
+                       step="0.001"
+                       required
+                       style="width: 150px; text-align: right;"
+                       {% if remaining_quantity == 0 %}disabled{% endif %}>
+              </td>
+              <td>
+                <input type="text" 
+                       name="notes" 
+                       class="form-control"
+                       style="width: 250px;"
+                       placeholder="{% trans 'Optional notes' %}">
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      {% if warehouse_request.purpose %}
+      <div style="margin-top: 1rem; padding: 1rem; background-color: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px;">
+        <strong>{% trans "Purpose" %}:</strong><br>
+        {{ warehouse_request.purpose }}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+      <a href="{% url 'inventory:warehouse_requests' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div>
+
+<style>
+.form-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+}
+
+.request-info h3 {
+  margin-top: 0;
+  color: #111827;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  background-color: #f3f4f6;
+  padding: 0.75rem;
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.data-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.quantity-input:disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const quantityInput = document.getElementById('quantity');
+  const maxQuantity = parseFloat(quantityInput.getAttribute('max')) || 0;
+  
+  if (quantityInput) {
+    // Quantity validation
+    quantityInput.addEventListener('change', function() {
+      const value = parseFloat(this.value) || 0;
+      if (value > maxQuantity) {
+        this.value = maxQuantity;
+        alert('{% trans "Quantity cannot exceed remaining quantity" %}: ' + maxQuantity);
+      }
+      if (value < 0) {
+        this.value = '0';
+      }
+    });
+    
+    // Real-time validation on input
+    quantityInput.addEventListener('input', function() {
+      const value = parseFloat(this.value) || 0;
+      if (value > maxQuantity) {
+        this.setCustomValidity('{% trans "Quantity cannot exceed remaining quantity" %}');
+      } else if (value < 0) {
+        this.setCustomValidity('{% trans "Quantity cannot be negative" %}');
+      } else {
+        this.setCustomValidity('');
+      }
+    });
+  }
+});
+</script>
+{% endblock %}
+

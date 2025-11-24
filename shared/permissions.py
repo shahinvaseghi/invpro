@@ -37,6 +37,8 @@ class PermissionAction(Enum):
     CANCEL = "cancel"
     CREATE_TRANSFER_FROM_ORDER = "create_transfer_from_order"
     CREATE_RECEIPT = "create_receipt"
+    CREATE_RECEIPT_FROM_PURCHASE_REQUEST = "create_receipt_from_purchase_request"
+    CREATE_ISSUE_FROM_WAREHOUSE_REQUEST = "create_issue_from_warehouse_request"
 
 
 @dataclass(frozen=True)
@@ -320,6 +322,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
             PermissionAction.CANCEL,
+            PermissionAction.CREATE_RECEIPT_FROM_PURCHASE_REQUEST,
         ],
     ),
     "inventory.receipts.permanent": FeaturePermission(
@@ -339,6 +342,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
+            PermissionAction.CREATE_RECEIPT_FROM_PURCHASE_REQUEST,
         ],
     ),
     "inventory.receipts.consignment": FeaturePermission(
@@ -358,6 +362,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
+            PermissionAction.CREATE_RECEIPT_FROM_PURCHASE_REQUEST,
         ],
     ),
     # Inventory – Issues
@@ -378,6 +383,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
+            PermissionAction.CREATE_ISSUE_FROM_WAREHOUSE_REQUEST,
         ],
     ),
     "inventory.issues.consumption": FeaturePermission(
@@ -395,6 +401,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
             PermissionAction.CANCEL,
+            PermissionAction.CREATE_ISSUE_FROM_WAREHOUSE_REQUEST,
         ],
     ),
     "inventory.issues.consignment": FeaturePermission(
@@ -414,6 +421,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
+            PermissionAction.CREATE_ISSUE_FROM_WAREHOUSE_REQUEST,
         ],
     ),
     # Inventory – Requests
@@ -430,6 +438,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
+            PermissionAction.CREATE_RECEIPT_FROM_PURCHASE_REQUEST,
         ],
     ),
     "inventory.requests.warehouse": FeaturePermission(
@@ -445,6 +454,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
+            PermissionAction.CREATE_ISSUE_FROM_WAREHOUSE_REQUEST,
         ],
     ),
     # Inventory – Stocktaking & Balance

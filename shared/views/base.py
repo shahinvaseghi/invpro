@@ -57,6 +57,8 @@ class AccessLevelPermissionMixin:
             PermissionAction.CANCEL.value: _('Cancel'),
             PermissionAction.CREATE_TRANSFER_FROM_ORDER.value: _('Create Transfer from Order'),
             PermissionAction.CREATE_RECEIPT.value: _('Create Receipt'),
+            PermissionAction.CREATE_RECEIPT_FROM_PURCHASE_REQUEST.value: _('Create Receipt from Purchase Request'),
+            PermissionAction.CREATE_ISSUE_FROM_WAREHOUSE_REQUEST.value: _('Create Issue from Warehouse Request'),
         }
 
     def _feature_key(self, code: str) -> str:

@@ -143,6 +143,14 @@ urlpatterns = [
     path('warehouse-requests/create/', views.WarehouseRequestCreateView.as_view(), name='warehouse_request_create'),
     path('warehouse-requests/<int:pk>/edit/', views.WarehouseRequestUpdateView.as_view(), name='warehouse_request_edit'),
     path('warehouse-requests/<int:pk>/approve/', views.WarehouseRequestApproveView.as_view(), name='warehouse_request_approve'),
+    # Intermediate selection views (quantity selection)
+    path('warehouse-requests/<int:pk>/create-permanent-issue/', views.CreatePermanentIssueFromWarehouseRequestView.as_view(), name='warehouse_request_create_permanent_issue'),
+    path('warehouse-requests/<int:pk>/create-consumption-issue/', views.CreateConsumptionIssueFromWarehouseRequestView.as_view(), name='warehouse_request_create_consumption_issue'),
+    path('warehouse-requests/<int:pk>/create-consignment-issue/', views.CreateConsignmentIssueFromWarehouseRequestView.as_view(), name='warehouse_request_create_consignment_issue'),
+    # Actual creation views (redirected from selection views)
+    path('warehouse-requests/<int:pk>/create-permanent-issue/continue/', views.IssuePermanentCreateFromWarehouseRequestView.as_view(), name='issue_permanent_create_from_warehouse_request'),
+    path('warehouse-requests/<int:pk>/create-consumption-issue/continue/', views.IssueConsumptionCreateFromWarehouseRequestView.as_view(), name='issue_consumption_create_from_warehouse_request'),
+    path('warehouse-requests/<int:pk>/create-consignment-issue/continue/', views.IssueConsignmentCreateFromWarehouseRequestView.as_view(), name='issue_consignment_create_from_warehouse_request'),
     
     # Inventory Balance
     path('balance/', views.InventoryBalanceView.as_view(), name='inventory_balance'),
