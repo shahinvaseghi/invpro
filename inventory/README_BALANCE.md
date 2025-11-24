@@ -187,11 +187,16 @@ balance = calculate_item_balance(
 (Each dict is same format as `calculate_item_balance()`)
 
 **Logic**:
-1. Query all items in warehouse (with optional type/category filters)
-2. Only include items with warehouse assignment (`ItemWarehouse`)
-3. Calculate balance for each item using `calculate_item_balance()`
-4. Filter out items with zero balance and no activity
-5. Return list of balances
+1. Find all items with:
+   - Warehouse assignment (`ItemWarehouse`), OR
+   - Actual transactions in the warehouse (receipts/issues/stocktaking)
+2. **Important**: Items with actual transactions are included even if disabled (`is_enabled=0`)
+   - This ensures complete audit trail visibility
+   - Items with only warehouse assignment still require `is_enabled=1`
+3. Apply optional type/category filters
+4. Calculate balance for each item using `calculate_item_balance()`
+5. Filter out items with zero balance and no activity
+6. Return list of balances
 
 **Performance**:
 - Runs one query per item (N+1 pattern)
@@ -251,6 +256,36 @@ Template: `templates/inventory/inventory_balance.html`
 4. Export to Excel functionality available
 
 **URL**: `/inventory/balance/`
+
+---
+
+### InventoryBalanceDetailsView
+
+Template: `templates/inventory/inventory_balance_details.html`
+
+**Purpose**: Display detailed transaction history for a specific item in a warehouse.
+
+**Features**:
+- Shows all receipts and issues from baseline date to selected date
+- Displays running balance calculation for each transaction
+- **Source/Destination Column**: 
+  - For receipts: Shows supplier name (from line item's `supplier` field)
+  - For issues: Shows department unit name or work line name (for consumption issues)
+  - Only displays names, not codes, for better readability
+- **Clickable Document Codes**: 
+  - All document codes are clickable links
+  - Links navigate directly to the document edit/view page
+  - Styled with blue color and hover effects
+- Transaction types displayed:
+  - Permanent Receipt (رسید دائم)
+  - Consignment Receipt (رسید امانی)
+  - Permanent Issue (حواله دائم)
+  - Consumption Issue (حواله مصرف)
+  - Consignment Issue (حواله امانی)
+
+**URL**: `/inventory/balance/details/<item_id>/<warehouse_id>/?as_of_date=YYYY-MM-DD`
+
+**Access**: Via "Details" button in inventory balance list view
 
 ---
 
@@ -412,10 +447,72 @@ def test_balance_calculation():
 
 ---
 
+## Transaction History Display
+
+### Overview
+
+The transaction history detail page provides a complete audit trail of all inventory movements (receipts and issues) for a specific item in a warehouse.
+
+### Features
+
+1. **Source/Destination Column (مرکز مصرف/تامین)**:
+   - **For Receipts**: Displays supplier name from the line item
+   - **For Issues**: Displays department unit name or work line name (for consumption issues)
+   - Only shows names (not codes) for better readability
+   - Shows '—' if no source/destination information is available
+
+2. **Clickable Document Codes**:
+   - All document codes are clickable links
+   - Links navigate directly to the document edit/view page
+   - Styled with blue color (`#2563eb`) and hover effects
+   - Supports all document types: Permanent Receipt, Consignment Receipt, Permanent Issue, Consumption Issue, Consignment Issue
+
+3. **Transaction Data Structure**:
+   ```python
+   {
+       'date': date,
+       'type': 'receipt' | 'issue',
+       'type_label': str,  # Localized label
+       'document_code': str,
+       'document_id': int,
+       'document_type': str,  # 'permanent_receipt', 'consumption_issue', etc.
+       'quantity': Decimal,
+       'unit': str,
+       'created_by': str,  # Username or '—'
+       'source_destination': str,  # Supplier/department unit name
+       'running_balance': Decimal
+   }
+   ```
+
+### Source/Destination Logic
+
+**For Receipts**:
+- `ReceiptPermanentLine`: Shows `supplier.name` from line item
+- `ReceiptConsignmentLine`: Shows `supplier.name` from line item
+
+**For Issues**:
+- **Permanent Issues**: Shows `document.department_unit.name` or resolves `destination_code` to department unit name
+- **Consumption Issues**: Priority order:
+  1. `work_line.name` (if work line is assigned)
+  2. `document.department_unit.name` (if department unit is assigned)
+  3. Resolves `cost_center_code` to department unit name via `CompanyUnit` lookup
+  4. Falls back to `cost_center_code` as string
+- **Consignment Issues**: Shows `document.department_unit.name` or resolves `destination_code` to department unit name
+
+### Document Code Links
+
+Document codes link to edit/view pages:
+- `permanent_receipt` → `inventory:receipt_permanent_edit`
+- `consignment_receipt` → `inventory:receipt_consignment_edit`
+- `permanent_issue` → `inventory:issue_permanent_edit`
+- `consumption_issue` → `inventory:issue_consumption_edit`
+- `consignment_issue` → `inventory:issue_consignment_edit`
+
 ## Related Files
 
-- `inventory/views.py`: `InventoryBalanceView`, `InventoryBalanceAPIView`
+- `inventory/views/balance.py`: `InventoryBalanceView`, `InventoryBalanceDetailsView`, `InventoryBalanceAPIView`
 - `templates/inventory/inventory_balance.html`: UI for balance display
+- `templates/inventory/inventory_balance_details.html`: UI for transaction history details
 - `inventory_module_db_design_plan.md`: Balance calculation specification
 - `README.md`: Overall system documentation
 

@@ -348,35 +348,82 @@ def calculate_warehouse_balances(
         warehouses__is_enabled=1,
     ).values_list('id', flat=True)
     
-    # Second, get items with actual transactions in this warehouse
+    # Second, get items with actual transactions in this warehouse (only enabled documents)
     items_with_receipts = models.ReceiptPermanentLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
+        document__is_enabled=1,
     ).values_list('item_id', flat=True).distinct()
     
     items_with_consignment_receipts = models.ReceiptConsignmentLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
+        document__is_enabled=1,
     ).values_list('item_id', flat=True).distinct()
     
     items_with_issues = models.IssuePermanentLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
+        document__is_enabled=1,
     ).values_list('item_id', flat=True).distinct()
     
     items_with_consumption = models.IssueConsumptionLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
+        document__is_enabled=1,
+    ).values_list('item_id', flat=True).distinct()
+    
+    items_with_consignment_issues = models.IssueConsignmentLine.objects.filter(
+        company_id=company_id,
+        warehouse_id=warehouse_id,
+        document__is_enabled=1,
+    ).values_list('item_id', flat=True).distinct()
+    
+    # Also check for items with stocktaking records (surplus/deficit)
+    items_with_surplus = models.StocktakingSurplus.objects.filter(
+        company_id=company_id,
+        warehouse_id=warehouse_id,
+        is_enabled=1,
+    ).values_list('item_id', flat=True).distinct()
+    
+    items_with_deficit = models.StocktakingDeficit.objects.filter(
+        company_id=company_id,
+        warehouse_id=warehouse_id,
+        is_enabled=1,
     ).values_list('item_id', flat=True).distinct()
     
     # Combine all item IDs
-    all_item_ids = set(items_with_assignment) | set(items_with_receipts) | set(items_with_consignment_receipts) | set(items_with_issues) | set(items_with_consumption)
+    all_item_ids = (
+        set(items_with_assignment) | 
+        set(items_with_receipts) | 
+        set(items_with_consignment_receipts) | 
+        set(items_with_issues) | 
+        set(items_with_consumption) |
+        set(items_with_consignment_issues) |
+        set(items_with_surplus) |
+        set(items_with_deficit)
+    )
     
     # Build final query
+    # Include items with transactions even if disabled (they have inventory activity)
+    # But only include enabled items if they only have warehouse assignment
+    items_with_transactions = (
+        set(items_with_receipts) | 
+        set(items_with_consignment_receipts) | 
+        set(items_with_issues) | 
+        set(items_with_consumption) |
+        set(items_with_consignment_issues) |
+        set(items_with_surplus) |
+        set(items_with_deficit)
+    )
+    
+    # For items with transactions, include them regardless of enabled status
+    # For items only with assignment, require enabled=1
     items_query = models.Item.objects.filter(
         id__in=all_item_ids,
         company_id=company_id,
-        is_enabled=1,
+    ).filter(
+        Q(id__in=items_with_transactions) | Q(is_enabled=1)
     )
     
     if item_type_id:

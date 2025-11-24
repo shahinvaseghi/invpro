@@ -780,6 +780,8 @@ Real-time calculation of item quantities in warehouses based on stocktaking base
 - **Details page**: Click "Details" button to view complete transaction history for an item
   - Shows all receipts and issues from baseline date to selected date
   - Displays running balance calculation for each transaction
+  - **Source/Destination column**: Shows supplier name for receipts and department unit/work line name for issues
+  - **Clickable document codes**: All document codes are clickable links that navigate directly to the document edit/view page
   - Accessible via `/inventory/balance/details/<item_id>/<warehouse_id>/`
 - **JSON API endpoint**: `/inventory/api/balance/` for AJAX queries
 
@@ -798,6 +800,7 @@ Real-time calculation of item quantities in warehouses based on stocktaking base
 - Consignment receipts/issues are included in calculations
 - Baseline uses approved and locked `StocktakingRecord` when surplus/deficit documents don't exist
 - Date display: Baseline date shown in Jalali format using `|jalali_date` filter
+- **Disabled items with transactions**: Items that are disabled (`is_enabled=0`) but have actual transactions are still displayed in balance reports to ensure complete audit trail
 
 ### Performance Considerations
 - Indexes on (company_id, warehouse_id, item_id, document_date)
@@ -866,6 +869,11 @@ Stocktaking records now support a formal approval workflow with designated appro
 - Dedicated create/edit forms with item-aware unit dropdown (default unit + defined conversions).
 - Approver selection restricted to Django `User` accounts whose roles grant the purchase-request approval permission.
 - Approval action locks the request (`is_locked=1`), records timestamp, and exposes it to permanent/consignment receipt forms.
+- **Direct Receipt Creation**: Approved purchase requests allow direct creation of receipts (Temporary, Permanent, or Consignment) through dedicated intermediate selection pages:
+  - Users can select which lines to include in the receipt
+  - Quantities can be adjusted based on remaining requested quantities
+  - Line-specific notes can be added
+  - After selection, users are redirected to the receipt creation form with pre-populated line items
 - Receipt forms validate that the selected request matches both item and company before updating fulfillment quantities.
 - User-entered unit/quantity/price values are preserved for display while normalized values are stored for calculation.
 
@@ -881,19 +889,25 @@ Internal material requisition workflow
 
 #### Features
 - **Request Code**: Auto-generated `WRQ-YYYYMM-XXXXXX`
-- **Item Selection**: From company's item catalog
+- **Item Selection**: From company's item catalog (single-item request)
 - **Quantity Request**: With unit of measure restricted to the item's primary/alternate units
 - **Priority**: Low, Normal, High, Urgent
-- **Requester**: Linked to `production.Person` for staffing analytics
+- **Requester**: Linked to Django `User` account
 - **Approver**: Django `User` filtered by warehouse-request approval permission
-- **Department**: Requesting unit/department
+- **Department**: Requesting unit/department (optional)
+- **Warehouse**: Source warehouse for the requested item
 - **Approval Workflow**:
   1. Draft
   2. Submitted
   3. Approved (by authorized person)
   4. Issued (linked to actual issue document)
   5. Cancelled (if rejected)
-- **Locking & Linking**: Once approved the request is locked (`is_locked=1`) and becomes selectable in permanent/consignment receipt forms; forms validate item/warehouse alignment before accepting the link.
+- **Locking & Linking**: Once approved the request is locked (`is_locked=1`) and becomes available for issue creation
+- **Direct Issue Creation**: Approved warehouse requests allow direct creation of issues (Permanent, Consumption, or Consignment) through dedicated intermediate selection pages:
+  - Users can review warehouse request details
+  - Issue quantity can be adjusted based on remaining requested quantities
+  - Optional notes can be added
+  - After confirmation, users are redirected to the issue creation form with pre-populated line items from the warehouse request
 
 #### Use Cases
 - Production line requesting materials

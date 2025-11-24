@@ -31,7 +31,8 @@ Contains all inventory-related entities. Major groups:
   - `SupplierCategory`, `SupplierSubcategory`, `SupplierItem`: link suppliers to categories, subcategories, and specific items with metadata such as MOQ, lead time, and primary flags.
 
 - **Requests & Receipts**
-  - `PurchaseRequest`: captures item requests with priority, status workflow, and references.
+  - `PurchaseRequest`: captures multi-line item requests with priority, status workflow, and references. Approved purchase requests can be used to directly create receipts (Temporary, Permanent, or Consignment) through intermediate selection pages.
+  - `WarehouseRequest`: captures single-line internal material requests with priority, status workflow, and references. Approved warehouse requests can be used to directly create issues (Permanent, Consumption, or Consignment) through intermediate selection pages.
   - `ReceiptTemporary`: intake staging record (awaiting QC); caches item/warehouse codes and supplier code, tracks QC approval.
   - `ReceiptPermanent`: finalized receipt (optionally linked to temporary receipt and purchase request).
   - `ReceiptConsignment`: consignment handling with ownership status, conversion links, and optional temporary receipt reference.
@@ -79,6 +80,17 @@ Each model enforces unique constraints tailored to multi-company setups and uses
 - `IssueLineSerialAssignmentBaseView` و کلاس‌های مشتق (`IssuePermanentLineSerialAssignmentView`, `IssueConsumptionLineSerialAssignmentView`, `IssueConsignmentLineSerialAssignmentView`): ویوهای اختصاصی برای مدیریت سریال‌های هر ردیف حواله. هر Line می‌تواند صفحه اختصاصی خود را داشته باشد.
 - `ReceiptLineSerialAssignmentBaseView` و کلاس‌های مشتق (`ReceiptPermanentLineSerialAssignmentView`, `ReceiptConsignmentLineSerialAssignmentView`): ویوهای اختصاصی برای مدیریت سریال‌های هر ردیف رسید.
 - `StocktakingDeficitCreateView`/`UpdateView`, `StocktakingSurplusCreateView`/`UpdateView`, `StocktakingRecordCreateView`/`UpdateView`: فرم‌های اختصاصی برای اسناد شمارش موجودی که کد سند (STD/STS/STR-YYYYMM-XXXXXX) را تولید کرده، واحدهای مجاز و انبارهای مجاز را بر اساس تنظیمات کالا محدود می‌کنند و امکان قفل کردن سند را پس از نهایی‌سازی فراهم می‌سازند.
+- **Request Views**: 
+  - `PurchaseRequestListView`, `PurchaseRequestCreateView`, `PurchaseRequestUpdateView`, `PurchaseRequestApproveView`: مدیریت درخواست‌های خرید با workflow تأیید
+  - `WarehouseRequestListView`, `WarehouseRequestCreateView`, `WarehouseRequestUpdateView`, `WarehouseRequestApproveView`: مدیریت درخواست‌های انبار با workflow تأیید
+  - **Create Receipt from Purchase Request Views**: ویوهای واسط برای ایجاد رسید از درخواست خرید:
+    - `CreateTemporaryReceiptFromPurchaseRequestView`, `CreatePermanentReceiptFromPurchaseRequestView`, `CreateConsignmentReceiptFromPurchaseRequestView`: صفحات انتخاب خطوط و مقدار از درخواست خرید
+    - `ReceiptTemporaryCreateFromPurchaseRequestView`, `ReceiptPermanentCreateFromPurchaseRequestView`, `ReceiptConsignmentCreateFromPurchaseRequestView`: ویوهای ایجاد رسید که داده‌ها را از session دریافت می‌کنند
+    - کاربران می‌توانند خطوط مورد نظر را انتخاب کرده، مقدار را تنظیم کنند و سپس رسید ایجاد کنند
+  - **Create Issue from Warehouse Request Views**: ویوهای واسط برای ایجاد حواله از درخواست انبار:
+    - `CreatePermanentIssueFromWarehouseRequestView`, `CreateConsumptionIssueFromWarehouseRequestView`, `CreateConsignmentIssueFromWarehouseRequestView`: صفحات انتخاب مقدار از درخواست انبار
+    - `IssuePermanentCreateFromWarehouseRequestView`, `IssueConsumptionCreateFromWarehouseRequestView`, `IssueConsignmentCreateFromWarehouseRequestView`: ویوهای ایجاد حواله که داده‌ها را از session دریافت می‌کنند
+    - کاربران می‌توانند مقدار را تنظیم کرده و سپس حواله ایجاد کنند
 - **Document Delete Views**: کلاس پایه `DocumentDeleteViewBase` و کلاس‌های مشتق آن (`ReceiptTemporaryDeleteView`, `ReceiptPermanentDeleteView`, `ReceiptConsignmentDeleteView`, `IssuePermanentDeleteView`, `IssueConsumptionDeleteView`, `IssueConsignmentDeleteView`, `StocktakingDeficitDeleteView`, `StocktakingSurplusDeleteView`, `StocktakingRecordDeleteView`) برای حذف اسناد با بررسی دسترسی (`DELETE_OWN` و `DELETE_OTHER`) و محافظت از اسناد قفل‌شده. دکمه‌های حذف در لیست‌ها به صورت شرطی بر اساس دسترسی کاربر نمایش داده می‌شوند.
 
 ## templates
@@ -89,6 +101,10 @@ Each model enforces unique constraints tailored to multi-company setups and uses
 - `inventory/issue_serial_assignment.html`: قالب اختصاصی برای انتخاب سریال‌های یک ردیف حواله. این صفحه لیست سریال‌های موجود را به صورت checkbox نمایش می‌دهد و کاربر می‌تواند تعداد مورد نیاز را انتخاب کند.
 - `inventory/receipt_serial_assignment.html`: قالب اختصاصی برای مدیریت سریال‌های یک ردیف رسید. این صفحه امکان مشاهده و تولید سریال‌ها را فراهم می‌کند.
 - `receipt_temporary.html`, `receipt_permanent.html`, `receipt_consignment.html`: صفحات لیست رسیدها که به مسیرهای ایجاد/ویرایش داخلی متصل شده‌اند و پیام‌های خالی/آمار را بر اساس نوع سند نمایش می‌دهند. تاریخ‌های سند با template tag `jalali_date` به صورت Jalali نمایش داده می‌شوند.
+- `purchase_requests.html`: صفحه لیست درخواست‌های خرید که دکمه‌های ایجاد رسید (Temporary, Permanent, Consignment) را برای درخواست‌های تأیید شده نمایش می‌دهد.
+- `warehouse_requests.html`: صفحه لیست درخواست‌های انبار که دکمه‌های ایجاد حواله (Permanent, Consumption, Consignment) را برای درخواست‌های تأیید شده نمایش می‌دهد.
+- `create_receipt_from_purchase_request.html`: صفحه واسط انتخاب خطوط و مقدار برای ایجاد رسید از درخواست خرید.
+- `create_issue_from_warehouse_request.html`: صفحه واسط انتخاب مقدار برای ایجاد حواله از درخواست انبار.
 - `inventory/stocktaking_form.html`: قالب مشترک فرم‌های شمارش موجودی به همراه اسکریپت‌های پویا برای به‌روزرسانی واحد و انبار مجاز بر اساس انتخاب کالا.
 - `inventory/receipt_form.html`: قالب پایه برای فرم‌های رسید و حواله که شامل JavaScript برای به‌روزرسانی پویای dropdown های واحد و انبار بر اساس انتخاب کالا است. تابع `updateUnitChoices()` واحدها را به‌روزرسانی می‌کند و تابع `updateWarehouseChoices()` انبارهای مجاز را به‌روزرسانی می‌کند.
 - `stocktaking_deficit.html`, `stocktaking_surplus.html`, `stocktaking_records.html`: صفحات لیست سندهای شمارش که اکنون دکمه «ایجاد» و لینک ویرایش/حذف/مشاهده به ویوهای جدید دارند و وضعیت قفل سند را نمایش می‌دهند. دکمه‌های حذف به صورت شرطی بر اساس دسترسی کاربر نمایش داده می‌شوند.
@@ -106,6 +122,16 @@ Each model enforces unique constraints tailored to multi-company setups and uses
   - `/inventory/issues/consumption/<pk>/lines/<line_id>/serials/` برای اختصاص سریال‌های ردیف حواله مصرفی
   - `/inventory/issues/consignment/<pk>/lines/<line_id>/serials/` برای اختصاص سریال‌های ردیف حواله امانی
 - مسیرهای مربوط به تأمین‌کنندگان و دسته‌بندی‌های تأمین‌کننده نیز کامل شده‌اند.
+- مسیرهای درخواست‌های خرید: `/inventory/purchase-requests/` برای لیست، `/inventory/purchase-requests/create/` برای ایجاد، `/inventory/purchase-requests/<pk>/edit/` برای ویرایش، `/inventory/purchase-requests/<pk>/approve/` برای تأیید
+  - مسیرهای ایجاد رسید از درخواست خرید:
+    - `/inventory/purchase-requests/<pk>/create-temporary-receipt/` برای صفحه انتخاب خطوط و ایجاد رسید موقت
+    - `/inventory/purchase-requests/<pk>/create-permanent-receipt/` برای صفحه انتخاب خطوط و ایجاد رسید دائم
+    - `/inventory/purchase-requests/<pk>/create-consignment-receipt/` برای صفحه انتخاب خطوط و ایجاد رسید امانی
+- مسیرهای درخواست‌های انبار: `/inventory/warehouse-requests/` برای لیست، `/inventory/warehouse-requests/create/` برای ایجاد، `/inventory/warehouse-requests/<pk>/edit/` برای ویرایش، `/inventory/warehouse-requests/<pk>/approve/` برای تأیید
+  - مسیرهای ایجاد حواله از درخواست انبار:
+    - `/inventory/warehouse-requests/<pk>/create-permanent-issue/` برای صفحه انتخاب مقدار و ایجاد حواله دائم
+    - `/inventory/warehouse-requests/<pk>/create-consumption-issue/` برای صفحه انتخاب مقدار و ایجاد حواله مصرف
+    - `/inventory/warehouse-requests/<pk>/create-consignment-issue/` برای صفحه انتخاب مقدار و ایجاد حواله امانی
 - مسیرهای شمارش موجودی: `/inventory/stocktaking/deficit|surplus|records/(create|<pk>/edit/)` به همراه مسیرهای قفل، همگی به ویوهای اختصاصی جدید متصل هستند.
 - مسیرهای حذف اسناد:
   - `/inventory/receipts/temporary/<pk>/delete/` برای حذف رسید موقت

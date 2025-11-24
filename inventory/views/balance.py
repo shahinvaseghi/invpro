@@ -149,7 +149,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             document__document_date__gt=baseline_date,
             document__document_date__lte=as_of_date,
             document__is_enabled=1,
-        ).select_related('document', 'document__created_by').order_by('document__document_date', 'id')
+        ).select_related('document', 'document__created_by', 'supplier').order_by('document__document_date', 'id')
         
         receipts_consignment = models.ReceiptConsignmentLine.objects.filter(
             company_id=company_id,
@@ -158,7 +158,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             document__document_date__gt=baseline_date,
             document__document_date__lte=as_of_date,
             document__is_enabled=1,
-        ).select_related('document', 'document__created_by').order_by('document__document_date', 'id')
+        ).select_related('document', 'document__created_by', 'supplier').order_by('document__document_date', 'id')
         
         # Get all issues (negative movements)
         issues_permanent = models.IssuePermanentLine.objects.filter(
@@ -168,7 +168,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             document__document_date__gt=baseline_date,
             document__document_date__lte=as_of_date,
             document__is_enabled=1,
-        ).select_related('document', 'document__created_by').order_by('document__document_date', 'id')
+        ).select_related('document', 'document__created_by', 'document__department_unit').order_by('document__document_date', 'id')
         
         issues_consumption = models.IssueConsumptionLine.objects.filter(
             company_id=company_id,
@@ -177,7 +177,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             document__document_date__gt=baseline_date,
             document__document_date__lte=as_of_date,
             document__is_enabled=1,
-        ).select_related('document', 'document__created_by').order_by('document__document_date', 'id')
+        ).select_related('document', 'document__created_by', 'document__department_unit', 'work_line').order_by('document__document_date', 'id')
         
         issues_consignment = models.IssueConsignmentLine.objects.filter(
             company_id=company_id,
@@ -186,66 +186,151 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             document__document_date__gt=baseline_date,
             document__document_date__lte=as_of_date,
             document__is_enabled=1,
-        ).select_related('document', 'document__created_by').order_by('document__document_date', 'id')
+        ).select_related('document', 'document__created_by', 'document__department_unit').order_by('document__document_date', 'id')
         
         # Combine all transactions
         transactions = []
         
         # Add receipts
         for receipt in receipts_perm:
+            # Get supplier from line - show name only
+            source_info = '—'
+            if receipt.supplier:
+                source_info = receipt.supplier.name
+            
             transactions.append({
                 'date': receipt.document.document_date,
                 'type': 'receipt',
                 'type_label': _('Permanent Receipt'),
                 'document_code': receipt.document.document_code,
+                'document_id': receipt.document.pk,
+                'document_type': 'permanent_receipt',
                 'quantity': receipt.quantity,
                 'unit': receipt.unit,
                 'created_by': receipt.document.created_by.username if receipt.document.created_by else '—',
+                'source_destination': source_info,
             })
         
         for receipt in receipts_consignment:
+            # Get supplier from line - show name only
+            source_info = '—'
+            if receipt.supplier:
+                source_info = receipt.supplier.name
+            
             transactions.append({
                 'date': receipt.document.document_date,
                 'type': 'receipt',
                 'type_label': _('Consignment Receipt'),
                 'document_code': receipt.document.document_code,
+                'document_id': receipt.document.pk,
+                'document_type': 'consignment_receipt',
                 'quantity': receipt.quantity,
                 'unit': receipt.unit,
                 'created_by': receipt.document.created_by.username if receipt.document.created_by else '—',
+                'source_destination': source_info,
             })
         
         # Add issues
         for issue in issues_permanent:
+            # Get destination from document department_unit - show name only
+            destination_info = '—'
+            if issue.document.department_unit:
+                destination_info = issue.document.department_unit.name
+            elif issue.destination_code:
+                # Try to get department unit name from destination_code
+                from shared.models import CompanyUnit
+                try:
+                    dept_unit = CompanyUnit.objects.filter(
+                        company_id=company_id,
+                        public_code=issue.destination_code
+                    ).first()
+                    if dept_unit:
+                        destination_info = dept_unit.name
+                    else:
+                        destination_info = issue.destination_code
+                except:
+                    destination_info = issue.destination_code
+            
             transactions.append({
                 'date': issue.document.document_date,
                 'type': 'issue',
                 'type_label': _('Permanent Issue'),
                 'document_code': issue.document.document_code,
+                'document_id': issue.document.pk,
+                'document_type': 'permanent_issue',
                 'quantity': issue.quantity,
                 'unit': issue.unit,
                 'created_by': issue.document.created_by.username if issue.document.created_by else '—',
+                'source_destination': destination_info,
             })
         
         for issue in issues_consumption:
+            # Get destination from document department_unit or line work_line - show name only
+            destination_info = '—'
+            if issue.work_line:
+                destination_info = issue.work_line.name
+            elif issue.document.department_unit:
+                destination_info = issue.document.department_unit.name
+            elif issue.cost_center_code:
+                # Try to find department unit by cost_center_code
+                from shared.models import CompanyUnit
+                try:
+                    dept_unit = CompanyUnit.objects.filter(
+                        company_id=company_id,
+                        public_code=issue.cost_center_code
+                    ).first()
+                    if dept_unit:
+                        destination_info = dept_unit.name
+                    else:
+                        # If not found, show code as fallback
+                        destination_info = issue.cost_center_code
+                except:
+                    destination_info = issue.cost_center_code
+            
             transactions.append({
                 'date': issue.document.document_date,
                 'type': 'issue',
                 'type_label': _('Consumption Issue'),
                 'document_code': issue.document.document_code,
+                'document_id': issue.document.pk,
+                'document_type': 'consumption_issue',
                 'quantity': issue.quantity,
                 'unit': issue.unit,
                 'created_by': issue.document.created_by.username if issue.document.created_by else '—',
+                'source_destination': destination_info,
             })
         
         for issue in issues_consignment:
+            # Get destination from document department_unit - show name only
+            destination_info = '—'
+            if issue.document.department_unit:
+                destination_info = issue.document.department_unit.name
+            elif issue.destination_code:
+                # Try to get department unit name from destination_code
+                from shared.models import CompanyUnit
+                try:
+                    dept_unit = CompanyUnit.objects.filter(
+                        company_id=company_id,
+                        public_code=issue.destination_code
+                    ).first()
+                    if dept_unit:
+                        destination_info = dept_unit.name
+                    else:
+                        destination_info = issue.destination_code
+                except:
+                    destination_info = issue.destination_code
+            
             transactions.append({
                 'date': issue.document.document_date,
                 'type': 'issue',
                 'type_label': _('Consignment Issue'),
                 'document_code': issue.document.document_code,
+                'document_id': issue.document.pk,
+                'document_type': 'consignment_issue',
                 'quantity': issue.quantity,
                 'unit': issue.unit,
                 'created_by': issue.document.created_by.username if issue.document.created_by else '—',
+                'source_destination': destination_info,
             })
         
         # Sort by date

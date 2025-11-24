@@ -9,6 +9,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- **Enhanced Transaction History in Inventory Balance Details**:
+  - Added "Source/Destination" (مرکز مصرف/تامین) column to transaction history table
+  - Displays supplier name for receipts (where inventory is added)
+  - Displays department unit name or work line name for issues (where inventory is consumed)
+  - Shows only names (not codes) for better readability
+  - Clickable document codes: All document codes in transaction history are now clickable links that navigate directly to the document edit/view page
+  - Link styling with blue color and hover effects for better UX
+  - Transaction types supported: Permanent Receipt, Consignment Receipt, Permanent Issue, Consumption Issue, Consignment Issue
+- **Direct Receipt Creation from Purchase Requests**: Complete workflow for creating receipts directly from approved purchase requests
+  - Intermediate selection pages (`CreateReceiptFromPurchaseRequestView`) for Temporary, Permanent, and Consignment receipts
+  - Users can select which lines to include in the receipt
+  - Quantities can be adjusted based on remaining requested quantities
+  - Line-specific notes can be added
+  - Receipt creation forms are pre-populated with selected lines and quantities from session
+  - Permission: `create_receipt_from_purchase_request` action added to `inventory.receipts.temporary`, `inventory.receipts.permanent`, `inventory.receipts.consignment`, and `inventory.requests.purchase` features
+  - Templates: `create_receipt_from_purchase_request.html` for line selection interface
+  - Buttons in purchase request list view to create receipts (only visible for approved requests)
+- **Direct Issue Creation from Warehouse Requests**: Complete workflow for creating issues directly from approved warehouse requests
+  - Intermediate selection pages (`CreateIssueFromWarehouseRequestView`) for Permanent, Consumption, and Consignment issues
+  - Single-item warehouse requests allow quantity adjustment before issue creation
+  - Optional notes field for tracking
+  - Issue creation forms are pre-populated with warehouse request data from session
+  - Permission: `create_issue_from_warehouse_request` action added to `inventory.issues.permanent`, `inventory.issues.consumption`, `inventory.issues.consignment`, and `inventory.requests.warehouse` features
+  - Templates: `create_issue_from_warehouse_request.html` for quantity selection interface
+  - Buttons in warehouse request list view to create issues (only visible for approved requests)
+- **Access Level Permission Actions**: New permission actions for access level management
+  - `CREATE_RECEIPT_FROM_PURCHASE_REQUEST`: Permission to create receipts from purchase requests
+  - `CREATE_ISSUE_FROM_WAREHOUSE_REQUEST`: Permission to create issues from warehouse requests
+  - Action labels added to `AccessLevelPermissionMixin.action_labels` for proper display in access level forms
 - **Product Orders Management**: Complete implementation of Product Orders in Production module
   - `ProductOrder` model with BOM selection, quantity planning, approver assignment, and priority management
   - `ProductOrderForm` with BOM selection, quantity validation, and approver filtering based on permissions
@@ -104,6 +133,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Migration: `0021_performancerecord_performancerecordperson_and_more.py`
 
 ### Fixed
+- **Inventory Balance Display for Disabled Items**: Fixed issue where items with transactions were not displayed in warehouse balance if they were disabled (`is_enabled=0`)
+  - Modified `calculate_warehouse_balances()` logic to include items with actual transactions regardless of enabled status
+  - Items with transactions (receipts/issues/stocktaking) are now always shown in balance reports, even if disabled
+  - Items with only warehouse assignment still require `is_enabled=1` to appear
+  - This ensures complete transaction history visibility for auditing purposes
+- **Transaction History Source/Destination Display**: Fixed display of source/destination information in transaction history
+  - Modified `calculate_warehouse_balances()` logic to include items with actual transactions regardless of enabled status
+  - Items with transactions (receipts/issues/stocktaking) are now always shown in balance reports, even if disabled
+  - Items with only warehouse assignment still require `is_enabled=1` to appear
+  - This ensures complete transaction history visibility for auditing purposes
+- **Transaction History Source/Destination Display**: Fixed display of source/destination information in transaction history
+  - For consumption issues, now properly retrieves department unit name from `cost_center_code` when work_line and document department_unit are not available
+  - Improved fallback logic to ensure meaningful information is always displayed
 - **Jalali Date Picker Not Displaying**: Fixed issue where Persian date picker was not showing when clicking on date input fields
   - Integrated JalaliDatePicker library locally (no CDN dependencies) - library files stored in `/static/js/jalali-datepicker/` and `/static/css/jalali-datepicker/`
   - Enhanced `JalaliDateInput` widget with `data-jdp` and `data-jdp-only-date` attributes for auto-initialization
