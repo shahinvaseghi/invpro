@@ -222,5 +222,48 @@
       </div>
     </div>
   {% endif %}
+
+  {% if request.user.is_superuser %}
+    <div class="sidebar-section" data-section="ticketing">
+      <button type="button" class="section-header" data-target="ticketing">
+        <span class="section-title">{% trans "Ticketing" %}</span>
+        <span class="section-icon">▼</span>
+      </button>
+      <div class="section-content" id="ticketing">
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="ticketing-tickets">
+            <span>{% trans "Tickets" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="ticketing-tickets">
+            <a href="{% url 'ticketing:ticket_create' %}" class="nav-link-sub">{% trans "Create Ticket" %}</a>
+            <a href="{% url 'ticketing:ticket_respond' %}" class="nav-link-sub">{% trans "Respond to Ticket" %}</a>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="ticketing-management">
+            <span>{% trans "Ticket Management" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="ticketing-management">
+            <a href="{% url 'ticketing:template_create' %}" class="nav-link-sub">{% trans "Create Template" %}</a>
+            <a href="{% url 'ticketing:categories' %}" class="nav-link-sub">{% trans "Categories" %}</a>
+            <a href="{% url 'ticketing:subcategories' %}" class="nav-link-sub">{% trans "Subcategories" %}</a>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="ticketing-automation">
+            <span>{% trans "Automation" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="ticketing-automation">
+            <a href="{% url 'ticketing:auto_response' %}" class="nav-link-sub">{% trans "Auto Response" %}</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 </nav>
 

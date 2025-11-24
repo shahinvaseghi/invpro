@@ -236,6 +236,48 @@
               </div>
             </div>
             {% endif %}
+
+            <!-- Ticketing Menu -->
+            {% if request.user.is_superuser %}
+            <div class="top-menu-item">
+              <button type="button" class="top-menu-btn" data-menu="ticketing">
+                <span class="menu-icon">🎫</span>
+                <span class="menu-label">{% trans "Ticketing" %}</span>
+              </button>
+              <div class="dropdown-menu" id="menu-ticketing">
+                <div class="dropdown-submenu">
+                  <button type="button" class="dropdown-item dropdown-toggle" data-submenu="ticketing-tickets">
+                    <span>{% trans "Tickets" %}</span>
+                    <span class="dropdown-arrow">▶</span>
+                  </button>
+                  <div class="dropdown-menu-sub" id="ticketing-tickets">
+                    <a href="{% url 'ticketing:ticket_create' %}" class="dropdown-item-sub">{% trans "Create Ticket" %}</a>
+                    <a href="{% url 'ticketing:ticket_respond' %}" class="dropdown-item-sub">{% trans "Respond to Ticket" %}</a>
+                  </div>
+                </div>
+                <div class="dropdown-submenu">
+                  <button type="button" class="dropdown-item dropdown-toggle" data-submenu="ticketing-management">
+                    <span>{% trans "Ticket Management" %}</span>
+                    <span class="dropdown-arrow">▶</span>
+                  </button>
+                  <div class="dropdown-menu-sub" id="ticketing-management">
+                    <a href="{% url 'ticketing:template_create' %}" class="dropdown-item-sub">{% trans "Create Template" %}</a>
+                    <a href="{% url 'ticketing:categories' %}" class="dropdown-item-sub">{% trans "Categories" %}</a>
+                    <a href="{% url 'ticketing:subcategories' %}" class="dropdown-item-sub">{% trans "Subcategories" %}</a>
+                  </div>
+                </div>
+                <div class="dropdown-submenu">
+                  <button type="button" class="dropdown-item dropdown-toggle" data-submenu="ticketing-automation">
+                    <span>{% trans "Automation" %}</span>
+                    <span class="dropdown-arrow">▶</span>
+                  </button>
+                  <div class="dropdown-menu-sub" id="ticketing-automation">
+                    <a href="{% url 'ticketing:auto_response' %}" class="dropdown-item-sub">{% trans "Auto Response" %}</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
             {% endblock %}
           </nav>
         </div>
