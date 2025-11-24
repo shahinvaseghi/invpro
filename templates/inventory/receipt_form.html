@@ -312,6 +312,18 @@
               </div>
               {% endif %}
 
+              {% if 'expected_receipt_date' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field">
+                  <label>{{ line_form.expected_receipt_date.label }}</label>
+                  {{ line_form.expected_receipt_date }}
+                  {% if line_form.expected_receipt_date.errors %}
+                    <span class="error">{{ line_form.expected_receipt_date.errors.0 }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              {% endif %}
+
               {% if 'line_notes' in line_form.fields %}
               <div class="form-row">
                 <div class="form-field full-width">
@@ -539,6 +551,18 @@
               </div>
               {% endif %}
 
+              {% if 'expected_receipt_date' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field">
+                  <label>{{ line_form.expected_receipt_date.label }}</label>
+                  {{ line_form.expected_receipt_date }}
+                  {% if line_form.expected_receipt_date.errors %}
+                    <span class="error">{{ line_form.expected_receipt_date.errors.0 }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              {% endif %}
+
               {% if 'line_notes' in line_form.fields %}
               <div class="form-row">
                 <div class="form-field full-width">
@@ -760,6 +784,18 @@
                   {% endif %}
                 </div>
                 {% endif %}
+              </div>
+              {% endif %}
+
+              {% if 'expected_receipt_date' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field">
+                  <label>{{ line_form.expected_receipt_date.label }}</label>
+                  {{ line_form.expected_receipt_date }}
+                  {% if line_form.expected_receipt_date.errors %}
+                    <span class="error">{{ line_form.expected_receipt_date.errors.0 }}</span>
+                  {% endif %}
+                </div>
               </div>
               {% endif %}
 

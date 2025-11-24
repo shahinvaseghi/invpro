@@ -108,9 +108,9 @@ class PurchaseRequestAdmin(admin.ModelAdmin):
 
 @admin.register(models.ReceiptTemporary)
 class ReceiptTemporaryAdmin(admin.ModelAdmin):
-    list_display = ("company", "document_code", "item", "warehouse", "status", "is_converted", "is_enabled")
+    list_display = ("company", "document_code", "document_date", "status", "is_converted", "is_enabled")
     list_filter = ("company", "status", "is_converted", "is_enabled")
-    search_fields = ("document_code", "item__item_code", "warehouse__name")
+    search_fields = ("document_code",)
 
 
 @admin.register(models.ReceiptPermanent)

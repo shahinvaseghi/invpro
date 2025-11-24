@@ -145,12 +145,8 @@
             {% endif %}
           </td>
           <td>
-            {% if receipt.item %}
-              {# Temporary receipt - single line #}
-              <strong>{{ receipt.item.name }}</strong><br>
-              <small style="color: #6b7280;"><code>{{ receipt.item_code }}</code></small>
-            {% elif receipt.lines.all %}
-              {# Permanent/Consignment receipt - multiple lines #}
+            {% if receipt.lines.all %}
+              {# Temporary receipt - multiple lines #}
               {% for line in receipt.lines.all|slice:":3" %}
                 <strong>{{ line.item.name }}</strong><br>
                 <small style="color: #6b7280;"><code>{{ line.item.item_code }}</code></small>{% if not forloop.last %}<br><br>{% endif %}
@@ -163,23 +159,8 @@
             {% endif %}
           </td>
           <td style="text-align: right;">
-            {% if receipt.item %}
-              {# Temporary receipt - single line #}
-              {% if receipt.entered_quantity %}
-                {{ receipt.entered_quantity|floatformat:2 }}
-                {% if receipt.entered_unit %}
-                  {{ receipt.entered_unit }}
-                {% else %}
-                  {{ receipt.unit }}
-                {% endif %}
-                {% if receipt.entered_quantity != receipt.quantity or receipt.entered_unit and receipt.entered_unit != receipt.unit %}
-                  <small class="muted">({{ receipt.quantity|floatformat:2 }} {{ receipt.unit }})</small>
-                {% endif %}
-              {% else %}
-                {{ receipt.quantity|floatformat:2 }} {{ receipt.unit }}
-              {% endif %}
-            {% elif receipt.lines.all %}
-              {# Permanent/Consignment receipt - multiple lines #}
+            {% if receipt.lines.all %}
+              {# Temporary receipt - multiple lines #}
               {% for line in receipt.lines.all|slice:":3" %}
                 {% if line.entered_quantity %}
                   {{ line.entered_quantity|floatformat:2 }}
@@ -203,11 +184,8 @@
             {% endif %}
           </td>
           <td>
-            {% if receipt.warehouse %}
-              {# Temporary receipt - single line #}
-              {{ receipt.warehouse.name }}
-            {% elif receipt.lines.all %}
-              {# Permanent/Consignment receipt - multiple lines #}
+            {% if receipt.lines.all %}
+              {# Temporary receipt - multiple lines #}
               {% for line in receipt.lines.all|slice:":3" %}
                 {{ line.warehouse.name }}{% if not forloop.last %}<br>{% endif %}
               {% endfor %}
@@ -220,10 +198,10 @@
           </td>
           <td>
             {% if receipt.supplier %}
-              {# Temporary receipt - single line #}
+              {# Header-level supplier #}
               {{ receipt.supplier.name }}
             {% elif receipt.lines.all %}
-              {# Permanent/Consignment receipt - multiple lines #}
+              {# Line-level suppliers #}
               {% for line in receipt.lines.all|slice:":3" %}
                 {% if line.supplier %}{{ line.supplier.name }}{% else %}—{% endif %}{% if not forloop.last %}<br>{% endif %}
               {% endfor %}
@@ -287,10 +265,14 @@
                   {% trans "View" %}
                 </a>
                 <span class="badge badge-locked" style="margin-top:4px;">{% trans "Locked" %}</span>
-                {% if serial_url_name and receipt.item.has_lot_tracking %}
-                  <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
-                    {% trans "View Serials" %}
-                  </a>
+                {% if serial_url_name and receipt.lines.all %}
+                  {% with first_line=receipt.lines.all|first %}
+                    {% if first_line.item.has_lot_tracking == 1 %}
+                      <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
+                        {% trans "View Serials" %}
+                      </a>
+                    {% endif %}
+                  {% endwith %}
                 {% endif %}
               {% else %}
                 <a href="{% url edit_url_name receipt.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
@@ -304,10 +286,14 @@
                     </button>
                   </form>
                 {% endif %}
-                {% if serial_url_name and receipt.item.has_lot_tracking %}
-                  <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
-                    {% trans "Manage Serials" %}
-                  </a>
+                {% if serial_url_name and receipt.lines.all %}
+                  {% with first_line=receipt.lines.all|first %}
+                    {% if first_line.item.has_lot_tracking == 1 %}
+                      <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
+                        {% trans "Manage Serials" %}
+                      </a>
+                    {% endif %}
+                  {% endwith %}
                 {% endif %}
                 {% if delete_url_name %}
                   {% if receipt.created_by == user %}

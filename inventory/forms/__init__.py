@@ -78,6 +78,8 @@ __all__.extend([
 # Import receipt forms
 from inventory.forms.receipt import (
     ReceiptTemporaryForm,
+    ReceiptTemporaryLineForm,
+    ReceiptTemporaryLineFormSet,
     ReceiptPermanentForm,
     ReceiptConsignmentForm,
     ReceiptLineBaseForm,
@@ -89,6 +91,8 @@ from inventory.forms.receipt import (
 
 __all__.extend([
     'ReceiptTemporaryForm',
+    'ReceiptTemporaryLineForm',
+    'ReceiptTemporaryLineFormSet',
     'ReceiptPermanentForm',
     'ReceiptConsignmentForm',
     'ReceiptLineBaseForm',

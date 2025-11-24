@@ -851,7 +851,8 @@ class PurchaseRequestLine(InventoryBaseModel, SortableModel):
         return self.quantity_fulfilled >= self.quantity_requested
 
 
-class ReceiptTemporary(InventoryBaseModel, LockableModel):
+class ReceiptTemporary(InventoryDocumentBase):
+    """Header-only model for temporary receipt documents with multi-line support."""
     class Status(models.IntegerChoices):
         DRAFT = 0, _("Draft")
         AWAITING_INSPECTION = 1, _("Awaiting inspection")
@@ -859,24 +860,7 @@ class ReceiptTemporary(InventoryBaseModel, LockableModel):
 
     document_code = models.CharField(max_length=20, unique=True)
     document_date = models.DateField(default=timezone.now)
-    item = models.ForeignKey(
-        Item,
-        on_delete=models.PROTECT,
-        related_name="temporary_receipts",
-    )
-    item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
-    warehouse = models.ForeignKey(
-        Warehouse,
-        on_delete=models.PROTECT,
-        related_name="temporary_receipts",
-    )
-    warehouse_code = models.CharField(max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
-    unit = models.CharField(max_length=30)
-    quantity = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-    )
+    # Header-level fields only - item/warehouse/unit/quantity moved to ReceiptTemporaryLine
     expected_receipt_date = models.DateField(null=True, blank=True)
     supplier = models.ForeignKey(
         Supplier,
@@ -909,14 +893,6 @@ class ReceiptTemporary(InventoryBaseModel, LockableModel):
         blank=True,
     )
     converted_receipt_code = models.CharField(max_length=20, blank=True)
-    entered_unit = models.CharField(max_length=30, blank=True)
-    entered_quantity = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        null=True,
-        blank=True,
-        validators=[POSITIVE_DECIMAL],
-    )
 
     class Meta:
         verbose_name = _("Temporary Receipt")
@@ -927,10 +903,6 @@ class ReceiptTemporary(InventoryBaseModel, LockableModel):
         return self.document_code
 
     def save(self, *args, **kwargs):
-        if not self.item_code:
-            self.item_code = self.item.item_code
-        if not self.warehouse_code:
-            self.warehouse_code = self.warehouse.public_code
         if self.supplier and not self.supplier_code:
             self.supplier_code = self.supplier.public_code
         super().save(*args, **kwargs)
@@ -1646,6 +1618,29 @@ class ReceiptConsignmentLine(ReceiptLineBase):
             models.Index(fields=("company", "document"), name="inv_rec_consg_line_doc_idx"),
             models.Index(fields=("company", "item"), name="inv_rec_consg_line_item_idx"),
         ]
+
+
+class ReceiptTemporaryLine(ReceiptLineBase):
+    """Line item for temporary receipt documents."""
+    
+    document = models.ForeignKey(
+        "ReceiptTemporary",
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    expected_receipt_date = models.DateField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = _("Temporary Receipt Line")
+        verbose_name_plural = _("Temporary Receipt Lines")
+        ordering = ("sort_order", "id")
+        indexes = [
+            models.Index(fields=("company", "document"), name="inv_rec_tmp_line_doc_idx"),
+            models.Index(fields=("company", "item"), name="inv_rec_tmp_line_item_idx"),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.document.document_code} - {self.item.name}"
     
     def __str__(self) -> str:
         return f"{self.document.document_code} - {self.item.name}"
