@@ -6,12 +6,6 @@
 
 {% block inventory_content %}
 <div class="form-container">
-  {% if messages %}
-    {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-    {% endfor %}
-  {% endif %}
-
   <form method="post" class="entity-form">
     {% csrf_token %}
     {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
@@ -66,6 +60,172 @@
       </div>
       {% endif %}
     {% endfor %}
+
+    {% if lines_formset %}
+    <div class="form-section">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+          <h3 style="margin: 0;">{% trans "Request Lines" %}</h3>
+          <p class="form-text" style="margin: 0.5rem 0 0 0;">
+            {% trans "Add one or more items to this purchase request. Each line represents a single item with its quantity." %}
+          </p>
+        </div>
+        <button type="button" id="add-line-btn" class="btn btn-success" style="padding: 0.5rem 1rem;">
+          <span style="font-size: 1.2rem; margin-right: 0.25rem;">+</span> {% trans "Add Line" %}
+        </button>
+      </div>
+      
+{% if lines_formset.non_form_errors %}
+        <div class="alert alert-danger">
+          {% for error in lines_formset.non_form_errors %}
+            <div>{{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+      {{ lines_formset.management_form }}
+      {% for hidden in lines_formset.hidden_fields %}{{ hidden }}{% endfor %}
+
+      <div class="lines-formset" id="lines-formset">
+        <div class="lines-table-header">
+          <div class="line-cell line-number">#</div>
+          <div class="line-cell line-item">{% trans "Item" %} *</div>
+          <div class="line-cell line-unit">{% trans "Unit" %} *</div>
+          <div class="line-cell line-quantity">{% trans "Quantity" %} *</div>
+          <div class="line-cell line-notes">{% trans "Notes" %}</div>
+          {% if lines_formset.can_delete %}
+          <div class="line-cell line-delete-header">{% trans "Delete" %}</div>
+          {% endif %}
+        </div>
+        {% for line_form in lines_formset %}
+          {% if not form.instance.pk %}
+            {# Create mode: only show first empty form (extra=1) #}
+            {% if forloop.counter0 < 1 %}
+          <div class="line-row" data-form-index="{{ forloop.counter0 }}">
+            {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
+            
+            <div class="line-cell line-number">{{ forloop.counter }}</div>
+            
+            <div class="line-cell line-item">
+              <div class="item-select-wrapper">
+                <div class="item-filters">
+                  <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
+                    <option value="">{% trans "Type" %}</option>
+                    {% for item_type in item_types %}
+                    <option value="{{ item_type.id }}">{{ item_type.name }}</option>
+                    {% endfor %}
+                  </select>
+                  <select class="form-control filter-category-select" data-form-index="{{ forloop.counter0 }}">
+                    <option value="">{% trans "Category" %}</option>
+                  </select>
+                  <select class="form-control filter-subcategory-select" data-form-index="{{ forloop.counter0 }}">
+                    <option value="">{% trans "Subcategory" %}</option>
+                  </select>
+                </div>
+                {{ line_form.item }}
+                {% if line_form.item.errors %}
+                  <span class="error">{{ line_form.item.errors.0 }}</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="line-cell line-unit">
+              {{ line_form.unit }}
+              {% if line_form.unit.errors %}
+                <span class="error">{{ line_form.unit.errors.0 }}</span>
+              {% endif %}
+            </div>
+
+            <div class="line-cell line-quantity">
+              {{ line_form.quantity_requested }}
+              {% if line_form.quantity_requested.errors %}
+                <span class="error">{{ line_form.quantity_requested.errors.0 }}</span>
+              {% endif %}
+            </div>
+
+            <div class="line-cell line-notes">
+              {{ line_form.line_notes }}
+              {% if line_form.line_notes.errors %}
+                <span class="error">{{ line_form.line_notes.errors.0 }}</span>
+              {% endif %}
+            </div>
+
+            {% if lines_formset.can_delete %}
+            <div class="line-cell line-delete">
+              {{ line_form.DELETE }}
+            </div>
+            {% endif %}
+            
+            {% if line_form.non_field_errors %}
+              <div class="error full-width">{{ line_form.non_field_errors|join:", " }}</div>
+            {% endif %}
+          </div>
+            {% endif %}
+          {% else %}
+            {# Edit mode: show all existing lines #}
+          <div class="line-row" data-form-index="{{ forloop.counter0 }}">
+            {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
+            
+            <div class="line-cell line-number">{{ forloop.counter }}</div>
+            
+            <div class="line-cell line-item">
+              <div class="item-select-wrapper">
+                <div class="item-filters">
+                  <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
+                    <option value="">{% trans "Type" %}</option>
+                    {% for item_type in item_types %}
+                    <option value="{{ item_type.id }}">{{ item_type.name }}</option>
+                    {% endfor %}
+                  </select>
+                  <select class="form-control filter-category-select" data-form-index="{{ forloop.counter0 }}">
+                    <option value="">{% trans "Category" %}</option>
+                  </select>
+                  <select class="form-control filter-subcategory-select" data-form-index="{{ forloop.counter0 }}">
+                    <option value="">{% trans "Subcategory" %}</option>
+                  </select>
+                </div>
+                {{ line_form.item }}
+                {% if line_form.item.errors %}
+                  <span class="error">{{ line_form.item.errors.0 }}</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="line-cell line-unit">
+              {{ line_form.unit }}
+              {% if line_form.unit.errors %}
+                <span class="error">{{ line_form.unit.errors.0 }}</span>
+              {% endif %}
+            </div>
+
+            <div class="line-cell line-quantity">
+              {{ line_form.quantity_requested }}
+              {% if line_form.quantity_requested.errors %}
+                <span class="error">{{ line_form.quantity_requested.errors.0 }}</span>
+              {% endif %}
+            </div>
+
+            <div class="line-cell line-notes">
+              {{ line_form.line_notes }}
+              {% if line_form.line_notes.errors %}
+                <span class="error">{{ line_form.line_notes.errors.0 }}</span>
+              {% endif %}
+            </div>
+
+            {% if lines_formset.can_delete %}
+            <div class="line-cell line-delete">
+              {{ line_form.DELETE }}
+            </div>
+            {% endif %}
+            
+            {% if line_form.non_field_errors %}
+              <div class="error full-width">{{ line_form.non_field_errors|join:", " }}</div>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
 
     <div class="form-actions">
       <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
@@ -191,47 +351,538 @@
   color: #0c4a6e;
   border: 1px solid #bae6fd;
 }
+
+.lines-formset {
+  margin-top: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.lines-table-header {
+  display: grid;
+  {% if lines_formset.can_delete %}
+  grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr 80px;
+  {% else %}
+  grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr;
+  {% endif %}
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: #f3f4f6;
+  border-bottom: 2px solid #e5e7eb;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.line-row {
+  display: grid;
+  {% if lines_formset.can_delete %}
+  grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr 80px;
+  {% else %}
+  grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr;
+  {% endif %}
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  align-items: start;
+  transition: background-color 0.2s;
+}
+
+.line-row:last-child {
+  border-bottom: none;
+}
+
+.line-row:hover {
+  background-color: #f9fafb;
+}
+
+.line-row.deleted {
+  opacity: 0.5;
+  background-color: #fee2e2;
+}
+
+.line-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.line-cell.line-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.line-cell.line-item,
+.line-cell.line-unit,
+.line-cell.line-quantity,
+.line-cell.line-notes {
+  min-width: 0;
+}
+
+.line-cell.line-item select,
+.line-cell.line-unit select,
+.line-cell.line-quantity input,
+.line-cell.line-notes textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.item-select-wrapper {
+  width: 100%;
+}
+
+.item-filters {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.item-filters select {
+  flex: 1;
+  min-width: 80px;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background-color: #f9fafb;
+  color: #6b7280;
+}
+
+.item-filters select:focus {
+  outline: none;
+  border-color: #2563eb;
+  background-color: #ffffff;
+}
+
+.line-cell.line-notes textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.line-cell.line-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.line-cell.line-delete input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.line-cell .error {
+  font-size: 0.75rem;
+  color: #dc2626;
+  margin-top: 0.25rem;
+}
+
+.error.full-width {
+  grid-column: 1 / -1;
+  padding: 0.5rem;
+  background-color: #fee2e2;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+}
+
+.btn-success {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-success:hover {
+  background-color: #059669;
+}
 </style>
 
 <script>
 const unitMap = {{ unit_options_json|default:"{}" }};
 const unitPlaceholder = "{{ unit_placeholder|escapejs }}";
-const itemSelect = document.getElementById("id_item");
-const unitSelect = document.getElementById("id_unit");
 
-function refreshUnitOptions() {
+// Handle unit options for lines formset
+function refreshLineUnitOptions(itemSelect, unitSelect) {
   if (!itemSelect || !unitSelect) return;
   const selectedItem = itemSelect.value || "";
-  const options = unitMap[selectedItem] || [];
-  const currentValue = unitSelect.value;
+  
+  // Fetch units from API
+  if (selectedItem) {
+    fetch(`/inventory/api/item-allowed-units/?item_id=${selectedItem}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.units) {
+          const currentValue = unitSelect.value;
+          unitSelect.innerHTML = "";
+          
+          const placeholderOption = document.createElement("option");
+          placeholderOption.value = "";
+          placeholderOption.textContent = unitPlaceholder;
+          unitSelect.appendChild(placeholderOption);
+          
+          data.units.forEach(function(option) {
+            const optionEl = document.createElement("option");
+            optionEl.value = option.value;
+            optionEl.textContent = option.label;
+            unitSelect.appendChild(optionEl);
+          });
+          
+          // Try to keep current value if it's still valid
+          if (currentValue && data.units.some(opt => opt.value === currentValue)) {
+            unitSelect.value = currentValue;
+          } else if (data.default_unit) {
+            unitSelect.value = data.default_unit;
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching units:', error);
+      });
+  } else {
+    unitSelect.innerHTML = "";
+    const placeholderOption = document.createElement("option");
+    placeholderOption.value = "";
+    placeholderOption.textContent = unitPlaceholder;
+    unitSelect.appendChild(placeholderOption);
+  }
+}
 
-  unitSelect.innerHTML = "";
+// Filter items for a specific row based on type, category, subcategory
+function filterItemsForRow(rowElement) {
+  if (!rowElement) return;
+  
+  const typeSelect = rowElement.querySelector('.filter-type-select');
+  const categorySelect = rowElement.querySelector('.filter-category-select');
+  const subcategorySelect = rowElement.querySelector('.filter-subcategory-select');
+  const itemSelect = rowElement.querySelector('select[name*="-item"]');
+  
+  if (!itemSelect) return;
+  
+  const typeId = typeSelect?.value || '';
+  const categoryId = categorySelect?.value || '';
+  const subcategoryId = subcategorySelect?.value || '';
+  
+  // Build API URL
+  let apiUrl = '/inventory/api/filtered-items/';
+  const params = new URLSearchParams();
+  if (typeId) params.append('type_id', typeId);
+  if (categoryId) params.append('category_id', categoryId);
+  if (subcategoryId) params.append('subcategory_id', subcategoryId);
+  if (params.toString()) {
+    apiUrl += '?' + params.toString();
+  }
+  
+  // Fetch filtered items
+  fetch(apiUrl)
+    .then(response => response.json())
+    .then(data => {
+      if (data.items) {
+        const itemMap = {};
+        data.items.forEach(function(item) {
+          itemMap[item.value] = item;
+        });
+        
+        const currentValue = itemSelect.value;
+        const placeholder = itemSelect.options[0];
+        
+        // Clear all options except placeholder
+        itemSelect.innerHTML = '';
+        if (placeholder && placeholder.value === '') {
+          itemSelect.appendChild(placeholder.cloneNode(true));
+        } else {
+          const emptyOption = document.createElement('option');
+          emptyOption.value = '';
+          emptyOption.textContent = '--- انتخاب کنید ---';
+          itemSelect.appendChild(emptyOption);
+        }
+        
+        // Add filtered items
+        data.items.forEach(function(item) {
+          const option = document.createElement('option');
+          option.value = item.value;
+          option.textContent = item.label;
+          itemSelect.appendChild(option);
+        });
+        
+        // Restore current value if it's in filtered list
+        if (currentValue && itemMap[currentValue]) {
+          itemSelect.value = currentValue;
+        } else if (currentValue) {
+          // Current value is not in filtered list, clear it
+          itemSelect.value = '';
+          const unitSelect = rowElement.querySelector('select[name*="-unit"]');
+          if (unitSelect) {
+            refreshLineUnitOptions(itemSelect, unitSelect);
+          }
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error filtering items:', error);
+    });
+}
 
-  const placeholderOption = document.createElement("option");
-  placeholderOption.value = "";
-  placeholderOption.textContent = unitPlaceholder;
-  unitSelect.appendChild(placeholderOption);
+// Load categories for a specific row based on type
+function loadCategoriesForRow(rowElement, typeId) {
+  if (!rowElement) return;
+  
+  const categorySelect = rowElement.querySelector('.filter-category-select');
+  const subcategorySelect = rowElement.querySelector('.filter-subcategory-select');
+  
+  if (!categorySelect) return;
+  
+  categorySelect.innerHTML = '<option value="">{% trans "All Categories" %}</option>';
+  if (subcategorySelect) {
+    subcategorySelect.innerHTML = '<option value="">{% trans "All Subcategories" %}</option>';
+  }
+  
+  if (!typeId) {
+    // Load all categories
+    fetch('/inventory/api/filtered-categories/')
+      .then(response => response.json())
+      .then(data => {
+        if (data.categories) {
+          data.categories.forEach(function(cat) {
+            const option = document.createElement("option");
+            option.value = cat.value;
+            option.textContent = cat.label;
+            categorySelect.appendChild(option);
+          });
+        }
+        // Filter items after loading categories
+        filterItemsForRow(rowElement);
+      });
+    return;
+  }
+  
+  fetch(`/inventory/api/filtered-categories/?type_id=${typeId}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.categories) {
+        data.categories.forEach(function(cat) {
+          const option = document.createElement("option");
+          option.value = cat.value;
+          option.textContent = cat.label;
+          categorySelect.appendChild(option);
+        });
+      }
+      // Filter items after loading categories
+      filterItemsForRow(rowElement);
+    });
+}
 
-  options.forEach(function(option) {
-    const optionEl = document.createElement("option");
-    optionEl.value = option.value;
-    optionEl.textContent = option.label;
-    unitSelect.appendChild(optionEl);
+// Load subcategories for a specific row based on category
+function loadSubcategoriesForRow(rowElement, categoryId) {
+  if (!rowElement) return;
+  
+  const subcategorySelect = rowElement.querySelector('.filter-subcategory-select');
+  if (!subcategorySelect) return;
+  
+  subcategorySelect.innerHTML = '<option value="">{% trans "All Subcategories" %}</option>';
+  
+  if (!categoryId) {
+    // Filter items after clearing subcategory
+    filterItemsForRow(rowElement);
+    return;
+  }
+  
+  fetch(`/inventory/api/filtered-subcategories/?category_id=${categoryId}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.subcategories) {
+        data.subcategories.forEach(function(sub) {
+          const option = document.createElement("option");
+          option.value = sub.value;
+          option.textContent = sub.label;
+          subcategorySelect.appendChild(option);
+        });
+      }
+      // Filter items after loading subcategories
+      filterItemsForRow(rowElement);
+    });
+}
+
+// Initialize unit options for all line forms
+function initializeLineForms() {
+  const formsetContainer = document.getElementById('lines-formset');
+  if (!formsetContainer) return;
+  
+  formsetContainer.querySelectorAll('.line-row').forEach(function(lineRow, index) {
+    // Update row number
+    const lineNumber = lineRow.querySelector('.line-number');
+    if (lineNumber) {
+      lineNumber.textContent = index + 1;
+    }
+    
+    // Setup filter listeners for this row
+    const typeSelect = lineRow.querySelector('.filter-type-select');
+    const categorySelect = lineRow.querySelector('.filter-category-select');
+    const subcategorySelect = lineRow.querySelector('.filter-subcategory-select');
+    const itemSelect = lineRow.querySelector('select[name*="-item"]');
+    const unitSelect = lineRow.querySelector('select[name*="-unit"]');
+    
+    // Setup type filter
+    if (typeSelect) {
+      typeSelect.addEventListener('change', function() {
+        loadCategoriesForRow(lineRow, this.value);
+      });
+    }
+    
+    // Setup category filter
+    if (categorySelect) {
+      categorySelect.addEventListener('change', function() {
+        loadSubcategoriesForRow(lineRow, this.value);
+      });
+    }
+    
+    // Setup subcategory filter
+    if (subcategorySelect) {
+      subcategorySelect.addEventListener('change', function() {
+        filterItemsForRow(lineRow);
+      });
+    }
+    
+    // Setup item select
+    if (itemSelect && unitSelect) {
+      itemSelect.addEventListener("change", function() {
+        refreshLineUnitOptions(itemSelect, unitSelect);
+      });
+      
+      // Initialize units if item is already selected
+      if (itemSelect.value) {
+        refreshLineUnitOptions(itemSelect, unitSelect);
+      }
+    }
+    
+    // Initialize filters - load all categories initially
+    if (typeSelect) {
+      loadCategoriesForRow(lineRow, typeSelect.value);
+    }
   });
-
-  let desiredValue = currentValue;
-  if (!desiredValue || !options.some(option => option.value === desiredValue)) {
-    desiredValue = options.length > 0 ? options[0].value : "";
-  }
-  if (desiredValue) {
-    unitSelect.value = desiredValue;
-  }
 }
 
-if (itemSelect && unitSelect) {
-  itemSelect.addEventListener("change", refreshUnitOptions);
-  refreshUnitOptions();
-}
+// Handle add line button
+document.addEventListener('DOMContentLoaded', function() {
+  initializeLineForms();
+  
+  const addLineBtn = document.getElementById('add-line-btn');
+  const formsetContainer = document.getElementById('lines-formset');
+  const totalFormsInput = document.querySelector('input[name="lines-TOTAL_FORMS"]');
+  
+  if (addLineBtn && formsetContainer && totalFormsInput) {
+    addLineBtn.addEventListener('click', function() {
+      const totalForms = parseInt(totalFormsInput.value);
+      const lastRow = formsetContainer.querySelector('.line-row:last-child');
+      if (!lastRow) return;
+      
+      const newRow = lastRow.cloneNode(true);
+      const newIndex = totalForms;
+      
+      // Update form indices
+      newRow.querySelectorAll('input, select, textarea').forEach(function(input) {
+        const name = input.getAttribute('name');
+        const id = input.getAttribute('id');
+        if (name) {
+          input.setAttribute('name', name.replace(/-\d+-/, '-' + newIndex + '-'));
+        }
+        if (id) {
+          input.setAttribute('id', id.replace(/-\d+-/, '-' + newIndex + '-'));
+        }
+      });
+      
+      // Clear values
+      newRow.querySelectorAll('input[type="text"], input[type="number"], select, textarea').forEach(function(input) {
+        if (input.type !== 'checkbox' && input.type !== 'hidden') {
+          input.value = '';
+        }
+      });
+      
+      // Update data-form-index
+      newRow.setAttribute('data-form-index', newIndex);
+      
+      // Remove DELETE checkbox if present
+      const deleteCheckbox = newRow.querySelector('input[name*="-DELETE"]');
+      if (deleteCheckbox) {
+        deleteCheckbox.checked = false;
+      }
+      
+      // Remove deleted class if present
+      newRow.classList.remove('deleted');
+      
+      formsetContainer.appendChild(newRow);
+      totalFormsInput.value = totalForms + 1;
+      
+      // Setup filters for new row
+      const typeSelect = newRow.querySelector('.filter-type-select');
+      const categorySelect = newRow.querySelector('.filter-category-select');
+      const subcategorySelect = newRow.querySelector('.filter-subcategory-select');
+      const itemSelect = newRow.querySelector('select[name*="-item"]');
+      const unitSelect = newRow.querySelector('select[name*="-unit"]');
+      
+      // Setup filter listeners for new row
+      if (typeSelect) {
+        typeSelect.addEventListener('change', function() {
+          loadCategoriesForRow(newRow, this.value);
+        });
+      }
+      
+      if (categorySelect) {
+        categorySelect.addEventListener('change', function() {
+          loadSubcategoriesForRow(newRow, this.value);
+        });
+      }
+      
+      if (subcategorySelect) {
+        subcategorySelect.addEventListener('change', function() {
+          filterItemsForRow(newRow);
+        });
+      }
+      
+      if (itemSelect && unitSelect) {
+        itemSelect.addEventListener("change", function() {
+          refreshLineUnitOptions(itemSelect, unitSelect);
+        });
+      }
+      
+      // Initialize filters for new row
+      if (typeSelect) {
+        loadCategoriesForRow(newRow, typeSelect.value);
+      }
+      
+      // Reinitialize all line forms to update row numbers
+      initializeLineForms();
+    });
+  }
+  
+  // Handle delete checkboxes
+  if (formsetContainer) {
+    formsetContainer.addEventListener('change', function(e) {
+      if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
+        const lineRow = e.target.closest('.line-row');
+        if (lineRow) {
+          if (e.target.checked) {
+            lineRow.classList.add('deleted');
+          } else {
+            lineRow.classList.remove('deleted');
+          }
+          // Reinitialize to update row numbers
+          initializeLineForms();
+        }
+      }
+    });
+  }
+});
 </script>
 
 <!-- Jalali DatePicker Library -->

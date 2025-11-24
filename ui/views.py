@@ -14,9 +14,43 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Get active company
+        # Get active company from session or context processor
         company_id = self.request.session.get('active_company_id')
+        
+        # If not in session, try to get from context processor (active_company)
         if not company_id:
+            active_company = context.get('active_company')
+            if active_company:
+                company_id = active_company.id
+                # Save to session for next time
+                self.request.session['active_company_id'] = company_id
+        
+        if not company_id:
+            # No company available, return empty stats
+            context['stats'] = {
+                'total_items': 0,
+                'total_warehouses': 0,
+                'total_suppliers': 0,
+                'temp_receipts_pending': 0,
+                'temp_receipts_qc_pending': 0,
+                'permanent_receipts_today': 0,
+                'total_permanent_receipts': 0,
+                'permanent_issues_today': 0,
+                'consumption_issues_today': 0,
+                'total_permanent_issues': 0,
+                'pending_purchase_requests': 0,
+                'pending_warehouse_requests': 0,
+                'total_pending_requests': 0,
+                'deficit_records': 0,
+                'surplus_records': 0,
+                'total_stocktaking_records': 0,
+                'pending_purchase_approvals': 0,
+                'pending_warehouse_approvals': 0,
+                'pending_stocktaking_approvals': 0,
+                'total_pending_approvals': 0,
+                'recent_receipts': 0,
+                'recent_issues': 0,
+            }
             return context
         
         # Calculate statistics

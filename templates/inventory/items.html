@@ -45,12 +45,6 @@
 {% endblock %}
 
 {% block inventory_content %}
-{% if messages %}
-  {% for message in messages %}
-    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-  {% endfor %}
-{% endif %}
-
 <!-- Filter Panel -->
 <div class="filter-panel">
   <h3>فیلتر و جستجو</h3>

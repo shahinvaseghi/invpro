@@ -5,12 +5,6 @@
 
 {% block inventory_content %}
 <div class="form-container">
-  {% if messages %}
-    {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-    {% endfor %}
-  {% endif %}
-
   {% if document_instance and document_instance.pk %}
   <div class="info-banner">
     <div><strong>{% trans "Document Code" %}:</strong> {{ document_instance.document_code }}</div>
@@ -123,12 +117,12 @@
       <div class="lines-formset" id="lines-formset">
         {% for line_form in lines_formset %}
           {% comment %}Determine if this form should be displayed:
-             - In create mode: only show first empty form (extra=1)
+             - In create mode: show all forms that have initial data or first empty form
              - In edit mode: show existing lines (with pk) and first empty form if any
           {% endcomment %}
           {% if not form.instance.pk %}
-            {# Create mode: only show first empty form (extra=1) #}
-            {% if forloop.counter0 < 1 %}
+            {# Create mode: show all forms that have initial data or first empty form #}
+            {% if line_form.initial.item or line_form.initial.warehouse or forloop.counter0 < 1 %}
           <div class="line-form" data-form-index="{{ forloop.counter0 }}">
             {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
             

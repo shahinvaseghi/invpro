@@ -3,6 +3,7 @@ API endpoints for inventory module.
 
 All endpoints return JSON responses and require authentication.
 """
+import logging
 from typing import Dict, Any, List, Optional
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
@@ -10,6 +11,8 @@ from django.http import JsonResponse, HttpRequest
 from django.shortcuts import get_object_or_404
 from .. import models
 from ..forms import UNIT_CHOICES
+
+logger = logging.getLogger('inventory.views.api')
 
 
 @login_required
@@ -27,7 +30,19 @@ def get_item_allowed_units(request: HttpRequest) -> JsonResponse:
         if not company_id:
             return JsonResponse({'error': 'No active company'}, status=400)
         
-        item = get_object_or_404(models.Item, pk=item_id, company_id=company_id, is_enabled=1)
+        # Try to get item - if not found with is_enabled=1, try without is_enabled filter
+        # This handles cases where item is in formset initial but might be disabled
+        try:
+            item = models.Item.objects.get(pk=item_id, company_id=company_id, is_enabled=1)
+        except models.Item.DoesNotExist:
+            # If item not found with is_enabled=1, try without is_enabled filter
+            # This allows loading units/warehouses for items that are in formset initial
+            try:
+                item = models.Item.objects.get(pk=item_id, company_id=company_id)
+                logger.warning(f"Item {item_id} found but is_enabled={item.is_enabled}, allowing anyway")
+            except models.Item.DoesNotExist:
+                logger.error(f"Item {item_id} not found in company {company_id}")
+                return JsonResponse({'error': 'Item not found'}, status=404)
         
         # Get allowed units
         codes: List[str] = []
@@ -50,6 +65,7 @@ def get_item_allowed_units(request: HttpRequest) -> JsonResponse:
         
         return JsonResponse({'units': units, 'default_unit': item.default_unit})
     except Exception as e:
+        logger.error(f"Error in get_item_allowed_units: {e}", exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
 
 
@@ -246,11 +262,23 @@ def get_item_allowed_warehouses(request: HttpRequest) -> JsonResponse:
         if not company_id:
             return JsonResponse({'error': 'No active company'}, status=400)
 
-        item = get_object_or_404(models.Item, pk=item_id, company_id=company_id, is_enabled=1)
+        # Try to get item - if not found with is_enabled=1, try without is_enabled filter
+        # This handles cases where item is in formset initial but might be disabled
+        try:
+            item = models.Item.objects.get(pk=item_id, company_id=company_id, is_enabled=1)
+        except models.Item.DoesNotExist:
+            # If item not found with is_enabled=1, try without is_enabled filter
+            # This allows loading warehouses for items that are in formset initial
+            try:
+                item = models.Item.objects.get(pk=item_id, company_id=company_id)
+                logger.warning(f"Item {item_id} found but is_enabled={item.is_enabled}, allowing anyway")
+            except models.Item.DoesNotExist:
+                logger.error(f"Item {item_id} not found in company {company_id}")
+                return JsonResponse({'error': 'Item not found'}, status=404)
 
         # Get allowed warehouses
-        relations = item.warehouses.select_related('warehouse')
-        warehouses = [rel.warehouse for rel in relations if rel.warehouse.is_enabled]
+        relations = item.warehouses.select_related('warehouse').filter(is_enabled=1)
+        warehouses = [rel.warehouse for rel in relations if rel.warehouse and rel.warehouse.is_enabled == 1]
 
         # IMPORTANT: If no warehouses configured, this means the item CANNOT be received anywhere
         # Only return warehouses if explicitly configured
@@ -263,6 +291,7 @@ def get_item_allowed_warehouses(request: HttpRequest) -> JsonResponse:
 
         return JsonResponse({'warehouses': warehouses_data})
     except Exception as e:
+        logger.error(f"Error in get_item_allowed_warehouses: {e}", exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
 
 

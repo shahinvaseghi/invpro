@@ -3,7 +3,7 @@
 
 {% block title %}{% trans "Delete" %} - {{ block.super }}{% endblock %}
 
-{% block page_title %}{% trans "Delete" %} {{ model_verbose_name|default:"آیتم" }}{% endblock %}
+{% block page_title %}{% trans "Delete" %} {{ model_verbose_name|default:"تأمین‌کننده" }}{% endblock %}
 
 {% block inventory_content %}
 <div class="form-container">
@@ -14,12 +14,8 @@
     <div class="delete-details">
       {% if object.public_code %}
       <p><strong>{% trans "Code" %}:</strong> {{ object.public_code }}</p>
-      {% elif object.full_item_code %}
-      <p><strong>{% trans "Code" %}:</strong> {{ object.full_item_code|default:object.item_code }}</p>
-      {% elif object.item_code %}
-      <p><strong>{% trans "Code" %}:</strong> {{ object.item_code }}</p>
       {% endif %}
-      <p><strong>{% trans "Name" %}:</strong> {{ object.name|default:object }}</p>
+      <p><strong>{% trans "Name" %}:</strong> {{ object.name }}</p>
     </div>
     
     <p class="warning-text">{% trans "This action cannot be undone." %}</p>

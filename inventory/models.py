@@ -777,9 +777,78 @@ class PurchaseRequest(InventoryBaseModel, LockableModel):
     def save(self, *args, **kwargs):
         if not self.request_code:
             self.request_code = self._generate_request_code()
-        if not self.item_code:
+        super().save(*args, **kwargs)
+    
+    @property
+    def total_quantity_requested(self):
+        """Calculate total quantity requested across all lines."""
+        return sum(line.quantity_requested for line in self.lines.all())
+    
+    @property
+    def total_quantity_fulfilled(self):
+        """Calculate total quantity fulfilled across all lines."""
+        return sum(line.quantity_fulfilled for line in self.lines.all())
+    
+    @property
+    def is_fully_fulfilled(self):
+        """Check if all lines are fully fulfilled."""
+        return all(line.is_fully_fulfilled for line in self.lines.all())
+
+
+class PurchaseRequestLine(InventoryBaseModel, SortableModel):
+    """Line item for purchase request documents."""
+    
+    document = models.ForeignKey(
+        "PurchaseRequest",
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    item = models.ForeignKey(
+        Item,
+        on_delete=models.PROTECT,
+        related_name="purchase_request_lines",
+    )
+    item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
+    unit = models.CharField(max_length=30)
+    quantity_requested = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+    )
+    quantity_fulfilled = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        default=Decimal("0"),
+        validators=[POSITIVE_DECIMAL],
+    )
+    line_notes = models.TextField(blank=True)
+    
+    class Meta:
+        verbose_name = _("Purchase Request Line")
+        verbose_name_plural = _("Purchase Request Lines")
+        ordering = ("sort_order", "id")
+        indexes = [
+            models.Index(fields=("company", "document"), name="inv_purchase_req_line_doc_idx"),
+            models.Index(fields=("company", "item"), name="inv_purchase_req_line_item_idx"),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.document.request_code} - {self.item.name}"
+    
+    def save(self, *args, **kwargs):
+        if self.item and not self.item_code:
             self.item_code = self.item.item_code
         super().save(*args, **kwargs)
+    
+    @property
+    def quantity_remaining(self):
+        """Calculate remaining quantity to be fulfilled."""
+        return max(Decimal("0"), self.quantity_requested - self.quantity_fulfilled)
+    
+    @property
+    def is_fully_fulfilled(self):
+        """Check if this line is fully fulfilled."""
+        return self.quantity_fulfilled >= self.quantity_requested
 
 
 class ReceiptTemporary(InventoryBaseModel, LockableModel):

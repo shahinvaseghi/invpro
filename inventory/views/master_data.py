@@ -913,8 +913,57 @@ class SupplierDeleteView(InventoryBaseView, DeleteView):
     template_name = 'inventory/supplier_confirm_delete.html'
     success_url = reverse_lazy('inventory:suppliers')
     
-    def delete(self, request, *args, **kwargs):
-        """Show success message after deletion."""
-        messages.success(self.request, _('تأمین‌کننده حذف شد.'))
-        return super().delete(request, *args, **kwargs)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['model_verbose_name'] = self.model._meta.verbose_name
+        return context
+    
+    def form_valid(self, form):
+        """Handle deletion with ProtectedError handling."""
+        logger.info(f"Attempting to delete supplier: {self.object}")
+        logger.info(f"Supplier ID: {self.object.pk}, Code: {self.object.public_code}, Name: {self.object.name}")
+        
+        try:
+            self.object.delete()
+            logger.info(f"Supplier {self.object.pk} deleted successfully")
+            messages.success(self.request, _('تأمین‌کننده با موفقیت حذف شد.'))
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(self.get_success_url())
+        except ProtectedError as e:
+            logger.error(f"ProtectedError when deleting supplier {self.object.pk}: {e}")
+            logger.error(f"Protected objects: {e.protected_objects}")
+            
+            # Model name mapping to Persian
+            model_name_map = {
+                'Consignment Receipt Line': _('خط رسید امانی'),
+                'Receipt Consignment Line': _('خط رسید امانی'),
+                'Consignment Receipt Lines': _('خطوط رسید امانی'),
+                'Receipt Consignment Lines': _('خطوط رسید امانی'),
+            }
+            
+            # Extract model names from protected objects
+            protected_models = set()
+            protected_count = {}
+            for obj in e.protected_objects:
+                model_name = obj._meta.verbose_name
+                # Use Persian name if available, otherwise use original
+                persian_name = model_name_map.get(model_name, model_name)
+                protected_models.add(persian_name)
+                protected_count[persian_name] = protected_count.get(persian_name, 0) + 1
+            
+            # Create user-friendly error message
+            error_parts = []
+            for model_name, count in protected_count.items():
+                error_parts.append(f"{count} {model_name}")
+            
+            error_message = _('نمی‌توان این تأمین‌کننده را حذف کرد چون در {models} استفاده شده است.').format(
+                models=', '.join(error_parts)
+            )
+            
+            messages.error(self.request, error_message)
+            logger.error(f"Error message shown to user: {error_message}")
+            
+            # Redirect to list page with error message
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(self.get_success_url())
 

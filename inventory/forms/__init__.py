@@ -63,11 +63,15 @@ __all__.extend([
 # Import request forms
 from inventory.forms.request import (
     PurchaseRequestForm,
+    PurchaseRequestLineForm,
+    PurchaseRequestLineFormSet,
     WarehouseRequestForm,
 )
 
 __all__.extend([
     'PurchaseRequestForm',
+    'PurchaseRequestLineForm',
+    'PurchaseRequestLineFormSet',
     'WarehouseRequestForm',
 ])
 

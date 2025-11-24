@@ -536,6 +536,746 @@ class ReceiptConsignmentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateVie
         messages.success(self.request, _('رسید امانی با موفقیت ایجاد شد.'))
         return HttpResponseRedirect(self.get_success_url())
 
+
+# ============================================================================
+# Create Receipt from Purchase Request Views
+# ============================================================================
+
+class ReceiptTemporaryCreateFromPurchaseRequestView(ReceiptTemporaryCreateView):
+    """Create temporary receipt from purchase request."""
+    
+    def get_purchase_request(self):
+        """Get purchase request from URL."""
+        from inventory.models import PurchaseRequest
+        company_id = self.request.session.get('active_company_id')
+        return get_object_or_404(
+            PurchaseRequest,
+            pk=self.kwargs['pk'],
+            company_id=company_id,
+            status=PurchaseRequest.Status.APPROVED,
+            is_enabled=1
+        )
+    
+    def get_context_data(self, **kwargs):
+        """Add purchase request to context and pre-populate form."""
+        import logging
+        logger = logging.getLogger('inventory.views.receipts')
+        logger.info("=" * 80)
+        logger.info("ReceiptTemporaryCreateFromPurchaseRequestView.get_context_data called")
+        
+        purchase_request = self.get_purchase_request()
+        logger.info(f"Purchase request: {purchase_request.request_code} (pk={purchase_request.pk})")
+        
+        # Get selected lines from session BEFORE calling super().get_context_data
+        session_key = f'purchase_request_{purchase_request.pk}_receipt_temporary_lines'
+        logger.info(f"Looking for session key: {session_key}")
+        logger.info(f"All session keys: {list(self.request.session.keys())}")
+        selected_lines_data = self.request.session.get(session_key, [])
+        logger.info(f"Retrieved from session: {selected_lines_data}")
+        logger.info(f"Number of selected lines: {len(selected_lines_data)}")
+        
+        # Call super().get_context_data first
+        context = super().get_context_data(**kwargs)
+        context['purchase_request'] = purchase_request
+        
+        # Pre-populate form with selected line data
+        if selected_lines_data and 'form' in context:
+            logger.info("=" * 80)
+            logger.info("Pre-populating form with selected line data")
+            # For temporary receipt, we can only create one line at a time
+            # So we'll use the first selected line
+            first_line_data = selected_lines_data[0]
+            from inventory.models import PurchaseRequestLine
+            from decimal import Decimal
+            
+            try:
+                line = PurchaseRequestLine.objects.get(
+                    pk=first_line_data['line_id'],
+                    document=purchase_request
+                )
+                logger.info(f"Found line: item={line.item.name if line.item else 'None'} (pk={line.item.pk if line.item else None}), "
+                           f"unit={line.unit}, quantity_requested={line.quantity_requested}")
+                
+                # Get warehouse from item's allowed warehouses (first one)
+                from inventory.models import ItemWarehouse
+                item_warehouse = ItemWarehouse.objects.filter(
+                    item=line.item,
+                    company_id=purchase_request.company_id,
+                    is_enabled=1
+                ).first()
+                warehouse = item_warehouse.warehouse if item_warehouse else None
+                logger.info(f"Warehouse: {warehouse.name if warehouse else 'None'} (pk={warehouse.pk if warehouse else None})")
+                
+                form = context['form']
+                
+                # Set initial values - for ModelChoiceField, use the object itself
+                # Also ensure queryset includes the selected item/warehouse
+                from django.db.models import Q
+                
+                if line.item:
+                    # Ensure item is in queryset
+                    item_field = form.fields['item']
+                    if hasattr(item_field, 'queryset'):
+                        # Check if item is in current queryset
+                        if not item_field.queryset.filter(pk=line.item.pk).exists():
+                            # Add item to queryset - include both the selected item and enabled items
+                            from inventory.models import Item
+                            item_field.queryset = Item.objects.filter(
+                                Q(pk=line.item.pk) | Q(company_id=purchase_request.company_id, is_enabled=1)
+                            ).distinct()
+                            logger.info(f"Updated item queryset to include item {line.item.pk}")
+                        item_field.initial = line.item
+                        logger.info(f"Set item initial to object: {line.item} (pk={line.item.pk})")
+                    else:
+                        form.initial['item'] = line.item.pk
+                        logger.info(f"Set item initial to pk: {line.item.pk}")
+                
+                if warehouse:
+                    # Ensure warehouse is in queryset
+                    warehouse_field = form.fields['warehouse']
+                    if hasattr(warehouse_field, 'queryset'):
+                        # Check if warehouse is in current queryset
+                        if not warehouse_field.queryset.filter(pk=warehouse.pk).exists():
+                            # Add warehouse to queryset - include both the selected warehouse and enabled warehouses
+                            from inventory.models import Warehouse
+                            warehouse_field.queryset = Warehouse.objects.filter(
+                                Q(pk=warehouse.pk) | Q(company_id=purchase_request.company_id, is_enabled=1)
+                            ).distinct()
+                            logger.info(f"Updated warehouse queryset to include warehouse {warehouse.pk}")
+                        warehouse_field.initial = warehouse
+                        logger.info(f"Set warehouse initial to object: {warehouse} (pk={warehouse.pk})")
+                    else:
+                        form.initial['warehouse'] = warehouse.pk
+                        logger.info(f"Set warehouse initial to pk: {warehouse.pk}")
+                
+                if line.unit:
+                    form.fields['unit'].initial = line.unit
+                    logger.info(f"Set unit initial to: {line.unit}")
+                
+                if first_line_data.get('quantity'):
+                    form.fields['quantity'].initial = Decimal(first_line_data['quantity'])
+                    logger.info(f"Set quantity initial to: {first_line_data['quantity']}")
+                
+                form.initial['source_document_type'] = 'Purchase Request'
+                form.initial['source_document_code'] = purchase_request.request_code
+                logger.info(f"Set source_document_type: Purchase Request")
+                logger.info(f"Set source_document_code: {purchase_request.request_code}")
+                
+                # Keep form unbound so initial values are displayed
+                form.is_bound = False
+                logger.info(f"Form kept unbound, is_bound: {form.is_bound}")
+                
+                # Log final field values
+                if 'item' in form.fields:
+                    logger.info(f"Item field initial after setting: {form.fields['item'].initial}")
+                    logger.info(f"Item field queryset count: {form.fields['item'].queryset.count()}")
+                if 'warehouse' in form.fields:
+                    logger.info(f"Warehouse field initial after setting: {form.fields['warehouse'].initial}")
+                    logger.info(f"Warehouse field queryset count: {form.fields['warehouse'].queryset.count()}")
+                if 'unit' in form.fields:
+                    logger.info(f"Unit field initial after setting: {form.fields['unit'].initial}")
+                
+            except PurchaseRequestLine.DoesNotExist as e:
+                logger.error(f"PurchaseRequestLine {first_line_data.get('line_id')} not found: {e}")
+                pass
+            except Exception as e:
+                logger.error(f"Error processing line_data: {e}", exc_info=True)
+                pass
+        
+        logger.info("=" * 80)
+        logger.info("get_context_data completed")
+        logger.info(f"Context keys: {list(context.keys())}")
+        logger.info("=" * 80)
+        return context
+    
+    def form_valid(self, form):
+        """Save receipt and update purchase request line."""
+        purchase_request = self.get_purchase_request()
+        
+        # Get selected lines from session
+        session_key = f'purchase_request_{purchase_request.pk}_receipt_temporary_lines'
+        selected_lines_data = self.request.session.get(session_key, [])
+        
+        if not selected_lines_data:
+            messages.error(self.request, _('خطا: اطلاعات ردیف‌های انتخاب شده یافت نشد.'))
+            return HttpResponseRedirect(reverse('inventory:purchase_requests'))
+        
+        # Save receipt
+        form.instance.company_id = self.request.session.get('active_company_id')
+        form.instance.created_by = self.request.user
+        form.instance.status = models.ReceiptTemporary.Status.AWAITING_INSPECTION
+        self.object = form.save()
+        
+        # Update purchase request line quantity_fulfilled
+        from inventory.models import PurchaseRequestLine
+        from decimal import Decimal
+        for line_data in selected_lines_data:
+            try:
+                line = PurchaseRequestLine.objects.get(
+                    pk=line_data['line_id'],
+                    document=purchase_request
+                )
+                quantity = Decimal(line_data['quantity'])
+                line.quantity_fulfilled += quantity
+                if line.quantity_fulfilled > line.quantity_requested:
+                    line.quantity_fulfilled = line.quantity_requested
+                line.save()
+            except PurchaseRequestLine.DoesNotExist:
+                pass
+        
+        # Clear session
+        if session_key in self.request.session:
+            del self.request.session[session_key]
+        
+        messages.success(self.request, _('رسید موقت با موفقیت از درخواست خرید ایجاد شد.'))
+        return HttpResponseRedirect(reverse('inventory:receipt_temporary'))
+
+
+class ReceiptPermanentCreateFromPurchaseRequestView(ReceiptPermanentCreateView):
+    """Create permanent receipt from purchase request."""
+    
+    def get_purchase_request(self):
+        """Get purchase request from URL."""
+        from inventory.models import PurchaseRequest
+        company_id = self.request.session.get('active_company_id')
+        return get_object_or_404(
+            PurchaseRequest,
+            pk=self.kwargs['pk'],
+            company_id=company_id,
+            status=PurchaseRequest.Status.APPROVED,
+            is_enabled=1
+        )
+    
+    def get_context_data(self, **kwargs):
+        """Add purchase request to context."""
+        import logging
+        logger = logging.getLogger('inventory.views.receipts')
+        logger.info("=" * 80)
+        logger.info("ReceiptPermanentCreateFromPurchaseRequestView.get_context_data called")
+        
+        purchase_request = self.get_purchase_request()
+        logger.info(f"Purchase request: {purchase_request.request_code} (pk={purchase_request.pk})")
+        
+        # Get selected lines from session BEFORE calling super().get_context_data
+        # This way we can build formset with initial data before LineFormsetMixin builds it
+        session_key = f'purchase_request_{purchase_request.pk}_receipt_permanent_lines'
+        logger.info(f"Looking for session key: {session_key}")
+        logger.info(f"All session keys: {list(self.request.session.keys())}")
+        selected_lines_data = self.request.session.get(session_key, [])
+        logger.info(f"Retrieved from session: {selected_lines_data}")
+        logger.info(f"Number of selected lines: {len(selected_lines_data)}")
+        
+        # Build initial data BEFORE calling super().get_context_data
+        initial_data = []
+        if selected_lines_data:
+            logger.info("=" * 80)
+            logger.info("Building initial_data BEFORE super().get_context_data")
+            from inventory.models import PurchaseRequestLine
+            from decimal import Decimal
+            
+            for idx, line_data in enumerate(selected_lines_data):
+                logger.info(f"Processing line_data[{idx}]: {line_data}")
+                try:
+                    line_id = line_data.get('line_id')
+                    quantity = line_data.get('quantity')
+                    logger.info(f"  Looking for PurchaseRequestLine pk={line_id}, document={purchase_request.pk}")
+                    
+                    line = PurchaseRequestLine.objects.get(
+                        pk=line_id,
+                        document=purchase_request
+                    )
+                    logger.info(f"  Found line: item={line.item.name if line.item else 'None'} (pk={line.item.pk if line.item else None}), "
+                               f"unit={line.unit}, quantity_requested={line.quantity_requested}")
+                    
+                    # Get warehouse from item's allowed warehouses (first one)
+                    from inventory.models import ItemWarehouse
+                    item_warehouse = ItemWarehouse.objects.filter(
+                        item=line.item,
+                        company_id=purchase_request.company_id,
+                        is_enabled=1
+                    ).first()
+                    warehouse = item_warehouse.warehouse if item_warehouse else None
+                    logger.info(f"  Warehouse: {warehouse.name if warehouse else 'None'} (pk={warehouse.pk if warehouse else None})")
+                    
+                    initial_item = {
+                        'item': line.item.pk if line.item else None,
+                        'warehouse': warehouse.pk if warehouse else None,
+                        'unit': line.unit,
+                        'quantity': str(Decimal(quantity)),
+                        'entered_unit': line.unit,
+                        'entered_quantity': str(Decimal(quantity)),
+                    }
+                    initial_data.append(initial_item)
+                    logger.info(f"  Added initial data: {initial_item}")
+                except PurchaseRequestLine.DoesNotExist as e:
+                    logger.error(f"  PurchaseRequestLine {line_data.get('line_id')} not found: {e}")
+                    pass
+                except Exception as e:
+                    logger.error(f"  Error processing line_data[{idx}]: {e}", exc_info=True)
+                    pass
+            
+            logger.info(f"Total initial_data items: {len(initial_data)}")
+            logger.info(f"Initial data summary: {[{'item': d.get('item'), 'warehouse': d.get('warehouse'), 'quantity': d.get('quantity')} for d in initial_data]}")
+        
+        # Store initial_data as instance attribute so we can use it after super().get_context_data
+        self._initial_data_for_formset = initial_data
+        
+        # Now call super().get_context_data - this will call LineFormsetMixin.get_context_data
+        # which will build the formset, but we'll override it after
+        context = super().get_context_data(**kwargs)
+        context['purchase_request'] = purchase_request
+        
+        # Now override the formset with our initial data
+        if initial_data and 'lines_formset' in context:
+            logger.info("=" * 80)
+            logger.info("OVERRIDING formset with initial data")
+            logger.info(f"Current formset has {len(context['lines_formset'].forms)} forms")
+            logger.info(f"Using initial_data with {len(initial_data)} items")
+            
+            # Build formset with initial data
+            logger.info("Building formset with initial data")
+            # Create formset with initial data
+            company_id = self.request.session.get('active_company_id')
+            formset_kwargs = {
+                'instance': None,
+                'prefix': self.formset_prefix,
+                'company_id': company_id,
+            }
+            lines_formset = self.formset_class(**formset_kwargs)
+            
+            # Adjust number of forms to match initial_data length
+            while len(lines_formset.forms) < len(initial_data):
+                lines_formset.forms.append(lines_formset._construct_form(len(lines_formset.forms)))
+            while len(lines_formset.forms) > len(initial_data):
+                lines_formset.forms.pop()
+            
+            # Update management form TOTAL_FORMS
+            if lines_formset.management_form:
+                lines_formset.management_form.initial['TOTAL_FORMS'] = len(initial_data)
+                lines_formset.management_form.fields['TOTAL_FORMS'].initial = len(initial_data)
+            
+            # Set initial data and ensure querysets include selected items
+            from django.db.models import Q
+            from django.http import QueryDict
+            
+            for idx, form in enumerate(lines_formset.forms):
+                if idx < len(initial_data):
+                    init_data = initial_data[idx]
+                    logger.info(f"Setting initial data for form {idx}: {init_data}")
+                    form.initial = init_data
+                    
+                    # For each field, set initial and ensure queryset includes the value
+                    for field_name, field_value in init_data.items():
+                        if field_name in form.fields and field_value:
+                            form.fields[field_name].initial = field_value
+                            logger.info(f"  Setting {field_name} = {field_value}")
+                            
+                            # For ModelChoiceField, ensure selected value is in queryset
+                            field = form.fields[field_name]
+                            if hasattr(field, 'queryset') and hasattr(field.queryset, 'model'):
+                                model = field.queryset.model
+                                try:
+                                    obj = model.objects.get(pk=field_value)
+                                    # Check if it's in current queryset
+                                    if not field.queryset.filter(pk=field_value).exists():
+                                        # Add it to queryset
+                                        field.queryset = model.objects.filter(
+                                            Q(pk=field_value) | Q(pk__in=field.queryset.values_list('pk', flat=True))
+                                        )
+                                        logger.info(f"  Added {field_name} {field_value} to queryset")
+                                except model.DoesNotExist:
+                                    logger.warning(f"  {field_name} {field_value} does not exist in model {model}")
+                                    pass
+                    
+                    # CRITICAL: For ModelChoiceField, we need to set the initial value directly
+                    # and keep form unbound so Django displays the initial value
+                    # Django ModelChoiceField displays initial values in unbound forms
+                    for field_name, field_value in init_data.items():
+                        if field_name in form.fields and field_value:
+                            field = form.fields[field_name]
+                            # For ModelChoiceField, set initial to the actual object
+                            if hasattr(field, 'queryset') and hasattr(field.queryset, 'model'):
+                                try:
+                                    obj = field.queryset.model.objects.get(pk=field_value)
+                                    field.initial = obj
+                                    logger.info(f"  Set {field_name} initial to object: {obj}")
+                                except field.queryset.model.DoesNotExist:
+                                    logger.warning(f"  {field_name} object with pk={field_value} not found")
+                                    field.initial = field_value
+                            else:
+                                # For non-ModelChoiceField, just set the value
+                                field.initial = field_value
+                                logger.info(f"  Set {field_name} initial to: {field_value}")
+                    
+                    # Keep form unbound so initial values are displayed
+                    form.is_bound = False
+                    logger.info(f"  Form {idx} kept unbound, is_bound: {form.is_bound}")
+                    
+                    # Log field values
+                    if 'item' in form.fields:
+                        item_field = form.fields['item']
+                        logger.info(f"Form {idx} item field initial: {item_field.initial}")
+                        logger.info(f"Form {idx} item field initial type: {type(item_field.initial)}")
+                    if 'warehouse' in form.fields:
+                        warehouse_field = form.fields['warehouse']
+                        logger.info(f"Form {idx} warehouse field initial: {warehouse_field.initial}")
+                        logger.info(f"Form {idx} warehouse field initial type: {type(warehouse_field.initial)}")
+                else:
+                    form.is_bound = False
+                    logger.info(f"Form {idx} has no initial data, keeping unbound")
+            
+            logger.info(f"Formset created with {len(lines_formset.forms)} forms")
+            logger.info("=" * 80)
+            context['lines_formset'] = lines_formset
+        
+        # Set purchase_request in form
+        if 'form' in context:
+            logger.info("Setting purchase_request in form initial")
+            context['form'].initial['purchase_request'] = purchase_request
+            logger.info(f"Form initial purchase_request: {context['form'].initial.get('purchase_request')}")
+        
+        logger.info("=" * 80)
+        logger.info("get_context_data completed")
+        logger.info(f"Context keys: {list(context.keys())}")
+        logger.info(f"lines_formset in context: {'lines_formset' in context}")
+        if 'lines_formset' in context:
+            logger.info(f"lines_formset has {len(context['lines_formset'].forms)} forms")
+        logger.info("=" * 80)
+        return context
+    
+    def form_valid(self, form):
+        """Save receipt and update purchase request lines."""
+        purchase_request = self.get_purchase_request()
+        
+        # Set purchase request
+        form.instance.purchase_request = purchase_request
+        form.instance.company_id = self.request.session.get('active_company_id')
+        form.instance.created_by = self.request.user
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # Check if we have at least one valid line before saving
+        valid_lines = []
+        for line_form in lines_formset.forms:
+            if line_form.cleaned_data and line_form.cleaned_data.get('item') and not line_form.cleaned_data.get('DELETE', False):
+                valid_lines.append(line_form)
+        
+        if not valid_lines:
+            self.object.delete()
+            form.add_error(None, _('Please add at least one line with an item.'))
+            lines_formset = self.build_line_formset(instance=None)
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        self._save_line_formset(lines_formset)
+        
+        # Update purchase request line quantity_fulfilled
+        session_key = f'purchase_request_{purchase_request.pk}_receipt_permanent_lines'
+        selected_lines_data = self.request.session.get(session_key, [])
+        
+        from inventory.models import PurchaseRequestLine
+        from decimal import Decimal
+        for line_data in selected_lines_data:
+            try:
+                line = PurchaseRequestLine.objects.get(
+                    pk=line_data['line_id'],
+                    document=purchase_request
+                )
+                quantity = Decimal(line_data['quantity'])
+                line.quantity_fulfilled += quantity
+                if line.quantity_fulfilled > line.quantity_requested:
+                    line.quantity_fulfilled = line.quantity_requested
+                line.save()
+            except PurchaseRequestLine.DoesNotExist:
+                pass
+        
+        # Clear session
+        if session_key in self.request.session:
+            del self.request.session[session_key]
+        
+        messages.success(self.request, _('رسید دائم با موفقیت از درخواست خرید ایجاد شد.'))
+        return HttpResponseRedirect(self.get_success_url())
+
+
+class ReceiptConsignmentCreateFromPurchaseRequestView(ReceiptConsignmentCreateView):
+    """Create consignment receipt from purchase request."""
+    
+    def get_purchase_request(self):
+        """Get purchase request from URL."""
+        from inventory.models import PurchaseRequest
+        company_id = self.request.session.get('active_company_id')
+        return get_object_or_404(
+            PurchaseRequest,
+            pk=self.kwargs['pk'],
+            company_id=company_id,
+            status=PurchaseRequest.Status.APPROVED,
+            is_enabled=1
+        )
+    
+    def get_context_data(self, **kwargs):
+        """Add purchase request to context."""
+        import logging
+        logger = logging.getLogger('inventory.views.receipts')
+        logger.info("=" * 80)
+        logger.info("ReceiptConsignmentCreateFromPurchaseRequestView.get_context_data called")
+        
+        purchase_request = self.get_purchase_request()
+        logger.info(f"Purchase request: {purchase_request.request_code} (pk={purchase_request.pk})")
+        
+        # Get selected lines from session BEFORE calling super().get_context_data
+        # This way we can build formset with initial data before LineFormsetMixin builds it
+        session_key = f'purchase_request_{purchase_request.pk}_receipt_consignment_lines'
+        logger.info(f"Looking for session key: {session_key}")
+        logger.info(f"All session keys: {list(self.request.session.keys())}")
+        selected_lines_data = self.request.session.get(session_key, [])
+        logger.info(f"Retrieved from session: {selected_lines_data}")
+        logger.info(f"Number of selected lines: {len(selected_lines_data)}")
+        
+        # Build initial data BEFORE calling super().get_context_data
+        initial_data = []
+        if selected_lines_data:
+            logger.info("=" * 80)
+            logger.info("Building initial_data BEFORE super().get_context_data")
+            from inventory.models import PurchaseRequestLine
+            from decimal import Decimal
+            
+            for idx, line_data in enumerate(selected_lines_data):
+                logger.info(f"Processing line_data[{idx}]: {line_data}")
+                try:
+                    line_id = line_data.get('line_id')
+                    quantity = line_data.get('quantity')
+                    logger.info(f"  Looking for PurchaseRequestLine pk={line_id}, document={purchase_request.pk}")
+                    
+                    line = PurchaseRequestLine.objects.get(
+                        pk=line_id,
+                        document=purchase_request
+                    )
+                    logger.info(f"  Found line: item={line.item.name if line.item else 'None'} (pk={line.item.pk if line.item else None}), "
+                               f"unit={line.unit}, quantity_requested={line.quantity_requested}")
+                    
+                    # Get warehouse from item's allowed warehouses (first one)
+                    from inventory.models import ItemWarehouse
+                    item_warehouse = ItemWarehouse.objects.filter(
+                        item=line.item,
+                        company_id=purchase_request.company_id,
+                        is_enabled=1
+                    ).first()
+                    warehouse = item_warehouse.warehouse if item_warehouse else None
+                    logger.info(f"  Warehouse: {warehouse.name if warehouse else 'None'} (pk={warehouse.pk if warehouse else None})")
+                    
+                    # Get supplier (required for consignment)
+                    from inventory.models import SupplierItem
+                    supplier_item = SupplierItem.objects.filter(
+                        item=line.item,
+                        company_id=purchase_request.company_id,
+                        is_enabled=1
+                    ).first()
+                    supplier = supplier_item.supplier if supplier_item else None
+                    logger.info(f"  Supplier: {supplier.name if supplier else 'None'} (pk={supplier.pk if supplier else None})")
+                    
+                    initial_item = {
+                        'item': line.item.pk if line.item else None,
+                        'warehouse': warehouse.pk if warehouse else None,
+                        'supplier': supplier.pk if supplier else None,
+                        'unit': line.unit,
+                        'quantity': str(Decimal(quantity)),
+                        'entered_unit': line.unit,
+                        'entered_quantity': str(Decimal(quantity)),
+                    }
+                    initial_data.append(initial_item)
+                    logger.info(f"  Added initial data: {initial_item}")
+                except PurchaseRequestLine.DoesNotExist as e:
+                    logger.error(f"  PurchaseRequestLine {line_data.get('line_id')} not found: {e}")
+                    pass
+                except Exception as e:
+                    logger.error(f"  Error processing line_data[{idx}]: {e}", exc_info=True)
+                    pass
+            
+            logger.info(f"Total initial_data items: {len(initial_data)}")
+            logger.info(f"Initial data summary: {[{'item': d.get('item'), 'warehouse': d.get('warehouse'), 'supplier': d.get('supplier'), 'quantity': d.get('quantity')} for d in initial_data]}")
+        
+        # Store initial_data as instance attribute so we can use it after super().get_context_data
+        self._initial_data_for_formset = initial_data
+        
+        # Now call super().get_context_data - this will call LineFormsetMixin.get_context_data
+        # which will build the formset, but we'll override it after
+        context = super().get_context_data(**kwargs)
+        context['purchase_request'] = purchase_request
+        
+        # Now override the formset with our initial data
+        if initial_data and 'lines_formset' in context:
+            logger.info("=" * 80)
+            logger.info("OVERRIDING formset with initial data")
+            logger.info(f"Current formset has {len(context['lines_formset'].forms)} forms")
+            logger.info(f"Using initial_data with {len(initial_data)} items")
+            
+            # Build formset with initial data
+            logger.info("Building formset with initial data")
+            # Create formset with initial data
+            company_id = self.request.session.get('active_company_id')
+            formset_kwargs = {
+                'instance': None,
+                'prefix': self.formset_prefix,
+                'company_id': company_id,
+            }
+            lines_formset = self.formset_class(**formset_kwargs)
+            
+            # Adjust number of forms to match initial_data length
+            while len(lines_formset.forms) < len(initial_data):
+                lines_formset.forms.append(lines_formset._construct_form(len(lines_formset.forms)))
+            while len(lines_formset.forms) > len(initial_data):
+                lines_formset.forms.pop()
+            
+            # Update management form TOTAL_FORMS
+            if lines_formset.management_form:
+                lines_formset.management_form.initial['TOTAL_FORMS'] = len(initial_data)
+                lines_formset.management_form.fields['TOTAL_FORMS'].initial = len(initial_data)
+            
+            # Set initial data and ensure querysets include selected items
+            from django.db.models import Q
+            
+            for idx, form in enumerate(lines_formset.forms):
+                if idx < len(initial_data):
+                    init_data = initial_data[idx]
+                    logger.info(f"Setting initial data for form {idx}: {init_data}")
+                    form.initial = init_data
+                    
+                    # For each field, set initial and ensure queryset includes the value
+                    for field_name, field_value in init_data.items():
+                        if field_name in form.fields and field_value:
+                            form.fields[field_name].initial = field_value
+                            logger.info(f"  Setting {field_name} = {field_value}")
+                            
+                            # For ModelChoiceField, ensure selected value is in queryset
+                            field = form.fields[field_name]
+                            if hasattr(field, 'queryset') and hasattr(field.queryset, 'model'):
+                                model = field.queryset.model
+                                try:
+                                    obj = model.objects.get(pk=field_value)
+                                    # Check if it's in current queryset
+                                    if not field.queryset.filter(pk=field_value).exists():
+                                        # Add it to queryset
+                                        field.queryset = model.objects.filter(
+                                            Q(pk=field_value) | Q(pk__in=field.queryset.values_list('pk', flat=True))
+                                        )
+                                        logger.info(f"  Added {field_name} {field_value} to queryset")
+                                except model.DoesNotExist:
+                                    logger.warning(f"  {field_name} {field_value} does not exist in model {model}")
+                                    pass
+                    
+                    # CRITICAL: For ModelChoiceField, we need to set the initial value directly
+                    # and keep form unbound so Django displays the initial value
+                    # Django ModelChoiceField displays initial values in unbound forms
+                    for field_name, field_value in init_data.items():
+                        if field_name in form.fields and field_value:
+                            field = form.fields[field_name]
+                            # For ModelChoiceField, set initial to the actual object
+                            if hasattr(field, 'queryset') and hasattr(field.queryset, 'model'):
+                                try:
+                                    obj = field.queryset.model.objects.get(pk=field_value)
+                                    field.initial = obj
+                                    logger.info(f"  Set {field_name} initial to object: {obj}")
+                                except field.queryset.model.DoesNotExist:
+                                    logger.warning(f"  {field_name} object with pk={field_value} not found")
+                                    field.initial = field_value
+                            else:
+                                # For non-ModelChoiceField, just set the value
+                                field.initial = field_value
+                                logger.info(f"  Set {field_name} initial to: {field_value}")
+                    
+                    # Keep form unbound so initial values are displayed
+                    form.is_bound = False
+                    logger.info(f"  Form {idx} kept unbound, is_bound: {form.is_bound}")
+                    
+                    # Log field values
+                    if 'item' in form.fields:
+                        item_field = form.fields['item']
+                        logger.info(f"Form {idx} item field initial: {item_field.initial}")
+                        logger.info(f"Form {idx} item field initial type: {type(item_field.initial)}")
+                    if 'warehouse' in form.fields:
+                        warehouse_field = form.fields['warehouse']
+                        logger.info(f"Form {idx} warehouse field initial: {warehouse_field.initial}")
+                        logger.info(f"Form {idx} warehouse field initial type: {type(warehouse_field.initial)}")
+                else:
+                    form.is_bound = False
+                    logger.info(f"Form {idx} has no initial data, keeping unbound")
+            
+            logger.info(f"Formset created with {len(lines_formset.forms)} forms")
+            logger.info("=" * 80)
+            context['lines_formset'] = lines_formset
+        
+        # Set purchase_request in form
+        if 'form' in context:
+            logger.info("Setting purchase_request in form initial")
+            context['form'].initial['purchase_request'] = purchase_request
+            logger.info(f"Form initial purchase_request: {context['form'].initial.get('purchase_request')}")
+        
+        logger.info("=" * 80)
+        logger.info("get_context_data completed")
+        logger.info(f"Context keys: {list(context.keys())}")
+        logger.info(f"lines_formset in context: {'lines_formset' in context}")
+        if 'lines_formset' in context:
+            logger.info(f"lines_formset has {len(context['lines_formset'].forms)} forms")
+        logger.info("=" * 80)
+        return context
+    
+    def form_valid(self, form):
+        """Save receipt and update purchase request lines."""
+        purchase_request = self.get_purchase_request()
+        
+        # Set purchase request
+        form.instance.purchase_request = purchase_request
+        form.instance.company_id = self.request.session.get('active_company_id')
+        form.instance.created_by = self.request.user
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        self._save_line_formset(lines_formset)
+        
+        # Update purchase request line quantity_fulfilled
+        session_key = f'purchase_request_{purchase_request.pk}_receipt_consignment_lines'
+        selected_lines_data = self.request.session.get(session_key, [])
+        
+        from inventory.models import PurchaseRequestLine
+        from decimal import Decimal
+        for line_data in selected_lines_data:
+            try:
+                line = PurchaseRequestLine.objects.get(
+                    pk=line_data['line_id'],
+                    document=purchase_request
+                )
+                quantity = Decimal(line_data['quantity'])
+                line.quantity_fulfilled += quantity
+                if line.quantity_fulfilled > line.quantity_requested:
+                    line.quantity_fulfilled = line.quantity_requested
+                line.save()
+            except PurchaseRequestLine.DoesNotExist:
+                pass
+        
+        # Clear session
+        if session_key in self.request.session:
+            del self.request.session[session_key]
+        
+        messages.success(self.request, _('رسید امانی با موفقیت از درخواست خرید ایجاد شد.'))
+        return HttpResponseRedirect(self.get_success_url())
+
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [

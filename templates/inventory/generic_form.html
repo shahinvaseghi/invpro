@@ -7,14 +7,6 @@
 
 {% block inventory_content %}
 <div class="form-container">
-  {% if messages %}
-    {% for message in messages %}
-    <div class="alert alert-{{ message.tags }}">
-      {{ message }}
-    </div>
-    {% endfor %}
-  {% endif %}
-
   {% if form.instance.pk and form.instance.public_code %}
   <div class="info-banner">
     <div><strong>{% trans "Code" %}:</strong> <code>{{ form.instance.public_code }}</code></div>
