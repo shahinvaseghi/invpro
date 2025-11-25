@@ -702,6 +702,159 @@ class TicketTemplatePermission(TicketingBaseModel):
 
 
 # ============================================================================
+# Template Event Models
+# ============================================================================
+
+
+class TicketTemplateEvent(TicketingBaseModel):
+    """Events for ticket templates (e.g., ON_CLOSE, ON_OPEN, ON_RESPOND)."""
+
+    EVENT_TYPE_CHOICES = [
+        ("on_open", _("On Open")),
+        ("on_close", _("On Close")),
+        ("on_respond", _("On Respond")),
+        ("on_status_change", _("On Status Change")),
+        ("on_assigned", _("On Assigned")),
+        ("on_resolved", _("On Resolved")),
+    ]
+
+    template = models.ForeignKey(
+        TicketTemplate,
+        on_delete=models.CASCADE,
+        related_name="events",
+        verbose_name=_("Template"),
+    )
+    template_code = models.CharField(
+        max_length=30,
+        verbose_name=_("Template Code"),
+        help_text=_("Cached template code"),
+    )
+    event_type = models.CharField(
+        max_length=30,
+        choices=EVENT_TYPE_CHOICES,
+        verbose_name=_("Event Type"),
+    )
+    event_order = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name=_("Event Order"),
+        help_text=_("Execution order for multiple events of the same type"),
+    )
+    action_reference = models.CharField(
+        max_length=255,
+        verbose_name=_("Action Reference"),
+        help_text=_("Entity Reference System action (e.g., 'users:show:gp=superuser', '0270:approve:code={ticket.reference_code}')"),
+    )
+    condition_rules = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name=_("Condition Rules"),
+        help_text=_("JSON rules for conditional execution (e.g., {'field_key': 'priority', 'operator': 'equals', 'value': 'high'})"),
+    )
+    is_enabled = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=1,
+        verbose_name=_("Is Enabled"),
+    )
+
+    class Meta:
+        verbose_name = _("Template Event")
+        verbose_name_plural = _("Template Events")
+        indexes = [
+            models.Index(
+                fields=["template", "event_type", "event_order"],
+                name="tkt_tmpl_event_type_order_idx",
+            ),
+        ]
+        ordering = ("template", "event_type", "event_order")
+
+    def __str__(self) -> str:
+        return f"{self.template.name} - {self.get_event_type_display()}"
+
+    def save(self, *args, **kwargs):
+        """Auto-populate template_code."""
+        if self.template and not self.template_code:
+            self.template_code = self.template.template_code
+        super().save(*args, **kwargs)
+
+
+class TicketTemplateFieldEvent(TicketingBaseModel):
+    """Events for template fields (triggered when field value changes)."""
+
+    EVENT_TYPE_CHOICES = [
+        ("on_change", _("On Change")),
+        ("on_set", _("On Set")),
+        ("on_clear", _("On Clear")),
+    ]
+
+    template_field = models.ForeignKey(
+        TicketTemplateField,
+        on_delete=models.CASCADE,
+        related_name="events",
+        verbose_name=_("Template Field"),
+    )
+    template = models.ForeignKey(
+        TicketTemplate,
+        on_delete=models.CASCADE,
+        related_name="field_events",
+        verbose_name=_("Template"),
+        help_text=_("Cached template reference"),
+    )
+    template_code = models.CharField(
+        max_length=30,
+        verbose_name=_("Template Code"),
+        help_text=_("Cached template code"),
+    )
+    event_type = models.CharField(
+        max_length=30,
+        choices=EVENT_TYPE_CHOICES,
+        verbose_name=_("Event Type"),
+    )
+    event_order = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name=_("Event Order"),
+        help_text=_("Execution order for multiple events"),
+    )
+    action_reference = models.CharField(
+        max_length=255,
+        verbose_name=_("Action Reference"),
+        help_text=_("Entity Reference System action to execute"),
+    )
+    condition_rules = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name=_("Condition Rules"),
+        help_text=_("JSON rules for conditional execution based on field value"),
+    )
+    is_enabled = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=1,
+        verbose_name=_("Is Enabled"),
+    )
+
+    class Meta:
+        verbose_name = _("Template Field Event")
+        verbose_name_plural = _("Template Field Events")
+        indexes = [
+            models.Index(
+                fields=["template_field", "event_type", "event_order"],
+                name="tkt_field_event_type_order_idx",
+            ),
+        ]
+        ordering = ("template_field", "event_type", "event_order")
+
+    def __str__(self) -> str:
+        return f"{self.template_field.field_name} - {self.get_event_type_display()}"
+
+    def save(self, *args, **kwargs):
+        """Auto-populate template references."""
+        if self.template_field and not self.template_id:
+            self.template = self.template_field.template
+        if self.template and not self.template_code:
+            self.template_code = self.template.template_code
+        super().save(*args, **kwargs)
+
+
+# ============================================================================
 # Ticket Models
 # ============================================================================
 

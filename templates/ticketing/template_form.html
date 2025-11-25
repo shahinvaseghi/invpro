@@ -1,0 +1,992 @@
+{% extends "ticketing/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} - {{ block.super }}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Ticket Management" %}</span>
+<span class="separator">/</span>
+<a href="{% url 'ticketing:templates' %}">{% trans "Templates" %}</a>
+<span class="separator">/</span>
+<span>{{ page_title }}</span>
+{% endblock %}
+
+{% block ticketing_content %}
+<div class="form-container">
+  <form method="post" class="entity-form" id="template-form">
+    {% csrf_token %}
+    
+    {% if form.non_field_errors %}
+      <div class="alert alert-error">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <!-- Template Information Section -->
+    <div class="form-section">
+      <h2>{% trans "Template Information" %}</h2>
+      {% for field in form %}
+        <div class="form-field">
+          <label for="{{ field.id_for_label }}">
+            {{ field.label }}
+            {% if field.field.required %}*{% endif %}
+          </label>
+          {{ field }}
+          {% if field.errors %}
+            <span class="error">{{ field.errors.0 }}</span>
+          {% endif %}
+          {% if field.help_text %}
+            <small class="form-text">{{ field.help_text }}</small>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Template Fields Section -->
+    <div class="form-section">
+      <header class="section-header">
+        <h2>{% trans "Template Fields" %}</h2>
+        <p>{% trans "Define the fields that will be used in tickets created from this template. Add fields one by one by filling the blank row." %}</p>
+      </header>
+
+      {{ field_formset.management_form }}
+      {% if field_formset.non_form_errors %}
+        <div class="alert alert-error">
+          {{ field_formset.non_form_errors }}
+        </div>
+      {% endif %}
+
+      <div class="fields-container">
+        <table class="data-table formset-table">
+          <thead>
+            <tr>
+              <th>{% trans "Order" %}</th>
+              <th>{% trans "Field Name" %}</th>
+              <th>{% trans "Field Type" %}</th>
+              <th>{% trans "Field Key" %}</th>
+              <th>{% trans "Required" %}</th>
+              <th>{% trans "Default Value" %}</th>
+              <th>{% trans "Status" %}</th>
+              <th>{% trans "Delete" %}</th>
+              <th>{% trans "Remove" %}</th>
+              <th>{% trans "Settings" %}</th>
+            </tr>
+          </thead>
+          <tbody id="field-formset-body">
+            {% for field_form in field_formset %}
+              <tr class="field-form-row">
+                {% for hidden in field_form.hidden_fields %}{{ hidden }}{% endfor %}
+                <td>
+                  {{ field_form.field_order }}
+                  {% for error in field_form.field_order.errors %}
+                    <div class="field-error">{{ error }}</div>
+                  {% endfor %}
+                </td>
+                <td>
+                  {{ field_form.field_name }}
+                  {% for error in field_form.field_name.errors %}
+                    <div class="field-error">{{ error }}</div>
+                  {% endfor %}
+                </td>
+                <td>
+                  {{ field_form.field_type }}
+                  {% for error in field_form.field_type.errors %}
+                    <div class="field-error">{{ error }}</div>
+                  {% endfor %}
+                </td>
+                <td>
+                  {{ field_form.field_key }}
+                  {% for error in field_form.field_key.errors %}
+                    <div class="field-error">{{ error }}</div>
+                  {% endfor %}
+                </td>
+                <td style="text-align: center;">
+                  {{ field_form.is_required }}
+                  {% for error in field_form.is_required.errors %}
+                    <div class="field-error">{{ error }}</div>
+                  {% endfor %}
+                </td>
+                <td>
+                  {{ field_form.default_value }}
+                  {% for error in field_form.default_value.errors %}
+                    <div class="field-error">{{ error }}</div>
+                  {% endfor %}
+                </td>
+                <td>
+                  {{ field_form.is_enabled }}
+                  {% for error in field_form.is_enabled.errors %}
+                    <div class="field-error">{{ error }}</div>
+                  {% endfor %}
+                </td>
+                <td>
+                  {% if field_form.instance.pk %}
+                    {{ field_form.DELETE }}
+                    <label for="{{ field_form.DELETE.id_for_label }}" style="margin-left: 5px;">{% trans "Delete" %}</label>
+                  {% else %}
+                    <span class="muted-text">–</span>
+                  {% endif %}
+                </td>
+                <td style="text-align: center;">
+                  {% if not field_form.instance.pk %}
+                    <button type="button" class="btn btn-sm btn-danger remove-field-row" data-field-index="{{ forloop.counter0 }}">
+                      🗑️ {% trans "Remove" %}
+                    </button>
+                  {% else %}
+                    <span class="muted-text">–</span>
+                  {% endif %}
+                </td>
+                <td style="text-align: center;">
+                  <button type="button" class="btn btn-sm btn-secondary toggle-field-settings" data-field-index="{{ forloop.counter0 }}">
+                    <span>⚙️</span> {% trans "Settings" %}
+                  </button>
+                </td>
+              </tr>
+              <!-- Field Settings Row (Collapsible) -->
+              <tr class="field-settings-row" id="field-settings-{{ forloop.counter0 }}" style="display: none;">
+                <td colspan="10" style="background: #f8f9fa; padding: 1.5rem;">
+                  <div class="field-settings-panel">
+                    <h4 style="margin-bottom: 1rem;">{% trans "Field Settings" %}</h4>
+                    
+                    <!-- Help Text -->
+                    <div class="form-field" style="margin-bottom: 1rem;">
+                      <label>{{ field_form.help_text.label }}</label>
+                      {{ field_form.help_text }}
+                      {% for error in field_form.help_text.errors %}
+                        <div class="field-error">{{ error }}</div>
+                      {% endfor %}
+                    </div>
+                    
+                    <!-- Field Config (JSON) - For Reference Fields, File Upload, etc. -->
+                    <div class="form-field" style="margin-bottom: 1rem;">
+                      <label>{% trans "Field Configuration (JSON)" %}</label>
+                      <textarea 
+                        name="{{ field_form.field_config.html_name|default:'' }}" 
+                        id="{{ field_form.field_config.id_for_label|default:'' }}" 
+                        class="form-control field-config-textarea" 
+                        rows="6"
+                        placeholder='{"allowed_entity_types": ["inventory.item"], "action_reference": "users:show:gp=superuser"}'
+                      >{% if field_form.field_config.value %}{{ field_form.field_config.value|safe }}{% endif %}</textarea>
+                      <small class="form-text">
+                        {% trans "JSON configuration for field-specific settings. For reference fields: use 'allowed_entity_types' and 'action_reference'. For file upload: use 'allowed_file_types' and 'max_file_size'." %}
+                      </small>
+                    </div>
+                    
+                    <!-- Validation Rules (JSON) -->
+                    <div class="form-field" style="margin-bottom: 1rem;">
+                      <label>{% trans "Validation Rules (JSON)" %}</label>
+                      {{ field_form.validation_rules }}
+                      <small class="form-text">
+                        {% trans "JSON rules for field validation (min_length, max_length, pattern, etc.)" %}
+                      </small>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <button type="button" id="add-field-row" class="btn btn-secondary" style="margin-top: 1rem;">
+          + {% trans "Add Field" %}
+        </button>
+        <p class="muted-text" style="margin-top: 0.5rem;">
+          {% trans "Note: After saving, you can edit individual fields to add options (for radio/dropdown fields) and events." %}
+        </p>
+      </div>
+      
+      <!-- Empty form template for field formset -->
+      <template id="empty-field-form">
+        <tr class="field-form-row">
+          {% for hidden in field_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+          <td>
+            {{ field_formset.empty_form.field_order }}
+          </td>
+          <td>
+            {{ field_formset.empty_form.field_name }}
+          </td>
+          <td>
+            {{ field_formset.empty_form.field_type }}
+          </td>
+          <td>
+            {{ field_formset.empty_form.field_key }}
+          </td>
+          <td style="text-align: center;">
+            {{ field_formset.empty_form.is_required }}
+          </td>
+          <td>
+            {{ field_formset.empty_form.default_value }}
+          </td>
+          <td>
+            {{ field_formset.empty_form.is_enabled }}
+          </td>
+          <td style="text-align: center;">
+            <button type="button" class="btn btn-sm btn-danger remove-field-row" data-field-index="__prefix__">
+              🗑️ {% trans "Remove" %}
+            </button>
+          </td>
+          <td style="text-align: center;">
+            <button type="button" class="btn btn-sm btn-secondary toggle-field-settings" data-field-index="__prefix__">
+              ⚙️ {% trans "Settings" %}
+            </button>
+          </td>
+        </tr>
+        <!-- Field Settings Row (Collapsible) - Empty Form -->
+        <tr class="field-settings-row" id="field-settings-__prefix__" style="display: none;">
+          <td colspan="10" style="background: #f8f9fa; padding: 1.5rem; border-top: 2px solid #e5e7eb;">
+            <div class="field-settings-panel">
+              <h4 style="margin-bottom: 1rem; color: #1f2937;">{% trans "Field Settings" %}</h4>
+              
+              <!-- Help Text -->
+              <div class="form-field" style="margin-bottom: 1rem;">
+                <label>{{ field_formset.empty_form.help_text.label }}</label>
+                {{ field_formset.empty_form.help_text }}
+              </div>
+              
+              <!-- Field Config (JSON) -->
+              <div class="form-field" style="margin-bottom: 1rem;">
+                <label>{{ field_formset.empty_form.field_config.label }}</label>
+                {{ field_formset.empty_form.field_config }}
+                <small class="form-text">
+                  {% trans "JSON configuration for field-specific settings. For reference fields: use 'allowed_entity_types' and 'action_reference'. For file upload: use 'allowed_file_types' and 'max_file_size'." %}
+                </small>
+              </div>
+              
+              <!-- Validation Rules (JSON) -->
+              <div class="form-field" style="margin-bottom: 1rem;">
+                <label>{{ field_formset.empty_form.validation_rules.label }}</label>
+                {{ field_formset.empty_form.validation_rules }}
+                <small class="form-text">
+                  {% trans "JSON rules for field validation (min_length, max_length, pattern, etc.)" %}
+                </small>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </template>
+    </div>
+
+    <!-- Template Permissions Section -->
+    <div class="form-section">
+      <header class="section-header">
+        <h2>{% trans "Permissions" %}</h2>
+        <p>{% trans "Define which users or groups can create, respond to, or close tickets using this template." %}</p>
+      </header>
+
+      {{ permission_formset.management_form }}
+      {% if permission_formset.non_form_errors %}
+        <div class="alert alert-error">
+          {{ permission_formset.non_form_errors }}
+        </div>
+      {% endif %}
+
+      <table class="data-table formset-table">
+        <thead>
+          <tr>
+            <th>{% trans "User" %}</th>
+            <th>{% trans "Group" %}</th>
+            <th>{% trans "Can Create" %}</th>
+            <th>{% trans "Can Respond" %}</th>
+            <th>{% trans "Can Close" %}</th>
+            <th>{% trans "Status" %}</th>
+            <th>{% trans "Delete" %}</th>
+          </tr>
+        </thead>
+        <tbody id="permission-formset-body">
+          {% for perm_form in permission_formset %}
+            <tr>
+              {% for hidden in perm_form.hidden_fields %}{{ hidden }}{% endfor %}
+              <td>
+                {{ perm_form.user }}
+                {% for error in perm_form.user.errors %}
+                  <div class="field-error">{{ error }}</div>
+                {% endfor %}
+              </td>
+              <td>
+                {{ perm_form.group }}
+                {% for error in perm_form.group.errors %}
+                  <div class="field-error">{{ error }}</div>
+                {% endfor %}
+              </td>
+              <td style="text-align: center;">
+                {{ perm_form.can_create }}
+                {% for error in perm_form.can_create.errors %}
+                  <div class="field-error">{{ error }}</div>
+                {% endfor %}
+              </td>
+              <td style="text-align: center;">
+                {{ perm_form.can_respond }}
+                {% for error in perm_form.can_respond.errors %}
+                  <div class="field-error">{{ error }}</div>
+                {% endfor %}
+              </td>
+              <td style="text-align: center;">
+                {{ perm_form.can_close }}
+                {% for error in perm_form.can_close.errors %}
+                  <div class="field-error">{{ error }}</div>
+                {% endfor %}
+              </td>
+              <td>
+                {{ perm_form.is_enabled }}
+                {% for error in perm_form.is_enabled.errors %}
+                  <div class="field-error">{{ error }}</div>
+                {% endfor %}
+              </td>
+              <td>
+                {% if perm_form.instance.pk %}
+                  {{ perm_form.DELETE }}
+                  <label for="{{ perm_form.DELETE.id_for_label }}" style="margin-left: 5px;">{% trans "Delete" %}</label>
+                {% else %}
+                  <span class="muted-text">–</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Template Events Section -->
+    <div class="form-section">
+      <header class="section-header">
+        <h2>{% trans "Template Events" %}</h2>
+        <p>{% trans "Define actions that will be executed when specific events occur (e.g., when a ticket is opened or closed). Use Entity Reference System syntax." %}</p>
+      </header>
+
+      {{ event_formset.management_form }}
+      {% if event_formset.non_form_errors %}
+        <div class="alert alert-error">
+          {{ event_formset.non_form_errors }}
+        </div>
+      {% endif %}
+
+      <table class="data-table formset-table">
+        <thead>
+          <tr>
+            <th>{% trans "Event Type" %}</th>
+            <th>{% trans "Order" %}</th>
+            <th>{% trans "Action Reference" %}</th>
+            <th>{% trans "Condition Rules (JSON)" %}</th>
+            <th>{% trans "Status" %}</th>
+            <th>{% trans "Delete" %}</th>
+          </tr>
+        </thead>
+        <tbody id="event-formset-body">
+          {% for event_form in event_formset %}
+            <tr>
+              {% for hidden in event_form.hidden_fields %}{{ hidden }}{% endfor %}
+              <td>
+                {{ event_form.event_type }}
+                {% for error in event_form.event_type.errors %}
+                  <div class="field-error">{{ error }}</div>
+                {% endfor %}
+              </td>
+              <td>
+                {{ event_form.event_order }}
+                {% for error in event_form.event_order.errors %}
+                  <div class="field-error">{{ error }}</div>
+                {% endfor %}
+              </td>
+              <td>
+                {{ event_form.action_reference }}
+                {% for error in event_form.action_reference.errors %}
+                  <div class="field-error">{{ error }}</div>
+                {% endfor %}
+                <small class="form-text">{% trans "Example: users:show:gp=superuser or 0270:approve:code={ticket.reference_code}" %}</small>
+              </td>
+              <td>
+                {{ event_form.condition_rules }}
+                {% for error in event_form.condition_rules.errors %}
+                  <div class="field-error">{{ error }}</div>
+                {% endfor %}
+                <small class="form-text">{% trans "Example: {\"field_key\": \"priority\", \"operator\": \"equals\", \"value\": \"high\"}" %}</small>
+              </td>
+              <td>
+                {{ event_form.is_enabled }}
+                {% for error in event_form.is_enabled.errors %}
+                  <div class="field-error">{{ error }}</div>
+                {% endfor %}
+              </td>
+              <td>
+                {% if event_form.instance.pk %}
+                  {{ event_form.DELETE }}
+                  <label for="{{ event_form.DELETE.id_for_label }}" style="margin-left: 5px;">{% trans "Delete" %}</label>
+                {% else %}
+                  <span class="muted-text">–</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <button type="button" id="add-event-row" class="btn btn-secondary" style="margin-top: 1rem;">
+        + {% trans "Add Event" %}
+      </button>
+      
+      <!-- Empty form template for event formset -->
+      <div id="empty-event-form" style="display: none;">
+        <tr>
+          {% for hidden in event_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+          <td>
+            {{ event_formset.empty_form.event_type }}
+          </td>
+          <td>
+            {{ event_formset.empty_form.event_order }}
+          </td>
+          <td>
+            {{ event_formset.empty_form.action_reference }}
+            <small class="form-text">{% trans "Example: users:show:gp=superuser or 0270:approve:code={ticket.reference_code}" %}</small>
+          </td>
+          <td>
+            {{ event_formset.empty_form.condition_rules }}
+            <small class="form-text">{% trans "Example: {\"field_key\": \"priority\", \"operator\": \"equals\", \"value\": \"high\"}" %}</small>
+          </td>
+          <td>
+            {{ event_formset.empty_form.is_enabled }}
+          </td>
+          <td>
+            <span class="muted-text">–</span>
+          </td>
+        </tr>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% trans "Save Template" %}</button>
+      <a href="{% url 'ticketing:templates' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div>
+
+<style>
+.form-container {
+  max-width: 1400px;
+  margin: 2rem auto;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-section {
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.form-section:last-child {
+  border-bottom: none;
+}
+
+.form-section h2 {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.section-header {
+  margin-bottom: 1.5rem;
+}
+
+.section-header h2 {
+  margin-bottom: 0.5rem;
+}
+
+.section-header p {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.entity-form .form-section:first-child {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.entity-form .form-field label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.entity-form .form-control, 
+.entity-form select,
+.entity-form textarea,
+.entity-form input[type="text"],
+.entity-form input[type="number"] {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.entity-form .form-control:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.entity-form textarea {
+  resize: vertical;
+}
+
+.entity-form .error {
+  display: block;
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.form-text {
+  display: block;
+  margin-top: 0.25rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+  padding-top: 2rem;
+  margin-top: 2rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.formset-table {
+  width: 100%;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.formset-table th {
+  text-align: right;
+  font-weight: 600;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.formset-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+}
+
+.formset-table select,
+.formset-table input[type="text"],
+.formset-table input[type="number"],
+.formset-table textarea {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.formset-table input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+.formset-table textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.field-form-row td:first-child input {
+  width: 60px;
+}
+
+.field-help-row {
+  background: #f8f9fa;
+}
+
+.field-help-row td {
+  padding: 0.5rem 1rem;
+}
+
+.form-field-inline label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.muted-text {
+  color: #9ca3af;
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
+.field-error {
+  color: #dc2626;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.alert-error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // ========================================================================
+  // Field Formset
+  // ========================================================================
+  const fieldFormsetBody = document.getElementById('field-formset-body');
+  const addFieldButton = document.getElementById('add-field-row');
+  
+  if (!fieldFormsetBody || !addFieldButton) {
+    return;
+  }
+  
+  // Find management form - look in the form section
+  const section = fieldFormsetBody.closest('.form-section');
+  let fieldManagementForm = null;
+  
+  // Find the management form input - Django creates it in management_form
+  if (section) {
+    // Look for input with name ending in -TOTAL_FORMS within this section
+    const allInputs = section.querySelectorAll('input');
+    for (let i = 0; i < allInputs.length; i++) {
+      const input = allInputs[i];
+      if (input.name && input.name.endsWith('-TOTAL_FORMS')) {
+        fieldManagementForm = input;
+        break;
+      }
+    }
+  }
+  
+  const emptyFieldForm = document.getElementById('empty-field-form');
+  
+  if (!emptyFieldForm) {
+    return;
+  }
+  
+  // Try to find management form if not found yet
+  if (!fieldManagementForm) {
+    // Try to find it in the entire form
+    const form = fieldFormsetBody.closest('form');
+    if (form) {
+      const allManagementForms = form.querySelectorAll('input[name$="-TOTAL_FORMS"]');
+      if (allManagementForms.length > 0) {
+        // Try to find the one in the fields section first
+        const section = fieldFormsetBody.closest('.form-section');
+        for (let i = 0; i < allManagementForms.length; i++) {
+          const mf = allManagementForms[i];
+          if (section && section.contains(mf)) {
+            fieldManagementForm = mf;
+            break;
+          }
+        }
+        // If still not found, use the first one (fallback)
+        if (!fieldManagementForm && allManagementForms.length > 0) {
+          fieldManagementForm = allManagementForms[0];
+        }
+      }
+    }
+  }
+  
+  // Add event listener for adding new rows
+  addFieldButton.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Find management form if not already found
+    let mgmtForm = fieldManagementForm;
+    if (!mgmtForm) {
+      const form = fieldFormsetBody.closest('form');
+      if (form) {
+        const allManagementForms = form.querySelectorAll('input[name$="-TOTAL_FORMS"]');
+        if (allManagementForms.length > 0) {
+          const section = fieldFormsetBody.closest('.form-section');
+          for (let i = 0; i < allManagementForms.length; i++) {
+            const mf = allManagementForms[i];
+            if (section && section.contains(mf)) {
+              mgmtForm = mf;
+              break;
+            }
+          }
+          if (!mgmtForm) {
+            mgmtForm = allManagementForms[0];
+          }
+        }
+      }
+    }
+    
+    if (!mgmtForm) {
+      return;
+    }
+    
+    const totalForms = parseInt(mgmtForm.value) || 0;
+    
+    // Get the field row template from template tag (use .content for template elements)
+    const templateContent = emptyFieldForm.content || emptyFieldForm;
+    const fieldRowTemplate = templateContent.querySelector('tr.field-form-row');
+    const settingsRowTemplate = templateContent.querySelector('tr.field-settings-row');
+    
+    if (!fieldRowTemplate) {
+      return;
+    }
+    
+    // Clone the rows directly
+    const newFieldRow = fieldRowTemplate.cloneNode(true);
+    const newSettingsRow = settingsRowTemplate ? settingsRowTemplate.cloneNode(true) : null;
+    
+    // Update all form field names and IDs using __prefix__ replacement
+    function updateFieldNames(element) {
+      if (!element) return;
+      const formFields = element.querySelectorAll('input, select, textarea, label, button');
+      formFields.forEach(function(field) {
+        if (field.name && field.name.includes('__prefix__')) {
+          field.name = field.name.replace(/__prefix__/g, totalForms);
+        }
+        if (field.id && field.id.includes('__prefix__')) {
+          field.id = field.id.replace(/__prefix__/g, totalForms);
+        }
+        if (field.getAttribute('for') && field.getAttribute('for').includes('__prefix__')) {
+          field.setAttribute('for', field.getAttribute('for').replace(/__prefix__/g, totalForms));
+        }
+        // Update data attributes
+        if (field.hasAttribute('data-field-index') && field.getAttribute('data-field-index') === '__prefix__') {
+          field.setAttribute('data-field-index', totalForms);
+        }
+      });
+    }
+    
+    updateFieldNames(newFieldRow);
+    if (newSettingsRow) {
+      newSettingsRow.id = 'field-settings-' + totalForms;
+      updateFieldNames(newSettingsRow);
+    }
+    
+    // Add the new field row to tbody
+    fieldFormsetBody.appendChild(newFieldRow);
+    
+    // Add the settings row right after the field row
+    if (newSettingsRow) {
+      fieldFormsetBody.appendChild(newSettingsRow);
+    }
+    
+    // Update the total forms count
+    mgmtForm.value = totalForms + 1;
+  });
+  
+  // Handle delete checkboxes for fields (for existing saved fields)
+  fieldFormsetBody.addEventListener('change', function(e) {
+    if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('DELETE')) {
+      const row = e.target.closest('.field-form-row');
+      if (row && e.target.checked) {
+        row.style.opacity = '0.5';
+        // Also hide the settings row if it exists
+        const settingsRow = row.nextElementSibling;
+        if (settingsRow && settingsRow.classList.contains('field-settings-row')) {
+          settingsRow.style.opacity = '0.5';
+        }
+      } else if (row) {
+        row.style.opacity = '1';
+        const settingsRow = row.nextElementSibling;
+        if (settingsRow && settingsRow.classList.contains('field-settings-row')) {
+          settingsRow.style.opacity = '1';
+        }
+      }
+    }
+  });
+  
+  // Handle remove button clicks (for newly added rows that aren't saved yet)
+  fieldFormsetBody.addEventListener('click', function(e) {
+    if (e.target.closest('.remove-field-row')) {
+      e.preventDefault();
+      e.stopPropagation();
+      const button = e.target.closest('.remove-field-row');
+      const fieldRow = button.closest('tr.field-form-row');
+      
+      if (fieldRow) {
+        // Find and remove the settings row if it exists (next sibling)
+        let nextRow = fieldRow.nextElementSibling;
+        if (nextRow && nextRow.classList.contains('field-settings-row')) {
+          nextRow.remove();
+        }
+        
+        // Remove the field row
+        fieldRow.remove();
+        
+        // Update the total forms count - find management form again if needed
+        let mgmtForm = fieldManagementForm;
+        if (!mgmtForm) {
+          const form = fieldFormsetBody.closest('form');
+          if (form) {
+            const allManagementForms = form.querySelectorAll('input[name$="-TOTAL_FORMS"]');
+            if (allManagementForms.length > 0) {
+              const section = fieldFormsetBody.closest('.form-section');
+              for (let i = 0; i < allManagementForms.length; i++) {
+                const mf = allManagementForms[i];
+                if (section && section.contains(mf)) {
+                  mgmtForm = mf;
+                  break;
+                }
+              }
+              if (!mgmtForm) {
+                mgmtForm = allManagementForms[0];
+              }
+            }
+          }
+        }
+        
+        if (mgmtForm) {
+          const currentTotal = parseInt(mgmtForm.value) || 0;
+          if (currentTotal > 0) {
+            mgmtForm.value = currentTotal - 1;
+          }
+        }
+      }
+    }
+  });
+  
+  // ========================================================================
+  // Permission Formset
+  // ========================================================================
+  const permissionFormsetBody = document.getElementById('permission-formset-body');
+  const addPermissionButton = document.getElementById('add-permission-row');
+  // Find management form dynamically
+  const permissionManagementForm = permissionFormsetBody ? 
+    permissionFormsetBody.closest('.form-section').querySelector('input[name$="-TOTAL_FORMS"]') : null;
+  
+  if (permissionFormsetBody && addPermissionButton && permissionManagementForm) {
+    const emptyPermissionForm = document.getElementById('empty-permission-form');
+    
+    addPermissionButton.addEventListener('click', function() {
+      const totalForms = parseInt(permissionManagementForm.value);
+      
+      // Clone the empty form template
+      const newRow = emptyPermissionForm.querySelector('tr').cloneNode(true);
+      
+      // Update all form field names and IDs to use the new index
+      const formFields = newRow.querySelectorAll('input, select, textarea, label');
+      formFields.forEach(function(field) {
+        if (field.name) {
+          field.name = field.name.replace(/__prefix__/g, totalForms);
+        }
+        if (field.id) {
+          field.id = field.id.replace(/__prefix__/g, totalForms);
+        }
+        if (field.getAttribute('for')) {
+          field.setAttribute('for', field.getAttribute('for').replace(/__prefix__/g, totalForms));
+        }
+      });
+      
+      // Add the new row to the formset body
+      permissionFormsetBody.appendChild(newRow);
+      
+      // Update the total forms count
+      permissionManagementForm.value = totalForms + 1;
+    });
+    
+    // Handle delete checkboxes for permissions
+    permissionFormsetBody.addEventListener('change', function(e) {
+      if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('DELETE')) {
+        const row = e.target.closest('tr');
+        if (row && e.target.checked) {
+          row.style.opacity = '0.5';
+        } else if (row) {
+          row.style.opacity = '1';
+        }
+      }
+    });
+  }
+  
+  // ========================================================================
+  // Event Formset
+  // ========================================================================
+  const eventFormsetBody = document.getElementById('event-formset-body');
+  const addEventButton = document.getElementById('add-event-row');
+  // Find management form dynamically
+  const eventManagementForm = eventFormsetBody ? 
+    eventFormsetBody.closest('.form-section').querySelector('input[name$="-TOTAL_FORMS"]') : null;
+  
+  if (eventFormsetBody && addEventButton && eventManagementForm) {
+    const emptyEventForm = document.getElementById('empty-event-form');
+    
+    addEventButton.addEventListener('click', function() {
+      const totalForms = parseInt(eventManagementForm.value);
+      
+      // Clone the empty form template
+      const newRow = emptyEventForm.querySelector('tr').cloneNode(true);
+      
+      // Update all form field names and IDs to use the new index
+      const formFields = newRow.querySelectorAll('input, select, textarea, label');
+      formFields.forEach(function(field) {
+        if (field.name) {
+          field.name = field.name.replace(/__prefix__/g, totalForms);
+        }
+        if (field.id) {
+          field.id = field.id.replace(/__prefix__/g, totalForms);
+        }
+        if (field.getAttribute('for')) {
+          field.setAttribute('for', field.getAttribute('for').replace(/__prefix__/g, totalForms));
+        }
+      });
+      
+      // Add the new row to the formset body
+      eventFormsetBody.appendChild(newRow);
+      
+      // Update the total forms count
+      eventManagementForm.value = totalForms + 1;
+    });
+    
+    // Handle delete checkboxes for events
+    eventFormsetBody.addEventListener('change', function(e) {
+      if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('DELETE')) {
+        const row = e.target.closest('tr');
+        if (row && e.target.checked) {
+          row.style.opacity = '0.5';
+        } else if (row) {
+          row.style.opacity = '1';
+        }
+      }
+    });
+  }
+  
+  // ========================================================================
+  // Toggle Field Settings Panel
+  // ========================================================================
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.toggle-field-settings')) {
+      const button = e.target.closest('.toggle-field-settings');
+      const fieldIndex = button.getAttribute('data-field-index');
+      
+      // Find the settings row - it should be the next sibling row after the field row
+      const fieldRow = button.closest('tr');
+      if (fieldRow) {
+        let nextRow = fieldRow.nextElementSibling;
+        while (nextRow) {
+          if (nextRow.classList.contains('field-settings-row')) {
+            if (nextRow.style.display === 'none' || nextRow.style.display === '') {
+              nextRow.style.display = 'table-row';
+              button.innerHTML = '▲ ⚙️ {% trans "Settings" %}';
+            } else {
+              nextRow.style.display = 'none';
+              button.innerHTML = '▼ ⚙️ {% trans "Settings" %}';
+            }
+            break;
+          }
+          nextRow = nextRow.nextElementSibling;
+        }
+      }
+    }
+  });
+});
+</script>
+{% endblock %}
+

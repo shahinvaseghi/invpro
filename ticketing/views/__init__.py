@@ -23,8 +23,15 @@ from .tickets import (
 # Import placeholder views
 from .placeholders import (
     TicketRespondView,
-    TemplateCreateView,
     AutoResponseView,
+)
+
+# Import template views
+from .templates import (
+    TicketTemplateListView,
+    TicketTemplateCreateView,
+    TicketTemplateUpdateView,
+    TicketTemplateDeleteView,
 )
 
 # Import category views
@@ -43,6 +50,9 @@ from .subcategories import (
     TicketSubcategoryDeleteView,
 )
 
+# Import debug views
+from .debug import debug_log_view
+
 # Future imports will be added here as views are implemented
 # from .templates import (
 #     TicketTemplateListView,
@@ -57,7 +67,10 @@ __all__ = [
     "TicketCreateView",
     "TicketEditView",
     "TicketRespondView",
-    "TemplateCreateView",
+    "TicketTemplateListView",
+    "TicketTemplateCreateView",
+    "TicketTemplateUpdateView",
+    "TicketTemplateDeleteView",
     "TicketCategoryListView",
     "TicketCategoryCreateView",
     "TicketCategoryUpdateView",
@@ -67,5 +80,6 @@ __all__ = [
     "TicketSubcategoryUpdateView",
     "TicketSubcategoryDeleteView",
     "AutoResponseView",
+    "debug_log_view",
 ]
 

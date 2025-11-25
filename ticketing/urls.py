@@ -19,7 +19,10 @@ urlpatterns = [
     path('management/categories/<int:pk>/delete/', views.TicketCategoryDeleteView.as_view(), name='category_delete'),
     
     # Management - Templates
-    path('management/templates/create/', views.TemplateCreateView.as_view(), name='template_create'),
+    path('management/templates/', views.TicketTemplateListView.as_view(), name='templates'),
+    path('management/templates/create/', views.TicketTemplateCreateView.as_view(), name='template_create'),
+    path('management/templates/<int:pk>/edit/', views.TicketTemplateUpdateView.as_view(), name='template_edit'),
+    path('management/templates/<int:pk>/delete/', views.TicketTemplateDeleteView.as_view(), name='template_delete'),
     
     # Management - Subcategories
     path('management/subcategories/', views.TicketSubcategoryListView.as_view(), name='subcategories'),
@@ -29,5 +32,8 @@ urlpatterns = [
     
     # Automation
     path('automation/auto-response/', views.AutoResponseView.as_view(), name='auto_response'),
+    
+    # Debug
+    path('debug-log/', views.debug_log_view, name='debug_log'),
 ]
 
