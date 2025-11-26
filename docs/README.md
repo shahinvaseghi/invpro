@@ -12,9 +12,12 @@ This directory contains all project documentation files organized by topic and p
 
 ### Technical Documentation
 - **[DATABASE_DOCUMENTATION.md](DATABASE_DOCUMENTATION.md)** - Database schema, tables, and relationships
+- **[API_DOCUMENTATION.md](API_DOCUMENTATION.md)** - Complete API endpoints documentation for all modules
 - **[MODULE_DEPENDENCIES.md](MODULE_DEPENDENCIES.md)** - Module dependencies and optional features handling
 - **[system_requirements.md](system_requirements.md)** - System requirements and deployment guide
 - **[ui_guidelines.md](ui_guidelines.md)** - UI/UX guidelines and component documentation
+- **[TEMPLATE_TAGS.md](TEMPLATE_TAGS.md)** - Template tags and filters documentation (Jalali dates, permissions, JSON)
+- **[BASE_CLASSES_MIXINS.md](BASE_CLASSES_MIXINS.md)** - Base classes and mixins documentation for views and forms
 
 ### Workflow Documentation
 - **[approval_workflow.md](approval_workflow.md)** - Approval workflow reference for purchase requests, warehouse requests, and stocktaking records
@@ -82,14 +85,17 @@ For detailed step-by-step instructions, see:
 ## 📂 Module-Specific Documentation
 
 For detailed documentation about each module, check the README files in their respective directories:
-- `shared/README.md` - Shared module overview
+- `shared/README.md` - Shared module overview (includes context processors, utils, templatetags)
 - `shared/README_FORMS.md` - Shared module forms
-- `inventory/README.md` - Inventory module overview
+- `inventory/README.md` - Inventory module overview (includes base classes, mixins, API endpoints, management commands)
 - `inventory/README_FORMS.md` - Inventory module forms
 - `inventory/README_BALANCE.md` - Inventory balance calculation
 - `production/README.md` - Production module overview
+- `production/README_BOM.md` - BOM (Bill of Materials) system documentation
+- `production/README_FORMS.md` - Production module forms
 - `qc/README.md` - Quality Control module overview
 - `ui/README.md` - UI module overview
+- `templates/inventory/README.md` - Inventory module templates documentation
 
 ---
 

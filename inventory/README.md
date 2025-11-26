@@ -184,6 +184,277 @@ Provides unit tests that:
 
 Executed via `python manage.py test inventory`.
 
+## management/commands/
+
+### cleanup_test_receipts.py
+
+**Purpose**: Management command for cleaning up test data or inspecting receipt data.
+
+**Command Name**: `cleanup_test_receipts`
+
+**Usage**:
+```bash
+# Delete all test receipts and their lines
+python manage.py cleanup_test_receipts
+
+# Show receipt data instead of deleting
+python manage.py cleanup_test_receipts --show
+```
+
+**Options**:
+- `--show`: Display receipt data instead of deleting (useful for debugging)
+
+**What It Does**:
+
+1. **Delete Mode** (default):
+   - Deletes all `ReceiptPermanentLine` records
+   - Deletes all `ReceiptPermanent` records
+   - Shows success message with counts
+
+2. **Show Mode** (`--show` flag):
+   - Displays recent receipts (last 20) with their details
+   - Shows receipt lines (last 30) with item and quantity information
+   - Shows recent receipts with their associated lines
+   - Useful for debugging data issues
+
+**Example Output** (show mode):
+```
+================================================================================
+RECEIPTPERMANENT TABLE
+================================================================================
+Total receipts: 150
+
+ID: 123
+  Code: PRM-202511-000001
+  Date: 2025-11-15
+  Company ID: 1
+  Created By: 5
+  Lines Count: 3
+
+================================================================================
+RECEIPTPERMANENTLINE TABLE
+================================================================================
+Total lines: 450
+
+ID: 456
+  Receipt ID: 123
+  Receipt Code: PRM-202511-000001
+  Item ID: 789
+  Item Name: Sample Item
+  Quantity: 10.000000
+  Unit: EA
+  Entered Quantity: 10.000000
+  Entered Unit: EA
+  Warehouse ID: 1
+```
+
+**Use Cases**:
+- Clean up test data after development/testing
+- Inspect receipt data structure
+- Debug data integrity issues
+- Verify line relationships
+
+**Warning**: The delete mode permanently removes all receipt data. Use with caution in production!
+
+---
+
+## views/base.py
+
+**Purpose**: Base views and mixins for inventory module that provide common functionality.
+
+### Base Classes
+
+#### `InventoryBaseView`
+
+**Type**: `LoginRequiredMixin` subclass
+
+**Purpose**: Base view with common context for all inventory views.
+
+**Features**:
+- Automatic company filtering via `get_queryset()`
+- Adds `active_module = 'inventory'` to context
+- Helper method for delete permission checks
+
+**Methods**:
+- `get_queryset()`: Filters queryset by `active_company_id` from session
+- `get_context_data(**kwargs)`: Adds `active_module` to context
+- `add_delete_permissions_to_context(context, feature_code)`: Adds `can_delete_own` and `can_delete_other` to context
+
+**Usage**:
+```python
+class ItemListView(InventoryBaseView, ListView):
+    model = Item
+    # Automatically filters by active company
+    # Context includes active_module='inventory'
+```
+
+---
+
+#### `DocumentLockProtectedMixin`
+
+**Purpose**: Prevents modifying locked inventory documents.
+
+**Features**:
+- Blocks GET, POST, PUT, PATCH, DELETE methods on locked documents
+- Optional owner check (only creator can edit)
+- Customizable error messages and redirect URLs
+
+**Attributes**:
+- `lock_redirect_url_name`: URL name to redirect to when document is locked
+- `lock_error_message`: Error message for locked documents
+- `owner_field`: Field name for document owner (default: `'created_by'`)
+- `owner_error_message`: Error message for owner mismatch
+- `protected_methods`: List of HTTP methods to protect (default: all)
+
+**Usage**:
+```python
+class ReceiptUpdateView(DocumentLockProtectedMixin, UpdateView):
+    model = ReceiptPermanent
+    lock_redirect_url_name = 'inventory:receipt_permanent_list'
+    
+    # Automatically blocks editing if is_locked=1
+    # Redirects to list view with error message
+```
+
+---
+
+#### `DocumentLockView`
+
+**Type**: `LoginRequiredMixin, View`
+
+**Purpose**: Generic view to lock inventory documents.
+
+**Features**:
+- Sets `is_locked = 1` on document
+- Updates `locked_at` and `locked_by` fields
+- Hooks for before/after lock actions
+
+**Attributes**:
+- `model`: Model class to lock
+- `success_url_name`: URL name to redirect to after locking
+- `success_message`: Success message
+- `already_locked_message`: Message if document already locked
+- `lock_field`: Field name for lock status (default: `'is_locked'`)
+
+**Methods**:
+- `before_lock(obj, request)`: Hook executed before locking (return `False` to cancel)
+- `after_lock(obj, request)`: Hook executed after locking
+
+**Usage**:
+```python
+class ReceiptLockView(DocumentLockView):
+    model = ReceiptPermanent
+    success_url_name = 'inventory:receipt_permanent_list'
+    
+    def after_lock(self, obj, request):
+        # Generate serials when receipt is locked
+        generate_receipt_serials(obj, user=request.user)
+```
+
+---
+
+### Mixins
+
+#### `LineFormsetMixin`
+
+**Purpose**: Handles line formset creation and saving for multi-line documents.
+
+**Features**:
+- Automatic formset building from request data
+- Line formset saving with document association
+- Serial assignment handling for issue lines
+
+**Attributes**:
+- `formset_class`: Formset class to use (must be set)
+- `formset_prefix`: Prefix for formset fields (default: `'lines'`)
+
+**Methods**:
+- `build_line_formset(data, instance, company_id)`: Builds formset with given parameters
+- `get_line_formset(data)`: Gets formset for current request
+- `get_context_data(**kwargs)`: Adds `lines_formset` to context
+- `form_invalid(form)`: Handles invalid form with formset
+- `_save_line_formset(formset)`: Saves formset instances and handles serials
+
+**Usage**:
+```python
+class ReceiptCreateView(LineFormsetMixin, CreateView):
+    model = ReceiptPermanent
+    formset_class = ReceiptPermanentLineFormSet
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        self._save_line_formset(self.get_context_data()['lines_formset'])
+        return response
+```
+
+**Serial Handling**:
+- Automatically assigns serials to issue lines from POST data
+- Reserves serials when issue line is saved
+- Filters serials by item, warehouse, and status
+
+---
+
+#### `ItemUnitFormsetMixin`
+
+**Purpose**: Handles item unit formset creation and saving.
+
+**Features**:
+- Automatic unit formset building
+- Unit code generation
+- Item-warehouse relationship syncing
+
+**Attributes**:
+- `formset_prefix`: Prefix for formset fields (default: `'units'`)
+
+**Methods**:
+- `build_unit_formset(data, instance, company_id)`: Builds unit formset
+- `get_unit_formset(data)`: Gets unit formset for current request
+- `get_context_data(**kwargs)`: Adds `units_formset` and `units_formset_empty` to context
+- `form_invalid(form)`: Handles invalid form with unit formset
+- `_generate_unit_code(company)`: Generates sequential unit code
+- `_save_unit_formset(formset)`: Saves unit formset instances
+- `_sync_item_warehouses(item, warehouses, user)`: Syncs item-warehouse relationships
+- `_get_ordered_warehouses(form)`: Gets warehouses in selection order
+
+**Usage**:
+```python
+class ItemCreateView(ItemUnitFormsetMixin, CreateView):
+    model = Item
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        self._save_unit_formset(self.get_context_data()['units_formset'])
+        warehouses = self._get_ordered_warehouses(form)
+        self._sync_item_warehouses(self.object, warehouses, self.request.user)
+        return response
+```
+
+---
+
+## views/api.py
+
+**Purpose**: JSON API endpoints for dynamic form interactions and data filtering.
+
+**All endpoints require**:
+- User authentication (`@login_required`)
+- Active company in session (`active_company_id`)
+
+**Endpoints**:
+- `get_item_allowed_units`: Get allowed units for an item
+- `get_filtered_categories`: Get categories filtered by type
+- `get_filtered_subcategories`: Get subcategories filtered by category
+- `get_filtered_items`: Get items filtered by type/category/subcategory
+- `get_item_units`: Get detailed unit information for an item
+- `get_item_allowed_warehouses`: Get allowed warehouses for an item
+- `get_temporary_receipt_data`: Get temporary receipt data for auto-filling
+- `get_item_available_serials`: Get available serials for an item in warehouse
+- `update_serial_secondary_code`: Update secondary serial code
+- `get_warehouse_work_lines`: Get work lines for a warehouse
+
+**See**: [API Documentation](../docs/API_DOCUMENTATION.md) for complete endpoint documentation.
+
+---
+
 ## Future Work / Notes
 - When adding new document types or extending workflows (e.g., returns), update both the models and admin registration and reflect changes in the design plan markdown.
 - Consider adding signals/services for stock level updates when production or QC modules consume items.
