@@ -125,7 +125,7 @@ class TicketTemplateFieldForm(forms.ModelForm):
             "field_name": forms.TextInput(attrs={"class": "form-control"}),
             "field_type": forms.Select(attrs={"class": "form-control"}),
             "field_key": forms.TextInput(attrs={"class": "form-control"}),
-            "is_required": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "is_required": forms.Select(attrs={"class": "form-control"}),
             "default_value": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
             "field_order": forms.NumberInput(attrs={"class": "form-control"}),
             "help_text": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
@@ -151,6 +151,33 @@ class TicketTemplateFieldForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["field_type"].choices = self.FIELD_TYPE_CHOICES
         self.fields["is_enabled"].choices = ENABLED_FLAG_CHOICES
+        self.fields["is_required"].choices = ENABLED_FLAG_CHOICES
+        
+        # Convert field_config dict to JSON string for display in template
+        # This is necessary because JSONField returns dict in Python but we need JSON string in template
+        import json
+        if self.instance and self.instance.pk and hasattr(self.instance, 'field_config'):
+            field_config_value = self.instance.field_config
+            if field_config_value:
+                if isinstance(field_config_value, dict):
+                    # Convert dict to JSON string
+                    json_string = json.dumps(field_config_value, ensure_ascii=False)
+                    # Override the widget's format_value to return JSON string
+                    original_widget = self.fields["field_config"].widget
+                    original_format_value = original_widget.format_value
+                    
+                    def format_json_value(value):
+                        if isinstance(value, dict):
+                            return json.dumps(value, ensure_ascii=False)
+                        elif isinstance(value, str):
+                            # Already a string, return as-is
+                            return value
+                        elif value is None:
+                            return ""
+                        else:
+                            return original_format_value(value)
+                    
+                    original_widget.format_value = format_json_value
 
 
 class TicketTemplateFieldOptionForm(forms.ModelForm):
@@ -169,7 +196,7 @@ class TicketTemplateFieldOptionForm(forms.ModelForm):
             "option_value": forms.TextInput(attrs={"class": "form-control"}),
             "option_label": forms.TextInput(attrs={"class": "form-control"}),
             "option_order": forms.NumberInput(attrs={"class": "form-control"}),
-            "is_default": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "is_default": forms.Select(attrs={"class": "form-control"}),
             "is_enabled": forms.Select(attrs={"class": "form-control"}),
         }
         labels = {
@@ -184,6 +211,7 @@ class TicketTemplateFieldOptionForm(forms.ModelForm):
         """Initialize form."""
         super().__init__(*args, **kwargs)
         self.fields["is_enabled"].choices = ENABLED_FLAG_CHOICES
+        self.fields["is_default"].choices = ENABLED_FLAG_CHOICES
 
 
 class TicketTemplateEventForm(forms.ModelForm):
@@ -268,9 +296,9 @@ class TicketTemplatePermissionForm(forms.ModelForm):
         widgets = {
             "user": forms.Select(attrs={"class": "form-control"}),
             "group": forms.Select(attrs={"class": "form-control"}),
-            "can_create": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "can_respond": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "can_close": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "can_create": forms.Select(attrs={"class": "form-control"}),
+            "can_respond": forms.Select(attrs={"class": "form-control"}),
+            "can_close": forms.Select(attrs={"class": "form-control"}),
             "is_enabled": forms.Select(attrs={"class": "form-control"}),
         }
         labels = {
@@ -291,6 +319,9 @@ class TicketTemplatePermissionForm(forms.ModelForm):
         self.fields["user"].required = False
         self.fields["group"].required = False
         self.fields["is_enabled"].choices = ENABLED_FLAG_CHOICES
+        self.fields["can_create"].choices = ENABLED_FLAG_CHOICES
+        self.fields["can_respond"].choices = ENABLED_FLAG_CHOICES
+        self.fields["can_close"].choices = ENABLED_FLAG_CHOICES
 
     def clean(self):
         """Ensure either user or group is set, but not both."""
@@ -358,11 +389,28 @@ class BaseTicketTemplatePermissionFormSet(BaseInlineFormSet):
         """Validate that each row has either user or group."""
         super().clean()
         for form in self.forms:
+            # Skip forms marked for deletion
             if form.cleaned_data.get("DELETE"):
                 continue
+            
+            # Skip completely empty forms (new forms with no data entered)
+            # For new forms without instance, check if any data was entered
+            if not form.instance.pk:
+                # This is a new form - check if any field has been filled
+                user = form.cleaned_data.get("user")
+                group = form.cleaned_data.get("group")
+                can_create = form.cleaned_data.get("can_create", 0)
+                can_respond = form.cleaned_data.get("can_respond", 0)
+                can_close = form.cleaned_data.get("can_close", 0)
+                
+                # If all fields are empty/default, skip validation (form will be ignored)
+                if not user and not group and can_create == 0 and can_respond == 0 and can_close == 0:
+                    continue
+            
+            # For existing instances or forms with data, validate
             user = form.cleaned_data.get("user")
             group = form.cleaned_data.get("group")
-
+            
             if not user and not group:
                 raise forms.ValidationError(
                     _("Each permission entry must have either a user or a group.")
@@ -404,7 +452,7 @@ TicketTemplatePermissionFormSet = inlineformset_factory(
     form=TicketTemplatePermissionForm,
     formset=BaseTicketTemplatePermissionFormSet,
     fk_name="template",
-    extra=1,
+    extra=0,
     can_delete=True,
 )
 

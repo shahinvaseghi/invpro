@@ -218,6 +218,21 @@ class TicketTemplateUpdateView(FeaturePermissionRequiredMixin, TicketingBaseView
             field_formset = TicketTemplateFieldFormSet(instance=self.object)
             permission_formset = TicketTemplatePermissionFormSet(instance=self.object)
             event_formset = TicketTemplateEventFormSet(instance=self.object)
+            
+            # Log field_config values for debugging
+            print("=" * 80)
+            print("🟣 [VIEW] Loading template for edit...")
+            if self.object:
+                print(f"🟣 [VIEW] Template ID: {self.object.pk}")
+                fields = self.object.fields.all()
+                for idx, field in enumerate(fields):
+                    print(f"🟣 [VIEW] Field {idx}: field_key={field.field_key}, field_type={field.field_type}")
+                    print(f"🟣 [VIEW] Field {idx} field_config type: {type(field.field_config)}")
+                    print(f"🟣 [VIEW] Field {idx} field_config value: {field.field_config}")
+                    import json
+                    if isinstance(field.field_config, dict):
+                        json_str = json.dumps(field.field_config, ensure_ascii=False)
+                        print(f"🟣 [VIEW] Field {idx} field_config as JSON string: {json_str}")
 
         context["field_formset"] = field_formset
         context["permission_formset"] = permission_formset
@@ -244,15 +259,30 @@ class TicketTemplateUpdateView(FeaturePermissionRequiredMixin, TicketingBaseView
 
         # Save field formset
         field_formset = TicketTemplateFieldFormSet(self.request.POST, instance=self.object)
+        
+        # Log field_config values from POST data
+        print("=" * 80)
+        print("🟣 [VIEW] Saving template fields...")
+        for key, value in self.request.POST.items():
+            if 'field_config' in key:
+                print(f"🟣 [VIEW] POST field_config found: {key} = {value}")
+        
         if field_formset.is_valid():
             fields = field_formset.save(commit=False)
-            for field in fields:
+            for idx, field in enumerate(fields):
+                print(f"🟣 [VIEW] Field {idx}: field_key={field.field_key}, field_type={field.field_type}")
+                print(f"🟣 [VIEW] Field {idx} field_config (before save): {field.field_config}")
+                
                 field.company_id = company_id
                 if field.template:
                     field.template_code = field.template.template_code
                 field.save()
+                
+                print(f"🟣 [VIEW] Field {idx} field_config (after save): {field.field_config}")
             field_formset.save()
         else:
+            print("🟣 [VIEW] Field formset is INVALID!")
+            print(f"🟣 [VIEW] Errors: {field_formset.errors}")
             # If field formset is invalid, return form with errors
             return self.form_invalid(form)
 

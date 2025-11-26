@@ -1,5 +1,6 @@
 {% extends "ticketing/base.html" %}
 {% load i18n %}
+{% load json_filters %}
 
 {% block title %}{{ page_title }} - {{ block.super }}{% endblock %}
 
@@ -143,12 +144,12 @@
                 </td>
               </tr>
               <!-- Field Settings Row (Collapsible) -->
-              <tr class="field-settings-row" id="field-settings-{{ forloop.counter0 }}" style="display: none;">
+              <tr class="field-settings-row" id="field-settings-{{ forloop.counter0 }}" style="display: none;" data-field-type="{{ field_form.field_type.value|default:'' }}">
                 <td colspan="10" style="background: #f8f9fa; padding: 1.5rem;">
-                  <div class="field-settings-panel">
+                  <div class="field-settings-panel" data-field-index="{{ forloop.counter0 }}">
                     <h4 style="margin-bottom: 1rem;">{% trans "Field Settings" %}</h4>
                     
-                    <!-- Help Text -->
+                    <!-- Common Settings (always visible) -->
                     <div class="form-field" style="margin-bottom: 1rem;">
                       <label>{{ field_form.help_text.label }}</label>
                       {{ field_form.help_text }}
@@ -157,22 +158,27 @@
                       {% endfor %}
                     </div>
                     
-                    <!-- Field Config (JSON) - For Reference Fields, File Upload, etc. -->
-                    <div class="form-field" style="margin-bottom: 1rem;">
-                      <label>{% trans "Field Configuration (JSON)" %}</label>
-                      <textarea 
-                        name="{{ field_form.field_config.html_name|default:'' }}" 
-                        id="{{ field_form.field_config.id_for_label|default:'' }}" 
-                        class="form-control field-config-textarea" 
-                        rows="6"
-                        placeholder='{"allowed_entity_types": ["inventory.item"], "action_reference": "users:show:gp=superuser"}'
-                      >{% if field_form.field_config.value %}{{ field_form.field_config.value|safe }}{% endif %}</textarea>
-                      <small class="form-text">
-                        {% trans "JSON configuration for field-specific settings. For reference fields: use 'allowed_entity_types' and 'action_reference'. For file upload: use 'allowed_file_types' and 'max_file_size'." %}
-                      </small>
+                    <!-- Dynamic Field-Specific Settings (loaded via JavaScript) -->
+                    <div class="field-specific-settings" data-field-index="{{ forloop.counter0 }}">
+                      <!-- Settings will be dynamically loaded here based on field_type -->
                     </div>
                     
-                    <!-- Validation Rules (JSON) -->
+                    <!-- Hidden field_config for storing settings as JSON -->
+                    {% if field_form.instance.pk and field_form.instance.field_config %}
+                      <input type="hidden" 
+                             name="{{ field_form.field_config.html_name }}" 
+                             id="{{ field_form.field_config.id_for_label }}"
+                             value="{{ field_form.instance.field_config|to_json }}" 
+                             class="field-config-json-input" />
+                    {% else %}
+                      <input type="hidden" 
+                             name="{{ field_form.field_config.html_name }}" 
+                             id="{{ field_form.field_config.id_for_label }}"
+                             value="{% if field_form.field_config.value %}{{ field_form.field_config.value|safe }}{% else %}{}{% endif %}" 
+                             class="field-config-json-input" />
+                    {% endif %}
+                    
+                    <!-- Validation Rules (JSON) - Optional for all fields -->
                     <div class="form-field" style="margin-bottom: 1rem;">
                       <label>{% trans "Validation Rules (JSON)" %}</label>
                       {{ field_form.validation_rules }}
@@ -231,9 +237,9 @@
           </td>
         </tr>
         <!-- Field Settings Row (Collapsible) - Empty Form -->
-        <tr class="field-settings-row" id="field-settings-__prefix__" style="display: none;">
+        <tr class="field-settings-row" id="field-settings-__prefix__" style="display: none;" data-field-type="">
           <td colspan="10" style="background: #f8f9fa; padding: 1.5rem; border-top: 2px solid #e5e7eb;">
-            <div class="field-settings-panel">
+            <div class="field-settings-panel" data-field-index="__prefix__">
               <h4 style="margin-bottom: 1rem; color: #1f2937;">{% trans "Field Settings" %}</h4>
               
               <!-- Help Text -->
@@ -242,14 +248,17 @@
                 {{ field_formset.empty_form.help_text }}
               </div>
               
-              <!-- Field Config (JSON) -->
-              <div class="form-field" style="margin-bottom: 1rem;">
-                <label>{{ field_formset.empty_form.field_config.label }}</label>
-                {{ field_formset.empty_form.field_config }}
-                <small class="form-text">
-                  {% trans "JSON configuration for field-specific settings. For reference fields: use 'allowed_entity_types' and 'action_reference'. For file upload: use 'allowed_file_types' and 'max_file_size'." %}
-                </small>
+              <!-- Dynamic Field-Specific Settings (loaded via JavaScript) -->
+              <div class="field-specific-settings" data-field-index="__prefix__">
+                <!-- Settings will be dynamically loaded here based on field_type -->
               </div>
+              
+              <!-- Hidden field_config for storing settings as JSON -->
+              <input type="hidden" 
+                     name="{{ field_formset.empty_form.field_config.html_name }}" 
+                     id="{{ field_formset.empty_form.field_config.id_for_label }}"
+                     value="" 
+                     class="field-config-json-input" />
               
               <!-- Validation Rules (JSON) -->
               <div class="form-field" style="margin-bottom: 1rem;">
@@ -336,13 +345,48 @@
                   {{ perm_form.DELETE }}
                   <label for="{{ perm_form.DELETE.id_for_label }}" style="margin-left: 5px;">{% trans "Delete" %}</label>
                 {% else %}
-                  <span class="muted-text">–</span>
+                  <button type="button" class="btn btn-sm btn-danger remove-permission-row" data-permission-index="{{ forloop.counter0 }}">
+                    🗑️ {% trans "Remove" %}
+                  </button>
                 {% endif %}
               </td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
+      <button type="button" id="add-permission-row" class="btn btn-secondary" style="margin-top: 1rem;">
+        + {% trans "Add Permission" %}
+      </button>
+      
+      <!-- Empty form template for permission formset -->
+      <template id="empty-permission-form">
+        <tr>
+          {% for hidden in permission_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+          <td>
+            {{ permission_formset.empty_form.user }}
+          </td>
+          <td>
+            {{ permission_formset.empty_form.group }}
+          </td>
+          <td style="text-align: center;">
+            {{ permission_formset.empty_form.can_create }}
+          </td>
+          <td style="text-align: center;">
+            {{ permission_formset.empty_form.can_respond }}
+          </td>
+          <td style="text-align: center;">
+            {{ permission_formset.empty_form.can_close }}
+          </td>
+          <td>
+            {{ permission_formset.empty_form.is_enabled }}
+          </td>
+          <td>
+            <button type="button" class="btn btn-sm btn-danger remove-permission-row" data-permission-index="__prefix__">
+              🗑️ {% trans "Remove" %}
+            </button>
+          </td>
+        </tr>
+      </template>
     </div>
 
     <!-- Template Events Section -->
@@ -769,6 +813,19 @@ document.addEventListener('DOMContentLoaded', function() {
     if (newSettingsRow) {
       newSettingsRow.id = 'field-settings-' + totalForms;
       updateFieldNames(newSettingsRow);
+      
+      // Initialize field settings for the new row
+      const fieldTypeSelect = newFieldRow.querySelector('select[name*="field_type"]');
+      if (fieldTypeSelect) {
+        // Set default field type to trigger settings update
+        const defaultFieldType = fieldTypeSelect.value || 'short_text';
+        newSettingsRow.setAttribute('data-field-type', defaultFieldType);
+        
+        // Generate initial settings HTML
+        setTimeout(function() {
+          updateFieldSettings(newFieldRow, defaultFieldType);
+        }, 100);
+      }
     }
     
     // Add the new field row to tbody
@@ -863,37 +920,98 @@ document.addEventListener('DOMContentLoaded', function() {
   const permissionManagementForm = permissionFormsetBody ? 
     permissionFormsetBody.closest('.form-section').querySelector('input[name$="-TOTAL_FORMS"]') : null;
   
-  if (permissionFormsetBody && addPermissionButton && permissionManagementForm) {
-    const emptyPermissionForm = document.getElementById('empty-permission-form');
+  if (permissionFormsetBody && addPermissionButton) {
+    // Find management form dynamically
+    let permissionManagementForm = permissionFormsetBody.closest('.form-section').querySelector('input[name$="-TOTAL_FORMS"]');
+    if (!permissionManagementForm) {
+      const form = permissionFormsetBody.closest('form');
+      if (form) {
+        const allInputs = form.querySelectorAll('input[name$="-TOTAL_FORMS"]');
+        const section = permissionFormsetBody.closest('.form-section');
+        for (let i = 0; i < allInputs.length; i++) {
+          if (section && section.contains(allInputs[i])) {
+            permissionManagementForm = allInputs[i];
+            break;
+          }
+        }
+        if (!permissionManagementForm && allInputs.length > 0) {
+          permissionManagementForm = allInputs[0];
+        }
+      }
+    }
     
-    addPermissionButton.addEventListener('click', function() {
-      const totalForms = parseInt(permissionManagementForm.value);
+    if (permissionManagementForm) {
+      const emptyPermissionForm = document.getElementById('empty-permission-form');
       
-      // Clone the empty form template
-      const newRow = emptyPermissionForm.querySelector('tr').cloneNode(true);
-      
-      // Update all form field names and IDs to use the new index
-      const formFields = newRow.querySelectorAll('input, select, textarea, label');
-      formFields.forEach(function(field) {
-        if (field.name) {
-          field.name = field.name.replace(/__prefix__/g, totalForms);
+      if (emptyPermissionForm) {
+        addPermissionButton.addEventListener('click', function() {
+          const totalForms = parseInt(permissionManagementForm.value) || 0;
+          
+          // Clone the empty form template (use .content for template tag)
+          const templateContent = emptyPermissionForm.content || emptyPermissionForm;
+          const newRow = templateContent.querySelector('tr').cloneNode(true);
+          
+          // Update all form field names and IDs to use the new index
+          const formFields = newRow.querySelectorAll('input, select, textarea, label, button');
+          formFields.forEach(function(field) {
+            if (field.name) {
+              field.name = field.name.replace(/__prefix__/g, totalForms);
+            }
+            if (field.id) {
+              field.id = field.id.replace(/__prefix__/g, totalForms);
+            }
+            if (field.getAttribute('for')) {
+              field.setAttribute('for', field.getAttribute('for').replace(/__prefix__/g, totalForms));
+            }
+            if (field.getAttribute('data-permission-index')) {
+              field.setAttribute('data-permission-index', totalForms);
+            }
+          });
+          
+          // Add the new row to the formset body
+          permissionFormsetBody.appendChild(newRow);
+          
+          // Update the total forms count
+          permissionManagementForm.value = totalForms + 1;
+        });
+      }
+    }
+    
+    // Handle remove button clicks for new permission rows
+    permissionFormsetBody.addEventListener('click', function(e) {
+      if (e.target.closest('.remove-permission-row')) {
+        const button = e.target.closest('.remove-permission-row');
+        const row = button.closest('tr');
+        if (row) {
+          row.remove();
+          
+          // Update the total forms count
+          let mgmtForm = permissionFormsetBody.closest('.form-section').querySelector('input[name$="-TOTAL_FORMS"]');
+          if (!mgmtForm) {
+            const form = permissionFormsetBody.closest('form');
+            if (form) {
+              const allInputs = form.querySelectorAll('input[name$="-TOTAL_FORMS"]');
+              const section = permissionFormsetBody.closest('.form-section');
+              for (let i = 0; i < allInputs.length; i++) {
+                if (section && section.contains(allInputs[i])) {
+                  mgmtForm = allInputs[i];
+                  break;
+                }
+              }
+            }
+          }
+          
+          if (mgmtForm) {
+            const currentTotal = parseInt(mgmtForm.value) || 0;
+            if (currentTotal > 0) {
+              mgmtForm.value = currentTotal - 1;
+            }
+          }
         }
-        if (field.id) {
-          field.id = field.id.replace(/__prefix__/g, totalForms);
-        }
-        if (field.getAttribute('for')) {
-          field.setAttribute('for', field.getAttribute('for').replace(/__prefix__/g, totalForms));
-        }
-      });
-      
-      // Add the new row to the formset body
-      permissionFormsetBody.appendChild(newRow);
-      
-      // Update the total forms count
-      permissionManagementForm.value = totalForms + 1;
+      }
     });
     
-    // Handle delete checkboxes for permissions
+    // Handle delete checkboxes for permissions (for existing saved rows)
     permissionFormsetBody.addEventListener('change', function(e) {
       if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('DELETE')) {
         const row = e.target.closest('tr');
@@ -959,6 +1077,907 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // ========================================================================
+  // Dynamic Field Settings Based on Field Type
+  // ========================================================================
+  
+  // Field-specific settings configuration
+  const FIELD_SETTINGS_CONFIG = {
+    // Fields with no special settings (only help_text)
+    'short_text': { type: 'none' },
+    'long_text': { type: 'none' },
+    'rich_text': { type: 'none' },
+    'email': { type: 'none' },
+    'url': { type: 'none' },
+    'phone': { type: 'none' },
+    'file_upload': { type: 'none' },
+    'color': { type: 'none' },
+    'currency': { type: 'none' },
+    'signature': { type: 'none' },
+    'location': { type: 'none' },
+    'section': { type: 'none' },
+    'tags': { type: 'none' },
+    
+    // Options fields (radio, dropdown, checkbox, multi_select)
+    'radio': { type: 'options', sourceType: 'manual_or_entity' },
+    'dropdown': { type: 'options', sourceType: 'manual_or_entity' },
+    'checkbox': { type: 'options', sourceType: 'manual_or_entity' },
+    'multi_select': { type: 'options', sourceType: 'manual_or_entity' },
+    
+    // Date/Time fields
+    'date': { type: 'auto_fill', fieldName: 'auto_fill_date' },
+    'time': { type: 'auto_fill', fieldName: 'auto_fill_time' },
+    'datetime': { type: 'auto_fill', fieldName: 'auto_fill_datetime' },
+    
+    // Number fields
+    'number': { type: 'number', settings: ['thousands_separator'] },
+    'rating': { type: 'range', minField: 'min_rating', maxField: 'max_rating' },
+    'slider': { type: 'range', minField: 'min_value', maxField: 'max_value', stepField: 'step_value' },
+    
+    // Calculation field
+    'calculation': { type: 'formula', fieldName: 'formula' },
+    
+    // Reference field - not needed (use dropdown/multi_select with entity reference)
+    'reference': { type: 'none' }
+  };
+  
+  /**
+   * Generate field-specific settings HTML based on field type
+   */
+  function generateFieldSettingsHTML(fieldType, fieldIndex, fieldConfig = {}) {
+    const config = FIELD_SETTINGS_CONFIG[fieldType];
+    if (!config) {
+      return '<div class="form-text" style="color: #6b7280; font-style: italic;">{% trans "No special settings for this field type" %}</div>';
+    }
+    
+    let html = '';
+    const index = fieldIndex;
+    
+    switch (config.type) {
+      case 'none':
+        // No special settings needed
+        html = '<div class="form-text" style="color: #6b7280; font-style: italic;">{% trans "No special settings required for this field type" %}</div>';
+        break;
+        
+      case 'options':
+        // Options management (manual or entity reference)
+        html = `
+          <div class="options-source-setting" style="margin-bottom: 1rem;">
+            <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">{% trans "Options Source" %}</label>
+            <select name="fields-${index}-options_source" class="form-control options-source-select" style="margin-bottom: 0.5rem;">
+              <option value="manual">{% trans "Manual" %}</option>
+              <option value="entity_reference">{% trans "From Entity Reference" %}</option>
+            </select>
+          </div>
+          
+          <!-- Manual Options Management -->
+          <div class="manual-options-panel" data-field-index="${index}" style="display: none;">
+            <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">{% trans "Manage Options" %}</label>
+            <div class="options-management-container" data-field-index="${index}">
+              <table class="options-table" style="width: 100%; margin-bottom: 0.5rem; border-collapse: collapse;">
+                <thead>
+                  <tr style="background: #f3f4f6; border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 0.5rem; text-align: left; font-weight: 500; font-size: 0.875rem;">{% trans "Order" %}</th>
+                    <th style="padding: 0.5rem; text-align: left; font-weight: 500; font-size: 0.875rem;">{% trans "Value" %}</th>
+                    <th style="padding: 0.5rem; text-align: left; font-weight: 500; font-size: 0.875rem;">{% trans "Label" %}</th>
+                    <th style="padding: 0.5rem; text-align: center; font-weight: 500; font-size: 0.875rem;">{% trans "Default" %}</th>
+                    <th style="padding: 0.5rem; text-align: center; font-weight: 500; font-size: 0.875rem;">{% trans "Actions" %}</th>
+                  </tr>
+                </thead>
+                <tbody class="options-list-body" data-field-index="${index}">
+                  <!-- Options will be dynamically added here -->
+                </tbody>
+              </table>
+              <button type="button" class="btn btn-sm btn-secondary add-option-btn" data-field-index="${index}" style="margin-top: 0.5rem;">
+                + {% trans "Add Option" %}
+              </button>
+            </div>
+          </div>
+          
+          <!-- Entity Reference Configuration -->
+          <div class="entity-reference-panel" data-field-index="${index}" style="display: none;">
+            <div class="form-field" style="margin-bottom: 0.5rem;">
+              <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">{% trans "Entity Reference" %}</label>
+              <input type="text" name="fields-${index}-entity_reference" class="form-control" 
+                     placeholder="e.g., users:list, inventory.items:list" 
+                     value="${fieldConfig.entity_reference || ''}" />
+              <small class="form-text">{% trans "Example: users:list, inventory.items:list, inventory.warehouses:list" %}</small>
+            </div>
+            <div class="form-field" style="margin-bottom: 0.5rem;">
+              <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">{% trans "Value Field" %}</label>
+              <input type="text" name="fields-${index}-value_field" class="form-control" 
+                     placeholder="e.g., id" 
+                     value="${fieldConfig.value_field || 'id'}" />
+              <small class="form-text">{% trans "Field to use as option value (e.g., id, code)" %}</small>
+            </div>
+            <div class="form-field" style="margin-bottom: 0.5rem;">
+              <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">{% trans "Label Field" %}</label>
+              <input type="text" name="fields-${index}-label_field" class="form-control" 
+                     placeholder="e.g., name" 
+                     value="${fieldConfig.label_field || 'name'}" />
+              <small class="form-text">{% trans "Field to use as option label (e.g., name, title)" %}</small>
+            </div>
+          </div>
+        `;
+        break;
+        
+      case 'auto_fill':
+        // Auto-fill checkbox for date/time/datetime
+        const labelText = {
+          'auto_fill_date': '{% trans "Auto-fill with current date" %}',
+          'auto_fill_time': '{% trans "Auto-fill with current time" %}',
+          'auto_fill_datetime': '{% trans "Auto-fill with current date and time" %}'
+        }[config.fieldName] || '{% trans "Auto-fill" %}';
+        
+        html = `
+          <div class="form-field" style="margin-bottom: 0.5rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem;">
+              <input type="checkbox" name="fields-${index}-${config.fieldName}" 
+                     class="form-check-input" 
+                     ${fieldConfig[config.fieldName] ? 'checked' : ''} />
+              <span>${labelText}</span>
+            </label>
+            <small class="form-text" style="display: block; margin-top: 0.25rem;">
+              {% trans "If enabled, the field will be automatically filled with current date/time when creating a ticket" %}
+            </small>
+          </div>
+        `;
+        break;
+        
+      case 'number':
+        // Number field: thousands separator
+        html = `
+          <div class="form-field" style="margin-bottom: 0.5rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem;">
+              <input type="checkbox" name="fields-${index}-thousands_separator" 
+                     class="form-check-input" 
+                     ${fieldConfig.thousands_separator ? 'checked' : ''} />
+              <span>{% trans "Use thousands separator (3 digits, 3 digits)" %}</span>
+            </label>
+            <small class="form-text" style="display: block; margin-top: 0.25rem;">
+              {% trans "If enabled, numbers will be displayed with thousand separators (e.g., 1,000,000)" %}
+            </small>
+          </div>
+        `;
+        break;
+        
+      case 'range':
+        // Range fields: min, max, (optional step)
+        html = `
+          <div class="form-field" style="margin-bottom: 0.5rem;">
+            <label style="display: block; font-weight: 500; margin-bottom: 0.25rem;">{% trans "Minimum Value" %}</label>
+            <input type="number" name="fields-${index}-${config.minField}" 
+                   class="form-control" 
+                   value="${fieldConfig[config.minField] || ''}" 
+                   placeholder="0" />
+          </div>
+          <div class="form-field" style="margin-bottom: 0.5rem;">
+            <label style="display: block; font-weight: 500; margin-bottom: 0.25rem;">{% trans "Maximum Value" %}</label>
+            <input type="number" name="fields-${index}-${config.maxField}" 
+                   class="form-control" 
+                   value="${fieldConfig[config.maxField] || ''}" 
+                   placeholder="100" />
+          </div>
+        `;
+        
+        if (config.stepField) {
+          html += `
+            <div class="form-field" style="margin-bottom: 0.5rem;">
+              <label style="display: block; font-weight: 500; margin-bottom: 0.25rem;">{% trans "Step Value" %}</label>
+              <input type="number" name="fields-${index}-${config.stepField}" 
+                     class="form-control" 
+                     value="${fieldConfig[config.stepField] || '1'}" 
+                     placeholder="1" />
+              <small class="form-text">{% trans "Increment between values (e.g., 1, 5, 10)" %}</small>
+            </div>
+          `;
+        }
+        break;
+        
+      case 'formula':
+        // Calculation formula
+        html = `
+          <div class="form-field" style="margin-bottom: 0.5rem;">
+            <label style="display: block; font-weight: 500; margin-bottom: 0.25rem;">{% trans "Calculation Formula" %}</label>
+            <textarea name="fields-${index}-formula" class="form-control" rows="3" 
+                      placeholder="{field_key1} + {field_key2}">${fieldConfig.formula || ''}</textarea>
+            <small class="form-text">
+              {% trans "Use {field_key} to reference other fields. Operators: +, -, *, /, ()" %}
+            </small>
+          </div>
+        `;
+        break;
+    }
+    
+    return html;
+  }
+  
+  /**
+   * Update field settings panel based on field type
+   */
+  function updateFieldSettings(fieldRow, fieldType) {
+    // Try to find field index from button or row
+    let fieldIndex = fieldRow.querySelector('.toggle-field-settings')?.getAttribute('data-field-index');
+    if (!fieldIndex) {
+      // Try to extract from field name
+      const fieldTypeSelect = fieldRow.querySelector('select[name*="field_type"]');
+      if (fieldTypeSelect && fieldTypeSelect.name) {
+        const match = fieldTypeSelect.name.match(/fields-(\d+)-/);
+        if (match) fieldIndex = match[1];
+      }
+    }
+    
+    if (!fieldIndex && fieldIndex !== '0') {
+      // Try to find from closest form row with index
+      const allRows = document.querySelectorAll('tr.field-form-row');
+      for (let i = 0; i < allRows.length; i++) {
+        if (allRows[i] === fieldRow) {
+          fieldIndex = i.toString();
+          break;
+        }
+      }
+    }
+    
+    if (!fieldIndex && fieldIndex !== '0') return;
+    
+    // Find the settings row
+    let settingsRow = fieldRow.nextElementSibling;
+    while (settingsRow && !settingsRow.classList.contains('field-settings-row')) {
+      settingsRow = settingsRow.nextElementSibling;
+    }
+    
+    if (!settingsRow) return;
+    
+    // Update data-field-type attribute
+    settingsRow.setAttribute('data-field-type', fieldType);
+    
+    // Find the field-specific-settings container
+    const settingsContainer = settingsRow.querySelector('.field-specific-settings');
+    if (!settingsContainer) return;
+    
+    // Get existing field_config value from hidden input
+    const fieldConfigInput = settingsRow.querySelector('input.field-config-json-input');
+    let fieldConfig = {};
+    
+    console.log('🟢 [LOAD] updateFieldSettings called for fieldIndex:', fieldIndex, 'fieldType:', fieldType);
+    
+    if (fieldConfigInput && fieldConfigInput.value) {
+      console.log('🟢 [LOAD] field_config input found, raw value:', fieldConfigInput.value);
+      console.log('🟢 [LOAD] field_config input value type:', typeof fieldConfigInput.value);
+      
+      let configValue = fieldConfigInput.value;
+      
+      // If value is an object (dict), convert to JSON string first
+      if (typeof configValue === 'object' && configValue !== null) {
+        console.log('🟢 [LOAD] field_config value is an object, converting to JSON string');
+        configValue = JSON.stringify(configValue);
+        // Update the input value
+        fieldConfigInput.value = configValue;
+      }
+      
+      try {
+        const trimmedValue = String(configValue).trim();
+        if (trimmedValue) {
+          fieldConfig = JSON.parse(trimmedValue);
+          console.log('🟢 [LOAD] Parsed field_config:', fieldConfig);
+        } else {
+          console.log('🟢 [LOAD] Empty config value, using empty object');
+        }
+      } catch (e) {
+        console.error('❌ [LOAD] JSON parse error:', e);
+        console.error('❌ [LOAD] Failed to parse value:', configValue);
+        // If JSON parsing fails, try to preserve existing options if they exist
+        const existingOptionsListBody = settingsRow.querySelector('.options-list-body');
+        if (existingOptionsListBody && existingOptionsListBody.querySelectorAll('tr.option-row').length > 0) {
+          console.log('🟢 [LOAD] JSON parse failed but existing options found, keeping UI state');
+          // Don't reset - keep existing UI state
+          return;
+        }
+        fieldConfig = {};
+        console.log('🟢 [LOAD] JSON parse failed, using empty object');
+      }
+    } else {
+      console.log('🟢 [LOAD] No field_config input or empty value, using empty object');
+    }
+    
+    // Generate and set the HTML
+    settingsContainer.innerHTML = generateFieldSettingsHTML(fieldType, fieldIndex, fieldConfig);
+    
+    // If it's an options field, handle source type toggle and load options
+    if (FIELD_SETTINGS_CONFIG[fieldType] && FIELD_SETTINGS_CONFIG[fieldType].type === 'options') {
+      const sourceSelect = settingsContainer.querySelector('.options-source-select');
+      if (sourceSelect) {
+        // Set initial value from field_config
+        const initialSource = fieldConfig.options_source || 'manual';
+        sourceSelect.value = initialSource;
+        
+        // Toggle panels based on initial value
+        toggleOptionsSourcePanels(settingsContainer, initialSource);
+        
+        // Load manual options if available
+        console.log('🟢 [LOAD] initialSource:', initialSource);
+        console.log('🟢 [LOAD] fieldConfig.options:', fieldConfig.options);
+        
+        if (initialSource === 'manual' && fieldConfig.options && Array.isArray(fieldConfig.options)) {
+          console.log('🟢 [LOAD] Loading manual options, count:', fieldConfig.options.length);
+          const optionsListBody = settingsContainer.querySelector(`.options-list-body[data-field-index="${fieldIndex}"]`);
+          console.log('🟢 [LOAD] Options list body found:', !!optionsListBody);
+          
+          if (optionsListBody) {
+            fieldConfig.options.forEach(function(opt, idx) {
+              console.log(`🟢 [LOAD] Loading option ${idx}:`, opt);
+              addOptionRow(optionsListBody, fieldIndex, opt);
+            });
+            console.log('🟢 [LOAD] All options loaded');
+          } else {
+            console.error('❌ [LOAD] Options list body not found!');
+          }
+        } else {
+          console.log('🟢 [LOAD] Not loading options - initialSource:', initialSource, 'has options:', !!fieldConfig.options, 'is array:', Array.isArray(fieldConfig.options));
+        }
+        
+        // Add change listener
+        sourceSelect.addEventListener('change', function() {
+          toggleOptionsSourcePanels(settingsContainer, this.value);
+          
+          // Save settings when source changes
+          saveFieldSettingsToConfig(fieldRow);
+        });
+      }
+    }
+  }
+  
+  /**
+   * Toggle between manual and entity reference options panels
+   */
+  function toggleOptionsSourcePanels(container, sourceType) {
+    const manualPanel = container.querySelector('.manual-options-panel');
+    const entityPanel = container.querySelector('.entity-reference-panel');
+    
+    if (sourceType === 'manual') {
+      if (manualPanel) manualPanel.style.display = 'block';
+      if (entityPanel) entityPanel.style.display = 'none';
+    } else if (sourceType === 'entity_reference') {
+      if (manualPanel) manualPanel.style.display = 'none';
+      if (entityPanel) entityPanel.style.display = 'block';
+    }
+  }
+  
+  /**
+   * Add a new option row to the options table
+   */
+  function addOptionRow(optionsListBody, fieldIndex, optionData = null) {
+    const optionIndex = optionsListBody.querySelectorAll('tr.option-row').length;
+    const option = optionData || { value: '', label: '', order: optionIndex, is_default: false };
+    
+    const row = document.createElement('tr');
+    row.className = 'option-row';
+    row.setAttribute('data-option-index', optionIndex);
+    
+    row.innerHTML = `
+      <td style="padding: 0.5rem; width: 80px;">
+        <input type="number" 
+               class="form-control option-order" 
+               value="${option.order !== undefined ? option.order : optionIndex}" 
+               min="0" 
+               style="width: 100%; font-size: 0.875rem;" />
+      </td>
+      <td style="padding: 0.5rem;">
+        <input type="text" 
+               class="form-control option-value" 
+               value="${option.value || ''}" 
+               placeholder="{% trans 'Value' %}" 
+               required 
+               style="font-size: 0.875rem;" />
+      </td>
+      <td style="padding: 0.5rem;">
+        <input type="text" 
+               class="form-control option-label" 
+               value="${option.label || ''}" 
+               placeholder="{% trans 'Label' %}" 
+               required 
+               style="font-size: 0.875rem;" />
+      </td>
+      <td style="padding: 0.5rem; text-align: center; width: 80px;">
+        <input type="checkbox" 
+               class="form-check-input option-default" 
+               ${option.is_default ? 'checked' : ''} 
+               style="margin: 0 auto;" />
+      </td>
+      <td style="padding: 0.5rem; text-align: center; width: 100px;">
+        <button type="button" 
+                class="btn btn-sm btn-danger remove-option-btn" 
+                data-field-index="${fieldIndex}" 
+                data-option-index="${optionIndex}"
+                style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+          🗑️ {% trans "Remove" %}
+        </button>
+      </td>
+    `;
+    
+    optionsListBody.appendChild(row);
+    
+    // Update order numbers
+    updateOptionOrders(optionsListBody);
+    
+    // Add event listeners
+    const removeBtn = row.querySelector('.remove-option-btn');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', function() {
+        row.remove();
+        updateOptionOrders(optionsListBody);
+        
+        // Save settings after removal
+        const settingsRow = optionsListBody.closest('.field-settings-row');
+        if (settingsRow) {
+          let fieldRow = settingsRow.previousElementSibling;
+          while (fieldRow && !fieldRow.classList.contains('field-form-row')) {
+            fieldRow = fieldRow.previousElementSibling;
+          }
+          if (fieldRow) {
+            saveFieldSettingsToConfig(fieldRow);
+          }
+        }
+      });
+    }
+    
+    // Add change listeners for auto-save
+    const valueInput = row.querySelector('.option-value');
+    const labelInput = row.querySelector('.option-label');
+    const orderInput = row.querySelector('.option-order');
+    const defaultCheck = row.querySelector('.option-default');
+    
+    [valueInput, labelInput, orderInput, defaultCheck].forEach(function(input) {
+      if (input) {
+        input.addEventListener('change', function() {
+          const settingsRow = optionsListBody.closest('.field-settings-row');
+          if (settingsRow) {
+            let fieldRow = settingsRow.previousElementSibling;
+            while (fieldRow && !fieldRow.classList.contains('field-form-row')) {
+              fieldRow = fieldRow.previousElementSibling;
+            }
+            if (fieldRow) {
+              saveFieldSettingsToConfig(fieldRow);
+            }
+          }
+        });
+      }
+    });
+    
+    // Handle default checkbox - only one can be checked
+    if (defaultCheck) {
+      defaultCheck.addEventListener('change', function() {
+        if (this.checked) {
+          // Uncheck all other default checkboxes in the same field
+          const allDefaultChecks = optionsListBody.querySelectorAll('.option-default');
+          allDefaultChecks.forEach(function(check) {
+            if (check !== this) {
+              check.checked = false;
+            }
+          }, this);
+        }
+        
+        // Save settings
+        const settingsRow = optionsListBody.closest('.field-settings-row');
+        if (settingsRow) {
+          let fieldRow = settingsRow.previousElementSibling;
+          while (fieldRow && !fieldRow.classList.contains('field-form-row')) {
+            fieldRow = fieldRow.previousElementSibling;
+          }
+          if (fieldRow) {
+            saveFieldSettingsToConfig(fieldRow);
+          }
+        }
+      });
+    }
+  }
+  
+  /**
+   * Update order numbers for all options
+   */
+  function updateOptionOrders(optionsListBody) {
+    const optionRows = optionsListBody.querySelectorAll('tr.option-row');
+    optionRows.forEach(function(row, idx) {
+      const orderInput = row.querySelector('.option-order');
+      if (orderInput) {
+        orderInput.value = idx;
+      }
+      row.setAttribute('data-option-index', idx);
+      const removeBtn = row.querySelector('.remove-option-btn');
+      if (removeBtn) {
+        removeBtn.setAttribute('data-option-index', idx);
+      }
+    });
+  }
+  
+  // Handle "Add Option" button clicks
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.add-option-btn')) {
+      const button = e.target.closest('.add-option-btn');
+      const fieldIndex = button.getAttribute('data-field-index');
+      const settingsRow = button.closest('.field-settings-row');
+      
+      if (settingsRow) {
+        const optionsListBody = settingsRow.querySelector(`.options-list-body[data-field-index="${fieldIndex}"]`);
+        if (optionsListBody) {
+          addOptionRow(optionsListBody, fieldIndex);
+          
+          // Save settings after adding
+          let fieldRow = settingsRow.previousElementSibling;
+          while (fieldRow && !fieldRow.classList.contains('field-form-row')) {
+            fieldRow = fieldRow.previousElementSibling;
+          }
+          if (fieldRow) {
+            saveFieldSettingsToConfig(fieldRow);
+          }
+        }
+      }
+    }
+  });
+  
+  /**
+   * Save field settings to field_config JSON
+   */
+  function saveFieldSettingsToConfig(fieldRow) {
+    console.log('🔵 [SAVE] saveFieldSettingsToConfig called');
+    
+    // Find field index
+    let fieldIndex = fieldRow.querySelector('.toggle-field-settings')?.getAttribute('data-field-index');
+    console.log('🔵 [SAVE] Initial fieldIndex from button:', fieldIndex);
+    
+    if (!fieldIndex) {
+      const fieldTypeSelect = fieldRow.querySelector('select[name*="field_type"]');
+      if (fieldTypeSelect && fieldTypeSelect.name) {
+        const match = fieldTypeSelect.name.match(/fields-(\d+)-/);
+        if (match) fieldIndex = match[1];
+        console.log('🔵 [SAVE] fieldIndex extracted from field_type name:', fieldIndex);
+      }
+    }
+    
+    if (!fieldIndex && fieldIndex !== '0') {
+      const allRows = document.querySelectorAll('tr.field-form-row');
+      for (let i = 0; i < allRows.length; i++) {
+        if (allRows[i] === fieldRow) {
+          fieldIndex = i.toString();
+          console.log('🔵 [SAVE] fieldIndex found by iterating rows:', fieldIndex);
+          break;
+        }
+      }
+    }
+    
+    if (!fieldIndex && fieldIndex !== '0') {
+      console.error('❌ [SAVE] Could not find fieldIndex, returning');
+      return;
+    }
+    
+    console.log('🔵 [SAVE] Using fieldIndex:', fieldIndex);
+    
+    // Find settings row
+    let settingsRow = fieldRow.nextElementSibling;
+    while (settingsRow && !settingsRow.classList.contains('field-settings-row')) {
+      settingsRow = settingsRow.nextElementSibling;
+    }
+    
+    if (!settingsRow) {
+      console.error('❌ [SAVE] Settings row not found, returning');
+      return;
+    }
+    
+    console.log('🔵 [SAVE] Settings row found');
+    
+    // Find field_config hidden input
+    const fieldConfigInput = settingsRow.querySelector('input.field-config-json-input');
+    if (!fieldConfigInput) {
+      console.error('❌ [SAVE] field_config input not found, returning');
+      return;
+    }
+    
+    console.log('🔵 [SAVE] field_config input found, current value:', fieldConfigInput.value);
+    
+    const fieldType = settingsRow.getAttribute('data-field-type');
+    console.log('🔵 [SAVE] Field type:', fieldType);
+    
+    const config = FIELD_SETTINGS_CONFIG[fieldType];
+    if (!config || config.type === 'none') {
+      console.log('🔵 [SAVE] Field has no special settings, setting empty object');
+      fieldConfigInput.value = '{}';
+      return;
+    }
+    
+    const fieldConfig = {};
+    
+    // Collect settings based on field type
+    switch (config.type) {
+      case 'options':
+        console.log('🔵 [SAVE] Processing options field type');
+        const sourceSelect = settingsRow.querySelector(`[name="fields-${fieldIndex}-options_source"]`);
+        console.log('🔵 [SAVE] Source select found:', !!sourceSelect, sourceSelect ? 'value: ' + sourceSelect.value : '');
+        
+        if (sourceSelect) {
+          fieldConfig.options_source = sourceSelect.value;
+          console.log('🔵 [SAVE] options_source set to:', fieldConfig.options_source);
+          
+          if (sourceSelect.value === 'entity_reference') {
+            console.log('🔵 [SAVE] Using entity_reference mode');
+            const entityRef = settingsRow.querySelector(`[name="fields-${fieldIndex}-entity_reference"]`);
+            const valueField = settingsRow.querySelector(`[name="fields-${fieldIndex}-value_field"]`);
+            const labelField = settingsRow.querySelector(`[name="fields-${fieldIndex}-label_field"]`);
+            
+            if (entityRef && entityRef.value) fieldConfig.entity_reference = entityRef.value;
+            if (valueField && valueField.value) fieldConfig.value_field = valueField.value;
+            if (labelField && labelField.value) fieldConfig.label_field = labelField.value;
+            
+            // Clear manual options if using entity reference
+            delete fieldConfig.options;
+            console.log('🔵 [SAVE] Entity reference config:', fieldConfig);
+          } else if (sourceSelect.value === 'manual') {
+            console.log('🔵 [SAVE] Using manual mode - looking for options');
+            // Save manual options
+            const optionsListBody = settingsRow.querySelector(`.options-list-body[data-field-index="${fieldIndex}"]`);
+            console.log('🔵 [SAVE] Options list body found:', !!optionsListBody);
+            
+            if (optionsListBody) {
+              const options = [];
+              const optionRows = optionsListBody.querySelectorAll('tr.option-row');
+              console.log('🔵 [SAVE] Found option rows:', optionRows.length);
+              
+              optionRows.forEach(function(row, idx) {
+                const valueInput = row.querySelector('input.option-value');
+                const labelInput = row.querySelector('input.option-label');
+                const defaultCheck = row.querySelector('input.option-default');
+                
+                console.log(`🔵 [SAVE] Option row ${idx}: value="${valueInput ? valueInput.value : 'null'}", label="${labelInput ? labelInput.value : 'null'}", default=${defaultCheck ? defaultCheck.checked : 'null'}`);
+                
+                if (valueInput && labelInput && valueInput.value && labelInput.value) {
+                  const option = {
+                    value: valueInput.value.trim(),
+                    label: labelInput.value.trim(),
+                    order: idx,
+                    is_default: defaultCheck ? defaultCheck.checked : false
+                  };
+                  options.push(option);
+                  console.log(`🔵 [SAVE] Added option ${idx}:`, option);
+                } else {
+                  console.log(`🔵 [SAVE] Skipped option row ${idx} (empty or invalid)`);
+                }
+              });
+              
+              console.log('🔵 [SAVE] Total options collected:', options.length);
+              if (options.length > 0) {
+                fieldConfig.options = options;
+                console.log('🔵 [SAVE] Options array set in fieldConfig:', fieldConfig.options);
+              } else {
+                delete fieldConfig.options;
+                console.log('🔵 [SAVE] No valid options, deleted options from fieldConfig');
+              }
+            } else {
+              console.error('❌ [SAVE] Options list body not found for fieldIndex:', fieldIndex);
+            }
+          }
+        } else {
+          console.error('❌ [SAVE] Source select not found!');
+        }
+        break;
+        
+      case 'auto_fill':
+        const autoFillCheck = settingsRow.querySelector(`[name="fields-${fieldIndex}-${config.fieldName}"]`);
+        if (autoFillCheck) {
+          fieldConfig[config.fieldName] = autoFillCheck.checked;
+        }
+        break;
+        
+      case 'number':
+        const separatorCheck = settingsRow.querySelector(`[name="fields-${fieldIndex}-thousands_separator"]`);
+        if (separatorCheck) {
+          fieldConfig.thousands_separator = separatorCheck.checked;
+        }
+        break;
+        
+      case 'range':
+        const minInput = settingsRow.querySelector(`[name="fields-${fieldIndex}-${config.minField}"]`);
+        const maxInput = settingsRow.querySelector(`[name="fields-${fieldIndex}-${config.maxField}"]`);
+        if (minInput && minInput.value) fieldConfig[config.minField] = parseFloat(minInput.value);
+        if (maxInput && maxInput.value) fieldConfig[config.maxField] = parseFloat(maxInput.value);
+        if (config.stepField) {
+          const stepInput = settingsRow.querySelector(`[name="fields-${fieldIndex}-${config.stepField}"]`);
+          if (stepInput && stepInput.value) fieldConfig[config.stepField] = parseFloat(stepInput.value);
+        }
+        break;
+        
+      case 'formula':
+        const formulaInput = settingsRow.querySelector(`[name="fields-${fieldIndex}-formula"]`);
+        if (formulaInput && formulaInput.value) {
+          fieldConfig.formula = formulaInput.value;
+        }
+        break;
+    }
+    
+    // Update field_config hidden input
+    const configJson = JSON.stringify(fieldConfig);
+    fieldConfigInput.value = configJson;
+    console.log('🔵 [SAVE] Final field_config JSON:', configJson);
+    console.log('🔵 [SAVE] Hidden input value after update:', fieldConfigInput.value);
+  }
+  
+  // Auto-save settings when they change
+  fieldFormsetBody.addEventListener('change', function(e) {
+    // Check if this is a field setting input (not the form field itself)
+    if (e.target.closest('.field-settings-row')) {
+      const settingsRow = e.target.closest('.field-settings-row');
+      let fieldRow = settingsRow.previousElementSibling;
+      while (fieldRow && !fieldRow.classList.contains('field-form-row')) {
+        fieldRow = fieldRow.previousElementSibling;
+      }
+      if (fieldRow) {
+        saveFieldSettingsToConfig(fieldRow);
+      }
+    }
+  });
+  
+  // Initialize field settings for existing fields
+  function initializeFieldSettings() {
+    console.log('🟡 [INIT] initializeFieldSettings called');
+    const fieldRows = document.querySelectorAll('tr.field-form-row');
+    console.log('🟡 [INIT] Found field rows:', fieldRows.length);
+    
+    fieldRows.forEach(function(fieldRow, idx) {
+      console.log(`🟡 [INIT] Processing field row ${idx}`);
+      
+      // Log the initial field_config value
+      let settingsRow = fieldRow.nextElementSibling;
+      while (settingsRow && !settingsRow.classList.contains('field-settings-row')) {
+        settingsRow = settingsRow.nextElementSibling;
+      }
+      if (settingsRow) {
+        const fieldConfigInput = settingsRow.querySelector('input.field-config-json-input');
+        if (fieldConfigInput) {
+          console.log(`🟡 [INIT] Field row ${idx} initial field_config (raw):`, fieldConfigInput.value);
+          console.log(`🟡 [INIT] Field row ${idx} initial field_config type:`, typeof fieldConfigInput.value);
+          
+          // If value looks like Python dict representation, try to convert it
+          let configValue = fieldConfigInput.value;
+          if (configValue && typeof configValue === 'string') {
+            // Check if it looks like Python dict (starts with '{' but might be Python dict format)
+            if (configValue.trim().startsWith('{') && !configValue.trim().startsWith('{"')) {
+              console.log(`🟡 [INIT] Field row ${idx} field_config looks like Python dict, attempting conversion`);
+              // Try to parse as Python dict literal and convert to JSON
+              try {
+                // Replace Python True/False/None with JSON true/false/null
+                let jsonStr = configValue.replace(/True/g, 'true').replace(/False/g, 'false').replace(/None/g, 'null');
+                jsonStr = jsonStr.replace(/'/g, '"'); // Replace single quotes with double quotes
+                const parsed = JSON.parse(jsonStr);
+                configValue = JSON.stringify(parsed);
+                fieldConfigInput.value = configValue;
+                console.log(`🟡 [INIT] Field row ${idx} field_config converted to JSON:`, configValue);
+              } catch (e) {
+                console.error(`🟡 [INIT] Field row ${idx} failed to convert Python dict:`, e);
+              }
+            }
+          }
+          
+          console.log(`🟡 [INIT] Field row ${idx} initial field_config (final):`, fieldConfigInput.value);
+        }
+      }
+      
+      const fieldTypeSelect = fieldRow.querySelector('select[name*="field_type"]');
+      if (fieldTypeSelect && fieldTypeSelect.value) {
+        console.log(`🟡 [INIT] Field row ${idx} field_type:`, fieldTypeSelect.value);
+        updateFieldSettings(fieldRow, fieldTypeSelect.value);
+      } else {
+        console.log(`🟡 [INIT] Field row ${idx} has no field_type`);
+      }
+    });
+    
+    console.log('🟡 [INIT] initializeFieldSettings completed');
+  }
+  
+  // Listen for field type changes
+  fieldFormsetBody.addEventListener('change', function(e) {
+    if (e.target.name && e.target.name.includes('field_type')) {
+      const fieldRow = e.target.closest('tr.field-form-row');
+      if (fieldRow) {
+        updateFieldSettings(fieldRow, e.target.value);
+        
+        // If settings panel is open, save settings before changing
+        const settingsRow = fieldRow.nextElementSibling;
+        if (settingsRow && settingsRow.classList.contains('field-settings-row') && 
+            settingsRow.style.display !== 'none') {
+          saveFieldSettingsToConfig(fieldRow);
+        }
+      }
+    }
+  });
+  
+  // Save settings to field_config when form is submitted
+  const form = fieldFormsetBody.closest('form');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      console.log('🟡 [SUBMIT] ====================================================================');
+      console.log('🟡 [SUBMIT] Form submit event triggered');
+      
+      // Save all field settings to their field_config before submit
+      const allFieldRows = document.querySelectorAll('tr.field-form-row');
+      console.log('🟡 [SUBMIT] Found field rows:', allFieldRows.length);
+      
+      allFieldRows.forEach(function(fieldRow, idx) {
+        console.log(`🟡 [SUBMIT] ========== Processing Field Row ${idx} ==========`);
+        
+        // Check field type
+        const fieldTypeSelect = fieldRow.querySelector('select[name*="field_type"]');
+        const fieldType = fieldTypeSelect ? fieldTypeSelect.value : 'NOT FOUND';
+        console.log(`🟡 [SUBMIT] Field ${idx} type:`, fieldType);
+        
+        // Save settings
+        console.log(`🟡 [SUBMIT] Saving settings for field row ${idx}...`);
+        saveFieldSettingsToConfig(fieldRow);
+        
+        // Also log the final field_config value
+        let settingsRow = fieldRow.nextElementSibling;
+        while (settingsRow && !settingsRow.classList.contains('field-settings-row')) {
+          settingsRow = settingsRow.nextElementSibling;
+        }
+        if (settingsRow) {
+          const fieldConfigInput = settingsRow.querySelector('input.field-config-json-input');
+          if (fieldConfigInput) {
+            console.log(`🟡 [SUBMIT] Field ${idx} final field_config:`, fieldConfigInput.value);
+            console.log(`🟡 [SUBMIT] Field ${idx} field_config input name:`, fieldConfigInput.name);
+            
+            // Check if options exist in the UI (for dropdown, radio, etc.)
+            if (fieldType === 'dropdown' || fieldType === 'radio' || fieldType === 'checkbox' || fieldType === 'multi_select') {
+              const sourceSelect = settingsRow.querySelector('.options-source-select');
+              console.log(`🟡 [SUBMIT] Field ${idx} options_source:`, sourceSelect ? sourceSelect.value : 'NOT FOUND');
+              
+              const optionsListBody = settingsRow.querySelector('.options-list-body');
+              if (optionsListBody) {
+                const optionRows = optionsListBody.querySelectorAll('tr.option-row');
+                console.log(`🟡 [SUBMIT] Field ${idx} has ${optionRows.length} option rows in UI`);
+                optionRows.forEach(function(optRow, optIdx) {
+                  const valueInput = optRow.querySelector('input.option-value');
+                  const labelInput = optRow.querySelector('input.option-label');
+                  const defaultCheck = optRow.querySelector('input.option-default');
+                  console.log(`🟡 [SUBMIT] Field ${idx} Option ${optIdx}: value="${valueInput ? valueInput.value : ''}", label="${labelInput ? labelInput.value : ''}", default=${defaultCheck ? defaultCheck.checked : false}`);
+                });
+              } else {
+                console.log(`🟡 [SUBMIT] Field ${idx} options_list_body NOT FOUND`);
+              }
+              
+              // Try to parse the field_config JSON
+              try {
+                const parsed = JSON.parse(fieldConfigInput.value || '{}');
+                console.log(`🟡 [SUBMIT] Field ${idx} parsed field_config:`, parsed);
+                if (parsed.options && Array.isArray(parsed.options)) {
+                  console.log(`🟡 [SUBMIT] Field ${idx} has ${parsed.options.length} options in field_config:`, parsed.options);
+                } else {
+                  console.log(`🟡 [SUBMIT] Field ${idx} NO OPTIONS in field_config`);
+                }
+              } catch (e) {
+                console.error(`🟡 [SUBMIT] Field ${idx} JSON parse error:`, e);
+              }
+            }
+          } else {
+            console.log(`🟡 [SUBMIT] Field ${idx} field_config input NOT FOUND`);
+          }
+        } else {
+          console.log(`🟡 [SUBMIT] Field ${idx} settings row NOT FOUND`);
+        }
+        console.log(`🟡 [SUBMIT] ========== End Field Row ${idx} ==========`);
+      });
+      
+      // Log all field_config inputs in form
+      console.log('🟡 [SUBMIT] All field_config inputs in form:');
+      const allConfigInputs = form.querySelectorAll('input.field-config-json-input');
+      allConfigInputs.forEach(function(input, idx) {
+        console.log(`🟡 [SUBMIT] Config input ${idx}: name="${input.name}", value="${input.value}"`);
+      });
+      
+      console.log('🟡 [SUBMIT] ====================================================================');
+      console.log('🟡 [SUBMIT] Submitting form...');
+    });
+  }
+  
+  // Initialize on page load
+  initializeFieldSettings();
+  
+  // ========================================================================
   // Toggle Field Settings Panel
   // ========================================================================
   document.addEventListener('click', function(e) {
@@ -967,15 +1986,28 @@ document.addEventListener('DOMContentLoaded', function() {
       const fieldIndex = button.getAttribute('data-field-index');
       
       // Find the settings row - it should be the next sibling row after the field row
-      const fieldRow = button.closest('tr');
+      const fieldRow = button.closest('tr.field-form-row');
       if (fieldRow) {
+        const fieldTypeSelect = fieldRow.querySelector('select[name*="field_type"]');
+        const currentFieldType = fieldTypeSelect ? fieldTypeSelect.value : '';
+        
         let nextRow = fieldRow.nextElementSibling;
         while (nextRow) {
           if (nextRow.classList.contains('field-settings-row')) {
+            const storedFieldType = nextRow.getAttribute('data-field-type');
+            const settingsContainer = nextRow.querySelector('.field-specific-settings');
+            const hasContent = settingsContainer && settingsContainer.innerHTML.trim() !== '';
+            
             if (nextRow.style.display === 'none' || nextRow.style.display === '') {
+              // Opening panel - always update settings to ensure options are loaded from field_config
+              if (currentFieldType) {
+                updateFieldSettings(fieldRow, currentFieldType);
+              }
               nextRow.style.display = 'table-row';
               button.innerHTML = '▲ ⚙️ {% trans "Settings" %}';
             } else {
+              // Closing panel - save settings before closing
+              saveFieldSettingsToConfig(fieldRow);
               nextRow.style.display = 'none';
               button.innerHTML = '▼ ⚙️ {% trans "Settings" %}';
             }

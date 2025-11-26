@@ -247,6 +247,7 @@
             <span class="nav-group-icon">▼</span>
           </button>
           <div class="nav-group-content" id="ticketing-management">
+            <a href="{% url 'ticketing:templates' %}" class="nav-link-sub">{% trans "Templates" %}</a>
             <a href="{% url 'ticketing:template_create' %}" class="nav-link-sub">{% trans "Create Template" %}</a>
             <a href="{% url 'ticketing:categories' %}" class="nav-link-sub">{% trans "Categories" %}</a>
             <a href="{% url 'ticketing:subcategories' %}" class="nav-link-sub">{% trans "Subcategories" %}</a>

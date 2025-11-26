@@ -724,19 +724,51 @@ This section documents the supported field types and how they are stored in `tic
 }
 ```
 
+## Implementation Status
+
+- [x] Database models (TicketTemplate, TicketTemplateField, TicketTemplatePermission, TicketTemplateEvent, TicketTemplateFieldEvent)
+- [x] Forms (TicketTemplateForm, TicketTemplateFieldForm, TicketTemplatePermissionForm, TicketTemplateEventForm)
+- [x] Views (List, Create, Update, Delete for Templates)
+- [x] Templates (templates_list.html, template_form.html, template_confirm_delete.html)
+- [x] Dynamic formset management (JavaScript for adding/removing field rows)
+- [x] Field settings panel (collapsible settings for each field)
+- [x] Field-specific settings UI (time, date, reference, file upload, etc.) - ✅ پیاده‌سازی شده
+- [x] Field options management (for radio/dropdown fields) - ✅ پیاده‌سازی شده (با قابلیت ذخیره و بارگذاری options)
+- [ ] Field events management (for field-specific events) - **Pending**
+- [ ] Ticket creation from templates - **Pending**
+- [ ] Ticket field value storage - **Pending**
+- [ ] Ticket workflow and status management - **Pending**
+
+See [TICKETING_IMPLEMENTATION.md](TICKETING_IMPLEMENTATION.md) for detailed implementation notes.
+
 ## Open Questions / Future Enhancements
 
+## پیاده‌سازی انجام شده
 - [x] Ticket templates with dynamic field definitions (implemented).
-- [ ] Reference field implementation details - See [Entity Reference System Documentation](ENTITY_REFERENCE_SYSTEM.md) (pending requirements).
-- [ ] SLA tracking and escalation rules (automated notifications for overdue tickets).
-- [ ] Knowledge base integration (link tickets to knowledge base articles).
-- [ ] Ticket merging and splitting functionality.
-- [ ] Time tracking for ticket resolution.
-- [ ] Ticket watchers/subscribers (users who receive updates).
-- [ ] Ticket tags/labels for flexible categorization beyond categories.
-- [ ] Integration with inventory/production modules (create tickets from item issues, order problems, etc.).
-- [ ] Email integration (create tickets from emails, send notifications).
-- [ ] Mobile app support considerations.
-- [ ] Field validation at ticket creation time.
-- [ ] Field value history/audit trail.
+- [x] Template Events (on_open, on_close, on_respond) - implemented.
+
+## اولویت 1: الزامی برای کارکردن Basic Ticketing (فعلاً در حال پیاده‌سازی)
+- [x] **Field-specific settings UI for all 25 field types** - ✅ پیاده‌سازی شده (با `ticketing_field_settings_specification.md`)
+- [x] **Field options management UI for radio/dropdown/multi_select/checkbox fields** - ✅ پیاده‌سازی شده (مدیریت Options به صورت Manual)
+- [ ] **Field validation at ticket creation time** - الزامی برای اطمینان از صحت داده‌های وارد شده
+
+## اولویت 2: برای کامل کردن Core Features (بعد از اولویت 1)
+- [ ] **Reference field implementation details** - استفاده از Entity Reference System در dropdown/multi_select (در specification مشخص شده)
+- [ ] **Field events management UI for field-specific events** - مدیریت رویدادهای فیلدها (on_change, on_set, on_clear)
+- [ ] **Field value history/audit trail** - تاریخچه تغییرات مقادیر فیلدها
+
+## اولویت 3: Features پیشرفته (بعد از اولویت 2)
+- [ ] **SLA tracking and escalation rules** - پیگیری SLA و قوانین escalation برای تیکت‌های تأخیردار
+- [ ] **Ticket watchers/subscribers** - کاربرانی که به‌روزرسانی‌های تیکت را دریافت می‌کنند
+- [ ] **Ticket tags/labels** - برچسب‌های اضافی برای دسته‌بندی انعطاف‌پذیرتر
+- [ ] **Time tracking for ticket resolution** - پیگیری زمان صرف شده برای حل تیکت
+
+## اولویت 4: یکپارچه‌سازی‌ها (بعد از اولویت 3)
+- [ ] **Integration with inventory/production modules** - ایجاد تیکت از مسائل کالا/سفارش
+- [ ] **Email integration** - ایجاد تیکت از ایمیل و ارسال نوتیفیکیشن
+
+## اولویت 5: Optional/Advanced Features
+- [ ] **Knowledge base integration** - اتصال تیکت‌ها به مقالات پایگاه دانش
+- [ ] **Ticket merging and splitting functionality** - ادغام و تقسیم تیکت‌ها
+- [ ] **Mobile app support considerations** - ملاحظات برای اپلیکیشن موبایل
 

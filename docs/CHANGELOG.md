@@ -8,7 +8,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- **Ticketing Module - Field Options Loading**: Fixed issue where manual options for dropdown/radio/checkbox fields were not being loaded when editing templates
+  - Fixed `field_config` JSON serialization in Django forms for existing instances
+  - Added `json_filters` template tag library for proper dict-to-JSON conversion in templates
+  - Enhanced JavaScript initialization to properly parse and load options from `field_config` field
+  - Added extensive logging for debugging option loading process
+  - Options now correctly load and display in the options management table when editing templates
+
 ### Added
+- **Ticketing Module - Field Options Management UI**: Complete implementation of manual options management for radio, dropdown, checkbox, and multi_select field types
+  - Interactive table for managing field options with columns: Order, Value, Label, Default, Actions
+  - "Add Option" button to dynamically add new options
+  - "Remove" button for each option row to delete options
+  - Auto-save functionality: Options are automatically saved to `field_config` JSON field when changed
+  - Options are stored in JSON format: `{"options_source": "manual", "options": [{"value": "...", "label": "...", "order": 0, "is_default": false}]}`
+  - Only one option can be set as default at a time (checkbox validation)
+  - Automatic order number updates when options are added/removed
+  - Options are loaded from `field_config` and displayed in the table on page load
+  - Integration with Options Source selection (Manual vs Entity Reference)
+  - Manual options panel is displayed when "Manual" is selected as options source
+  - All options are saved before form submission
+- **Ticketing Module - Dynamic Field Settings UI**: Complete implementation of field-specific settings based on field type
+  - Dynamic settings panel that displays different configuration options based on selected field type
+  - Support for all 25 field types with type-specific settings:
+    - Options fields (radio, dropdown, checkbox, multi_select): Manual options or Entity Reference configuration
+    - Date/Time fields (date, time, datetime): Auto-fill with current date/time option
+    - Number field: Thousands separator option (3-digit grouping)
+    - Rating field: Minimum and maximum rating range configuration
+    - Slider field: Minimum, maximum, and step value configuration
+    - Calculation field: Formula definition with field references
+    - Fields without special settings: Simple message display
+  - Settings automatically saved to `field_config` JSON field when form is submitted
+  - Auto-save functionality: Settings are automatically saved to JSON when changed
+  - JavaScript-based dynamic UI that updates settings panel when field type changes
+  - Initialization of settings for existing fields on page load
+  - Field settings are stored in hidden `field_config` input and converted to JSON before submission
+  - Settings panel toggle button with visual feedback (▲/▼ icons)
+  - Implementation based on `docs/ticketing_field_settings_specification.md` specification
 - **Enhanced Transaction History in Inventory Balance Details**:
   - Added "Source/Destination" (مرکز مصرف/تامین) column to transaction history table
   - Displays supplier name for receipts (where inventory is added)

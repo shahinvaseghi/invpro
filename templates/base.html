@@ -261,6 +261,7 @@
                     <span class="dropdown-arrow">▶</span>
                   </button>
                   <div class="dropdown-menu-sub" id="ticketing-management">
+                    <a href="{% url 'ticketing:templates' %}" class="dropdown-item-sub">{% trans "Templates" %}</a>
                     <a href="{% url 'ticketing:template_create' %}" class="dropdown-item-sub">{% trans "Create Template" %}</a>
                     <a href="{% url 'ticketing:categories' %}" class="dropdown-item-sub">{% trans "Categories" %}</a>
                     <a href="{% url 'ticketing:subcategories' %}" class="dropdown-item-sub">{% trans "Subcategories" %}</a>
