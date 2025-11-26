@@ -36,9 +36,11 @@ Context processors توابعی هستند که در `config/settings.py` در `
 
 **منطق انتخاب**:
 1. ابتدا از `request.session['active_company_id']` خوانده می‌شود
-2. اگر در session نباشد، از `user.default_company` استفاده می‌شود
-3. اگر default company هم نباشد، اولین شرکت از `user_companies` استفاده می‌شود
-4. اگر شرکت فعال پیدا شود، در session ذخیره می‌شود
+2. اگر در session نباشد، از `user.default_company` استفاده می‌شود (اگر کاربر به آن دسترسی داشته باشد)
+3. اگر default company هم نباشد یا دسترسی نداشته باشد، اولین شرکت از `user_companies` استفاده می‌شود
+4. اگر شرکت فعال پیدا شود:
+   - در `request.session['active_company_id']` ذخیره می‌شود
+   - `request.session.modified = True` تنظیم می‌شود تا اطمینان حاصل شود که session ذخیره می‌شود
 
 **مثال استفاده در template**:
 ```django

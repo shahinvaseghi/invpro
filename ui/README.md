@@ -9,9 +9,37 @@ The UI app provides the template-based user interface shell, navigation, company
 ### DashboardView
 - **Type**: `TemplateView` with `LoginRequiredMixin`
 - **Template**: `templates/ui/dashboard.html`
-- **Purpose**: Entry point showing platform overview with module cards
+- **Purpose**: Entry point showing platform overview with statistics cards
 - **Auth**: Redirects unauthenticated users to admin login
 - **URL**: `/` (root path)
+
+**Methods**:
+
+#### `get_context_data(**kwargs) -> Dict[str, Any]`
+- **Returns**: Context dictionary with `stats` and `active_company`
+- **Logic**:
+  1. Get `active_company` from context processor (first priority)
+  2. If not available, get from session (second priority)
+  3. If still not available, query database for user's companies and set first/default company
+  4. Save `active_company_id` to session with `request.session.modified = True`
+  5. If no company available, return empty stats (all zeros)
+  6. Otherwise, calculate statistics using `_calculate_stats(company_id)`
+- **Context Variables**:
+  - `stats`: Dictionary with dashboard statistics (total_items, total_warehouses, etc.)
+  - `active_company`: Active company object (from context processor or set here)
+
+#### `_calculate_stats(company_id: int) -> Dict[str, Any]`
+- **Parameters**:
+  - `company_id`: ID of the active company
+- **Returns**: Dictionary with `stats` key containing all dashboard statistics
+- **Logic**: Queries inventory models to count:
+  - Master data: items, warehouses, suppliers
+  - Receipts: temporary (pending, QC pending), permanent (today, total)
+  - Issues: permanent (today, total), consumption (today)
+  - Requests: purchase (pending), warehouse (pending)
+  - Stocktaking: deficit, surplus records
+  - Approvals: purchase, warehouse, stocktaking (pending)
+  - Recent activity: receipts and issues (last 7 days)
 
 ---
 
