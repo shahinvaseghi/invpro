@@ -236,11 +236,8 @@ class Warehouse(InventorySortableModel):
 
 # WorkLine moved to production module
 # Import it here for backward compatibility in IssueConsumptionLine
-try:
-    from production.models import WorkLine
-except ImportError:
-    # If production module is not installed, WorkLine won't be available
-    WorkLine = None
+from shared.utils.modules import get_work_line_model
+WorkLine = get_work_line_model()
 
 
 class Item(InventorySortableModel):
@@ -780,12 +777,113 @@ class PurchaseRequest(InventoryBaseModel, LockableModel):
     def save(self, *args, **kwargs):
         if not self.request_code:
             self.request_code = self._generate_request_code()
-        if not self.item_code:
+        
+        # Ensure item_code is set from item if not already set
+        if self.item and not self.item_code:
+            self.item_code = self.item.item_code or self.item.full_item_code or ''
+        
+        # Set legacy fields from first line if they exist (for backward compatibility)
+        # These fields are now handled by PurchaseRequestLine, but still exist in the model
+        skip_sync = getattr(self, '_skip_legacy_sync', False)
+        if not skip_sync:
+            # Only sync if we have lines and legacy fields are not set
+            if self.pk:
+                try:
+                    first_line = self.lines.first()
+                    if first_line:
+                        if not self.item_id:
+                            self.item = first_line.item
+                        if not self.item_code:
+                            self.item_code = first_line.item_code
+                        if not self.unit:
+                            self.unit = first_line.unit
+                except Exception:
+                    # If lines don't exist yet, skip sync
+                    pass
+            
+            # quantity_requested and quantity_fulfilled are calculated from lines
+            # but we need to set them to avoid NOT NULL constraint
+            if not hasattr(self, 'quantity_requested') or self.quantity_requested is None:
+                self.quantity_requested = Decimal("0")
+            if not hasattr(self, 'quantity_fulfilled') or self.quantity_fulfilled is None:
+                self.quantity_fulfilled = Decimal("0")
+        
+        super().save(*args, **kwargs)
+    
+    @property
+    def total_quantity_requested(self):
+        """Calculate total quantity requested across all lines."""
+        return sum(line.quantity_requested for line in self.lines.all())
+    
+    @property
+    def total_quantity_fulfilled(self):
+        """Calculate total quantity fulfilled across all lines."""
+        return sum(line.quantity_fulfilled for line in self.lines.all())
+    
+    @property
+    def is_fully_fulfilled(self):
+        """Check if all lines are fully fulfilled."""
+        return all(line.is_fully_fulfilled for line in self.lines.all())
+
+
+class PurchaseRequestLine(InventoryBaseModel, SortableModel):
+    """Line item for purchase request documents."""
+    
+    document = models.ForeignKey(
+        "PurchaseRequest",
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    item = models.ForeignKey(
+        Item,
+        on_delete=models.PROTECT,
+        related_name="purchase_request_lines",
+    )
+    item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
+    unit = models.CharField(max_length=30)
+    quantity_requested = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+    )
+    quantity_fulfilled = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        default=Decimal("0"),
+        validators=[POSITIVE_DECIMAL],
+    )
+    line_notes = models.TextField(blank=True)
+    
+    class Meta:
+        verbose_name = _("Purchase Request Line")
+        verbose_name_plural = _("Purchase Request Lines")
+        ordering = ("sort_order", "id")
+        indexes = [
+            models.Index(fields=("company", "document"), name="inv_purchase_req_line_doc_idx"),
+            models.Index(fields=("company", "item"), name="inv_purchase_req_line_item_idx"),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.document.request_code} - {self.item.name}"
+    
+    def save(self, *args, **kwargs):
+        if self.item and not self.item_code:
             self.item_code = self.item.item_code
         super().save(*args, **kwargs)
+    
+    @property
+    def quantity_remaining(self):
+        """Calculate remaining quantity to be fulfilled."""
+        return max(Decimal("0"), self.quantity_requested - self.quantity_fulfilled)
+    
+    @property
+    def is_fully_fulfilled(self):
+        """Check if this line is fully fulfilled."""
+        return self.quantity_fulfilled >= self.quantity_requested
 
 
-class ReceiptTemporary(InventoryBaseModel, LockableModel):
+class ReceiptTemporary(InventoryDocumentBase):
+    """Header-only model for temporary receipt documents with multi-line support."""
     class Status(models.IntegerChoices):
         DRAFT = 0, _("Draft")
         AWAITING_INSPECTION = 1, _("Awaiting inspection")
@@ -793,24 +891,7 @@ class ReceiptTemporary(InventoryBaseModel, LockableModel):
 
     document_code = models.CharField(max_length=20, unique=True)
     document_date = models.DateField(default=timezone.now)
-    item = models.ForeignKey(
-        Item,
-        on_delete=models.PROTECT,
-        related_name="temporary_receipts",
-    )
-    item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
-    warehouse = models.ForeignKey(
-        Warehouse,
-        on_delete=models.PROTECT,
-        related_name="temporary_receipts",
-    )
-    warehouse_code = models.CharField(max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
-    unit = models.CharField(max_length=30)
-    quantity = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-    )
+    # Header-level fields only - item/warehouse/unit/quantity moved to ReceiptTemporaryLine
     expected_receipt_date = models.DateField(null=True, blank=True)
     supplier = models.ForeignKey(
         Supplier,
@@ -843,14 +924,6 @@ class ReceiptTemporary(InventoryBaseModel, LockableModel):
         blank=True,
     )
     converted_receipt_code = models.CharField(max_length=20, blank=True)
-    entered_unit = models.CharField(max_length=30, blank=True)
-    entered_quantity = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        null=True,
-        blank=True,
-        validators=[POSITIVE_DECIMAL],
-    )
 
     class Meta:
         verbose_name = _("Temporary Receipt")
@@ -861,10 +934,6 @@ class ReceiptTemporary(InventoryBaseModel, LockableModel):
         return self.document_code
 
     def save(self, *args, **kwargs):
-        if not self.item_code:
-            self.item_code = self.item.item_code
-        if not self.warehouse_code:
-            self.warehouse_code = self.warehouse.public_code
         if self.supplier and not self.supplier_code:
             self.supplier_code = self.supplier.public_code
         super().save(*args, **kwargs)
@@ -1580,6 +1649,29 @@ class ReceiptConsignmentLine(ReceiptLineBase):
             models.Index(fields=("company", "document"), name="inv_rec_consg_line_doc_idx"),
             models.Index(fields=("company", "item"), name="inv_rec_consg_line_item_idx"),
         ]
+
+
+class ReceiptTemporaryLine(ReceiptLineBase):
+    """Line item for temporary receipt documents."""
+    
+    document = models.ForeignKey(
+        "ReceiptTemporary",
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    expected_receipt_date = models.DateField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = _("Temporary Receipt Line")
+        verbose_name_plural = _("Temporary Receipt Lines")
+        ordering = ("sort_order", "id")
+        indexes = [
+            models.Index(fields=("company", "document"), name="inv_rec_tmp_line_doc_idx"),
+            models.Index(fields=("company", "item"), name="inv_rec_tmp_line_item_idx"),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.document.document_code} - {self.item.name}"
     
     def __str__(self) -> str:
         return f"{self.document.document_code} - {self.item.name}"
@@ -2020,37 +2112,61 @@ class WarehouseRequest(InventoryBaseModel, LockableModel):
                 name="inventory_warehouse_request_code_unique",
             ),
         ]
-        ordering = ("-request_date", "-id")
+
+
+class WarehouseRequestLine(InventoryBaseModel, SortableModel):
+    """Line item for warehouse request documents."""
+    
+    document = models.ForeignKey(
+        "WarehouseRequest",
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    item = models.ForeignKey(
+        Item,
+        on_delete=models.PROTECT,
+        related_name="warehouse_request_lines",
+    )
+    item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
+    unit = models.CharField(max_length=30)
+    quantity_requested = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+    )
+    quantity_issued = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        default=Decimal("0"),
+        validators=[POSITIVE_DECIMAL],
+    )
+    warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.PROTECT,
+        related_name="warehouse_request_lines",
+    )
+    warehouse_code = models.CharField(max_length=8, validators=[NUMERIC_CODE_VALIDATOR])
+    line_notes = models.TextField(blank=True)
+    
+    class Meta:
+        verbose_name = _("Warehouse Request Line")
+        verbose_name_plural = _("Warehouse Request Lines")
+        ordering = ("sort_order", "id")
+        indexes = [
+            models.Index(fields=("company", "document"), name="inv_wr_line_doc_idx"),
+            models.Index(fields=("company", "item"), name="inv_wr_line_item_idx"),
+        ]
 
     def __str__(self) -> str:
-        return f"{self.request_code} · {self.item.name}"
+        return f"{self.document.request_code} · {self.item.name}"
 
     def save(self, *args, **kwargs):
-        # Auto-generate request code if not set
-        if not self.request_code:
-            now = timezone.now()
-            month_year = now.strftime("%Y%m")
-            # Find the max sequence for this month
-            last_request = (
-                WarehouseRequest.objects.filter(
-                    company=self.company,
-                    request_code__startswith=f"WRQ-{month_year}",
-                )
-                .order_by("-request_code")
-                .first()
-            )
-            if last_request and last_request.request_code:
-                last_seq = int(last_request.request_code.split("-")[-1])
-                new_seq = last_seq + 1
-            else:
-                new_seq = 1
-            self.request_code = f"WRQ-{month_year}-{new_seq:06d}"
-        
         # Cache related codes
         if self.item and not self.item_code:
-            self.item_code = self.item.item_code
+            self.item_code = self.item.item_code or self.item.full_item_code or ''
         if self.warehouse and not self.warehouse_code:
-            self.warehouse_code = self.warehouse.public_code
-        if self.department_unit and not self.department_unit_code:
-            self.department_unit_code = self.department_unit.public_code
+            self.warehouse_code = self.warehouse.public_code or ''
+        if not hasattr(self, 'company_id') or not self.company_id:
+            if self.document:
+                self.company_id = self.document.company_id
         super().save(*args, **kwargs)

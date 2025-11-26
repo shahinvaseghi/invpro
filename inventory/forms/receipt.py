@@ -21,6 +21,7 @@ from inventory.models import (
     Warehouse,
     Supplier,
     ReceiptTemporary,
+    ReceiptTemporaryLine,
     ReceiptPermanent,
     ReceiptConsignment,
     ReceiptPermanentLine,
@@ -37,23 +38,14 @@ from inventory.forms.base import (
 from inventory.widgets import JalaliDateInput
 
 
-class ReceiptTemporaryForm(ReceiptBaseForm):
-    """Create/update form for temporary receipts."""
-
-    unit = forms.ChoiceField(
-        label=_('Unit'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
-    )
+class ReceiptTemporaryForm(forms.ModelForm):
+    """Header-only form for temporary receipt documents with multi-line support."""
 
     class Meta:
         model = ReceiptTemporary
         fields = [
             'document_code',
             'document_date',
-            'item',
-            'warehouse',
-            'unit',
-            'quantity',
             'expected_receipt_date',
             'supplier',
             'source_document_type',
@@ -62,19 +54,17 @@ class ReceiptTemporaryForm(ReceiptBaseForm):
             'qc_approval_notes',
         ]
         widgets = {
-            'document_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'document_code': forms.HiddenInput(),
+            'document_date': forms.HiddenInput(),
+            'expected_receipt_date': JalaliDateInput(attrs={'class': 'form-control'}),
             'source_document_type': forms.TextInput(attrs={'class': 'form-control'}),
             'source_document_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'status': forms.Select(attrs={'class': 'form-control'}),
+            'status': forms.HiddenInput(),
             'qc_approval_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
         labels = {
             'document_code': _('Document Code'),
             'document_date': _('Document Date'),
-            'item': _('Item'),
-            'warehouse': _('Warehouse'),
-            'quantity': _('Quantity'),
             'expected_receipt_date': _('Expected Conversion Date'),
             'supplier': _('Supplier'),
             'source_document_type': _('Source Document Type'),
@@ -83,23 +73,71 @@ class ReceiptTemporaryForm(ReceiptBaseForm):
             'qc_approval_notes': _('QC Notes'),
         }
 
-    def __init__(self, *args, **kwargs):
-        """Initialize form."""
+    def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
+        """Initialize form with company filtering."""
         super().__init__(*args, **kwargs)
+        self.company_id = company_id or getattr(self.instance, 'company_id', None)
+        
+        # Make document_code and document_date not required and hidden (they're auto-generated)
+        if 'document_code' in self.fields:
+            self.fields['document_code'].required = False
+            self.fields['document_code'].widget = forms.HiddenInput()
+        if 'document_date' in self.fields:
+            self.fields['document_date'].required = False
+            self.fields['document_date'].widget = forms.HiddenInput()
+            # Set initial value to today if creating new
+            if not getattr(self.instance, 'pk', None):
+                self.fields['document_date'].initial = timezone.now().date()
+        
         if 'status' in self.fields:
             self.fields['status'].widget = forms.HiddenInput()
             self.fields['status'].required = False
             if not self.instance.pk:
                 self.fields['status'].initial = ReceiptTemporary.Status.DRAFT
+        
+        if self.company_id:
+            self._filter_company_scoped_fields()
+
+    def _filter_company_scoped_fields(self) -> None:
+        """Filter querysets based on active company."""
+        from inventory.forms.base import ReceiptBaseForm
+        if 'supplier' in self.fields:
+            from inventory.models import Supplier
+            self.fields['supplier'].queryset = Supplier.objects.filter(company_id=self.company_id, is_enabled=1)
+            self.fields['supplier'].label_from_instance = lambda obj: f"{obj.name} · {obj.public_code}"
+            self.fields['supplier'].empty_label = _("--- انتخاب کنید ---")
+
+    def clean_document_code(self) -> str:
+        """Auto-generate document_code if not provided."""
+        document_code = self.cleaned_data.get('document_code', '').strip()
+        if not document_code:
+            # Will be generated in save() method
+            return ''
+        return document_code
+    
+    def clean_document_date(self):
+        """Auto-generate document_date if not provided."""
+        document_date = self.cleaned_data.get('document_date')
+        if not document_date:
+            # Return today's date as default
+            return timezone.now().date()
+        return document_date
 
     def clean(self) -> Dict[str, Any]:
         """Validate form data."""
         cleaned_data = super().clean()
+        
+        # Ensure document_code and document_date are set (will be generated in save if empty)
+        if not cleaned_data.get('document_code'):
+            cleaned_data['document_code'] = ''
+        if not cleaned_data.get('document_date'):
+            cleaned_data['document_date'] = timezone.now().date()
+        
         if self.company_id:
-            self._clean_company_match(cleaned_data, 'item', _('item'))
-            self._clean_company_match(cleaned_data, 'warehouse', _('warehouse'))
             if cleaned_data.get('supplier'):
-                self._clean_company_match(cleaned_data, 'supplier', _('supplier'))
+                supplier = cleaned_data.get('supplier')
+                if supplier.company_id != self.company_id:
+                    self.add_error('supplier', _('Selected supplier belongs to a different company.'))
         return cleaned_data
 
     def save(self, commit: bool = True):
@@ -111,14 +149,6 @@ class ReceiptTemporaryForm(ReceiptBaseForm):
             instance.document_date = timezone.now().date()
         instance.status = self.cleaned_data.get('status') or ReceiptTemporary.Status.DRAFT
         instance.is_locked = getattr(self.instance, 'is_locked', 0) or 0
-        instance.unit = self.instance.unit  # ensure default unit persisted
-        instance.quantity = self.instance.quantity
-        entered_unit = self._entered_unit_value or getattr(instance, 'entered_unit', '') or instance.unit
-        instance.entered_unit = entered_unit
-        if self._entered_quantity_value is not None:
-            instance.entered_quantity = self._entered_quantity_value
-        elif instance.entered_quantity is None:
-            instance.entered_quantity = instance.quantity
         if commit:
             instance.save()
             self.save_m2m()
@@ -920,6 +950,47 @@ ReceiptConsignmentLineFormSet = inlineformset_factory(
     ReceiptConsignment,
     ReceiptConsignmentLine,
     form=ReceiptConsignmentLineForm,
+    formset=BaseLineFormSet,
+    extra=1,
+    can_delete=True,
+    min_num=1,
+    validate_min=True,
+)
+
+
+class ReceiptTemporaryLineForm(ReceiptLineBaseForm):
+    """Form for temporary receipt line items."""
+    
+    class Meta:
+        model = ReceiptTemporaryLine
+        fields = [
+            'item', 'warehouse', 'unit', 'quantity',
+            'entered_unit', 'entered_quantity', 'entered_unit_price', 'entered_price_unit',
+            'expected_receipt_date',
+            'line_notes',
+        ]
+        widgets = {
+            'item': forms.Select(attrs={'class': 'form-control'}),
+            'warehouse': forms.Select(attrs={'class': 'form-control'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'entered_unit': forms.TextInput(attrs={'class': 'form-control'}),
+            'entered_quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'entered_unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'entered_price_unit': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Optional: unit for price (e.g., BOX)')}),
+            'expected_receipt_date': JalaliDateInput(attrs={'class': 'form-control'}),
+            'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+        labels = {
+            'expected_receipt_date': _('Expected Conversion Date'),
+            'line_notes': _('Notes'),
+        }
+
+
+# Create formsets
+ReceiptTemporaryLineFormSet = inlineformset_factory(
+    ReceiptTemporary,
+    ReceiptTemporaryLine,
+    form=ReceiptTemporaryLineForm,
     formset=BaseLineFormSet,
     extra=1,
     can_delete=True,

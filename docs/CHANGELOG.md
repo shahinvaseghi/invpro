@@ -8,10 +8,204 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- **Ticketing Module - Field Options Loading**: Fixed issue where manual options for dropdown/radio/checkbox fields were not being loaded when editing templates
+  - Fixed `field_config` JSON serialization in Django forms for existing instances
+  - Added `json_filters` template tag library for proper dict-to-JSON conversion in templates
+  - Enhanced JavaScript initialization to properly parse and load options from `field_config` field
+  - Added extensive logging for debugging option loading process
+  - Options now correctly load and display in the options management table when editing templates
+
+### Added
+- **Ticketing Module - Field Options Management UI**: Complete implementation of manual options management for radio, dropdown, checkbox, and multi_select field types
+  - Interactive table for managing field options with columns: Order, Value, Label, Default, Actions
+  - "Add Option" button to dynamically add new options
+  - "Remove" button for each option row to delete options
+  - Auto-save functionality: Options are automatically saved to `field_config` JSON field when changed
+  - Options are stored in JSON format: `{"options_source": "manual", "options": [{"value": "...", "label": "...", "order": 0, "is_default": false}]}`
+  - Only one option can be set as default at a time (checkbox validation)
+  - Automatic order number updates when options are added/removed
+  - Options are loaded from `field_config` and displayed in the table on page load
+  - Integration with Options Source selection (Manual vs Entity Reference)
+  - Manual options panel is displayed when "Manual" is selected as options source
+  - All options are saved before form submission
+- **Ticketing Module - Dynamic Field Settings UI**: Complete implementation of field-specific settings based on field type
+  - Dynamic settings panel that displays different configuration options based on selected field type
+  - Support for all 25 field types with type-specific settings:
+    - Options fields (radio, dropdown, checkbox, multi_select): Manual options or Entity Reference configuration
+    - Date/Time fields (date, time, datetime): Auto-fill with current date/time option
+    - Number field: Thousands separator option (3-digit grouping)
+    - Rating field: Minimum and maximum rating range configuration
+    - Slider field: Minimum, maximum, and step value configuration
+    - Calculation field: Formula definition with field references
+    - Fields without special settings: Simple message display
+  - Settings automatically saved to `field_config` JSON field when form is submitted
+  - Auto-save functionality: Settings are automatically saved to JSON when changed
+  - JavaScript-based dynamic UI that updates settings panel when field type changes
+  - Initialization of settings for existing fields on page load
+  - Field settings are stored in hidden `field_config` input and converted to JSON before submission
+  - Settings panel toggle button with visual feedback (▲/▼ icons)
+  - Implementation based on `docs/ticketing_field_settings_specification.md` specification
+- **Enhanced Transaction History in Inventory Balance Details**:
+  - Added "Source/Destination" (مرکز مصرف/تامین) column to transaction history table
+  - Displays supplier name for receipts (where inventory is added)
+  - Displays department unit name or work line name for issues (where inventory is consumed)
+  - Shows only names (not codes) for better readability
+  - Clickable document codes: All document codes in transaction history are now clickable links that navigate directly to the document edit/view page
+  - Link styling with blue color and hover effects for better UX
+  - Transaction types supported: Permanent Receipt, Consignment Receipt, Permanent Issue, Consumption Issue, Consignment Issue
+- **Direct Receipt Creation from Purchase Requests**: Complete workflow for creating receipts directly from approved purchase requests
+  - Intermediate selection pages (`CreateReceiptFromPurchaseRequestView`) for Temporary, Permanent, and Consignment receipts
+  - Users can select which lines to include in the receipt
+  - Quantities can be adjusted based on remaining requested quantities
+  - Line-specific notes can be added
+  - Receipt creation forms are pre-populated with selected lines and quantities from session
+  - Permission: `create_receipt_from_purchase_request` action added to `inventory.receipts.temporary`, `inventory.receipts.permanent`, `inventory.receipts.consignment`, and `inventory.requests.purchase` features
+  - Templates: `create_receipt_from_purchase_request.html` for line selection interface
+  - Buttons in purchase request list view to create receipts (only visible for approved requests)
+- **Direct Issue Creation from Warehouse Requests**: Complete workflow for creating issues directly from approved warehouse requests
+  - Intermediate selection pages (`CreateIssueFromWarehouseRequestView`) for Permanent, Consumption, and Consignment issues
+  - Single-item warehouse requests allow quantity adjustment before issue creation
+  - Optional notes field for tracking
+  - Issue creation forms are pre-populated with warehouse request data from session
+  - Permission: `create_issue_from_warehouse_request` action added to `inventory.issues.permanent`, `inventory.issues.consumption`, `inventory.issues.consignment`, and `inventory.requests.warehouse` features
+  - Templates: `create_issue_from_warehouse_request.html` for quantity selection interface
+  - Buttons in warehouse request list view to create issues (only visible for approved requests)
+- **Access Level Permission Actions**: New permission actions for access level management
+  - `CREATE_RECEIPT_FROM_PURCHASE_REQUEST`: Permission to create receipts from purchase requests
+  - `CREATE_ISSUE_FROM_WAREHOUSE_REQUEST`: Permission to create issues from warehouse requests
+  - Action labels added to `AccessLevelPermissionMixin.action_labels` for proper display in access level forms
+- **Product Orders Management**: Complete implementation of Product Orders in Production module
+  - `ProductOrder` model with BOM selection, quantity planning, approver assignment, and priority management
+  - `ProductOrderForm` with BOM selection, quantity validation, and approver filtering based on permissions
+  - CRUD views: `ProductOrderListView`, `ProductOrderCreateView`, `ProductOrderUpdateView`, `ProductOrderDeleteView`
+  - Templates: `product_orders.html`, `product_order_form.html`, `product_order_confirm_delete.html`
+  - Permission: `production.product_orders` with actions (view_own, view_all, create, edit_own, delete_own, approve, create_transfer_from_order)
+  - Auto-generated 10-digit `order_code` per company using sequential code generation
+  - BOM selection filters to show only enabled BOMs for the active company
+  - Approver field filters to show only users with APPROVE permission for `production.product_orders`
+  - Navigation links added to sidebar and top menu with permission checks
+  - **Optional Transfer Request Creation**: Users with `create_transfer_from_order` permission can optionally create a transfer request directly from the order form
+    - Checkbox to enable transfer request creation
+    - Transfer approver selection (filters to show only users with APPROVE permission for `production.transfer_requests`)
+    - Extra request items section with cascading filters (Material Type → Category → Subcategory → Item)
+    - Auto-load units when item is selected
+    - When order is saved with transfer request enabled, transfer request is automatically created with BOM items and extra items
+- **Transfer to Line Requests Management**: Complete implementation of Transfer to Line Requests in Production module
+  - `TransferToLine` model with order selection, approver assignment, and status tracking
+  - `TransferToLineItem` model with material items, quantities, warehouses, and work centers
+  - `TransferToLineForm` with order selection, transfer date, and approver filtering
+  - `TransferToLineItemForm` with cascading filters for material selection
+  - `TransferToLineItemFormSet` for managing multiple items
+  - CRUD views: `TransferToLineListView`, `TransferToLineCreateView`, `TransferToLineUpdateView`, `TransferToLineDeleteView`
+  - Approval workflow views: `TransferToLineApproveView`, `TransferToLineRejectView`
+  - Issue creation view: `TransferToLineCreateIssueView` (creates consumption issue from approved transfer request)
+  - Templates: `transfer_to_line_list.html`, `transfer_to_line_form.html`, `transfer_to_line_confirm_delete.html`
+  - Permission: `production.transfer_requests` with actions (view_own, view_all, create, edit_own, delete_own, approve, reject, create_issue_from_transfer)
+  - Auto-generated 8-digit `transfer_code` with "TR" prefix per company using sequential code generation
+  - Automatic BOM item population when product order is selected
+  - Quantity calculation: `order.quantity_planned × bom_material.quantity_per_unit`
+  - Source warehouse auto-selected from ItemWarehouse (first allowed warehouse)
+  - Extra request items section (only editable before document is locked)
+  - Cascading filters: Material Type → Category → Subcategory → Item
+  - Auto-load units when item is selected
+  - Lockable documents (inherits from `LockableModel`)
+  - Status workflow: pending_approval → approved/rejected
+  - Navigation links added to sidebar and top menu with permission checks
+- **Jalali Date Picker Integration**: Local implementation of Persian date picker
+  - Integrated [JalaliDatePicker](https://github.com/majidh1/JalaliDatePicker) library (no dependencies, lightweight)
+  - Library files stored locally in `/static/js/jalali-datepicker/` and `/static/css/jalali-datepicker/`
+  - No external CDN dependencies - all files served from local static files
+  - `JalaliDateInput` widget enhanced with `data-jdp` and `data-jdp-only-date` attributes for auto-initialization
+  - Automatic date picker initialization for all inputs with `jalali-date-input` class or `data-jalali="true"` attribute
+  - Date picker configured for Persian calendar with date-only mode (no time selection)
+  - Applied to `ProductOrderForm.due_date` field and all other Jalali date fields throughout the application
+- **Module Independence Support**: Inventory module can now run independently without production module
+  - Created `shared.utils.modules` utility module with functions to check module availability
+  - `is_production_installed()`: Check if production module is installed
+  - `is_qc_installed()`: Check if QC module is installed
+  - `get_work_line_model()`: Get WorkLine model if production is installed, None otherwise
+  - `get_person_model()`: Get Person model if production is installed, None otherwise
+  - All production dependencies in inventory module are now optional
+  - WorkLine selection in consumption issues is gracefully disabled when production is not installed
+  - API endpoint `/inventory/api/warehouse-work-lines/` returns empty list when production is not installed
+  - Forms dynamically add/remove WorkLine option based on module availability
+  - Updated `inventory/models.py`, `inventory/forms/issue.py`, `inventory/forms/base.py`, and `inventory/views/api.py` to use optional imports
+  - See [MODULE_DEPENDENCIES.md](MODULE_DEPENDENCIES.md) for detailed documentation
+- **Performance Records Management**: Complete implementation of Performance Records in Production module
+  - `PerformanceRecord` model with order selection, performance date, planned/actual quantities, approver assignment, and status tracking
+  - `PerformanceRecordMaterial` model for tracking material waste from transfer documents
+  - `PerformanceRecordPerson` model for tracking labor time (work minutes) for personnel
+  - `PerformanceRecordMachine` model for tracking machine usage time (work minutes) for machines
+  - `PerformanceRecordForm` with order selection, transfer selection (optional), performance date (Jalali), quantity validation, and approver filtering
+  - `PerformanceRecordMaterialFormSet` for managing material waste tracking
+  - `PerformanceRecordPersonFormSet` for managing personnel work time
+  - `PerformanceRecordMachineFormSet` for managing machine usage time
+  - CRUD views: `PerformanceRecordListView`, `PerformanceRecordCreateView`, `PerformanceRecordUpdateView`, `PerformanceRecordDeleteView`
+  - Approval workflow views: `PerformanceRecordApproveView`, `PerformanceRecordRejectView`
+  - Receipt creation view: `PerformanceRecordCreateReceiptView` (creates permanent or temporary receipt from approved performance records)
+  - Templates: `performance_record_list.html`, `performance_record_form.html`, `performance_record_confirm_delete.html`
+  - Permission: `production.performance_records` with actions (view_own, view_all, create, edit_own, edit_other, delete_own, delete_other, approve, reject, create_receipt)
+  - Auto-generated `performance_code` with "PR-" prefix and 8-digit sequential number per company
+  - Order selection requires process assignment (validated in form)
+  - Transfer request selection (optional) - auto-populates materials from transfer document
+  - Materials auto-populated from transfer request items (if transfer is selected)
+  - Material waste tracking: quantity_issued (from transfer) and quantity_wasted (user-entered)
+  - Personnel filtering: Only personnel assigned to work lines in the order's process
+  - Machine filtering: Only machines assigned to work lines in the order's process
+  - Work minutes tracking for both personnel and machines
+  - Planned quantity auto-populated from order
+  - Actual quantity validation: Cannot exceed planned quantity
+  - Receipt creation:
+    - Receipt type determined by `finished_item.requires_temporary_receipt`:
+      - If `requires_temporary_receipt = 1`: Only temporary receipt can be created
+      - If `requires_temporary_receipt = 0`: User can choose permanent or temporary receipt
+    - Receipt quantity = actual produced quantity from performance record
+    - Receipt warehouse selection (required)
+    - Only available for approved and locked performance records
+    - Requires `CREATE_RECEIPT` permission
+  - Lockable documents (inherits from `LockableModel`)
+  - Status workflow: pending_approval → approved/rejected
+  - Navigation links added to sidebar and top menu with permission checks
+  - Migration: `0021_performancerecord_performancerecordperson_and_more.py`
+
+### Fixed
+- **Inventory Balance Display for Disabled Items**: Fixed issue where items with transactions were not displayed in warehouse balance if they were disabled (`is_enabled=0`)
+  - Modified `calculate_warehouse_balances()` logic to include items with actual transactions regardless of enabled status
+  - Items with transactions (receipts/issues/stocktaking) are now always shown in balance reports, even if disabled
+  - Items with only warehouse assignment still require `is_enabled=1` to appear
+  - This ensures complete transaction history visibility for auditing purposes
+- **Transaction History Source/Destination Display**: Fixed display of source/destination information in transaction history
+  - Modified `calculate_warehouse_balances()` logic to include items with actual transactions regardless of enabled status
+  - Items with transactions (receipts/issues/stocktaking) are now always shown in balance reports, even if disabled
+  - Items with only warehouse assignment still require `is_enabled=1` to appear
+  - This ensures complete transaction history visibility for auditing purposes
+- **Transaction History Source/Destination Display**: Fixed display of source/destination information in transaction history
+  - For consumption issues, now properly retrieves department unit name from `cost_center_code` when work_line and document department_unit are not available
+  - Improved fallback logic to ensure meaningful information is always displayed
+- **Jalali Date Picker Not Displaying**: Fixed issue where Persian date picker was not showing when clicking on date input fields
+  - Integrated JalaliDatePicker library locally (no CDN dependencies) - library files stored in `/static/js/jalali-datepicker/` and `/static/css/jalali-datepicker/`
+  - Enhanced `JalaliDateInput` widget with `data-jdp` and `data-jdp-only-date` attributes for auto-initialization
+  - Added JavaScript initialization code in templates to automatically initialize date picker for all Jalali date inputs
+  - Date picker now displays correctly when clicking on date fields, allowing users to select dates from a visual Persian calendar
+  - Applied to all forms using `JalaliDateField` or `JalaliDateInput` widget throughout the application
+- **Production Module Form Initialization Error**: Fixed `TypeError: BaseModelForm.__init__() got an unexpected keyword argument 'request'` in production module create views
+  - Removed `kwargs['request']` from `get_form_kwargs()` in all production create/update views:
+    - `WorkLineCreateView` - Removed unnecessary `request` parameter
+    - `PersonCreateView` - Removed unnecessary `request` parameter
+    - `MachineCreateView` - Removed unnecessary `request` parameter
+    - `BOMCreateView` - Removed unnecessary `request` parameter
+    - `ProcessCreateView` and `ProcessUpdateView` - Removed unnecessary `request` parameter
+  - Removed unused `request` parameter from `ProcessForm.__init__()` method
+  - Forms now only receive `company_id` parameter which is sufficient for all filtering needs
+  - All production module create buttons (machines, work lines, personnel, BOM, processes) now work correctly without errors
+
 ### Added
 - **Secondary Batch Number for Items**: Added optional `secondary_batch_number` field to `Item` model allowing users to define a custom secondary batch number in addition to the auto-generated batch number. This field is displayed in the item definition form and can be used for external batch tracking.
 - **Secondary Serial Number for Item Serials**: Added optional `secondary_serial_code` field to `ItemSerial` model allowing users to define a custom secondary serial number in addition to the auto-generated serial code. This field can be managed on the serial assignment page during receipt creation and updated via API endpoint `/inventory/api/update-serial-secondary-code/`.
 - **Inventory Balance Validation in Issue Forms**: Added validation to prevent issuing more items than available inventory. The system now checks current balance before allowing issue creation/editing, and displays an error message if insufficient inventory is available.
+- **Notification Read Tracking**: Added notification read tracking system using session storage. Users can mark notifications as read by clicking on them, and read notifications are stored in session to prevent them from appearing again. Notifications are tracked using unique keys (e.g., `approval_pending_purchase_{company_id}`).
+- **Logout Button in Header**: Added logout button next to username in the header for easy access to logout functionality. The button has a clean design matching the header style with hover effects.
 
 ### Changed
 - **Issue Forms Destination Type**: 
@@ -37,6 +231,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Updated `get_filtered_subcategories` API to return all subcategories for a category (not just those with items)
   - Added JavaScript cascading dropdown logic to filter subcategories when category changes
   - Subcategories now properly clear and reload when category selection changes
+- **Item Code Generation Logic**: Fixed issue where items with the same `user_segment` (first 2 digits) would all get the same code (e.g., all `1000001`)
+  - Updated `_generate_sequence_segment()` method in `Item` model to check all existing item codes with the same `user_segment`
+  - Now extracts sequence segments from all existing codes and generates the next sequential number
+  - Example: If `1000001` and `1000002` exist, the next item will get `1000003`
+  - Works correctly even if items have different types/categories but same `user_segment`
+- **Language Switcher Redirect**: Fixed issue where language switching would not properly redirect to the current page
+  - Added JavaScript function `updateLanguageNext()` to remove language prefix from current URL
+  - Language switcher now properly redirects to the same page after language change
+  - Works correctly with Django's `i18n_patterns` URL handling
+- **LOGIN_REDIRECT_URL Hardcoded Prefix**: Fixed hardcoded `/fa/` prefix in `LOGIN_REDIRECT_URL` setting
+  - Changed from `/fa/` to `/` to let Django's `i18n_patterns` handle language prefix automatically
+  - Now respects user's language preference (works with both `/fa/` and `/en/`)
+  - Resolves conflict with Django's i18n URL handling
+- **Notification Read Status**: Fixed issue where notifications would not be marked as read after clicking
+  - Added `mark_notification_read` view in `shared/views/auth.py`
+  - Implemented notification tracking using session storage with unique keys
+  - Added JavaScript using `fetch` API to mark notifications as read before redirecting
+  - Read notifications are now properly stored in session and excluded from display
 
 ---
 

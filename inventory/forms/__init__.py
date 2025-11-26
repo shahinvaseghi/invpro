@@ -63,17 +63,27 @@ __all__.extend([
 # Import request forms
 from inventory.forms.request import (
     PurchaseRequestForm,
+    PurchaseRequestLineForm,
+    PurchaseRequestLineFormSet,
     WarehouseRequestForm,
+    WarehouseRequestLineForm,
+    WarehouseRequestLineFormSet,
 )
 
 __all__.extend([
     'PurchaseRequestForm',
+    'PurchaseRequestLineForm',
+    'PurchaseRequestLineFormSet',
     'WarehouseRequestForm',
+    'WarehouseRequestLineForm',
+    'WarehouseRequestLineFormSet',
 ])
 
 # Import receipt forms
 from inventory.forms.receipt import (
     ReceiptTemporaryForm,
+    ReceiptTemporaryLineForm,
+    ReceiptTemporaryLineFormSet,
     ReceiptPermanentForm,
     ReceiptConsignmentForm,
     ReceiptLineBaseForm,
@@ -85,6 +95,8 @@ from inventory.forms.receipt import (
 
 __all__.extend([
     'ReceiptTemporaryForm',
+    'ReceiptTemporaryLineForm',
+    'ReceiptTemporaryLineFormSet',
     'ReceiptPermanentForm',
     'ReceiptConsignmentForm',
     'ReceiptLineBaseForm',

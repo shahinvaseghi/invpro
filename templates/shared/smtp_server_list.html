@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "SMTP Servers" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <span>{% trans "SMTP Servers" %}</span>
+    </nav>
+    
+    <h1 class="page-title">{% trans "SMTP Servers" %}</h1>
+    
+    <div class="page-actions">
+      <a href="{% url 'shared:smtp_server_create' %}" class="btn btn-primary">{% trans "Create SMTP Server +" %}</a>
+    </div>
+  </div>
+  
+  {% if smtp_servers %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Name" %}</th>
+        <th>{% trans "Host" %}</th>
+        <th>{% trans "Port" %}</th>
+        <th>{% trans "From Email" %}</th>
+        <th>{% trans "TLS/SSL" %}</th>
+        <th>{% trans "Status" %}</th>
+        <th>{% trans "Actions" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for server in smtp_servers %}
+      <tr>
+        <td><strong>{{ server.name }}</strong></td>
+        <td>{{ server.host }}</td>
+        <td>{{ server.port }}</td>
+        <td>{{ server.from_email }}</td>
+        <td>
+          {% if server.use_ssl == 1 %}
+            <span class="badge badge-info">SSL</span>
+          {% elif server.use_tls == 1 %}
+            <span class="badge badge-info">TLS</span>
+          {% else %}
+            <span class="badge badge-secondary">{% trans "None" %}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if server.is_enabled == 1 %}
+            <span class="badge badge-success">{% trans "Active" %}</span>
+          {% else %}
+            <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{% url 'shared:smtp_server_edit' server.id %}" class="btn btn-sm btn-secondary">{% trans "Edit" %}</a>
+          <a href="{% url 'shared:smtp_server_delete' server.id %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  
+  {% if is_paginated %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}">{% trans "Previous" %}</a>
+    {% endif %}
+    <span>{% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}">{% trans "Next" %}</a>
+    {% endif %}
+  </div>
+  {% endif %}
+  
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📧</div>
+    <h2>{% trans "SMTP Servers" %}</h2>
+    <p>{% trans "No SMTP server configurations found. Create your first SMTP server to enable email notifications." %}</p>
+    <a href="{% url 'shared:smtp_server_create' %}" class="btn btn-primary">{% trans "Create SMTP Server +" %}</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

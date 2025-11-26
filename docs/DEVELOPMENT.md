@@ -406,6 +406,42 @@ python manage.py compilemessages -l fa
 - پس از تایید، `is_locked=1` روی درخواست‌ها تنظیم می‌شود و تنها همین درخواست‌های تاییدشده/قفل‌شده در فرم‌های رسید دائم و امانی قابل انتخاب هستند؛ منطق فرم‌ها تطابق کالا و انبار را پیش از ذخیره بررسی می‌کند.
 - **مهم**: هر دو فیلد «درخواست‌کننده» و «تایید‌کننده» اکنون به Django `User` متصل هستند. مدل `Person` فقط برای عملیات ماژول تولید (لیست پرسنل، خط تولید، محاسبه نفر-ساعت) استفاده می‌شود. برای جزئیات کامل جریان تأیید، به `docs/approval_workflow.md` مراجعه کنید.
 
+#### فیلدهای اضافه شده
+
+- `PurchaseRequest.notes`: فیلد متنی برای یادداشت‌های کاربر
+- `PurchaseRequest.request_metadata`: فیلد JSON برای اطلاعات اضافی (default=dict)
+- `WarehouseRequest.notes`: فیلد متنی برای یادداشت‌های کاربر
+- `WarehouseRequest.attachments`: فیلد JSON برای فایل‌های پیوست (default=list)
+- `WarehouseRequest.request_metadata`: فیلد JSON برای اطلاعات اضافی (default=dict)
+- `WarehouseRequest.is_locked`: فیلد برای قفل کردن درخواست (inherits from `LockableModel`)
+
+#### دکمه‌های ایجاد رسید/حواله در لیست
+
+**درخواست خرید (Purchase Request):**
+- در ستون "Actions" جدول لیست درخواست‌های خرید، برای هر درخواست **تاییدشده** (`status == 'approved'`) سه دکمه نمایش داده می‌شود:
+  1. **دکمه "Temporary Receipt"** (سبز): ایجاد رسید موقت از درخواست خرید
+  2. **دکمه "Permanent Receipt"** (آبی): ایجاد رسید دائم از درخواست خرید
+  3. **دکمه "Consignment Receipt"** (بنفش): ایجاد رسید امانی از درخواست خرید
+- این دکمه‌ها فقط برای درخواست‌های تاییدشده قابل مشاهده هستند
+- هر دکمه به صفحه انتخاب خطوط/مقدار هدایت می‌کند (`CreateReceiptFromPurchaseRequestView`)
+- Permission: برای هر نوع رسید، نیاز به دسترسی `create_receipt_from_purchase_request` است
+
+**درخواست از انبار (Warehouse Request):**
+- در ستون "Actions" جدول لیست درخواست‌های انبار، برای هر درخواست **تاییدشده** (`request_status == 'approved'`) سه دکمه نمایش داده می‌شود:
+  1. **دکمه "Permanent Issue"** (آبی): ایجاد حواله دائم از درخواست انبار
+  2. **دکمه "Consumption Issue"** (سبز): ایجاد حواله مصرف از درخواست انبار
+  3. **دکمه "Consignment Issue"** (بنفش): ایجاد حواله امانی از درخواست انبار
+- این دکمه‌ها فقط برای درخواست‌های تاییدشده قابل مشاهده هستند
+- هر دکمه به صفحه انتخاب مقدار هدایت می‌کند (`CreateIssueFromWarehouseRequestView`)
+- Permission: برای هر نوع حواله، نیاز به دسترسی `create_issue_from_warehouse_request` است
+
+**جریان کار:**
+1. کاربر درخواست را ایجاد و تایید می‌کند
+2. پس از تایید، دکمه‌های ایجاد رسید/حواله در لیست ظاهر می‌شوند
+3. با کلیک روی دکمه، کاربر به صفحه انتخاب خطوط (برای Purchase Request) یا انتخاب مقدار (برای Warehouse Request) هدایت می‌شود
+4. پس از انتخاب، فرم ایجاد رسید/حواله با اطلاعات انتخاب‌شده پیش‌پر می‌شود
+5. کاربر می‌تواند اطلاعات را بررسی و اصلاح کند و سپس ذخیره کند
+
 ### User Management Forms Notes
 - `UserCreateForm` و `UserUpdateForm` از `UserBaseForm` ارث‌بری می‌کنند و مدیریت کامل کاربران را فراهم می‌کنند.
 - **Group Assignments**: گروه‌ها به‌صورت ManyToMany ذخیره می‌شوند. در `UserUpdateForm.save()`، گروه‌ها مستقیماً بعد از `user.save()` ذخیره می‌شوند تا از پایداری اطمینان حاصل شود.
@@ -415,13 +451,41 @@ python manage.py compilemessages -l fa
   - در `UserUpdateForm`: رمز عبور فقط در صورت ارائه `new_password1` تغییر می‌کند
 - **Company Access**: دسترسی شرکت‌ها از طریق `UserCompanyAccessFormSet` در view مدیریت می‌شود (نه در خود فرم).
 
-#### Step 9: Run Migrations
+#### Step 9: Register in Entity Reference System
+```bash
+# Create data migration for section registry
+python manage.py makemigrations shared --empty --name add_new_section_to_registry
+```
+
+**IMPORTANT**: Every new section MUST be registered in:
+1. **Section Registry**: Add section to `invproj_section_registry` table
+2. **Action Registry**: Add all actions to `invproj_action_registry` table
+
+See [Entity Reference System Documentation](../ENTITY_REFERENCE_SYSTEM.md#adding-new-sections-and-actions) for detailed instructions.
+
+#### Step 10: Configure Access Level Permissions
+**CRITICAL**: After creating a new section, you MUST configure its permissions in Access Levels.
+
+1. Go to `/shared/access-levels/`
+2. Create or edit an Access Level
+3. Configure permissions for your new section:
+   - View (view_own / view_all)
+   - Create
+   - Edit (edit_own / edit_other)
+   - Delete (delete_own / delete_other)
+   - Approve/Reject (if applicable)
+   - Lock/Unlock (if applicable)
+4. Assign the Access Level to appropriate users or groups
+
+**Note**: The permission system uses `FEATURE_PERMISSION_MAP` from `shared/permissions.py`. Ensure your new section's feature code is defined there with appropriate actions.
+
+#### Step 11: Run Migrations
 ```bash
 python manage.py makemigrations
 python manage.py migrate
 ```
 
-#### Step 10: Test
+#### Step 12: Test
 ```bash
 # Create test data
 python manage.py shell
@@ -493,6 +557,39 @@ class ItemTypeTestCase(TestCase):
 - **Persian (Farsi)** is the default language (`LANGUAGE_CODE = 'fa'`)
 - Application opens in Persian by default for all new users
 - Users can switch to English using the language switcher in the header
+
+### Language Switching
+- **Language Switcher**: Dropdown in header allows switching between Persian and English
+- **Auto Redirect**: After language change, user is redirected to the same page with new language
+- **URL Handling**: Language prefix (`/fa/` or `/en/`) is automatically added/removed by Django's `i18n_patterns`
+- **JavaScript Support**: `updateLanguageNext()` function removes language prefix from current URL before redirect
+- **Login Redirect**: `LOGIN_REDIRECT_URL` is set to `/` to let Django handle language prefix automatically
+
+### Notification System
+
+#### Implementation
+- Notifications are calculated in `shared/context_processors.active_company()`
+- Read notifications are tracked in session using unique keys
+- Notification keys format: `{type}_{subtype}_{company_id}` (e.g., `approval_pending_purchase_1`)
+
+#### Marking Notifications as Read
+```javascript
+// JavaScript in base.html
+function markNotificationAsRead(notificationKey, redirectUrl) {
+  // Use fetch API to mark notification as read
+  fetch('/shared/mark-notification-read/', {
+    method: 'POST',
+    body: formData,
+    headers: { 'X-CSRFToken': csrfToken }
+  })
+  .then(response => window.location.href = redirectUrl);
+}
+```
+
+#### Session Storage
+- Read notifications stored as list in `request.session['read_notifications']`
+- Converted to set for fast lookup during notification filtering
+- Persists across page loads until user logs out
 
 ### Adding Translatable Strings
 ```python
@@ -682,6 +779,12 @@ python manage.py migrate
 ### Access Control
 - Centralise feature/action definitions inside `shared/permissions.py` (`FEATURE_PERMISSION_MAP` + `PermissionAction`).
 - هنگام پیاده‌سازی ویوها یا فرم‌ها، ابتدا تعیین کنید آیا کاربر نیاز به `view_own` یا `view_all` دارد؛ سپس سایر اکشن‌ها (`create`, `edit_own`, `lock_own`, `lock_other`, `unlock_*`, `approve`, `reject`, `cancel`) را از همان کاتالوگ بخوانید.
+- **CRITICAL**: Whenever a new section/feature is created, its permissions MUST be configured in Access Levels:
+  1. Register the section in Entity Reference System (Section Registry and Action Registry)
+  2. Define feature permissions in `shared/permissions.py` (`FEATURE_PERMISSION_MAP`)
+  3. Configure Access Level permissions in `/shared/access-levels/` for the new section
+  4. Assign appropriate Access Levels to users or groups
+- بدون تعیین دسترسی در Access Level، کاربران نمی‌توانند به بخش جدید دسترسی داشته باشند (حتی اگر در sidebar نمایش داده شود).
 - تا تکمیل CRUD سطوح دسترسی، صفحات `/shared/users/`, `/shared/groups/`, `/shared/access-levels/` به‌عنوان Placeholder باقی می‌مانند؛ بعد از پیاده‌سازی حتماً این مستند را با جریان کامل بروزرسانی کنید.
 
 ### Performance

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load jalali_tags %}
+
+{% block title %}{% trans "Product Orders" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <span>{% trans "Product Orders" %}</span>
+    </nav>
+    
+    <h1 class="page-title">{% trans "Product Orders" %}</h1>
+    
+    <div class="page-actions">
+      <a href="{% url 'production:product_order_create' %}" class="btn btn-primary">{% trans "Create Product Order +" %}</a>
+    </div>
+  </div>
+  
+  {% if product_orders %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Order Code" %}</th>
+        <th>{% trans "BOM" %}</th>
+        <th>{% trans "Finished Item" %}</th>
+        <th>{% trans "Quantity" %}</th>
+        <th>{% trans "Unit" %}</th>
+        <th>{% trans "Priority" %}</th>
+        <th>{% trans "Status" %}</th>
+        <th>{% trans "Approver" %}</th>
+        <th>{% trans "Order Date" %}</th>
+        <th>{% trans "Actions" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for order in product_orders %}
+      <tr>
+        <td>{{ order.order_code }}</td>
+        <td>{{ order.bom.bom_code|default:"-" }}</td>
+        <td>{{ order.finished_item.item_code }} - {{ order.finished_item.name }}</td>
+        <td>{{ order.quantity_planned }}</td>
+        <td>{{ order.unit }}</td>
+        <td>
+          <span class="badge badge-{{ order.priority }}">
+            {{ order.get_priority_display }}
+          </span>
+        </td>
+        <td>
+          <span class="badge badge-{{ order.status }}">
+            {{ order.get_status_display }}
+          </span>
+        </td>
+        <td>{{ order.approved_by.get_full_name|default:order.approved_by.username|default:"-" }}</td>
+        <td>{{ order.order_date|jalali_date }}</td>
+        <td>
+          <a href="{% url 'production:product_order_edit' order.pk %}" class="btn btn-sm btn-secondary">{% trans "Edit" %}</a>
+          <a href="{% url 'production:product_order_delete' order.pk %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  
+  {% if is_paginated %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}">{% trans "Previous" %}</a>
+    {% endif %}
+    <span>{% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}">{% trans "Next" %}</a>
+    {% endif %}
+  </div>
+  {% endif %}
+  
+  {% else %}
+  <div class="empty-state">
+    <p>{% trans "No product orders found." %}</p>
+    <a href="{% url 'production:product_order_create' %}" class="btn btn-primary">{% trans "Create First Product Order" %}</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

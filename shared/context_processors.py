@@ -53,7 +53,10 @@ def active_company(request):
             if not context['active_company']:
                 context['active_company'] = context['user_companies'][0]
             
-            request.session['active_company_id'] = context['active_company'].id
+            # Save to session and mark as modified
+            if context['active_company']:
+                request.session['active_company_id'] = context['active_company'].id
+                request.session.modified = True  # Ensure session is saved
 
         from shared.utils.permissions import get_user_feature_permissions
 
@@ -70,6 +73,17 @@ def active_company(request):
             
             notifications = []
             
+            # Get read notifications from session
+            read_notifications_list = request.session.get('read_notifications', [])
+            if not isinstance(read_notifications_list, list):
+                read_notifications_list = []
+            read_notifications = set(read_notifications_list)
+            
+            # Get sent email notifications from session (to avoid duplicate emails)
+            sent_email_notifications = request.session.get('sent_email_notifications', set())
+            if not isinstance(sent_email_notifications, set):
+                sent_email_notifications = set()
+            
             # 1. Requests awaiting approval (user is approver)
             pending_purchase_approvals = inventory_models.PurchaseRequest.objects.filter(
                 company_id=company_id,
@@ -78,13 +92,34 @@ def active_company(request):
                 is_enabled=1
             ).count()
             
-            if pending_purchase_approvals > 0:
+            notification_key = f'approval_pending_purchase_{company_id}'
+            if pending_purchase_approvals > 0 and notification_key not in read_notifications:
                 notifications.append({
                     'type': 'approval_pending',
+                    'key': notification_key,
                     'message': f'{pending_purchase_approvals} درخواست خرید در انتظار تایید',
                     'url': 'inventory:purchase_requests',
                     'count': pending_purchase_approvals,
                 })
+                # Send email notification (only if not already sent)
+                if notification_key not in sent_email_notifications:
+                    try:
+                        from shared.utils.email import send_notification_email
+                        from django.urls import reverse
+                        notification_url = request.build_absolute_uri(reverse('inventory:purchase_requests'))
+                        if send_notification_email(
+                            notification_type='approval_pending',
+                            notification_message=f'{pending_purchase_approvals} درخواست خرید در انتظار تایید',
+                            recipient_user=request.user,
+                            notification_url=notification_url,
+                            company_name=context['active_company'].display_name if context['active_company'] else None,
+                        ):
+                            sent_email_notifications.add(notification_key)
+                            request.session['sent_email_notifications'] = list(sent_email_notifications)
+                    except Exception as e:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.error(f"Error sending email notification: {e}", exc_info=True)
             
             pending_warehouse_approvals = inventory_models.WarehouseRequest.objects.filter(
                 company_id=company_id,
@@ -93,13 +128,34 @@ def active_company(request):
                 is_enabled=1
             ).count()
             
-            if pending_warehouse_approvals > 0:
+            notification_key = f'approval_pending_warehouse_{company_id}'
+            if pending_warehouse_approvals > 0 and notification_key not in read_notifications:
                 notifications.append({
                     'type': 'approval_pending',
+                    'key': notification_key,
                     'message': f'{pending_warehouse_approvals} درخواست انبار در انتظار تایید',
                     'url': 'inventory:warehouse_requests',
                     'count': pending_warehouse_approvals,
                 })
+                # Send email notification (only if not already sent)
+                if notification_key not in sent_email_notifications:
+                    try:
+                        from shared.utils.email import send_notification_email
+                        from django.urls import reverse
+                        notification_url = request.build_absolute_uri(reverse('inventory:warehouse_requests'))
+                        if send_notification_email(
+                            notification_type='approval_pending',
+                            notification_message=f'{pending_warehouse_approvals} درخواست انبار در انتظار تایید',
+                            recipient_user=request.user,
+                            notification_url=notification_url,
+                            company_name=context['active_company'].display_name if context['active_company'] else None,
+                        ):
+                            sent_email_notifications.add(notification_key)
+                            request.session['sent_email_notifications'] = list(sent_email_notifications)
+                    except Exception as e:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.error(f"Error sending email notification: {e}", exc_info=True)
             
             pending_stocktaking_approvals = inventory_models.StocktakingRecord.objects.filter(
                 company_id=company_id,
@@ -109,13 +165,34 @@ def active_company(request):
                 is_enabled=1
             ).count()
             
-            if pending_stocktaking_approvals > 0:
+            notification_key = f'approval_pending_stocktaking_{company_id}'
+            if pending_stocktaking_approvals > 0 and notification_key not in read_notifications:
                 notifications.append({
                     'type': 'approval_pending',
+                    'key': notification_key,
                     'message': f'{pending_stocktaking_approvals} سند شمارش در انتظار تایید',
                     'url': 'inventory:stocktaking_records',
                     'count': pending_stocktaking_approvals,
                 })
+                # Send email notification (only if not already sent)
+                if notification_key not in sent_email_notifications:
+                    try:
+                        from shared.utils.email import send_notification_email
+                        from django.urls import reverse
+                        notification_url = request.build_absolute_uri(reverse('inventory:stocktaking_records'))
+                        if send_notification_email(
+                            notification_type='approval_pending',
+                            notification_message=f'{pending_stocktaking_approvals} سند شمارش در انتظار تایید',
+                            recipient_user=request.user,
+                            notification_url=notification_url,
+                            company_name=context['active_company'].display_name if context['active_company'] else None,
+                        ):
+                            sent_email_notifications.add(notification_key)
+                            request.session['sent_email_notifications'] = list(sent_email_notifications)
+                    except Exception as e:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.error(f"Error sending email notification: {e}", exc_info=True)
             
             # 2. User's requests that were approved (recently - last 7 days)
             week_ago = timezone.now() - timezone.timedelta(days=7)
@@ -128,13 +205,34 @@ def active_company(request):
                 is_enabled=1
             ).count()
             
-            if approved_purchase_requests > 0:
+            notification_key = f'approved_purchase_{company_id}'
+            if approved_purchase_requests > 0 and notification_key not in read_notifications:
                 notifications.append({
                     'type': 'approved',
+                    'key': notification_key,
                     'message': f'{approved_purchase_requests} درخواست خرید شما تایید شد',
                     'url': 'inventory:purchase_requests',
                     'count': approved_purchase_requests,
                 })
+                # Send email notification (only if not already sent)
+                if notification_key not in sent_email_notifications:
+                    try:
+                        from shared.utils.email import send_notification_email
+                        from django.urls import reverse
+                        notification_url = request.build_absolute_uri(reverse('inventory:purchase_requests'))
+                        if send_notification_email(
+                            notification_type='approved',
+                            notification_message=f'{approved_purchase_requests} درخواست خرید شما تایید شد',
+                            recipient_user=request.user,
+                            notification_url=notification_url,
+                            company_name=context['active_company'].display_name if context['active_company'] else None,
+                        ):
+                            sent_email_notifications.add(notification_key)
+                            request.session['sent_email_notifications'] = list(sent_email_notifications)
+                    except Exception as e:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.error(f"Error sending email notification: {e}", exc_info=True)
             
             approved_warehouse_requests = inventory_models.WarehouseRequest.objects.filter(
                 company_id=company_id,
@@ -144,13 +242,34 @@ def active_company(request):
                 is_enabled=1
             ).count()
             
-            if approved_warehouse_requests > 0:
+            notification_key = f'approved_warehouse_{company_id}'
+            if approved_warehouse_requests > 0 and notification_key not in read_notifications:
                 notifications.append({
                     'type': 'approved',
+                    'key': notification_key,
                     'message': f'{approved_warehouse_requests} درخواست انبار شما تایید شد',
                     'url': 'inventory:warehouse_requests',
                     'count': approved_warehouse_requests,
                 })
+                # Send email notification (only if not already sent)
+                if notification_key not in sent_email_notifications:
+                    try:
+                        from shared.utils.email import send_notification_email
+                        from django.urls import reverse
+                        notification_url = request.build_absolute_uri(reverse('inventory:warehouse_requests'))
+                        if send_notification_email(
+                            notification_type='approved',
+                            notification_message=f'{approved_warehouse_requests} درخواست انبار شما تایید شد',
+                            recipient_user=request.user,
+                            notification_url=notification_url,
+                            company_name=context['active_company'].display_name if context['active_company'] else None,
+                        ):
+                            sent_email_notifications.add(notification_key)
+                            request.session['sent_email_notifications'] = list(sent_email_notifications)
+                    except Exception as e:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.error(f"Error sending email notification: {e}", exc_info=True)
             
             context['notifications'] = notifications
             context['notification_count'] = sum(n['count'] for n in notifications)

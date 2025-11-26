@@ -78,7 +78,6 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
         """Add company_id to form kwargs."""
         kwargs = super().get_form_kwargs()
         kwargs['company_id'] = self.request.session.get('active_company_id')
-        kwargs['request'] = self.request
         return kwargs
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:

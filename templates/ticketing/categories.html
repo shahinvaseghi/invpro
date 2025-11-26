@@ -1,0 +1,41 @@
+{% extends "ticketing/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Categories" %}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Ticket Management" %}</span>
+<span class="separator">/</span>
+<span>{% trans "Categories" %}</span>
+{% endblock %}
+
+{% block ticketing_content %}
+<div class="form-container">
+  <div class="placeholder-message">
+    <h2>{% trans "Categories" %}</h2>
+    <p>{% trans "This page is under construction. Category management functionality will be implemented here." %}</p>
+  </div>
+</div>
+
+<style>
+.placeholder-message {
+  text-align: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.placeholder-message h2 {
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.placeholder-message p {
+  color: #666;
+  font-size: 1.1rem;
+}
+</style>
+{% endblock %}
+

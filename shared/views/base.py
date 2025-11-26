@@ -1,6 +1,7 @@
 """
 Base mixins and helper classes for shared views.
 """
+from collections import defaultdict
 from typing import Optional, Any, Dict, Set
 from django.contrib.auth import get_user_model
 from django.http import HttpRequest
@@ -54,6 +55,10 @@ class AccessLevelPermissionMixin:
             PermissionAction.APPROVE.value: _('Approve'),
             PermissionAction.REJECT.value: _('Reject'),
             PermissionAction.CANCEL.value: _('Cancel'),
+            PermissionAction.CREATE_TRANSFER_FROM_ORDER.value: _('Create Transfer from Order'),
+            PermissionAction.CREATE_RECEIPT.value: _('Create Receipt'),
+            PermissionAction.CREATE_RECEIPT_FROM_PURCHASE_REQUEST.value: _('Create Receipt from Purchase Request'),
+            PermissionAction.CREATE_ISSUE_FROM_WAREHOUSE_REQUEST.value: _('Create Issue from Warehouse Request'),
         }
 
     def _feature_key(self, code: str) -> str:
@@ -62,6 +67,7 @@ class AccessLevelPermissionMixin:
 
     def _prepare_feature_context(self, instance: Optional[Any] = None) -> list:
         """Prepare feature permissions context for template."""
+        from django.utils.translation import gettext_lazy as _
         from shared.permissions import FEATURE_PERMISSION_MAP, PermissionAction
         
         existing: Dict[str, Dict[str, Any]] = {}
@@ -112,17 +118,43 @@ class AccessLevelPermissionMixin:
                         'checked': checked,
                     }
                 )
+            # Extract module from feature code (e.g., "production.product_orders" -> "production")
+            module_code = code.split('.')[0] if '.' in code else 'shared'
+            
             features.append(
                 {
                     'code': code,
                     'html_id': key,
                     'label': feature.label,
+                    'module_code': module_code,
                     'view_supported': PermissionAction.VIEW_OWN in feature.actions or PermissionAction.VIEW_ALL in feature.actions,
                     'view_scope': view_scope,
                     'actions': data_actions,
                 }
             )
-        return features
+        
+        # Group features by module
+        grouped_features = defaultdict(list)
+        for feature in features:
+            grouped_features[feature['module_code']].append(feature)
+        
+        # Convert to list of dicts with module info
+        module_list = []
+        module_labels = {
+            'shared': _('Shared'),
+            'production': _('Production'),
+            'inventory': _('Inventory'),
+            'qc': _('Quality Control'),
+        }
+        
+        for module_code, module_features in sorted(grouped_features.items()):
+            module_list.append({
+                'code': module_code,
+                'label': module_labels.get(module_code, module_code.title()),
+                'features': module_features,
+            })
+        
+        return module_list
 
     def _save_permissions(self, form: Any) -> None:
         """Save permissions from form POST data."""

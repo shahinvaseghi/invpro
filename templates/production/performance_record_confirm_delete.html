@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load jalali_tags %}
+
+{% block title %}{% trans "Delete Performance Record" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <a href="{% url 'production:performance_records' %}">{% trans "Performance Records" %}</a>
+      <span>/</span>
+      <span>{% trans "Delete" %}</span>
+    </nav>
+    
+    <h1 class="page-title">{% trans "Delete Performance Record" %}</h1>
+  </div>
+
+  <div class="form-container">
+    <div class="alert alert-warning">
+      <h3>{% trans "Are you sure you want to delete this performance record?" %}</h3>
+      <p>{% trans "This action cannot be undone." %}</p>
+    </div>
+    
+    <div class="info-banner">
+      <div><strong>{% trans "Performance Code" %}:</strong> {{ object.performance_code }}</div>
+      <div><strong>{% trans "Product Order" %}:</strong> {{ object.order_code }}</div>
+      <div><strong>{% trans "Performance Date" %}:</strong> {{ object.performance_date|jalali_date }}</div>
+      <div><strong>{% trans "Status" %}:</strong> {{ object.get_status_display }}</div>
+      <div><strong>{% trans "Planned Quantity" %}:</strong> {{ object.quantity_planned }} {{ object.unit }}</div>
+      <div><strong>{% trans "Actual Quantity" %}:</strong> {{ object.quantity_actual }} {{ object.unit }}</div>
+      <div><strong>{% trans "Total Materials" %}:</strong> {{ object.materials.count }}</div>
+      <div><strong>{% trans "Total Persons" %}:</strong> {{ object.persons.count }}</div>
+      <div><strong>{% trans "Total Machines" %}:</strong> {{ object.machines.count }}</div>
+    </div>
+    
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-actions">
+        <button type="submit" class="btn btn-danger">{% trans "Delete" %}</button>
+        <a href="{% url 'production:performance_records' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

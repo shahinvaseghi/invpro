@@ -31,6 +31,9 @@ __all__ = [
     "AccessLevelPermission",
     "GroupProfile",
     "UserCompanyAccess",
+    "SMTPServer",
+    "SectionRegistry",
+    "ActionRegistry",
     "NUMERIC_CODE_VALIDATOR",
     "ENABLED_FLAG_CHOICES",
 ]
@@ -366,4 +369,281 @@ class UserCompanyAccess(TimeStampedModel, ActivatableModel, MetadataModel):
     def __str__(self) -> str:
         return f"{self.user} @ {self.company}"
 
+
+class SMTPServer(TimeStampedModel, ActivatableModel, MetadataModel):
+    """
+    SMTP Server configuration for sending email notifications.
+    Global configuration (not company-scoped).
+    """
+    name = models.CharField(
+        max_length=120,
+        unique=True,
+        verbose_name=_("Server Name"),
+        help_text=_("A descriptive name for this SMTP server configuration"),
+    )
+    host = models.CharField(
+        max_length=255,
+        verbose_name=_("SMTP Host"),
+        help_text=_("SMTP server hostname or IP address (e.g., smtp.gmail.com)"),
+    )
+    port = models.PositiveIntegerField(
+        default=587,
+        verbose_name=_("SMTP Port"),
+        help_text=_("SMTP server port (usually 587 for TLS, 465 for SSL, 25 for plain)"),
+    )
+    use_tls = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=1,
+        verbose_name=_("Use TLS"),
+        help_text=_("Enable TLS encryption for SMTP connection"),
+    )
+    use_ssl = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=0,
+        verbose_name=_("Use SSL"),
+        help_text=_("Enable SSL encryption for SMTP connection (usually for port 465)"),
+    )
+    username = models.CharField(
+        max_length=255,
+        verbose_name=_("Username"),
+        help_text=_("SMTP authentication username (usually email address)"),
+    )
+    password = models.CharField(
+        max_length=255,
+        verbose_name=_("Password"),
+        help_text=_("SMTP authentication password or app-specific password"),
+    )
+    from_email = models.EmailField(
+        max_length=255,
+        verbose_name=_("From Email"),
+        help_text=_("Default sender email address"),
+    )
+    from_name = models.CharField(
+        max_length=120,
+        blank=True,
+        verbose_name=_("From Name"),
+        help_text=_("Default sender name (optional)"),
+    )
+    timeout = models.PositiveIntegerField(
+        default=10,
+        verbose_name=_("Connection Timeout"),
+        help_text=_("Connection timeout in seconds"),
+    )
+    description = models.TextField(
+        blank=True,
+        verbose_name=_("Description"),
+        help_text=_("Additional notes about this SMTP configuration"),
+    )
+
+    class Meta:
+        verbose_name = _("SMTP Server")
+        verbose_name_plural = _("SMTP Servers")
+        ordering = ("name",)
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.host}:{self.port})"
+
+    def get_connection_config(self) -> dict:
+        """Get SMTP connection configuration dictionary."""
+        return {
+            'host': self.host,
+            'port': self.port,
+            'use_tls': bool(self.use_tls),
+            'use_ssl': bool(self.use_ssl),
+            'username': self.username,
+            'password': self.password,
+            'timeout': self.timeout,
+        }
+
+
+class SectionRegistry(TimeStampedModel, ActivatableModel, MetadataModel, SortableModel):
+    """
+    Central registry for all application sections/features.
+    Each section has a unique 6-digit code (XXYYZZ format) and nickname.
+    Used by the Entity Reference System for cross-module action execution.
+    """
+    SECTION_CODE_VALIDATOR = RegexValidator(
+        regex=r"^\d{6}$",
+        message=_("Section code must be exactly 6 digits."),
+    )
+    
+    section_code = models.CharField(
+        max_length=6,
+        unique=True,
+        validators=[SECTION_CODE_VALIDATOR],
+        verbose_name=_("Section Code"),
+        help_text=_("6-digit code in XXYYZZ format (module + menu + submenu)"),
+    )
+    nickname = models.CharField(
+        max_length=50,
+        unique=True,
+        verbose_name=_("Nickname"),
+        help_text=_("Unique identifier for this section (e.g., 'users', 'purchase_requests')"),
+    )
+    module_code = models.CharField(
+        max_length=2,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        verbose_name=_("Module Code"),
+        help_text=_("2-digit module number (00=dashboard, 01=shared, 02=inventory, etc.)"),
+    )
+    menu_number = models.CharField(
+        max_length=2,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        verbose_name=_("Menu Number"),
+        help_text=_("2-digit menu number within module"),
+    )
+    submenu_number = models.CharField(
+        max_length=2,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        null=True,
+        blank=True,
+        verbose_name=_("Submenu Number"),
+        help_text=_("2-digit submenu number (NULL if no submenu)"),
+    )
+    name = models.CharField(
+        max_length=180,
+        verbose_name=_("Name"),
+        help_text=_("Display name in local language"),
+    )
+    name_en = models.CharField(
+        max_length=180,
+        blank=True,
+        verbose_name=_("Name (English)"),
+        help_text=_("Display name in English"),
+    )
+    description = models.TextField(
+        blank=True,
+        verbose_name=_("Description"),
+    )
+    module = models.CharField(
+        max_length=30,
+        verbose_name=_("Module"),
+        help_text=_("Module identifier (e.g., 'shared', 'inventory')"),
+    )
+    app_label = models.CharField(
+        max_length=30,
+        verbose_name=_("App Label"),
+        help_text=_("Django app label (e.g., 'shared', 'inventory')"),
+    )
+    list_url_name = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name=_("List URL Name"),
+        help_text=_("Django URL name for list view (e.g., 'inventory:items')"),
+    )
+    detail_url_name = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name=_("Detail URL Name"),
+        help_text=_("Django URL name for detail/edit view (e.g., 'inventory:item_edit')"),
+    )
+    activated_at = models.DateTimeField(null=True, blank=True)
+    deactivated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("Section Registry")
+        verbose_name_plural = _("Section Registry")
+        ordering = ("module_code", "menu_number", "submenu_number", "sort_order")
+        indexes = [
+            models.Index(fields=["section_code"], name="section_registry_code_idx"),
+            models.Index(fields=["nickname"], name="section_registry_nickname_idx"),
+            models.Index(fields=["module_code", "is_enabled", "sort_order"], name="section_registry_module_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.section_code} - {self.name}"
+
+
+class ActionRegistry(TimeStampedModel, ActivatableModel, MetadataModel, SortableModel):
+    """
+    Registry of actions available for each section.
+    Actions define what can be done in a section (e.g., show, approve, delete).
+    Used by the Entity Reference System for dynamic action execution.
+    """
+    section = models.ForeignKey(
+        SectionRegistry,
+        on_delete=models.CASCADE,
+        related_name="actions",
+        verbose_name=_("Section"),
+    )
+    action_name = models.CharField(
+        max_length=50,
+        verbose_name=_("Action Name"),
+        help_text=_("Action identifier (e.g., 'show', 'approve', 'delete')"),
+    )
+    action_label = models.CharField(
+        max_length=180,
+        verbose_name=_("Action Label"),
+        help_text=_("Human-readable label for the action"),
+    )
+    action_label_en = models.CharField(
+        max_length=180,
+        blank=True,
+        null=True,
+        verbose_name=_("Action Label (English)"),
+    )
+    description = models.TextField(
+        blank=True,
+        verbose_name=_("Description"),
+    )
+    handler_function = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        verbose_name=_("Handler Function"),
+        help_text=_("Fully qualified path to handler (e.g., 'inventory.views.requests.PurchaseRequestApproveView')"),
+    )
+    url_name = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name=_("URL Name"),
+        help_text=_("Django URL name for this action (e.g., 'inventory:purchase_request_approve')"),
+    )
+    parameter_schema = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name=_("Parameter Schema"),
+        help_text=_("JSON schema defining required/optional parameters"),
+    )
+    permission_required = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name=_("Permission Required"),
+        help_text=_("Feature permission code required for this action"),
+    )
+    requires_confirmation = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=0,
+        verbose_name=_("Requires Confirmation"),
+        help_text=_("Whether this action requires user confirmation"),
+    )
+    is_destructive = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=0,
+        verbose_name=_("Is Destructive"),
+        help_text=_("Flag indicating if this is a destructive action"),
+    )
+
+    class Meta:
+        verbose_name = _("Action Registry")
+        verbose_name_plural = _("Action Registry")
+        ordering = ("section", "sort_order", "action_name")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("section", "action_name"),
+                name="action_registry_section_action_unique",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["section", "is_enabled", "sort_order"], name="action_registry_section_idx"),
+            models.Index(fields=["action_name"], name="action_registry_name_idx"),
+            models.Index(fields=["url_name"], name="action_registry_url_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.section.section_code}:{self.action_name} - {self.action_label}"
 

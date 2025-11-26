@@ -33,6 +33,9 @@ urlpatterns = [
     path('items/<int:pk>/edit/', views.ItemUpdateView.as_view(), name='item_edit'),
     path('items/<int:pk>/delete/', views.ItemDeleteView.as_view(), name='item_delete'),
     path('item-serials/', views.ItemSerialListView.as_view(), name='item_serials'),
+    # Item Excel Import/Export
+    path('items/excel-template/', views.ItemExcelTemplateDownloadView.as_view(), name='item_excel_template'),
+    path('items/excel-import/', views.ItemExcelImportView.as_view(), name='item_excel_import'),
     
     # API endpoints (from refactored views.api module with Type Hints)
     path('api/item-allowed-units/', views_api.get_item_allowed_units, name='item_allowed_units'),
@@ -71,22 +74,28 @@ urlpatterns = [
     path('purchase-requests/create/', views.PurchaseRequestCreateView.as_view(), name='purchase_request_create'),
     path('purchase-requests/<int:pk>/edit/', views.PurchaseRequestUpdateView.as_view(), name='purchase_request_edit'),
     path('purchase-requests/<int:pk>/approve/', views.PurchaseRequestApproveView.as_view(), name='purchase_request_approve'),
+    path('purchase-requests/<int:pk>/create-temporary-receipt/', views.CreateTemporaryReceiptFromPurchaseRequestView.as_view(), name='purchase_request_create_temporary_receipt'),
+    path('purchase-requests/<int:pk>/create-permanent-receipt/', views.CreatePermanentReceiptFromPurchaseRequestView.as_view(), name='purchase_request_create_permanent_receipt'),
+    path('purchase-requests/<int:pk>/create-consignment-receipt/', views.CreateConsignmentReceiptFromPurchaseRequestView.as_view(), name='purchase_request_create_consignment_receipt'),
     
     # Receipts
     path('receipts/temporary/', views.ReceiptTemporaryListView.as_view(), name='receipt_temporary'),
     path('receipts/temporary/create/', views.ReceiptTemporaryCreateView.as_view(), name='receipt_temporary_create'),
+    path('receipts/temporary/create-from-request/<int:pk>/', views.ReceiptTemporaryCreateFromPurchaseRequestView.as_view(), name='receipt_temporary_create_from_request'),
     path('receipts/temporary/<int:pk>/edit/', views.ReceiptTemporaryUpdateView.as_view(), name='receipt_temporary_edit'),
     path('receipts/temporary/<int:pk>/delete/', views.ReceiptTemporaryDeleteView.as_view(), name='receipt_temporary_delete'),
     path('receipts/temporary/<int:pk>/lock/', views.ReceiptTemporaryLockView.as_view(), name='receipt_temporary_lock'),
     path('receipts/temporary/<int:pk>/send-to-qc/', views.ReceiptTemporarySendToQCView.as_view(), name='receipt_temporary_send_to_qc'),
     path('receipts/permanent/', views.ReceiptPermanentListView.as_view(), name='receipt_permanent'),
     path('receipts/permanent/create/', views.ReceiptPermanentCreateView.as_view(), name='receipt_permanent_create'),
+    path('receipts/permanent/create-from-request/<int:pk>/', views.ReceiptPermanentCreateFromPurchaseRequestView.as_view(), name='receipt_permanent_create_from_request'),
     path('receipts/permanent/<int:pk>/edit/', views.ReceiptPermanentUpdateView.as_view(), name='receipt_permanent_edit'),
     path('receipts/permanent/<int:pk>/delete/', views.ReceiptPermanentDeleteView.as_view(), name='receipt_permanent_delete'),
     path('receipts/permanent/<int:pk>/lock/', views.ReceiptPermanentLockView.as_view(), name='receipt_permanent_lock'),
     path('receipts/permanent/<int:pk>/lines/<int:line_id>/serials/', views.ReceiptPermanentLineSerialAssignmentView.as_view(), name='receipt_permanent_line_serials'),
     path('receipts/consignment/', views.ReceiptConsignmentListView.as_view(), name='receipt_consignment'),
     path('receipts/consignment/create/', views.ReceiptConsignmentCreateView.as_view(), name='receipt_consignment_create'),
+    path('receipts/consignment/create-from-request/<int:pk>/', views.ReceiptConsignmentCreateFromPurchaseRequestView.as_view(), name='receipt_consignment_create_from_request'),
     path('receipts/consignment/<int:pk>/edit/', views.ReceiptConsignmentUpdateView.as_view(), name='receipt_consignment_edit'),
     path('receipts/consignment/<int:pk>/delete/', views.ReceiptConsignmentDeleteView.as_view(), name='receipt_consignment_delete'),
     path('receipts/consignment/<int:pk>/lock/', views.ReceiptConsignmentLockView.as_view(), name='receipt_consignment_lock'),
@@ -134,6 +143,14 @@ urlpatterns = [
     path('warehouse-requests/create/', views.WarehouseRequestCreateView.as_view(), name='warehouse_request_create'),
     path('warehouse-requests/<int:pk>/edit/', views.WarehouseRequestUpdateView.as_view(), name='warehouse_request_edit'),
     path('warehouse-requests/<int:pk>/approve/', views.WarehouseRequestApproveView.as_view(), name='warehouse_request_approve'),
+    # Intermediate selection views (quantity selection)
+    path('warehouse-requests/<int:pk>/create-permanent-issue/', views.CreatePermanentIssueFromWarehouseRequestView.as_view(), name='warehouse_request_create_permanent_issue'),
+    path('warehouse-requests/<int:pk>/create-consumption-issue/', views.CreateConsumptionIssueFromWarehouseRequestView.as_view(), name='warehouse_request_create_consumption_issue'),
+    path('warehouse-requests/<int:pk>/create-consignment-issue/', views.CreateConsignmentIssueFromWarehouseRequestView.as_view(), name='warehouse_request_create_consignment_issue'),
+    # Actual creation views (redirected from selection views)
+    path('warehouse-requests/<int:pk>/create-permanent-issue/continue/', views.IssuePermanentCreateFromWarehouseRequestView.as_view(), name='issue_permanent_create_from_warehouse_request'),
+    path('warehouse-requests/<int:pk>/create-consumption-issue/continue/', views.IssueConsumptionCreateFromWarehouseRequestView.as_view(), name='issue_consumption_create_from_warehouse_request'),
+    path('warehouse-requests/<int:pk>/create-consignment-issue/continue/', views.IssueConsignmentCreateFromWarehouseRequestView.as_view(), name='issue_consignment_create_from_warehouse_request'),
     
     # Inventory Balance
     path('balance/', views.InventoryBalanceView.as_view(), name='inventory_balance'),

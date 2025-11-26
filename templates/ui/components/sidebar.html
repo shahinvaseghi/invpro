@@ -13,6 +13,9 @@
       {% if user_feature_permissions|feature_allowed:'shared.company_units' %}
         <a href="{% url 'shared:company_units' %}" class="nav-link">{% trans "Company Units" %}</a>
       {% endif %}
+      {% if user_feature_permissions|feature_allowed:'shared.smtp_servers' or user.is_superuser %}
+        <a href="{% url 'shared:smtp_servers' %}" class="nav-link">{% trans "SMTP Servers" %}</a>
+      {% endif %}
       {% if user_feature_permissions|feature_allowed:'shared.users' or user_feature_permissions|feature_allowed:'shared.groups' or user_feature_permissions|feature_allowed:'shared.access_levels' %}
         <div class="nav-group">
           <button type="button" class="nav-group-header" data-submenu="shared-users">
@@ -173,7 +176,7 @@
     </div>
   </div>
 
-  {% if user_feature_permissions|feature_allowed:'production.personnel' or user_feature_permissions|feature_allowed:'production.machines' or user_feature_permissions|feature_allowed:'production.work_lines' or user_feature_permissions|feature_allowed:'production.bom' or user_feature_permissions|feature_allowed:'production.processes' or request.user.is_superuser %}
+  {% if user_feature_permissions|feature_allowed:'production.personnel' or user_feature_permissions|feature_allowed:'production.machines' or user_feature_permissions|feature_allowed:'production.work_lines' or user_feature_permissions|feature_allowed:'production.bom' or user_feature_permissions|feature_allowed:'production.processes' or user_feature_permissions|feature_allowed:'production.product_orders' or request.user.is_superuser %}
     <div class="sidebar-section" data-section="production">
       <button type="button" class="section-header" data-target="production">
         <span class="section-title">{% trans "Production" %}</span>
@@ -195,10 +198,14 @@
         {% if user_feature_permissions|feature_allowed:'production.processes' or request.user.is_superuser %}
           <a href="{% url 'production:processes' %}" class="nav-link">{% trans "Processes" %}</a>
         {% endif %}
-        {% if request.user.is_superuser %}
+        {% if user_feature_permissions|feature_allowed:'production.product_orders' or request.user.is_superuser %}
+          <a href="{% url 'production:product_orders' %}" class="nav-link">{% trans "Product Orders" %}</a>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.transfer_requests' or request.user.is_superuser %}
           <a href="{% url 'production:transfer_requests' %}" class="nav-link">{% trans "Transfer to Line Requests" %}</a>
+        {% endif %}
+        {% if request.user.is_superuser %}
           <a href="{% url 'production:performance_records' %}" class="nav-link">{% trans "Performance Records" %}</a>
-          <a href="#" class="nav-link">{% trans "Orders" %}</a>
         {% endif %}
       </div>
     </div>
@@ -212,6 +219,50 @@
       </button>
       <div class="section-content" id="qc">
         <a href="{% url 'qc:temporary_receipts' %}" class="nav-link">{% trans "Temporary Receipts" %}</a>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if request.user.is_superuser %}
+    <div class="sidebar-section" data-section="ticketing">
+      <button type="button" class="section-header" data-target="ticketing">
+        <span class="section-title">{% trans "Ticketing" %}</span>
+        <span class="section-icon">▼</span>
+      </button>
+      <div class="section-content" id="ticketing">
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="ticketing-tickets">
+            <span>{% trans "Tickets" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="ticketing-tickets">
+            <a href="{% url 'ticketing:ticket_create' %}" class="nav-link-sub">{% trans "Create Ticket" %}</a>
+            <a href="{% url 'ticketing:ticket_respond' %}" class="nav-link-sub">{% trans "Respond to Ticket" %}</a>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="ticketing-management">
+            <span>{% trans "Ticket Management" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="ticketing-management">
+            <a href="{% url 'ticketing:templates' %}" class="nav-link-sub">{% trans "Templates" %}</a>
+            <a href="{% url 'ticketing:template_create' %}" class="nav-link-sub">{% trans "Create Template" %}</a>
+            <a href="{% url 'ticketing:categories' %}" class="nav-link-sub">{% trans "Categories" %}</a>
+            <a href="{% url 'ticketing:subcategories' %}" class="nav-link-sub">{% trans "Subcategories" %}</a>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="ticketing-automation">
+            <span>{% trans "Automation" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="ticketing-automation">
+            <a href="{% url 'ticketing:auto_response' %}" class="nav-link-sub">{% trans "Auto Response" %}</a>
+          </div>
+        </div>
       </div>
     </div>
   {% endif %}

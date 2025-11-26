@@ -35,6 +35,10 @@ class PermissionAction(Enum):
     APPROVE = "approve"
     REJECT = "reject"
     CANCEL = "cancel"
+    CREATE_TRANSFER_FROM_ORDER = "create_transfer_from_order"
+    CREATE_RECEIPT = "create_receipt"
+    CREATE_RECEIPT_FROM_PURCHASE_REQUEST = "create_receipt_from_purchase_request"
+    CREATE_ISSUE_FROM_WAREHOUSE_REQUEST = "create_issue_from_warehouse_request"
 
 
 @dataclass(frozen=True)
@@ -64,6 +68,17 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
     "shared.company_units": FeaturePermission(
         code="shared.company_units",
         label=_("Company Units"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "shared.smtp_servers": FeaturePermission(
+        code="shared.smtp_servers",
+        label=_("SMTP Servers"),
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
@@ -115,6 +130,48 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.EDIT_OWN,
             PermissionAction.DELETE_OWN,
             PermissionAction.APPROVE,
+        ],
+    ),
+    "production.product_orders": FeaturePermission(
+        code="production.product_orders",
+        label=_("Product Orders"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+            PermissionAction.CREATE_TRANSFER_FROM_ORDER,
+        ],
+    ),
+    "production.transfer_requests": FeaturePermission(
+        code="production.transfer_requests",
+        label=_("Transfer to Line Requests"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+        ],
+    ),
+    "production.performance_records": FeaturePermission(
+        code="production.performance_records",
+        label=_("Performance Records"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_OTHER,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_OTHER,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+            PermissionAction.CREATE_RECEIPT,
         ],
     ),
     "shared.users": FeaturePermission(
@@ -265,6 +322,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
             PermissionAction.CANCEL,
+            PermissionAction.CREATE_RECEIPT_FROM_PURCHASE_REQUEST,
         ],
     ),
     "inventory.receipts.permanent": FeaturePermission(
@@ -284,6 +342,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
+            PermissionAction.CREATE_RECEIPT_FROM_PURCHASE_REQUEST,
         ],
     ),
     "inventory.receipts.consignment": FeaturePermission(
@@ -303,6 +362,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
+            PermissionAction.CREATE_RECEIPT_FROM_PURCHASE_REQUEST,
         ],
     ),
     # Inventory – Issues
@@ -323,6 +383,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
+            PermissionAction.CREATE_ISSUE_FROM_WAREHOUSE_REQUEST,
         ],
     ),
     "inventory.issues.consumption": FeaturePermission(
@@ -340,6 +401,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
             PermissionAction.CANCEL,
+            PermissionAction.CREATE_ISSUE_FROM_WAREHOUSE_REQUEST,
         ],
     ),
     "inventory.issues.consignment": FeaturePermission(
@@ -359,6 +421,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
+            PermissionAction.CREATE_ISSUE_FROM_WAREHOUSE_REQUEST,
         ],
     ),
     # Inventory – Requests
@@ -375,6 +438,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
+            PermissionAction.CREATE_RECEIPT_FROM_PURCHASE_REQUEST,
         ],
     ),
     "inventory.requests.warehouse": FeaturePermission(
@@ -390,6 +454,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
+            PermissionAction.CREATE_ISSUE_FROM_WAREHOUSE_REQUEST,
         ],
     ),
     # Inventory – Stocktaking & Balance

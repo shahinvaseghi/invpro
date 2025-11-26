@@ -5,12 +5,6 @@
 
 {% block inventory_content %}
 <div class="form-container">
-  {% if messages %}
-    {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-    {% endfor %}
-  {% endif %}
-
   {% if document_instance and document_instance.pk %}
   <div class="info-banner">
     <div><strong>{% trans "Document Code" %}:</strong> {{ document_instance.document_code }}</div>
@@ -123,12 +117,12 @@
       <div class="lines-formset" id="lines-formset">
         {% for line_form in lines_formset %}
           {% comment %}Determine if this form should be displayed:
-             - In create mode: only show first empty form (extra=1)
+             - In create mode: show all forms that have initial data or first empty form
              - In edit mode: show existing lines (with pk) and first empty form if any
           {% endcomment %}
           {% if not form.instance.pk %}
-            {# Create mode: only show first empty form (extra=1) #}
-            {% if forloop.counter0 < 1 %}
+            {# Create mode: show all forms that have initial data or first empty form #}
+            {% if line_form.initial.item or line_form.initial.warehouse or forloop.counter0 < 1 %}
           <div class="line-form" data-form-index="{{ forloop.counter0 }}">
             {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
             
@@ -147,7 +141,33 @@
                 {% if 'item' in line_form.fields %}
                 <div class="form-field">
                   <label>{{ line_form.item.label }}{% if line_form.item.field.required %}*{% endif %}</label>
-                  {{ line_form.item }}
+                  <div class="item-select-wrapper">
+                    <div class="item-filters">
+                      <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Type" %}</option>
+                        {% for item_type in item_types %}
+                        <option value="{{ item_type.id }}" {% if current_item_type == item_type.id|stringformat:"s" %}selected{% endif %}>{{ item_type.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <select class="form-control filter-category-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Category" %}</option>
+                        {% for category in item_categories %}
+                        <option value="{{ category.id }}" {% if current_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <select class="form-control filter-subcategory-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Subcategory" %}</option>
+                        {% for subcategory in item_subcategories %}
+                        <option value="{{ subcategory.id }}" {% if current_subcategory == subcategory.id|stringformat:"s" %}selected{% endif %}>{{ subcategory.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}"
+                            placeholder="{% trans 'Search by name or code...' %}"
+                            value="{{ current_item_search }}"
+                            style="flex: 2; min-width: 150px;">
+                    </div>
+                    {{ line_form.item }}
+                  </div>
                   {% if line_form.item.errors %}
                     <span class="error">{{ line_form.item.errors.0 }}</span>
                   {% endif %}
@@ -318,6 +338,18 @@
               </div>
               {% endif %}
 
+              {% if 'expected_receipt_date' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field">
+                  <label>{{ line_form.expected_receipt_date.label }}</label>
+                  {{ line_form.expected_receipt_date }}
+                  {% if line_form.expected_receipt_date.errors %}
+                    <span class="error">{{ line_form.expected_receipt_date.errors.0 }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              {% endif %}
+
               {% if 'line_notes' in line_form.fields %}
               <div class="form-row">
                 <div class="form-field full-width">
@@ -438,7 +470,33 @@
                 {% if 'item' in line_form.fields %}
                 <div class="form-field">
                   <label>{{ line_form.item.label }}{% if line_form.item.field.required %}*{% endif %}</label>
-                  {{ line_form.item }}
+                  <div class="item-select-wrapper">
+                    <div class="item-filters">
+                      <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Type" %}</option>
+                        {% for item_type in item_types %}
+                        <option value="{{ item_type.id }}" {% if current_item_type == item_type.id|stringformat:"s" %}selected{% endif %}>{{ item_type.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <select class="form-control filter-category-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Category" %}</option>
+                        {% for category in item_categories %}
+                        <option value="{{ category.id }}" {% if current_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <select class="form-control filter-subcategory-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Subcategory" %}</option>
+                        {% for subcategory in item_subcategories %}
+                        <option value="{{ subcategory.id }}" {% if current_subcategory == subcategory.id|stringformat:"s" %}selected{% endif %}>{{ subcategory.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}"
+                            placeholder="{% trans 'Search by name or code...' %}"
+                            value="{{ current_item_search }}"
+                            style="flex: 2; min-width: 150px;">
+                    </div>
+                    {{ line_form.item }}
+                  </div>
                   {% if line_form.item.errors %}
                     <span class="error">{{ line_form.item.errors.0 }}</span>
                   {% endif %}
@@ -542,6 +600,18 @@
                   {% endif %}
                 </div>
                 {% endif %}
+              </div>
+              {% endif %}
+
+              {% if 'expected_receipt_date' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field">
+                  <label>{{ line_form.expected_receipt_date.label }}</label>
+                  {{ line_form.expected_receipt_date }}
+                  {% if line_form.expected_receipt_date.errors %}
+                    <span class="error">{{ line_form.expected_receipt_date.errors.0 }}</span>
+                  {% endif %}
+                </div>
               </div>
               {% endif %}
 
@@ -662,7 +732,33 @@
                 {% if 'item' in line_form.fields %}
                 <div class="form-field">
                   <label>{{ line_form.item.label }}{% if line_form.item.field.required %}*{% endif %}</label>
-                  {{ line_form.item }}
+                  <div class="item-select-wrapper">
+                    <div class="item-filters">
+                      <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Type" %}</option>
+                        {% for item_type in item_types %}
+                        <option value="{{ item_type.id }}" {% if current_item_type == item_type.id|stringformat:"s" %}selected{% endif %}>{{ item_type.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <select class="form-control filter-category-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Category" %}</option>
+                        {% for category in item_categories %}
+                        <option value="{{ category.id }}" {% if current_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <select class="form-control filter-subcategory-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Subcategory" %}</option>
+                        {% for subcategory in item_subcategories %}
+                        <option value="{{ subcategory.id }}" {% if current_subcategory == subcategory.id|stringformat:"s" %}selected{% endif %}>{{ subcategory.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}"
+                            placeholder="{% trans 'Search by name or code...' %}"
+                            value="{{ current_item_search }}"
+                            style="flex: 2; min-width: 150px;">
+                    </div>
+                    {{ line_form.item }}
+                  </div>
                   {% if line_form.item.errors %}
                     <span class="error">{{ line_form.item.errors.0 }}</span>
                   {% endif %}
@@ -766,6 +862,18 @@
                   {% endif %}
                 </div>
                 {% endif %}
+              </div>
+              {% endif %}
+
+              {% if 'expected_receipt_date' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field">
+                  <label>{{ line_form.expected_receipt_date.label }}</label>
+                  {{ line_form.expected_receipt_date }}
+                  {% if line_form.expected_receipt_date.errors %}
+                    <span class="error">{{ line_form.expected_receipt_date.errors.0 }}</span>
+                  {% endif %}
+                </div>
               </div>
               {% endif %}
 
@@ -1140,6 +1248,56 @@ document.addEventListener('DOMContentLoaded', function() {
   grid-column: 1 / -1;
 }
 
+.item-select-wrapper {
+  width: 100%;
+}
+
+.item-filters {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.item-filters select,
+.item-filters input[type="text"] {
+  flex: 1;
+  min-width: 80px;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background-color: #f9fafb;
+  color: #6b7280;
+}
+
+.item-filters select:focus,
+.item-filters input[type="text"]:focus {
+  outline: none;
+  border-color: #2563eb;
+  background-color: #ffffff;
+}
+
+.item-filters input[type="text"] {
+  flex: 2;
+  min-width: 150px;
+}
+
+/* Hide any search inputs that are directly before or after filter selects */
+.item-filters .select-search-input {
+  /* Will be handled by JavaScript, but CSS as backup for immediate hiding */
+}
+
+/* Hide search inputs that are siblings of filter selects (using adjacent sibling selector) */
+.item-filters .filter-type-select + .select-search-input,
+.item-filters .filter-category-select + .select-search-input,
+.item-filters .filter-subcategory-select + .select-search-input,
+.item-filters .select-search-input + .filter-type-select,
+.item-filters .select-search-input + .filter-category-select,
+.item-filters .select-search-input + .filter-subcategory-select {
+  display: none !important;
+}
+
 .serial-assignment-section {
   display: flex;
   align-items: center;
@@ -1485,6 +1643,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Skip unit selects (they are dynamically populated and search causes issues)
     if (select.name && select.name.includes('-unit')) return;
     
+    // Skip filter selects (type, category, subcategory) - they don't need search box
+    // Check by class name
+    if (select.classList && (
+        select.classList.contains('filter-type-select') ||
+        select.classList.contains('filter-category-select') ||
+        select.classList.contains('filter-subcategory-select')
+    )) return;
+    
+    // Also check if select is inside .item-filters (skip all selects in item-filters)
+    if (select.closest && select.closest('.item-filters')) {
+      return; // Skip all selects inside item-filters (including item select)
+    }
+    
     // Add search input above select
     const wrapper = document.createElement('div');
     wrapper.className = 'select-wrapper';
@@ -1509,8 +1680,210 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Add search to all select fields in lines (except unit selects)
-  document.querySelectorAll('.line-form select').forEach(addSearchToSelect);
+  // Remove any existing search boxes from filter selects (cleanup)
+  function removeSearchBoxesFromFilterSelects() {
+    // Find all filter selects
+    document.querySelectorAll('.filter-type-select, .filter-category-select, .filter-subcategory-select').forEach(function(select) {
+      // Check if this select has a search box wrapper
+      const wrapper = select.parentNode;
+      if (wrapper && wrapper.classList && wrapper.classList.contains('select-wrapper')) {
+        const searchInput = wrapper.querySelector('.select-search-input');
+        if (searchInput) {
+          // Remove the search input
+          searchInput.remove();
+          // Unwrap the select (move it back to its original parent)
+          const grandParent = wrapper.parentNode;
+          if (grandParent) {
+            grandParent.insertBefore(select, wrapper);
+            wrapper.remove();
+          }
+        }
+      }
+      
+      // Check if there's a search input right before this select (sibling)
+      const previousSibling = select.previousElementSibling;
+      if (previousSibling && 
+          previousSibling.tagName === 'INPUT' && 
+          previousSibling.classList && 
+          previousSibling.classList.contains('select-search-input')) {
+        previousSibling.remove();
+      }
+      
+      // Check if there's a search input right after this select (sibling)
+      const nextSibling = select.nextElementSibling;
+      if (nextSibling && 
+          nextSibling.tagName === 'INPUT' && 
+          nextSibling.classList && 
+          nextSibling.classList.contains('select-search-input')) {
+        nextSibling.remove();
+      }
+    });
+    
+    // Also check all .item-filters sections and remove any search inputs that are near filter selects
+    document.querySelectorAll('.item-filters').forEach(function(itemFilters) {
+      // Find all search inputs in this item-filters section
+      const allSearchInputs = itemFilters.querySelectorAll('.select-search-input');
+      allSearchInputs.forEach(function(searchInput) {
+        // Check if this search input is near a filter select
+        const nextSibling = searchInput.nextElementSibling;
+        const previousSibling = searchInput.previousElementSibling;
+        
+        // If next sibling is a filter select, remove this search input
+        if (nextSibling && (
+            nextSibling.classList.contains('filter-type-select') ||
+            nextSibling.classList.contains('filter-category-select') ||
+            nextSibling.classList.contains('filter-subcategory-select')
+        )) {
+          searchInput.remove();
+          return;
+        }
+        
+        // If previous sibling is a filter select, remove this search input
+        if (previousSibling && (
+            previousSibling.classList.contains('filter-type-select') ||
+            previousSibling.classList.contains('filter-category-select') ||
+            previousSibling.classList.contains('filter-subcategory-select')
+        )) {
+          searchInput.remove();
+          return;
+        }
+        
+        // Check if this search input is inside a wrapper that contains a filter select
+        const wrapper = searchInput.closest('.select-wrapper');
+        if (wrapper) {
+          const filterSelect = wrapper.querySelector('.filter-type-select, .filter-category-select, .filter-subcategory-select');
+          if (filterSelect) {
+            searchInput.remove();
+            // Also unwrap the select
+            const grandParent = wrapper.parentNode;
+            if (grandParent) {
+              grandParent.insertBefore(filterSelect, wrapper);
+              wrapper.remove();
+            }
+          }
+        }
+      });
+    });
+  }
+  
+  // Clean up any existing search boxes on filter selects (before adding new ones)
+  removeSearchBoxesFromFilterSelects();
+  
+  // Remove search boxes from item selects
+  document.querySelectorAll('.item-select-wrapper select[name*="-item"]').forEach(function(select) {
+    const wrapper = select.parentNode;
+    if (wrapper && wrapper.classList && wrapper.classList.contains('select-wrapper')) {
+      const searchInput = wrapper.querySelector('.select-search-input');
+      if (searchInput) {
+        searchInput.remove();
+        // Unwrap the select
+        const grandParent = wrapper.parentNode;
+        if (grandParent) {
+          grandParent.insertBefore(select, wrapper);
+          wrapper.remove();
+        }
+      }
+    }
+    // Also check for sibling search inputs
+    const prevSibling = select.previousElementSibling;
+    if (prevSibling && prevSibling.classList && prevSibling.classList.contains('select-search-input')) {
+      prevSibling.remove();
+    }
+  });
+  
+  // Add search to all select fields in lines (except unit selects and filter selects)
+  // Use :not() selector to explicitly exclude filter selects
+  // Also exclude selects inside .item-filters (including item select)
+  document.querySelectorAll('.line-form select').forEach(function(select) {
+    // Skip filter selects
+    if (select.classList && (
+        select.classList.contains('filter-type-select') ||
+        select.classList.contains('filter-category-select') ||
+        select.classList.contains('filter-subcategory-select')
+    )) return;
+    
+    // Skip if inside .item-filters (don't add search to item select)
+    if (select.closest('.item-filters')) {
+      return; // Skip all selects inside item-filters (including item select)
+    }
+    
+    // Skip unit selects
+    if (select.name && select.name.includes('-unit')) return;
+    
+    // Add search to this select
+    addSearchToSelect(select);
+  });
+  
+  // Clean up again after adding search boxes (in case any filter selects were processed)
+  removeSearchBoxesFromFilterSelects();
+  
+  // Remove search boxes from item selects
+  function removeSearchBoxesFromItemSelects() {
+    document.querySelectorAll('.item-select-wrapper select[name*="-item"]').forEach(function(select) {
+      const wrapper = select.parentNode;
+      if (wrapper && wrapper.classList && wrapper.classList.contains('select-wrapper')) {
+        const searchInput = wrapper.querySelector('.select-search-input');
+        if (searchInput) {
+          searchInput.remove();
+          const grandParent = wrapper.parentNode;
+          if (grandParent) {
+            grandParent.insertBefore(select, wrapper);
+            wrapper.remove();
+          }
+        }
+      }
+      const prevSibling = select.previousElementSibling;
+      if (prevSibling && prevSibling.classList && prevSibling.classList.contains('select-search-input')) {
+        prevSibling.remove();
+      }
+    });
+  }
+  
+  removeSearchBoxesFromItemSelects();
+  
+  // Also run cleanup after a short delay to catch any dynamically added elements
+  setTimeout(function() {
+    removeSearchBoxesFromFilterSelects();
+    removeSearchBoxesFromItemSelects();
+  }, 100);
+  
+  setTimeout(function() {
+    removeSearchBoxesFromFilterSelects();
+    removeSearchBoxesFromItemSelects();
+  }, 500);
+  
+  // Run cleanup on any DOM mutations (for dynamically added forms)
+  if (typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver(function(mutations) {
+      let shouldCleanup = false;
+      mutations.forEach(function(mutation) {
+        if (mutation.addedNodes.length > 0) {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType === 1) { // Element node
+              if (node.classList && (
+                  node.classList.contains('filter-type-select') ||
+                  node.classList.contains('filter-category-select') ||
+                  node.classList.contains('filter-subcategory-select') ||
+                  node.querySelector('.filter-type-select') ||
+                  node.querySelector('.filter-category-select') ||
+                  node.querySelector('.filter-subcategory-select')
+              )) {
+                shouldCleanup = true;
+              }
+            }
+          });
+        }
+      });
+      if (shouldCleanup) {
+        removeSearchBoxesFromFilterSelects();
+        removeSearchBoxesFromItemSelects();
+      }
+    });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
   
   // Update unit choices when item changes
   function updateUnitChoices(itemSelect, unitSelect) {
@@ -1659,6 +2032,218 @@ document.addEventListener('DOMContentLoaded', function() {
       });
   }
   
+  // Filter items for a specific row based on type, category, subcategory, and search
+  function filterItemsForRow(rowElement) {
+    if (!rowElement) return;
+    
+    const typeSelect = rowElement.querySelector('.filter-type-select');
+    const categorySelect = rowElement.querySelector('.filter-category-select');
+    const subcategorySelect = rowElement.querySelector('.filter-subcategory-select');
+    const searchInput = rowElement.querySelector('.filter-search-input');
+    const itemSelect = rowElement.querySelector('select[name*="-item"]');
+    
+    if (!itemSelect) return;
+    
+    const typeId = typeSelect?.value || '';
+    const categoryId = categorySelect?.value || '';
+    const subcategoryId = subcategorySelect?.value || '';
+    const searchTerm = searchInput?.value?.trim() || '';
+    
+    // Build API URL
+    let apiUrl = '/inventory/api/filtered-items/';
+    const params = new URLSearchParams();
+    if (typeId) params.append('type_id', typeId);
+    if (categoryId) params.append('category_id', categoryId);
+    if (subcategoryId) params.append('subcategory_id', subcategoryId);
+    if (searchTerm) params.append('search', searchTerm);
+    
+    // If no filters and no search, load all items
+    // Otherwise, apply filters
+    if (params.toString()) {
+      apiUrl += '?' + params.toString();
+    }
+    
+    // Fetch filtered items (or all items if no filters)
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        if (data.items) {
+          const itemMap = {};
+          data.items.forEach(function(item) {
+            itemMap[item.value] = item;
+          });
+          
+          const currentValue = itemSelect.value;
+          const placeholder = itemSelect.options[0];
+          
+          // Clear all options except placeholder
+          itemSelect.innerHTML = '';
+          if (placeholder && placeholder.value === '') {
+            itemSelect.appendChild(placeholder.cloneNode(true));
+          } else {
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = '--- انتخاب کنید ---';
+            itemSelect.appendChild(emptyOption);
+          }
+          
+          // Add filtered items
+          data.items.forEach(function(item) {
+            const option = document.createElement('option');
+            option.value = item.value;
+            option.textContent = item.label;
+            itemSelect.appendChild(option);
+          });
+          
+          // Restore current value if it's in filtered list
+          if (currentValue && itemMap[currentValue]) {
+            itemSelect.value = currentValue;
+          } else if (currentValue) {
+            // Current value is not in filtered list, clear it
+            itemSelect.value = '';
+            const unitSelect = rowElement.querySelector('select[name*="-unit"]');
+            if (unitSelect) {
+              updateUnitChoices(itemSelect, unitSelect);
+            }
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error filtering items:', error);
+      });
+  }
+
+  // Load categories for a specific row based on type
+  function loadCategoriesForRow(rowElement, typeId) {
+    if (!rowElement) return;
+    
+    const categorySelect = rowElement.querySelector('.filter-category-select');
+    const subcategorySelect = rowElement.querySelector('.filter-subcategory-select');
+    
+    if (!categorySelect) return;
+    
+    categorySelect.innerHTML = '<option value="">{% trans "All Categories" %}</option>';
+    if (subcategorySelect) {
+      subcategorySelect.innerHTML = '<option value="">{% trans "All Subcategories" %}</option>';
+    }
+    
+    if (!typeId) {
+      // Load all categories
+      fetch('/inventory/api/filtered-categories/')
+        .then(response => response.json())
+        .then(data => {
+          if (data.categories) {
+            data.categories.forEach(function(cat) {
+              const option = document.createElement("option");
+              option.value = cat.value;
+              option.textContent = cat.label;
+              categorySelect.appendChild(option);
+            });
+          }
+          // Filter items after loading categories
+          filterItemsForRow(rowElement);
+        });
+      return;
+    }
+    
+    fetch(`/inventory/api/filtered-categories/?type_id=${typeId}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.categories) {
+          data.categories.forEach(function(cat) {
+            const option = document.createElement("option");
+            option.value = cat.value;
+            option.textContent = cat.label;
+            categorySelect.appendChild(option);
+          });
+        }
+        // Filter items after loading categories
+        filterItemsForRow(rowElement);
+      });
+  }
+
+  // Load subcategories for a specific row based on category
+  function loadSubcategoriesForRow(rowElement, categoryId) {
+    if (!rowElement) return;
+    
+    const subcategorySelect = rowElement.querySelector('.filter-subcategory-select');
+    if (!subcategorySelect) return;
+    
+    subcategorySelect.innerHTML = '<option value="">{% trans "All Subcategories" %}</option>';
+    
+    if (!categoryId) {
+      // Filter items after clearing subcategory
+      filterItemsForRow(rowElement);
+      return;
+    }
+    
+    fetch(`/inventory/api/filtered-subcategories/?category_id=${categoryId}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.subcategories) {
+          data.subcategories.forEach(function(sub) {
+            const option = document.createElement("option");
+            option.value = sub.value;
+            option.textContent = sub.label;
+            subcategorySelect.appendChild(option);
+          });
+        }
+        // Filter items after loading subcategories
+        filterItemsForRow(rowElement);
+      });
+  }
+
+  // Initialize filters for all line forms
+  function initializeLineFormFilters() {
+    document.querySelectorAll('.line-form').forEach(function(lineForm) {
+      const typeSelect = lineForm.querySelector('.filter-type-select');
+      const categorySelect = lineForm.querySelector('.filter-category-select');
+      const subcategorySelect = lineForm.querySelector('.filter-subcategory-select');
+      const searchInput = lineForm.querySelector('.filter-search-input');
+      const itemSelect = lineForm.querySelector('select[name*="-item"]');
+      
+      // Setup type filter
+      if (typeSelect) {
+        typeSelect.addEventListener('change', function() {
+          loadCategoriesForRow(lineForm, this.value);
+        });
+      }
+      
+      // Setup category filter
+      if (categorySelect) {
+        categorySelect.addEventListener('change', function() {
+          loadSubcategoriesForRow(lineForm, this.value);
+        });
+      }
+      
+      // Setup subcategory filter
+      if (subcategorySelect) {
+        subcategorySelect.addEventListener('change', function() {
+          filterItemsForRow(lineForm);
+        });
+      }
+      
+      // Setup search input with debounce
+      if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(function() {
+            filterItemsForRow(lineForm);
+          }, 300); // Debounce 300ms
+        });
+      }
+      
+      // Initialize filters - load all categories initially and filter items
+      if (typeSelect) {
+        loadCategoriesForRow(lineForm, typeSelect.value);
+      } else {
+        // If no type filter, just load all items
+        filterItemsForRow(lineForm);
+      }
+    });
+  }
+
   // Attach item change handlers for multi-line forms (inlinesets)
   document.querySelectorAll('.line-form select[name*="-item"]').forEach(function(itemSelect) {
     const lineForm = itemSelect.closest('.line-form');
@@ -1689,6 +2274,9 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
   });
+  
+  // Initialize filters for all existing line forms
+  initializeLineFormFilters();
   
   // Attach item change handlers for single-line forms (like ReceiptTemporary)
   // Handle forms without lines_formset (single-line forms)
@@ -1977,7 +2565,70 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
       
+      // Setup filters for new form
+      const typeSelect = newForm.querySelector('.filter-type-select');
+      const categorySelect = newForm.querySelector('.filter-category-select');
+      const subcategorySelect = newForm.querySelector('.filter-subcategory-select');
+      const searchInput = newForm.querySelector('.filter-search-input');
+      
+      // Setup filter listeners for new form
+      if (typeSelect) {
+        typeSelect.addEventListener('change', function() {
+          loadCategoriesForRow(newForm, this.value);
+        });
+      }
+      
+      if (categorySelect) {
+        categorySelect.addEventListener('change', function() {
+          loadSubcategoriesForRow(newForm, this.value);
+        });
+      }
+      
+      if (subcategorySelect) {
+        subcategorySelect.addEventListener('change', function() {
+          filterItemsForRow(newForm);
+        });
+      }
+      
+      // Setup search input for new form
+      if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(function() {
+            filterItemsForRow(newForm);
+          }, 300); // Debounce 300ms
+        });
+      }
+      
+      // Initialize filters for new form
+      if (typeSelect) {
+        loadCategoriesForRow(newForm, typeSelect.value);
+      } else {
+        // If no type filter, just load all items
+        filterItemsForRow(newForm);
+      }
+      
+      // Remove search box from item select if it was added
       const newItemSelect = newForm.querySelector('select[name*="-item"]');
+      if (newItemSelect) {
+        const wrapper = newItemSelect.parentNode;
+        if (wrapper && wrapper.classList && wrapper.classList.contains('select-wrapper')) {
+          const searchInput = wrapper.querySelector('.select-search-input');
+          if (searchInput) {
+            searchInput.remove();
+            const grandParent = wrapper.parentNode;
+            if (grandParent) {
+              grandParent.insertBefore(newItemSelect, wrapper);
+              wrapper.remove();
+            }
+          }
+        }
+        const prevSibling = newItemSelect.previousElementSibling;
+        if (prevSibling && prevSibling.classList && prevSibling.classList.contains('select-search-input')) {
+          prevSibling.remove();
+        }
+      }
       const newUnitSelect = newForm.querySelector('select[name*="-unit"]');
       if (newItemSelect && newUnitSelect) {
         const newWarehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
@@ -2077,8 +2728,38 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
       
-      // Add search to new selects
-      newForm.querySelectorAll('select').forEach(addSearchToSelect);
+      // Add search to new selects (exclude filter selects explicitly)
+      newForm.querySelectorAll('select').forEach(function(select) {
+        // Skip filter selects
+        if (select.classList && (
+            select.classList.contains('filter-type-select') ||
+            select.classList.contains('filter-category-select') ||
+            select.classList.contains('filter-subcategory-select')
+        )) return;
+        
+        // Skip if inside .item-filters (unless it's the main item select)
+        if (select.closest('.item-filters')) {
+          if (!select.name || !select.name.includes('-item')) return;
+        }
+        
+        // Skip unit selects
+        if (select.name && select.name.includes('-unit')) return;
+        
+        // Add search to this select
+        addSearchToSelect(select);
+      });
+      
+      // Clean up any search boxes from filter selects in new form (in case any were processed)
+      removeSearchBoxesFromFilterSelects();
+      
+      // Also run cleanup after a short delay for the new form
+      setTimeout(function() {
+        removeSearchBoxesFromFilterSelects();
+      }, 50);
+      
+      setTimeout(function() {
+        removeSearchBoxesFromFilterSelects();
+      }, 200);
     });
   }
   

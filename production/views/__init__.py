@@ -51,10 +51,33 @@ from production.views.process import (
     ProcessDeleteView,
 )
 
-# Import placeholder views
-from production.views.placeholders import (
-    TransferToLineRequestListView,
+# Import product order views
+from production.views.product_order import (
+    ProductOrderListView,
+    ProductOrderCreateView,
+    ProductOrderUpdateView,
+    ProductOrderDeleteView,
+)
+
+# Import transfer to line views
+from production.views.transfer_to_line import (
+    TransferToLineListView,
+    TransferToLineCreateView,
+    TransferToLineUpdateView,
+    TransferToLineDeleteView,
+    TransferToLineApproveView,
+    TransferToLineRejectView,
+)
+
+# Import performance record views
+from production.views.performance_record import (
     PerformanceRecordListView,
+    PerformanceRecordCreateView,
+    PerformanceRecordUpdateView,
+    PerformanceRecordDeleteView,
+    PerformanceRecordApproveView,
+    PerformanceRecordRejectView,
+    PerformanceRecordCreateReceiptView,
 )
 
 __all__ = [
@@ -83,8 +106,25 @@ __all__ = [
     'ProcessCreateView',
     'ProcessUpdateView',
     'ProcessDeleteView',
-    # Placeholder views
-    'TransferToLineRequestListView',
+    # Product Order views
+    'ProductOrderListView',
+    'ProductOrderCreateView',
+    'ProductOrderUpdateView',
+    'ProductOrderDeleteView',
+    # Transfer to Line views
+    'TransferToLineListView',
+    'TransferToLineCreateView',
+    'TransferToLineUpdateView',
+    'TransferToLineDeleteView',
+    'TransferToLineApproveView',
+    'TransferToLineRejectView',
+    # Performance Record views
     'PerformanceRecordListView',
+    'PerformanceRecordCreateView',
+    'PerformanceRecordUpdateView',
+    'PerformanceRecordDeleteView',
+    'PerformanceRecordApproveView',
+    'PerformanceRecordRejectView',
+    'PerformanceRecordCreateReceiptView',
 ]
 

@@ -6,9 +6,10 @@ This module contains views for:
 - Warehouse Requests
 """
 from typing import Dict, Any, Set, Optional
+from decimal import Decimal, InvalidOperation
 from django.contrib import messages
-from django.views.generic import ListView, CreateView, UpdateView, View
-from django.http import HttpResponseRedirect
+from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView
+from django.http import HttpResponseRedirect, Http404
 from django.urls import reverse, reverse_lazy
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -17,9 +18,11 @@ from django.utils.safestring import mark_safe
 from django.db.models import Q
 import json
 
-from .base import InventoryBaseView
+from .base import InventoryBaseView, LineFormsetMixin
+from shared.mixins import FeaturePermissionRequiredMixin
 from .. import models
 from .. import forms
+from ..models import Item, ItemUnit
 
 
 # ============================================================================
@@ -60,15 +63,49 @@ class PurchaseRequestFormMixin(InventoryBaseView):
         context['list_url'] = reverse_lazy('inventory:purchase_requests')
         context['is_edit'] = bool(getattr(self, 'object', None))
         context['purchase_request'] = getattr(self, 'object', None)
-
-        if form and 'item' in form.fields and 'unit' in form.fields:
+        
+        # Add unit options for lines formset
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
             unit_map: Dict[str, list] = {}
-            for item in form.fields['item'].queryset:
-                unit_map[str(item.pk)] = form._get_item_allowed_units(item)
+            items = Item.objects.filter(company_id=company_id, is_enabled=1)
+            for item in items:
+                # Get allowed units for item
+                codes = []
+                def add(code: str) -> None:
+                    if code and code not in codes:
+                        codes.append(code)
+                add(item.default_unit)
+                add(item.primary_unit)
+                for unit in ItemUnit.objects.filter(item=item, company_id=item.company_id):
+                    add(unit.from_unit)
+                    add(unit.to_unit)
+                if not codes:
+                    codes.append('EA')
+                label_map = {value: str(label) for value, label in forms.UNIT_CHOICES}
+                unit_map[str(item.pk)] = [{'value': code, 'label': label_map.get(code, code)} for code in codes if code]
             context['unit_options_json'] = mark_safe(json.dumps(unit_map, ensure_ascii=False))
         else:
             context['unit_options_json'] = mark_safe('{}')
         context['unit_placeholder'] = str(forms.UNIT_CHOICES[0][1])
+        
+        # Add item types, categories, and subcategories for filtering
+        from ..models import ItemType, ItemCategory, ItemSubcategory
+        if company_id:
+            context['item_types'] = ItemType.objects.filter(company_id=company_id, is_enabled=1).order_by('name')
+            context['item_categories'] = ItemCategory.objects.filter(company_id=company_id, is_enabled=1).order_by('name')
+            context['item_subcategories'] = ItemSubcategory.objects.filter(company_id=company_id, is_enabled=1).order_by('name')
+        else:
+            context['item_types'] = ItemType.objects.none()
+            context['item_categories'] = ItemCategory.objects.none()
+            context['item_subcategories'] = ItemSubcategory.objects.none()
+        
+        # Add current filter values from request
+        context['current_item_type'] = self.request.GET.get('item_type', '') or self.request.POST.get('item_type', '')
+        context['current_category'] = self.request.GET.get('category', '') or self.request.POST.get('category', '')
+        context['current_subcategory'] = self.request.GET.get('subcategory', '') or self.request.POST.get('subcategory', '')
+        context['current_item_search'] = self.request.GET.get('item_search', '') or self.request.POST.get('item_search', '')
+        
         return context
 
     def get_fieldsets(self) -> list:
@@ -86,7 +123,9 @@ class PurchaseRequestListView(InventoryBaseView, ListView):
     def get_queryset(self):
         """Filter and search purchase requests."""
         queryset = super().get_queryset()
-        queryset = queryset.select_related('item', 'requested_by', 'approver')
+        queryset = queryset.select_related('requested_by', 'approver').prefetch_related('lines__item')
+        # Order by newest first (by id descending, then by request_date)
+        queryset = queryset.order_by('-id', '-request_date', 'request_code')
         status = self.request.GET.get('status')
         priority = self.request.GET.get('priority')
         search = self.request.GET.get('search')
@@ -136,10 +175,11 @@ class PurchaseRequestListView(InventoryBaseView, ListView):
         return context
 
 
-class PurchaseRequestCreateView(PurchaseRequestFormMixin, CreateView):
+class PurchaseRequestCreateView(LineFormsetMixin, PurchaseRequestFormMixin, CreateView):
     """Create view for purchase requests."""
     model = models.PurchaseRequest
     form_class = forms.PurchaseRequestForm
+    formset_class = forms.PurchaseRequestLineFormSet
     success_url = reverse_lazy('inventory:purchase_requests')
     form_title = _('ایجاد درخواست خرید')
 
@@ -153,31 +193,95 @@ class PurchaseRequestCreateView(PurchaseRequestFormMixin, CreateView):
         form.instance.requested_by = self.request.user
         form.instance.request_date = timezone.now().date()
         form.instance.status = models.PurchaseRequest.Status.DRAFT
+        
+        # Build line formset first to validate and get first item
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # Check if we have at least one valid line before saving document
+        valid_lines = []
+        first_item = None
+        first_unit = None
+        for line_form in lines_formset.forms:
+            if line_form.cleaned_data and line_form.cleaned_data.get('item') and not line_form.cleaned_data.get('DELETE', False):
+                valid_lines.append(line_form)
+                if first_item is None:
+                    first_item = line_form.cleaned_data.get('item')
+                    first_unit = line_form.cleaned_data.get('unit', 'EA')
+        
+        if not valid_lines:
+            form.add_error(None, _('Please add at least one line with an item.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # Set legacy fields from first valid line (for backward compatibility)
+        # These fields are now handled by PurchaseRequestLine, but still exist in the model
+        from decimal import Decimal
+        if not first_item:
+            form.add_error(None, _('Please add at least one line with an item.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        form.instance.item = first_item
+        form.instance.item_code = first_item.item_code or first_item.full_item_code or ''
+        form.instance.unit = first_unit or 'EA'
+        # quantity_requested and quantity_fulfilled will be calculated from lines
+        # Set to 0 initially to satisfy NOT NULL constraint
+        form.instance.quantity_requested = Decimal("0")
+        form.instance.quantity_fulfilled = Decimal("0")
+        
+        # Save document first (skip legacy sync for now, we'll do it after lines are saved)
+        form.instance._skip_legacy_sync = True
         self.object = form.save()
+        
+        # Now set instance for formset and validate before saving
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object, request=self.request)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        self._save_line_formset(lines_formset)
+        
+        # Calculate total quantity from lines and update legacy fields
+        total_quantity = sum(
+            line.quantity_requested for line in self.object.lines.all()
+        )
+        self.object.quantity_requested = total_quantity
+        self.object.quantity_fulfilled = Decimal("0")  # Will be updated when receipts are created
+        self.object._skip_legacy_sync = False
+        self.object.save()
+        
         messages.success(self.request, _('درخواست خرید با موفقیت ثبت شد.'))
         return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
-            (_('اطلاعات درخواست'), ['item', 'unit', 'quantity_requested', 'needed_by_date', 'priority']),
-            (_('تایید'), ['approver', 'reason_code']),
+            (_('زمان بندی و اولویت'), ['needed_by_date', 'priority']),
+            (_('تایید و توضیحات'), ['approver', 'reason_code']),
         ]
 
 
-class PurchaseRequestUpdateView(PurchaseRequestFormMixin, UpdateView):
+class PurchaseRequestUpdateView(LineFormsetMixin, PurchaseRequestFormMixin, UpdateView):
     """Update view for purchase requests."""
     model = models.PurchaseRequest
     form_class = forms.PurchaseRequestForm
+    formset_class = forms.PurchaseRequestLineFormSet
     success_url = reverse_lazy('inventory:purchase_requests')
     form_title = _('ویرایش درخواست خرید')
 
     def get_queryset(self):
         """Filter to only draft requests created by current user."""
         queryset = super().get_queryset()
+        queryset = queryset.select_related('requested_by', 'approver').prefetch_related('lines__item')
         return queryset.filter(
             status=models.PurchaseRequest.Status.DRAFT,
-            requested_by__user=self.request.user,
+            requested_by=self.request.user,
         )
 
     def form_valid(self, form):
@@ -187,15 +291,48 @@ class PurchaseRequestUpdateView(PurchaseRequestFormMixin, UpdateView):
             form.add_error(None, _('شرکت فعال مشخص نشده است.'))
             return self.form_invalid(form)
         form.instance.company_id = company_id
-        response = super().form_valid(form)
+        form.instance.edited_by = self.request.user
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object, request=self.request)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # Check if we have at least one valid line before saving
+        valid_lines = []
+        for line_form in lines_formset.forms:
+            if line_form.cleaned_data and line_form.cleaned_data.get('item') and not line_form.cleaned_data.get('DELETE', False):
+                valid_lines.append(line_form)
+        
+        if not valid_lines:
+            # No valid lines, show error
+            lines_formset.add_error(None, _('Please add at least one line with an item.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        self._save_line_formset(lines_formset)
+        
+        # Calculate total quantity from lines and update legacy fields
+        total_quantity = sum(
+            line.quantity_requested for line in self.object.lines.all()
+        )
+        self.object.quantity_requested = total_quantity
+        self.object.save()
+        
         messages.success(self.request, _('درخواست خرید با موفقیت بروزرسانی شد.'))
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
-            (_('اطلاعات درخواست'), ['item', 'unit', 'quantity_requested', 'needed_by_date', 'priority']),
-            (_('تایید'), ['approver', 'reason_code']),
+            (_('زمان بندی و اولویت'), ['needed_by_date', 'priority']),
+            (_('تایید و توضیحات'), ['approver', 'reason_code']),
         ]
 
 
@@ -303,6 +440,24 @@ class WarehouseRequestFormMixin(InventoryBaseView):
             context['warehouse_options_json'] = mark_safe('{}')
         context['unit_placeholder'] = str(forms.UNIT_CHOICES[0][1])
         context['warehouse_placeholder'] = _('--- انتخاب کنید ---')
+        
+        # Add item types, categories, and subcategories for filtering
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            context['item_types'] = models.ItemType.objects.filter(company_id=company_id, is_enabled=1).order_by('name')
+            context['item_categories'] = models.ItemCategory.objects.filter(company_id=company_id, is_enabled=1).order_by('name')
+            context['item_subcategories'] = models.ItemSubcategory.objects.filter(company_id=company_id, is_enabled=1).order_by('name')
+        else:
+            context['item_types'] = models.ItemType.objects.none()
+            context['item_categories'] = models.ItemCategory.objects.none()
+            context['item_subcategories'] = models.ItemSubcategory.objects.none()
+        
+        # Add current filter selections to context
+        context['current_item_type'] = self.request.GET.get('item_type')
+        context['current_category'] = self.request.GET.get('category')
+        context['current_subcategory'] = self.request.GET.get('subcategory')
+        context['current_item_search'] = self.request.GET.get('item_search')
+        
         return context
 
     def get_fieldsets(self) -> list:
@@ -369,10 +524,11 @@ class WarehouseRequestListView(InventoryBaseView, ListView):
         return context
 
 
-class WarehouseRequestCreateView(WarehouseRequestFormMixin, CreateView):
+class WarehouseRequestCreateView(LineFormsetMixin, WarehouseRequestFormMixin, CreateView):
     """Create view for warehouse requests."""
     model = models.WarehouseRequest
     form_class = forms.WarehouseRequestForm
+    formset_class = forms.WarehouseRequestLineFormSet
     success_url = reverse_lazy('inventory:warehouse_requests')
     form_title = _('ایجاد درخواست انبار')
 
@@ -382,36 +538,100 @@ class WarehouseRequestCreateView(WarehouseRequestFormMixin, CreateView):
         if not company_id:
             form.add_error(None, _('شرکت فعال مشخص نشده است.'))
             return self.form_invalid(form)
+        
         form.instance.company_id = company_id
         form.instance.requester = self.request.user
         form.instance.request_date = timezone.now().date()
         form.instance.request_status = 'draft'
+        
+        # Build and validate formset
+        lines_formset = self.build_line_formset(data=self.request.POST, request=self.request)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # Check if we have at least one valid line before saving document
+        valid_lines = []
+        first_item = None
+        first_unit = None
+        first_warehouse = None
+        for line_form in lines_formset.forms:
+            if line_form.cleaned_data and line_form.cleaned_data.get('item') and not line_form.cleaned_data.get('DELETE', False):
+                valid_lines.append(line_form)
+                if first_item is None:
+                    first_item = line_form.cleaned_data.get('item')
+                    first_unit = line_form.cleaned_data.get('unit', 'EA')
+                    first_warehouse = line_form.cleaned_data.get('warehouse')
+        
+        if not valid_lines:
+            form.add_error(None, _('Please add at least one line with an item.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # Set legacy fields from first valid line (for backward compatibility)
+        from decimal import Decimal
+        if not first_item:
+            form.add_error(None, _('Please add at least one line with an item.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        form.instance.item = first_item
+        form.instance.item_code = first_item.item_code or first_item.full_item_code or ''
+        form.instance.unit = first_unit or 'EA'
+        form.instance.warehouse = first_warehouse
+        if first_warehouse:
+            form.instance.warehouse_code = first_warehouse.public_code or ''
+        # quantity_requested will be calculated from lines
+        form.instance.quantity_requested = Decimal("0")
+        
+        # Save document first
         self.object = form.save()
+        
+        # Now set instance for formset and validate before saving
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object, request=self.request)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        self._save_line_formset(lines_formset)
+        
+        # Calculate total quantity from lines and update legacy fields
+        total_quantity = sum(
+            line.quantity_requested for line in self.object.lines.all()
+        )
+        self.object.quantity_requested = total_quantity
+        self.object.save()
+        
         messages.success(self.request, _('درخواست انبار با موفقیت ثبت شد.'))
         return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
-            (_('اطلاعات درخواست'), ['item', 'unit', 'quantity_requested', 'warehouse', 'department_unit']),
+            (_('اطلاعات درخواست'), ['department_unit']),
             (_('زمان‌بندی و اولویت'), ['needed_by_date', 'priority']),
             (_('تایید و توضیحات'), ['approver', 'purpose']),
         ]
 
 
-class WarehouseRequestUpdateView(WarehouseRequestFormMixin, UpdateView):
+class WarehouseRequestUpdateView(LineFormsetMixin, WarehouseRequestFormMixin, UpdateView):
     """Update view for warehouse requests."""
     model = models.WarehouseRequest
     form_class = forms.WarehouseRequestForm
+    formset_class = forms.WarehouseRequestLineFormSet
     success_url = reverse_lazy('inventory:warehouse_requests')
     form_title = _('ویرایش درخواست انبار')
 
     def get_queryset(self):
         """Filter to only draft requests created by current user."""
         queryset = super().get_queryset()
+        queryset = queryset.select_related('requester', 'approver').prefetch_related('lines__item', 'lines__warehouse')
         return queryset.filter(
             request_status='draft',
-            requester__user=self.request.user,
+            requester=self.request.user,
         )
 
     def form_valid(self, form):
@@ -421,14 +641,63 @@ class WarehouseRequestUpdateView(WarehouseRequestFormMixin, UpdateView):
             form.add_error(None, _('شرکت فعال مشخص نشده است.'))
             return self.form_invalid(form)
         form.instance.company_id = company_id
-        response = super().form_valid(form)
+        form.instance.edited_by = self.request.user
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object, request=self.request)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # Check if we have at least one valid line before saving
+        valid_lines = []
+        for line_form in lines_formset.forms:
+            if line_form.cleaned_data and line_form.cleaned_data.get('item') and not line_form.cleaned_data.get('DELETE', False):
+                valid_lines.append(line_form)
+        
+        if not valid_lines:
+            # No valid lines, show error
+            lines_formset.add_error(None, _('Please add at least one line with an item.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        self._save_line_formset(lines_formset)
+        
+        # Calculate total quantity from lines and update legacy fields
+        from decimal import Decimal
+        total_quantity = sum(
+            line.quantity_requested for line in self.object.lines.all()
+        )
+        self.object.quantity_requested = total_quantity
+        
+        # Update legacy fields from first valid line
+        if valid_lines:
+            first_line = valid_lines[0]
+            first_item = first_line.cleaned_data.get('item')
+            first_unit = first_line.cleaned_data.get('unit', 'EA')
+            first_warehouse = first_line.cleaned_data.get('warehouse')
+            if first_item:
+                self.object.item = first_item
+                self.object.item_code = first_item.item_code or first_item.full_item_code or ''
+                self.object.unit = first_unit
+            if first_warehouse:
+                self.object.warehouse = first_warehouse
+                self.object.warehouse_code = first_warehouse.public_code or ''
+        
+        self.object.save()
+        
         messages.success(self.request, _('درخواست انبار با موفقیت بروزرسانی شد.'))
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
-            (_('اطلاعات درخواست'), ['item', 'unit', 'quantity_requested', 'warehouse', 'department_unit']),
+            (_('اطلاعات درخواست'), ['department_unit']),
             (_('زمان‌بندی و اولویت'), ['needed_by_date', 'priority']),
             (_('تایید و توضیحات'), ['approver', 'purpose']),
         ]
@@ -484,4 +753,143 @@ class WarehouseRequestApproveView(InventoryBaseView, View):
         warehouse_request.save(update_fields=update_fields)
         messages.success(request, _('درخواست انبار تایید شد و برای استفاده در حواله‌ها آماده است.'))
         return HttpResponseRedirect(reverse('inventory:warehouse_requests'))
+
+
+# ============================================================================
+# Create Receipt from Purchase Request Views
+# ============================================================================
+
+class CreateReceiptFromPurchaseRequestView(FeaturePermissionRequiredMixin, InventoryBaseView, TemplateView):
+    """Base view for selecting lines from purchase request to create receipt."""
+    receipt_type = None  # 'temporary', 'permanent', 'consignment'
+    template_name = 'inventory/create_receipt_from_purchase_request.html'
+    required_action = 'create_receipt_from_purchase_request'
+    
+    def get_purchase_request(self, pk: int):
+        """Get purchase request and check permissions."""
+        company_id = self.request.session.get('active_company_id')
+        if not company_id:
+            raise Http404(_('شرکت فعال مشخص نشده است.'))
+        
+        purchase_request = get_object_or_404(
+            models.PurchaseRequest,
+            pk=pk,
+            company_id=company_id,
+            status=models.PurchaseRequest.Status.APPROVED,
+            is_enabled=1
+        )
+        return purchase_request
+    
+    def get_context_data(self, **kwargs):
+        """Display form to select lines from purchase request."""
+        context = super().get_context_data(**kwargs)
+        purchase_request = self.get_purchase_request(kwargs['pk'])
+        lines = purchase_request.lines.filter(is_enabled=1).order_by('sort_order', 'id')
+        
+        context['purchase_request'] = purchase_request
+        context['lines'] = lines
+        context['receipt_type'] = self.receipt_type
+        
+        receipt_type_names = {
+            'temporary': _('رسید موقت'),
+            'permanent': _('رسید دائم'),
+            'consignment': _('رسید امانی'),
+        }
+        context['receipt_type_name'] = receipt_type_names.get(self.receipt_type, '')
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        """Process selected lines and redirect to receipt creation."""
+        import logging
+        logger = logging.getLogger('inventory.views.requests')
+        logger.info("=" * 80)
+        logger.info(f"POST request received for CreateReceiptFromPurchaseRequestView (receipt_type={self.receipt_type})")
+        logger.info(f"URL kwargs: {kwargs}")
+        logger.info(f"POST data keys: {list(request.POST.keys())}")
+        
+        purchase_request = self.get_purchase_request(kwargs['pk'])
+        logger.info(f"Purchase request found: {purchase_request.request_code} (pk={purchase_request.pk})")
+        
+        # Get selected lines with quantities
+        selected_lines = []
+        for line in purchase_request.lines.filter(is_enabled=1):
+            line_id = str(line.pk)
+            quantity_key = f'quantity_{line_id}'
+            selected_key = f'selected_{line_id}'
+            
+            logger.info(f"Processing line {line_id}: item={line.item.name if line.item else 'None'}, "
+                       f"selected_key={selected_key}, quantity_key={quantity_key}")
+            logger.info(f"  POST.get('{selected_key}') = {request.POST.get(selected_key)}")
+            logger.info(f"  POST.get('{quantity_key}') = {request.POST.get(quantity_key)}")
+            
+            if request.POST.get(selected_key) == 'on':
+                quantity = request.POST.get(quantity_key, '0')
+                logger.info(f"  Line {line_id} is selected with quantity={quantity}")
+                try:
+                    quantity = Decimal(str(quantity))
+                    if quantity > 0:
+                        remaining = line.quantity_remaining
+                        logger.info(f"  Line {line_id} remaining quantity: {remaining}")
+                        if quantity > remaining:
+                            logger.warning(f"  Line {line_id} quantity {quantity} > remaining {remaining}, adjusting to {remaining}")
+                            quantity = remaining
+                        selected_lines.append({
+                            'line': line,
+                            'quantity': quantity,
+                        })
+                        logger.info(f"  Line {line_id} added to selected_lines: quantity={quantity}")
+                except (ValueError, InvalidOperation) as e:
+                    logger.error(f"  Error parsing quantity for line {line_id}: {e}")
+                    pass
+            else:
+                logger.info(f"  Line {line_id} is NOT selected (checkbox not checked)")
+        
+        logger.info(f"Total selected_lines count: {len(selected_lines)}")
+        if not selected_lines:
+            logger.warning("No lines selected, showing error message")
+            messages.error(request, _('لطفاً حداقل یک ردیف را انتخاب کنید.'))
+            return self.get(request, *args, **kwargs)
+        
+        # Store selected lines in session for receipt creation
+        session_key = f'purchase_request_{purchase_request.pk}_receipt_{self.receipt_type}_lines'
+        session_data = [
+            {
+                'line_id': item['line'].pk,
+                'quantity': str(item['quantity']),
+            }
+            for item in selected_lines
+        ]
+        logger.info(f"Storing in session with key: {session_key}")
+        logger.info(f"Session data to store: {session_data}")
+        request.session[session_key] = session_data
+        logger.info(f"Session data stored successfully. Session keys: {list(request.session.keys())}")
+        
+        # Redirect to receipt creation
+        if self.receipt_type == 'temporary':
+            return HttpResponseRedirect(reverse('inventory:receipt_temporary_create_from_request', kwargs={'pk': purchase_request.pk}))
+        elif self.receipt_type == 'permanent':
+            return HttpResponseRedirect(reverse('inventory:receipt_permanent_create_from_request', kwargs={'pk': purchase_request.pk}))
+        elif self.receipt_type == 'consignment':
+            return HttpResponseRedirect(reverse('inventory:receipt_consignment_create_from_request', kwargs={'pk': purchase_request.pk}))
+        
+        return HttpResponseRedirect(reverse('inventory:purchase_requests'))
+
+
+class CreateTemporaryReceiptFromPurchaseRequestView(CreateReceiptFromPurchaseRequestView):
+    """View to select lines from purchase request for temporary receipt."""
+    receipt_type = 'temporary'
+    feature_code = 'inventory.receipts.temporary'
+
+
+class CreatePermanentReceiptFromPurchaseRequestView(CreateReceiptFromPurchaseRequestView):
+    """View to select lines from purchase request for permanent receipt."""
+    receipt_type = 'permanent'
+    feature_code = 'inventory.receipts.permanent'
+
+
+class CreateConsignmentReceiptFromPurchaseRequestView(CreateReceiptFromPurchaseRequestView):
+    """View to select lines from purchase request for consignment receipt."""
+    receipt_type = 'consignment'
+    feature_code = 'inventory.receipts.consignment'
 

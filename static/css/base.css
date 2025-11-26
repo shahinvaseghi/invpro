@@ -101,6 +101,8 @@ body {
 
 .app-content {
   padding: 32px;
+  overflow-x: auto;
+  max-width: 100%;
 }
 
 .logo {
@@ -513,9 +515,35 @@ body {
   color: var(--color-text-light);
 }
 
+.user-info-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .company-context {
   font-size: 0.9rem;
   opacity: 0.85;
+}
+
+.logout-btn {
+  display: inline-block;
+  padding: 6px 12px;
+  background-color: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #fff;
+  text-decoration: none;
 }
 
 .company-switcher {
@@ -1552,6 +1580,8 @@ body {
   border-radius: 8px;
   padding: 24px;
   margin-top: 16px;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .custom-form {

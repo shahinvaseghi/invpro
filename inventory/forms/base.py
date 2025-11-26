@@ -35,10 +35,8 @@ from inventory.fields import JalaliDateField
 from inventory.widgets import JalaliDateInput
 
 # WorkLine moved to production module
-try:
-    from production.models import WorkLine
-except ImportError:
-    WorkLine = None
+from shared.utils.modules import get_work_line_model
+WorkLine = get_work_line_model()
 
 User = get_user_model()
 
@@ -736,19 +734,48 @@ class StocktakingBaseForm(forms.ModelForm):
 class BaseLineFormSet(forms.BaseInlineFormSet):
     """Base formset class for handling company_id in line forms."""
     
-    def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
-        """Initialize formset with company_id."""
+    def __init__(self, *args, company_id: Optional[int] = None, request=None, **kwargs):
+        """Initialize formset with company_id and request."""
         self.company_id = company_id
+        self.request = request
         super().__init__(*args, **kwargs)
-        # Pass company_id to all forms in the formset and update querysets
+        # Pass company_id and request to all forms in the formset and update querysets
         for form in self.forms:
             form.company_id = company_id
+            form.request = request
             # Update querysets after company_id is set
             if hasattr(form, '_update_querysets_after_company_id'):
                 form._update_querysets_after_company_id()
             # Also update destination_type queryset if method exists
             if hasattr(form, '_update_destination_type_queryset'):
                 form._update_destination_type_queryset()
+    
+    def _construct_form(self, i, **kwargs):
+        """Construct form with company_id and request."""
+        form = super()._construct_form(i, **kwargs)
+        form.company_id = self.company_id
+        form.request = self.request
+        # Update querysets after company_id is set
+        if hasattr(form, '_update_querysets_after_company_id'):
+            form._update_querysets_after_company_id()
+        # Also update destination_type queryset if method exists
+        if hasattr(form, '_update_destination_type_queryset'):
+            form._update_destination_type_queryset()
+        return form
+    
+    @property
+    def empty_form(self):
+        """Return empty form with company_id and request."""
+        form = self._construct_form('__prefix__')
+        form.company_id = self.company_id
+        form.request = self.request
+        # Update querysets after company_id is set
+        if hasattr(form, '_update_querysets_after_company_id'):
+            form._update_querysets_after_company_id()
+        # Also update destination_type queryset if method exists
+        if hasattr(form, '_update_destination_type_queryset'):
+            form._update_destination_type_queryset()
+        return form
     
     def clean(self) -> Dict[str, Any]:
         """Validate that at least one line has an item."""

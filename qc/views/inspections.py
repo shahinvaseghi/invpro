@@ -29,11 +29,12 @@ class TemporaryReceiptQCListView(FeaturePermissionRequiredMixin, QCBaseView, Lis
         """Filter to only show receipts awaiting inspection and not locked."""
         queryset = super().get_queryset()
         # Only show receipts that are awaiting inspection and not locked
+        # Note: item and warehouse are in ReceiptTemporaryLine, not in ReceiptTemporary
         queryset = queryset.filter(
             status=inventory_models.ReceiptTemporary.Status.AWAITING_INSPECTION,
             is_locked=0,
             is_enabled=1
-        ).select_related('item', 'warehouse', 'supplier', 'created_by')
+        ).select_related('supplier', 'created_by')
         return queryset
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:

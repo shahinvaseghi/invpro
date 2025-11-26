@@ -107,10 +107,21 @@
           <td><code>{{ pr.request_code }}</code></td>
           <td>{{ pr.request_date|jalali_date }}</td>
           <td>
-            <strong>{{ pr.item.name }}</strong><br>
-            <small style="color: #6b7280;"><code>{{ pr.item_code }}</code></small>
+            {% if pr.lines.exists %}
+              <strong>{% trans "Multiple Items" %}</strong><br>
+              <small style="color: #6b7280;">{{ pr.lines.count }} {% trans "line(s)" %}</small>
+            {% else %}
+              <strong>{{ pr.item.name }}</strong><br>
+              <small style="color: #6b7280;"><code>{{ pr.item_code }}</code></small>
+            {% endif %}
           </td>
-          <td style="text-align: right;">{{ pr.quantity_requested|floatformat:2 }} {{ pr.unit }}</td>
+          <td style="text-align: right;">
+            {% if pr.lines.exists %}
+              {{ pr.total_quantity_requested|floatformat:2 }}
+            {% else %}
+              {{ pr.total_quantity_requested|floatformat:2 }}
+            {% endif %}
+          </td>
           <td>
             {% if pr.requested_by %}
               {{ pr.requested_by.first_name }} {{ pr.requested_by.last_name }}
@@ -151,19 +162,30 @@
             </span>
           </td>
           <td>
-            <div class="action-buttons">
+            <div class="action-buttons" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
               {% if pr.can_current_user_edit %}
                 <a href="{% url edit_url_name pr.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
                   {% trans "Edit" %}
                 </a>
               {% endif %}
               {% if pr.can_current_user_approve %}
-                <form method="post" action="{% url approve_url_name pr.pk %}" class="inline-lock-form">
+                <form method="post" action="{% url approve_url_name pr.pk %}" class="inline-lock-form" style="margin: 0;">
                   {% csrf_token %}
                   <button type="submit" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
                     {% trans "Approve" %}
                   </button>
                 </form>
+              {% endif %}
+              {% if pr.status == 'approved' %}
+                <a href="{% url 'inventory:purchase_request_create_temporary_receipt' pr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #10b981; color: white; text-decoration: none; border-radius: 4px;">
+                  {% trans "Temporary Receipt" %}
+                </a>
+                <a href="{% url 'inventory:purchase_request_create_permanent_receipt' pr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 4px;">
+                  {% trans "Permanent Receipt" %}
+                </a>
+                <a href="{% url 'inventory:purchase_request_create_consignment_receipt' pr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #8b5cf6; color: white; text-decoration: none; border-radius: 4px;">
+                  {% trans "Consignment Receipt" %}
+                </a>
               {% endif %}
             </div>
           </td>

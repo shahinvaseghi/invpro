@@ -46,7 +46,52 @@ class InventoryBaseView(LoginRequiredMixin):
 
 ---
 
-## 2. Internationalization (i18n)
+## 2. Notification System
+
+### Overview
+The platform includes a comprehensive notification system for tracking pending approvals and important events.
+
+### Key Features
+- **Notification Types**:
+  - Pending Approval Requests (Purchase, Warehouse, Stocktaking)
+  - Approved Requests (recently approved within 7 days)
+- **Read Tracking**: Notifications can be marked as read by clicking on them
+- **Session-Based Storage**: Read notifications are stored in user session
+- **Badge Counter**: Shows count of unread notifications in header
+- **Dropdown Display**: Clickable notification dropdown with all pending notifications
+
+### Technical Implementation
+```python
+# Notification tracking in context processor
+def active_company(request):
+    # Get read notifications from session
+    read_notifications = request.session.get('read_notifications', [])
+    read_notifications = set(read_notifications)
+    
+    # Filter notifications based on read status
+    if notification_key not in read_notifications:
+        notifications.append({...})
+
+# Mark notification as read
+@login_required
+@require_POST
+def mark_notification_read(request):
+    notification_key = request.POST.get('notification_key')
+    read_notifications = request.session.get('read_notifications', [])
+    read_notifications.add(notification_key)
+    request.session['read_notifications'] = list(read_notifications)
+```
+
+### User Experience
+1. Notifications appear in header bell icon with badge count
+2. User clicks on notification dropdown to view all notifications
+3. Clicking on a notification marks it as read and redirects to related page
+4. Read notifications disappear from the list
+5. Badge count updates automatically
+
+---
+
+## 3. Internationalization (i18n)
 
 ### Supported Languages
 - **Persian (Farsi)** - Primary language with full RTL support (default)
@@ -287,6 +332,188 @@ python manage.py makemessages -l fa
 
 ---
 
+### Product Orders (Production Module)
+**Location**: `/production/product-orders/`
+
+**Features**:
+- Auto-generated 10-digit unique order code (not user-editable)
+- BOM selection (required) - filters to show only enabled BOMs for the active company
+- Quantity planning with decimal precision
+- Approver assignment - filters to show only users with APPROVE permission for `production.product_orders`
+- Due date with Jalali calendar picker
+- Priority levels (low, normal, high, urgent)
+- Customer reference field
+- Notes field
+- Auto-populated finished item from selected BOM
+- Auto-populated unit from finished item
+- Status tracking (planned, released, in_progress, completed, cancelled)
+- Company-scoped (users see only their company's orders)
+
+**Optional Transfer Request Creation**:
+- Users with `create_transfer_from_order` permission can optionally create a transfer request directly from the order form
+- Checkbox to enable transfer request creation
+- Transfer approver selection (filters to show only users with APPROVE permission for `production.transfer_requests`)
+- Extra request items section (only visible when transfer request checkbox is checked)
+  - Add materials not in the BOM
+  - Cascading filters: Material Type → Category → Subcategory → Item
+  - Auto-load units when item is selected
+  - Source warehouse and destination work center selection
+  - Scrap allowance percentage
+- When order is saved with transfer request enabled:
+  - Transfer request is automatically created
+  - Items from BOM are automatically added (quantity = order quantity × BOM quantity per unit)
+  - Extra items (if any) are added to the transfer request
+  - Transfer request status is set to "Pending Approval"
+
+**CRUD Operations**:
+- Create: Create new product orders with BOM and quantity
+- Read: Filtered list by active company, sorted by order date and code
+- Update: Update order details (BOM, quantity, approver, etc.)
+- Delete: With confirmation page
+- Approve: Approve orders (requires APPROVE permission)
+
+**Permissions**:
+- `production.product_orders` feature with actions:
+  - `view_own`: View own orders
+  - `view_all`: View all orders
+  - `create`: Create new orders
+  - `edit_own`: Edit own orders
+  - `delete_own`: Delete own orders
+  - `approve`: Approve orders
+  - `create_transfer_from_order`: Create transfer requests from orders
+
+---
+
+### Transfer to Line Requests (Production Module)
+**Location**: `/production/transfer-requests/`
+
+**Features**:
+- Auto-generated 8-digit unique transfer code with "TR" prefix (not user-editable)
+- Product order selection (required) - must have a BOM
+- Transfer date with Jalali calendar picker
+- Approver assignment - filters to show only users with APPROVE permission for `production.transfer_requests`
+- Status tracking (pending_approval, approved, rejected)
+- Lockable documents (inherits from `LockableModel`)
+- Notes field
+- Company-scoped (users see only their company's transfer requests)
+
+**Automatic BOM Item Population**:
+- When a product order is selected, items from the order's BOM are automatically added
+- Quantity calculation: `order.quantity_planned × bom_material.quantity_per_unit`
+- Source warehouse auto-selected from ItemWarehouse (first allowed warehouse)
+- Scrap allowance copied from BOM material
+- Items marked as `is_extra=0` (from BOM)
+
+**Extra Request Items**:
+- Users can add materials not in the BOM
+- Only editable before document is locked
+- Cascading filters: Material Type → Category → Subcategory → Item
+- Auto-load units when item is selected
+- Source warehouse and destination work center selection
+- Scrap allowance percentage
+- Items marked as `is_extra=1` (extra request)
+
+**Workflow**:
+1. Create transfer request with order selection
+2. BOM items automatically populated
+3. Add extra items if needed (only editable before lock)
+4. Save request (status: Pending Approval)
+5. Approver reviews and approves/rejects
+6. Document is locked after approval
+7. Create consumption issue from approved transfer request (requires `CREATE_ISSUE_FROM_TRANSFER` permission)
+
+**CRUD Operations**:
+- Create: Create new transfer requests with order selection
+- Read: Filtered list by active company, sorted by transfer date and code
+- Update: Update transfer request details (only extra items editable before lock)
+- Delete: With confirmation page (only before approval)
+- Approve: Approve transfer requests (requires APPROVE permission)
+- Reject: Reject transfer requests (requires REJECT permission)
+- Create Issue: Create consumption issue from approved transfer request (requires `CREATE_ISSUE_FROM_TRANSFER` permission)
+
+**Permissions**:
+- `production.transfer_requests` feature with actions:
+  - `view_own`: View own transfer requests
+  - `view_all`: View all transfer requests
+  - `create`: Create new transfer requests
+  - `edit_own`: Edit own transfer requests (only extra items before lock)
+  - `delete_own`: Delete own transfer requests (only before approval)
+  - `approve`: Approve transfer requests
+  - `reject`: Reject transfer requests
+  - `create_issue_from_transfer`: Create consumption issues from approved transfer requests
+
+### Performance Records (Production Module)
+**Location**: `/production/performance-records/`
+
+**Purpose**: Track production performance, material waste, labor time, and machine usage for product orders.
+
+**Key Features**:
+- Product order selection (required) - must have a process assigned
+- Transfer request selection (optional) - to auto-populate materials from transfer document
+- Performance date selection (Jalali date picker)
+- Planned quantity (auto-populated from order)
+- Actual produced quantity (user-entered, cannot exceed planned quantity)
+- Approver assignment - filters to show only users with APPROVE permission for `production.performance_records`
+- Status workflow: pending_approval → approved/rejected
+- Lockable documents (inherits from `LockableModel`)
+
+**Materials Section**:
+- Auto-populated from selected transfer request (if transfer is selected)
+- Material items from transfer document with issued quantities
+- Waste quantity tracking for each material
+- Read-only material items (cannot be edited after creation)
+- Only waste quantities can be updated
+
+**Personnel Section**:
+- Add personnel who worked on the order
+- Filter personnel by process work lines (only personnel assigned to work lines in the order's process)
+- Work minutes tracking for each person
+- Work line assignment (optional)
+- Dynamic formset with add/remove functionality
+
+**Machines Section**:
+- Add machines used in the order
+- Filter machines by process work lines (only machines assigned to work lines in the order's process)
+- Work minutes tracking for each machine
+- Work line assignment (optional)
+- Dynamic formset with add/remove functionality
+
+**Receipt Creation**:
+- Create permanent or temporary receipt from approved performance records
+- Receipt type determined by `finished_item.requires_temporary_receipt`:
+  - If `requires_temporary_receipt = 1`: Only temporary receipt can be created
+  - If `requires_temporary_receipt = 0`: User can choose permanent or temporary receipt
+- Receipt quantity = actual produced quantity from performance record
+- Receipt warehouse selection (required)
+- Only available for approved and locked performance records
+- Requires `CREATE_RECEIPT` permission
+
+**Auto-Generated Codes**:
+- `performance_code`: Auto-generated `PR-XXXXXXXX` (8 digits) per company using sequential code generation
+
+**Actions**:
+- Create: Create new performance records with materials, personnel, and machines
+- Edit: Edit performance records (only if not locked)
+- Delete: Delete performance records (only if pending approval and not locked)
+- Approve: Approve performance records (requires APPROVE permission, locks document)
+- Reject: Reject performance records (requires REJECT permission, allows re-editing)
+- Create Receipt: Create permanent or temporary receipt from approved performance records (requires `CREATE_RECEIPT` permission)
+
+**Permissions**:
+- `production.performance_records` feature with actions:
+  - `view_own`: View own performance records
+  - `view_all`: View all performance records
+  - `create`: Create new performance records
+  - `edit_own`: Edit own performance records (only if not locked)
+  - `edit_other`: Edit other users' performance records (only if not locked)
+  - `delete_own`: Delete own performance records (only if pending approval and not locked)
+  - `delete_other`: Delete other users' performance records (only if pending approval and not locked)
+  - `approve`: Approve performance records (locks document)
+  - `reject`: Reject performance records (allows re-editing)
+  - `create_receipt`: Create permanent or temporary receipt from approved performance records
+
+---
+
 ## 5. Form Features
 
 ### Common Features Across All Forms
@@ -356,6 +583,12 @@ python manage.py makemessages -l fa
 - Companies
 - Personnel (Production Module)
 - Machines (Production Module)
+- Work Lines (Production Module)
+- BOMs (Production Module)
+- Processes (Production Module)
+- Product Orders (Production Module)
+- Transfer to Line Requests (Production Module)
+- Performance Records (Production Module)
 
 ---
 
@@ -547,6 +780,8 @@ Real-time calculation of item quantities in warehouses based on stocktaking base
 - **Details page**: Click "Details" button to view complete transaction history for an item
   - Shows all receipts and issues from baseline date to selected date
   - Displays running balance calculation for each transaction
+  - **Source/Destination column**: Shows supplier name for receipts and department unit/work line name for issues
+  - **Clickable document codes**: All document codes are clickable links that navigate directly to the document edit/view page
   - Accessible via `/inventory/balance/details/<item_id>/<warehouse_id>/`
 - **JSON API endpoint**: `/inventory/api/balance/` for AJAX queries
 
@@ -565,6 +800,7 @@ Real-time calculation of item quantities in warehouses based on stocktaking base
 - Consignment receipts/issues are included in calculations
 - Baseline uses approved and locked `StocktakingRecord` when surplus/deficit documents don't exist
 - Date display: Baseline date shown in Jalali format using `|jalali_date` filter
+- **Disabled items with transactions**: Items that are disabled (`is_enabled=0`) but have actual transactions are still displayed in balance reports to ensure complete audit trail
 
 ### Performance Considerations
 - Indexes on (company_id, warehouse_id, item_id, document_date)
@@ -633,6 +869,11 @@ Stocktaking records now support a formal approval workflow with designated appro
 - Dedicated create/edit forms with item-aware unit dropdown (default unit + defined conversions).
 - Approver selection restricted to Django `User` accounts whose roles grant the purchase-request approval permission.
 - Approval action locks the request (`is_locked=1`), records timestamp, and exposes it to permanent/consignment receipt forms.
+- **Direct Receipt Creation**: Approved purchase requests allow direct creation of receipts (Temporary, Permanent, or Consignment) through dedicated intermediate selection pages:
+  - Users can select which lines to include in the receipt
+  - Quantities can be adjusted based on remaining requested quantities
+  - Line-specific notes can be added
+  - After selection, users are redirected to the receipt creation form with pre-populated line items
 - Receipt forms validate that the selected request matches both item and company before updating fulfillment quantities.
 - User-entered unit/quantity/price values are preserved for display while normalized values are stored for calculation.
 
@@ -648,19 +889,25 @@ Internal material requisition workflow
 
 #### Features
 - **Request Code**: Auto-generated `WRQ-YYYYMM-XXXXXX`
-- **Item Selection**: From company's item catalog
+- **Item Selection**: From company's item catalog (single-item request)
 - **Quantity Request**: With unit of measure restricted to the item's primary/alternate units
 - **Priority**: Low, Normal, High, Urgent
-- **Requester**: Linked to `production.Person` for staffing analytics
+- **Requester**: Linked to Django `User` account
 - **Approver**: Django `User` filtered by warehouse-request approval permission
-- **Department**: Requesting unit/department
+- **Department**: Requesting unit/department (optional)
+- **Warehouse**: Source warehouse for the requested item
 - **Approval Workflow**:
   1. Draft
   2. Submitted
   3. Approved (by authorized person)
   4. Issued (linked to actual issue document)
   5. Cancelled (if rejected)
-- **Locking & Linking**: Once approved the request is locked (`is_locked=1`) and becomes selectable in permanent/consignment receipt forms; forms validate item/warehouse alignment before accepting the link.
+- **Locking & Linking**: Once approved the request is locked (`is_locked=1`) and becomes available for issue creation
+- **Direct Issue Creation**: Approved warehouse requests allow direct creation of issues (Permanent, Consumption, or Consignment) through dedicated intermediate selection pages:
+  - Users can review warehouse request details
+  - Issue quantity can be adjusted based on remaining requested quantities
+  - Optional notes can be added
+  - After confirmation, users are redirected to the issue creation form with pre-populated line items from the warehouse request
 
 #### Use Cases
 - Production line requesting materials
@@ -749,6 +996,32 @@ Internal material requisition workflow
   - **Access Level Management**:
     - ماتریس انتخاب اکشن‌ها برای هر Access Level بر اساس `FEATURE_PERMISSION_MAP`
     - **Quick Action Buttons**: دکمه‌های "همه" و "هیچکدام" برای هر Feature (ردیف) و کل صفحه برای انتخاب/لغو انتخاب گروهی permissions
+    - **CRITICAL**: Whenever a new section/feature is created, its permissions MUST be configured in Access Levels. Without configuring permissions in Access Level, users will not be able to access the new section (even if it appears in the sidebar).
+
+### New Section/Feature Workflow
+
+**IMPORTANT**: When adding a new section or feature to the application, follow these mandatory steps:
+
+1. **Register in Entity Reference System**:
+   - Add section to `SectionRegistry` table
+   - Add all actions to `ActionRegistry` table
+   - See [Entity Reference System Documentation](ENTITY_REFERENCE_SYSTEM.md) for details
+
+2. **Define Feature Permissions**:
+   - Add feature code to `FEATURE_PERMISSION_MAP` in `shared/permissions.py`
+   - Define all supported actions (view, create, edit, delete, approve, etc.)
+
+3. **Configure Access Level Permissions**:
+   - Go to `/shared/access-levels/`
+   - Create or edit Access Levels that should have access to the new section
+   - Enable appropriate permissions (view_own/view_all, create, edit, delete, approve, etc.)
+   - **Without this step, the new section will not be accessible to users**
+
+4. **Assign Access Levels to Users/Groups**:
+   - Assign the configured Access Levels to appropriate users or groups
+   - Users inherit permissions through their assigned Access Levels
+
+**Failure to complete step 3 (Access Level configuration) will result in the new section being inaccessible, even if it appears in the sidebar.**
 
 ### Data Protection
 - CSRF protection on all forms

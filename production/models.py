@@ -11,6 +11,7 @@ from shared.models import (
     CompanyScopedModel,
     CompanyUnit,
     ENABLED_FLAG_CHOICES,
+    LockableModel,
     MetadataModel,
     NUMERIC_CODE_VALIDATOR,
     SortableModel,
@@ -606,13 +607,24 @@ class ProductOrder(ProductionBaseModel):
         related_name="production_orders",
     )
     finished_item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
+    bom = models.ForeignKey(
+        "BOM",
+        on_delete=models.PROTECT,
+        related_name="product_orders",
+        verbose_name=_("BOM"),
+        help_text=_("Bill of Materials for this order"),
+        null=True,
+        blank=True,
+    )
     bom_code = models.CharField(max_length=30)
     process = models.ForeignKey(
         Process,
         on_delete=models.PROTECT,
         related_name="product_orders",
+        null=True,
+        blank=True,
     )
-    process_code = models.CharField(max_length=30)
+    process_code = models.CharField(max_length=30, blank=True)
     quantity_planned = models.DecimalField(
         max_digits=18,
         decimal_places=6,
@@ -621,6 +633,15 @@ class ProductOrder(ProductionBaseModel):
     unit = models.CharField(max_length=30)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PLANNED)
     priority = models.CharField(max_length=10, choices=Priority.choices, default=Priority.NORMAL)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="approved_product_orders",
+        null=True,
+        blank=True,
+        verbose_name=_("Approver"),
+        help_text=_("User who can approve this order"),
+    )
     customer_reference = models.CharField(max_length=60, blank=True)
     notes = models.TextField(blank=True)
 
@@ -635,7 +656,9 @@ class ProductOrder(ProductionBaseModel):
     def save(self, *args, **kwargs):
         if not self.finished_item_code:
             self.finished_item_code = self.finished_item.item_code
-        if not self.process_code:
+        if self.bom and not self.bom_code:
+            self.bom_code = self.bom.bom_code
+        if self.process and not self.process_code:
             self.process_code = self.process.process_code
         super().save(*args, **kwargs)
 
@@ -717,12 +740,11 @@ class OrderPerformance(ProductionBaseModel):
         super().save(*args, **kwargs)
 
 
-class TransferToLine(ProductionBaseModel):
+class TransferToLine(ProductionBaseModel, LockableModel):
     class Status(models.TextChoices):
-        DRAFT = "draft", _("Draft")
-        ISSUED = "issued", _("Issued")
-        DELIVERED = "delivered", _("Delivered")
-        CANCELLED = "cancelled", _("Cancelled")
+        PENDING_APPROVAL = "pending_approval", _("Pending Approval")
+        APPROVED = "approved", _("Approved")
+        REJECTED = "rejected", _("Rejected")
 
     transfer_code = models.CharField(max_length=30, unique=True)
     order = models.ForeignKey(
@@ -732,7 +754,16 @@ class TransferToLine(ProductionBaseModel):
     )
     order_code = models.CharField(max_length=30)
     transfer_date = models.DateField(default=timezone.now)
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING_APPROVAL)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="approved_transfers",
+        null=True,
+        blank=True,
+        verbose_name=_("Approver"),
+        help_text=_("User who can approve this transfer request"),
+    )
     notes = models.TextField(blank=True)
 
     class Meta:
@@ -783,6 +814,8 @@ class TransferToLineItem(ProductionBaseModel):
         WorkCenter,
         on_delete=models.PROTECT,
         related_name="transfer_items",
+        null=True,
+        blank=True,
     )
     destination_location_code = models.CharField(max_length=30, blank=True)
     material_scrap_allowance = models.DecimalField(
@@ -790,6 +823,12 @@ class TransferToLineItem(ProductionBaseModel):
         decimal_places=2,
         default=Decimal("0.00"),
         validators=[POSITIVE_DECIMAL],
+    )
+    is_extra = models.PositiveSmallIntegerField(
+        default=0,
+        choices=ENABLED_FLAG_CHOICES,
+        verbose_name=_("Extra Request"),
+        help_text=_("Whether this item is an extra request (not from BOM)"),
     )
     notes = models.TextField(blank=True)
 
@@ -812,4 +851,268 @@ class TransferToLineItem(ProductionBaseModel):
             self.material_item_code = self.material_item.item_code
         if not self.source_warehouse_code:
             self.source_warehouse_code = self.source_warehouse.public_code
+        super().save(*args, **kwargs)
+
+
+class PerformanceRecord(ProductionBaseModel, LockableModel):
+    """
+    Performance Record - سند عملکرد
+    Records production performance for a product order including material waste,
+    actual production quantity, labor time, and machine usage.
+    """
+    class Status(models.TextChoices):
+        PENDING_APPROVAL = "pending_approval", _("Pending Approval")
+        APPROVED = "approved", _("Approved")
+        REJECTED = "rejected", _("Rejected")
+
+    performance_code = models.CharField(max_length=30, unique=True)
+    order = models.ForeignKey(
+        ProductOrder,
+        on_delete=models.PROTECT,
+        related_name="performance_records",
+        verbose_name=_("Product Order"),
+        help_text=_("The product order this performance record is for"),
+    )
+    order_code = models.CharField(max_length=30)
+    transfer = models.ForeignKey(
+        TransferToLine,
+        on_delete=models.PROTECT,
+        related_name="performance_records",
+        null=True,
+        blank=True,
+        verbose_name=_("Transfer to Line"),
+        help_text=_("The transfer document used for this order (optional)"),
+    )
+    transfer_code = models.CharField(max_length=30, blank=True)
+    performance_date = models.DateField(default=timezone.now)
+    quantity_planned = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        verbose_name=_("Planned Quantity"),
+        help_text=_("The planned quantity from the order"),
+    )
+    quantity_actual = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        verbose_name=_("Actual Quantity Produced"),
+        help_text=_("The actual quantity produced (may be less than planned due to waste)"),
+    )
+    finished_item = models.ForeignKey(
+        "inventory.Item",
+        on_delete=models.PROTECT,
+        related_name="performance_records",
+    )
+    finished_item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
+    unit = models.CharField(max_length=30)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING_APPROVAL)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="approved_performance_records",
+        null=True,
+        blank=True,
+        verbose_name=_("Approver"),
+        help_text=_("User who can approve this performance record"),
+    )
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = _("Performance Record")
+        verbose_name_plural = _("Performance Records")
+        ordering = ("-performance_date", "performance_code")
+
+    def __str__(self) -> str:
+        return self.performance_code
+
+    def save(self, *args, **kwargs):
+        # performance_code will be generated in view (like transfer_code)
+        # We don't generate it here to allow view to add prefix
+        if not self.order_code:
+            self.order_code = self.order.order_code
+        if not self.quantity_planned:
+            self.quantity_planned = self.order.quantity_planned
+        if not self.finished_item_code:
+            self.finished_item_code = self.order.finished_item.item_code
+        if not self.finished_item_id:
+            self.finished_item = self.order.finished_item
+        if not self.unit:
+            self.unit = self.order.unit
+        if self.transfer and not self.transfer_code:
+            self.transfer_code = self.transfer.transfer_code
+        super().save(*args, **kwargs)
+
+
+class PerformanceRecordMaterial(ProductionBaseModel):
+    """
+    Performance Record Material - ردیف مواد سند عملکرد
+    Tracks material waste for each material item used in production.
+    """
+    performance = models.ForeignKey(
+        PerformanceRecord,
+        on_delete=models.CASCADE,
+        related_name="materials",
+    )
+    material_item = models.ForeignKey(
+        "inventory.Item",
+        on_delete=models.PROTECT,
+        related_name="performance_record_materials",
+    )
+    material_item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
+    quantity_required = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        verbose_name=_("Required Quantity"),
+        help_text=_("Quantity required from transfer document"),
+    )
+    quantity_waste = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        default=Decimal("0"),
+        validators=[POSITIVE_DECIMAL],
+        verbose_name=_("Waste Quantity"),
+        help_text=_("Quantity wasted during production"),
+    )
+    unit = models.CharField(max_length=30)
+    is_extra = models.PositiveSmallIntegerField(
+        default=0,
+        choices=ENABLED_FLAG_CHOICES,
+        verbose_name=_("Extra Material"),
+        help_text=_("Whether this is an extra material (not from BOM)"),
+    )
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = _("Performance Record Material")
+        verbose_name_plural = _("Performance Record Materials")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "performance", "material_item"),
+                name="production_performance_material_unique",
+            ),
+        ]
+        ordering = ("company", "performance", "material_item")
+
+    def __str__(self) -> str:
+        return f"{self.performance} · {self.material_item_code}"
+
+    def save(self, *args, **kwargs):
+        if not self.material_item_code:
+            self.material_item_code = self.material_item.item_code
+        super().save(*args, **kwargs)
+
+
+class PerformanceRecordPerson(ProductionBaseModel):
+    """
+    Performance Record Person - ردیف پرسنل سند عملکرد
+    Tracks labor time for each person working on the order.
+    """
+    performance = models.ForeignKey(
+        PerformanceRecord,
+        on_delete=models.CASCADE,
+        related_name="persons",
+    )
+    person = models.ForeignKey(
+        Person,
+        on_delete=models.PROTECT,
+        related_name="performance_records",
+    )
+    person_code = models.CharField(max_length=8, validators=[NUMERIC_CODE_VALIDATOR])
+    work_minutes = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        verbose_name=_("Work Minutes"),
+        help_text=_("Number of minutes this person worked on this order"),
+    )
+    work_line = models.ForeignKey(
+        WorkLine,
+        on_delete=models.SET_NULL,
+        related_name="performance_record_persons",
+        null=True,
+        blank=True,
+        verbose_name=_("Work Line"),
+        help_text=_("Work line where this person worked"),
+    )
+    work_line_code = models.CharField(max_length=5, validators=[NUMERIC_CODE_VALIDATOR], blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = _("Performance Record Person")
+        verbose_name_plural = _("Performance Record Persons")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "performance", "person"),
+                name="production_performance_person_unique",
+            ),
+        ]
+        ordering = ("company", "performance", "person")
+
+    def __str__(self) -> str:
+        return f"{self.performance} · {self.person_code}"
+
+    def save(self, *args, **kwargs):
+        if not self.person_code:
+            self.person_code = self.person.public_code
+        if self.work_line and not self.work_line_code:
+            self.work_line_code = self.work_line.public_code
+        super().save(*args, **kwargs)
+
+
+class PerformanceRecordMachine(ProductionBaseModel):
+    """
+    Performance Record Machine - ردیف ماشین سند عملکرد
+    Tracks machine usage time for each machine used in production.
+    """
+    performance = models.ForeignKey(
+        PerformanceRecord,
+        on_delete=models.CASCADE,
+        related_name="machines",
+    )
+    machine = models.ForeignKey(
+        Machine,
+        on_delete=models.PROTECT,
+        related_name="performance_records",
+    )
+    machine_code = models.CharField(max_length=10, validators=[NUMERIC_CODE_VALIDATOR])
+    work_minutes = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        verbose_name=_("Work Minutes"),
+        help_text=_("Number of minutes this machine was used"),
+    )
+    work_line = models.ForeignKey(
+        WorkLine,
+        on_delete=models.SET_NULL,
+        related_name="performance_record_machines",
+        null=True,
+        blank=True,
+        verbose_name=_("Work Line"),
+        help_text=_("Work line where this machine was used"),
+    )
+    work_line_code = models.CharField(max_length=5, validators=[NUMERIC_CODE_VALIDATOR], blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = _("Performance Record Machine")
+        verbose_name_plural = _("Performance Record Machines")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "performance", "machine"),
+                name="production_performance_machine_unique",
+            ),
+        ]
+        ordering = ("company", "performance", "machine")
+
+    def __str__(self) -> str:
+        return f"{self.performance} · {self.machine_code}"
+
+    def save(self, *args, **kwargs):
+        if not self.machine_code:
+            self.machine_code = self.machine.public_code
+        if self.work_line and not self.work_line_code:
+            self.work_line_code = self.work_line.public_code
         super().save(*args, **kwargs)

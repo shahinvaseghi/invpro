@@ -219,15 +219,19 @@ class WorkLineCreateView(FeaturePermissionRequiredMixin, CreateView):
 **Fields:**
 - `finished_item` - Finished product that will be produced (FK to Item)
 - `version` - BOM version (default: "1.0")
-- `effective_date` - Date when BOM becomes effective
-- `expiry_date` - Date when BOM expires (optional)
-- `is_active` - Active/Inactive status (1=Active, 0=Inactive)
 - `description` - Brief description
 - `notes` - Detailed notes
+- `is_enabled` - Status (1=Enabled, 0=Disabled)
+
+**Removed Fields:**
+- `is_active` - Removed (duplicate of `is_enabled`)
+- `effective_date` - Removed (was DateField)
+- `expiry_date` - Removed (was DateField)
 
 **Extra Filter Fields (not saved):**
-- `item_type` - Filter finished items by type (cascading)
-- `item_category` - Filter finished items by category (cascading)
+- `item_type` - Filter finished items by type (cascading, optional)
+- `item_category` - Filter finished items by category (cascading, optional)
+- `item_subcategory` - Filter finished items by subcategory (cascading, optional)
 
 **Auto-Generated Fields:**
 - `bom_code` (16 digits) - Automatically generated sequential code per company. Not user-editable. Generated on save using `generate_sequential_code()`.
@@ -239,11 +243,23 @@ class WorkLineCreateView(FeaturePermissionRequiredMixin, CreateView):
 # → item_category dropdown filters to show only categories of that type
 
 # Step 2: User selects item_category (optional)
-# → finished_item dropdown filters to show only items in that category
+# → item_subcategory dropdown filters to show only subcategories of that type+category
 
-# Step 3: User selects finished_item (required)
+# Step 3: User selects item_subcategory (optional)
+# → finished_item dropdown filters to show only items matching type+category+subcategory
+
+# Step 4: User selects finished_item (required)
+# → Can be selected via:
+#    - Filtering by type/category/subcategory (optional)
+#    - Direct search by name or code (without filters)
 # → BOM can be saved
 ```
+
+**Search Functionality:**
+- `finished_item` field includes a search input that allows searching by item name or code
+- Search works independently of filters (can search without selecting type/category/subcategory)
+- Search uses debounce (300ms) to reduce API calls
+- API endpoint: `/inventory/api/filtered-items/?search=<term>&type_id=<id>&category_id=<id>&subcategory_id=<id>`
 
 **Validation:**
 ```python
@@ -498,7 +514,6 @@ class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['company_id'] = self.request.session.get('active_company_id')
-        kwargs['request'] = self.request  # Required for approve permission filtering
         return kwargs
     
     def form_valid(self, form):
@@ -522,7 +537,103 @@ class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
 
 ---
 
-### 7. BOMMaterialLineFormSet
+### 7. ProductOrderForm
+**Purpose:** Create and edit production orders
+
+**Model:** `ProductOrder`
+
+**Fields:**
+- `bom` - BOM (Bill of Materials) selection (ForeignKey to BOM, required)
+- `quantity_planned` - Planned quantity to produce (DecimalField, required, must be positive)
+- `approved_by` - Approver (ForeignKey to User, optional, filtered to show only users with APPROVE permission)
+- `due_date` - Due date for order completion (JalaliDateField, optional, uses JalaliDateInput widget with Persian date picker)
+- `priority` - Order priority (ChoiceField: normal, high, urgent)
+- `customer_reference` - Customer reference number or code (CharField, optional)
+- `notes` - Detailed notes (Textarea, optional)
+- `is_enabled` - Active/Inactive status (PositiveSmallIntegerField)
+
+**Auto-Generated Fields:**
+- `order_code` (8 digits with prefix "PO") - Automatically generated sequential code per company. Not user-editable. Generated on save using `generate_sequential_code()`.
+- `finished_item_code` - Cached from BOM.finished_item.item_code
+- `bom_code` - Cached from BOM.bom_code
+
+**Special Features:**
+- BOM field is required and filtered to show only enabled BOMs for the active company
+- Approved_by field is filtered to show only User records (not Person) that have APPROVE permission for `production.product_orders` feature:
+  - Queries AccessLevelPermission for access levels with `can_approve=1` for `production.product_orders`
+  - Finds UserCompanyAccess records with those access levels for the active company
+  - Filters User records to show only those users with approve permission
+- Due date field uses `JalaliDateInput` widget with Persian date picker (JalaliDatePicker library)
+- Finished item is automatically set from selected BOM if not already set
+- Process field is optional (nullable) - orders can be created without process assignment
+
+**Validation:**
+```python
+def clean(self):
+    cleaned_data = super().clean()
+    bom = cleaned_data.get('bom')
+    quantity_planned = cleaned_data.get('quantity_planned')
+    
+    # Validate BOM is selected
+    if not bom:
+        raise forms.ValidationError(_('BOM is required.'))
+    
+    # Validate quantity is positive
+    if quantity_planned and quantity_planned <= 0:
+        raise forms.ValidationError(_('Quantity must be greater than zero.'))
+    
+    # Auto-set finished_item from BOM if not already set
+    if bom and not self.instance.finished_item_id:
+        self.instance.finished_item = bom.finished_item
+    
+    return cleaned_data
+```
+
+**Jalali Date Picker Integration:**
+- Uses `JalaliDateInput` widget which adds `data-jdp` and `data-jdp-only-date` attributes
+- JalaliDatePicker library (local, no CDN) automatically initializes on page load
+- Date picker configured for Persian calendar with date-only mode (no time selection)
+- Library files stored in `/static/js/jalali-datepicker/` and `/static/css/jalali-datepicker/`
+
+**Usage in Views:**
+```python
+class ProductOrderCreateView(FeaturePermissionRequiredMixin, CreateView):
+    model = ProductOrder
+    form_class = ProductOrderForm
+    template_name = 'production/product_order_form.html'
+    success_url = reverse_lazy('production:product_orders')
+    feature_code = 'production.product_orders'
+    required_action = 'create'
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['company_id'] = self.request.session.get('active_company_id')
+        return kwargs
+    
+    def form_valid(self, form):
+        form.instance.company_id = self.request.session.get('active_company_id')
+        form.instance.created_by = self.request.user
+        if not form.instance.order_code:
+            form.instance.order_code = generate_sequential_code(
+                ProductOrder,
+                company_id=form.instance.company_id,
+                field='order_code',
+                prefix='PO',
+                width=8,
+            )
+        messages.success(self.request, _('Product order created successfully.'))
+        return super().form_valid(form)
+```
+
+**Important Notes:**
+- BOM is required - orders cannot be created without a BOM
+- Approver is optional - orders can be created without an approver, but approval workflow requires approver assignment
+- Due date uses Persian calendar picker for better user experience
+- Finished item is automatically populated from BOM, ensuring consistency
+
+---
+
+### 8. BOMMaterialLineFormSet
 **Purpose:** Manage multiple material lines within a single BOM
 
 **Type:** Django Inline Formset (inlineformset_factory)

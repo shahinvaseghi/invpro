@@ -3,6 +3,7 @@ API endpoints for inventory module.
 
 All endpoints return JSON responses and require authentication.
 """
+import logging
 from typing import Dict, Any, List, Optional
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
@@ -10,6 +11,8 @@ from django.http import JsonResponse, HttpRequest
 from django.shortcuts import get_object_or_404
 from .. import models
 from ..forms import UNIT_CHOICES
+
+logger = logging.getLogger('inventory.views.api')
 
 
 @login_required
@@ -27,7 +30,19 @@ def get_item_allowed_units(request: HttpRequest) -> JsonResponse:
         if not company_id:
             return JsonResponse({'error': 'No active company'}, status=400)
         
-        item = get_object_or_404(models.Item, pk=item_id, company_id=company_id, is_enabled=1)
+        # Try to get item - if not found with is_enabled=1, try without is_enabled filter
+        # This handles cases where item is in formset initial but might be disabled
+        try:
+            item = models.Item.objects.get(pk=item_id, company_id=company_id, is_enabled=1)
+        except models.Item.DoesNotExist:
+            # If item not found with is_enabled=1, try without is_enabled filter
+            # This allows loading units/warehouses for items that are in formset initial
+            try:
+                item = models.Item.objects.get(pk=item_id, company_id=company_id)
+                logger.warning(f"Item {item_id} found but is_enabled={item.is_enabled}, allowing anyway")
+            except models.Item.DoesNotExist:
+                logger.error(f"Item {item_id} not found in company {company_id}")
+                return JsonResponse({'error': 'Item not found'}, status=404)
         
         # Get allowed units
         codes: List[str] = []
@@ -50,6 +65,7 @@ def get_item_allowed_units(request: HttpRequest) -> JsonResponse:
         
         return JsonResponse({'units': units, 'default_unit': item.default_unit})
     except Exception as e:
+        logger.error(f"Error in get_item_allowed_units: {e}", exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
 
 
@@ -138,15 +154,18 @@ def get_filtered_subcategories(request: HttpRequest) -> JsonResponse:
 
 @login_required
 def get_filtered_items(request: HttpRequest) -> JsonResponse:
-    """API endpoint to get filtered items based on type, category, subcategory."""
+    """API endpoint to get filtered items based on type, category, subcategory, and search term."""
     company_id = request.session.get('active_company_id')
     if not company_id:
         return JsonResponse({'error': 'No active company'}, status=400)
 
     try:
+        from django.db.models import Q
+        
         type_id = request.GET.get('type_id')
         category_id = request.GET.get('category_id')
         subcategory_id = request.GET.get('subcategory_id')
+        search_term = request.GET.get('search', '').strip()
 
         # Start with all enabled items in company
         items = models.Item.objects.filter(
@@ -161,13 +180,21 @@ def get_filtered_items(request: HttpRequest) -> JsonResponse:
             items = items.filter(category_id=category_id)
         if subcategory_id:
             items = items.filter(subcategory_id=subcategory_id)
+        
+        # Apply search term (optional - can search without filters)
+        if search_term:
+            items = items.filter(
+                Q(name__icontains=search_term) |
+                Q(item_code__icontains=search_term) |
+                Q(full_item_code__icontains=search_term)
+            )
 
-        items = items.order_by('item_code')
+        items = items.order_by('name')
 
         items_data = [
             {
                 'value': str(item.pk),
-                'label': f"{item.item_code} - {item.name}",
+                'label': f"{item.name} · {item.item_code}",
                 'type_id': str(item.type_id) if item.type_id else '',
                 'category_id': str(item.category_id) if item.category_id else '',
                 'subcategory_id': str(item.subcategory_id) if item.subcategory_id else '',
@@ -246,11 +273,23 @@ def get_item_allowed_warehouses(request: HttpRequest) -> JsonResponse:
         if not company_id:
             return JsonResponse({'error': 'No active company'}, status=400)
 
-        item = get_object_or_404(models.Item, pk=item_id, company_id=company_id, is_enabled=1)
+        # Try to get item - if not found with is_enabled=1, try without is_enabled filter
+        # This handles cases where item is in formset initial but might be disabled
+        try:
+            item = models.Item.objects.get(pk=item_id, company_id=company_id, is_enabled=1)
+        except models.Item.DoesNotExist:
+            # If item not found with is_enabled=1, try without is_enabled filter
+            # This allows loading warehouses for items that are in formset initial
+            try:
+                item = models.Item.objects.get(pk=item_id, company_id=company_id)
+                logger.warning(f"Item {item_id} found but is_enabled={item.is_enabled}, allowing anyway")
+            except models.Item.DoesNotExist:
+                logger.error(f"Item {item_id} not found in company {company_id}")
+                return JsonResponse({'error': 'Item not found'}, status=404)
 
         # Get allowed warehouses
-        relations = item.warehouses.select_related('warehouse')
-        warehouses = [rel.warehouse for rel in relations if rel.warehouse.is_enabled]
+        relations = item.warehouses.select_related('warehouse').filter(is_enabled=1)
+        warehouses = [rel.warehouse for rel in relations if rel.warehouse and rel.warehouse.is_enabled == 1]
 
         # IMPORTANT: If no warehouses configured, this means the item CANNOT be received anywhere
         # Only return warehouses if explicitly configured
@@ -263,6 +302,7 @@ def get_item_allowed_warehouses(request: HttpRequest) -> JsonResponse:
 
         return JsonResponse({'warehouses': warehouses_data})
     except Exception as e:
+        logger.error(f"Error in get_item_allowed_warehouses: {e}", exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
 
 
@@ -405,9 +445,10 @@ def get_warehouse_work_lines(request: HttpRequest) -> JsonResponse:
         warehouse = get_object_or_404(models.Warehouse, pk=warehouse_id, company_id=company_id, is_enabled=1)
 
         # Get work lines for this warehouse (from production module)
-        try:
-            from production.models import WorkLine
-        except ImportError:
+        from shared.utils.modules import get_work_line_model
+        WorkLine = get_work_line_model()
+        
+        if not WorkLine:
             # If production module is not installed, return empty list
             return JsonResponse({
                 'work_lines': [],

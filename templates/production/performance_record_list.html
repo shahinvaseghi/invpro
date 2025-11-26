@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load jalali_tags %}
+{% load access_tags %}
+
+{% block title %}{% trans "Performance Records" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <span>{% trans "Performance Records" %}</span>
+    </nav>
+    
+    <h1 class="page-title">{% trans "Performance Records" %}</h1>
+    
+    <div class="page-actions">
+      {% if user_feature_permissions|feature_allowed:'production.performance_records:create' or user.is_superuser %}
+        <a href="{% url 'production:performance_record_create' %}" class="btn btn-primary">{% trans "Create Performance Record +" %}</a>
+      {% endif %}
+    </div>
+  </div>
+  
+  {% if performance_records %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Performance Code" %}</th>
+        <th>{% trans "Product Order" %}</th>
+        <th>{% trans "Finished Item" %}</th>
+        <th>{% trans "Performance Date" %}</th>
+        <th>{% trans "Planned Qty" %}</th>
+        <th>{% trans "Actual Qty" %}</th>
+        <th>{% trans "Status" %}</th>
+        <th>{% trans "Approver" %}</th>
+        <th>{% trans "Lock Status" %}</th>
+        <th>{% trans "Actions" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for record in performance_records %}
+      <tr>
+        <td>{{ record.performance_code }}</td>
+        <td>{{ record.order_code }}</td>
+        <td>
+          {% if record.finished_item %}
+            {{ record.finished_item.item_code }} - {{ record.finished_item.name }}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td>{{ record.performance_date|jalali_date }}</td>
+        <td>{{ record.quantity_planned }} {{ record.unit }}</td>
+        <td>{{ record.quantity_actual }} {{ record.unit }}</td>
+        <td>
+          <span class="badge badge-{{ record.status }}">
+            {{ record.get_status_display }}
+          </span>
+        </td>
+        <td>{{ record.approved_by.get_full_name|default:record.approved_by.username|default:"-" }}</td>
+        <td>
+          {% if record.is_locked == 1 %}
+            <span class="badge badge-locked">{% trans "Locked" %}</span>
+          {% else %}
+            <span class="badge badge-unlocked">{% trans "Editable" %}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if record.is_locked != 1 %}
+            {% if user_feature_permissions|feature_allowed:'production.performance_records:edit_own' or user.is_superuser %}
+              <a href="{% url 'production:performance_record_edit' record.pk %}" class="btn btn-sm btn-secondary">{% trans "Edit" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'production.performance_records:delete_own' or user.is_superuser %}
+              <a href="{% url 'production:performance_record_delete' record.pk %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
+            {% endif %}
+          {% endif %}
+          {% if record.status == 'pending_approval' and record.approved_by == user %}
+            {% if user_feature_permissions|feature_allowed:'production.performance_records:approve' or user.is_superuser %}
+              <button type="button" class="btn btn-sm btn-success" onclick="approveRecord({{ record.pk }})">{% trans "Approve" %}</button>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'production.performance_records:reject' or user.is_superuser %}
+              <button type="button" class="btn btn-sm btn-warning" onclick="rejectRecord({{ record.pk }})">{% trans "Reject" %}</button>
+            {% endif %}
+          {% endif %}
+          {% if record.status == 'approved' and record.is_locked == 1 %}
+            {% if user_feature_permissions|feature_allowed:'production.performance_records:create_receipt' or user.is_superuser %}
+              <a href="{% url 'production:performance_record_create_receipt' record.pk %}" class="btn btn-sm btn-primary" onclick="return confirm('{% trans "Create receipt for this performance record?" %}')">{% trans "Create Receipt" %}</a>
+            {% endif %}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  
+  {% if is_paginated %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}">{% trans "Previous" %}</a>
+    {% endif %}
+    <span>{% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}">{% trans "Next" %}</a>
+    {% endif %}
+  </div>
+  {% endif %}
+  
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📊</div>
+    <h2>{% trans "Performance Records" %}</h2>
+    <p>{% trans "No performance records found. Create your first performance record to get started." %}</p>
+    {% if user_feature_permissions|feature_allowed:'production.performance_records:create' or user.is_superuser %}
+      <a href="{% url 'production:performance_record_create' %}" class="btn btn-primary">{% trans "Create Performance Record +" %}</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% block extra_scripts %}
+<script>
+function approveRecord(recordId) {
+  if (!confirm('{% trans "Are you sure you want to approve this performance record?" %}')) {
+    return;
+  }
+  
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = `{% url 'production:performance_record_approve' 0 %}`.replace('0', recordId);
+  
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (csrfToken) {
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = csrfToken.value;
+    form.appendChild(csrfInput);
+  }
+  
+  document.body.appendChild(form);
+  form.submit();
+}
+
+function rejectRecord(recordId) {
+  if (!confirm('{% trans "Are you sure you want to reject this performance record?" %}')) {
+    return;
+  }
+  
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = `{% url 'production:performance_record_reject' 0 %}`.replace('0', recordId);
+  
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (csrfToken) {
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = csrfToken.value;
+    form.appendChild(csrfInput);
+  }
+  
+  document.body.appendChild(form);
+  form.submit();
+}
+</script>
+{% endblock %}
+{% endblock %}
+

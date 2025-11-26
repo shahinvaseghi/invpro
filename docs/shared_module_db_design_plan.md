@@ -221,11 +221,212 @@ Additional considerations:
 - Integrate with production scheduling or cost allocation by referencing units where needed. |
 - Consider separate tables for unit-to-warehouse or unit-to-cost-center mappings when more complex relationships emerge. |
 
+#### Table: `invproj_section_registry`
+
+| Column | Type | Constraints | Notes |
+| --- | --- | --- | --- |
+| `id` | `bigserial` | PK | Auto-increment surrogate key. |
+| `section_code` | `varchar(6)` | `NOT NULL`, `UNIQUE`, check numeric | 6-digit section code (XXYYZZ format: module + menu + submenu). |
+| `nickname` | `varchar(50)` | `NOT NULL`, `UNIQUE` | Unique nickname for the section (e.g., "users", "purchase_requests", "inspections"). |
+| `module_code` | `varchar(2)` | `NOT NULL`, check numeric | Module number (00=dashboard, 01=shared, 02=inventory, 03=production, 04=qc, etc.). |
+| `menu_number` | `varchar(2)` | `NOT NULL`, check numeric | Menu number within module (2 digits). |
+| `submenu_number` | `varchar(2)` | nullable, check numeric | Submenu number (2 digits, NULL if no submenu). |
+| `name` | `varchar(180)` | `NOT NULL` | Display name (local language). |
+| `name_en` | `varchar(180)` | nullable | Display name in English/Latin. |
+| `description` | `text` | nullable | Section description. |
+| `module` | `varchar(30)` | `NOT NULL` | Module identifier (e.g., "shared", "inventory", "production", "qc"). |
+| `app_label` | `varchar(30)` | `NOT NULL` | Django app label (e.g., "shared", "inventory", "production", "qc"). |
+| `list_url_name` | `varchar(100)` | nullable | URL name for list view (e.g., "inventory:items", "shared:users"). |
+| `detail_url_name` | `varchar(100)` | nullable | URL name for detail/edit view (e.g., "inventory:item_edit", "shared:user_edit"). |
+| `is_enabled` | `smallint` | `NOT NULL`, default `1`, check in (0,1) | Active flag. |
+| `sort_order` | `smallint` | `NOT NULL`, default `0` | Display order in registry/list. |
+| `activated_at` | `timestamp with time zone` | nullable | Last enable timestamp. |
+| `deactivated_at` | `timestamp with time zone` | nullable | Last disable timestamp. |
+| `created_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Auto-populated on insert. |
+| `edited_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Update audit. |
+| `created_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Creator reference. |
+| `edited_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Last editor reference. |
+| `metadata` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | Extensible fields (future: action definitions, parameters, permissions). |
+
+Additional considerations:
+
+- **Unique constraints**:
+  - `section_code` must be unique across all sections
+  - `nickname` must be unique across all sections
+  - Ensure `section_code` matches format: `module_code` (2) + `menu_number` (2) + `submenu_number` (2) or `00` if no submenu
+- **Code validation**: `section_code` should match pattern: `^\d{6}$` (exactly 6 digits)
+- **Registry seeding**: Sections should be populated via data migration or initial fixture during deployment. **IMPORTANT**: When adding new menu items or sections, they MUST be registered in this table via data migration.
+- **Module mapping**: `module` field maps to module name (shared, inventory, production, qc), while `module_code` is numeric (01, 02, 03, 04)
+- **Menu numbering**: The `menu_number` field must reflect the **actual order in the sidebar**, not arbitrary numbers. Count menu items sequentially starting from 01.
+- **Maintenance**: See [Entity Reference System Documentation](../ENTITY_REFERENCE_SYSTEM.md) for detailed instructions on adding new sections and actions.
+- **Index strategy**:
+  - Index on `section_code` for fast lookups by code
+  - Index on `nickname` for fast lookups by nickname
+  - Index on `(module_code, is_enabled, sort_order)` for module-based queries
+- **Future extension**: The `metadata` field can later store action definitions, parameter schemas, and permission requirements when action registry is implemented
+
+#### Table: `invproj_action_registry`
+
+| Column | Type | Constraints | Notes |
+| --- | --- | --- | --- |
+| `id` | `bigserial` | PK | Auto-increment surrogate key. |
+| `section_id` | `bigint` | FK to `invproj_section_registry(id)`, `NOT NULL` | Reference to the section that owns this action. |
+| `action_name` | `varchar(50)` | `NOT NULL` | Action identifier (e.g., "show", "approve", "reject", "lock", "delete", "create"). |
+| `action_label` | `varchar(180)` | `NOT NULL` | Human-readable label for the action (local language). |
+| `action_label_en` | `varchar(180)` | nullable | Human-readable label in English. |
+| `description` | `text` | nullable | Detailed description of what this action does. |
+| `handler_function` | `varchar(200)` | nullable | Fully qualified path to the handler function/class (e.g., "inventory.views.requests.PurchaseRequestApproveView"). |
+| `url_name` | `varchar(100)` | nullable | Django URL name for this action (e.g., "inventory:purchase_request_approve"). |
+| `parameter_schema` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | JSON schema defining required/optional parameters. Example: `{"code": {"type": "string", "required": true, "description": "Document code"}}`. |
+| `permission_required` | `varchar(100)` | nullable | Feature permission code required for this action (e.g., "inventory.requests.purchase:approve"). |
+| `requires_confirmation` | `smallint` | `NOT NULL`, default `0`, check in (0,1) | Whether this action requires user confirmation before execution. |
+| `is_destructive` | `smallint` | `NOT NULL`, default `0`, check in (0,1) | Flag indicating if this is a destructive action (delete, disable, etc.). |
+| `is_enabled` | `smallint` | `NOT NULL`, default `1`, check in (0,1) | Active flag. |
+| `sort_order` | `smallint` | `NOT NULL`, default `0` | Display order for actions within the same section. |
+| `created_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Auto-populated on insert. |
+| `edited_at` | `timestamp with time zone` | `NOT NULL`, default `now()` | Update audit. |
+| `created_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Creator reference. |
+| `edited_by_id` | `bigint` | FK to `invproj_user(id)`, nullable | Last editor reference. |
+| `metadata` | `jsonb` | `NOT NULL`, default `'{}'::jsonb` | Extensible fields for additional configuration. |
+
+Additional considerations:
+
+- **Unique constraints**:
+  - `(section_id, action_name)` must be unique (each section can have only one action with the same name)
+- **Parameter schema format**: JSON schema following JSON Schema Draft 7 specification for parameter validation
+- **Handler resolution**: The system will attempt to resolve `handler_function` dynamically, falling back to URL routing if handler is not found
+- **Permission integration**: `permission_required` should reference the actual permission system in use (e.g., feature permissions)
+- **Index strategy**:
+  - Index on `(section_id, is_enabled, sort_order)` for fast queries of enabled actions per section
+  - Index on `action_name` for lookups by action name across sections
+  - Index on `url_name` for reverse URL resolution
+- **Action naming conventions**: Use lowercase with underscores (snake_case) for action names
+- **Common actions**: Standard actions include:
+  - `show`: Display/list items
+  - `showown`: Show own items
+  - `create`: Create new item
+  - `edit`: Edit existing item
+  - `delete`: Delete item
+  - `approve`: Approve document/request
+  - `reject`: Reject document/request
+  - `lock`: Lock document (prevent further edits)
+  - `unlock`: Unlock document
+  - `send_to_qc`: Send temporary receipt to QC
+- **Data seeding**: Actions should be populated via data migration during deployment based on actual views and URL patterns. **IMPORTANT**: When adding new actions to a section (e.g., approve, reject, create_receipt_from), they MUST be registered in this table via data migration.
+- **Special workflow actions**: Actions like `create_receipt_from_purchase_request` and `create_issue_from_warehouse_request` enable automated workflows between related modules. These actions typically open intermediate selection pages for user input before executing the final action.
+- **Maintenance**: See [Entity Reference System Documentation](../ENTITY_REFERENCE_SYSTEM.md) for detailed instructions on adding new sections and actions.
+
+### Registry Maintenance and Adding New Sections
+
+**CRITICAL**: Whenever a new menu item or section is added to the application, it **MUST** be registered in the Entity Reference System.
+
+#### Process for Adding a New Section:
+
+1. **Determine Section Code**:
+   - Format: `XXYYZZ` (6 digits)
+   - `XX` = Module number (2 digits: 00=Dashboard, 01=Shared, 02=Inventory, etc.)
+   - `YY` = Menu number (2 digits): **Must match the order in sidebar** (sequential: 01, 02, 03...)
+   - `ZZ` = Submenu number (2 digits): Sequential if part of submenu (01, 02, 03...), or `00`/`NULL` if no submenu
+
+2. **Create Data Migration**:
+   - Create new migration file: `shared/migrations/XXXX_add_new_section.py`
+   - Add section entry to `SectionRegistry` table
+   - Add all actions for the section to `ActionRegistry` table
+
+3. **Required Information for Section**:
+   - `section_code`: 6-digit unique code
+   - `nickname`: Unique snake_case identifier
+   - `module_code`, `menu_number`, `submenu_number`: Based on sidebar position
+   - `name`, `name_en`: Display names (local language and English)
+   - `module`, `app_label`: Django module/app names
+   - `list_url_name`, `detail_url_name`: Django URL names
+
+4. **Required Information for Actions**:
+   - `action_name`: Unique identifier within section (e.g., `show`, `add`, `edit`, `approve`)
+   - `action_label`, `action_label_en`: Human-readable labels
+   - `url_name`: Django URL name for the action
+   - `parameter_schema`: JSON schema defining parameters (if any)
+   - `permission_required`: Feature permission code (e.g., `inventory.requests.purchase:approve`)
+   - `requires_confirmation`: Whether user confirmation is needed
+   - `is_destructive`: Whether this is a destructive action (delete, disable, etc.)
+
+5. **Special Workflow Actions**:
+   
+   **For Purchase Requests → Receipts**:
+   - Action: `create_receipt_from`
+   - Parameters: `id=<request_id>`, `type=<temporary|permanent|consignment>`
+   - Description: Creates receipt documents from approved purchase requests
+   - Permission: `inventory.receipts.*:create_receipt_from_purchase_request`
+   - Behavior: Opens intermediate selection page for quantity adjustment and notes
+
+   **For Warehouse Requests → Issues**:
+   - Action: `create_issue_from`
+   - Parameters: `id=<request_id>`, `type=<permanent|consumption|consignment>`
+   - Description: Creates issue documents from approved warehouse requests
+   - Permission: `inventory.issues.*:create_issue_from_warehouse_request`
+   - Behavior: Opens intermediate selection page for quantity adjustment and notes
+
+6. **Configure Access Level Permissions**:
+   - **CRITICAL**: After creating a new section, permissions MUST be configured in Access Levels
+   - Go to `/shared/access-levels/` in the application
+   - Create or edit Access Levels that should have access to the new section
+   - Configure all applicable permissions:
+     - View (view_own / view_all)
+     - Create
+     - Edit (edit_own / edit_other)
+     - Delete (delete_own / delete_other)
+     - Approve/Reject (if applicable)
+     - Lock/Unlock (if applicable)
+     - Any custom actions specific to the section
+   - Assign the configured Access Levels to appropriate users or groups
+   - **Without completing this step, users will not be able to access the new section, even if it appears in the sidebar**
+
+7. **Update Documentation**:
+   - Update `docs/ENTITY_REFERENCE_SYSTEM.md` with new section details
+   - Document all actions for the section
+   - Add to appropriate module registry table
+
+8. **Run Migration**:
+   - Ensure migration runs during deployment
+   - Verify data in `SectionRegistry` and `ActionRegistry` tables
+
+**Example Migration Structure**:
+```python
+def populate_new_section(apps, schema_editor):
+    SectionRegistry = apps.get_model('shared', 'SectionRegistry')
+    ActionRegistry = apps.get_model('shared', 'ActionRegistry')
+    
+    # Add section
+    section = SectionRegistry.objects.get_or_create(
+        section_code='020901',
+        defaults={
+            'nickname': 'new_feature',
+            'module_code': '02',
+            'menu_number': '09',  # 9th menu item in sidebar
+            # ... other fields
+        }
+    )
+    
+    # Add actions
+    ActionRegistry.objects.get_or_create(
+        section=section,
+        action_name='show',
+        defaults={
+            'action_label': 'مشاهده',
+            'url_name': 'inventory:new_feature_list',
+            # ... other fields
+        }
+    )
+```
+
+**For detailed step-by-step instructions, see**: [Entity Reference System Documentation](../ENTITY_REFERENCE_SYSTEM.md#adding-new-sections-and-actions)
+
 ### Shared Considerations
 
-- Coordinate shared tables’ changes with module owners to avoid breaking dependencies. |
+- Coordinate shared tables' changes with module owners to avoid breaking dependencies. |
 - Introduce additional role/permission granularity (e.g., field-level controls) if required by compliance. |
 - Provide database views or service-layer APIs that consolidate user/company access for module consumption. |
+- **Entity Reference System**: All sections and actions must be registered in `SectionRegistry` and `ActionRegistry` tables for cross-module automation and workflow integration. |
 
 ## Open Questions
 

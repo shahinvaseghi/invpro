@@ -13,9 +13,34 @@
   <a href="{% url 'inventory:item_create' %}" class="btn btn-primary">
     + تعریف کالای جدید
   </a>
+  <a href="{% url 'inventory:item_excel_template' %}" class="btn btn-secondary">
+    📥 دانلود اکسل نمونه
+  </a>
+  <button type="button" onclick="document.getElementById('excel-import-form').style.display='block'" class="btn btn-secondary">
+    📤 وارد کردن گروهی کالا با اکسل
+  </button>
   <button onclick="window.print()" class="btn btn-secondary">
     چاپ
   </button>
+</div>
+
+<!-- Excel Import Form (hidden by default) -->
+<div id="excel-import-form" style="display: none; margin-top: 1rem; padding: 1.5rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <h3 style="margin-bottom: 1rem;">وارد کردن گروهی کالا با اکسل</h3>
+  <form method="post" action="{% url 'inventory:item_excel_import' %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div style="display: flex; gap: 1rem; align-items: flex-end;">
+      <div style="flex: 1;">
+        <label for="excel_file" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">انتخاب فایل Excel:</label>
+        <input type="file" name="excel_file" id="excel_file" accept=".xlsx,.xls" required style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+      </div>
+      <button type="submit" class="btn btn-primary">آپلود و وارد کردن</button>
+      <button type="button" onclick="document.getElementById('excel-import-form').style.display='none'" class="btn btn-secondary">لغو</button>
+    </div>
+    <p style="margin-top: 0.5rem; color: #6b7280; font-size: 0.875rem;">
+      لطفاً فایل Excel را مطابق با نمونه دانلود شده پر کنید.
+    </p>
+  </form>
 </div>
 {% endblock %}
 
@@ -36,11 +61,9 @@
       <label for="type">نوع کالا</label>
       <select name="type" id="type" class="form-control">
         <option value="">-- همه انواع --</option>
-        {% comment %}
         {% for item_type in item_types %}
-        <option value="{{ item_type.id }}">{{ item_type.name }}</option>
+        <option value="{{ item_type.id }}" {% if request.GET.type == item_type.id|stringformat:"s" %}selected{% endif %}>{{ item_type.name }}</option>
         {% endfor %}
-        {% endcomment %}
       </select>
     </div>
 
@@ -48,15 +71,18 @@
       <label for="category">دسته‌بندی کالا</label>
       <select name="category" id="category" class="form-control">
         <option value="">-- همه دسته‌ها --</option>
+        {% for category in item_categories %}
+        <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+        {% endfor %}
       </select>
     </div>
 
     <div class="form-group">
       <label for="status">وضعیت</label>
       <select name="status" id="status" class="form-control">
-        <option value="">-- همه --</option>
-        <option value="1">فعال</option>
-        <option value="0">غیرفعال</option>
+        <option value="" {% if not request.GET.status %}selected{% endif %}>-- همه --</option>
+        <option value="1" {% if request.GET.status == '1' %}selected{% endif %}>فعال</option>
+        <option value="0" {% if request.GET.status == '0' %}selected{% endif %}>غیرفعال</option>
       </select>
     </div>
 
@@ -150,5 +176,42 @@
   {% endif %}
 </div>
 {% endif %}
+
+<style>
+.alert {
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.alert-success {
+  background-color: #d1fae5;
+  border-color: #10b981;
+  color: #065f46;
+}
+
+.alert-error,
+.alert-danger {
+  background-color: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+.alert-info {
+  background-color: #dbeafe;
+  border-color: #3b82f6;
+  color: #1e40af;
+}
+
+.alert-warning {
+  background-color: #fef3c7;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+</style>
 {% endblock %}
 

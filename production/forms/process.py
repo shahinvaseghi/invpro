@@ -4,7 +4,6 @@ Process forms for production module.
 from typing import Optional, Any
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from django.http import HttpRequest
 
 from production.models import Process, BOM, WorkLine
 
@@ -54,7 +53,7 @@ class ProcessForm(forms.ModelForm):
             'sort_order': _('ترتیب نمایش'),
         }
     
-    def __init__(self, *args: tuple, company_id: Optional[int] = None, request: Optional[HttpRequest] = None, **kwargs: dict):
+    def __init__(self, *args: tuple, company_id: Optional[int] = None, **kwargs: dict):
         """Initialize form with company filtering."""
         super().__init__(*args, **kwargs)
         

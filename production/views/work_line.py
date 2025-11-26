@@ -63,7 +63,6 @@ class WorkLineCreateView(FeaturePermissionRequiredMixin, CreateView):
         """Add company_id to form kwargs."""
         kwargs = super().get_form_kwargs()
         kwargs['company_id'] = self.request.session.get('active_company_id')
-        kwargs['request'] = self.request
         return kwargs
     
     def form_valid(self, form: WorkLineForm) -> HttpResponseRedirect:

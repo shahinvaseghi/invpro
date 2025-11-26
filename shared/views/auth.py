@@ -71,3 +71,28 @@ def custom_login(request: HttpRequest):
         'LANGUAGE_CODE': current_lang
     })
 
+
+@login_required
+@require_POST
+def mark_notification_read(request: HttpRequest) -> HttpResponseRedirect:
+    """
+    Mark a notification as read in the session.
+    
+    Expects POST parameter 'notification_key'.
+    """
+    notification_key: Optional[str] = request.POST.get('notification_key')
+    
+    if notification_key:
+        # Get read notifications from session
+        read_notifications = request.session.get('read_notifications', set())
+        if not isinstance(read_notifications, set):
+            read_notifications = set(read_notifications)
+        
+        # Add this notification to read list
+        read_notifications.add(notification_key)
+        request.session['read_notifications'] = list(read_notifications)
+        request.session.modified = True
+    
+    # Redirect back to the referring page or home
+    return HttpResponseRedirect(request.POST.get('next', '/'))
+

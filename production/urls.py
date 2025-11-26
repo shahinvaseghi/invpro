@@ -35,10 +35,27 @@ urlpatterns = [
     path('processes/<int:pk>/edit/', views.ProcessUpdateView.as_view(), name='process_edit'),
     path('processes/<int:pk>/delete/', views.ProcessDeleteView.as_view(), name='process_delete'),
     
+    # Product Orders (سفارشات تولید)
+    path('product-orders/', views.ProductOrderListView.as_view(), name='product_orders'),
+    path('product-orders/create/', views.ProductOrderCreateView.as_view(), name='product_order_create'),
+    path('product-orders/<int:pk>/edit/', views.ProductOrderUpdateView.as_view(), name='product_order_edit'),
+    path('product-orders/<int:pk>/delete/', views.ProductOrderDeleteView.as_view(), name='product_order_delete'),
+    
     # Transfer to Line Requests (درخواست انتقال به پای کار)
-    path('transfer-requests/', views.TransferToLineRequestListView.as_view(), name='transfer_requests'),
+    path('transfer-requests/', views.TransferToLineListView.as_view(), name='transfer_requests'),
+    path('transfer-requests/create/', views.TransferToLineCreateView.as_view(), name='transfer_request_create'),
+    path('transfer-requests/<int:pk>/edit/', views.TransferToLineUpdateView.as_view(), name='transfer_request_edit'),
+    path('transfer-requests/<int:pk>/delete/', views.TransferToLineDeleteView.as_view(), name='transfer_request_delete'),
+    path('transfer-requests/<int:pk>/approve/', views.TransferToLineApproveView.as_view(), name='transfer_request_approve'),
+    path('transfer-requests/<int:pk>/reject/', views.TransferToLineRejectView.as_view(), name='transfer_request_reject'),
     
     # Performance Records (سند عملکرد)
     path('performance-records/', views.PerformanceRecordListView.as_view(), name='performance_records'),
+    path('performance-records/create/', views.PerformanceRecordCreateView.as_view(), name='performance_record_create'),
+    path('performance-records/<int:pk>/edit/', views.PerformanceRecordUpdateView.as_view(), name='performance_record_edit'),
+    path('performance-records/<int:pk>/delete/', views.PerformanceRecordDeleteView.as_view(), name='performance_record_delete'),
+    path('performance-records/<int:pk>/approve/', views.PerformanceRecordApproveView.as_view(), name='performance_record_approve'),
+    path('performance-records/<int:pk>/reject/', views.PerformanceRecordRejectView.as_view(), name='performance_record_reject'),
+    path('performance-records/<int:pk>/create-receipt/', views.PerformanceRecordCreateReceiptView.as_view(), name='performance_record_create_receipt'),
 ]
 

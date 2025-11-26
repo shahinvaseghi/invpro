@@ -37,7 +37,6 @@ class BOMForm(forms.ModelForm):
         fields = [
             'finished_item',
             'version',
-            'is_active',
             'description',
             'notes',
             'is_enabled',
@@ -45,7 +44,6 @@ class BOMForm(forms.ModelForm):
         widgets = {
             'finished_item': forms.Select(attrs={'class': 'form-control', 'id': 'id_finished_item'}),
             'version': forms.TextInput(attrs={'class': 'form-control'}),
-            'is_active': forms.Select(attrs={'class': 'form-control'}),
             'description': forms.TextInput(attrs={'class': 'form-control'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'is_enabled': forms.Select(attrs={'class': 'form-control'}),
@@ -53,7 +51,6 @@ class BOMForm(forms.ModelForm):
         labels = {
             'finished_item': _('Finished Product'),
             'version': _('Version'),
-            'is_active': _('Active'),
             'description': _('Description'),
             'notes': _('Notes'),
             'is_enabled': _('Status'),

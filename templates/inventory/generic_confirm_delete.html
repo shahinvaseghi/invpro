@@ -3,7 +3,7 @@
 
 {% block title %}{% trans "Delete" %} - {{ block.super }}{% endblock %}
 
-{% block page_title %}{% trans "Delete" %} {{ object._meta.verbose_name }}{% endblock %}
+{% block page_title %}{% trans "Delete" %} {{ model_verbose_name|default:"زیر دسته‌بندی کالا" }}{% endblock %}
 
 {% block inventory_content %}
 <div class="form-container">
@@ -12,8 +12,10 @@
     <p>{% trans "Do you really want to delete this item?" %}</p>
     
     <div class="delete-details">
+      {% if object.public_code %}
       <p><strong>{% trans "Code" %}:</strong> {{ object.public_code }}</p>
-      <p><strong>{% trans "Name" %}:</strong> {{ object.name|default:object.display_name }}</p>
+      {% endif %}
+      <p><strong>{% trans "Name" %}:</strong> {{ object.name }}</p>
     </div>
     
     <p class="warning-text">{% trans "This action cannot be undone." %}</p>
@@ -74,4 +76,3 @@
 }
 </style>
 {% endblock %}
-

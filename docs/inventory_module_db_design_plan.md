@@ -571,6 +571,11 @@ Additional considerations:
 - Consider separate detail table if multiple items per request are needed in future iterations.
 - Integrate with procurement workflow (purchase orders) once defined.
 - Once `status='approved'`, set `is_locked=1` and expose the request for selection in permanent/consignment receipt forms only in read-only mode.
+- **UI Integration**: In the list view (`templates/inventory/purchase_requests.html`), approved requests display three action buttons in the "Actions" column:
+  - **"Temporary Receipt"** button (green): Creates a temporary receipt from the purchase request
+  - **"Permanent Receipt"** button (blue): Creates a permanent receipt from the purchase request
+  - **"Consignment Receipt"** button (purple): Creates a consignment receipt from the purchase request
+- These buttons route to intermediate selection views (`CreateReceiptFromPurchaseRequestView`) that allow users to select lines/quantities before creating the final document.
 
 ### Inventory Transactions
 
@@ -1162,6 +1167,15 @@ Additional considerations:
 - Integrate with notification system to alert approvers and requesters of status changes.
 - Consider line-item support (header/detail split) if requests commonly include multiple items; current design assumes one item per request for simplicity.
 - When approved, set `is_locked=1` to freeze the request and expose it to permanent/consignment receipt forms while preventing further edits.
+- **UI Integration**: In the list view (`templates/inventory/warehouse_requests.html`), approved requests display three action buttons in the "Actions" column:
+  - **"Permanent Issue"** button (blue): Creates a permanent issue document from the warehouse request
+  - **"Consumption Issue"** button (green): Creates a consumption issue document from the warehouse request
+  - **"Consignment Issue"** button (purple): Creates a consignment issue document from the warehouse request
+- **UI Integration**: In the purchase request list view (`templates/inventory/purchase_requests.html`), approved requests display three action buttons in the "Actions" column:
+  - **"Temporary Receipt"** button (green): Creates a temporary receipt from the purchase request
+  - **"Permanent Receipt"** button (blue): Creates a permanent receipt from the purchase request
+  - **"Consignment Receipt"** button (purple): Creates a consignment receipt from the purchase request
+- These buttons route to intermediate selection views (`CreateReceiptFromPurchaseRequestView`, `CreateIssueFromWarehouseRequestView`) that allow users to select lines/quantities before creating the final document.
 
 ---
 

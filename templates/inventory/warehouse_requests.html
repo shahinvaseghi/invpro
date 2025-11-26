@@ -179,6 +179,17 @@
                   </button>
                 </form>
               {% endif %}
+              {% if wr.request_status == 'approved' %}
+                <a href="{% url 'inventory:warehouse_request_create_permanent_issue' wr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 4px;">
+                  {% trans "Permanent Issue" %}
+                </a>
+                <a href="{% url 'inventory:warehouse_request_create_consumption_issue' wr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #10b981; color: white; text-decoration: none; border-radius: 4px;">
+                  {% trans "Consumption Issue" %}
+                </a>
+                <a href="{% url 'inventory:warehouse_request_create_consignment_issue' wr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #8b5cf6; color: white; text-decoration: none; border-radius: 4px;">
+                  {% trans "Consignment Issue" %}
+                </a>
+              {% endif %}
             </div>
           </td>
         </tr>

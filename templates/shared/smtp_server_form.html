@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ form_title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <a href="{% url 'shared:smtp_servers' %}">{% trans "SMTP Servers" %}</a>
+      <span>/</span>
+      <span>{{ form_title }}</span>
+    </nav>
+    
+    <h1 class="page-title">{{ form_title }}</h1>
+  </div>
+
+  <div class="form-container">
+    {% if messages %}
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post" class="entity-form">
+      {% csrf_token %}
+      
+      {% if form.non_field_errors %}
+        <div class="alert alert-error">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+      
+      <div class="form-section">
+        <h3>{% trans "Basic Information" %}</h3>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.name.id_for_label }}">{{ form.name.label }} *</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+              <span class="error">{{ form.name.errors.0 }}</span>
+            {% endif %}
+            {% if form.name.help_text %}
+              <small class="help-text">{{ form.name.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="form-field">
+            <label for="{{ form.is_enabled.id_for_label }}">{{ form.is_enabled.label }}</label>
+            {{ form.is_enabled }}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>{% trans "SMTP Connection Settings" %}</h3>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.host.id_for_label }}">{{ form.host.label }} *</label>
+            {{ form.host }}
+            {% if form.host.errors %}
+              <span class="error">{{ form.host.errors.0 }}</span>
+            {% endif %}
+            {% if form.host.help_text %}
+              <small class="help-text">{{ form.host.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="form-field">
+            <label for="{{ form.port.id_for_label }}">{{ form.port.label }} *</label>
+            {{ form.port }}
+            {% if form.port.errors %}
+              <span class="error">{{ form.port.errors.0 }}</span>
+            {% endif %}
+            {% if form.port.help_text %}
+              <small class="help-text">{{ form.port.help_text }}</small>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.use_tls.id_for_label }}">{{ form.use_tls.label }}</label>
+            {{ form.use_tls }}
+            {% if form.use_tls.help_text %}
+              <small class="help-text">{{ form.use_tls.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="form-field">
+            <label for="{{ form.use_ssl.id_for_label }}">{{ form.use_ssl.label }}</label>
+            {{ form.use_ssl }}
+            {% if form.use_ssl.help_text %}
+              <small class="help-text">{{ form.use_ssl.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="form-field">
+            <label for="{{ form.timeout.id_for_label }}">{{ form.timeout.label }}</label>
+            {{ form.timeout }}
+            {% if form.timeout.help_text %}
+              <small class="help-text">{{ form.timeout.help_text }}</small>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>{% trans "Authentication" %}</h3>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.username.id_for_label }}">{{ form.username.label }} *</label>
+            {{ form.username }}
+            {% if form.username.errors %}
+              <span class="error">{{ form.username.errors.0 }}</span>
+            {% endif %}
+            {% if form.username.help_text %}
+              <small class="help-text">{{ form.username.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="form-field">
+            <label for="{{ form.password.id_for_label }}">{{ form.password.label }} *</label>
+            {{ form.password }}
+            {% if form.password.errors %}
+              <span class="error">{{ form.password.errors.0 }}</span>
+            {% endif %}
+            {% if form.password.help_text %}
+              <small class="help-text">{{ form.password.help_text }}</small>
+            {% endif %}
+            {% if object and object.pk %}
+              <small class="help-text">{% trans "Leave blank to keep current password" %}</small>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>{% trans "Email Settings" %}</h3>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.from_email.id_for_label }}">{{ form.from_email.label }} *</label>
+            {{ form.from_email }}
+            {% if form.from_email.errors %}
+              <span class="error">{{ form.from_email.errors.0 }}</span>
+            {% endif %}
+            {% if form.from_email.help_text %}
+              <small class="help-text">{{ form.from_email.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="form-field">
+            <label for="{{ form.from_name.id_for_label }}">{{ form.from_name.label }}</label>
+            {{ form.from_name }}
+            {% if form.from_name.help_text %}
+              <small class="help-text">{{ form.from_name.help_text }}</small>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>{% trans "Additional Information" %}</h3>
+        
+        <div class="form-row">
+          <div class="form-field full-width">
+            <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+            {{ form.description }}
+            {% if form.description.help_text %}
+              <small class="help-text">{{ form.description.help_text }}</small>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+        <a href="{% url 'shared:smtp_servers' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+.form-container {
+  max-width: 1000px;
+  margin: 2rem auto;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.entity-form .form-section {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.entity-form .form-section:last-of-type {
+  border-bottom: none;
+}
+
+.entity-form .form-section h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #1f2937;
+}
+
+.entity-form .form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.entity-form .form-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.entity-form label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.entity-form .form-control {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.entity-form .form-control:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.entity-form textarea.form-control {
+  resize: vertical;
+}
+
+.entity-form .error {
+  display: block;
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.entity-form .help-text {
+  display: block;
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+  padding-top: 2rem;
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.alert-success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.alert-error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+</style>
+{% endblock %}
+

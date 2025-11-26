@@ -1,0 +1,117 @@
+{% extends "ticketing/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Ticket Management" %}</span>
+<span class="separator">/</span>
+<span>{% trans "Subcategories" %}</span>
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions">
+  <a href="{% url 'ticketing:subcategory_create' %}" class="btn btn-primary">
+    + {% trans "Create Subcategory" %}
+  </a>
+</div>
+{% endblock %}
+
+{% block ticketing_content %}
+<div class="data-table-container">
+  <div class="filter-bar" style="margin-bottom: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
+    <form method="get" class="filter-form" style="display: flex; gap: 1rem; align-items: flex-end;">
+      <div class="filter-field">
+        <label for="search">{% trans "Search" %}</label>
+        <input type="text" name="search" id="search" value="{{ search_term }}" placeholder="{% trans "Search by name or code" %}" class="form-control" style="width: 200px;">
+      </div>
+      <div class="filter-field">
+        <label for="parent">{% trans "Parent Category" %}</label>
+        <select name="parent" id="parent" class="form-control">
+          <option value="">{% trans "All Parents" %}</option>
+          {% for parent in parent_categories %}
+            <option value="{{ parent.pk }}" {% if selected_parent == parent.pk|stringformat:"s" %}selected{% endif %}>{{ parent.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-actions">
+        <button type="submit" class="btn btn-secondary">{% trans "Filter" %}</button>
+        <a href="{% url 'ticketing:subcategories' %}" class="btn btn-link">{% trans "Clear" %}</a>
+      </div>
+    </form>
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Code" %}</th>
+        <th>{% trans "Name" %}</th>
+        <th>{% trans "Name (English)" %}</th>
+        <th>{% trans "Parent Category" %}</th>
+        <th>{% trans "Sort Order" %}</th>
+        <th>{% trans "Status" %}</th>
+        <th>{% trans "Actions" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if subcategories %}
+        {% for subcategory in subcategories %}
+        <tr>
+          <td><code>{{ subcategory.public_code }}</code></td>
+          <td><strong>{{ subcategory.name }}</strong></td>
+          <td>{{ subcategory.name_en|default:"–" }}</td>
+          <td>
+            {% if subcategory.parent_category %}
+              <a href="{% url 'ticketing:category_edit' subcategory.parent_category.pk %}">{{ subcategory.parent_category.name }}</a>
+            {% else %}
+              <span class="muted-text">–</span>
+            {% endif %}
+          </td>
+          <td style="text-align: center;">{{ subcategory.sort_order }}</td>
+          <td>
+            {% if subcategory.is_enabled == 1 %}
+              <span class="badge badge-active">{% trans "Active" %}</span>
+            {% else %}
+              <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'ticketing:subcategory_edit' subcategory.pk %}" class="btn btn-sm">{% trans "Edit" %}</a>
+            <a href="{% url 'ticketing:subcategory_delete' subcategory.pk %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <div class="empty-state-icon">📂</div>
+              <h3>{% trans "No Subcategories Found" %}</h3>
+              <p>{% trans "Start by creating your first subcategory." %}</p>
+              <a href="{% url 'ticketing:subcategory_create' %}" class="btn btn-primary">
+                + {% trans "Create Subcategory" %}
+              </a>
+            </div>
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  {% if is_paginated %}
+    <div class="pagination">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if search_term %}&search={{ search_term }}{% endif %}{% if selected_parent %}&parent={{ selected_parent }}{% endif %}" class="btn btn-sm">{% trans "Previous" %}</a>
+      {% endif %}
+      <span class="pagination-info">
+        {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+      </span>
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if search_term %}&search={{ search_term }}{% endif %}{% if selected_parent %}&parent={{ selected_parent }}{% endif %}" class="btn btn-sm">{% trans "Next" %}</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+

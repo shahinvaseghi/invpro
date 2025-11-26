@@ -78,6 +78,7 @@
         <th>{% trans "Date" %}</th>
         <th>{% trans "Type" %}</th>
         <th>{% trans "Document Code" %}</th>
+        <th>{% trans "Source/Destination" %} ({% trans "مرکز مصرف/تامین" %})</th>
         <th>{% trans "Created By" %}</th>
         <th style="text-align: right;">{% trans "Quantity" %}</th>
         <th style="text-align: right;">{% trans "Running Balance" %}</th>
@@ -90,11 +91,12 @@
         <td><span class="badge badge-info">{% trans "Baseline" %}</span></td>
         <td>
           {% if baseline.stocktaking_record_code %}
-            {{ baseline.stocktaking_record_code }}
+            <code>{{ baseline.stocktaking_record_code }}</code>
           {% else %}
             —
           {% endif %}
         </td>
+        <td>—</td>
         <td>—</td>
         <td style="text-align: right;">{{ baseline.baseline_quantity|floatformat:2 }}</td>
         <td style="text-align: right; font-weight: 600;">{{ baseline.baseline_quantity|floatformat:2 }}</td>
@@ -111,7 +113,32 @@
             <span class="badge badge-danger">{{ transaction.type_label }}</span>
           {% endif %}
         </td>
-        <td><code>{{ transaction.document_code }}</code></td>
+        <td>
+          {% if transaction.document_type == 'permanent_receipt' %}
+            <a href="{% url 'inventory:receipt_permanent_edit' transaction.document_id %}" class="document-link">
+              <code>{{ transaction.document_code }}</code>
+            </a>
+          {% elif transaction.document_type == 'consignment_receipt' %}
+            <a href="{% url 'inventory:receipt_consignment_edit' transaction.document_id %}" class="document-link">
+              <code>{{ transaction.document_code }}</code>
+            </a>
+          {% elif transaction.document_type == 'permanent_issue' %}
+            <a href="{% url 'inventory:issue_permanent_edit' transaction.document_id %}" class="document-link">
+              <code>{{ transaction.document_code }}</code>
+            </a>
+          {% elif transaction.document_type == 'consumption_issue' %}
+            <a href="{% url 'inventory:issue_consumption_edit' transaction.document_id %}" class="document-link">
+              <code>{{ transaction.document_code }}</code>
+            </a>
+          {% elif transaction.document_type == 'consignment_issue' %}
+            <a href="{% url 'inventory:issue_consignment_edit' transaction.document_id %}" class="document-link">
+              <code>{{ transaction.document_code }}</code>
+            </a>
+          {% else %}
+            <code>{{ transaction.document_code }}</code>
+          {% endif %}
+        </td>
+        <td>{{ transaction.source_destination|default:"—" }}</td>
         <td>{{ transaction.created_by|default:"—" }}</td>
         <td style="text-align: right;">
           {% if transaction.type == 'receipt' %}
@@ -133,7 +160,7 @@
       </tr>
       {% empty %}
       <tr>
-        <td colspan="6" style="text-align: center; padding: 40px; color: #6b7280;">
+        <td colspan="7" style="text-align: center; padding: 40px; color: #6b7280;">
           {% trans "No transactions found for this period." %}
         </td>
       </tr>
@@ -143,5 +170,31 @@
 </div>
 
 {% endif %}
+
+<style>
+  .document-link {
+    text-decoration: none;
+    color: #2563eb !important;
+    cursor: pointer;
+    font-weight: 500;
+    display: inline-block;
+  }
+  .document-link:hover {
+    text-decoration: underline;
+    color: #1d4ed8 !important;
+  }
+  .document-link code {
+    color: #2563eb !important;
+    background-color: transparent;
+    padding: 0;
+  }
+  .document-link:hover code {
+    color: #1d4ed8 !important;
+  }
+  td code {
+    background-color: transparent;
+    padding: 0;
+  }
+</style>
 {% endblock %}
 

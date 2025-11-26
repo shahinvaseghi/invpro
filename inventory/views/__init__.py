@@ -51,6 +51,9 @@ from .requests import (
     PurchaseRequestCreateView,
     PurchaseRequestUpdateView,
     PurchaseRequestApproveView,
+    CreateTemporaryReceiptFromPurchaseRequestView,
+    CreatePermanentReceiptFromPurchaseRequestView,
+    CreateConsignmentReceiptFromPurchaseRequestView,
     # Warehouse Requests
     WarehouseRequestFormMixin,
     WarehouseRequestListView,
@@ -67,6 +70,7 @@ from .receipts import (
     # Temporary Receipts
     ReceiptTemporaryListView,
     ReceiptTemporaryCreateView,
+    ReceiptTemporaryCreateFromPurchaseRequestView,
     ReceiptTemporaryUpdateView,
     ReceiptTemporaryDeleteView,
     ReceiptTemporaryLockView,
@@ -74,6 +78,7 @@ from .receipts import (
     # Permanent Receipts
     ReceiptPermanentListView,
     ReceiptPermanentCreateView,
+    ReceiptPermanentCreateFromPurchaseRequestView,
     ReceiptPermanentUpdateView,
     ReceiptPermanentDeleteView,
     ReceiptPermanentLockView,
@@ -82,6 +87,7 @@ from .receipts import (
     # Consignment Receipts
     ReceiptConsignmentListView,
     ReceiptConsignmentCreateView,
+    ReceiptConsignmentCreateFromPurchaseRequestView,
     ReceiptConsignmentUpdateView,
     ReceiptConsignmentDeleteView,
     ReceiptConsignmentLockView,
@@ -112,6 +118,19 @@ from .issues import (
     IssueConsignmentDeleteView,
     IssueConsignmentLockView,
     IssueConsignmentLineSerialAssignmentView,
+)
+
+# Import issue views from warehouse request (intermediate selection views)
+from .create_issue_from_warehouse_request import (
+    CreatePermanentIssueFromWarehouseRequestView,
+    CreateConsumptionIssueFromWarehouseRequestView,
+    CreateConsignmentIssueFromWarehouseRequestView,
+)
+# Import issue views from warehouse request (actual creation views)
+from .issues_from_warehouse_request import (
+    IssuePermanentCreateFromWarehouseRequestView,
+    IssueConsumptionCreateFromWarehouseRequestView,
+    IssueConsignmentCreateFromWarehouseRequestView,
 )
 
 # Import stocktaking views (already refactored with Type Hints)
@@ -167,6 +186,16 @@ from .master_data import (
     ItemCreateView,
     ItemUpdateView,
     ItemDeleteView,
+)
+
+# Import item import/export views
+from .item_import import (
+    ItemExcelTemplateDownloadView,
+    ItemExcelImportView,
+)
+
+# Import remaining master data views
+from .master_data import (
     # Warehouses
     WarehouseListView,
     WarehouseCreateView,
@@ -197,6 +226,9 @@ __all__ = [
     'PurchaseRequestCreateView',
     'PurchaseRequestUpdateView',
     'PurchaseRequestApproveView',
+    'CreateTemporaryReceiptFromPurchaseRequestView',
+    'CreatePermanentReceiptFromPurchaseRequestView',
+    'CreateConsignmentReceiptFromPurchaseRequestView',
     'WarehouseRequestFormMixin',
     'WarehouseRequestListView',
     'WarehouseRequestCreateView',
@@ -207,12 +239,14 @@ __all__ = [
     'ReceiptFormMixin',
     'ReceiptTemporaryListView',
     'ReceiptTemporaryCreateView',
+    'ReceiptTemporaryCreateFromPurchaseRequestView',
     'ReceiptTemporaryUpdateView',
     'ReceiptTemporaryDeleteView',
     'ReceiptTemporaryLockView',
     'ReceiptTemporarySendToQCView',
     'ReceiptPermanentListView',
     'ReceiptPermanentCreateView',
+    'ReceiptPermanentCreateFromPurchaseRequestView',
     'ReceiptPermanentUpdateView',
     'ReceiptPermanentDeleteView',
     'ReceiptPermanentLockView',
@@ -220,6 +254,7 @@ __all__ = [
     'ReceiptPermanentLineSerialAssignmentView',
     'ReceiptConsignmentListView',
     'ReceiptConsignmentCreateView',
+    'ReceiptConsignmentCreateFromPurchaseRequestView',
     'ReceiptConsignmentUpdateView',
     'ReceiptConsignmentDeleteView',
     'ReceiptConsignmentLockView',
@@ -244,6 +279,14 @@ __all__ = [
     'IssueConsignmentDeleteView',
     'IssueConsignmentLockView',
     'IssueConsignmentLineSerialAssignmentView',
+    # Issues from Warehouse Request (intermediate selection)
+    'CreatePermanentIssueFromWarehouseRequestView',
+    'CreateConsumptionIssueFromWarehouseRequestView',
+    'CreateConsignmentIssueFromWarehouseRequestView',
+    # Issues from Warehouse Request (creation)
+    'IssuePermanentCreateFromWarehouseRequestView',
+    'IssueConsumptionCreateFromWarehouseRequestView',
+    'IssueConsignmentCreateFromWarehouseRequestView',
     # Stocktaking (refactored)
     'StocktakingFormMixin',
     'StocktakingDeficitListView',
@@ -294,6 +337,8 @@ __all__ = [
     'ItemCreateView',
     'ItemUpdateView',
     'ItemDeleteView',
+    'ItemExcelTemplateDownloadView',
+    'ItemExcelImportView',
     'WarehouseListView',
     'WarehouseCreateView',
     'WarehouseUpdateView',

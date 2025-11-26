@@ -144,7 +144,7 @@ class LineFormsetMixin:
     formset_class = None
     formset_prefix: str = 'lines'
     
-    def build_line_formset(self, data=None, instance=None, company_id: Optional[int] = None):
+    def build_line_formset(self, data=None, instance=None, company_id: Optional[int] = None, request=None):
         """Build line formset for the document."""
         if instance is None:
             instance = getattr(self, "object", None)
@@ -153,6 +153,8 @@ class LineFormsetMixin:
                 company_id = instance.company_id
             else:
                 company_id = self.request.session.get('active_company_id')
+        if request is None:
+            request = getattr(self, 'request', None)
         
         if self.formset_class is None:
             raise ValueError("formset_class must be set in view class")
@@ -161,6 +163,7 @@ class LineFormsetMixin:
             'instance': instance,
             'prefix': self.formset_prefix,
             'company_id': company_id,
+            'request': request,
         }
         if data is not None:
             kwargs['data'] = data
@@ -189,7 +192,8 @@ class LineFormsetMixin:
                 lines_formset=self.build_line_formset(
                     data=self.request.POST, 
                     instance=form.instance, 
-                    company_id=company_id
+                    company_id=company_id,
+                    request=self.request
                 ),
             )
         )
@@ -198,10 +202,9 @@ class LineFormsetMixin:
         """Save line formset instances."""
         # Process each form in the formset manually to ensure all valid forms are saved
         for form in formset.forms:
-            # Check if form has cleaned_data
-            # Note: Even if form has errors, cleaned_data might still exist for some fields
-            # But we should check if the form is actually valid before saving
-            if not form.cleaned_data:
+            # Check if form has cleaned_data - only if form is bound and validated
+            # Note: cleaned_data only exists after form.is_valid() is called
+            if not hasattr(form, 'cleaned_data') or not form.cleaned_data:
                 continue
             
             # Check if form should be deleted
