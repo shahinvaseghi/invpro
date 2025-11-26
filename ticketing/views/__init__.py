@@ -53,6 +53,9 @@ from .subcategories import (
 # Import debug views
 from .debug import debug_log_view
 
+# Import entity reference views
+from . import entity_reference
+
 # Future imports will be added here as views are implemented
 # from .templates import (
 #     TicketTemplateListView,

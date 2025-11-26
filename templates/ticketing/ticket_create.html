@@ -12,10 +12,133 @@
 
 {% block ticketing_content %}
 <div class="form-container">
-  <div class="placeholder-message">
-    <h2>{% trans "Create Ticket" %}</h2>
-    <p>{% trans "This page is under construction. Ticket creation functionality will be implemented here." %}</p>
-  </div>
+  {% if selected_template %}
+    {# Show form for creating ticket with selected template #}
+    <div class="ticket-form" style="padding: 2rem; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+      <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+        <a href="{% url 'ticketing:ticket_create' %}" style="color: #3b82f6; text-decoration: none; font-size: 0.875rem;">← {% trans "Back to template selection" %}</a>
+        <h2 style="margin: 0.5rem 0 0 0; color: #333;">{% trans "Create Ticket" %}</h2>
+        <p style="margin: 0.25rem 0 0 0; color: #6b7280; font-size: 0.875rem;">
+          {% trans "Template" %}: <strong>{{ selected_template.name }}</strong> ({{ selected_template.template_code }})
+        </p>
+      </div>
+      
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="template" value="{{ selected_template.pk }}">
+        
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label for="id_title" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">{% trans "Title" %} *</label>
+          <input type="text" name="title" id="id_title" required 
+                 class="form-control" 
+                 style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 1rem;">
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label for="id_description" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">{% trans "Description" %}</label>
+          <textarea name="description" id="id_description" rows="4"
+                    class="form-control"
+                    style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 1rem;"></textarea>
+        </div>
+        
+        {% if template_fields %}
+          <div class="template-fields" style="margin-bottom: 1.5rem;">
+            <h3 style="margin-bottom: 1rem; color: #333; font-size: 1.125rem;">{% trans "Template Fields" %}</h3>
+            {% for field_data in template_fields %}
+              {% with field=field_data.field %}
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="field_{{ field.pk }}" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">
+                  {{ field.field_name }}
+                  {% if field.is_required == 1 %}<span style="color: #ef4444;">*</span>{% endif %}
+                </label>
+                {% if field.help_text %}
+                  <p style="margin: 0 0 0.5rem 0; color: #6b7280; font-size: 0.875rem;">{{ field.help_text }}</p>
+                {% endif %}
+                
+                {% if field.field_type == "short_text" %}
+                  <input type="text" name="field_{{ field.pk }}" id="field_{{ field.pk }}"
+                         {% if field.is_required == 1 %}required{% endif %}
+                         {% if field.default_value %}value="{{ field.default_value }}"{% endif %}
+                         class="form-control"
+                         style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                {% elif field.field_type == "long_text" %}
+                  <textarea name="field_{{ field.pk }}" id="field_{{ field.pk }}" rows="3"
+                            {% if field.is_required == 1 %}required{% endif %}
+                            class="form-control"
+                            style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">{% if field.default_value %}{{ field.default_value }}{% endif %}</textarea>
+                {% elif field.field_type == "dropdown" or field.field_type == "radio" %}
+                  <select name="field_{{ field.pk }}" id="field_{{ field.pk }}"
+                          {% if field.is_required == 1 %}required{% endif %}
+                          class="form-control"
+                          style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <option value="">{% trans "Select..." %}</option>
+                    {% if field_data.options %}
+                      {% for option in field_data.options %}
+                        <option value="{{ option.value }}" {% if option.is_default %}selected{% endif %}>{{ option.label }}</option>
+                      {% endfor %}
+                    {% elif field.field_config.options_source == "entity_reference" %}
+                      {# TODO: Load options from Entity Reference System #}
+                      <option value="" disabled>{% trans "Loading options from entity reference..." %}</option>
+                    {% endif %}
+                  </select>
+                {% else %}
+                  <input type="text" name="field_{{ field.pk }}" id="field_{{ field.pk }}"
+                         {% if field.is_required == 1 %}required{% endif %}
+                         placeholder="{% trans "Field type" %}: {{ field.field_type }}"
+                         class="form-control"
+                         style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                {% endif %}
+              </div>
+              {% endwith %}
+            {% endfor %}
+          </div>
+        {% endif %}
+        
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+          <button type="submit" class="btn btn-primary">{% trans "Create Ticket" %}</button>
+          <a href="{% url 'ticketing:ticket_create' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+        </div>
+      </form>
+    </div>
+  {% elif available_templates %}
+    {# Show template selection list #}
+    <div class="templates-list" style="padding: 2rem; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+      <h2 style="margin-bottom: 1.5rem; color: #333;">{% trans "Select a Template" %}</h2>
+      <p style="margin-bottom: 2rem; color: #666;">{% trans "Choose a template to create a new ticket:" %}</p>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+        {% for template in available_templates %}
+          <div style="border: 2px solid #e5e7eb; border-radius: 8px; padding: 1.5rem; cursor: pointer; transition: all 0.3s; background: #f9fafb;" 
+               onmouseover="this.style.borderColor='#3b82f6'; this.style.backgroundColor='#eff6ff';" 
+               onmouseout="this.style.borderColor='#e5e7eb'; this.style.backgroundColor='#f9fafb';"
+               onclick="window.location.href='{% url 'ticketing:ticket_create' %}?template_id={{ template.pk }}'">
+            <h3 style="margin: 0 0 0.5rem 0; color: #111827; font-size: 1.25rem;">{{ template.name }}</h3>
+            <p style="margin: 0 0 0.5rem 0; color: #6b7280; font-size: 0.875rem;">
+              <code style="background: #e5e7eb; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">{{ template.template_code }}</code>
+            </p>
+            {% if template.description %}
+              <p style="margin: 0.5rem 0 0 0; color: #4b5563; font-size: 0.875rem; line-height: 1.5;">{{ template.description|truncatewords:20 }}</p>
+            {% endif %}
+            <div style="margin-top: 1rem; display: flex; gap: 0.5rem; align-items: center;">
+              <span style="font-size: 0.75rem; color: #6b7280;">
+                {% trans "Fields" %}: <strong>{{ template.fields.count }}</strong>
+              </span>
+              {% if template.category %}
+                <span style="font-size: 0.75rem; color: #6b7280;">•</span>
+                <span style="font-size: 0.75rem; color: #6b7280;">{{ template.category.name }}</span>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% else %}
+    <div class="placeholder-message">
+      <h2>{% trans "No Templates Available" %}</h2>
+      <p>{% trans "You don't have permission to create tickets with any template. Please contact your administrator." %}</p>
+      <a href="{% url 'ticketing:templates' %}" class="btn btn-primary" style="margin-top: 1rem;">{% trans "View Templates" %}</a>
+    </div>
+  {% endif %}
 </div>
 
 <style>

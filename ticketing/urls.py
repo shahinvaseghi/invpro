@@ -4,6 +4,7 @@ URL configuration for ticketing app.
 from django.urls import path
 
 from . import views
+from .views import entity_reference
 
 app_name = 'ticketing'
 
@@ -29,6 +30,11 @@ urlpatterns = [
     path('management/subcategories/create/', views.TicketSubcategoryCreateView.as_view(), name='subcategory_create'),
     path('management/subcategories/<int:pk>/edit/', views.TicketSubcategoryUpdateView.as_view(), name='subcategory_edit'),
     path('management/subcategories/<int:pk>/delete/', views.TicketSubcategoryDeleteView.as_view(), name='subcategory_delete'),
+    
+    # Entity Reference API
+    path('api/entity-reference/sections/', entity_reference.EntityReferenceSectionsView.as_view(), name='api_entity_reference_sections'),
+    path('api/entity-reference/actions/', entity_reference.EntityReferenceActionsView.as_view(), name='api_entity_reference_actions'),
+    path('api/entity-reference/parameter-values/', entity_reference.EntityReferenceParameterValuesView.as_view(), name='api_entity_reference_parameter_values'),
     
     # Automation
     path('automation/auto-response/', views.AutoResponseView.as_view(), name='auto_response'),

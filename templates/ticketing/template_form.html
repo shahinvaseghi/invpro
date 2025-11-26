@@ -1175,27 +1175,71 @@ document.addEventListener('DOMContentLoaded', function() {
           
           <!-- Entity Reference Configuration -->
           <div class="entity-reference-panel" data-field-index="${index}" style="display: none;">
-            <div class="form-field" style="margin-bottom: 0.5rem;">
-              <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">{% trans "Entity Reference" %}</label>
-              <input type="text" name="fields-${index}-entity_reference" class="form-control" 
-                     placeholder="e.g., users:list, inventory.items:list" 
-                     value="${fieldConfig.entity_reference || ''}" />
-              <small class="form-text">{% trans "Example: users:list, inventory.items:list, inventory.warehouses:list" %}</small>
+            <!-- Level 1: Section Selection -->
+            <div class="form-field" style="margin-bottom: 1rem;">
+              <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">{% trans "Section" %}</label>
+              <select name="fields-${index}-entity_section" class="form-control entity-section-select" 
+                      data-field-index="${index}">
+                <option value="">{% trans "Select section..." %}</option>
+                <!-- Options will be loaded via JavaScript -->
+              </select>
+              <small class="form-text">{% trans "Select a section/module from the application" %}</small>
             </div>
-            <div class="form-field" style="margin-bottom: 0.5rem;">
-              <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">{% trans "Value Field" %}</label>
-              <input type="text" name="fields-${index}-value_field" class="form-control" 
-                     placeholder="e.g., id" 
-                     value="${fieldConfig.value_field || 'id'}" />
-              <small class="form-text">{% trans "Field to use as option value (e.g., id, code)" %}</small>
+            
+            <!-- Level 2: Action Selection -->
+            <div class="form-field" style="margin-bottom: 1rem;">
+              <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">{% trans "Action" %}</label>
+              <select name="fields-${index}-entity_action" class="form-control entity-action-select" 
+                      data-field-index="${index}" disabled>
+                <option value="">{% trans "Select action..." %}</option>
+                <!-- Options will be loaded via JavaScript when section is selected -->
+              </select>
+              <small class="form-text">{% trans "Select an action for the selected section" %}</small>
             </div>
-            <div class="form-field" style="margin-bottom: 0.5rem;">
-              <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">{% trans "Label Field" %}</label>
-              <input type="text" name="fields-${index}-label_field" class="form-control" 
-                     placeholder="e.g., name" 
-                     value="${fieldConfig.label_field || 'name'}" />
-              <small class="form-text">{% trans "Field to use as option label (e.g., name, title)" %}</small>
+            
+            <!-- Level 3: Parameter Selection -->
+            <div class="entity-parameters-container" data-field-index="${index}" style="margin-bottom: 1rem;">
+              <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">{% trans "Parameter" %}</label>
+              <select name="fields-${index}-entity_parameter" 
+                      class="form-control entity-parameter-select" 
+                      data-field-index="${index}" 
+                      disabled>
+                <option value="">{% trans "Select parameter..." %}</option>
+                <!-- Options will be loaded when action is selected -->
+              </select>
+              <small class="form-text">{% trans "Select a parameter to configure (optional)" %}</small>
+              
+              <!-- Level 4: Parameter Value (Combobox) -->
+              <div class="entity-parameter-value-container" data-field-index="${index}" style="margin-top: 1rem; display: none;">
+                <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">{% trans "Parameter Value" %}</label>
+                <div class="parameter-value-wrapper" style="position: relative;">
+                  <input type="text" 
+                         name="fields-${index}-entity_parameter_value" 
+                         class="form-control entity-parameter-value-input" 
+                         data-field-index="${index}"
+                         placeholder="{% trans 'Type or select value...' %}"
+                         autocomplete="off" />
+                  <!-- Datalist will be created dynamically by JavaScript -->
+                </div>
+                <small class="form-text">{% trans "Type a value or select from the list" %}</small>
+              </div>
             </div>
+            
+            <!-- Hidden container for storing all parameter data -->
+            <div class="entity-parameters-list" data-field-index="${index}" style="display: none;">
+              <!-- Internal storage for parameter schema -->
+            </div>
+            
+            <!-- Hidden inputs for backward compatibility -->
+            <input type="hidden" name="fields-${index}-entity_reference" class="entity-reference-hidden" 
+                   data-field-index="${index}"
+                   value="${fieldConfig.entity_reference || ''}" />
+            <input type="hidden" name="fields-${index}-value_field" class="entity-value-field-hidden" 
+                   data-field-index="${index}"
+                   value="${fieldConfig.value_field || 'id'}" />
+            <input type="hidden" name="fields-${index}-label_field" class="entity-label-field-hidden" 
+                   data-field-index="${index}"
+                   value="${fieldConfig.label_field || 'name'}" />
           </div>
         `;
         break;
@@ -1393,6 +1437,83 @@ document.addEventListener('DOMContentLoaded', function() {
         // Toggle panels based on initial value
         toggleOptionsSourcePanels(settingsContainer, initialSource);
         
+        // If entity reference is selected, load sections
+        if (initialSource === 'entity_reference') {
+          const entityPanel = settingsContainer.querySelector('.entity-reference-panel');
+          if (entityPanel) {
+            const panelFieldIndex = entityPanel.getAttribute('data-field-index');
+            if (panelFieldIndex === fieldIndex.toString()) {
+              console.log('🔵 [ENTITY_REF] Entity reference panel found, loading sections for fieldIndex:', fieldIndex);
+              
+              // Load sections immediately
+              setTimeout(() => {
+                loadEntityReferenceSections(fieldIndex);
+                
+                // If entity_reference already exists in fieldConfig, try to parse and populate
+                if (fieldConfig.entity_reference) {
+                  console.log('🔵 [ENTITY_REF] Existing entity_reference found:', fieldConfig.entity_reference);
+                  // Parse entity reference: section:action:params or section:action:param=value
+                  const parts = fieldConfig.entity_reference.split(':');
+                  if (parts.length >= 2) {
+                    const sectionId = parts[0];
+                    const actionName = parts[1];
+                    let paramName = '';
+                    let paramValue = '';
+                    
+                    // Parse parameter if exists (format: param=value)
+                    if (parts.length >= 3 && parts[2].includes('=')) {
+                      const paramParts = parts[2].split('=');
+                      paramName = paramParts[0];
+                      paramValue = paramParts.slice(1).join('='); // In case value contains '='
+                    }
+                    
+                    // Wait for sections to load, then set section
+                    setTimeout(() => {
+                      const sectionSelect = entityPanel.querySelector('.entity-section-select');
+                      if (sectionSelect) {
+                        sectionSelect.value = sectionId;
+                        loadEntityReferenceActions(fieldIndex, sectionId);
+                        
+                        // Wait a bit for actions to load, then set action
+                        setTimeout(() => {
+                          const actionSelect = entityPanel.querySelector('.entity-action-select');
+                          if (actionSelect) {
+                            actionSelect.value = actionName;
+                            const actionOption = actionSelect.options[actionSelect.selectedIndex];
+                            if (actionOption) {
+                              loadEntityReferenceParameters(fieldIndex, actionOption);
+                              
+                              // Wait for parameters to load, then set parameter and value
+                              if (paramName) {
+                                setTimeout(() => {
+                                  const paramSelect = entityPanel.querySelector('.entity-parameter-select');
+                                  if (paramSelect) {
+                                    paramSelect.value = paramName;
+                                    loadEntityReferenceParameterValue(fieldIndex, paramName);
+                                    
+                                    // Wait a bit more, then set value
+                                    setTimeout(() => {
+                                      const paramValueInput = entityPanel.querySelector('.entity-parameter-value-input');
+                                      if (paramValueInput) {
+                                        paramValueInput.value = paramValue;
+                                        updateEntityReferenceValue(fieldIndex);
+                                      }
+                                    }, 300);
+                                  }
+                                }, 300);
+                              }
+                            }
+                          }
+                        }, 500);
+                      }
+                    }, 500);
+                  }
+                }
+              }, 100);
+            }
+          }
+        }
+        
         // Load manual options if available
         console.log('🟢 [LOAD] initialSource:', initialSource);
         console.log('🟢 [LOAD] fieldConfig.options:', fieldConfig.options);
@@ -1417,7 +1538,22 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add change listener
         sourceSelect.addEventListener('change', function() {
-          toggleOptionsSourcePanels(settingsContainer, this.value);
+          const sourceType = this.value;
+          toggleOptionsSourcePanels(settingsContainer, sourceType);
+          
+          // If switching to entity_reference, load sections
+          if (sourceType === 'entity_reference') {
+            const entityPanel = settingsContainer.querySelector('.entity-reference-panel');
+            if (entityPanel) {
+              const panelFieldIndex = entityPanel.getAttribute('data-field-index');
+              if (panelFieldIndex) {
+                console.log('🔵 [ENTITY_REF] Options source changed to entity_reference, loading sections for fieldIndex:', panelFieldIndex);
+                setTimeout(() => {
+                  loadEntityReferenceSections(panelFieldIndex);
+                }, 100);
+              }
+            }
+          }
           
           // Save settings when source changes
           saveFieldSettingsToConfig(fieldRow);
@@ -1438,7 +1574,18 @@ document.addEventListener('DOMContentLoaded', function() {
       if (entityPanel) entityPanel.style.display = 'none';
     } else if (sourceType === 'entity_reference') {
       if (manualPanel) manualPanel.style.display = 'none';
-      if (entityPanel) entityPanel.style.display = 'block';
+      if (entityPanel) {
+        entityPanel.style.display = 'block';
+        
+        // Load sections when panel becomes visible
+        const fieldIndex = entityPanel.getAttribute('data-field-index');
+        if (fieldIndex) {
+          console.log('🔵 [ENTITY_REF] Entity reference panel shown, loading sections for fieldIndex:', fieldIndex);
+          setTimeout(() => {
+            loadEntityReferenceSections(fieldIndex);
+          }, 100);
+        }
+      }
     }
   }
   
@@ -1698,13 +1845,18 @@ document.addEventListener('DOMContentLoaded', function() {
           
           if (sourceSelect.value === 'entity_reference') {
             console.log('🔵 [SAVE] Using entity_reference mode');
-            const entityRef = settingsRow.querySelector(`[name="fields-${fieldIndex}-entity_reference"]`);
-            const valueField = settingsRow.querySelector(`[name="fields-${fieldIndex}-value_field"]`);
-            const labelField = settingsRow.querySelector(`[name="fields-${fieldIndex}-label_field"]`);
             
-            if (entityRef && entityRef.value) fieldConfig.entity_reference = entityRef.value;
-            if (valueField && valueField.value) fieldConfig.value_field = valueField.value;
-            if (labelField && labelField.value) fieldConfig.label_field = labelField.value;
+            // Update entity reference value before saving
+            updateEntityReferenceValue(fieldIndex);
+            
+            // Get values from hidden inputs (updated by JavaScript)
+            const hiddenEntityRef = settingsRow.querySelector(`input.entity-reference-hidden[name="fields-${fieldIndex}-entity_reference"]`);
+            const hiddenValueField = settingsRow.querySelector(`input.entity-value-field-hidden[name="fields-${fieldIndex}-value_field"]`);
+            const hiddenLabelField = settingsRow.querySelector(`input.entity-label-field-hidden[name="fields-${fieldIndex}-label_field"]`);
+            
+            if (hiddenEntityRef && hiddenEntityRef.value) fieldConfig.entity_reference = hiddenEntityRef.value;
+            if (hiddenValueField && hiddenValueField.value) fieldConfig.value_field = hiddenValueField.value;
+            if (hiddenLabelField && hiddenLabelField.value) fieldConfig.label_field = hiddenLabelField.value;
             
             // Clear manual options if using entity reference
             delete fieldConfig.options;
@@ -1974,6 +2126,369 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
+  // ========================================================================
+  // Entity Reference System - Three-Level Configuration
+  // ========================================================================
+  
+  /**
+   * Load sections from API and populate dropdown
+   */
+  function loadEntityReferenceSections(fieldIndex) {
+    console.log('🔵 [ENTITY_REF] loadEntityReferenceSections called for fieldIndex:', fieldIndex);
+    const sectionSelect = document.querySelector(`select.entity-section-select[data-field-index="${fieldIndex}"]`);
+    console.log('🔵 [ENTITY_REF] Section select found:', !!sectionSelect, sectionSelect);
+    
+    if (!sectionSelect) {
+      console.error('🔵 [ENTITY_REF] Section select not found for fieldIndex:', fieldIndex);
+      return;
+    }
+    
+    if (sectionSelect.options.length > 1) {
+      console.log('🔵 [ENTITY_REF] Sections already loaded, count:', sectionSelect.options.length - 1);
+      return;
+    }
+    
+    const apiUrl = '{% url "ticketing:api_entity_reference_sections" %}';
+    console.log('🔵 [ENTITY_REF] Fetching from URL:', apiUrl);
+    
+    // Get CSRF token
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    console.log('🔵 [ENTITY_REF] CSRF token found:', !!csrftoken);
+    
+    fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': csrftoken,
+        'Content-Type': 'application/json',
+      },
+      credentials: 'same-origin',
+    })
+      .then(response => {
+        console.log('🔵 [ENTITY_REF] Response status:', response.status, response.statusText);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('🔵 [ENTITY_REF] Data received:', data);
+        console.log('🔵 [ENTITY_REF] Sections count:', data.sections ? data.sections.length : 0);
+        
+        if (!data.sections || !Array.isArray(data.sections)) {
+          console.error('🔵 [ENTITY_REF] Invalid data format, expected sections array');
+          return;
+        }
+        
+        // Clear existing options (except the first "Select..." option)
+        while (sectionSelect.options.length > 1) {
+          sectionSelect.remove(1);
+        }
+        
+        // Add sections (user can choose to display nickname OR code)
+        data.sections.forEach((section, idx) => {
+          console.log(`🔵 [ENTITY_REF] Adding section ${idx}:`, section);
+          const option = document.createElement('option');
+          option.value = section.nickname; // Use nickname as value (can be changed to code)
+          option.textContent = section.name + ' (' + section.nickname + ')'; // Display: Name (nickname)
+          option.setAttribute('data-code', section.code);
+          sectionSelect.appendChild(option);
+        });
+        
+        console.log('🔵 [ENTITY_REF] Sections loaded successfully, total options:', sectionSelect.options.length);
+      })
+      .catch(error => {
+        console.error('🔵 [ENTITY_REF] Error loading sections:', error);
+        console.error('🔵 [ENTITY_REF] Error details:', error.message, error.stack);
+      });
+  }
+  
+  /**
+   * Load actions for selected section
+   */
+  function loadEntityReferenceActions(fieldIndex, sectionIdentifier) {
+    const actionSelect = document.querySelector(`select.entity-action-select[data-field-index="${fieldIndex}"]`);
+    if (!actionSelect || !sectionIdentifier) {
+      return;
+    }
+    
+    // Clear existing options
+    actionSelect.innerHTML = '<option value="">{% trans "Select action..." %}</option>';
+    actionSelect.disabled = true;
+    
+    // Clear parameters
+    const paramsContainer = document.querySelector(`.entity-parameters-list[data-field-index="${fieldIndex}"]`);
+    if (paramsContainer) {
+      paramsContainer.innerHTML = '';
+    }
+    
+    fetch(`{% url "ticketing:api_entity_reference_actions" %}?section_code=${encodeURIComponent(sectionIdentifier)}`)
+      .then(response => response.json())
+      .then(data => {
+        // Add actions
+        data.actions.forEach(action => {
+          const option = document.createElement('option');
+          option.value = action.action_name;
+          option.textContent = action.action_label;
+          option.setAttribute('data-schema', JSON.stringify(action.parameter_schema));
+          actionSelect.appendChild(option);
+        });
+        
+        actionSelect.disabled = false;
+      })
+      .catch(error => {
+        console.error('Error loading actions:', error);
+      });
+  }
+  
+  /**
+   * Load parameters for selected action - populate parameter dropdown
+   */
+  function loadEntityReferenceParameters(fieldIndex, actionOption) {
+    const paramSelect = document.querySelector(`select.entity-parameter-select[data-field-index="${fieldIndex}"]`);
+    const paramsContainer = document.querySelector(`.entity-parameters-list[data-field-index="${fieldIndex}"]`);
+    const paramValueContainer = document.querySelector(`.entity-parameter-value-container[data-field-index="${fieldIndex}"]`);
+    
+    if (!paramSelect || !actionOption) {
+      return;
+    }
+    
+    // Clear parameter select and hide value container
+    paramSelect.innerHTML = '<option value="">{% trans "Select parameter..." %}</option>';
+    paramSelect.disabled = true;
+    if (paramValueContainer) {
+      paramValueContainer.style.display = 'none';
+    }
+    
+    // Store parameter schema in hidden container
+    const parameterSchema = JSON.parse(actionOption.getAttribute('data-schema') || '{}');
+    
+    if (paramsContainer) {
+      paramsContainer.setAttribute('data-schema', JSON.stringify(parameterSchema));
+    }
+    
+    if (!parameterSchema || Object.keys(parameterSchema).length === 0) {
+      paramSelect.innerHTML = '<option value="">{% trans "No parameters available" %}</option>';
+      return;
+    }
+    
+    // Populate parameter dropdown
+    Object.keys(parameterSchema).forEach(paramName => {
+      const paramDef = parameterSchema[paramName];
+      const option = document.createElement('option');
+      option.value = paramName;
+      const isRequired = paramDef.required !== false;
+      const description = paramDef.description ? ` - ${paramDef.description}` : '';
+      option.textContent = paramName + (isRequired ? ' *' : '') + description;
+      option.setAttribute('data-param-def', JSON.stringify(paramDef));
+      paramSelect.appendChild(option);
+    });
+    
+    paramSelect.disabled = false;
+  }
+  
+  /**
+   * Load parameter value options when a parameter is selected
+   */
+  function loadEntityReferenceParameterValue(fieldIndex, paramName) {
+    const paramsContainer = document.querySelector(`.entity-parameters-list[data-field-index="${fieldIndex}"]`);
+    const paramValueContainer = document.querySelector(`.entity-parameter-value-container[data-field-index="${fieldIndex}"]`);
+    const paramValueInput = document.querySelector(`input.entity-parameter-value-input[data-field-index="${fieldIndex}"]`);
+    
+    if (!paramsContainer || !paramValueContainer || !paramValueInput) {
+      return;
+    }
+    
+    // Hide container first
+    paramValueContainer.style.display = 'none';
+    paramValueInput.value = '';
+    
+    if (!paramName) {
+      return;
+    }
+    
+    // Get parameter definition from stored schema
+    const schemaStr = paramsContainer.getAttribute('data-schema');
+    if (!schemaStr) return;
+    
+    const parameterSchema = JSON.parse(schemaStr);
+    const paramDef = parameterSchema[paramName];
+    
+    if (!paramDef) return;
+    
+    // Show container
+    paramValueContainer.style.display = 'block';
+    
+    const paramType = paramDef.type || 'string';
+    const hasEnum = paramDef.enum && Array.isArray(paramDef.enum);
+    
+    // Get section and action for context
+    const sectionSelect = document.querySelector(`select.entity-section-select[data-field-index="${fieldIndex}"]`);
+    const actionSelect = document.querySelector(`select.entity-action-select[data-field-index="${fieldIndex}"]`);
+    const sectionIdentifier = sectionSelect ? sectionSelect.value : '';
+    const actionName = actionSelect ? actionSelect.value : '';
+    
+    // Create or update datalist
+    let datalist = paramValueContainer.querySelector('.entity-parameter-value-datalist');
+    if (!datalist) {
+      datalist = document.createElement('datalist');
+      datalist.className = 'entity-parameter-value-datalist';
+      datalist.setAttribute('data-field-index', fieldIndex);
+      paramValueContainer.querySelector('.parameter-value-wrapper').appendChild(datalist);
+    }
+    datalist.id = `datalist_${fieldIndex}_${paramName}`;
+    paramValueInput.setAttribute('list', datalist.id);
+    datalist.innerHTML = '';
+    
+    // If has enum, populate directly
+    if (hasEnum) {
+      paramDef.enum.forEach(enumValue => {
+        const option = document.createElement('option');
+        option.value = enumValue;
+        option.textContent = enumValue;
+        datalist.appendChild(option);
+      });
+    } else {
+      // Load values from API
+      const url = new URL('{% url "ticketing:api_entity_reference_parameter_values" %}', window.location.origin);
+      url.searchParams.set('parameter_name', paramName);
+      url.searchParams.set('parameter_type', paramType);
+      if (sectionIdentifier) url.searchParams.set('section_code', sectionIdentifier);
+      if (actionName) url.searchParams.set('action_name', actionName);
+      if (paramDef.enum) url.searchParams.set('parameter_enum', JSON.stringify(paramDef.enum));
+      
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          if (data.values && data.values.length > 0) {
+            data.values.forEach(value => {
+              const option = document.createElement('option');
+              option.value = value.value || value;
+              option.textContent = value.label || value.value || value;
+              datalist.appendChild(option);
+            });
+          }
+        })
+        .catch(error => {
+          console.error('Error loading parameter values:', error);
+        });
+    }
+    
+    // Update entity reference value
+    updateEntityReferenceValue(fieldIndex);
+  }
+  
+  
+  /**
+   * Update entity reference hidden input when section/action/parameters change
+   */
+  function updateEntityReferenceValue(fieldIndex) {
+    const sectionSelect = document.querySelector(`select.entity-section-select[data-field-index="${fieldIndex}"]`);
+    const actionSelect = document.querySelector(`select.entity-action-select[data-field-index="${fieldIndex}"]`);
+    const paramSelect = document.querySelector(`select.entity-parameter-select[data-field-index="${fieldIndex}"]`);
+    const paramValueInput = document.querySelector(`input.entity-parameter-value-input[data-field-index="${fieldIndex}"]`);
+    const hiddenInput = document.querySelector(`input.entity-reference-hidden[data-field-index="${fieldIndex}"]`);
+    
+    if (!sectionSelect || !actionSelect || !hiddenInput) return;
+    
+    const sectionValue = sectionSelect.value;
+    const actionValue = actionSelect.value;
+    
+    if (!sectionValue || !actionValue) {
+      hiddenInput.value = '';
+      return;
+    }
+    
+    // Build entity reference string: section:action:params
+    let entityRef = sectionValue + ':' + actionValue;
+    
+    // Collect parameter if selected
+    if (paramSelect && paramSelect.value && paramValueInput && paramValueInput.value) {
+      const paramName = paramSelect.value;
+      const paramValue = paramValueInput.value.trim();
+      if (paramValue) {
+        entityRef += ':' + paramName + '=' + paramValue;
+      }
+    }
+    
+    hiddenInput.value = entityRef;
+    
+    // Also update value_field and label_field (default to id and name)
+    const valueFieldInput = document.querySelector(`input.entity-value-field-hidden[name="fields-${fieldIndex}-value_field"]`);
+    const labelFieldInput = document.querySelector(`input.entity-label-field-hidden[name="fields-${fieldIndex}-label_field"]`);
+    if (valueFieldInput && !valueFieldInput.value) valueFieldInput.value = 'id';
+    if (labelFieldInput && !labelFieldInput.value) labelFieldInput.value = 'name';
+  }
+  
+  // Event listeners for entity reference
+  document.addEventListener('change', function(e) {
+    // Section selection
+    if (e.target.matches('.entity-section-select')) {
+      const fieldIndex = e.target.getAttribute('data-field-index');
+      loadEntityReferenceActions(fieldIndex, e.target.value);
+      updateEntityReferenceValue(fieldIndex);
+    }
+    
+    // Action selection
+    if (e.target.matches('.entity-action-select')) {
+      const fieldIndex = e.target.getAttribute('data-field-index');
+      const selectedOption = e.target.options[e.target.selectedIndex];
+      loadEntityReferenceParameters(fieldIndex, selectedOption);
+      updateEntityReferenceValue(fieldIndex);
+    }
+    
+    // Parameter selection
+    if (e.target.matches('.entity-parameter-select')) {
+      const fieldIndex = e.target.getAttribute('data-field-index');
+      const paramName = e.target.value;
+      loadEntityReferenceParameterValue(fieldIndex, paramName);
+      updateEntityReferenceValue(fieldIndex);
+    }
+    
+    // Parameter value change
+    if (e.target.matches('.entity-parameter-value-input')) {
+      const fieldIndex = e.target.getAttribute('data-field-index');
+      updateEntityReferenceValue(fieldIndex);
+    }
+  });
+  
+  // Load sections when entity reference panel becomes visible (using a simpler approach)
+  const checkAndLoadSections = function() {
+    document.querySelectorAll('.entity-reference-panel').forEach(panel => {
+      const display = window.getComputedStyle(panel).display;
+      if (display !== 'none' && display !== '') {
+        const fieldIndex = panel.getAttribute('data-field-index');
+        const sectionSelect = panel.querySelector('.entity-section-select');
+        if (sectionSelect && sectionSelect.options.length <= 1) {
+          console.log('🔵 [ENTITY_REF] Panel visible, loading sections for fieldIndex:', fieldIndex);
+          loadEntityReferenceSections(fieldIndex);
+        }
+      }
+    });
+  };
+  
+  // Check immediately
+  setTimeout(checkAndLoadSections, 500);
+  
+  // Also check after DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndLoadSections);
+  } else {
+    checkAndLoadSections();
+  }
+  
+  // Use MutationObserver as fallback
+  const observer = new MutationObserver(function() {
+    checkAndLoadSections();
+  });
+  
+  // Observe document body for changes
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['style', 'class']
+  });
+
   // Initialize on page load
   initializeFieldSettings();
   
@@ -2002,6 +2517,18 @@ document.addEventListener('DOMContentLoaded', function() {
               // Opening panel - always update settings to ensure options are loaded from field_config
               if (currentFieldType) {
                 updateFieldSettings(fieldRow, currentFieldType);
+                
+                // After settings are updated, check if entity reference panel should load sections
+                setTimeout(() => {
+                  const entityPanel = nextRow.querySelector('.entity-reference-panel');
+                  if (entityPanel && window.getComputedStyle(entityPanel).display !== 'none') {
+                    const panelFieldIndex = entityPanel.getAttribute('data-field-index');
+                    if (panelFieldIndex) {
+                      console.log('🔵 [ENTITY_REF] Settings panel opened, loading sections for fieldIndex:', panelFieldIndex);
+                      loadEntityReferenceSections(panelFieldIndex);
+                    }
+                  }
+                }, 200);
               }
               nextRow.style.display = 'table-row';
               button.innerHTML = '▲ ⚙️ {% trans "Settings" %}';
