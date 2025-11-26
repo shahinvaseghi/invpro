@@ -75,7 +75,15 @@
         <div class="form-row">
           <div class="form-field full-width">
             <label for="{{ form.finished_item.id_for_label }}">{{ form.finished_item.label }} *</label>
-            {{ form.finished_item }}
+            <div class="item-select-wrapper">
+              <div class="item-filters">
+                <input type="text" class="form-control filter-search-input" 
+                       id="finished-item-search"
+                       placeholder="{% trans 'Search by name or code...' %}" 
+                       style="flex: 1; min-width: 150px; font-size: 0.875rem; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; background-color: #f9fafb; color: #6b7280;">
+              </div>
+              {{ form.finished_item }}
+            </div>
             {% if form.finished_item.errors %}
               <span class="error">{{ form.finished_item.errors.0 }}</span>
             {% endif %}
@@ -88,14 +96,6 @@
             {{ form.version }}
             {% if form.version.errors %}
               <span class="error">{{ form.version.errors.0 }}</span>
-            {% endif %}
-          </div>
-
-          <div class="form-field">
-            <label for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
-            {{ form.is_active }}
-            {% if form.is_active.errors %}
-              <span class="error">{{ form.is_active.errors.0 }}</span>
             {% endif %}
           </div>
 
@@ -580,47 +580,97 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Filter items when subcategory changes
-  if (itemSubcategorySelect && finishedItemSelect) {
-    itemSubcategorySelect.addEventListener('change', function() {
-      const selectedSubcategory = this.value;
-      const selectedCategory = itemCategorySelect.value;
-      const selectedType = itemTypeSelect.value;
-      
-      // Clear item select
-      finishedItemSelect.innerHTML = '<option value="">--------</option>';
-      
-      if (!selectedSubcategory) {
-        return;
-      }
-      
-      // Show loading
-      finishedItemSelect.innerHTML = '<option value="">{% trans "Loading items..." %}</option>';
-      finishedItemSelect.disabled = true;
-      
-      // Fetch filtered items
-      fetch('/inventory/api/filtered-items/?type_id=' + selectedType + '&category_id=' + selectedCategory + '&subcategory_id=' + selectedSubcategory)
-        .then(response => response.json())
-        .then(data => {
-          finishedItemSelect.innerHTML = '<option value="">--------</option>';
+  // Filter items when subcategory changes OR when search term changes
+  function filterFinishedItems() {
+    const selectedSubcategory = (itemSubcategorySelect && itemSubcategorySelect.value) || '';
+    const selectedCategory = (itemCategorySelect && itemCategorySelect.value) || '';
+    const selectedType = (itemTypeSelect && itemTypeSelect.value) || '';
+    const searchInput = document.getElementById('finished-item-search');
+    const searchTerm = (searchInput && searchInput.value && searchInput.value.trim()) || '';
+    
+    // Build API URL with filters
+    let apiUrl = '/inventory/api/filtered-items/';
+    const params = new URLSearchParams();
+    if (selectedType) params.append('type_id', selectedType);
+    if (selectedCategory) params.append('category_id', selectedCategory);
+    if (selectedSubcategory) params.append('subcategory_id', selectedSubcategory);
+    if (searchTerm) params.append('search', searchTerm);
+    
+    // If no filters and no search, load all items
+    // Otherwise, apply filters
+    if (params.toString()) {
+      apiUrl += '?' + params.toString();
+    }
+    
+    // Show loading
+    finishedItemSelect.innerHTML = '<option value="">{% trans "Loading items..." %}</option>';
+    finishedItemSelect.disabled = true;
+    
+    // Fetch filtered items
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        finishedItemSelect.innerHTML = '<option value="">--------</option>';
+        
+        if (data.items && data.items.length > 0) {
+          const currentValue = finishedItemSelect.value;
+          data.items.forEach(function(item) {
+            const option = document.createElement('option');
+            option.value = item.value;
+            option.textContent = item.label;
+            finishedItemSelect.appendChild(option);
+          });
           
-          if (data.items && data.items.length > 0) {
-            data.items.forEach(function(item) {
-              const option = document.createElement('option');
-              option.value = item.value;
-              option.textContent = item.label;
-              finishedItemSelect.appendChild(option);
-            });
+          // Restore selection if it's still in filtered list
+          if (currentValue && data.items.some(item => item.value === currentValue)) {
+            finishedItemSelect.value = currentValue;
           }
-          
-          finishedItemSelect.disabled = false;
-        })
-        .catch(error => {
-          console.error('Error loading items:', error);
-          finishedItemSelect.innerHTML = '<option value="">{% trans "Error loading items" %}</option>';
-          finishedItemSelect.disabled = false;
-        });
+        }
+        
+        finishedItemSelect.disabled = false;
+      })
+      .catch(error => {
+        console.error('Error loading items:', error);
+        finishedItemSelect.innerHTML = '<option value="">{% trans "Error loading items" %}</option>';
+        finishedItemSelect.disabled = false;
+      });
+  }
+  
+  if (itemSubcategorySelect && finishedItemSelect) {
+    itemSubcategorySelect.addEventListener('change', filterFinishedItems);
+  }
+  
+  // Setup search input with debounce for finished item
+  const finishedItemSearchInput = document.getElementById('finished-item-search');
+  if (finishedItemSearchInput) {
+    let searchTimeout;
+    finishedItemSearchInput.addEventListener('input', function() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(function() {
+        filterFinishedItems();
+      }, 300); // Debounce 300ms
     });
+  }
+  
+  // Also filter when type or category changes
+  if (itemTypeSelect && finishedItemSelect) {
+    itemTypeSelect.addEventListener('change', function() {
+      filterFinishedItems();
+    });
+  }
+  
+  if (itemCategorySelect && finishedItemSelect) {
+    itemCategorySelect.addEventListener('change', function() {
+      filterFinishedItems();
+    });
+  }
+  
+  // Load all items initially if no filters are selected
+  if (finishedItemSelect && 
+      (!(itemTypeSelect && itemTypeSelect.value) && 
+       !(itemCategorySelect && itemCategorySelect.value) && 
+       !(itemSubcategorySelect && itemSubcategorySelect.value))) {
+    filterFinishedItems();
   }
   
   
@@ -841,15 +891,22 @@ document.addEventListener('DOMContentLoaded', function() {
       const selectedCategory = categorySelect.value;
       const selectedSubcategory = subcategorySelect.value;
       const searchInput = row.querySelector('.filter-search-input');
-      const searchTerm = searchInput?.value?.trim() || '';
+      const searchTerm = (searchInput && searchInput.value && searchInput.value.trim()) || '';
       const currentValue = itemSelect.value;
       
       // Build API URL with filters
-      let apiUrl = '/inventory/api/filtered-items/?';
-      if (selectedType) apiUrl += 'type_id=' + selectedType + '&';
-      if (selectedCategory) apiUrl += 'category_id=' + selectedCategory + '&';
-      if (selectedSubcategory) apiUrl += 'subcategory_id=' + selectedSubcategory + '&';
-      if (searchTerm) apiUrl += 'search=' + encodeURIComponent(searchTerm) + '&';
+      let apiUrl = '/inventory/api/filtered-items/';
+      const params = new URLSearchParams();
+      if (selectedType) params.append('type_id', selectedType);
+      if (selectedCategory) params.append('category_id', selectedCategory);
+      if (selectedSubcategory) params.append('subcategory_id', selectedSubcategory);
+      if (searchTerm) params.append('search', searchTerm);
+      
+      // If no filters and no search, load all items
+      // Otherwise, apply filters
+      if (params.toString()) {
+        apiUrl += '?' + params.toString();
+      }
       
       // Show loading
       itemSelect.innerHTML = '<option value="">در حال بارگذاری...</option>';
@@ -994,7 +1051,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // On page load: if item is already selected (edit mode), restore type, category, subcategory, and unit
+    // Initialize items on page load
+    // If item is already selected (edit mode), restore type, category, subcategory, and unit
+    // Otherwise, load all items
     if (itemSelect.value) {
       const itemId = itemSelect.value;
       
@@ -1076,6 +1135,9 @@ document.addEventListener('DOMContentLoaded', function() {
           console.error('Error loading item details:', error);
           unitSelect.innerHTML = '<option value="">{% trans "Error loading units" %}</option>';
         });
+    } else {
+      // If no item is selected (new row), load all items initially
+      filterItems();
     }
   }
   

@@ -15,6 +15,10 @@
   - TemporaryReceiptQCRejectView: رد بازرسی رسید موقت
 - **توضیح**: Views برای مدیریت بازرسی‌های QC
 
+#### TemporaryReceiptQCListView
+
+**مهم**: این view از `select_related('supplier', 'created_by')` استفاده می‌کند. توجه داشته باشید که `ReceiptTemporary` یک header-only model است و `item` و `warehouse` در `ReceiptTemporaryLine` هستند، نه در خود `ReceiptTemporary`. بنابراین نمی‌توان از `select_related('item', 'warehouse')` استفاده کرد.
+
 ---
 
 ## الگوهای مشترک

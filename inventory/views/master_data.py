@@ -86,10 +86,60 @@ class ItemTypeDeleteView(InventoryBaseView, DeleteView):
     template_name = 'inventory/itemtype_confirm_delete.html'
     success_url = reverse_lazy('inventory:item_types')
     
-    def delete(self, request, *args, **kwargs):
-        """Show success message after deletion."""
-        messages.success(self.request, _('Item Type deleted successfully.'))
-        return super().delete(request, *args, **kwargs)
+    def get_context_data(self, **kwargs):
+        """Add model verbose name to context."""
+        context = super().get_context_data(**kwargs)
+        context['model_verbose_name'] = _('نوع کالا')
+        return context
+    
+    def form_valid(self, form):
+        """Handle deletion with ProtectedError handling."""
+        logger.info(f"Attempting to delete item type: {self.object}")
+        logger.info(f"Item Type ID: {self.object.pk}, Name: {self.object.name}")
+        
+        try:
+            self.object.delete()
+            logger.info(f"Item Type {self.object.pk} deleted successfully")
+            messages.success(self.request, _('نوع کالا با موفقیت حذف شد.'))
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(self.get_success_url())
+        except ProtectedError as e:
+            logger.error(f"ProtectedError when deleting item type {self.object.pk}: {e}")
+            logger.error(f"Protected objects: {e.protected_objects}")
+            
+            # Model name mapping to Persian
+            model_name_map = {
+                'Item': _('کالا'),
+                'Items': _('کالاها'),
+                'BOMMaterial': _('ماده اولیه BOM'),
+                'BOMMaterials': _('مواد اولیه BOM'),
+            }
+            
+            # Extract model names from protected objects
+            protected_models = set()
+            protected_count = {}
+            for obj in e.protected_objects:
+                model_name = obj._meta.verbose_name
+                # Use Persian name if available, otherwise use original
+                persian_name = model_name_map.get(model_name, model_name)
+                protected_models.add(persian_name)
+                protected_count[persian_name] = protected_count.get(persian_name, 0) + 1
+            
+            # Create user-friendly error message
+            error_parts = []
+            for model_name, count in protected_count.items():
+                error_parts.append(f"{count} {model_name}")
+            
+            error_message = _('نمی‌توان این نوع کالا را حذف کرد چون در ساختار {models} استفاده شده است.').format(
+                models=', '.join(error_parts)
+            )
+            
+            messages.error(self.request, error_message)
+            logger.error(f"Error message shown to user: {error_message}")
+            
+            # Redirect to list page with error message
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(self.get_success_url())
 
 
 # ============================================================================
@@ -151,10 +201,60 @@ class ItemCategoryDeleteView(InventoryBaseView, DeleteView):
     template_name = 'inventory/itemcategory_confirm_delete.html'
     success_url = reverse_lazy('inventory:item_categories')
     
-    def delete(self, request, *args, **kwargs):
-        """Show success message after deletion."""
-        messages.success(self.request, _('Item Category deleted successfully.'))
-        return super().delete(request, *args, **kwargs)
+    def get_context_data(self, **kwargs):
+        """Add model verbose name to context."""
+        context = super().get_context_data(**kwargs)
+        context['model_verbose_name'] = _('دسته‌بندی کالا')
+        return context
+    
+    def form_valid(self, form):
+        """Handle deletion with ProtectedError handling."""
+        logger.info(f"Attempting to delete item category: {self.object}")
+        logger.info(f"Item Category ID: {self.object.pk}, Name: {self.object.name}")
+        
+        try:
+            self.object.delete()
+            logger.info(f"Item Category {self.object.pk} deleted successfully")
+            messages.success(self.request, _('دسته‌بندی کالا با موفقیت حذف شد.'))
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(self.get_success_url())
+        except ProtectedError as e:
+            logger.error(f"ProtectedError when deleting item category {self.object.pk}: {e}")
+            logger.error(f"Protected objects: {e.protected_objects}")
+            
+            # Model name mapping to Persian
+            model_name_map = {
+                'Item': _('کالا'),
+                'Items': _('کالاها'),
+                'Item Subcategory': _('زیر دسته‌بندی کالا'),
+                'Item Subcategories': _('زیر دسته‌بندی‌های کالا'),
+            }
+            
+            # Extract model names from protected objects
+            protected_models = set()
+            protected_count = {}
+            for obj in e.protected_objects:
+                model_name = obj._meta.verbose_name
+                # Use Persian name if available, otherwise use original
+                persian_name = model_name_map.get(model_name, model_name)
+                protected_models.add(persian_name)
+                protected_count[persian_name] = protected_count.get(persian_name, 0) + 1
+            
+            # Create user-friendly error message
+            error_parts = []
+            for model_name, count in protected_count.items():
+                error_parts.append(f"{count} {model_name}")
+            
+            error_message = _('نمی‌توان این دسته‌بندی کالا را حذف کرد چون در ساختار {models} استفاده شده است.').format(
+                models=', '.join(error_parts)
+            )
+            
+            messages.error(self.request, error_message)
+            logger.error(f"Error message shown to user: {error_message}")
+            
+            # Redirect to list page with error message
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(self.get_success_url())
 
 
 # ============================================================================
@@ -216,10 +316,58 @@ class ItemSubcategoryDeleteView(InventoryBaseView, DeleteView):
     template_name = 'inventory/itemsubcategory_confirm_delete.html'
     success_url = reverse_lazy('inventory:item_subcategories')
     
-    def delete(self, request, *args, **kwargs):
-        """Show success message after deletion."""
-        messages.success(self.request, _('Item Subcategory deleted successfully.'))
-        return super().delete(request, *args, **kwargs)
+    def get_context_data(self, **kwargs):
+        """Add model verbose name to context."""
+        context = super().get_context_data(**kwargs)
+        context['model_verbose_name'] = _('زیر دسته‌بندی کالا')
+        return context
+    
+    def form_valid(self, form):
+        """Handle deletion with ProtectedError handling."""
+        logger.info(f"Attempting to delete item subcategory: {self.object}")
+        logger.info(f"Item Subcategory ID: {self.object.pk}, Name: {self.object.name}")
+        
+        try:
+            self.object.delete()
+            logger.info(f"Item Subcategory {self.object.pk} deleted successfully")
+            messages.success(self.request, _('زیر دسته‌بندی کالا با موفقیت حذف شد.'))
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(self.get_success_url())
+        except ProtectedError as e:
+            logger.error(f"ProtectedError when deleting item subcategory {self.object.pk}: {e}")
+            logger.error(f"Protected objects: {e.protected_objects}")
+            
+            # Model name mapping to Persian
+            model_name_map = {
+                'Item': _('کالا'),
+                'Items': _('کالاها'),
+            }
+            
+            # Extract model names from protected objects
+            protected_models = set()
+            protected_count = {}
+            for obj in e.protected_objects:
+                model_name = obj._meta.verbose_name
+                # Use Persian name if available, otherwise use original
+                persian_name = model_name_map.get(model_name, model_name)
+                protected_models.add(persian_name)
+                protected_count[persian_name] = protected_count.get(persian_name, 0) + 1
+            
+            # Create user-friendly error message
+            error_parts = []
+            for model_name, count in protected_count.items():
+                error_parts.append(f"{count} {model_name}")
+            
+            error_message = _('نمی‌توان این زیر دسته‌بندی کالا را حذف کرد چون در ساختار {models} استفاده شده است.').format(
+                models=', '.join(error_parts)
+            )
+            
+            messages.error(self.request, error_message)
+            logger.error(f"Error message shown to user: {error_message}")
+            
+            # Redirect to list page with error message
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(self.get_success_url())
 
 
 # ============================================================================

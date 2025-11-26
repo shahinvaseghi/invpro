@@ -44,7 +44,15 @@
 
 **متدها**:
 - `get_form_kwargs()`: `company_id` را به form پاس می‌دهد
-- `get_context_data(**kwargs)`: context کامل را آماده می‌کند (fieldsets, unit options, lock status)
+- `get_context_data(**kwargs)`: context کامل را آماده می‌کند (fieldsets, unit options, lock status, item filters)
+  - **Context Variables اضافه شده**:
+    - `item_types`: لیست نوع کالاها برای فیلتر
+    - `item_categories`: لیست دسته‌بندی‌های کالا برای فیلتر
+    - `item_subcategories`: لیست زیر دسته‌بندی‌های کالا برای فیلتر
+    - `current_item_type`: نوع کالای انتخاب شده در فیلتر (از `request.GET`)
+    - `current_category`: دسته‌بندی انتخاب شده در فیلتر (از `request.GET`)
+    - `current_subcategory`: زیر دسته‌بندی انتخاب شده در فیلتر (از `request.GET`)
+    - `current_item_search`: عبارت جستجو در فیلتر (از `request.GET`)
 - `get_fieldsets()`: پیکربندی fieldsets را برمی‌گرداند
 
 ---
@@ -439,4 +447,10 @@
 3. **Lock Protection**: Update/Delete views از `DocumentLockProtectedMixin` استفاده می‌کنند
 4. **Permission Checking**: Delete views مجوزهای delete_own/delete_other را بررسی می‌کنند
 5. **Purchase Request Integration**: Views برای ایجاد رسید از درخواست خرید موجود هستند
+6. **Item Filtering and Search**: تمام receipt forms از فیلتر و جستجوی کالا پشتیبانی می‌کنند:
+   - فیلتر بر اساس نوع کالا (`item_type`)
+   - فیلتر بر اساس دسته‌بندی (`category`)
+   - فیلتر بر اساس زیر دسته‌بندی (`subcategory`)
+   - جستجو در نام و کد کالا (`item_search`)
+   - فیلترها و جستجو از طریق API endpoint `/inventory/api/filtered-items/` اعمال می‌شوند
 

@@ -88,6 +88,74 @@
 - `ItemUnitForm`
 - `ItemUnitFormSet`
 
+#### ✅ `inventory/forms/receipt.py`
+- **فایل README**: `inventory/forms/README_RECEIPT.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام header forms مستندسازی شده (`ReceiptTemporaryForm`, `ReceiptPermanentForm`, `ReceiptConsignmentForm`)
+  - تمام line forms با جزئیات کامل (`ReceiptLineBaseForm`, `ReceiptPermanentLineForm`, `ReceiptConsignmentLineForm`, `ReceiptTemporaryLineForm`)
+  - تمام متدها با پارامترها و return values
+  - تمام فیلدها با نوع، widget، label
+  - Formsets documentation
+  - Unit conversion logic
+  - Price normalization logic
+  - Item filtering and search support
+
+**کلاس‌های مستندسازی شده**:
+- `ReceiptTemporaryForm` (تمام متدها)
+- `ReceiptPermanentForm` (تمام متدها)
+- `ReceiptConsignmentForm` (تمام متدها)
+- `ReceiptLineBaseForm` (تمام helper methods)
+- `ReceiptPermanentLineForm`
+- `ReceiptConsignmentLineForm`
+- `ReceiptTemporaryLineForm`
+- `ReceiptPermanentLineFormSet`
+- `ReceiptConsignmentLineFormSet`
+- `ReceiptTemporaryLineFormSet`
+
+#### ✅ `inventory/forms/issue.py`
+- **فایل README**: `inventory/forms/README_ISSUE.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام header forms مستندسازی شده (`IssuePermanentForm`, `IssueConsumptionForm`, `IssueConsignmentForm`)
+  - تمام line forms با جزئیات کامل (`IssueLineBaseForm`, `IssuePermanentLineForm`, `IssueConsumptionLineForm`, `IssueConsignmentLineForm`)
+  - Serial assignment form (`IssueLineSerialAssignmentForm`)
+  - تمام متدها با پارامترها و return values
+  - Inventory balance validation
+  - Destination handling logic
+  - Production module integration
+  - Item filtering and search support
+
+**کلاس‌های مستندسازی شده**:
+- `IssuePermanentForm` (تمام متدها)
+- `IssueConsumptionForm` (تمام متدها)
+- `IssueConsignmentForm` (تمام متدها)
+- `IssueLineSerialAssignmentForm` (تمام متدها)
+- `IssueLineBaseForm` (تمام helper methods)
+- `IssuePermanentLineForm` (با destination handling)
+- `IssueConsumptionLineForm` (با destination type choice)
+- `IssueConsignmentLineForm` (با consignment receipt)
+- `IssuePermanentLineFormSet`
+- `IssueConsumptionLineFormSet`
+- `IssueConsignmentLineFormSet`
+
+#### ✅ `inventory/forms/request.py`
+- **فایل README**: `inventory/forms/README_REQUEST.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام forms مستندسازی شده (`PurchaseRequestForm`, `PurchaseRequestLineForm`, `WarehouseRequestForm`)
+  - تمام متدها با پارامترها و return values
+  - تمام فیلدها با نوع، widget، label
+  - Item filtering and search support (بر اساس `request.GET`)
+  - Approver validation
+  - Unit conversion logic
+
+**کلاس‌های مستندسازی شده**:
+- `PurchaseRequestForm` (تمام متدها)
+- `PurchaseRequestLineForm` (با item filtering)
+- `PurchaseRequestLineFormSet`
+- `WarehouseRequestForm` (تمام متدها با item filtering)
+
 ---
 
 ## فایل‌های مستندسازی شده (ناقص - نیاز به تکمیل)
@@ -96,10 +164,11 @@
 
 #### ⚠️ `inventory/views/receipts.py`
 - **فایل README**: `inventory/views/README_RECEIPTS.md`
-- **وضعیت**: ⚠️ ناقص (فقط خلاصه)
+- **وضعیت**: ⚠️ ناقص (خلاصه با به‌روزرسانی‌های اخیر)
 - **توضیحات**: 
-  - فایل README موجود است اما فقط خلاصه دارد
-  - نیاز به تکمیل کامل با تمام متدها و جزئیات
+  - فایل README موجود است و شامل خلاصه تمام کلاس‌ها است
+  - به‌روزرسانی شده با تغییرات اخیر (Item Filtering and Search)
+  - نیاز به تکمیل کامل با تمام متدها و جزئیات (پارامترها، return values، منطق کامل)
   - 27 کلاس view در این فایل وجود دارد که نیاز به مستندسازی کامل دارند
 
 **کلاس‌های موجود (نیاز به مستندسازی کامل)**:
@@ -146,9 +215,14 @@
 - **وضعیت**: ❌ نیاز به مستندسازی
 - **فایل README موجود**: `inventory/views/README_ISSUES.md` (نیاز به بررسی و تکمیل)
 
-#### ❌ `inventory/views/requests.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل README موجود**: `inventory/views/README_REQUESTS.md` (نیاز به بررسی و تکمیل)
+#### ⚠️ `inventory/views/requests.py`
+- **وضعیت**: ⚠️ ناقص (خلاصه با به‌روزرسانی‌های اخیر)
+- **فایل README موجود**: `inventory/views/README_REQUESTS.md`
+- **توضیحات**:
+  - فایل README موجود است و شامل خلاصه تمام کلاس‌ها است
+  - به‌روزرسانی شده با تغییرات اخیر (Item Filtering and Search)
+  - شامل توضیحات Base Mixins (`PurchaseRequestFormMixin`, `WarehouseRequestFormMixin`)
+  - نیاز به تکمیل کامل با تمام متدها و جزئیات (پارامترها، return values، منطق کامل)
 
 #### ❌ `inventory/views/stocktaking.py`
 - **وضعیت**: ❌ نیاز به مستندسازی
@@ -175,15 +249,14 @@
 
 ### Forms
 
-#### ❌ `inventory/forms/receipt.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
-- **توضیحات**: تمام form classes برای receipts نیاز به مستندسازی کامل دارند
+#### ✅ `inventory/forms/receipt.py`
+- **وضعیت**: ✅ کامل (به بخش بالا مراجعه کنید)
 
-#### ❌ `inventory/forms/issue.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
+#### ✅ `inventory/forms/issue.py`
+- **وضعیت**: ✅ کامل (به بخش بالا مراجعه کنید)
 
-#### ❌ `inventory/forms/request.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
+#### ✅ `inventory/forms/request.py`
+- **وضعیت**: ✅ کامل (به بخش بالا مراجعه کنید)
 
 #### ❌ `inventory/forms/stocktaking.py`
 - **وضعیت**: ❌ نیاز به مستندسازی
@@ -302,11 +375,11 @@
 
 ### ✅ کامل شده
 - **Views**: 1 فایل (`master_data.py`)
-- **Forms**: 1 فایل (`master_data.py`)
-- **جمع**: 2 فایل کامل
+- **Forms**: 4 فایل (`master_data.py`, `receipt.py`, `issue.py`, `request.py`)
+- **جمع**: 5 فایل کامل
 
 ### ⚠️ ناقص (نیاز به تکمیل)
-- **Views**: 1 فایل (`receipts.py`)
+- **Views**: 2 فایل (`receipts.py`, `requests.py`)
 
 ### ❌ نیازمند مستندسازی
 - **Views**: ~15+ فایل
@@ -413,24 +486,25 @@
 ### اولویت بالا (باید زودتر انجام شود)
 1. ✅ `inventory/views/master_data.py` - **کامل شده**
 2. ✅ `inventory/forms/master_data.py` - **کامل شده**
-3. ⚠️ `inventory/views/receipts.py` - **در حال تکمیل**
-4. ❌ `inventory/forms/receipt.py` - **بعدی**
-5. ❌ `inventory/views/issues.py` - **بعدی**
-6. ❌ `inventory/forms/issue.py` - **بعدی**
+3. ✅ `inventory/forms/receipt.py` - **کامل شده**
+4. ✅ `inventory/forms/issue.py` - **کامل شده**
+5. ✅ `inventory/forms/request.py` - **کامل شده**
+6. ⚠️ `inventory/views/receipts.py` - **ناقص (نیاز به تکمیل کامل)**
+7. ⚠️ `inventory/views/requests.py` - **ناقص (نیاز به تکمیل کامل)**
+8. ❌ `inventory/views/issues.py` - **بعدی**
 
 ### اولویت متوسط
-7. ❌ `inventory/views/requests.py`
-8. ❌ `inventory/forms/request.py`
 9. ❌ `inventory/views/stocktaking.py`
 10. ❌ `inventory/forms/stocktaking.py`
+11. ❌ `inventory/forms/base.py`
 
 ### اولویت پایین
-11. ❌ Utility files
-12. ❌ Service files
-13. ❌ Template tags
-14. ❌ Context processors
-15. ❌ Management commands
-16. ❌ Migrations
+12. ❌ Utility files
+13. ❌ Service files
+14. ❌ Template tags
+15. ❌ Context processors
+16. ❌ Management commands
+17. ❌ Migrations
 
 ---
 
@@ -449,7 +523,14 @@
 
 **تاریخ**: 26 نوامبر 2024
 **وضعیت**: در حال پیشرفت
-**پیشرفت**: 2 فایل کامل، 1 فایل ناقص، ~100+ فایل باقی‌مانده
+**پیشرفت**: 5 فایل کامل (Views: 1, Forms: 4)، 2 فایل ناقص (Views: 2)، ~95+ فایل باقی‌مانده
+
+**تغییرات اخیر**:
+- ✅ تکمیل `inventory/forms/receipt.py` - README کامل با تمام کلاس‌ها و متدها
+- ✅ تکمیل `inventory/forms/issue.py` - README کامل با تمام کلاس‌ها و متدها
+- ✅ تکمیل `inventory/forms/request.py` - README کامل با تمام کلاس‌ها و متدها
+- ⚠️ به‌روزرسانی `inventory/views/receipts.py` - اضافه شدن توضیحات Item Filtering and Search
+- ⚠️ به‌روزرسانی `inventory/views/requests.py` - اضافه شدن توضیحات Base Mixins و Item Filtering and Search
 
 ---
 

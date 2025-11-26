@@ -1283,6 +1283,21 @@ document.addEventListener('DOMContentLoaded', function() {
   min-width: 150px;
 }
 
+/* Hide any search inputs that are directly before or after filter selects */
+.item-filters .select-search-input {
+  /* Will be handled by JavaScript, but CSS as backup for immediate hiding */
+}
+
+/* Hide search inputs that are siblings of filter selects (using adjacent sibling selector) */
+.item-filters .filter-type-select + .select-search-input,
+.item-filters .filter-category-select + .select-search-input,
+.item-filters .filter-subcategory-select + .select-search-input,
+.item-filters .select-search-input + .filter-type-select,
+.item-filters .select-search-input + .filter-category-select,
+.item-filters .select-search-input + .filter-subcategory-select {
+  display: none !important;
+}
+
 .serial-assignment-section {
   display: flex;
   align-items: center;
@@ -1628,6 +1643,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Skip unit selects (they are dynamically populated and search causes issues)
     if (select.name && select.name.includes('-unit')) return;
     
+    // Skip filter selects (type, category, subcategory) - they don't need search box
+    // Check by class name
+    if (select.classList && (
+        select.classList.contains('filter-type-select') ||
+        select.classList.contains('filter-category-select') ||
+        select.classList.contains('filter-subcategory-select')
+    )) return;
+    
+    // Also check if select is inside .item-filters (double check)
+    if (select.closest && select.closest('.item-filters')) {
+      // Only skip if it's a filter select, not the item select itself
+      if (select.classList && (
+          select.classList.contains('filter-type-select') ||
+          select.classList.contains('filter-category-select') ||
+          select.classList.contains('filter-subcategory-select')
+      )) return;
+    }
+    
     // Add search input above select
     const wrapper = document.createElement('div');
     wrapper.className = 'select-wrapper';
@@ -1652,8 +1685,162 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Add search to all select fields in lines (except unit selects)
-  document.querySelectorAll('.line-form select').forEach(addSearchToSelect);
+  // Remove any existing search boxes from filter selects (cleanup)
+  function removeSearchBoxesFromFilterSelects() {
+    // Find all filter selects
+    document.querySelectorAll('.filter-type-select, .filter-category-select, .filter-subcategory-select').forEach(function(select) {
+      // Check if this select has a search box wrapper
+      const wrapper = select.parentNode;
+      if (wrapper && wrapper.classList && wrapper.classList.contains('select-wrapper')) {
+        const searchInput = wrapper.querySelector('.select-search-input');
+        if (searchInput) {
+          // Remove the search input
+          searchInput.remove();
+          // Unwrap the select (move it back to its original parent)
+          const grandParent = wrapper.parentNode;
+          if (grandParent) {
+            grandParent.insertBefore(select, wrapper);
+            wrapper.remove();
+          }
+        }
+      }
+      
+      // Check if there's a search input right before this select (sibling)
+      const previousSibling = select.previousElementSibling;
+      if (previousSibling && 
+          previousSibling.tagName === 'INPUT' && 
+          previousSibling.classList && 
+          previousSibling.classList.contains('select-search-input')) {
+        previousSibling.remove();
+      }
+      
+      // Check if there's a search input right after this select (sibling)
+      const nextSibling = select.nextElementSibling;
+      if (nextSibling && 
+          nextSibling.tagName === 'INPUT' && 
+          nextSibling.classList && 
+          nextSibling.classList.contains('select-search-input')) {
+        nextSibling.remove();
+      }
+    });
+    
+    // Also check all .item-filters sections and remove any search inputs that are near filter selects
+    document.querySelectorAll('.item-filters').forEach(function(itemFilters) {
+      // Find all search inputs in this item-filters section
+      const allSearchInputs = itemFilters.querySelectorAll('.select-search-input');
+      allSearchInputs.forEach(function(searchInput) {
+        // Check if this search input is near a filter select
+        const nextSibling = searchInput.nextElementSibling;
+        const previousSibling = searchInput.previousElementSibling;
+        
+        // If next sibling is a filter select, remove this search input
+        if (nextSibling && (
+            nextSibling.classList.contains('filter-type-select') ||
+            nextSibling.classList.contains('filter-category-select') ||
+            nextSibling.classList.contains('filter-subcategory-select')
+        )) {
+          searchInput.remove();
+          return;
+        }
+        
+        // If previous sibling is a filter select, remove this search input
+        if (previousSibling && (
+            previousSibling.classList.contains('filter-type-select') ||
+            previousSibling.classList.contains('filter-category-select') ||
+            previousSibling.classList.contains('filter-subcategory-select')
+        )) {
+          searchInput.remove();
+          return;
+        }
+        
+        // Check if this search input is inside a wrapper that contains a filter select
+        const wrapper = searchInput.closest('.select-wrapper');
+        if (wrapper) {
+          const filterSelect = wrapper.querySelector('.filter-type-select, .filter-category-select, .filter-subcategory-select');
+          if (filterSelect) {
+            searchInput.remove();
+            // Also unwrap the select
+            const grandParent = wrapper.parentNode;
+            if (grandParent) {
+              grandParent.insertBefore(filterSelect, wrapper);
+              wrapper.remove();
+            }
+          }
+        }
+      });
+    });
+  }
+  
+  // Clean up any existing search boxes on filter selects (before adding new ones)
+  removeSearchBoxesFromFilterSelects();
+  
+  // Add search to all select fields in lines (except unit selects and filter selects)
+  // Use :not() selector to explicitly exclude filter selects
+  // Also exclude selects inside .item-filters (except the main item select)
+  document.querySelectorAll('.line-form select').forEach(function(select) {
+    // Skip filter selects
+    if (select.classList && (
+        select.classList.contains('filter-type-select') ||
+        select.classList.contains('filter-category-select') ||
+        select.classList.contains('filter-subcategory-select')
+    )) return;
+    
+    // Skip if inside .item-filters (unless it's the main item select)
+    if (select.closest('.item-filters')) {
+      // Only process if it's the main item select (has name containing "-item")
+      if (!select.name || !select.name.includes('-item')) return;
+    }
+    
+    // Skip unit selects
+    if (select.name && select.name.includes('-unit')) return;
+    
+    // Add search to this select
+    addSearchToSelect(select);
+  });
+  
+  // Clean up again after adding search boxes (in case any filter selects were processed)
+  removeSearchBoxesFromFilterSelects();
+  
+  // Also run cleanup after a short delay to catch any dynamically added elements
+  setTimeout(function() {
+    removeSearchBoxesFromFilterSelects();
+  }, 100);
+  
+  setTimeout(function() {
+    removeSearchBoxesFromFilterSelects();
+  }, 500);
+  
+  // Run cleanup on any DOM mutations (for dynamically added forms)
+  if (typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver(function(mutations) {
+      let shouldCleanup = false;
+      mutations.forEach(function(mutation) {
+        if (mutation.addedNodes.length > 0) {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType === 1) { // Element node
+              if (node.classList && (
+                  node.classList.contains('filter-type-select') ||
+                  node.classList.contains('filter-category-select') ||
+                  node.classList.contains('filter-subcategory-select') ||
+                  node.querySelector('.filter-type-select') ||
+                  node.querySelector('.filter-category-select') ||
+                  node.querySelector('.filter-subcategory-select')
+              )) {
+                shouldCleanup = true;
+              }
+            }
+          });
+        }
+      });
+      if (shouldCleanup) {
+        removeSearchBoxesFromFilterSelects();
+      }
+    });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
   
   // Update unit choices when item changes
   function updateUnitChoices(itemSelect, unitSelect) {
@@ -2479,8 +2666,38 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
       
-      // Add search to new selects
-      newForm.querySelectorAll('select').forEach(addSearchToSelect);
+      // Add search to new selects (exclude filter selects explicitly)
+      newForm.querySelectorAll('select').forEach(function(select) {
+        // Skip filter selects
+        if (select.classList && (
+            select.classList.contains('filter-type-select') ||
+            select.classList.contains('filter-category-select') ||
+            select.classList.contains('filter-subcategory-select')
+        )) return;
+        
+        // Skip if inside .item-filters (unless it's the main item select)
+        if (select.closest('.item-filters')) {
+          if (!select.name || !select.name.includes('-item')) return;
+        }
+        
+        // Skip unit selects
+        if (select.name && select.name.includes('-unit')) return;
+        
+        // Add search to this select
+        addSearchToSelect(select);
+      });
+      
+      // Clean up any search boxes from filter selects in new form (in case any were processed)
+      removeSearchBoxesFromFilterSelects();
+      
+      // Also run cleanup after a short delay for the new form
+      setTimeout(function() {
+        removeSearchBoxesFromFilterSelects();
+      }, 50);
+      
+      setTimeout(function() {
+        removeSearchBoxesFromFilterSelects();
+      }, 200);
     });
   }
   

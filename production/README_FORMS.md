@@ -219,15 +219,19 @@ class WorkLineCreateView(FeaturePermissionRequiredMixin, CreateView):
 **Fields:**
 - `finished_item` - Finished product that will be produced (FK to Item)
 - `version` - BOM version (default: "1.0")
-- `effective_date` - Date when BOM becomes effective
-- `expiry_date` - Date when BOM expires (optional)
-- `is_active` - Active/Inactive status (1=Active, 0=Inactive)
 - `description` - Brief description
 - `notes` - Detailed notes
+- `is_enabled` - Status (1=Enabled, 0=Disabled)
+
+**Removed Fields:**
+- `is_active` - Removed (duplicate of `is_enabled`)
+- `effective_date` - Removed (was DateField)
+- `expiry_date` - Removed (was DateField)
 
 **Extra Filter Fields (not saved):**
-- `item_type` - Filter finished items by type (cascading)
-- `item_category` - Filter finished items by category (cascading)
+- `item_type` - Filter finished items by type (cascading, optional)
+- `item_category` - Filter finished items by category (cascading, optional)
+- `item_subcategory` - Filter finished items by subcategory (cascading, optional)
 
 **Auto-Generated Fields:**
 - `bom_code` (16 digits) - Automatically generated sequential code per company. Not user-editable. Generated on save using `generate_sequential_code()`.
@@ -239,11 +243,23 @@ class WorkLineCreateView(FeaturePermissionRequiredMixin, CreateView):
 # → item_category dropdown filters to show only categories of that type
 
 # Step 2: User selects item_category (optional)
-# → finished_item dropdown filters to show only items in that category
+# → item_subcategory dropdown filters to show only subcategories of that type+category
 
-# Step 3: User selects finished_item (required)
+# Step 3: User selects item_subcategory (optional)
+# → finished_item dropdown filters to show only items matching type+category+subcategory
+
+# Step 4: User selects finished_item (required)
+# → Can be selected via:
+#    - Filtering by type/category/subcategory (optional)
+#    - Direct search by name or code (without filters)
 # → BOM can be saved
 ```
+
+**Search Functionality:**
+- `finished_item` field includes a search input that allows searching by item name or code
+- Search works independently of filters (can search without selecting type/category/subcategory)
+- Search uses debounce (300ms) to reduce API calls
+- API endpoint: `/inventory/api/filtered-items/?search=<term>&type_id=<id>&category_id=<id>&subcategory_id=<id>`
 
 **Validation:**
 ```python

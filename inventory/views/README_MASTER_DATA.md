@@ -172,20 +172,41 @@
 
 **متدها**:
 
-#### `delete(self, request, *args, **kwargs) -> HttpResponseRedirect`
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
-**توضیح**: بعد از حذف، پیام موفقیت نمایش می‌دهد.
+**توضیح**: `model_verbose_name` را به context اضافه می‌کند تا در template استفاده شود.
 
 **پارامترهای ورودی**:
-- `request`: درخواست HTTP
-- `*args, **kwargs`: آرگومان‌های اضافی
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `model_verbose_name = _('نوع کالا')` اضافه شده
+
+**Context Variables اضافه شده**:
+- `model_verbose_name`: `_('نوع کالا')` - برای نمایش در template
+- `object`: instance نوع کالا برای حذف
+- `active_module`: `'inventory'` (از `InventoryBaseView`)
+
+---
+
+#### `form_valid(self, form) -> HttpResponseRedirect`
+
+**توضیح**: حذف را با مدیریت `ProtectedError` انجام می‌دهد.
+
+**پارامترهای ورودی**:
+- `form`: فرم معتبر `DeleteView` form
 
 **مقدار بازگشتی**:
 - `HttpResponseRedirect`: redirect به `success_url`
 
 **منطق**:
-1. پیام موفقیت را با `messages.success(self.request, _('Item Type deleted successfully.'))` نمایش می‌دهد
-2. `super().delete(request, *args, **kwargs)` را فراخوانی می‌کند که object را حذف می‌کند و redirect می‌کند
+1. سعی می‌کند object را حذف کند
+2. در صورت موفقیت، پیام موفقیت را نمایش می‌دهد و redirect می‌کند
+3. در صورت `ProtectedError` (وقتی که object در جای دیگری استفاده شده):
+   - مدل‌های محافظت شده را شناسایی می‌کند
+   - نام‌های مدل را به فارسی تبدیل می‌کند
+   - پیام خطای کاربرپسند نمایش می‌دهد: "نمی‌توان این نوع کالا را حذف کرد چون در ساختار {models} استفاده شده است."
+   - به صفحه لیست redirect می‌کند
 
 **URL**: `/inventory/item-types/<pk>/delete/`
 
@@ -330,18 +351,41 @@
 
 **متدها**:
 
-#### `delete(self, request, *args, **kwargs) -> HttpResponseRedirect`
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: `model_verbose_name` را به context اضافه می‌کند تا در template استفاده شود.
 
 **پارامترهای ورودی**:
-- `request`: درخواست HTTP
-- `*args, **kwargs`: آرگومان‌های اضافی
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `model_verbose_name = _('دسته‌بندی کالا')` اضافه شده
+
+**Context Variables اضافه شده**:
+- `model_verbose_name`: `_('دسته‌بندی کالا')` - برای نمایش در template
+- `object`: instance دسته کالا برای حذف
+- `active_module`: `'inventory'` (از `InventoryBaseView`)
+
+---
+
+#### `form_valid(self, form) -> HttpResponseRedirect`
+
+**توضیح**: حذف را با مدیریت `ProtectedError` انجام می‌دهد.
+
+**پارامترهای ورودی**:
+- `form`: فرم معتبر `DeleteView` form
 
 **مقدار بازگشتی**:
 - `HttpResponseRedirect`: redirect به `success_url`
 
 **منطق**:
-1. پیام موفقیت را نمایش می‌دهد
-2. `super().delete(request, *args, **kwargs)` را فراخوانی می‌کند
+1. سعی می‌کند object را حذف کند
+2. در صورت موفقیت، پیام موفقیت را نمایش می‌دهد و redirect می‌کند
+3. در صورت `ProtectedError` (وقتی که object در جای دیگری استفاده شده):
+   - مدل‌های محافظت شده را شناسایی می‌کند
+   - نام‌های مدل را به فارسی تبدیل می‌کند
+   - پیام خطای کاربرپسند نمایش می‌دهد: "نمی‌توان این دسته‌بندی کالا را حذف کرد چون در ساختار {models} استفاده شده است."
+   - به صفحه لیست redirect می‌کند
 
 **URL**: `/inventory/item-categories/<pk>/delete/`
 
@@ -482,18 +526,41 @@
 
 **متدها**:
 
-#### `delete(self, request, *args, **kwargs) -> HttpResponseRedirect`
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: `model_verbose_name` را به context اضافه می‌کند تا در template استفاده شود.
 
 **پارامترهای ورودی**:
-- `request`: درخواست HTTP
-- `*args, **kwargs`: آرگومان‌های اضافی
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `model_verbose_name = _('زیر دسته‌بندی کالا')` اضافه شده
+
+**Context Variables اضافه شده**:
+- `model_verbose_name`: `_('زیر دسته‌بندی کالا')` - برای نمایش در template
+- `object`: instance زیردسته کالا برای حذف
+- `active_module`: `'inventory'` (از `InventoryBaseView`)
+
+---
+
+#### `form_valid(self, form) -> HttpResponseRedirect`
+
+**توضیح**: حذف را با مدیریت `ProtectedError` انجام می‌دهد.
+
+**پارامترهای ورودی**:
+- `form`: فرم معتبر `DeleteView` form
 
 **مقدار بازگشتی**:
 - `HttpResponseRedirect`: redirect به `success_url`
 
 **منطق**:
-1. پیام موفقیت را نمایش می‌دهد
-2. `super().delete(request, *args, **kwargs)` را فراخوانی می‌کند
+1. سعی می‌کند object را حذف کند
+2. در صورت موفقیت، پیام موفقیت را نمایش می‌دهد و redirect می‌کند
+3. در صورت `ProtectedError` (وقتی که object در جای دیگری استفاده شده):
+   - مدل‌های محافظت شده را شناسایی می‌کند
+   - نام‌های مدل را به فارسی تبدیل می‌کند
+   - پیام خطای کاربرپسند نمایش می‌دهد: "نمی‌توان این زیر دسته‌بندی کالا را حذف کرد چون در ساختار {models} استفاده شده است."
+   - به صفحه لیست redirect می‌کند
 
 **URL**: `/inventory/item-subcategories/<pk>/delete/`
 
