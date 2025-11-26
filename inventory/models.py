@@ -777,6 +777,37 @@ class PurchaseRequest(InventoryBaseModel, LockableModel):
     def save(self, *args, **kwargs):
         if not self.request_code:
             self.request_code = self._generate_request_code()
+        
+        # Ensure item_code is set from item if not already set
+        if self.item and not self.item_code:
+            self.item_code = self.item.item_code or self.item.full_item_code or ''
+        
+        # Set legacy fields from first line if they exist (for backward compatibility)
+        # These fields are now handled by PurchaseRequestLine, but still exist in the model
+        skip_sync = getattr(self, '_skip_legacy_sync', False)
+        if not skip_sync:
+            # Only sync if we have lines and legacy fields are not set
+            if self.pk:
+                try:
+                    first_line = self.lines.first()
+                    if first_line:
+                        if not self.item_id:
+                            self.item = first_line.item
+                        if not self.item_code:
+                            self.item_code = first_line.item_code
+                        if not self.unit:
+                            self.unit = first_line.unit
+                except Exception:
+                    # If lines don't exist yet, skip sync
+                    pass
+            
+            # quantity_requested and quantity_fulfilled are calculated from lines
+            # but we need to set them to avoid NOT NULL constraint
+            if not hasattr(self, 'quantity_requested') or self.quantity_requested is None:
+                self.quantity_requested = Decimal("0")
+            if not hasattr(self, 'quantity_fulfilled') or self.quantity_fulfilled is None:
+                self.quantity_fulfilled = Decimal("0")
+        
         super().save(*args, **kwargs)
     
     @property

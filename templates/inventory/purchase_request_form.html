@@ -111,15 +111,25 @@
                   <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
                     <option value="">{% trans "Type" %}</option>
                     {% for item_type in item_types %}
-                    <option value="{{ item_type.id }}">{{ item_type.name }}</option>
+                    <option value="{{ item_type.id }}" {% if current_item_type == item_type.id|stringformat:"s" %}selected{% endif %}>{{ item_type.name }}</option>
                     {% endfor %}
                   </select>
                   <select class="form-control filter-category-select" data-form-index="{{ forloop.counter0 }}">
                     <option value="">{% trans "Category" %}</option>
+                    {% for category in item_categories %}
+                    <option value="{{ category.id }}" {% if current_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
                   </select>
                   <select class="form-control filter-subcategory-select" data-form-index="{{ forloop.counter0 }}">
                     <option value="">{% trans "Subcategory" %}</option>
+                    {% for subcategory in item_subcategories %}
+                    <option value="{{ subcategory.id }}" {% if current_subcategory == subcategory.id|stringformat:"s" %}selected{% endif %}>{{ subcategory.name }}</option>
+                    {% endfor %}
                   </select>
+                  <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}" 
+                         placeholder="{% trans 'Search by name or code...' %}" 
+                         value="{{ current_item_search }}"
+                         style="flex: 2; min-width: 150px;">
                 </div>
                 {{ line_form.item }}
                 {% if line_form.item.errors %}
@@ -173,15 +183,25 @@
                   <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
                     <option value="">{% trans "Type" %}</option>
                     {% for item_type in item_types %}
-                    <option value="{{ item_type.id }}">{{ item_type.name }}</option>
+                    <option value="{{ item_type.id }}" {% if current_item_type == item_type.id|stringformat:"s" %}selected{% endif %}>{{ item_type.name }}</option>
                     {% endfor %}
                   </select>
                   <select class="form-control filter-category-select" data-form-index="{{ forloop.counter0 }}">
                     <option value="">{% trans "Category" %}</option>
+                    {% for category in item_categories %}
+                    <option value="{{ category.id }}" {% if current_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
                   </select>
                   <select class="form-control filter-subcategory-select" data-form-index="{{ forloop.counter0 }}">
                     <option value="">{% trans "Subcategory" %}</option>
+                    {% for subcategory in item_subcategories %}
+                    <option value="{{ subcategory.id }}" {% if current_subcategory == subcategory.id|stringformat:"s" %}selected{% endif %}>{{ subcategory.name }}</option>
+                    {% endfor %}
                   </select>
+                  <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}" 
+                         placeholder="{% trans 'Search by name or code...' %}" 
+                         value="{{ current_item_search }}"
+                         style="flex: 2; min-width: 150px;">
                 </div>
                 {{ line_form.item }}
                 {% if line_form.item.errors %}
@@ -446,7 +466,8 @@
   flex-wrap: wrap;
 }
 
-.item-filters select {
+.item-filters select,
+.item-filters input[type="text"] {
   flex: 1;
   min-width: 80px;
   font-size: 0.7rem;
@@ -457,10 +478,16 @@
   color: #6b7280;
 }
 
-.item-filters select:focus {
+.item-filters select:focus,
+.item-filters input[type="text"]:focus {
   outline: none;
   border-color: #2563eb;
   background-color: #ffffff;
+}
+
+.item-filters input[type="text"] {
+  flex: 2;
+  min-width: 150px;
 }
 
 .line-cell.line-notes textarea {
@@ -558,13 +585,14 @@ function refreshLineUnitOptions(itemSelect, unitSelect) {
   }
 }
 
-// Filter items for a specific row based on type, category, subcategory
+// Filter items for a specific row based on type, category, subcategory, and search
 function filterItemsForRow(rowElement) {
   if (!rowElement) return;
   
   const typeSelect = rowElement.querySelector('.filter-type-select');
   const categorySelect = rowElement.querySelector('.filter-category-select');
   const subcategorySelect = rowElement.querySelector('.filter-subcategory-select');
+  const searchInput = rowElement.querySelector('.filter-search-input');
   const itemSelect = rowElement.querySelector('select[name*="-item"]');
   
   if (!itemSelect) return;
@@ -572,6 +600,7 @@ function filterItemsForRow(rowElement) {
   const typeId = typeSelect?.value || '';
   const categoryId = categorySelect?.value || '';
   const subcategoryId = subcategorySelect?.value || '';
+  const searchTerm = searchInput?.value?.trim() || '';
   
   // Build API URL
   let apiUrl = '/inventory/api/filtered-items/';
@@ -579,11 +608,15 @@ function filterItemsForRow(rowElement) {
   if (typeId) params.append('type_id', typeId);
   if (categoryId) params.append('category_id', categoryId);
   if (subcategoryId) params.append('subcategory_id', subcategoryId);
+  if (searchTerm) params.append('search', searchTerm);
+  
+  // If no filters and no search, load all items
+  // Otherwise, apply filters
   if (params.toString()) {
     apiUrl += '?' + params.toString();
   }
   
-  // Fetch filtered items
+  // Fetch filtered items (or all items if no filters)
   fetch(apiUrl)
     .then(response => response.json())
     .then(data => {
@@ -753,6 +786,18 @@ function initializeLineForms() {
       });
     }
     
+    // Setup search input with debounce
+    const searchInput = lineRow.querySelector('.filter-search-input');
+    let searchTimeout;
+    if (searchInput) {
+      searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() {
+          filterItemsForRow(lineRow);
+        }, 300); // Debounce 300ms
+      });
+    }
+    
     // Setup item select
     if (itemSelect && unitSelect) {
       itemSelect.addEventListener("change", function() {
@@ -765,9 +810,12 @@ function initializeLineForms() {
       }
     }
     
-    // Initialize filters - load all categories initially
+    // Initialize filters - load all categories initially and filter items
     if (typeSelect) {
       loadCategoriesForRow(lineRow, typeSelect.value);
+    } else {
+      // If no type filter, just load all items
+      filterItemsForRow(lineRow);
     }
   });
 }
@@ -849,6 +897,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
       
+      // Setup search input for new row
+      const searchInput = newRow.querySelector('.filter-search-input');
+      let searchTimeout;
+      if (searchInput) {
+        searchInput.addEventListener('input', function() {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(function() {
+            filterItemsForRow(newRow);
+          }, 300); // Debounce 300ms
+        });
+      }
+      
       if (itemSelect && unitSelect) {
         itemSelect.addEventListener("change", function() {
           refreshLineUnitOptions(itemSelect, unitSelect);
@@ -858,6 +918,9 @@ document.addEventListener('DOMContentLoaded', function() {
       // Initialize filters for new row
       if (typeSelect) {
         loadCategoriesForRow(newRow, typeSelect.value);
+      } else {
+        // If no type filter, just load all items
+        filterItemsForRow(newRow);
       }
       
       // Reinitialize all line forms to update row numbers

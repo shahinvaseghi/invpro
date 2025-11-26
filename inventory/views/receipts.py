@@ -122,6 +122,23 @@ class ReceiptFormMixin(InventoryBaseView):
         placeholder_label = str(forms.UNIT_CHOICES[0][1])
         context['unit_placeholder'] = placeholder_label
 
+        # Add item types, categories, and subcategories for filtering
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            context['item_types'] = models.ItemType.objects.filter(company_id=company_id, is_enabled=1).order_by('name')
+            context['item_categories'] = models.ItemCategory.objects.filter(company_id=company_id, is_enabled=1).order_by('name')
+            context['item_subcategories'] = models.ItemSubcategory.objects.filter(company_id=company_id, is_enabled=1).order_by('name')
+        else:
+            context['item_types'] = models.ItemType.objects.none()
+            context['item_categories'] = models.ItemCategory.objects.none()
+            context['item_subcategories'] = models.ItemSubcategory.objects.none()
+        
+        # Add current filter selections to context
+        context['current_item_type'] = self.request.GET.get('item_type')
+        context['current_category'] = self.request.GET.get('category')
+        context['current_subcategory'] = self.request.GET.get('subcategory')
+        context['current_item_search'] = self.request.GET.get('item_search')
+
         instance = getattr(form, 'instance', None)
         context['document_instance'] = instance
         if instance and getattr(instance, 'pk', None):

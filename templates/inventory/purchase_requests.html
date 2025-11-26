@@ -119,7 +119,7 @@
             {% if pr.lines.exists %}
               {{ pr.total_quantity_requested|floatformat:2 }}
             {% else %}
-              {{ pr.quantity_requested|floatformat:2 }} {{ pr.unit }}
+              {{ pr.total_quantity_requested|floatformat:2 }}
             {% endif %}
           </td>
           <td>

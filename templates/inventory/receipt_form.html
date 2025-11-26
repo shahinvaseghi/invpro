@@ -141,7 +141,33 @@
                 {% if 'item' in line_form.fields %}
                 <div class="form-field">
                   <label>{{ line_form.item.label }}{% if line_form.item.field.required %}*{% endif %}</label>
-                  {{ line_form.item }}
+                  <div class="item-select-wrapper">
+                    <div class="item-filters">
+                      <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Type" %}</option>
+                        {% for item_type in item_types %}
+                        <option value="{{ item_type.id }}" {% if current_item_type == item_type.id|stringformat:"s" %}selected{% endif %}>{{ item_type.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <select class="form-control filter-category-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Category" %}</option>
+                        {% for category in item_categories %}
+                        <option value="{{ category.id }}" {% if current_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <select class="form-control filter-subcategory-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Subcategory" %}</option>
+                        {% for subcategory in item_subcategories %}
+                        <option value="{{ subcategory.id }}" {% if current_subcategory == subcategory.id|stringformat:"s" %}selected{% endif %}>{{ subcategory.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}" 
+                             placeholder="{% trans 'Search by name or code...' %}" 
+                             value="{{ current_item_search }}"
+                             style="flex: 2; min-width: 150px;">
+                    </div>
+                    {{ line_form.item }}
+                  </div>
                   {% if line_form.item.errors %}
                     <span class="error">{{ line_form.item.errors.0 }}</span>
                   {% endif %}
@@ -444,7 +470,33 @@
                 {% if 'item' in line_form.fields %}
                 <div class="form-field">
                   <label>{{ line_form.item.label }}{% if line_form.item.field.required %}*{% endif %}</label>
-                  {{ line_form.item }}
+                  <div class="item-select-wrapper">
+                    <div class="item-filters">
+                      <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Type" %}</option>
+                        {% for item_type in item_types %}
+                        <option value="{{ item_type.id }}" {% if current_item_type == item_type.id|stringformat:"s" %}selected{% endif %}>{{ item_type.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <select class="form-control filter-category-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Category" %}</option>
+                        {% for category in item_categories %}
+                        <option value="{{ category.id }}" {% if current_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <select class="form-control filter-subcategory-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Subcategory" %}</option>
+                        {% for subcategory in item_subcategories %}
+                        <option value="{{ subcategory.id }}" {% if current_subcategory == subcategory.id|stringformat:"s" %}selected{% endif %}>{{ subcategory.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}" 
+                             placeholder="{% trans 'Search by name or code...' %}" 
+                             value="{{ current_item_search }}"
+                             style="flex: 2; min-width: 150px;">
+                    </div>
+                    {{ line_form.item }}
+                  </div>
                   {% if line_form.item.errors %}
                     <span class="error">{{ line_form.item.errors.0 }}</span>
                   {% endif %}
@@ -680,7 +732,33 @@
                 {% if 'item' in line_form.fields %}
                 <div class="form-field">
                   <label>{{ line_form.item.label }}{% if line_form.item.field.required %}*{% endif %}</label>
-                  {{ line_form.item }}
+                  <div class="item-select-wrapper">
+                    <div class="item-filters">
+                      <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Type" %}</option>
+                        {% for item_type in item_types %}
+                        <option value="{{ item_type.id }}" {% if current_item_type == item_type.id|stringformat:"s" %}selected{% endif %}>{{ item_type.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <select class="form-control filter-category-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Category" %}</option>
+                        {% for category in item_categories %}
+                        <option value="{{ category.id }}" {% if current_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <select class="form-control filter-subcategory-select" data-form-index="{{ forloop.counter0 }}">
+                        <option value="">{% trans "Subcategory" %}</option>
+                        {% for subcategory in item_subcategories %}
+                        <option value="{{ subcategory.id }}" {% if current_subcategory == subcategory.id|stringformat:"s" %}selected{% endif %}>{{ subcategory.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}" 
+                             placeholder="{% trans 'Search by name or code...' %}" 
+                             value="{{ current_item_search }}"
+                             style="flex: 2; min-width: 150px;">
+                    </div>
+                    {{ line_form.item }}
+                  </div>
                   {% if line_form.item.errors %}
                     <span class="error">{{ line_form.item.errors.0 }}</span>
                   {% endif %}
@@ -1168,6 +1246,41 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .line-fields .form-field.full-width {
   grid-column: 1 / -1;
+}
+
+.item-select-wrapper {
+  width: 100%;
+}
+
+.item-filters {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.item-filters select,
+.item-filters input[type="text"] {
+  flex: 1;
+  min-width: 80px;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background-color: #f9fafb;
+  color: #6b7280;
+}
+
+.item-filters select:focus,
+.item-filters input[type="text"]:focus {
+  outline: none;
+  border-color: #2563eb;
+  background-color: #ffffff;
+}
+
+.item-filters input[type="text"] {
+  flex: 2;
+  min-width: 150px;
 }
 
 .serial-assignment-section {
@@ -1689,6 +1802,218 @@ document.addEventListener('DOMContentLoaded', function() {
       });
   }
   
+  // Filter items for a specific row based on type, category, subcategory, and search
+  function filterItemsForRow(rowElement) {
+    if (!rowElement) return;
+    
+    const typeSelect = rowElement.querySelector('.filter-type-select');
+    const categorySelect = rowElement.querySelector('.filter-category-select');
+    const subcategorySelect = rowElement.querySelector('.filter-subcategory-select');
+    const searchInput = rowElement.querySelector('.filter-search-input');
+    const itemSelect = rowElement.querySelector('select[name*="-item"]');
+    
+    if (!itemSelect) return;
+    
+    const typeId = typeSelect?.value || '';
+    const categoryId = categorySelect?.value || '';
+    const subcategoryId = subcategorySelect?.value || '';
+    const searchTerm = searchInput?.value?.trim() || '';
+    
+    // Build API URL
+    let apiUrl = '/inventory/api/filtered-items/';
+    const params = new URLSearchParams();
+    if (typeId) params.append('type_id', typeId);
+    if (categoryId) params.append('category_id', categoryId);
+    if (subcategoryId) params.append('subcategory_id', subcategoryId);
+    if (searchTerm) params.append('search', searchTerm);
+    
+    // If no filters and no search, load all items
+    // Otherwise, apply filters
+    if (params.toString()) {
+      apiUrl += '?' + params.toString();
+    }
+    
+    // Fetch filtered items (or all items if no filters)
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        if (data.items) {
+          const itemMap = {};
+          data.items.forEach(function(item) {
+            itemMap[item.value] = item;
+          });
+          
+          const currentValue = itemSelect.value;
+          const placeholder = itemSelect.options[0];
+          
+          // Clear all options except placeholder
+          itemSelect.innerHTML = '';
+          if (placeholder && placeholder.value === '') {
+            itemSelect.appendChild(placeholder.cloneNode(true));
+          } else {
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = '--- انتخاب کنید ---';
+            itemSelect.appendChild(emptyOption);
+          }
+          
+          // Add filtered items
+          data.items.forEach(function(item) {
+            const option = document.createElement('option');
+            option.value = item.value;
+            option.textContent = item.label;
+            itemSelect.appendChild(option);
+          });
+          
+          // Restore current value if it's in filtered list
+          if (currentValue && itemMap[currentValue]) {
+            itemSelect.value = currentValue;
+          } else if (currentValue) {
+            // Current value is not in filtered list, clear it
+            itemSelect.value = '';
+            const unitSelect = rowElement.querySelector('select[name*="-unit"]');
+            if (unitSelect) {
+              updateUnitChoices(itemSelect, unitSelect);
+            }
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error filtering items:', error);
+      });
+  }
+
+  // Load categories for a specific row based on type
+  function loadCategoriesForRow(rowElement, typeId) {
+    if (!rowElement) return;
+    
+    const categorySelect = rowElement.querySelector('.filter-category-select');
+    const subcategorySelect = rowElement.querySelector('.filter-subcategory-select');
+    
+    if (!categorySelect) return;
+    
+    categorySelect.innerHTML = '<option value="">{% trans "All Categories" %}</option>';
+    if (subcategorySelect) {
+      subcategorySelect.innerHTML = '<option value="">{% trans "All Subcategories" %}</option>';
+    }
+    
+    if (!typeId) {
+      // Load all categories
+      fetch('/inventory/api/filtered-categories/')
+        .then(response => response.json())
+        .then(data => {
+          if (data.categories) {
+            data.categories.forEach(function(cat) {
+              const option = document.createElement("option");
+              option.value = cat.value;
+              option.textContent = cat.label;
+              categorySelect.appendChild(option);
+            });
+          }
+          // Filter items after loading categories
+          filterItemsForRow(rowElement);
+        });
+      return;
+    }
+    
+    fetch(`/inventory/api/filtered-categories/?type_id=${typeId}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.categories) {
+          data.categories.forEach(function(cat) {
+            const option = document.createElement("option");
+            option.value = cat.value;
+            option.textContent = cat.label;
+            categorySelect.appendChild(option);
+          });
+        }
+        // Filter items after loading categories
+        filterItemsForRow(rowElement);
+      });
+  }
+
+  // Load subcategories for a specific row based on category
+  function loadSubcategoriesForRow(rowElement, categoryId) {
+    if (!rowElement) return;
+    
+    const subcategorySelect = rowElement.querySelector('.filter-subcategory-select');
+    if (!subcategorySelect) return;
+    
+    subcategorySelect.innerHTML = '<option value="">{% trans "All Subcategories" %}</option>';
+    
+    if (!categoryId) {
+      // Filter items after clearing subcategory
+      filterItemsForRow(rowElement);
+      return;
+    }
+    
+    fetch(`/inventory/api/filtered-subcategories/?category_id=${categoryId}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.subcategories) {
+          data.subcategories.forEach(function(sub) {
+            const option = document.createElement("option");
+            option.value = sub.value;
+            option.textContent = sub.label;
+            subcategorySelect.appendChild(option);
+          });
+        }
+        // Filter items after loading subcategories
+        filterItemsForRow(rowElement);
+      });
+  }
+
+  // Initialize filters for all line forms
+  function initializeLineFormFilters() {
+    document.querySelectorAll('.line-form').forEach(function(lineForm) {
+      const typeSelect = lineForm.querySelector('.filter-type-select');
+      const categorySelect = lineForm.querySelector('.filter-category-select');
+      const subcategorySelect = lineForm.querySelector('.filter-subcategory-select');
+      const searchInput = lineForm.querySelector('.filter-search-input');
+      const itemSelect = lineForm.querySelector('select[name*="-item"]');
+      
+      // Setup type filter
+      if (typeSelect) {
+        typeSelect.addEventListener('change', function() {
+          loadCategoriesForRow(lineForm, this.value);
+        });
+      }
+      
+      // Setup category filter
+      if (categorySelect) {
+        categorySelect.addEventListener('change', function() {
+          loadSubcategoriesForRow(lineForm, this.value);
+        });
+      }
+      
+      // Setup subcategory filter
+      if (subcategorySelect) {
+        subcategorySelect.addEventListener('change', function() {
+          filterItemsForRow(lineForm);
+        });
+      }
+      
+      // Setup search input with debounce
+      if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(function() {
+            filterItemsForRow(lineForm);
+          }, 300); // Debounce 300ms
+        });
+      }
+      
+      // Initialize filters - load all categories initially and filter items
+      if (typeSelect) {
+        loadCategoriesForRow(lineForm, typeSelect.value);
+      } else {
+        // If no type filter, just load all items
+        filterItemsForRow(lineForm);
+      }
+    });
+  }
+
   // Attach item change handlers for multi-line forms (inlinesets)
   document.querySelectorAll('.line-form select[name*="-item"]').forEach(function(itemSelect) {
     const lineForm = itemSelect.closest('.line-form');
@@ -1719,6 +2044,9 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
   });
+  
+  // Initialize filters for all existing line forms
+  initializeLineFormFilters();
   
   // Attach item change handlers for single-line forms (like ReceiptTemporary)
   // Handle forms without lines_formset (single-line forms)
@@ -2005,6 +2333,50 @@ document.addEventListener('DOMContentLoaded', function() {
             lineForm.classList.remove('deleted');
           }
         });
+      }
+      
+      // Setup filters for new form
+      const typeSelect = newForm.querySelector('.filter-type-select');
+      const categorySelect = newForm.querySelector('.filter-category-select');
+      const subcategorySelect = newForm.querySelector('.filter-subcategory-select');
+      const searchInput = newForm.querySelector('.filter-search-input');
+      
+      // Setup filter listeners for new form
+      if (typeSelect) {
+        typeSelect.addEventListener('change', function() {
+          loadCategoriesForRow(newForm, this.value);
+        });
+      }
+      
+      if (categorySelect) {
+        categorySelect.addEventListener('change', function() {
+          loadSubcategoriesForRow(newForm, this.value);
+        });
+      }
+      
+      if (subcategorySelect) {
+        subcategorySelect.addEventListener('change', function() {
+          filterItemsForRow(newForm);
+        });
+      }
+      
+      // Setup search input for new form
+      if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(function() {
+            filterItemsForRow(newForm);
+          }, 300); // Debounce 300ms
+        });
+      }
+      
+      // Initialize filters for new form
+      if (typeSelect) {
+        loadCategoriesForRow(newForm, typeSelect.value);
+      } else {
+        // If no type filter, just load all items
+        filterItemsForRow(newForm);
       }
       
       const newItemSelect = newForm.querySelector('select[name*="-item"]');

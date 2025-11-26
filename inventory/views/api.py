@@ -154,15 +154,18 @@ def get_filtered_subcategories(request: HttpRequest) -> JsonResponse:
 
 @login_required
 def get_filtered_items(request: HttpRequest) -> JsonResponse:
-    """API endpoint to get filtered items based on type, category, subcategory."""
+    """API endpoint to get filtered items based on type, category, subcategory, and search term."""
     company_id = request.session.get('active_company_id')
     if not company_id:
         return JsonResponse({'error': 'No active company'}, status=400)
 
     try:
+        from django.db.models import Q
+        
         type_id = request.GET.get('type_id')
         category_id = request.GET.get('category_id')
         subcategory_id = request.GET.get('subcategory_id')
+        search_term = request.GET.get('search', '').strip()
 
         # Start with all enabled items in company
         items = models.Item.objects.filter(
@@ -177,13 +180,21 @@ def get_filtered_items(request: HttpRequest) -> JsonResponse:
             items = items.filter(category_id=category_id)
         if subcategory_id:
             items = items.filter(subcategory_id=subcategory_id)
+        
+        # Apply search term (optional - can search without filters)
+        if search_term:
+            items = items.filter(
+                Q(name__icontains=search_term) |
+                Q(item_code__icontains=search_term) |
+                Q(full_item_code__icontains=search_term)
+            )
 
-        items = items.order_by('item_code')
+        items = items.order_by('name')
 
         items_data = [
             {
                 'value': str(item.pk),
-                'label': f"{item.item_code} - {item.name}",
+                'label': f"{item.name} · {item.item_code}",
                 'type_id': str(item.type_id) if item.type_id else '',
                 'category_id': str(item.category_id) if item.category_id else '',
                 'subcategory_id': str(item.subcategory_id) if item.subcategory_id else '',

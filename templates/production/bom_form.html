@@ -175,7 +175,15 @@
                     {% endif %}
                   </td>
                   <td>
-                    {{ form.material_item }}
+                    <div class="item-select-wrapper">
+                      <div class="item-filters">
+                        <input type="text" class="form-control filter-search-input" 
+                               placeholder="{% trans 'Search by name or code...' %}" 
+                               data-form-index="{{ forloop.counter0 }}"
+                               style="flex: 1; min-width: 150px; font-size: 0.7rem; padding: 0.3rem 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; background-color: #f9fafb; color: #6b7280;">
+                      </div>
+                      {{ form.material_item }}
+                    </div>
                     {% if form.material_item.errors %}
                       <span class="error">{{ form.material_item.errors.0 }}</span>
                     {% endif %}
@@ -445,6 +453,34 @@
 
 [dir="rtl"] .materials-table th {
   text-align: right;
+}
+
+.item-select-wrapper {
+  width: 100%;
+}
+
+.item-filters {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.item-filters input[type="text"] {
+  flex: 1;
+  min-width: 150px;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background-color: #f9fafb;
+  color: #6b7280;
+}
+
+.item-filters input[type="text"]:focus {
+  outline: none;
+  border-color: #2563eb;
+  background-color: #ffffff;
 }
 </style>
 
@@ -804,6 +840,8 @@ document.addEventListener('DOMContentLoaded', function() {
       const selectedType = typeSelect.value;
       const selectedCategory = categorySelect.value;
       const selectedSubcategory = subcategorySelect.value;
+      const searchInput = row.querySelector('.filter-search-input');
+      const searchTerm = searchInput?.value?.trim() || '';
       const currentValue = itemSelect.value;
       
       // Build API URL with filters
@@ -811,6 +849,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (selectedType) apiUrl += 'type_id=' + selectedType + '&';
       if (selectedCategory) apiUrl += 'category_id=' + selectedCategory + '&';
       if (selectedSubcategory) apiUrl += 'subcategory_id=' + selectedSubcategory + '&';
+      if (searchTerm) apiUrl += 'search=' + encodeURIComponent(searchTerm) + '&';
       
       // Show loading
       itemSelect.innerHTML = '<option value="">در حال بارگذاری...</option>';
@@ -868,6 +907,18 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     subcategorySelect.addEventListener('change', filterItems);
+    
+    // Setup search input with debounce
+    const searchInput = row.querySelector('.filter-search-input');
+    if (searchInput) {
+      let searchTimeout;
+      searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() {
+          filterItems();
+        }, 300); // Debounce 300ms
+      });
+    }
     
     // When material item changes, load units for that item
     itemSelect.addEventListener('change', function() {

@@ -100,6 +100,12 @@ class PurchaseRequestFormMixin(InventoryBaseView):
             context['item_categories'] = ItemCategory.objects.none()
             context['item_subcategories'] = ItemSubcategory.objects.none()
         
+        # Add current filter values from request
+        context['current_item_type'] = self.request.GET.get('item_type', '') or self.request.POST.get('item_type', '')
+        context['current_category'] = self.request.GET.get('category', '') or self.request.POST.get('category', '')
+        context['current_subcategory'] = self.request.GET.get('subcategory', '') or self.request.POST.get('subcategory', '')
+        context['current_item_search'] = self.request.GET.get('item_search', '') or self.request.POST.get('item_search', '')
+        
         return context
 
     def get_fieldsets(self) -> list:
@@ -118,6 +124,8 @@ class PurchaseRequestListView(InventoryBaseView, ListView):
         """Filter and search purchase requests."""
         queryset = super().get_queryset()
         queryset = queryset.select_related('requested_by', 'approver').prefetch_related('lines__item')
+        # Order by newest first (by id descending, then by request_date)
+        queryset = queryset.order_by('-id', '-request_date', 'request_code')
         status = self.request.GET.get('status')
         priority = self.request.GET.get('priority')
         search = self.request.GET.get('search')
@@ -186,32 +194,67 @@ class PurchaseRequestCreateView(LineFormsetMixin, PurchaseRequestFormMixin, Crea
         form.instance.request_date = timezone.now().date()
         form.instance.status = models.PurchaseRequest.Status.DRAFT
         
-        # Save document first
-        self.object = form.save()
-        
-        # Handle line formset
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        # Build line formset first to validate and get first item
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
         if not lines_formset.is_valid():
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
         
-        # Check if we have at least one valid line before saving
+        # Check if we have at least one valid line before saving document
         valid_lines = []
+        first_item = None
+        first_unit = None
         for line_form in lines_formset.forms:
             if line_form.cleaned_data and line_form.cleaned_data.get('item') and not line_form.cleaned_data.get('DELETE', False):
                 valid_lines.append(line_form)
+                if first_item is None:
+                    first_item = line_form.cleaned_data.get('item')
+                    first_unit = line_form.cleaned_data.get('unit', 'EA')
         
         if not valid_lines:
-            # No valid lines, show error and delete the document
-            self.object.delete()
             form.add_error(None, _('Please add at least one line with an item.'))
-            lines_formset = self.build_line_formset(instance=None)
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
         
+        # Set legacy fields from first valid line (for backward compatibility)
+        # These fields are now handled by PurchaseRequestLine, but still exist in the model
+        from decimal import Decimal
+        if not first_item:
+            form.add_error(None, _('Please add at least one line with an item.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        form.instance.item = first_item
+        form.instance.item_code = first_item.item_code or first_item.full_item_code or ''
+        form.instance.unit = first_unit or 'EA'
+        # quantity_requested and quantity_fulfilled will be calculated from lines
+        # Set to 0 initially to satisfy NOT NULL constraint
+        form.instance.quantity_requested = Decimal("0")
+        form.instance.quantity_fulfilled = Decimal("0")
+        
+        # Save document first (skip legacy sync for now, we'll do it after lines are saved)
+        form.instance._skip_legacy_sync = True
+        self.object = form.save()
+        
+        # Now set instance for formset and validate before saving
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object, request=self.request)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
         self._save_line_formset(lines_formset)
+        
+        # Calculate total quantity from lines and update legacy fields
+        total_quantity = sum(
+            line.quantity_requested for line in self.object.lines.all()
+        )
+        self.object.quantity_requested = total_quantity
+        self.object.quantity_fulfilled = Decimal("0")  # Will be updated when receipts are created
+        self.object._skip_legacy_sync = False
+        self.object.save()
         
         messages.success(self.request, _('درخواست خرید با موفقیت ثبت شد.'))
         return HttpResponseRedirect(self.get_success_url())
@@ -254,7 +297,7 @@ class PurchaseRequestUpdateView(LineFormsetMixin, PurchaseRequestFormMixin, Upda
         self.object = form.save()
         
         # Handle line formset
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object, request=self.request)
         if not lines_formset.is_valid():
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
@@ -274,6 +317,13 @@ class PurchaseRequestUpdateView(LineFormsetMixin, PurchaseRequestFormMixin, Upda
             )
         
         self._save_line_formset(lines_formset)
+        
+        # Calculate total quantity from lines and update legacy fields
+        total_quantity = sum(
+            line.quantity_requested for line in self.object.lines.all()
+        )
+        self.object.quantity_requested = total_quantity
+        self.object.save()
         
         messages.success(self.request, _('درخواست خرید با موفقیت بروزرسانی شد.'))
         return HttpResponseRedirect(self.get_success_url())
@@ -390,6 +440,24 @@ class WarehouseRequestFormMixin(InventoryBaseView):
             context['warehouse_options_json'] = mark_safe('{}')
         context['unit_placeholder'] = str(forms.UNIT_CHOICES[0][1])
         context['warehouse_placeholder'] = _('--- انتخاب کنید ---')
+        
+        # Add item types, categories, and subcategories for filtering
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            context['item_types'] = models.ItemType.objects.filter(company_id=company_id, is_enabled=1).order_by('name')
+            context['item_categories'] = models.ItemCategory.objects.filter(company_id=company_id, is_enabled=1).order_by('name')
+            context['item_subcategories'] = models.ItemSubcategory.objects.filter(company_id=company_id, is_enabled=1).order_by('name')
+        else:
+            context['item_types'] = models.ItemType.objects.none()
+            context['item_categories'] = models.ItemCategory.objects.none()
+            context['item_subcategories'] = models.ItemSubcategory.objects.none()
+        
+        # Add current filter selections to context
+        context['current_item_type'] = self.request.GET.get('item_type')
+        context['current_category'] = self.request.GET.get('category')
+        context['current_subcategory'] = self.request.GET.get('subcategory')
+        context['current_item_search'] = self.request.GET.get('item_search')
+        
         return context
 
     def get_fieldsets(self) -> list:

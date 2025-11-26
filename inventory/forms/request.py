@@ -120,15 +120,53 @@ class PurchaseRequestLineForm(forms.ModelForm):
             'line_notes': _('Notes'),
         }
     
-    def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
-        """Initialize form with company filtering."""
+    def __init__(self, *args, company_id: Optional[int] = None, request=None, **kwargs):
+        """Initialize form with company filtering and optional filters."""
         super().__init__(*args, **kwargs)
         self.company_id = company_id or getattr(self.instance, 'company_id', None)
+        self.request = request
         
         if self.company_id:
             if 'item' in self.fields:
                 # Base queryset: enabled items
                 base_queryset = Item.objects.filter(company_id=self.company_id, is_enabled=1)
+                
+                # Apply optional filters from request
+                if self.request:
+                    # Filter by item_type (optional)
+                    item_type_id = self.request.GET.get('item_type') or self.request.POST.get('item_type')
+                    if item_type_id:
+                        try:
+                            base_queryset = base_queryset.filter(type_id=int(item_type_id))
+                        except (ValueError, TypeError):
+                            pass
+                    
+                    # Filter by category (optional)
+                    category_id = self.request.GET.get('category') or self.request.POST.get('category')
+                    if category_id:
+                        try:
+                            base_queryset = base_queryset.filter(category_id=int(category_id))
+                        except (ValueError, TypeError):
+                            pass
+                    
+                    # Filter by subcategory (optional)
+                    subcategory_id = self.request.GET.get('subcategory') or self.request.POST.get('subcategory')
+                    if subcategory_id:
+                        try:
+                            base_queryset = base_queryset.filter(subcategory_id=int(subcategory_id))
+                        except (ValueError, TypeError):
+                            pass
+                    
+                    # Search by name or code (optional)
+                    search_term = self.request.GET.get('item_search') or self.request.POST.get('item_search')
+                    if search_term:
+                        search_term = search_term.strip()
+                        if search_term:
+                            base_queryset = base_queryset.filter(
+                                Q(name__icontains=search_term) |
+                                Q(item_code__icontains=search_term) |
+                                Q(full_item_code__icontains=search_term)
+                            )
                 
                 # If editing and instance has an item, include it even if disabled
                 if hasattr(self, 'instance') and self.instance and hasattr(self.instance, 'item_id') and self.instance.item_id:
