@@ -2112,37 +2112,61 @@ class WarehouseRequest(InventoryBaseModel, LockableModel):
                 name="inventory_warehouse_request_code_unique",
             ),
         ]
-        ordering = ("-request_date", "-id")
+
+
+class WarehouseRequestLine(InventoryBaseModel, SortableModel):
+    """Line item for warehouse request documents."""
+    
+    document = models.ForeignKey(
+        "WarehouseRequest",
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    item = models.ForeignKey(
+        Item,
+        on_delete=models.PROTECT,
+        related_name="warehouse_request_lines",
+    )
+    item_code = models.CharField(max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
+    unit = models.CharField(max_length=30)
+    quantity_requested = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+    )
+    quantity_issued = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        default=Decimal("0"),
+        validators=[POSITIVE_DECIMAL],
+    )
+    warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.PROTECT,
+        related_name="warehouse_request_lines",
+    )
+    warehouse_code = models.CharField(max_length=8, validators=[NUMERIC_CODE_VALIDATOR])
+    line_notes = models.TextField(blank=True)
+    
+    class Meta:
+        verbose_name = _("Warehouse Request Line")
+        verbose_name_plural = _("Warehouse Request Lines")
+        ordering = ("sort_order", "id")
+        indexes = [
+            models.Index(fields=("company", "document"), name="inv_wr_line_doc_idx"),
+            models.Index(fields=("company", "item"), name="inv_wr_line_item_idx"),
+        ]
 
     def __str__(self) -> str:
-        return f"{self.request_code} · {self.item.name}"
+        return f"{self.document.request_code} · {self.item.name}"
 
     def save(self, *args, **kwargs):
-        # Auto-generate request code if not set
-        if not self.request_code:
-            now = timezone.now()
-            month_year = now.strftime("%Y%m")
-            # Find the max sequence for this month
-            last_request = (
-                WarehouseRequest.objects.filter(
-                    company=self.company,
-                    request_code__startswith=f"WRQ-{month_year}",
-                )
-                .order_by("-request_code")
-                .first()
-            )
-            if last_request and last_request.request_code:
-                last_seq = int(last_request.request_code.split("-")[-1])
-                new_seq = last_seq + 1
-            else:
-                new_seq = 1
-            self.request_code = f"WRQ-{month_year}-{new_seq:06d}"
-        
         # Cache related codes
         if self.item and not self.item_code:
-            self.item_code = self.item.item_code
+            self.item_code = self.item.item_code or self.item.full_item_code or ''
         if self.warehouse and not self.warehouse_code:
-            self.warehouse_code = self.warehouse.public_code
-        if self.department_unit and not self.department_unit_code:
-            self.department_unit_code = self.department_unit.public_code
+            self.warehouse_code = self.warehouse.public_code or ''
+        if not hasattr(self, 'company_id') or not self.company_id:
+            if self.document:
+                self.company_id = self.document.company_id
         super().save(*args, **kwargs)

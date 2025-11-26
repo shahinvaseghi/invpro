@@ -66,6 +66,8 @@ from inventory.forms.request import (
     PurchaseRequestLineForm,
     PurchaseRequestLineFormSet,
     WarehouseRequestForm,
+    WarehouseRequestLineForm,
+    WarehouseRequestLineFormSet,
 )
 
 __all__.extend([
@@ -73,6 +75,8 @@ __all__.extend([
     'PurchaseRequestLineForm',
     'PurchaseRequestLineFormSet',
     'WarehouseRequestForm',
+    'WarehouseRequestLineForm',
+    'WarehouseRequestLineFormSet',
 ])
 
 # Import receipt forms

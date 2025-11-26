@@ -143,7 +143,7 @@
 - **فایل README**: `inventory/forms/README_REQUEST.md`
 - **وضعیت**: ✅ کامل
 - **توضیحات**:
-  - تمام forms مستندسازی شده (`PurchaseRequestForm`, `PurchaseRequestLineForm`, `WarehouseRequestForm`)
+  - تمام forms مستندسازی شده (`PurchaseRequestForm`, `PurchaseRequestLineForm`, `WarehouseRequestForm`, `WarehouseRequestLineForm`, `WarehouseRequestLineFormSet`)
   - تمام متدها با پارامترها و return values
   - تمام فیلدها با نوع، widget، label
   - Item filtering and search support (بر اساس `request.GET`)
@@ -154,7 +154,9 @@
 - `PurchaseRequestForm` (تمام متدها)
 - `PurchaseRequestLineForm` (با item filtering)
 - `PurchaseRequestLineFormSet`
-- `WarehouseRequestForm` (تمام متدها با item filtering)
+- `WarehouseRequestForm` (header-only form)
+- `WarehouseRequestLineForm` (تمام متدها با item filtering و warehouse validation)
+- `WarehouseRequestLineFormSet` (formset factory)
 
 ---
 
@@ -217,7 +219,7 @@
   - تمام 14 کلاس view مستندسازی شده
   - PurchaseRequestFormMixin و WarehouseRequestFormMixin با تمام متدها
   - 5 Purchase Request Views (List, Create, Update, Approve)
-  - 4 Warehouse Request Views (List, Create, Update, Approve)
+  - 4 Warehouse Request Views (List, Create با formset, Update با formset, Approve)
   - 4 Create Receipt from Purchase Request Views (1 base + 3 subclasses)
   - تمام متدها با پارامترها و return values
   - تمام context variables
@@ -229,7 +231,7 @@
 - `PurchaseRequestFormMixin` (base mixin)
 - `WarehouseRequestFormMixin` (base mixin)
 - Purchase Request Views: `PurchaseRequestListView`, `PurchaseRequestCreateView`, `PurchaseRequestUpdateView`, `PurchaseRequestApproveView`
-- Warehouse Request Views: `WarehouseRequestListView`, `WarehouseRequestCreateView`, `WarehouseRequestUpdateView`, `WarehouseRequestApproveView`
+- Warehouse Request Views: `WarehouseRequestListView`, `WarehouseRequestCreateView` (با formset), `WarehouseRequestUpdateView` (با formset), `WarehouseRequestApproveView`
 - Create Receipt Views: `CreateReceiptFromPurchaseRequestView` (base), `CreateTemporaryReceiptFromPurchaseRequestView`, `CreatePermanentReceiptFromPurchaseRequestView`, `CreateConsignmentReceiptFromPurchaseRequestView`
 
 #### ✅ `inventory/views/stocktaking.py`
@@ -682,11 +684,13 @@
 
 ### Utilities
 
-#### ❌ `inventory/utils/*.py`
+#### ❌ `inventory/utils/codes.py`
 - **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل‌های موجود**:
-  - `codes.py` (نیاز به README)
-  - `jalali.py` (نیاز به README)
+- **فایل README مورد نیاز**: `inventory/utils/README_CODES.md`
+
+#### ❌ `inventory/utils/jalali.py`
+- **وضعیت**: ❌ نیاز به مستندسازی
+- **فایل README مورد نیاز**: `inventory/utils/README_JALALI.md`
 
 #### ✅ `shared/utils/permissions.py`
 - **فایل README**: `shared/utils/README_PERMISSIONS.md`
@@ -710,39 +714,40 @@
 - `has_feature_permission` (public)
 
 #### ❌ `shared/utils/modules.py`
-- **وضعیت**: ❌ نیاز به README
+- **وضعیت**: ❌ نیاز به مستندسازی
+- **فایل README مورد نیاز**: `shared/utils/README_MODULES.md`
 
 #### ❌ `shared/utils/email.py`
-- **وضعیت**: ❌ نیاز به README
-
-#### ❌ `ticketing/utils/*.py`
 - **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل‌های موجود**:
-  - `codes.py` (نیاز به README)
+- **فایل README مورد نیاز**: `shared/utils/README_EMAIL.md`
+
+#### ❌ `ticketing/utils/codes.py`
+- **وضعیت**: ❌ نیاز به مستندسازی
+- **فایل README مورد نیاز**: `ticketing/utils/README_CODES.md`
 
 ---
 
 ### Services
 
-#### ❌ `inventory/services/*.py`
+#### ❌ `inventory/services/serials.py`
 - **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل‌های موجود**:
-  - `serials.py` (نیاز به README)
+- **فایل README مورد نیاز**: `inventory/services/README_SERIALS.md`
 
 ---
 
 ### Template Tags
 
-#### ❌ `inventory/templatetags/*.py`
+#### ❌ `inventory/templatetags/jalali_tags.py`
 - **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل‌های موجود**:
-  - `jalali_tags.py` (نیاز به README)
+- **فایل README مورد نیاز**: `inventory/templatetags/README_JALALI_TAGS.md`
 
-#### ❌ `shared/templatetags/*.py`
+#### ❌ `shared/templatetags/access_tags.py`
 - **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل‌های موجود**:
-  - `access_tags.py` (نیاز به README)
-  - `json_filters.py` (نیاز به README)
+- **فایل README مورد نیاز**: `shared/templatetags/README_ACCESS_TAGS.md`
+
+#### ❌ `shared/templatetags/json_filters.py`
+- **وضعیت**: ❌ نیاز به مستندسازی
+- **فایل README مورد نیاز**: `shared/templatetags/README_JSON_FILTERS.md`
 
 ---
 
@@ -750,27 +755,37 @@
 
 #### ❌ `shared/context_processors.py`
 - **وضعیت**: ❌ نیاز به مستندسازی
+- **فایل README مورد نیاز**: `shared/README_CONTEXT_PROCESSORS.md`
 
 #### ❌ `ui/context_processors.py`
 - **وضعیت**: ❌ نیاز به مستندسازی
+- **فایل README مورد نیاز**: `ui/README_CONTEXT_PROCESSORS.md`
 
 ---
 
 ### Management Commands
 
-#### ❌ `inventory/management/commands/*.py`
+#### ❌ `inventory/management/commands/cleanup_test_receipts.py`
 - **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل‌های موجود**:
-  - `cleanup_test_receipts.py` (نیاز به README)
+- **فایل README مورد نیاز**: `inventory/management/commands/README_CLEANUP_TEST_RECEIPTS.md`
 
 ---
 
 ### Migrations
 
-#### ❌ `*/migrations/*.py`
+**نکته**: برای migrations، یک فایل README کلی در root پروژه ایجاد می‌شود که تمام migrations تمام ماژول‌ها را پوشش می‌دهد.
+
+#### ❌ `MIGRATIONS_README.md` (در root پروژه)
 - **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل README موجود**: `production/migrations/README.md` (نیاز به بررسی و تکمیل)
-- **توضیحات**: تمام migration files نیاز به README دارند
+- **فایل README مورد نیاز**: `MIGRATIONS_README.md`
+- **توضیحات**: فایل README کلی که تمام migration files تمام ماژول‌ها را مستندسازی می‌کند
+- **ماژول‌های شامل**:
+  - `inventory/migrations/*.py` (~32 migration files)
+  - `production/migrations/*.py` (~21 migration files)
+  - `qc/migrations/*.py` (~5 migration files)
+  - `ticketing/migrations/*.py` (~2 migration files)
+  - `shared/migrations/*.py` (~12 migration files)
+  - **نکته**: `ui/migrations` migration file ندارد (فقط `__init__.py`)
 
 ---
 
@@ -792,16 +807,35 @@
 - **جمع**: 61 فایل کامل (17 فایل inventory + 17 فایل production + 11 فایل ticketing + 14 فایل qc/shared + 1 فایل utils + 1 فایل base)
 
 ### ❌ نیازمند مستندسازی
-- **Views**: ~0 فایل (تمام views مهم مستندسازی شده‌اند)
-- **Forms**: ~0 فایل (تمام forms مهم مستندسازی شده‌اند)
-- **Utils**: ~10+ فایل
-- **Services**: ~5+ فایل
-- **Template Tags**: ~5+ فایل
-- **Context Processors**: ~2 فایل
-- **Management Commands**: ~5+ فایل
-- **Migrations**: ~50+ فایل
 
-**جمع کل**: ~100+ فایل نیازمند مستندسازی
+#### Utilities (5 فایل)
+- `inventory/utils/codes.py` → README_CODES.md
+- `inventory/utils/jalali.py` → README_JALALI.md
+- `shared/utils/modules.py` → README_MODULES.md
+- `shared/utils/email.py` → README_EMAIL.md
+- `ticketing/utils/codes.py` → README_CODES.md
+
+#### Services (1 فایل)
+- `inventory/services/serials.py` → README_SERIALS.md
+
+#### Template Tags (3 فایل)
+- `inventory/templatetags/jalali_tags.py` → README_JALALI_TAGS.md
+- `shared/templatetags/access_tags.py` → README_ACCESS_TAGS.md
+- `shared/templatetags/json_filters.py` → README_JSON_FILTERS.md
+
+#### Context Processors (2 فایل)
+- `shared/context_processors.py` → README_CONTEXT_PROCESSORS.md
+- `ui/context_processors.py` → README_CONTEXT_PROCESSORS.md
+
+#### Management Commands (1 فایل)
+- `inventory/management/commands/cleanup_test_receipts.py` → README_CLEANUP_TEST_RECEIPTS.md
+
+#### Migrations (1 فایل README کلی)
+- `MIGRATIONS_README.md` (فایل README کلی در root پروژه که تمام migrations تمام ماژول‌ها را مستندسازی می‌کند)
+  - شامل: inventory, production, qc, ticketing, shared migrations
+  - **نکته**: `ui/migrations` migration file ندارد (فقط `__init__.py`)
+
+**جمع کل**: 13 فایل README نیازمند مستندسازی (12 فایل کد + 1 فایل README کلی برای migrations)
 
 ---
 
@@ -908,13 +942,34 @@
 ### اولویت متوسط
 11. ✅ `inventory/views/stocktaking.py` - **کامل شده**
 
-### اولویت پایین
-12. ❌ Utility files
-13. ❌ Service files
-14. ❌ Template tags
-15. ❌ Context processors
-16. ❌ Management commands
-17. ❌ Migrations
+### اولویت پایین (فایل‌های باقی‌مانده)
+
+#### Utilities (5 فایل)
+12. ❌ `inventory/utils/codes.py` - نیاز به README_CODES.md
+13. ❌ `inventory/utils/jalali.py` - نیاز به README_JALALI.md
+14. ❌ `shared/utils/modules.py` - نیاز به README_MODULES.md
+15. ❌ `shared/utils/email.py` - نیاز به README_EMAIL.md
+16. ❌ `ticketing/utils/codes.py` - نیاز به README_CODES.md
+
+#### Services (1 فایل)
+17. ❌ `inventory/services/serials.py` - نیاز به README_SERIALS.md
+
+#### Template Tags (3 فایل)
+18. ❌ `inventory/templatetags/jalali_tags.py` - نیاز به README_JALALI_TAGS.md
+19. ❌ `shared/templatetags/access_tags.py` - نیاز به README_ACCESS_TAGS.md
+20. ❌ `shared/templatetags/json_filters.py` - نیاز به README_JSON_FILTERS.md
+
+#### Context Processors (2 فایل)
+21. ❌ `shared/context_processors.py` - نیاز به README_CONTEXT_PROCESSORS.md
+22. ❌ `ui/context_processors.py` - نیاز به README_CONTEXT_PROCESSORS.md
+
+#### Management Commands (1 فایل)
+23. ❌ `inventory/management/commands/cleanup_test_receipts.py` - نیاز به README_CLEANUP_TEST_RECEIPTS.md
+
+#### Migrations (1 فایل README کلی)
+24. ❌ `MIGRATIONS_README.md` - فایل README کلی در root پروژه که تمام migrations تمام ماژول‌ها را مستندسازی می‌کند
+   - شامل: inventory, production, qc, ticketing, shared migrations
+   - **نکته**: `ui/migrations` migration file ندارد
 
 ---
 
@@ -933,9 +988,18 @@
 
 **تاریخ**: 26 نوامبر 2024
 **وضعیت**: در حال پیشرفت
-**پیشرفت**: 61 فایل کامل (Views: 36, Forms: 24, Utils: 1)، 0 فایل ناقص، ~60+ فایل باقی‌مانده (utils, services, templatetags, context_processors, management commands, migrations)
+**پیشرفت**: 61 فایل کامل (Views: 36, Forms: 24, Utils: 1)، 0 فایل ناقص، 13 فایل README باقی‌مانده (12 فایل کد + 1 فایل README کلی برای migrations)
+
+**فایل‌های باقی‌مانده**:
+- Utilities: 5 فایل (codes.py, jalali.py, modules.py, email.py, codes.py)
+- Services: 1 فایل (serials.py)
+- Template Tags: 3 فایل (jalali_tags.py, access_tags.py, json_filters.py)
+- Context Processors: 2 فایل (shared و ui)
+- Management Commands: 1 فایل (cleanup_test_receipts.py)
+- Migrations: 1 فایل README کلی (`MIGRATIONS_README.md` در root پروژه)
 
 **تغییرات اخیر**:
+- ✅ به‌روزرسانی `DOCUMENTATION_STATUS.md` - لیست کامل فایل‌های باقی‌مانده و ساختار migrations (یک README کلی برای تمام migrations در root پروژه)
 - ✅ تکمیل `shared/forms/smtp_server.py` - README کامل با SMTPServerForm (TLS/SSL validation, password handling)
 - ✅ تکمیل `shared/forms/groups.py` - README کامل با GroupForm (GroupProfile integration, access levels M2M)
 - ✅ تکمیل `shared/forms/access_levels.py` - README کامل با AccessLevelForm (auto-generated code, read-only field)

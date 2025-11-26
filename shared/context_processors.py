@@ -53,7 +53,10 @@ def active_company(request):
             if not context['active_company']:
                 context['active_company'] = context['user_companies'][0]
             
-            request.session['active_company_id'] = context['active_company'].id
+            # Save to session and mark as modified
+            if context['active_company']:
+                request.session['active_company_id'] = context['active_company'].id
+                request.session.modified = True  # Ensure session is saved
 
         from shared.utils.permissions import get_user_feature_permissions
 

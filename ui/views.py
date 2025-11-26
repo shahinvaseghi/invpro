@@ -14,16 +14,49 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Get active company from session or context processor
-        company_id = self.request.session.get('active_company_id')
+        # Get active company from context processor first (it handles default selection)
+        active_company = context.get('active_company')
+        company_id = None
         
-        # If not in session, try to get from context processor (active_company)
-        if not company_id:
-            active_company = context.get('active_company')
-            if active_company:
-                company_id = active_company.id
-                # Save to session for next time
+        if active_company:
+            company_id = active_company.id
+            # Ensure it's saved in session
+            current_session_company_id = self.request.session.get('active_company_id')
+            if current_session_company_id != company_id:
                 self.request.session['active_company_id'] = company_id
+                self.request.session.modified = True
+        else:
+            # If context processor didn't set it, try to get from session
+            company_id = self.request.session.get('active_company_id')
+            
+            # If still no company_id, try to get user's companies and set first one
+            if not company_id and self.request.user.is_authenticated:
+                from shared.models import UserCompanyAccess
+                user_accesses = UserCompanyAccess.objects.filter(
+                    user=self.request.user,
+                    is_enabled=1
+                ).select_related('company')
+                
+                if user_accesses.exists():
+                    # Try to use user's default company first
+                    if hasattr(self.request.user, 'default_company') and self.request.user.default_company:
+                        default_company = self.request.user.default_company
+                        if user_accesses.filter(company=self.request.user.default_company).exists():
+                            company_id = default_company.id
+                            active_company = default_company
+                    
+                    # If no default, use first available
+                    if not company_id:
+                        first_access = user_accesses.first()
+                        if first_access:
+                            company_id = first_access.company.id
+                            active_company = first_access.company
+                    
+                    # Save to session
+                    if company_id:
+                        self.request.session['active_company_id'] = company_id
+                        self.request.session.modified = True
+                        context['active_company'] = active_company
         
         if not company_id:
             # No company available, return empty stats

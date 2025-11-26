@@ -524,10 +524,11 @@ class WarehouseRequestListView(InventoryBaseView, ListView):
         return context
 
 
-class WarehouseRequestCreateView(WarehouseRequestFormMixin, CreateView):
+class WarehouseRequestCreateView(LineFormsetMixin, WarehouseRequestFormMixin, CreateView):
     """Create view for warehouse requests."""
     model = models.WarehouseRequest
     form_class = forms.WarehouseRequestForm
+    formset_class = forms.WarehouseRequestLineFormSet
     success_url = reverse_lazy('inventory:warehouse_requests')
     form_title = _('ایجاد درخواست انبار')
 
@@ -537,34 +538,97 @@ class WarehouseRequestCreateView(WarehouseRequestFormMixin, CreateView):
         if not company_id:
             form.add_error(None, _('شرکت فعال مشخص نشده است.'))
             return self.form_invalid(form)
+        
         form.instance.company_id = company_id
         form.instance.requester = self.request.user
         form.instance.request_date = timezone.now().date()
         form.instance.request_status = 'draft'
+        
+        # Build and validate formset
+        lines_formset = self.build_line_formset(data=self.request.POST, request=self.request)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # Check if we have at least one valid line before saving document
+        valid_lines = []
+        first_item = None
+        first_unit = None
+        first_warehouse = None
+        for line_form in lines_formset.forms:
+            if line_form.cleaned_data and line_form.cleaned_data.get('item') and not line_form.cleaned_data.get('DELETE', False):
+                valid_lines.append(line_form)
+                if first_item is None:
+                    first_item = line_form.cleaned_data.get('item')
+                    first_unit = line_form.cleaned_data.get('unit', 'EA')
+                    first_warehouse = line_form.cleaned_data.get('warehouse')
+        
+        if not valid_lines:
+            form.add_error(None, _('Please add at least one line with an item.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # Set legacy fields from first valid line (for backward compatibility)
+        from decimal import Decimal
+        if not first_item:
+            form.add_error(None, _('Please add at least one line with an item.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        form.instance.item = first_item
+        form.instance.item_code = first_item.item_code or first_item.full_item_code or ''
+        form.instance.unit = first_unit or 'EA'
+        form.instance.warehouse = first_warehouse
+        if first_warehouse:
+            form.instance.warehouse_code = first_warehouse.public_code or ''
+        # quantity_requested will be calculated from lines
+        form.instance.quantity_requested = Decimal("0")
+        
+        # Save document first
         self.object = form.save()
+        
+        # Now set instance for formset and validate before saving
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object, request=self.request)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        self._save_line_formset(lines_formset)
+        
+        # Calculate total quantity from lines and update legacy fields
+        total_quantity = sum(
+            line.quantity_requested for line in self.object.lines.all()
+        )
+        self.object.quantity_requested = total_quantity
+        self.object.save()
+        
         messages.success(self.request, _('درخواست انبار با موفقیت ثبت شد.'))
         return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
-            (_('اطلاعات درخواست'), ['item', 'unit', 'quantity_requested', 'warehouse', 'department_unit']),
+            (_('اطلاعات درخواست'), ['department_unit']),
             (_('زمان‌بندی و اولویت'), ['needed_by_date', 'priority']),
             (_('تایید و توضیحات'), ['approver', 'purpose']),
         ]
 
 
-class WarehouseRequestUpdateView(WarehouseRequestFormMixin, UpdateView):
+class WarehouseRequestUpdateView(LineFormsetMixin, WarehouseRequestFormMixin, UpdateView):
     """Update view for warehouse requests."""
     model = models.WarehouseRequest
     form_class = forms.WarehouseRequestForm
+    formset_class = forms.WarehouseRequestLineFormSet
     success_url = reverse_lazy('inventory:warehouse_requests')
     form_title = _('ویرایش درخواست انبار')
 
     def get_queryset(self):
         """Filter to only draft requests created by current user."""
         queryset = super().get_queryset()
-        queryset = queryset.select_related('item', 'warehouse', 'requester', 'approver')
+        queryset = queryset.select_related('requester', 'approver').prefetch_related('lines__item', 'lines__warehouse')
         return queryset.filter(
             request_status='draft',
             requester=self.request.user,
@@ -577,14 +641,63 @@ class WarehouseRequestUpdateView(WarehouseRequestFormMixin, UpdateView):
             form.add_error(None, _('شرکت فعال مشخص نشده است.'))
             return self.form_invalid(form)
         form.instance.company_id = company_id
-        response = super().form_valid(form)
+        form.instance.edited_by = self.request.user
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object, request=self.request)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # Check if we have at least one valid line before saving
+        valid_lines = []
+        for line_form in lines_formset.forms:
+            if line_form.cleaned_data and line_form.cleaned_data.get('item') and not line_form.cleaned_data.get('DELETE', False):
+                valid_lines.append(line_form)
+        
+        if not valid_lines:
+            # No valid lines, show error
+            lines_formset.add_error(None, _('Please add at least one line with an item.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        self._save_line_formset(lines_formset)
+        
+        # Calculate total quantity from lines and update legacy fields
+        from decimal import Decimal
+        total_quantity = sum(
+            line.quantity_requested for line in self.object.lines.all()
+        )
+        self.object.quantity_requested = total_quantity
+        
+        # Update legacy fields from first valid line
+        if valid_lines:
+            first_line = valid_lines[0]
+            first_item = first_line.cleaned_data.get('item')
+            first_unit = first_line.cleaned_data.get('unit', 'EA')
+            first_warehouse = first_line.cleaned_data.get('warehouse')
+            if first_item:
+                self.object.item = first_item
+                self.object.item_code = first_item.item_code or first_item.full_item_code or ''
+                self.object.unit = first_unit
+            if first_warehouse:
+                self.object.warehouse = first_warehouse
+                self.object.warehouse_code = first_warehouse.public_code or ''
+        
+        self.object.save()
+        
         messages.success(self.request, _('درخواست انبار با موفقیت بروزرسانی شد.'))
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
-            (_('اطلاعات درخواست'), ['item', 'unit', 'quantity_requested', 'warehouse', 'department_unit']),
+            (_('اطلاعات درخواست'), ['department_unit']),
             (_('زمان‌بندی و اولویت'), ['needed_by_date', 'priority']),
             (_('تایید و توضیحات'), ['approver', 'purpose']),
         ]

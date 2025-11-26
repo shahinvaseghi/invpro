@@ -75,8 +75,6 @@
 #### `get_context_data(**kwargs) -> Dict[str, Any]`
 **Context Variables**:
 - `form_title`, `fieldsets`, `used_fields`, `list_url`, `is_edit`, `warehouse_request`
-- `unit_options_json`, `warehouse_options_json`: JSON maps
-- `unit_placeholder`, `warehouse_placeholder`
 - `item_types`, `item_categories`, `item_subcategories`: برای فیلتر
 - `current_item_type`, `current_category`, `current_subcategory`, `current_item_search`: مقادیر فعلی فیلتر (از GET)
 
@@ -240,9 +238,11 @@
 
 ### WarehouseRequestCreateView
 
-**Type**: `WarehouseRequestFormMixin, CreateView`
+**Type**: `LineFormsetMixin, WarehouseRequestFormMixin, CreateView`
 
 **Form**: `WarehouseRequestForm`
+
+**Formset**: `WarehouseRequestLineFormSet`
 
 **Success URL**: `inventory:warehouse_requests`
 
@@ -250,8 +250,22 @@
 - `form_title`: `_('ایجاد درخواست انبار')`
 
 **متدها**:
-- `form_valid()`: تنظیم `company_id`, `requester`, `request_date`, `request_status = 'draft'`
-- `get_fieldsets()`: `[(_('اطلاعات درخواست'), ['item', 'unit', 'quantity_requested', 'warehouse', 'department_unit']), (_('زمان‌بندی و اولویت'), ['needed_by_date', 'priority']), (_('تایید و توضیحات'), ['approver', 'purpose'])]`
+- `form_valid()`:
+  1. تنظیم `company_id`, `requester`, `request_date`, `request_status = 'draft'`
+  2. Build و validate line formset
+  3. استخراج first item, unit, و warehouse از valid lines
+  4. تنظیم legacy fields (`item`, `item_code`, `unit`, `warehouse`, `warehouse_code`, `quantity_requested = 0`)
+  5. ذخیره document
+  6. Validate و save formset
+  7. محاسبه `total_quantity` از lines
+  8. به‌روزرسانی `quantity_requested`
+  9. نمایش پیام موفقیت
+- `get_fieldsets()`: `[(_('اطلاعات درخواست'), ['department_unit']), (_('زمان‌بندی و اولویت'), ['needed_by_date', 'priority']), (_('تایید و توضیحات'), ['approver', 'purpose'])]`
+
+**نکات مهم**:
+- Legacy fields برای backward compatibility
+- `quantity_requested` از مجموع line items محاسبه می‌شود
+- هر خط شامل: item, unit, quantity_requested, warehouse, line_notes
 
 **URL**: `/inventory/requests/warehouse/create/`
 
@@ -259,9 +273,11 @@
 
 ### WarehouseRequestUpdateView
 
-**Type**: `WarehouseRequestFormMixin, UpdateView`
+**Type**: `LineFormsetMixin, WarehouseRequestFormMixin, UpdateView`
 
 **Form**: `WarehouseRequestForm`
+
+**Formset**: `WarehouseRequestLineFormSet`
 
 **Success URL**: `inventory:warehouse_requests`
 
@@ -269,13 +285,20 @@
 - `form_title`: `_('ویرایش درخواست انبار')`
 
 **متدها**:
-- `get_queryset()`: فیلتر فقط 'draft' requests created by current user
-- `form_valid()`: تنظیم `company_id`، نمایش پیام موفقیت
+- `get_queryset()`: فیلتر فقط 'draft' requests created by current user. Prefetch `lines__item`, `lines__warehouse`
+- `form_valid()`:
+  1. تنظیم `company_id`, `edited_by`
+  2. ذخیره document
+  3. Validate و save formset
+  4. محاسبه `total_quantity` از lines
+  5. به‌روزرسانی `quantity_requested` و legacy fields از first valid line
+  6. نمایش پیام موفقیت
 - `get_fieldsets()`: مشابه CreateView
 
 **نکات مهم**:
 - فقط 'draft' requests قابل ویرایش هستند
 - فقط requests created by current user
+- Legacy fields از first valid line به‌روزرسانی می‌شوند
 
 **URL**: `/inventory/requests/warehouse/<pk>/edit/`
 
@@ -390,8 +413,11 @@
 - `quantity_requested` از مجموع line items محاسبه می‌شود
 - `_skip_legacy_sync` برای جلوگیری از sync در model.save()
 
-### 2. Warehouse Request Single-line
-- Warehouse Request یک single-line document است (برخلاف Purchase Request که multi-line است)
+### 2. Warehouse Request Multi-line
+- Warehouse Request حالا یک multi-line document است (مثل Purchase Request)
+- از `WarehouseRequestLineFormSet` برای مدیریت خطوط استفاده می‌کند
+- هر خط شامل: item, unit, quantity_requested, warehouse, line_notes
+- Legacy fields (`item`, `item_code`, `unit`, `warehouse`, `warehouse_code`, `quantity_requested`) از first valid line populate می‌شوند
 
 ### 3. Approval Workflow
 - درخواست‌ها باید تایید شوند قبل از استفاده در receipts
