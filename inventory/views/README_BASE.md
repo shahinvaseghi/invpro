@@ -1,351 +1,447 @@
-# inventory/views/base.py - Base Views and Mixins
+# inventory/views/base.py - Base Views and Mixins (Complete Documentation)
 
-**هدف**: کلاس‌های پایه و mixin‌های قابل استفاده مجدد برای تمام views ماژول inventory
+**هدف**: Base classes و mixins قابل استفاده مجدد برای تمام inventory views
 
-این فایل شامل کلاس‌های پایه و mixin‌هایی است که در تمام views ماژول inventory استفاده می‌شوند.
+این فایل شامل 5 کلاس:
+- `InventoryBaseView`: Base view با context مشترک
+- `DocumentLockProtectedMixin`: محافظت از سندهای قفل شده
+- `DocumentLockView`: View برای lock کردن سندها
+- `LineFormsetMixin`: Mixin برای مدیریت line formsets
+- `ItemUnitFormsetMixin`: Mixin برای مدیریت item unit formsets
 
 ---
 
-## Base Classes
+## وابستگی‌ها
+
+- `inventory.models`: `Item`, `ItemUnit`, `ItemSerial`, `ItemWarehouse`
+- `inventory.forms`: `ItemUnitFormSet`
+- `inventory.services.serials`: `sync_issue_line_serials`
+- `shared.utils.permissions`: `get_user_feature_permissions`, `has_feature_permission`
+- `django.contrib.auth.mixins.LoginRequiredMixin`
+- `django.views.generic.View`
+- `django.http.HttpResponseRedirect`
+- `django.urls.reverse`
+- `django.utils.timezone`
+- `django.utils.translation.gettext_lazy`
+- `django.shortcuts.get_object_or_404`
+- `django.contrib.messages`
+
+---
+
+## InventoryBaseView
 
 ### `InventoryBaseView(LoginRequiredMixin)`
 
-**توضیح**: کلاس پایه با context و فیلتر شرکت مشترک برای تمام views ماژول inventory.
+**توضیح**: Base view با context مشترک برای ماژول inventory
+
+**Inheritance**: `LoginRequiredMixin`
+
+**Attributes**:
+- `login_url`: `'/admin/login/'`
 
 **متدها**:
 
-#### `get_queryset()`
+#### `get_queryset(self) -> QuerySet`
 
-**توضیح**: queryset را بر اساس شرکت فعال فیلتر می‌کند.
+**توضیح**: فیلتر queryset بر اساس company فعال.
 
-**پارامترهای ورودی**: ندارد (از `self.request` استفاده می‌کند)
+**پارامترهای ورودی**: ندارد
 
 **مقدار بازگشتی**:
-- `QuerySet`: queryset فیلتر شده بر اساس `active_company_id` از session
+- `QuerySet`: queryset فیلتر شده بر اساس `active_company_id`
 
 **منطق**:
-- `active_company_id` را از `request.session` می‌خواند
-- اگر مدل فیلد `company` داشته باشد، queryset را فیلتر می‌کند
+1. دریافت queryset از `super().get_queryset()`
+2. اگر model field `company` داشته باشد، فیلتر بر اساس `active_company_id`
 
 ---
 
-#### `get_context_data(**kwargs) -> Dict[str, Any]`
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
-**توضیح**: context مشترک را به تمام templates اضافه می‌کند.
+**توضیح**: اضافه کردن context data مشترک.
 
 **پارامترهای ورودی**:
-- `**kwargs`: context variables اضافی
+- `**kwargs`: متغیرهای context اضافی
 
 **مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `active_module = 'inventory'` اضافه شده
+- `Dict[str, Any]`: context با `active_module = 'inventory'`
 
 ---
 
-#### `add_delete_permissions_to_context(context, feature_code) -> Dict[str, Any]`
+#### `add_delete_permissions_to_context(self, context: Dict[str, Any], feature_code: str) -> Dict[str, Any]`
 
-**توضیح**: بررسی‌های مجوز حذف را به context اضافه می‌کند.
+**توضیح**: اضافه کردن permission checks برای delete به context.
 
 **پارامترهای ورودی**:
-- `context` (Dict[str, Any]): context فعلی
-- `feature_code` (str): کد feature (مثل `'inventory.receipts.permanent'`)
+- `context`: context dictionary
+- `feature_code`: کد feature برای permission check
 
 **مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `can_delete_own` و `can_delete_other` اضافه شده
+- `Dict[str, Any]`: context با `can_delete_own`, `can_delete_other`, `user` اضافه شده
 
-**متغیرهای اضافه شده**:
-- `can_delete_own` (bool): آیا کاربر می‌تواند رکوردهای خود را حذف کند
-- `can_delete_other` (bool): آیا کاربر می‌تواند رکوردهای دیگران را حذف کند
-- `user` (User): کاربر فعلی
+**Context Variables اضافه شده**:
+- `can_delete_own`: آیا user می‌تواند own records را حذف کند
+- `can_delete_other`: آیا user می‌تواند other records را حذف کند
+- `user`: user object
 
-**مثال استفاده**:
-```python
-class ReceiptListView(InventoryBaseView, ListView):
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context = self.add_delete_permissions_to_context(
-            context,
-            'inventory.receipts.permanent'
-        )
-        return context
-```
+**منطق**:
+1. دریافت permissions از `get_user_feature_permissions()`
+2. بررسی `delete_own` و `delete_other` permissions
+3. Superuser همیشه می‌تواند حذف کند
 
 ---
+
+## DocumentLockProtectedMixin
 
 ### `DocumentLockProtectedMixin`
 
-**توضیح**: از تغییر اسناد قفل شده موجودی جلوگیری می‌کند.
+**توضیح**: جلوگیری از ویرایش یا حذف سندهای قفل شده
 
 **Attributes**:
-- `lock_redirect_url_name` (str): نام URL برای redirect هنگام قفل بودن
-- `lock_error_message` (str): پیام خطا برای اسناد قفل (default: پیام فارسی)
-- `owner_field` (str): نام فیلد مالک (default: `'created_by'`)
-- `owner_error_message` (str): پیام خطا برای عدم تطابق مالک
-- `protected_methods` (tuple): متدهای HTTP برای محافظت (default: همه)
+- `lock_redirect_url_name`: `''` (override در subclasses)
+- `lock_error_message`: `_('سند قفل شده و قابل ویرایش یا حذف نیست.')`
+- `owner_field`: `'created_by'` (field برای بررسی owner)
+- `owner_error_message`: `_('فقط ایجاد کننده می‌تواند این سند را ویرایش کند.')`
+- `protected_methods`: `('get', 'post', 'put', 'patch', 'delete')`
 
 **متدها**:
 
-#### `dispatch(request, *args, **kwargs)`
+#### `dispatch(self, request, *args, **kwargs) -> HttpResponse`
 
-**توضیح**: متد HTTP را intercept می‌کند و بررسی قفل/مالک را انجام می‌دهد.
+**توضیح**: بررسی lock status و owner قبل از dispatch.
 
 **پارامترهای ورودی**:
-- `request`: درخواست HTTP
-- `*args, **kwargs`: آرگومان‌های اضافی
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
 
 **مقدار بازگشتی**:
-- `HttpResponse`: response یا redirect با پیام خطا
+- `HttpResponse`: redirect اگر قفل شده یا owner نیست، در غیر این صورت `super().dispatch()`
 
 **منطق**:
-1. object را از `get_object()` دریافت می‌کند
-2. بررسی می‌کند که `is_locked == 1` نباشد
-3. اگر `owner_field` تنظیم شده باشد، بررسی می‌کند که کاربر مالک باشد
-4. اگر هر کدام fail شود، redirect با پیام خطا برمی‌گرداند
+1. اگر method در `protected_methods` باشد:
+   - دریافت object
+   - بررسی `is_locked` (اگر قفل شده باشد، redirect)
+   - بررسی owner (اگر owner_field تنظیم شده باشد و owner نباشد، redirect)
+2. فراخوانی `super().dispatch()`
 
 ---
 
-#### `_get_lock_redirect_url() -> str`
+#### `_get_lock_redirect_url(self) -> str`
 
-**توضیح**: URL redirect را هنگام قفل بودن برمی‌گرداند.
+**توضیح**: دریافت URL برای redirect وقتی سند قفل شده است.
+
+**پارامترهای ورودی**: ندارد
 
 **مقدار بازگشتی**:
 - `str`: URL برای redirect
 
 **منطق**:
 1. اگر `lock_redirect_url_name` تنظیم شده باشد، از آن استفاده می‌کند
-2. در غیر این صورت، از `list_url_name` استفاده می‌کند
-3. در غیر این صورت، به `inventory:inventory_balance` redirect می‌کند
+2. اگر `list_url_name` در view موجود باشد، از آن استفاده می‌کند
+3. در غیر این صورت، `inventory:inventory_balance`
 
 ---
 
+## DocumentLockView
+
 ### `DocumentLockView(LoginRequiredMixin, View)`
 
-**توضیح**: view عمومی برای قفل کردن اسناد موجودی.
+**توضیح**: View عمومی برای lock کردن سندهای inventory
+
+**Inheritance**: `LoginRequiredMixin, View`
 
 **Attributes**:
-- `model`: کلاس مدل برای قفل (required)
-- `success_url_name`: نام URL برای redirect بعد از قفل (required)
-- `success_message`: پیام موفقیت (default: پیام فارسی)
-- `already_locked_message`: پیام اگر از قبل قفل باشد
-- `lock_field`: نام فیلد قفل (default: `'is_locked'`)
+- `model`: `None` (باید در subclass تنظیم شود)
+- `success_url_name`: `''` (باید در subclass تنظیم شود)
+- `success_message`: `_('سند با موفقیت قفل شد و دیگر قابل ویرایش نیست.')`
+- `already_locked_message`: `_('این سند قبلاً قفل شده است.')`
+- `lock_field`: `'is_locked'`
 
 **متدها**:
 
-#### `before_lock(obj, request) -> bool`
+#### `after_lock(self, obj, request) -> None`
 
-**توضیح**: Hook که قبل از قفل اجرا می‌شود. اگر `False` برگرداند، قفل لغو می‌شود.
+**توضیح**: Hook برای subclasses برای انجام actions اضافی بعد از lock.
 
 **پارامترهای ورودی**:
-- `obj`: شیء برای قفل
-- `request`: درخواست HTTP
+- `obj`: object که lock شده
+- `request`: HTTP request
+
+**مقدار بازگشتی**: ندارد
+
+**نکات مهم**:
+- می‌تواند در subclasses override شود
+
+---
+
+#### `before_lock(self, obj, request) -> bool`
+
+**توضیح**: Hook که قبل از lock اجرا می‌شود. اگر `False` برگرداند، lock لغو می‌شود.
+
+**پارامترهای ورودی**:
+- `obj`: object که باید lock شود
+- `request`: HTTP request
 
 **مقدار بازگشتی**:
 - `bool`: `True` برای ادامه، `False` برای لغو
 
+**نکات مهم**:
+- می‌تواند در subclasses override شود
+
 ---
 
-#### `after_lock(obj, request) -> None`
+#### `post(self, request, *args, **kwargs) -> HttpResponseRedirect`
 
-**توضیح**: Hook که بعد از قفل اجرا می‌شود.
+**توضیح**: Lock کردن سند.
 
 **پارامترهای ورودی**:
-- `obj`: شیء قفل شده
-- `request`: درخواست HTTP
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
 
-**مقدار بازگشتی**: ندارد
-
----
-
-#### `post(request, *args, **kwargs)`
-
-**توضیح**: منطق قفل را اجرا می‌کند.
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect به `success_url_name`
 
 **منطق**:
-1. object را پیدا می‌کند
-2. اگر از قبل قفل باشد، پیام info نمایش می‌دهد
-3. `before_lock()` را فراخوانی می‌کند
-4. `is_locked = 1` را تنظیم می‌کند
-5. `locked_at` و `locked_by` را به‌روزرسانی می‌کند
-6. `after_lock()` را فراخوانی می‌کند
-7. پیام موفقیت نمایش می‌دهد
-8. redirect می‌کند
+1. بررسی `model` و `success_url_name`
+2. دریافت object
+3. بررسی `is_locked` (اگر قفل شده باشد، پیام info)
+4. فراخوانی `before_lock()` (اگر `False` برگرداند، لغو)
+5. تنظیم `is_locked = 1`, `locked_at = timezone.now()`, `locked_by = request.user`
+6. فراخوانی `after_lock()`
+7. نمایش پیام موفقیت
+8. Redirect به `success_url_name`
 
 ---
 
-## Mixins
+## LineFormsetMixin
 
 ### `LineFormsetMixin`
 
-**توضیح**: مدیریت ایجاد و ذخیره line formset برای اسناد multi-line.
+**توضیح**: Mixin برای مدیریت line formset creation و saving برای multi-line documents
 
 **Attributes**:
-- `formset_class`: کلاس formset (باید توسط subclass تنظیم شود)
-- `formset_prefix`: پیشوند فیلدهای formset (default: `'lines'`)
+- `formset_class`: `None` (باید در subclass تنظیم شود)
+- `formset_prefix`: `'lines'`
 
 **متدها**:
 
-#### `build_line_formset(data, instance, company_id)`
+#### `build_line_formset(self, data=None, instance=None, company_id: Optional[int] = None, request=None) -> FormSet`
 
-**توضیح**: line formset را با پارامترهای داده شده می‌سازد.
-
-**پارامترهای ورودی**:
-- `data` (Optional[QueryDict]): داده‌های POST
-- `instance`: instance سند
-- `company_id` (Optional[int]): شناسه شرکت
-
-**مقدار بازگشتی**:
-- Formset instance
-
----
-
-#### `get_line_formset(data)`
-
-**توضیح**: line formset را برای request فعلی برمی‌گرداند.
+**توضیح**: ساخت line formset برای document.
 
 **پارامترهای ورودی**:
-- `data` (Optional[QueryDict]): داده‌های POST
+- `data`: POST data (optional)
+- `instance`: document instance (optional)
+- `company_id`: شناسه شرکت (optional)
+- `request`: HTTP request (optional)
 
 **مقدار بازگشتی**:
-- Formset instance
-
----
-
-#### `get_context_data(**kwargs) -> Dict[str, Any]`
-
-**توضیح**: line formset را به context اضافه می‌کند.
-
-**مقدار بازگشتی**:
-- Context با `lines_formset` اضافه شده
-
----
-
-#### `form_invalid(form)`
-
-**توضیح**: فرم نامعتبر را با formset handle می‌کند.
-
-**پارامترهای ورودی**:
-- `form`: فرم نامعتبر
-
-**مقدار بازگشتی**:
-- `HttpResponse`: response با فرم و formset
-
----
-
-#### `_save_line_formset(formset) -> None`
-
-**توضیح**: instance های line formset را ذخیره می‌کند و serial assignment را handle می‌کند.
-
-**پارامترهای ورودی**:
-- `formset`: formset برای ذخیره
+- `FormSet`: formset instance
 
 **منطق**:
-1. فرم‌های valid را ذخیره می‌کند
-2. فرم‌های marked for deletion را حذف می‌کند
-3. serial assignment را برای issue lines handle می‌کند
-4. serials را reserve می‌کند
+1. تعیین instance (از `self.object` یا parameter)
+2. تعیین company_id (از instance یا session)
+3. تعیین request (از `self.request` یا parameter)
+4. ساخت formset با kwargs
 
 ---
+
+#### `get_line_formset(self, data=None) -> FormSet`
+
+**توضیح**: دریافت line formset برای request فعلی.
+
+**پارامترهای ورودی**:
+- `data`: POST data (optional)
+
+**مقدار بازگشتی**:
+- `FormSet`: formset instance
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: اضافه کردن line formset به context.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `lines_formset` اضافه شده
+
+---
+
+#### `form_invalid(self, form) -> HttpResponse`
+
+**توضیح**: Handle کردن invalid form با formset.
+
+**پارامترهای ورودی**:
+- `form`: form instance
+
+**مقدار بازگشتی**:
+- `HttpResponse`: response با form و formset errors
+
+---
+
+#### `_save_line_formset(self, formset) -> None`
+
+**توضیح**: ذخیره line formset instances.
+
+**پارامترهای ورودی**:
+- `formset`: formset instance
+
+**مقدار بازگشتی**: ندارد
+
+**منطق**:
+1. برای هر form در formset:
+   - بررسی `cleaned_data` (اگر وجود ندارد، skip)
+   - بررسی `DELETE` (اگر True باشد، حذف)
+   - بررسی `item` (اگر وجود ندارد، skip)
+   - بررسی errors (اگر وجود دارد، skip)
+   - ذخیره instance
+   - ذخیره M2M relationships (serials)
+   - Handle selected serials از hidden input (برای new issue lines)
+
+**نکات مهم**:
+- Serial assignment برای issue lines
+- Serial reservation با `sync_issue_line_serials()`
+
+---
+
+## ItemUnitFormsetMixin
 
 ### `ItemUnitFormsetMixin`
 
-**توضیح**: مدیریت ایجاد و ذخیره unit formset برای items.
+**توضیح**: Mixin برای مدیریت item unit formset creation و saving
 
 **Attributes**:
-- `formset_prefix`: پیشوند فیلدهای formset (default: `'units'`)
+- `formset_prefix`: `'units'`
 
 **متدها**:
 
-#### `build_unit_formset(data, instance, company_id)`
+#### `build_unit_formset(self, data=None, instance=None, company_id: Optional[int] = None) -> FormSet`
 
-**توضیح**: unit formset را می‌سازد.
+**توضیح**: ساخت unit formset برای item.
 
 **پارامترهای ورودی**:
-- `data` (Optional[QueryDict]): داده‌های POST
-- `instance`: instance item
-- `company_id` (Optional[int]): شناسه شرکت
+- `data`: POST data (optional)
+- `instance`: item instance (optional)
+- `company_id`: شناسه شرکت (optional)
 
 **مقدار بازگشتی**:
-- `ItemUnitFormSet` instance
+- `FormSet`: `ItemUnitFormSet` instance
 
 ---
 
-#### `_save_unit_formset(formset) -> None`
+#### `get_unit_formset(self, data=None) -> FormSet`
 
-**توضیح**: instance های unit formset را ذخیره می‌کند.
-
-**پارامترهای ورودی**:
-- `formset`: formset برای ذخیره
-
-**منطق**:
-1. واحدهای valid را ذخیره می‌کند
-2. کدهای واحد را برای واحدهای جدید تولید می‌کند
-3. واحدهای حذف شده را حذف می‌کند
+**توضیح**: دریافت unit formset برای request فعلی.
 
 ---
 
-#### `_sync_item_warehouses(item, warehouses, user) -> None`
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
-**توضیح**: روابط item-warehouse را همگام‌سازی می‌کند.
+**توضیح**: اضافه کردن unit formset به context.
 
-**پارامترهای ورودی**:
-- `item`: شیء Item
-- `warehouses`: لیست warehouse objects
-- `user`: کاربر
-
-**منطق**:
-1. warehouse های حذف شده را حذف می‌کند
-2. warehouse های جدید را ایجاد می‌کند
-3. اولین warehouse را به عنوان primary تنظیم می‌کند
+**Context Variables اضافه شده**:
+- `units_formset`: formset instance
+- `units_formset_empty`: empty form برای JavaScript cloning
 
 ---
 
-#### `_get_ordered_warehouses(form)`
+#### `form_invalid(self, form) -> HttpResponse`
 
-**توضیح**: warehouse ها را به ترتیب انتخاب شده برمی‌گرداند.
+**توضیح**: Handle کردن invalid form با unit formset.
+
+---
+
+#### `_generate_unit_code(self, company) -> str`
+
+**توضیح**: تولید sequential unit code.
 
 **پارامترهای ورودی**:
-- `form`: فرم item
+- `company`: company instance
 
 **مقدار بازگشتی**:
-- `List[Warehouse]`: لیست warehouse ها به ترتیب انتخاب
+- `str`: unit code (6 digits)
+
+**منطق**:
+1. دریافت آخرین code
+2. Increment و zero-pad به 6 digits
 
 ---
 
-## وابستگی‌ها
+#### `_save_unit_formset(self, formset) -> None`
 
-- `django.contrib.auth.mixins`: `LoginRequiredMixin`
-- `django.views.generic`: `View`
-- `django.contrib import messages`
-- `django.http`: `HttpResponseRedirect`
-- `django.urls`: `reverse`
-- `django.utils`: `timezone`
-- `inventory.models`: تمام مدل‌های inventory
-- `inventory.forms`: تمام formset classes
-- `inventory.services.serials`: برای مدیریت serials
+**توضیح**: ذخیره unit formset instances.
+
+**منطق**:
+1. برای هر unit:
+   - بررسی `from_unit` و `to_unit` (اگر وجود ندارد، skip)
+   - تنظیم `company`, `item`, `item_code`
+   - تولید `public_code` اگر وجود ندارد
+   - ذخیره
+2. حذف deleted objects
 
 ---
 
-## استفاده در پروژه
+#### `_sync_item_warehouses(self, item, warehouses, user) -> None`
 
-این کلاس‌ها و mixin‌ها در تمام views ماژول inventory استفاده می‌شوند:
+**توضیح**: همگام‌سازی روابط item-warehouse.
 
-```python
-from inventory.views.base import (
-    InventoryBaseView,
-    DocumentLockProtectedMixin,
-    LineFormsetMixin
-)
+**پارامترهای ورودی**:
+- `item`: item instance
+- `warehouses`: لیست warehouse instances
+- `user`: user instance
 
-class ReceiptCreateView(LineFormsetMixin, InventoryBaseView, CreateView):
-    model = ReceiptPermanent
-    formset_class = ReceiptPermanentLineFormSet
-```
+**مقدار بازگشتی**: ندارد
+
+**منطق**:
+1. حذف warehouses حذف شده
+2. برای هر warehouse:
+   - تعیین `is_primary` (اولین warehouse primary است)
+   - اگر موجود است، به‌روزرسانی
+   - اگر موجود نیست، ایجاد
+
+---
+
+#### `_get_ordered_warehouses(self, form) -> list`
+
+**توضیح**: دریافت warehouses به ترتیب انتخاب شده.
+
+**پارامترهای ورودی**:
+- `form`: form instance
+
+**مقدار بازگشتی**:
+- `list`: لیست warehouses به ترتیب انتخاب
+
+**منطق**:
+1. دریافت warehouses از `cleaned_data`
+2. دریافت order از POST data
+3. مرتب‌سازی بر اساس order
 
 ---
 
 ## نکات مهم
 
-1. **MRO (Method Resolution Order)**: `InventoryBaseView` باید اول در MRO باشد
-2. **Company Filtering**: تمام views به صورت خودکار بر اساس شرکت فعال فیلتر می‌شوند
-3. **Lock Protection**: از `DocumentLockProtectedMixin` برای views ویرایش/حذف استفاده کنید
-4. **Formset Handling**: از `LineFormsetMixin` برای اسناد multi-line استفاده کنید
+### 1. Company Filtering
+- تمام mixins بر اساس `active_company_id` فیلتر می‌کنند
 
+### 2. Lock Mechanism
+- `DocumentLockProtectedMixin` از ویرایش/حذف قفل شده جلوگیری می‌کند
+- `DocumentLockView` برای lock کردن استفاده می‌شود
+
+### 3. Formset Management
+- `LineFormsetMixin` برای multi-line documents
+- `ItemUnitFormsetMixin` برای item unit conversions
+
+### 4. Serial Management
+- `_save_line_formset` serial assignment و reservation را handle می‌کند
+
+---
+
+## الگوهای مشترک
+
+1. **Company Filtering**: تمام mixins بر اساس `active_company_id` فیلتر می‌کنند
+2. **Error Handling**: خطاها با messages نمایش داده می‌شوند
+3. **Permission Checking**: از `shared.utils.permissions` استفاده می‌شود
+4. **Formset Handling**: Formsets به صورت dynamic ساخته و ذخیره می‌شوند

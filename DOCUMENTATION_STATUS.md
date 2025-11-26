@@ -158,52 +158,33 @@
 
 ---
 
-## فایل‌های مستندسازی شده (ناقص - نیاز به تکمیل)
+## فایل‌های مستندسازی شده (کامل)
 
 ### Views
 
-#### ⚠️ `inventory/views/receipts.py`
+#### ✅ `inventory/views/receipts.py`
 - **فایل README**: `inventory/views/README_RECEIPTS.md`
-- **وضعیت**: ⚠️ ناقص (خلاصه با به‌روزرسانی‌های اخیر)
-- **توضیحات**: 
-  - فایل README موجود است و شامل خلاصه تمام کلاس‌ها است
-  - به‌روزرسانی شده با تغییرات اخیر (Item Filtering and Search)
-  - نیاز به تکمیل کامل با تمام متدها و جزئیات (پارامترها، return values، منطق کامل)
-  - 27 کلاس view در این فایل وجود دارد که نیاز به مستندسازی کامل دارند
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 27 کلاس view مستندسازی شده
+  - DocumentDeleteViewBase و ReceiptFormMixin با تمام متدها
+  - 15 Receipt Views (5 برای هر نوع: Temporary, Permanent, Consignment)
+  - 3 Create from Purchase Request Views
+  - 6 Serial Assignment Views (2 base + 4 subclass)
+  - تمام متدها با پارامترها و return values
+  - تمام context variables
+  - Fieldsets documentation
+  - Lock mechanism documentation
+  - Session management documentation
+- Serial assignment documentation
+- Item filtering and search documentation
 
-**کلاس‌های موجود (نیاز به مستندسازی کامل)**:
-- Base Classes:
-  - `DocumentDeleteViewBase` (نیاز به تکمیل)
-  - `ReceiptFormMixin` (نیاز به تکمیل)
-- Temporary Receipt Views:
-  - `ReceiptTemporaryListView`
-  - `ReceiptTemporaryCreateView`
-  - `ReceiptTemporaryUpdateView`
-  - `ReceiptTemporaryDeleteView`
-  - `ReceiptTemporaryLockView`
-  - `ReceiptTemporarySendToQCView`
-  - `ReceiptTemporaryCreateFromPurchaseRequestView`
-- Permanent Receipt Views:
-  - `ReceiptPermanentListView`
-  - `ReceiptPermanentCreateView`
-  - `ReceiptPermanentUpdateView`
-  - `ReceiptPermanentDeleteView`
-  - `ReceiptPermanentLockView`
-  - `ReceiptPermanentCreateFromPurchaseRequestView`
-- Consignment Receipt Views:
-  - `ReceiptConsignmentListView`
-  - `ReceiptConsignmentCreateView`
-  - `ReceiptConsignmentUpdateView`
-  - `ReceiptConsignmentDeleteView`
-  - `ReceiptConsignmentLockView`
-  - `ReceiptConsignmentCreateFromPurchaseRequestView`
-- Serial Assignment Views:
-  - `ReceiptSerialAssignmentBaseView`
-  - `ReceiptPermanentSerialAssignmentView`
-  - `ReceiptConsignmentSerialAssignmentView`
-  - `ReceiptLineSerialAssignmentBaseView`
-  - `ReceiptPermanentLineSerialAssignmentView`
-  - `ReceiptConsignmentLineSerialAssignmentView`
+**کلاس‌های مستندسازی شده**:
+- Base Classes: `DocumentDeleteViewBase`, `ReceiptFormMixin`
+- Temporary Receipt Views: `ReceiptTemporaryListView`, `ReceiptTemporaryCreateView`, `ReceiptTemporaryUpdateView`, `ReceiptTemporaryDeleteView`, `ReceiptTemporaryLockView`, `ReceiptTemporarySendToQCView`, `ReceiptTemporaryCreateFromPurchaseRequestView`
+- Permanent Receipt Views: `ReceiptPermanentListView`, `ReceiptPermanentCreateView`, `ReceiptPermanentUpdateView`, `ReceiptPermanentDeleteView`, `ReceiptPermanentLockView`, `ReceiptPermanentCreateFromPurchaseRequestView`
+- Consignment Receipt Views: `ReceiptConsignmentListView`, `ReceiptConsignmentCreateView`, `ReceiptConsignmentUpdateView`, `ReceiptConsignmentDeleteView`, `ReceiptConsignmentLockView`, `ReceiptConsignmentCreateFromPurchaseRequestView`
+- Serial Assignment Views: `ReceiptSerialAssignmentBaseView`, `ReceiptPermanentSerialAssignmentView`, `ReceiptConsignmentSerialAssignmentView`, `ReceiptLineSerialAssignmentBaseView`, `ReceiptPermanentLineSerialAssignmentView`, `ReceiptConsignmentLineSerialAssignmentView`
 
 ---
 
@@ -211,39 +192,170 @@
 
 ### Views
 
-#### ❌ `inventory/views/issues.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل README موجود**: `inventory/views/README_ISSUES.md` (نیاز به بررسی و تکمیل)
-
-#### ⚠️ `inventory/views/requests.py`
-- **وضعیت**: ⚠️ ناقص (خلاصه با به‌روزرسانی‌های اخیر)
-- **فایل README موجود**: `inventory/views/README_REQUESTS.md`
+#### ✅ `inventory/views/issues.py`
+- **فایل README**: `inventory/views/README_ISSUES.md`
+- **وضعیت**: ✅ کامل
 - **توضیحات**:
-  - فایل README موجود است و شامل خلاصه تمام کلاس‌ها است
-  - به‌روزرسانی شده با تغییرات اخیر (Item Filtering and Search)
-  - شامل توضیحات Base Mixins (`PurchaseRequestFormMixin`, `WarehouseRequestFormMixin`)
-  - نیاز به تکمیل کامل با تمام متدها و جزئیات (پارامترها، return values، منطق کامل)
+  - تمام 18 کلاس view مستندسازی شده
+  - تمام متدها با پارامترها و return values
+  - تمام context variables
+  - تمام URL patterns
+  - منطق کامل هر متد
+  - Serial management documentation
+  - Item filtering and search support
 
-#### ❌ `inventory/views/stocktaking.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل README موجود**: `inventory/views/README_STOCKTAKING.md` (نیاز به بررسی و تکمیل)
+**کلاس‌های مستندسازی شده**:
+- Permanent Issue Views: `IssuePermanentListView`, `IssuePermanentCreateView`, `IssuePermanentUpdateView`, `IssuePermanentDeleteView`, `IssuePermanentLockView`
+- Consumption Issue Views: `IssueConsumptionListView`, `IssueConsumptionCreateView`, `IssueConsumptionUpdateView`, `IssueConsumptionDeleteView`, `IssueConsumptionLockView`
+- Consignment Issue Views: `IssueConsignmentListView`, `IssueConsignmentCreateView`, `IssueConsignmentUpdateView`, `IssueConsignmentDeleteView`, `IssueConsignmentLockView`
+- Serial Assignment Views: `IssueLineSerialAssignmentBaseView`, `IssuePermanentLineSerialAssignmentView`, `IssueConsumptionLineSerialAssignmentView`, `IssueConsignmentLineSerialAssignmentView`
 
-#### ❌ `inventory/views/balance.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل README موجود**: `inventory/views/README_BALANCE.md` (نیاز به بررسی و تکمیل)
+#### ✅ `inventory/views/requests.py`
+- **فایل README**: `inventory/views/README_REQUESTS.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 14 کلاس view مستندسازی شده
+  - PurchaseRequestFormMixin و WarehouseRequestFormMixin با تمام متدها
+  - 5 Purchase Request Views (List, Create, Update, Approve)
+  - 4 Warehouse Request Views (List, Create, Update, Approve)
+  - 4 Create Receipt from Purchase Request Views (1 base + 3 subclasses)
+  - تمام متدها با پارامترها و return values
+  - تمام context variables
+  - Legacy fields documentation
+  - Session management documentation
+  - Item filtering and search documentation
 
-#### ❌ `inventory/views/api.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل README موجود**: `inventory/views/README_API.md` (نیاز به بررسی و تکمیل)
+**کلاس‌های مستندسازی شده**:
+- `PurchaseRequestFormMixin` (base mixin)
+- `WarehouseRequestFormMixin` (base mixin)
+- Purchase Request Views: `PurchaseRequestListView`, `PurchaseRequestCreateView`, `PurchaseRequestUpdateView`, `PurchaseRequestApproveView`
+- Warehouse Request Views: `WarehouseRequestListView`, `WarehouseRequestCreateView`, `WarehouseRequestUpdateView`, `WarehouseRequestApproveView`
+- Create Receipt Views: `CreateReceiptFromPurchaseRequestView` (base), `CreateTemporaryReceiptFromPurchaseRequestView`, `CreatePermanentReceiptFromPurchaseRequestView`, `CreateConsignmentReceiptFromPurchaseRequestView`
 
-#### ❌ `inventory/views/base.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل README موجود**: `inventory/views/README_BASE.md` (نیاز به بررسی و تکمیل)
+#### ✅ `inventory/views/stocktaking.py`
+- **فایل README**: `inventory/views/README_STOCKTAKING.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 16 کلاس view مستندسازی شده
+  - StocktakingFormMixin با تمام متدها
+  - 3 نوع document (Deficit, Surplus, Record) با 5 view برای هر کدام
+  - تمام متدها با پارامترها و return values
+  - تمام context variables
+  - Fieldsets documentation
+  - Lock mechanism documentation
 
-#### ❌ سایر view files
-- `inventory/views/item_import.py` → `README_ITEM_IMPORT.md`
-- `inventory/views/create_issue_from_warehouse_request.py` → `README_CREATE_ISSUE_FROM_WAREHOUSE_REQUEST.md`
-- `inventory/views/issues_from_warehouse_request.py` → `README_ISSUES_FROM_WAREHOUSE_REQUEST.md`
+**کلاس‌های مستندسازی شده**:
+- `StocktakingFormMixin` (base mixin)
+- Deficit Views: `StocktakingDeficitListView`, `StocktakingDeficitCreateView`, `StocktakingDeficitUpdateView`, `StocktakingDeficitDeleteView`, `StocktakingDeficitLockView`
+- Surplus Views: `StocktakingSurplusListView`, `StocktakingSurplusCreateView`, `StocktakingSurplusUpdateView`, `StocktakingSurplusDeleteView`, `StocktakingSurplusLockView`
+- Record Views: `StocktakingRecordListView`, `StocktakingRecordCreateView`, `StocktakingRecordUpdateView`, `StocktakingRecordDeleteView`, `StocktakingRecordLockView`
+
+#### ✅ `inventory/views/balance.py`
+- **فایل README**: `inventory/views/README_BALANCE.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 3 view class مستندسازی شده
+  - InventoryBalanceView با فیلترها و محاسبه موجودی
+  - InventoryBalanceDetailsView با تاریخچه تراکنش‌ها
+  - InventoryBalanceAPIView با JSON API endpoint
+  - تمام متدها با پارامترها و return values
+  - Date parsing (Gregorian و Jalali)
+  - Transaction types documentation
+
+**کلاس‌های مستندسازی شده**:
+- `InventoryBalanceView` - نمایش موجودی با فیلترها
+- `InventoryBalanceDetailsView` - جزئیات تراکنش‌های یک کالا
+- `InventoryBalanceAPIView` - API endpoint برای محاسبه موجودی
+
+#### ✅ `inventory/views/api.py`
+- **فایل README**: `inventory/views/README_API.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 10 function-based view مستندسازی شده
+  - تمام endpoints با query parameters و response format
+  - Error handling documentation
+  - Authentication و authorization
+  - Company filtering
+
+**Function-based Views مستندسازی شده**:
+- `get_item_allowed_units` - دریافت واحدهای مجاز
+- `get_filtered_categories` - دریافت دسته‌بندی‌های فیلتر شده
+- `get_filtered_subcategories` - دریافت زیردسته‌بندی‌های فیلتر شده
+- `get_filtered_items` - دریافت کالاهای فیلتر شده
+- `get_item_units` - دریافت واحدهای یک کالا
+- `get_item_allowed_warehouses` - دریافت انبارهای مجاز
+- `get_temporary_receipt_data` - دریافت داده‌های receipt موقت
+- `get_item_available_serials` - دریافت سریال‌های موجود
+- `update_serial_secondary_code` - به‌روزرسانی کد ثانویه سریال
+- `get_warehouse_work_lines` - دریافت خطوط کار یک انبار
+
+#### ✅ `inventory/views/base.py`
+- **فایل README**: `inventory/views/README_BASE.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 5 کلاس مستندسازی شده
+  - InventoryBaseView با company filtering و permission helpers
+  - DocumentLockProtectedMixin با lock protection
+  - DocumentLockView با lock mechanism
+  - LineFormsetMixin با formset management
+  - ItemUnitFormsetMixin با unit formset management
+  - تمام متدها با پارامترها و return values
+  - Serial management documentation
+
+**کلاس‌های مستندسازی شده**:
+- `InventoryBaseView` - Base view با context مشترک
+- `DocumentLockProtectedMixin` - محافظت از سندهای قفل شده
+- `DocumentLockView` - View برای lock کردن سندها
+- `LineFormsetMixin` - Mixin برای مدیریت line formsets
+- `ItemUnitFormsetMixin` - Mixin برای مدیریت item unit formsets
+
+#### ✅ `inventory/views/item_import.py`
+- **فایل README**: `inventory/views/README_ITEM_IMPORT.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 2 view class مستندسازی شده
+  - ItemExcelTemplateDownloadView با Excel generation logic
+  - ItemExcelImportView با parsing, validation, و creation logic
+  - تمام helper methods مستندسازی شده
+  - Excel columns documentation
+  - Error handling documentation
+
+**کلاس‌های مستندسازی شده**:
+- `ItemExcelTemplateDownloadView` - دانلود قالب Excel
+- `ItemExcelImportView` - Import از Excel با تمام helper methods
+
+#### ✅ `inventory/views/create_issue_from_warehouse_request.py`
+- **فایل README**: `inventory/views/README_CREATE_ISSUE_FROM_WAREHOUSE_REQUEST.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 4 view class مستندسازی شده
+  - CreateIssueFromWarehouseRequestView (base) با تمام متدها
+  - 3 subclass برای permanent, consumption, consignment
+  - Session management documentation
+  - Quantity validation documentation
+
+**کلاس‌های مستندسازی شده**:
+- `CreateIssueFromWarehouseRequestView` (base)
+- `CreatePermanentIssueFromWarehouseRequestView`
+- `CreateConsumptionIssueFromWarehouseRequestView`
+- `CreateConsignmentIssueFromWarehouseRequestView`
+
+#### ✅ `inventory/views/issues_from_warehouse_request.py`
+- **فایل README**: `inventory/views/README_ISSUES_FROM_WAREHOUSE_REQUEST.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 3 view class مستندسازی شده
+  - IssuePermanentCreateFromWarehouseRequestView
+  - IssueConsumptionCreateFromWarehouseRequestView
+  - IssueConsignmentCreateFromWarehouseRequestView
+  - تمام متدها با پارامترها و return values
+  - Session data usage documentation
+  - Formset handling documentation
+
+**کلاس‌های مستندسازی شده**:
+- `IssuePermanentCreateFromWarehouseRequestView`
+- `IssueConsumptionCreateFromWarehouseRequestView`
+- `IssueConsignmentCreateFromWarehouseRequestView`
 
 ---
 
@@ -258,41 +370,313 @@
 #### ✅ `inventory/forms/request.py`
 - **وضعیت**: ✅ کامل (به بخش بالا مراجعه کنید)
 
-#### ❌ `inventory/forms/stocktaking.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
+#### ✅ `inventory/forms/stocktaking.py`
+- **فایل README**: `inventory/forms/README_STOCKTAKING.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 3 form class مستندسازی شده
+  - تمام فیلدها با نوع، widget، label
+  - تمام متدها با منطق کامل
+  - Document code generation
+  - Approval workflow documentation
+  - Quantity calculation logic
 
-#### ❌ `inventory/forms/base.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
+**کلاس‌های مستندسازی شده**:
+- `StocktakingDeficitForm` (با quantity calculation)
+- `StocktakingSurplusForm` (با quantity calculation)
+- `StocktakingRecordForm` (با approval workflow)
+
+#### ✅ `inventory/forms/base.py`
+- **فایل README**: `inventory/forms/README_BASE.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - Constants (UNIT_CHOICES)
+  - Helper functions (get_feature_approvers, generate_document_code, get_purchase_request_approvers)
+  - Base form classes (ReceiptBaseForm, IssueBaseForm, StocktakingBaseForm)
+  - Base formset class (BaseLineFormSet)
+  - تمام متدها با جزئیات کامل
+  - Unit conversion logic
+  - Company filtering logic
+
+**کلاس‌های مستندسازی شده**:
+- Helper Functions: `get_feature_approvers`, `generate_document_code`, `get_purchase_request_approvers`
+- Base Forms: `ReceiptBaseForm`, `IssueBaseForm`, `StocktakingBaseForm`
+- Base Formset: `BaseLineFormSet`
 
 ---
 
 ### Other Modules
 
-#### ❌ `production/views/*.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل README موجود**: `production/views/README.md` (نیاز به بررسی و تکمیل)
+#### ✅ `production/views/*.py`
+- **وضعیت**: ✅ کامل (9 فایل README جداگانه)
+- **فایل‌های README موجود**:
+  - ✅ `production/views/README_BOM.md` - کامل
+  - ✅ `production/views/README_PROCESS.md` - کامل
+  - ✅ `production/views/README_PRODUCT_ORDER.md` - کامل
+  - ✅ `production/views/README_MACHINE.md` - کامل
+  - ✅ `production/views/README_WORK_LINE.md` - کامل
+  - ✅ `production/views/README_PERSONNEL.md` - کامل
+  - ✅ `production/views/README_PERFORMANCE_RECORD.md` - کامل
+  - ✅ `production/views/README_TRANSFER_TO_LINE.md` - کامل
+  - ✅ `production/views/README_PLACEHOLDERS.md` - کامل
+- **فایل README کلی**: `production/views/README.md` (نیاز به بررسی و تکمیل)
 
-#### ❌ `production/forms/*.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل README موجود**: `production/forms/README.md` (نیاز به بررسی و تکمیل)
+#### ✅ `production/forms/*.py`
+- **وضعیت**: ✅ کامل (8 فایل README جداگانه)
+- **فایل‌های README موجود**:
+  - ✅ `production/forms/README_BOM.md` - کامل
+  - ✅ `production/forms/README_PROCESS.md` - کامل
+  - ✅ `production/forms/README_PRODUCT_ORDER.md` - کامل
+  - ✅ `production/forms/README_WORK_LINE.md` - کامل
+  - ✅ `production/forms/README_MACHINE.md` - کامل
+  - ✅ `production/forms/README_PERSON.md` - کامل
+  - ✅ `production/forms/README_TRANSFER_TO_LINE.md` - کامل
+  - ✅ `production/forms/README_PERFORMANCE_RECORD.md` - کامل
+- **فایل README کلی**: `production/forms/README.md` (نیاز به بررسی و تکمیل)
 
-#### ❌ `qc/views/*.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل README موجود**: `qc/views/README.md`, `qc/views/README_BASE.md` (نیاز به بررسی و تکمیل)
+#### ✅ `qc/views/inspections.py`
+- **فایل README**: `qc/views/README_INSPECTIONS.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 3 کلاس view مستندسازی شده
+  - TemporaryReceiptQCListView با queryset filtering
+  - TemporaryReceiptQCApproveView با approval workflow
+  - TemporaryReceiptQCRejectView با rejection workflow
+  - تمام متدها با پارامترها و return values
+  - Transaction safety documentation
+  - Lock mechanism documentation
 
-#### ❌ `ticketing/views/*.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
+**کلاس‌های مستندسازی شده**:
+- `TemporaryReceiptQCListView` - فهرست رسیدهای در انتظار بازرسی
+- `TemporaryReceiptQCApproveView` - تایید بازرسی
+- `TemporaryReceiptQCRejectView` - رد بازرسی
 
-#### ❌ `ticketing/forms/*.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
+#### ✅ `qc/views/base.py`
+- **فایل README**: `qc/views/README_BASE.md`
+- **وضعیت**: ✅ کامل (موجود از قبل)
 
-#### ❌ `shared/views/*.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل README موجود**: `shared/views/README.md` (نیاز به بررسی و تکمیل)
+#### ✅ `ticketing/views/*.py`
+- **وضعیت**: ✅ کامل (7 فایل README جداگانه)
+- **فایل‌های README موجود**:
+  - ✅ `ticketing/views/README_BASE.md` - کامل (موجود از قبل)
+  - ✅ `ticketing/views/README_CATEGORIES.md` - کامل
+  - ✅ `ticketing/views/README_SUBCATEGORIES.md` - کامل
+  - ✅ `ticketing/views/README_TEMPLATES.md` - کامل
+  - ✅ `ticketing/views/README_TICKETS.md` - کامل
+  - ✅ `ticketing/views/README_DEBUG.md` - کامل
+  - ✅ `ticketing/views/README_PLACEHOLDERS.md` - کامل
+- **فایل README کلی**: `ticketing/views/README.md` (نیاز به بررسی و تکمیل)
 
-#### ❌ `shared/forms/*.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل README موجود**: `shared/forms/README.md` (نیاز به بررسی و تکمیل)
+#### ✅ `ticketing/forms/*.py`
+- **وضعیت**: ✅ کامل (4 فایل README جداگانه)
+- **فایل‌های README موجود**:
+  - ✅ `ticketing/forms/README_BASE.md` - کامل
+  - ✅ `ticketing/forms/README_CATEGORIES.md` - کامل
+  - ✅ `ticketing/forms/README_TEMPLATES.md` - کامل
+  - ✅ `ticketing/forms/README_TICKETS.md` - کامل
+- **فایل README کلی**: `ticketing/forms/README.md` (نیاز به بررسی و تکمیل)
+
+#### ✅ `shared/views/users.py`
+- **فایل README**: `shared/views/README_USERS.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 4 کلاس view مستندسازی شده
+  - UserListView با search و status filtering
+  - UserCreateView با UserCompanyAccess formset
+  - UserUpdateView با UserCompanyAccess formset
+  - UserDeleteView
+  - تمام متدها با پارامترها و return values
+  - Transaction safety documentation
+  - Formset management documentation
+
+**کلاس‌های مستندسازی شده**:
+- `UserListView` - فهرست کاربران
+- `UserCreateView` - ایجاد کاربر
+- `UserUpdateView` - ویرایش کاربر
+- `UserDeleteView` - حذف کاربر
+
+#### ✅ `shared/views/companies.py`
+- **فایل README**: `shared/views/README_COMPANIES.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 4 کلاس view مستندسازی شده
+  - CompanyListView با user access filtering
+  - CompanyCreateView با auto UserCompanyAccess creation
+  - CompanyUpdateView
+  - CompanyDeleteView
+  - تمام متدها با پارامترها و return values
+  - Auto access creation documentation
+
+**کلاس‌های مستندسازی شده**:
+- `CompanyListView` - فهرست شرکت‌ها (بر اساس دسترسی کاربر)
+- `CompanyCreateView` - ایجاد شرکت (با auto access creation)
+- `CompanyUpdateView` - ویرایش شرکت
+- `CompanyDeleteView` - حذف شرکت
+
+#### ✅ `shared/views/base.py`
+- **فایل README**: `shared/views/README_BASE.md`
+- **وضعیت**: ✅ کامل (موجود از قبل)
+
+#### ✅ `shared/views/access_levels.py`
+- **فایل README**: `shared/views/README_ACCESS_LEVELS.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 4 کلاس view مستندسازی شده
+  - AccessLevelListView با search و status filtering
+  - AccessLevelCreateView با AccessLevelPermissionMixin و permission management
+  - AccessLevelUpdateView با permission management
+  - AccessLevelDeleteView
+  - تمام متدها با پارامترها و return values
+  - AccessLevelPermissionMixin documentation (_prepare_feature_context, _save_permissions)
+
+**کلاس‌های مستندسازی شده**:
+- `AccessLevelListView` - فهرست access levels
+- `AccessLevelCreateView` - ایجاد access level (با permission management)
+- `AccessLevelUpdateView` - ویرایش access level (با permission management)
+- `AccessLevelDeleteView` - حذف access level
+
+#### ✅ `shared/views/groups.py`
+- **فایل README**: `shared/views/README_GROUPS.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 4 کلاس view مستندسازی شده
+  - GroupListView با search و status filtering (از GroupProfile)
+  - GroupCreateView
+  - GroupUpdateView
+  - GroupDeleteView
+  - تمام متدها با پارامترها و return values
+  - Django Group model integration
+
+**کلاس‌های مستندسازی شده**:
+- `GroupListView` - فهرست groups
+- `GroupCreateView` - ایجاد group
+- `GroupUpdateView` - ویرایش group
+- `GroupDeleteView` - حذف group
+
+#### ✅ `shared/views/company_units.py`
+- **فایل README**: `shared/views/README_COMPANY_UNITS.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 4 کلاس view مستندسازی شده
+  - CompanyUnitListView با company filtering و search
+  - CompanyUnitCreateView با auto company_id setting
+  - CompanyUnitUpdateView
+  - CompanyUnitDeleteView
+  - تمام متدها با پارامترها و return values
+  - Company scoping documentation
+
+**کلاس‌های مستندسازی شده**:
+- `CompanyUnitListView` - فهرست واحدهای سازمانی (بر اساس شرکت فعال)
+- `CompanyUnitCreateView` - ایجاد واحد سازمانی
+- `CompanyUnitUpdateView` - ویرایش واحد سازمانی
+- `CompanyUnitDeleteView` - حذف واحد سازمانی
+
+#### ✅ `shared/views/auth.py`
+- **فایل README**: `shared/views/README_AUTH.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 3 function-based view مستندسازی شده
+  - set_active_company با access verification
+  - custom_login با authentication
+  - mark_notification_read با session management
+  - تمام پارامترها و return values
+  - Session management documentation
+
+**Function-based Views مستندسازی شده**:
+- `set_active_company` - تنظیم شرکت فعال در session
+- `custom_login` - صفحه login سفارشی
+- `mark_notification_read` - علامت‌گذاری notification به عنوان خوانده شده
+
+#### ✅ `shared/views/smtp_server.py`
+- **فایل README**: `shared/views/README_SMTP_SERVER.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 4 کلاس view مستندسازی شده
+  - SMTPServerListView
+  - SMTPServerCreateView با auto field setting
+  - SMTPServerUpdateView با password handling
+  - SMTPServerDeleteView
+  - تمام متدها با پارامترها و return values
+  - Password handling documentation
+
+**کلاس‌های مستندسازی شده**:
+- `SMTPServerListView` - فهرست SMTP server configurations
+- `SMTPServerCreateView` - ایجاد SMTP server configuration
+- `SMTPServerUpdateView` - ویرایش SMTP server configuration (با password handling)
+- `SMTPServerDeleteView` - حذف SMTP server configuration
+
+#### ✅ `shared/forms/users.py`
+- **فایل README**: `shared/forms/README_USERS.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 3 form class مستندسازی شده (UserBaseForm, UserCreateForm, UserUpdateForm)
+  - UserCompanyAccessForm و BaseUserCompanyAccessFormSet مستندسازی شده
+  - UserCompanyAccessFormSet factory مستندسازی شده
+  - تمام متدها با پارامترها و return values
+  - Groups management documentation
+  - Password handling documentation
+  - Formset validation documentation
+
+**کلاس‌های مستندسازی شده**:
+- `UserBaseForm` - Base form برای user creation/update
+- `UserCreateForm` - Form برای ایجاد کاربر (با password)
+- `UserUpdateForm` - Form برای ویرایش کاربر (با optional password change)
+- `UserCompanyAccessForm` - Form برای company access (در formset)
+- `BaseUserCompanyAccessFormSet` - Formset با validation (یک primary company)
+- `UserCompanyAccessFormSet` - Formset factory
+
+#### ✅ `shared/forms/companies.py`
+- **فایل README**: `shared/forms/README_COMPANIES.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - تمام 2 form class مستندسازی شده
+  - CompanyForm با تمام fields
+  - CompanyUnitForm با company filtering و parent unit validation
+  - تمام متدها با پارامترها و return values
+  - Company scoping documentation
+  - Hierarchical structure documentation
+
+**کلاس‌های مستندسازی شده**:
+- `CompanyForm` - Form برای ایجاد/ویرایش شرکت
+- `CompanyUnitForm` - Form برای ایجاد/ویرایش واحد سازمانی (با parent unit validation)
+
+#### ✅ `shared/forms/access_levels.py`
+- **فایل README**: `shared/forms/README_ACCESS_LEVELS.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - AccessLevelForm مستندسازی شده
+  - Auto-generated code field documentation
+  - Read-only code field در edit mode
+  - تمام متدها با پارامترها و return values
+
+**کلاس‌های مستندسازی شده**:
+- `AccessLevelForm` - Form برای ایجاد/ویرایش access level (با read-only code در edit)
+
+#### ✅ `shared/forms/groups.py`
+- **فایل README**: `shared/forms/README_GROUPS.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - GroupForm مستندسازی شده
+  - GroupProfile integration documentation
+  - Access levels M2M management
+  - تمام متدها با پارامترها و return values
+  - Save logic documentation
+
+**کلاس‌های مستندسازی شده**:
+- `GroupForm` - Form برای ایجاد/ویرایش group (با GroupProfile integration)
+
+#### ✅ `shared/forms/smtp_server.py`
+- **فایل README**: `shared/forms/README_SMTP_SERVER.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - SMTPServerForm مستندسازی شده
+  - Password handling documentation (optional در update)
+  - TLS/SSL validation documentation
+  - تمام متدها با پارامترها و return values
+  - Help texts documentation
+
+**کلاس‌های مستندسازی شده**:
+- `SMTPServerForm` - Form برای ایجاد/ویرایش SMTP server configuration (با TLS/SSL validation)
 
 ---
 
@@ -303,14 +687,33 @@
 - **فایل‌های موجود**:
   - `codes.py` (نیاز به README)
   - `jalali.py` (نیاز به README)
-  - `serials.py` (نیاز به README)
 
-#### ❌ `shared/utils/*.py`
-- **وضعیت**: ❌ نیاز به مستندسازی
-- **فایل‌های موجود**:
-  - `modules.py` (نیاز به README)
-  - `permissions.py` (نیاز به README)
-  - `email.py` (نیاز به README)
+#### ✅ `shared/utils/permissions.py`
+- **فایل README**: `shared/utils/README_PERMISSIONS.md`
+- **وضعیت**: ✅ کامل
+- **توضیحات**:
+  - FeaturePermissionState dataclass مستندسازی شده
+  - تمام 5 function مستندسازی شده (3 helper + 2 public)
+  - _collect_access_level_ids_for_user با company و group access
+  - _resolve_feature_permissions با scope priority و legacy support
+  - get_user_feature_permissions با superuser bypass
+  - has_feature_permission با own scope fallback
+  - تمام پارامترها و return values
+  - Permission resolution flow documentation
+
+**کلاس‌ها و Functions مستندسازی شده**:
+- `FeaturePermissionState` (dataclass)
+- `_feature_key` (helper)
+- `_collect_access_level_ids_for_user` (helper)
+- `_resolve_feature_permissions` (helper)
+- `get_user_feature_permissions` (public)
+- `has_feature_permission` (public)
+
+#### ❌ `shared/utils/modules.py`
+- **وضعیت**: ❌ نیاز به README
+
+#### ❌ `shared/utils/email.py`
+- **وضعیت**: ❌ نیاز به README
 
 #### ❌ `ticketing/utils/*.py`
 - **وضعیت**: ❌ نیاز به مستندسازی
@@ -374,16 +777,23 @@
 ## آمار کلی
 
 ### ✅ کامل شده
-- **Views**: 1 فایل (`master_data.py`)
-- **Forms**: 4 فایل (`master_data.py`, `receipt.py`, `issue.py`, `request.py`)
-- **جمع**: 5 فایل کامل
-
-### ⚠️ ناقص (نیاز به تکمیل)
-- **Views**: 2 فایل (`receipts.py`, `requests.py`)
+- **Views**: 36 فایل
+  - Inventory: 11 فایل (`master_data.py`, `issues.py`, `stocktaking.py`, `balance.py`, `api.py`, `base.py`, `item_import.py`, `create_issue_from_warehouse_request.py`, `issues_from_warehouse_request.py`, `receipts.py`, `requests.py`)
+  - Production: 9 فایل README جداگانه (`bom.py`, `process.py`, `product_order.py`, `machine.py`, `work_line.py`, `personnel.py`, `transfer_to_line.py`, `performance_record.py`, `placeholders.py`)
+  - QC: 1 فایل (`inspections.py`)
+  - Ticketing: 7 فایل README جداگانه (`base.py`, `categories.py`, `subcategories.py`, `templates.py`, `tickets.py`, `debug.py`, `placeholders.py`)
+  - Shared: 8 فایل (`users.py`, `companies.py`, `access_levels.py`, `groups.py`, `company_units.py`, `auth.py`, `smtp_server.py`, `base.py`)
+- **Forms**: 24 فایل
+  - Inventory: 6 فایل (`master_data.py`, `receipt.py`, `issue.py`, `request.py`, `base.py`, `stocktaking.py`)
+  - Production: 8 فایل README جداگانه (`bom.py`, `process.py`, `product_order.py`, `work_line.py`, `machine.py`, `person.py`, `transfer_to_line.py`, `performance_record.py`)
+  - Ticketing: 4 فایل README جداگانه (`base.py`, `categories.py`, `templates.py`, `tickets.py`)
+  - Shared: 5 فایل (`users.py`, `companies.py`, `access_levels.py`, `groups.py`, `smtp_server.py`)
+- **Utils**: 1 فایل (`shared/utils/permissions.py`)
+- **جمع**: 61 فایل کامل (17 فایل inventory + 17 فایل production + 11 فایل ticketing + 14 فایل qc/shared + 1 فایل utils + 1 فایل base)
 
 ### ❌ نیازمند مستندسازی
-- **Views**: ~15+ فایل
-- **Forms**: ~10+ فایل
+- **Views**: ~0 فایل (تمام views مهم مستندسازی شده‌اند)
+- **Forms**: ~0 فایل (تمام forms مهم مستندسازی شده‌اند)
 - **Utils**: ~10+ فایل
 - **Services**: ~5+ فایل
 - **Template Tags**: ~5+ فایل
@@ -489,14 +899,14 @@
 3. ✅ `inventory/forms/receipt.py` - **کامل شده**
 4. ✅ `inventory/forms/issue.py` - **کامل شده**
 5. ✅ `inventory/forms/request.py` - **کامل شده**
-6. ⚠️ `inventory/views/receipts.py` - **ناقص (نیاز به تکمیل کامل)**
-7. ⚠️ `inventory/views/requests.py` - **ناقص (نیاز به تکمیل کامل)**
-8. ❌ `inventory/views/issues.py` - **بعدی**
+6. ✅ `inventory/views/issues.py` - **کامل شده**
+7. ✅ `inventory/forms/base.py` - **کامل شده**
+8. ✅ `inventory/forms/stocktaking.py` - **کامل شده**
+9. ✅ `inventory/views/receipts.py` - **کامل شده**
+10. ✅ `inventory/views/requests.py` - **کامل شده**
 
 ### اولویت متوسط
-9. ❌ `inventory/views/stocktaking.py`
-10. ❌ `inventory/forms/stocktaking.py`
-11. ❌ `inventory/forms/base.py`
+11. ✅ `inventory/views/stocktaking.py` - **کامل شده**
 
 ### اولویت پایین
 12. ❌ Utility files
@@ -523,9 +933,67 @@
 
 **تاریخ**: 26 نوامبر 2024
 **وضعیت**: در حال پیشرفت
-**پیشرفت**: 5 فایل کامل (Views: 1, Forms: 4)، 2 فایل ناقص (Views: 2)، ~95+ فایل باقی‌مانده
+**پیشرفت**: 61 فایل کامل (Views: 36, Forms: 24, Utils: 1)، 0 فایل ناقص، ~60+ فایل باقی‌مانده (utils, services, templatetags, context_processors, management commands, migrations)
 
 **تغییرات اخیر**:
+- ✅ تکمیل `shared/forms/smtp_server.py` - README کامل با SMTPServerForm (TLS/SSL validation, password handling)
+- ✅ تکمیل `shared/forms/groups.py` - README کامل با GroupForm (GroupProfile integration, access levels M2M)
+- ✅ تکمیل `shared/forms/access_levels.py` - README کامل با AccessLevelForm (auto-generated code, read-only field)
+- ✅ تکمیل `shared/forms/companies.py` - README کامل با CompanyForm و CompanyUnitForm (company scoping, parent unit validation)
+- ✅ تکمیل `shared/forms/users.py` - README کامل با UserBaseForm, UserCreateForm, UserUpdateForm, UserCompanyAccessFormSet
+- ✅ تکمیل `shared/views/smtp_server.py` - README کامل با 4 کلاس view (List, Create, Update, Delete) و password handling
+- ✅ تکمیل `shared/views/auth.py` - README کامل با 3 function-based view (set_active_company, custom_login, mark_notification_read)
+- ✅ تکمیل `shared/views/company_units.py` - README کامل با 4 کلاس view (List, Create, Update, Delete) و company scoping
+- ✅ تکمیل `shared/views/groups.py` - README کامل با 4 کلاس view (List, Create, Update, Delete) و Django Group integration
+- ✅ تکمیل `shared/views/access_levels.py` - README کامل با 4 کلاس view (List, Create, Update, Delete) و AccessLevelPermissionMixin
+- ✅ تکمیل `qc/views/inspections.py` - README کامل با 3 کلاس view (List, Approve, Reject)
+- ✅ تکمیل `shared/views/users.py` - README کامل با 4 کلاس view (List, Create, Update, Delete) و UserCompanyAccess formset
+- ✅ تکمیل `shared/views/companies.py` - README کامل با 4 کلاس view (List, Create, Update, Delete) و auto access creation
+- ✅ تکمیل `shared/utils/permissions.py` - README کامل با 1 dataclass و 5 function (permission resolution utilities)
+- ✅ تکمیل `inventory/views/receipts.py` - README کامل با 27 کلاس view (2 base + 15 receipt views + 3 create from purchase request + 6 serial assignment)
+- ✅ تکمیل `inventory/views/requests.py` - README کامل با 14 کلاس view (2 base mixins + 5 purchase request + 4 warehouse request + 4 create receipt)
+- ✅ تکمیل `inventory/views/item_import.py` - README کامل با 2 view class و تمام helper methods
+- ✅ تکمیل `inventory/views/create_issue_from_warehouse_request.py` - README کامل با 4 view class (1 base + 3 subclasses)
+- ✅ تکمیل `inventory/views/issues_from_warehouse_request.py` - README کامل با 3 view class
+- ✅ تکمیل `inventory/views/api.py` - README کامل با 10 function-based view (API endpoints)
+- ✅ تکمیل `inventory/views/base.py` - README کامل با 5 کلاس (InventoryBaseView, DocumentLockProtectedMixin, DocumentLockView, LineFormsetMixin, ItemUnitFormsetMixin)
+- ✅ تکمیل `inventory/views/stocktaking.py` - README کامل با تمام 16 کلاس view (1 Mixin + 15 view classes)
+  - StocktakingFormMixin با تمام متدها
+  - 3 نوع document (Deficit, Surplus, Record) با 5 view برای هر کدام
+  - Fieldsets documentation
+  - Lock mechanism documentation
+- ✅ تکمیل `ticketing/forms/*.py` - 4 فایل README جداگانه برای تمام form classes
+  - `README_BASE.md` - TicketingBaseForm, TicketFormMixin
+  - `README_CATEGORIES.md` - TicketCategoryForm, TicketCategoryPermissionForm
+  - `README_TEMPLATES.md` - TicketTemplateForm و 5 form class دیگر + 4 formset
+  - `README_TICKETS.md` - TicketForm, TicketCreateForm
+- ✅ تکمیل `ticketing/views/*.py` - 7 فایل README جداگانه برای تمام view classes
+  - `README_CATEGORIES.md` - 4 view class
+  - `README_SUBCATEGORIES.md` - 4 view class
+  - `README_TEMPLATES.md` - 4 view class
+  - `README_TICKETS.md` - 3 view class
+  - `README_DEBUG.md` - debug_log_view function
+  - `README_PLACEHOLDERS.md` - 4 placeholder view class
+- ✅ تکمیل `production/views/*.py` - 9 فایل README جداگانه برای تمام view classes
+  - `README_BOM.md`, `README_PROCESS.md`, `README_PRODUCT_ORDER.md`
+  - `README_MACHINE.md`, `README_WORK_LINE.md`, `README_PERSONNEL.md`
+  - `README_TRANSFER_TO_LINE.md`, `README_PERFORMANCE_RECORD.md`, `README_PLACEHOLDERS.md`
+- ✅ تکمیل `production/forms/*.py` - 8 فایل README جداگانه برای تمام form classes
+  - `README_BOM.md` - BOMForm, BOMMaterialLineForm, BOMMaterialLineFormSetBase
+  - `README_PROCESS.md` - ProcessForm
+  - `README_PRODUCT_ORDER.md` - ProductOrderForm
+  - `README_WORK_LINE.md` - WorkLineForm
+  - `README_MACHINE.md` - MachineForm
+  - `README_PERSON.md` - PersonForm
+  - `README_TRANSFER_TO_LINE.md` - TransferToLineForm, TransferToLineItemForm
+  - `README_PERFORMANCE_RECORD.md` - PerformanceRecordForm و 3 form class دیگر
+- ✅ تکمیل `production/views/*.py` - 3 فایل README جداگانه
+  - `README_BOM.md` - BOMListView, BOMCreateView, BOMUpdateView, BOMDeleteView
+  - `README_PROCESS.md` - ProcessListView, ProcessCreateView, ProcessUpdateView, ProcessDeleteView
+  - `README_PRODUCT_ORDER.md` - ProductOrderListView, ProductOrderCreateView, ProductOrderUpdateView, ProductOrderDeleteView
+- ✅ تکمیل `inventory/views/issues.py` - README کامل با تمام 18 کلاس view و متدها
+- ✅ تکمیل `inventory/forms/base.py` - README کامل با helper functions و base classes
+- ✅ تکمیل `inventory/forms/stocktaking.py` - README کامل با تمام 3 form class
 - ✅ تکمیل `inventory/forms/receipt.py` - README کامل با تمام کلاس‌ها و متدها
 - ✅ تکمیل `inventory/forms/issue.py` - README کامل با تمام کلاس‌ها و متدها
 - ✅ تکمیل `inventory/forms/request.py` - README کامل با تمام کلاس‌ها و متدها

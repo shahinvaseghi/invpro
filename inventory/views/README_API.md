@@ -1,27 +1,41 @@
-# inventory/views/api.py - API Endpoints
+# inventory/views/api.py - Inventory API Endpoints (Complete Documentation)
 
-**هدف**: JSON API endpoints برای تعاملات دینامیک فرم و فیلتر داده در رابط وب
+**هدف**: API endpoints برای ماژول inventory (همه JSON response برمی‌گردانند)
 
-تمام endpoints JSON برمی‌گردانند و نیاز به authentication دارند.
+این فایل شامل 10 function-based view:
+- `get_item_allowed_units`: دریافت واحدهای مجاز برای یک کالا
+- `get_filtered_categories`: دریافت دسته‌بندی‌های فیلتر شده
+- `get_filtered_subcategories`: دریافت زیردسته‌بندی‌های فیلتر شده
+- `get_filtered_items`: دریافت کالاهای فیلتر شده
+- `get_item_units`: دریافت واحدهای یک کالا
+- `get_item_allowed_warehouses`: دریافت انبارهای مجاز برای یک کالا
+- `get_temporary_receipt_data`: دریافت داده‌های receipt موقت
+- `get_item_available_serials`: دریافت سریال‌های موجود یک کالا
+- `update_serial_secondary_code`: به‌روزرسانی کد ثانویه سریال
+- `get_warehouse_work_lines`: دریافت خطوط کار یک انبار
 
 ---
 
-## Authentication
+## وابستگی‌ها
 
-تمام endpoints نیاز دارند:
-- کاربر باید logged in باشد (`@login_required` decorator)
-- شرکت فعال باید در session تنظیم شده باشد (`active_company_id`)
-- کاربر باید به شرکت فعال دسترسی داشته باشد
+- `inventory.models`: `Item`, `ItemCategory`, `ItemSubcategory`, `ItemUnit`, `ItemSerial`, `Warehouse`, `ReceiptTemporary`, `ItemWarehouse`
+- `inventory.forms`: `UNIT_CHOICES`
+- `inventory.services.serials`: `sync_issue_line_serials`
+- `shared.utils.modules`: `get_work_line_model`
+- `django.contrib.auth.decorators.login_required`
+- `django.views.decorators.http.require_http_methods`
+- `django.http.JsonResponse`, `HttpRequest`
+- `django.shortcuts.get_object_or_404`
+- `django.db.models.Q`
+- `logging`
 
 ---
 
-## Endpoints
+## get_item_allowed_units
 
-### `get_item_allowed_units(request: HttpRequest) -> JsonResponse`
+**Decorators**: `@login_required`
 
-**توضیح**: لیست واحدهای مجاز برای یک کالا را برمی‌گرداند (واحد اصلی + واحدهای تبدیل).
-
-**URL**: `GET /fa/inventory/api/item-allowed-units/`
+**Method**: `GET`
 
 **Query Parameters**:
 - `item_id` (required): شناسه کالا
@@ -29,34 +43,28 @@
 **Response**:
 ```json
 {
-  "units": [
-    {"value": "EA", "label": "Each"},
-    {"value": "1", "label": "Box (10 EA = 1 Box)"}
-  ],
+  "units": [{"value": "EA", "label": "عدد"}, ...],
   "default_unit": "EA"
 }
 ```
 
-**Status Codes**:
-- `200`: Success
-- `400`: Bad Request (missing item_id or no active company)
-- `401`: Unauthorized
-- `404`: Item not found
-- `500`: Internal Server Error
-
 **منطق**:
-1. کالا را از دیتابیس می‌خواند
-2. واحد اصلی و پیش‌فرض را اضافه می‌کند
-3. واحدهای تبدیل از `ItemUnit` را اضافه می‌کند
-4. به label ها map می‌کند و برمی‌گرداند
+- دریافت `default_unit` و `primary_unit` از item
+- دریافت واحدها از `ItemUnit` conversions
+- Map کردن به labels از `UNIT_CHOICES`
+
+**نکات مهم**:
+- اگر item با `is_enabled=1` پیدا نشود، بدون filter جستجو می‌کند (برای formset initial)
+
+**URL**: `/inventory/api/item-units/`
 
 ---
 
-### `get_filtered_categories(request: HttpRequest) -> JsonResponse`
+## get_filtered_categories
 
-**توضیح**: دسته‌هایی که کالاهای نوع خاص دارند را برمی‌گرداند.
+**Decorators**: `@require_http_methods(["GET"]), @login_required`
 
-**URL**: `GET /fa/inventory/api/filtered-categories/`
+**Method**: `GET`
 
 **Query Parameters**:
 - `type_id` (optional): فیلتر بر اساس نوع کالا
@@ -64,93 +72,86 @@
 **Response**:
 ```json
 {
-  "categories": [
-    {"value": "1", "label": "Raw Materials"},
-    {"value": "2", "label": "Components"}
-  ]
+  "categories": [{"value": "1", "label": "Category Name"}, ...]
 }
 ```
 
-**Status Codes**:
-- `200`: Success
-- `400`: No active company
-- `500`: Internal Server Error
-
 **منطق**:
-- اگر `type_id` ارائه شود، فقط دسته‌هایی که کالاهای آن نوع دارند را برمی‌گرداند
-- در غیر این صورت، تمام دسته‌هایی که کالا دارند را برمی‌گرداند
+- دریافت دسته‌بندی‌هایی که حداقل یک کالا دارند
+- اگر `type_id` داده شود، فقط دسته‌بندی‌هایی که کالاهای این نوع دارند
+
+**URL**: `/inventory/api/categories/`
 
 ---
 
-### `get_filtered_subcategories(request: HttpRequest) -> JsonResponse`
+## get_filtered_subcategories
 
-**توضیح**: زیردسته‌ها را بر اساس دسته (و اختیاری نوع) فیلتر می‌کند.
+**Decorators**: `@login_required`
 
-**URL**: `GET /fa/inventory/api/filtered-subcategories/`
+**Method**: `GET`
 
 **Query Parameters**:
-- `category_id` (required): فیلتر بر اساس دسته
-- `type_id` (optional): فیلتر اختیاری بر اساس نوع
+- `category_id` (required): شناسه دسته‌بندی
+- `type_id` (optional): فیلتر بر اساس نوع کالا
 
 **Response**:
 ```json
 {
-  "subcategories": [
-    {"value": "1", "label": "25"},
-    {"value": "2", "label": "27"}
-  ]
+  "subcategories": [{"value": "1", "label": "Subcategory Name"}, ...]
 }
 ```
 
-**Status Codes**:
-- `200`: Success
-- `400`: No active company or missing category_id
-- `500`: Internal Server Error
+**منطق**:
+- اگر `category_id` داده نشود، empty list برمی‌گرداند
+- فیلتر بر اساس `category_id` (required)
+- `type_id` فقط hint است (strict filter نیست)
 
-**نکات مهم**:
-- اگر `category_id` ارائه نشود، لیست خالی برمی‌گرداند
-- تمام زیردسته‌های دسته را برمی‌گرداند، حتی اگر کالا نداشته باشند
+**URL**: `/inventory/api/subcategories/`
 
 ---
 
-### `get_filtered_items(request: HttpRequest) -> JsonResponse`
+## get_filtered_items
 
-**توضیح**: کالاها را بر اساس نوع، دسته و/یا زیردسته فیلتر می‌کند.
+**Decorators**: `@login_required`
 
-**URL**: `GET /fa/inventory/api/filtered-items/`
+**Method**: `GET`
 
 **Query Parameters**:
-- `type_id` (optional): فیلتر بر اساس نوع
-- `category_id` (optional): فیلتر بر اساس دسته
-- `subcategory_id` (optional): فیلتر بر اساس زیردسته
+- `type_id` (optional): فیلتر بر اساس نوع کالا
+- `category_id` (optional): فیلتر بر اساس دسته‌بندی
+- `subcategory_id` (optional): فیلتر بر اساس زیردسته‌بندی
+- `search` (optional): جستجو در name, item_code, full_item_code
 
 **Response**:
 ```json
 {
   "items": [
     {
-      "value": "123",
-      "label": "001-002-003-0001 - Item Name",
+      "value": "1",
+      "label": "Item Name · ITM-001",
       "type_id": "1",
       "category_id": "2",
       "subcategory_id": "3"
-    }
+    },
+    ...
   ]
 }
 ```
 
-**Status Codes**:
-- `200`: Success
-- `400`: No active company
-- `500`: Internal Server Error
+**منطق**:
+- فیلتر بر اساس type, category, subcategory (optional)
+- جستجو در name, item_code, full_item_code (optional)
+- می‌تواند بدون فیلترها فقط search کند
+
+**URL**: `/inventory/api/items/`
 
 ---
 
-### `get_item_units(request: HttpRequest) -> JsonResponse`
+## get_item_units
 
-**توضیح**: اطلاعات واحدهای کالا را به صورت تفصیلی برمی‌گرداند (واحد اصلی و واحدهای تبدیل).
+**Decorators**: `@login_required`
 
-**URL**: `GET /fa/inventory/api/item-units/`
+**Method**: `GET`
 
 **Query Parameters**:
 - `item_id` (required): شناسه کالا
@@ -167,34 +168,32 @@
     },
     {
       "value": "1",
-      "label": "Box (10 EA = 1 Box)",
+      "label": "KG (10 EA = 1 KG)",
       "is_base": false,
-      "unit_name": "Box"
+      "unit_name": "KG"
     }
   ],
   "item_type_id": 1,
-  "item_type_name": "Raw Material",
+  "item_type_name": "Type Name",
   "category_id": 2,
   "subcategory_id": 3
 }
 ```
 
-**Status Codes**:
-- `200`: Success
-- `400`: Missing item_id or no active company
-- `404`: Item not found
-- `500`: Internal Server Error
+**منطق**:
+- دریافت primary unit (base unit)
+- دریافت conversion units از `ItemUnit`
+- شامل اطلاعات type, category, subcategory برای auto-setting
 
-**نکات مهم**:
-- همچنین `item_type_id`, `category_id`, `subcategory_id` را برمی‌گرداند برای auto-filling در فرم‌ها
+**URL**: `/inventory/api/item-units/`
 
 ---
 
-### `get_item_allowed_warehouses(request: HttpRequest) -> JsonResponse`
+## get_item_allowed_warehouses
 
-**توضیح**: لیست انبارهایی که یک کالا می‌تواند در آن‌ها ذخیره شود را برمی‌گرداند (بر اساس `ItemWarehouse`).
+**Decorators**: `@login_required`
 
-**URL**: `GET /fa/inventory/api/item-allowed-warehouses/`
+**Method**: `GET`
 
 **Query Parameters**:
 - `item_id` (required): شناسه کالا
@@ -202,66 +201,62 @@
 **Response**:
 ```json
 {
-  "warehouses": [
-    {"value": "1", "label": "00001 - Main Warehouse"},
-    {"value": "2", "label": "00002 - Secondary Warehouse"}
-  ]
+  "warehouses": [{"value": "1", "label": "WH-001 - Warehouse Name"}, ...]
 }
 ```
 
-**Status Codes**:
-- `200`: Success
-- `400`: Missing item_id or no active company
-- `404`: Item not found
-- `500`: Internal Server Error
+**منطق**:
+- دریافت انبارهای مجاز از `ItemWarehouse` relations
+- فقط انبارهای enabled
+- اگر هیچ انباری تنظیم نشده باشد، empty list (enforces strict restrictions)
 
 **نکات مهم**:
-- اگر هیچ انباری تنظیم نشده باشد، لیست خالی برمی‌گرداند
-- این محدودیت سخت انبار را اعمال می‌کند
+- اگر item با `is_enabled=1` پیدا نشود، بدون filter جستجو می‌کند
+
+**URL**: `/inventory/api/item-warehouses/`
 
 ---
 
-### `get_temporary_receipt_data(request: HttpRequest) -> JsonResponse`
+## get_temporary_receipt_data
 
-**توضیح**: داده‌های رسید موقت را برای auto-filling ردیف‌های رسید دائم برمی‌گرداند.
+**Decorators**: `@require_http_methods(["GET"]), @login_required`
 
-**URL**: `GET /fa/inventory/api/temporary-receipt-data/`
+**Method**: `GET`
 
 **Query Parameters**:
-- `temporary_receipt_id` (required): شناسه رسید موقت
+- `temporary_receipt_id` (required): شناسه receipt موقت
 
 **Response**:
 ```json
 {
-  "item_id": 123,
-  "item_code": "001-002-003-0001",
+  "item_id": 1,
+  "item_code": "ITM-001",
   "item_name": "Item Name",
   "warehouse_id": 1,
-  "warehouse_code": "00001",
-  "warehouse_name": "Main Warehouse",
-  "quantity": "10.000000",
-  "entered_quantity": "10.000000",
+  "warehouse_code": "WH-001",
+  "warehouse_name": "Warehouse Name",
+  "quantity": "100.00",
+  "entered_quantity": "100.00",
   "unit": "EA",
   "entered_unit": "EA",
   "supplier_id": 1,
-  "supplier_code": "500001",
+  "supplier_code": "SUP-001",
   "supplier_name": "Supplier Name"
 }
 ```
 
-**Status Codes**:
-- `200`: Success
-- `400`: Missing temporary_receipt_id or no active company
-- `404`: Temporary receipt not found
-- `500`: Internal Server Error
+**منطق**:
+- دریافت داده‌های receipt موقت برای auto-filling permanent receipt
+
+**URL**: `/inventory/api/temporary-receipt-data/`
 
 ---
 
-### `get_item_available_serials(request: HttpRequest) -> JsonResponse`
+## get_item_available_serials
 
-**توضیح**: شماره سریال‌های در دسترس برای یک کالا در یک انبار را برمی‌گرداند.
+**Decorators**: `@require_http_methods(["GET"]), @login_required`
 
-**URL**: `GET /fa/inventory/api/item-available-serials/`
+**Method**: `GET`
 
 **Query Parameters**:
 - `item_id` (required): شناسه کالا
@@ -273,40 +268,38 @@
   "serials": [
     {
       "value": "1",
-      "label": "SER-202511-000001",
-      "status": "available"
-    }
+      "label": "SERIAL-001",
+      "status": "AVAILABLE"
+    },
+    ...
   ],
   "has_lot_tracking": true,
-  "count": 1
+  "count": 5
 }
 ```
 
-**Status Codes**:
-- `200`: Success
-- `400`: Missing parameters or no active company
-- `404`: Item or warehouse not found
-- `500`: Internal Server Error
+**منطق**:
+- بررسی `has_lot_tracking` برای item
+- دریافت سریال‌های AVAILABLE (نه RESERVED)
+- فیلتر بر اساس company, item, warehouse, status
 
-**نکات مهم**:
-- فقط سریال‌های با وضعیت `AVAILABLE` را برمی‌گرداند (نه `RESERVED`, `ISSUED`, etc.)
-- اگر کالا `has_lot_tracking != 1` باشد، `has_lot_tracking: false` برمی‌گرداند
+**URL**: `/inventory/api/item-serials/`
 
 ---
 
-### `update_serial_secondary_code(request: HttpRequest, serial_id: int) -> JsonResponse`
+## update_serial_secondary_code
 
-**توضیح**: کد سریال ثانویه را برای یک سریال به‌روزرسانی می‌کند.
+**Decorators**: `@require_http_methods(["POST"]), @login_required`
 
-**URL**: `POST /fa/inventory/api/serial/<serial_id>/update-secondary/`
+**Method**: `POST`
 
 **URL Parameters**:
-- `serial_id` (required): شناسه سریال
+- `serial_id`: شناسه سریال
 
-**Request Body**:
+**Request Body (JSON)**:
 ```json
 {
-  "secondary_serial_code": "USER-INPUT-CODE"
+  "secondary_serial_code": "SEC-001"
 }
 ```
 
@@ -317,27 +310,18 @@
 }
 ```
 
-**Error Response**:
-```json
-{
-  "error": "Error message",
-  "success": false
-}
-```
+**منطق**:
+- به‌روزرسانی `secondary_serial_code` برای یک سریال
 
-**Status Codes**:
-- `200`: Success
-- `400`: No active company or invalid request body
-- `404`: Serial not found
-- `500`: Internal Server Error
+**URL**: `/inventory/api/serial/<serial_id>/update-secondary-code/`
 
 ---
 
-### `get_warehouse_work_lines(request: HttpRequest) -> JsonResponse`
+## get_warehouse_work_lines
 
-**توضیح**: خطوط کاری مرتبط با یک انبار را برمی‌گرداند (از ماژول production).
+**Decorators**: `@require_http_methods(["GET"]), @login_required`
 
-**URL**: `GET /fa/inventory/api/warehouse-work-lines/`
+**Method**: `GET`
 
 **Query Parameters**:
 - `warehouse_id` (required): شناسه انبار
@@ -346,94 +330,46 @@
 ```json
 {
   "work_lines": [
-    {"value": "1", "label": "00001 · Production Line 1"},
-    {"value": "2", "label": "00002 · Production Line 2"}
+    {
+      "value": "1",
+      "label": "WL-001 · Work Line Name"
+    },
+    ...
   ],
-  "count": 2
+  "count": 5
 }
 ```
 
-**Status Codes**:
-- `200`: Success
-- `400`: Missing warehouse_id or no active company
-- `404`: Warehouse not found
-- `500`: Internal Server Error
+**منطق**:
+- دریافت خطوط کار از production module
+- اگر production module نصب نباشد، empty list
+- فیلتر بر اساس company, warehouse, enabled
 
-**نکات مهم**:
-- اگر ماژول production نصب نباشد، لیست خالی برمی‌گرداند
-- از `shared.utils.modules.get_work_line_model()` استفاده می‌کند
-
----
-
-## Error Handling
-
-تمام endpoints از try-except blocks استفاده می‌کنند و خطاهای مناسب را برمی‌گردانند:
-
-```python
-try:
-    # Logic
-    return JsonResponse({'data': data})
-except Exception as e:
-    logger.error(f"Error: {e}", exc_info=True)
-    return JsonResponse({'error': str(e)}, status=500)
-```
-
----
-
-## Logging
-
-تمام endpoints از logger استفاده می‌کنند:
-
-```python
-logger = logging.getLogger('inventory.views.api')
-```
-
----
-
-## وابستگی‌ها
-
-- `django.contrib.auth.decorators`: `login_required`
-- `django.views.decorators.http`: `require_http_methods`
-- `django.http`: `JsonResponse`, `HttpRequest`
-- `django.shortcuts`: `get_object_or_404`
-- `inventory.models`: تمام مدل‌های inventory
-- `inventory.forms`: `UNIT_CHOICES`
-- `shared.utils.modules`: برای بررسی نصب ماژول production
-
----
-
-## استفاده در پروژه
-
-این endpoints در JavaScript برای:
-- Cascading dropdowns (type → category → subcategory → items)
-- Dynamic unit selection
-- Warehouse filtering
-- Serial assignment
-- Auto-filling forms
-
-**مثال JavaScript**:
-```javascript
-// Get categories when type is selected
-fetch(`/fa/inventory/api/filtered-categories/?type_id=${typeId}`)
-  .then(response => response.json())
-  .then(data => {
-    // Populate category dropdown
-  });
-```
+**URL**: `/inventory/api/warehouse-work-lines/`
 
 ---
 
 ## نکات مهم
 
-1. **Authentication**: تمام endpoints نیاز به login دارند
-2. **Company Scoping**: تمام queries بر اساس `active_company_id` فیلتر می‌شوند
-3. **Error Handling**: تمام خطاها catch می‌شوند و JSON error response برمی‌گردانند
-4. **Logging**: خطاها log می‌شوند برای debugging
-5. **Performance**: Queries بهینه شده‌اند با `select_related` و `prefetch_related`
+### 1. Authentication
+- تمام endpoints از `@login_required` استفاده می‌کنند
+- برخی از `@require_http_methods` استفاده می‌کنند
+
+### 2. Company Filtering
+- تمام endpoints بر اساس `active_company_id` فیلتر می‌کنند
+
+### 3. Error Handling
+- خطاها در JSON response با status code مناسب برمی‌گردند
+- Logging برای خطاها
+
+### 4. Item Enabled Check
+- برخی endpoints اگر item با `is_enabled=1` پیدا نشود، بدون filter جستجو می‌کنند (برای formset initial)
 
 ---
 
-## مستندات کامل
+## الگوهای مشترک
 
-برای مستندات کامل API endpoints، به [API Documentation](../../docs/API_DOCUMENTATION.md) مراجعه کنید.
-
+1. **JSON Response**: تمام endpoints JSON response برمی‌گردانند
+2. **Company Filtering**: تمام queryset ها بر اساس `active_company_id` فیلتر می‌شوند
+3. **Error Handling**: خطاها در JSON با status code مناسب
+4. **Logging**: استفاده از logger برای خطاها
