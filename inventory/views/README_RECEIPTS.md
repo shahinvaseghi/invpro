@@ -66,6 +66,16 @@
 - `list_url_name`: `''` (override در subclasses)
 - `lock_url_name`: `''` (override در subclasses)
 
+**JavaScript Features (receipt_form.html)**:
+- `filterItemsForRow()`: فیلتر کردن کالاها بر اساس type, category, subcategory و search term از طریق API `/inventory/api/filtered-items/`
+- `setupItemSelectHandlers()`: تنظیم event handlers برای تغییرات کالا و به‌روزرسانی خودکار واحد/انبار
+- `initializeLineFormFilters()`: مقداردهی اولیه فیلترها برای تمام خطوط فرم
+- Event delegation برای تغییرات کالا در formset (حتی پس از DOM manipulation)
+- مدیریت خودکار مقدار "None" در search input (تبدیل به empty string)
+- Re-attachment خودکار event handlers پس از DOM manipulation
+- لاگ‌های جامع برای debugging در Console و ترمینال Django
+- Disable کردن unit/warehouse selects تا زمانی که کالا انتخاب نشده باشد
+
 **متدها**:
 
 #### `get_form_kwargs() -> Dict[str, Any]`
@@ -79,6 +89,13 @@
 - `item_types`, `item_categories`, `item_subcategories`: برای فیلتر
 - `current_item_type`, `current_category`, `current_subcategory`, `current_item_search`: مقادیر فعلی فیلتر
 - `document_instance`, `document_status_display`, `document_is_locked`, `lock_url`
+
+**نکات مهم JavaScript**:
+- فیلترها و جستجو از طریق API endpoint `/inventory/api/filtered-items/` اعمال می‌شوند
+- API فقط کالاهای enabled (`is_enabled=1`) را برمی‌گرداند
+- Response شامل `total_count` برای نمایش تعداد کل کالاهای پیدا شده است
+- Event handlers به صورت خودکار پس از DOM manipulation (مثل repopulating item select) دوباره attach می‌شوند
+- مقدار "None" در search input به صورت خودکار به empty string تبدیل می‌شود
 
 #### `get_fieldsets() -> list`
 - باید در subclasses override شود

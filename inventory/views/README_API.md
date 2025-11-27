@@ -134,7 +134,8 @@
       "subcategory_id": "3"
     },
     ...
-  ]
+  ],
+  "total_count": 16
 }
 ```
 
@@ -142,8 +143,13 @@
 - فیلتر بر اساس type, category, subcategory (optional)
 - جستجو در name, item_code, full_item_code (optional)
 - می‌تواند بدون فیلترها فقط search کند
+- فقط کالاهای enabled (`is_enabled=1`) را برمی‌گرداند
+- `total_count`: تعداد کل کالاهای پیدا شده (برای debugging)
 
-**URL**: `/inventory/api/items/`
+**Logging**:
+- لاگ‌های `get_filtered_items: Found X items` و `get_filtered_items: Returning X items` در ترمینال نمایش داده می‌شوند
+
+**URL**: `/inventory/api/filtered-items/`
 
 ---
 

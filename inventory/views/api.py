@@ -18,33 +18,53 @@ logger = logging.getLogger('inventory.views.api')
 @login_required
 def get_item_allowed_units(request: HttpRequest) -> JsonResponse:
     """API endpoint to get allowed units for an item."""
+    logger.info("=" * 80)
+    logger.info("get_item_allowed_units: Request received")
+    logger.info(f"  User: {request.user.username}")
+    logger.info(f"  Method: {request.method}")
+    logger.info(f"  GET params: {dict(request.GET)}")
+    
     if not request.user.is_authenticated:
+        logger.warning("get_item_allowed_units: Unauthorized request")
         return JsonResponse({'error': 'Unauthorized'}, status=401)
     
     item_id = request.GET.get('item_id')
+    logger.info(f"get_item_allowed_units: item_id from request: {item_id}")
+    
     if not item_id:
+        logger.error("get_item_allowed_units: item_id is missing")
         return JsonResponse({'error': 'item_id is required'}, status=400)
     
     try:
         company_id = request.session.get('active_company_id')
+        logger.info(f"get_item_allowed_units: company_id from session: {company_id}")
+        
         if not company_id:
+            logger.error("get_item_allowed_units: No active company in session")
             return JsonResponse({'error': 'No active company'}, status=400)
         
         # Try to get item - if not found with is_enabled=1, try without is_enabled filter
         # This handles cases where item is in formset initial but might be disabled
+        logger.info(f"get_item_allowed_units: Looking for item pk={item_id}, company_id={company_id}, is_enabled=1")
         try:
             item = models.Item.objects.get(pk=item_id, company_id=company_id, is_enabled=1)
+            logger.info(f"get_item_allowed_units: Item found (enabled): {item.name} ({item.item_code})")
         except models.Item.DoesNotExist:
             # If item not found with is_enabled=1, try without is_enabled filter
             # This allows loading units/warehouses for items that are in formset initial
+            logger.warning(f"get_item_allowed_units: Item not found with is_enabled=1, trying without filter")
             try:
                 item = models.Item.objects.get(pk=item_id, company_id=company_id)
-                logger.warning(f"Item {item_id} found but is_enabled={item.is_enabled}, allowing anyway")
+                logger.warning(f"get_item_allowed_units: Item found (disabled): {item.name} ({item.item_code}), is_enabled={item.is_enabled}, allowing anyway")
             except models.Item.DoesNotExist:
-                logger.error(f"Item {item_id} not found in company {company_id}")
+                logger.error(f"get_item_allowed_units: Item {item_id} not found in company {company_id}")
                 return JsonResponse({'error': 'Item not found'}, status=404)
         
         # Get allowed units
+        logger.info(f"get_item_allowed_units: Getting allowed units for item {item.name}")
+        logger.info(f"  Default unit: {item.default_unit}")
+        logger.info(f"  Primary unit: {item.primary_unit}")
+        
         codes: List[str] = []
         def add(code: str) -> None:
             if code and code not in codes:
@@ -55,17 +75,31 @@ def get_item_allowed_units(request: HttpRequest) -> JsonResponse:
         add(item.primary_unit)
         
         # Add units from ItemUnit conversions
-        for unit in models.ItemUnit.objects.filter(item=item, company_id=item.company_id):
+        item_units = models.ItemUnit.objects.filter(item=item, company_id=item.company_id)
+        logger.info(f"get_item_allowed_units: Found {item_units.count()} ItemUnit conversions")
+        for unit in item_units:
+            logger.info(f"  Conversion: {unit.from_unit} -> {unit.to_unit}")
             add(unit.from_unit)
             add(unit.to_unit)
+        
+        logger.info(f"get_item_allowed_units: Total unique unit codes: {len(codes)}")
+        logger.info(f"  Codes: {codes}")
         
         # Map to labels
         label_map = {value: str(label) for value, label in UNIT_CHOICES}
         units = [{'value': code, 'label': label_map.get(code, code)} for code in codes if code]
         
-        return JsonResponse({'units': units, 'default_unit': item.default_unit})
+        logger.info(f"get_item_allowed_units: Returning {len(units)} units")
+        for unit in units:
+            logger.info(f"  Unit: {unit['value']} -> {unit['label']}")
+        
+        response_data = {'units': units, 'default_unit': item.default_unit}
+        logger.info(f"get_item_allowed_units: Response: {response_data}")
+        logger.info("=" * 80)
+        
+        return JsonResponse(response_data)
     except Exception as e:
-        logger.error(f"Error in get_item_allowed_units: {e}", exc_info=True)
+        logger.error(f"get_item_allowed_units: Error: {e}", exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
 
 
@@ -191,6 +225,10 @@ def get_filtered_items(request: HttpRequest) -> JsonResponse:
 
         items = items.order_by('name')
 
+        # Log total count for debugging
+        total_count = items.count()
+        logger.info(f"get_filtered_items: Found {total_count} items for company {company_id}")
+
         items_data = [
             {
                 'value': str(item.pk),
@@ -202,7 +240,8 @@ def get_filtered_items(request: HttpRequest) -> JsonResponse:
             for item in items
         ]
 
-        return JsonResponse({'items': items_data})
+        logger.info(f"get_filtered_items: Returning {len(items_data)} items")
+        return JsonResponse({'items': items_data, 'total_count': total_count})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -264,32 +303,54 @@ def get_item_units(request: HttpRequest) -> JsonResponse:
 @login_required
 def get_item_allowed_warehouses(request: HttpRequest) -> JsonResponse:
     """API endpoint to get allowed warehouses for an item."""
+    logger.info("=" * 80)
+    logger.info("get_item_allowed_warehouses: Request received")
+    logger.info(f"  User: {request.user.username if request.user.is_authenticated else 'Anonymous'}")
+    logger.info(f"  Method: {request.method}")
+    logger.info(f"  GET params: {dict(request.GET)}")
+    
     item_id = request.GET.get('item_id')
+    logger.info(f"get_item_allowed_warehouses: item_id from request: {item_id}")
+    
     if not item_id:
+        logger.error("get_item_allowed_warehouses: item_id is missing")
         return JsonResponse({'error': 'item_id parameter required'}, status=400)
 
     try:
         company_id = request.session.get('active_company_id')
+        logger.info(f"get_item_allowed_warehouses: company_id from session: {company_id}")
+        
         if not company_id:
+            logger.error("get_item_allowed_warehouses: No active company in session")
             return JsonResponse({'error': 'No active company'}, status=400)
 
         # Try to get item - if not found with is_enabled=1, try without is_enabled filter
         # This handles cases where item is in formset initial but might be disabled
+        logger.info(f"get_item_allowed_warehouses: Looking for item pk={item_id}, company_id={company_id}, is_enabled=1")
         try:
             item = models.Item.objects.get(pk=item_id, company_id=company_id, is_enabled=1)
+            logger.info(f"get_item_allowed_warehouses: Item found (enabled): {item.name} ({item.item_code})")
         except models.Item.DoesNotExist:
             # If item not found with is_enabled=1, try without is_enabled filter
             # This allows loading warehouses for items that are in formset initial
+            logger.warning(f"get_item_allowed_warehouses: Item not found with is_enabled=1, trying without filter")
             try:
                 item = models.Item.objects.get(pk=item_id, company_id=company_id)
-                logger.warning(f"Item {item_id} found but is_enabled={item.is_enabled}, allowing anyway")
+                logger.warning(f"get_item_allowed_warehouses: Item found (disabled): {item.name} ({item.item_code}), is_enabled={item.is_enabled}, allowing anyway")
             except models.Item.DoesNotExist:
-                logger.error(f"Item {item_id} not found in company {company_id}")
+                logger.error(f"get_item_allowed_warehouses: Item {item_id} not found in company {company_id}")
                 return JsonResponse({'error': 'Item not found'}, status=404)
 
         # Get allowed warehouses
+        logger.info(f"get_item_allowed_warehouses: Getting allowed warehouses for item {item.name}")
         relations = item.warehouses.select_related('warehouse').filter(is_enabled=1)
+        logger.info(f"get_item_allowed_warehouses: Found {relations.count()} ItemWarehouse relations")
+        
         warehouses = [rel.warehouse for rel in relations if rel.warehouse and rel.warehouse.is_enabled == 1]
+        logger.info(f"get_item_allowed_warehouses: Filtered to {len(warehouses)} enabled warehouses")
+        
+        for w in warehouses:
+            logger.info(f"  Warehouse: {w.public_code} - {w.name} (pk={w.pk})")
 
         # IMPORTANT: If no warehouses configured, this means the item CANNOT be received anywhere
         # Only return warehouses if explicitly configured
@@ -299,10 +360,18 @@ def get_item_allowed_warehouses(request: HttpRequest) -> JsonResponse:
             {'value': str(w.pk), 'label': f"{w.public_code} - {w.name}"}
             for w in warehouses
         ]
+        
+        logger.info(f"get_item_allowed_warehouses: Returning {len(warehouses_data)} warehouses")
+        for w_data in warehouses_data:
+            logger.info(f"  Warehouse data: {w_data}")
 
-        return JsonResponse({'warehouses': warehouses_data})
+        response_data = {'warehouses': warehouses_data}
+        logger.info(f"get_item_allowed_warehouses: Response: {response_data}")
+        logger.info("=" * 80)
+        
+        return JsonResponse(response_data)
     except Exception as e:
-        logger.error(f"Error in get_item_allowed_warehouses: {e}", exc_info=True)
+        logger.error(f"get_item_allowed_warehouses: Error: {e}", exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
 
 

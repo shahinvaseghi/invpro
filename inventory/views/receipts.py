@@ -9,7 +9,7 @@ This module contains views for:
 """
 from typing import Dict, Any, Optional
 from django.contrib import messages
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView, View
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView, View
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.shortcuts import get_object_or_404, render
@@ -27,6 +27,9 @@ from .. import models
 from .. import forms
 from ..services import serials as serial_service
 from django.db.models import Q
+import logging
+
+logger = logging.getLogger('inventory.views.receipts')
 
 
 # ============================================================================
@@ -90,7 +93,16 @@ class ReceiptFormMixin(InventoryBaseView):
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add form context including fieldsets and unit options."""
+        logger.info("=" * 80)
+        logger.info("ReceiptFormMixin.get_context_data() called")
+        logger.info(f"Request method: {self.request.method}")
+        logger.info(f"Has object: {hasattr(self, 'object')}")
+        if hasattr(self, 'object') and self.object:
+            logger.info(f"Object: {self.object}")
+            logger.info(f"Object pk: {self.object.pk}")
+            logger.info(f"Object is_locked: {getattr(self.object, 'is_locked', 'N/A')}")
         context = super().get_context_data(**kwargs)
+        logger.info(f"Context keys: {list(context.keys())}")
         context['form_title'] = self.form_title
         context['receipt_variant'] = self.receipt_variant
         form = context.get('form')
@@ -142,7 +154,10 @@ class ReceiptFormMixin(InventoryBaseView):
 
         instance = getattr(form, 'instance', None)
         context['document_instance'] = instance
+        logger.info(f"Document instance from form: {instance}")
         if instance and getattr(instance, 'pk', None):
+            logger.info(f"Document instance pk: {instance.pk}")
+            logger.info(f"Document instance is_locked: {getattr(instance, 'is_locked', 'N/A')}")
             if hasattr(instance, 'get_status_display'):
                 try:
                     context['document_status_display'] = instance.get_status_display()
@@ -152,14 +167,37 @@ class ReceiptFormMixin(InventoryBaseView):
                 context['document_status_display'] = None
             is_locked = bool(getattr(instance, 'is_locked', 0))
             context['document_is_locked'] = is_locked
+            logger.info(f"document_is_locked set to: {is_locked}")
             if not is_locked and getattr(self, 'lock_url_name', None):
                 context['lock_url'] = reverse(self.lock_url_name, args=[instance.pk])
             else:
                 context['lock_url'] = None
         else:
+            logger.info("No document instance or no pk")
             context['document_status_display'] = None
             context['document_is_locked'] = False
             context['lock_url'] = None
+        
+        # Log lines_formset info
+        if 'lines_formset' in context:
+            lines_formset = context['lines_formset']
+            logger.info(f"lines_formset in context, forms count: {len(lines_formset.forms)}")
+            for i, form in enumerate(lines_formset.forms):
+                if form.instance.pk:
+                    logger.info(f"  Formset form {i}: instance pk={form.instance.pk}, item_id={getattr(form.instance, 'item_id', None)}")
+                    if hasattr(form, 'fields') and 'item' in form.fields:
+                        item_field = form.fields['item']
+                        logger.info(f"    Item field queryset count: {item_field.queryset.count()}")
+                        logger.info(f"    Item field value: {form['item'].value()}")
+                        item_id = getattr(form.instance, 'item_id', None)
+                        if item_id:
+                            try:
+                                in_queryset = item_field.queryset.filter(pk=item_id).exists()
+                                logger.info(f"    Instance item_id={item_id} in queryset: {in_queryset}")
+                            except Exception as e:
+                                logger.warning(f"    Error checking item in queryset: {e}")
+        else:
+            logger.info("lines_formset NOT in context")
 
         return context
 
@@ -326,6 +364,32 @@ class ReceiptTemporaryCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
         ]
 
 
+class ReceiptTemporaryDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing temporary receipts (read-only)."""
+    model = models.ReceiptTemporary
+    template_name = 'inventory/receipt_detail.html'
+    context_object_name = 'receipt'
+    
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse'
+        ).select_related('created_by', 'supplier')
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'inventory'
+        context['receipt_variant'] = 'temporary'
+        context['list_url'] = reverse('inventory:receipt_temporary')
+        context['edit_url'] = reverse('inventory:receipt_temporary_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
+        return context
+
+
 class ReceiptTemporaryUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
     """Update view for temporary receipts."""
     model = models.ReceiptTemporary
@@ -337,6 +401,32 @@ class ReceiptTemporaryUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
     list_url_name = 'inventory:receipt_temporary'
     lock_url_name = 'inventory:receipt_temporary_lock'
     lock_redirect_url_name = 'inventory:receipt_temporary'
+
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        logger.info("=" * 80)
+        logger.info("ReceiptTemporaryUpdateView.get_queryset() called")
+        logger.info(f"Request method: {self.request.method}")
+        logger.info(f"Request path: {self.request.path}")
+        queryset = super().get_queryset()
+        # ReceiptTemporaryLine doesn't have supplier field (supplier is on ReceiptTemporary header)
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse'
+        ).select_related('created_by', 'supplier')
+        logger.info(f"Queryset count: {queryset.count()}")
+        return queryset
+    
+    def get(self, request, *args, **kwargs):
+        """Handle GET request."""
+        logger.info("=" * 80)
+        logger.info("ReceiptTemporaryUpdateView.get() called")
+        logger.info(f"Request method: {request.method}")
+        logger.info(f"Request path: {request.path}")
+        logger.info(f"URL kwargs: {kwargs}")
+        result = super().get(request, *args, **kwargs)
+        logger.info(f"Response status code: {result.status_code}")
+        return result
 
     def form_valid(self, form):
         """Save document and line formset."""
@@ -607,6 +697,16 @@ class ReceiptPermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
     list_url_name = 'inventory:receipt_permanent'
     lock_url_name = 'inventory:receipt_permanent_lock'
     lock_redirect_url_name = 'inventory:receipt_permanent'
+
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse',
+            'lines__supplier'
+        ).select_related('created_by', 'temporary_receipt', 'purchase_request', 'warehouse_request')
+        return queryset
 
     def form_valid(self, form):
         """Save document and line formset."""
@@ -1556,6 +1656,16 @@ class ReceiptConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin,
     list_url_name = 'inventory:receipt_consignment'
     lock_url_name = 'inventory:receipt_consignment_lock'
     lock_redirect_url_name = 'inventory:receipt_consignment'
+
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse',
+            'lines__supplier'
+        ).select_related('created_by', 'temporary_receipt', 'purchase_request', 'warehouse_request')
+        return queryset
 
     def form_valid(self, form):
         """Save document and line formset."""

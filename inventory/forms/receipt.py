@@ -12,6 +12,7 @@ from typing import Optional, Dict, Any
 
 from django import forms
 from django.forms import inlineformset_factory
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -36,6 +37,9 @@ from inventory.forms.base import (
     BaseLineFormSet,
 )
 from inventory.widgets import JalaliDateInput
+import logging
+
+logger = logging.getLogger('inventory.forms.receipt')
 
 
 class ReceiptTemporaryForm(forms.ModelForm):
@@ -435,8 +439,24 @@ class ReceiptLineBaseForm(forms.ModelForm):
     
     def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
         """Initialize form with company filtering."""
+        logger.info("=" * 80)
+        logger.info("ReceiptLineBaseForm.__init__() called")
+        logger.info(f"company_id parameter: {company_id}")
+        logger.info(f"kwargs keys: {list(kwargs.keys())}")
+        if 'instance' in kwargs:
+            instance = kwargs['instance']
+            # Don't log instance directly as it may trigger __str__ which accesses document
+            if instance:
+                logger.info(f"Instance from kwargs: pk={getattr(instance, 'pk', None)}, item_id={getattr(instance, 'item_id', None)}, document_id={getattr(instance, 'document_id', None)}")
+            else:
+                logger.info("Instance from kwargs: None")
         super().__init__(*args, **kwargs)
+        # Don't log self.instance directly as it may trigger __str__ which accesses document
+        logger.info(f"After super().__init__(), instance pk: {getattr(self.instance, 'pk', None)}")
+        logger.info(f"Instance item_id: {getattr(self.instance, 'item_id', None)}")
+        logger.info(f"Instance document_id: {getattr(self.instance, 'document_id', None)}")
         self.company_id = company_id or getattr(self.instance, 'company_id', None)
+        logger.info(f"Final company_id: {self.company_id}")
         self._unit_factor = Decimal('1')
         self._entered_unit_value = None
         self._entered_quantity_value = None
@@ -444,21 +464,53 @@ class ReceiptLineBaseForm(forms.ModelForm):
         
         if self.company_id:
             if 'item' in self.fields:
-                self.fields['item'].queryset = Item.objects.filter(
-                    company_id=self.company_id, is_enabled=1
-                ).order_by('name')
+                logger.info("Setting up item field queryset")
+                # For existing instances, include the current item even if disabled
+                queryset = Item.objects.filter(company_id=self.company_id, is_enabled=1)
+                logger.info(f"Initial queryset count (enabled only): {queryset.count()}")
+                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'item_id', None):
+                    logger.info(f"Instance has pk and item_id, including current item in queryset")
+                    # Include the current item even if it's disabled
+                    queryset = Item.objects.filter(
+                        company_id=self.company_id
+                    ).filter(
+                        Q(is_enabled=1) | Q(pk=self.instance.item_id)
+                    )
+                    logger.info(f"Final queryset count (with current item): {queryset.count()}")
+                    logger.info(f"Current item_id in queryset: {queryset.filter(pk=self.instance.item_id).exists()}")
+                else:
+                    logger.info("Instance has no pk or item_id, using enabled items only")
+                self.fields['item'].queryset = queryset.order_by('name')
                 self.fields['item'].label_from_instance = lambda obj: f"{obj.name} · {obj.item_code}"
+                logger.info(f"Item field queryset set, count: {self.fields['item'].queryset.count()}")
+                if self.instance.item_id:
+                    in_queryset = self.fields['item'].queryset.filter(pk=self.instance.item_id).exists()
+                    logger.info(f"Instance item_id={self.instance.item_id} in queryset: {in_queryset}")
             
             if 'warehouse' in self.fields:
-                self.fields['warehouse'].queryset = Warehouse.objects.filter(
-                    company_id=self.company_id, is_enabled=1
-                ).order_by('name')
+                # For existing instances, include the current warehouse even if disabled
+                queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
+                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
+                    # Include the current warehouse even if it's disabled
+                    queryset = Warehouse.objects.filter(
+                        company_id=self.company_id
+                    ).filter(
+                        Q(is_enabled=1) | Q(pk=self.instance.warehouse_id)
+                    )
+                self.fields['warehouse'].queryset = queryset.order_by('name')
                 self.fields['warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
             
             if 'supplier' in self.fields:
-                self.fields['supplier'].queryset = Supplier.objects.filter(
-                    company_id=self.company_id, is_enabled=1
-                ).order_by('name')
+                # For existing instances, include the current supplier even if disabled
+                queryset = Supplier.objects.filter(company_id=self.company_id, is_enabled=1)
+                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'supplier_id', None):
+                    # Include the current supplier even if it's disabled
+                    queryset = Supplier.objects.filter(
+                        company_id=self.company_id
+                    ).filter(
+                        Q(is_enabled=1) | Q(pk=self.instance.supplier_id)
+                    )
+                self.fields['supplier'].queryset = queryset.order_by('name')
                 self.fields['supplier'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
         
         # Set unit choices - use all UNIT_CHOICES initially (will be filtered by JavaScript)
@@ -479,15 +531,51 @@ class ReceiptLineBaseForm(forms.ModelForm):
                 )
         
         # Restore entered values if editing
+        logger.info(f"Form is_bound: {self.is_bound}")
+        logger.info(f"Instance has pk: {getattr(self.instance, 'pk', None) is not None}")
         if not self.is_bound and getattr(self.instance, 'pk', None):
+            logger.info("Restoring entered values for existing instance")
             # Get item first to set unit choices properly
-            item = getattr(self.instance, 'item', None)
+            # Use item_id to avoid RelatedObjectDoesNotExist if document is missing
+            item_id = getattr(self.instance, 'item_id', None)
+            item = None
+            if item_id:
+                # Check if document exists before accessing item (to avoid RelatedObjectDoesNotExist)
+                document_id = getattr(self.instance, 'document_id', None)
+                if document_id:
+                    try:
+                        # Try to get item directly by item_id to avoid accessing through instance
+                        from ..models import Item
+                        item = Item.objects.filter(pk=item_id, company_id=self.company_id).first()
+                        if item:
+                            logger.info(f"Instance item: {item.name} ({item.item_code})")
+                        else:
+                            # Fallback: try to access through instance
+                            item = getattr(self.instance, 'item', None)
+                            if item:
+                                logger.info(f"Instance item (via instance): {item.name} ({item.item_code})")
+                    except Exception as e:
+                        logger.warning(f"Could not access instance.item: {e}, using item_id={item_id}")
+                else:
+                    logger.info(f"Instance has no document_id, cannot access item. item_id={item_id}")
+                    # Try to get item directly by item_id
+                    try:
+                        from ..models import Item
+                        item = Item.objects.filter(pk=item_id, company_id=self.company_id).first()
+                        if item:
+                            logger.info(f"Instance item (direct lookup): {item.name} ({item.item_code})")
+                    except Exception as e:
+                        logger.warning(f"Could not get item directly: {e}")
+            else:
+                logger.info("Instance has no item_id")
             if item and 'unit' in self.fields:
+                logger.info("Setting unit choices for item")
                 # Set unit choices based on item
                 self._set_unit_choices_for_item(item)
             
             # Get unit value from entered_unit or unit (prioritize entered_unit for display)
             entry_unit = getattr(self.instance, 'entered_unit', '') or getattr(self.instance, 'unit', '')
+            logger.info(f"Entry unit: {entry_unit}")
             if 'unit' in self.fields and entry_unit:
                 # Ensure the unit is in choices, if not add it
                 unit_choices = list(self.fields['unit'].choices)
@@ -611,16 +699,38 @@ class ReceiptLineBaseForm(forms.ModelForm):
             allowed_ids = [int(option['value']) for option in self._get_item_allowed_warehouses(item)]
             if allowed_ids:
                 # Only show allowed warehouses
-                warehouse_field.queryset = Warehouse.objects.filter(pk__in=allowed_ids, is_enabled=1).order_by('name')
+                # For existing instances, include the current warehouse even if disabled
+                queryset = Warehouse.objects.filter(pk__in=allowed_ids, is_enabled=1)
+                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
+                    # Include the current warehouse even if it's disabled
+                    queryset = Warehouse.objects.filter(
+                        pk__in=allowed_ids
+                    ).filter(
+                        Q(is_enabled=1) | Q(pk=self.instance.warehouse_id)
+                    )
+                warehouse_field.queryset = queryset.order_by('name')
                 return
             else:
                 # No warehouses configured - show empty queryset (will show error in validation)
-                warehouse_field.queryset = Warehouse.objects.none()
+                # But include current warehouse if editing
+                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
+                    warehouse_field.queryset = Warehouse.objects.filter(pk=self.instance.warehouse_id)
+                else:
+                    warehouse_field.queryset = Warehouse.objects.none()
                 return
         
         # Fallback: show all warehouses in company if no item selected
         if self.company_id:
-            warehouse_field.queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1).order_by('name')
+            # For existing instances, include the current warehouse even if disabled
+            queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
+            if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
+                # Include the current warehouse even if it's disabled
+                queryset = Warehouse.objects.filter(
+                    company_id=self.company_id
+                ).filter(
+                    Q(is_enabled=1) | Q(pk=self.instance.warehouse_id)
+                )
+            warehouse_field.queryset = queryset.order_by('name')
     
     def _resolve_item(self, candidate: Any = None) -> Optional[Item]:
         """Resolve item from form data or instance."""
@@ -646,8 +756,24 @@ class ReceiptLineBaseForm(forms.ModelForm):
                 except (Item.DoesNotExist, ValueError, TypeError):
                     pass
         # Check instance (for edit mode)
-        if getattr(self.instance, 'item_id', None):
-            return self.instance.item
+        item_id = getattr(self.instance, 'item_id', None)
+        if item_id:
+            # Check if instance has document before accessing item (to avoid RelatedObjectDoesNotExist)
+            if hasattr(self.instance, 'document_id') and self.instance.document_id:
+                try:
+                    return self.instance.item
+                except Exception:
+                    # If document doesn't exist, try to get item directly by item_id
+                    try:
+                        return Item.objects.get(pk=item_id, company_id=self.company_id)
+                    except Item.DoesNotExist:
+                        pass
+            else:
+                # Instance has no document, get item directly by item_id
+                try:
+                    return Item.objects.get(pk=item_id, company_id=self.company_id)
+                except Item.DoesNotExist:
+                    pass
         # Check initial data (for new forms with pre-selected item)
         initial_item = self.initial.get('item')
         if isinstance(initial_item, Item):

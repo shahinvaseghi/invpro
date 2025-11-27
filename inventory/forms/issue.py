@@ -13,6 +13,7 @@ from typing import Optional, Dict, Any
 
 from django import forms
 from django.forms import inlineformset_factory
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
@@ -428,15 +429,29 @@ class IssueLineBaseForm(forms.ModelForm):
         
         if self.company_id:
             if 'item' in self.fields:
-                self.fields['item'].queryset = Item.objects.filter(
-                    company_id=self.company_id, is_enabled=1
-                ).order_by('name')
+                # For existing instances, include the current item even if disabled
+                queryset = Item.objects.filter(company_id=self.company_id, is_enabled=1)
+                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'item_id', None):
+                    # Include the current item even if it's disabled
+                    queryset = Item.objects.filter(
+                        company_id=self.company_id
+                    ).filter(
+                        Q(is_enabled=1) | Q(pk=self.instance.item_id)
+                    )
+                self.fields['item'].queryset = queryset.order_by('name')
                 self.fields['item'].label_from_instance = lambda obj: f"{obj.name} · {obj.item_code}"
             
             if 'warehouse' in self.fields:
-                self.fields['warehouse'].queryset = Warehouse.objects.filter(
-                    company_id=self.company_id, is_enabled=1
-                ).order_by('name')
+                # For existing instances, include the current warehouse even if disabled
+                queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
+                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
+                    # Include the current warehouse even if it's disabled
+                    queryset = Warehouse.objects.filter(
+                        company_id=self.company_id
+                    ).filter(
+                        Q(is_enabled=1) | Q(pk=self.instance.warehouse_id)
+                    )
+                self.fields['warehouse'].queryset = queryset.order_by('name')
                 self.fields['warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
         
         # Set unit choices - this must be done before restoring initial values
@@ -507,16 +522,48 @@ class IssueLineBaseForm(forms.ModelForm):
             allowed_ids = [int(option['value']) for option in self._get_item_allowed_warehouses(item)]
             if allowed_ids:
                 # Only show allowed warehouses
-                warehouse_field.queryset = Warehouse.objects.filter(pk__in=allowed_ids, is_enabled=1).order_by('name')
+                # For existing instances, include the current warehouse even if disabled
+                queryset = Warehouse.objects.filter(pk__in=allowed_ids, is_enabled=1)
+                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
+                    # Include the current warehouse even if it's disabled
+                    queryset = Warehouse.objects.filter(
+                        pk__in=allowed_ids
+                    ).filter(
+                        Q(is_enabled=1) | Q(pk=self.instance.warehouse_id)
+                    )
+                warehouse_field.queryset = queryset.order_by('name')
                 return
             else:
                 # No warehouses configured - show empty queryset (will show error in validation)
-                warehouse_field.queryset = Warehouse.objects.none()
+                # But include current warehouse if editing
+                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
+                    warehouse_field.queryset = Warehouse.objects.filter(pk=self.instance.warehouse_id)
+                else:
+                    warehouse_field.queryset = Warehouse.objects.none()
                 return
         
         # Fallback: show all warehouses in company if no item selected
+        # For existing instances, include the current warehouse even if disabled
+        queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
+        if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
+            # Include the current warehouse even if it's disabled
+            queryset = Warehouse.objects.filter(
+                company_id=self.company_id
+            ).filter(
+                Q(is_enabled=1) | Q(pk=self.instance.warehouse_id)
+            )
+        warehouse_field.queryset = queryset.order_by('name')
         if self.company_id:
-            warehouse_field.queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1).order_by('name')
+            # For existing instances, include the current warehouse even if disabled
+            queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
+            if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
+                # Include the current warehouse even if it's disabled
+                queryset = Warehouse.objects.filter(
+                    company_id=self.company_id
+                ).filter(
+                    Q(is_enabled=1) | Q(pk=self.instance.warehouse_id)
+                )
+            warehouse_field.queryset = queryset.order_by('name')
     
     def clean_warehouse(self) -> Optional[Warehouse]:
         """Validate warehouse against item's allowed warehouses."""

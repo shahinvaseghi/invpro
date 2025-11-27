@@ -128,6 +128,16 @@ class IssuePermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, Rec
     lock_url_name = 'inventory:issue_permanent_lock'
     lock_redirect_url_name = 'inventory:issue_permanent'
 
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse',
+            'lines__supplier'
+        ).select_related('created_by', 'warehouse_request')
+        return queryset
+
     def form_valid(self, form):
         """Save document and line formset."""
         if not form.instance.created_by_id:
@@ -369,6 +379,16 @@ class IssueConsumptionUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
     lock_url_name = 'inventory:issue_consumption_lock'
     lock_redirect_url_name = 'inventory:issue_consumption'
 
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse',
+            'lines__supplier'
+        ).select_related('created_by', 'warehouse_request')
+        return queryset
+
     def form_valid(self, form):
         """Save document and line formset."""
         if not form.instance.created_by_id:
@@ -534,6 +554,16 @@ class IssueConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
     list_url_name = 'inventory:issue_consignment'
     lock_url_name = 'inventory:issue_consignment_lock'
     lock_redirect_url_name = 'inventory:issue_consignment'
+
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse',
+            'lines__supplier'
+        ).select_related('created_by', 'warehouse_request')
+        return queryset
 
     def form_valid(self, form):
         """Save document and line formset."""

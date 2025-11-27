@@ -16,6 +16,9 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+import logging
+
+logger = logging.getLogger('inventory.forms.base')
 
 from inventory.models import (
     Item,
@@ -224,13 +227,40 @@ class ReceiptBaseForm(forms.ModelForm):
     def _filter_company_scoped_fields(self) -> None:
         """Filter querysets based on active company."""
         if 'item' in self.fields:
-            self.fields['item'].queryset = Item.objects.filter(company_id=self.company_id, is_enabled=1)
+            # For existing instances, include the current item even if disabled
+            queryset = Item.objects.filter(company_id=self.company_id, is_enabled=1)
+            if getattr(self.instance, 'pk', None) and getattr(self.instance, 'item_id', None):
+                # Include the current item even if it's disabled
+                queryset = Item.objects.filter(
+                    company_id=self.company_id
+                ).filter(
+                    Q(is_enabled=1) | Q(pk=self.instance.item_id)
+                )
+            self.fields['item'].queryset = queryset
             self.fields['item'].label_from_instance = lambda obj: f"{obj.name} · {obj.item_code}"
         if 'warehouse' in self.fields:
-            self.fields['warehouse'].queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
+            # For existing instances, include the current warehouse even if disabled
+            queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
+            if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
+                # Include the current warehouse even if it's disabled
+                queryset = Warehouse.objects.filter(
+                    company_id=self.company_id
+                ).filter(
+                    Q(is_enabled=1) | Q(pk=self.instance.warehouse_id)
+                )
+            self.fields['warehouse'].queryset = queryset
             self.fields['warehouse'].label_from_instance = lambda obj: f"{obj.name} · {obj.public_code}"
         if 'supplier' in self.fields:
-            self.fields['supplier'].queryset = Supplier.objects.filter(company_id=self.company_id, is_enabled=1)
+            # For existing instances, include the current supplier even if disabled
+            queryset = Supplier.objects.filter(company_id=self.company_id, is_enabled=1)
+            if getattr(self.instance, 'pk', None) and getattr(self.instance, 'supplier_id', None):
+                # Include the current supplier even if it's disabled
+                queryset = Supplier.objects.filter(
+                    company_id=self.company_id
+                ).filter(
+                    Q(is_enabled=1) | Q(pk=self.instance.supplier_id)
+                )
+            self.fields['supplier'].queryset = queryset
             self.fields['supplier'].label_from_instance = lambda obj: f"{obj.name} · {obj.public_code}"
         if 'temporary_receipt' in self.fields:
             self.fields['temporary_receipt'].queryset = ReceiptTemporary.objects.filter(company_id=self.company_id)
@@ -736,11 +766,24 @@ class BaseLineFormSet(forms.BaseInlineFormSet):
     
     def __init__(self, *args, company_id: Optional[int] = None, request=None, **kwargs):
         """Initialize formset with company_id and request."""
+        logger.info("=" * 80)
+        logger.info("BaseLineFormSet.__init__() called")
+        logger.info(f"company_id: {company_id}")
+        logger.info(f"kwargs keys: {list(kwargs.keys())}")
+        if 'instance' in kwargs:
+            instance = kwargs['instance']
+            # Don't log instance directly as it may trigger __str__ which accesses document
+            if instance:
+                logger.info(f"Instance: pk={getattr(instance, 'pk', None)}, is_locked={getattr(instance, 'is_locked', 'N/A')}")
+            else:
+                logger.info("Instance: None")
         self.company_id = company_id
         self.request = request
         super().__init__(*args, **kwargs)
+        logger.info(f"After super().__init__(), forms count: {len(self.forms)}")
         # Pass company_id and request to all forms in the formset and update querysets
-        for form in self.forms:
+        for i, form in enumerate(self.forms):
+            logger.info(f"  Processing form {i}: instance pk={getattr(form.instance, 'pk', None)}, item_id={getattr(form.instance, 'item_id', None)}")
             form.company_id = company_id
             form.request = request
             # Update querysets after company_id is set
@@ -749,10 +792,23 @@ class BaseLineFormSet(forms.BaseInlineFormSet):
             # Also update destination_type queryset if method exists
             if hasattr(form, '_update_destination_type_queryset'):
                 form._update_destination_type_queryset()
+            # Log item field state
+            if hasattr(form, 'fields') and 'item' in form.fields:
+                item_field = form.fields['item']
+                logger.info(f"    Form {i} item field: queryset count={item_field.queryset.count()}, value={form['item'].value()}")
+                item_id = getattr(form.instance, 'item_id', None)
+                if item_id:
+                    try:
+                        in_queryset = item_field.queryset.filter(pk=item_id).exists()
+                        logger.info(f"    Form {i} instance item_id={item_id} in queryset: {in_queryset}")
+                    except Exception as e:
+                        logger.warning(f"    Form {i} error checking item in queryset: {e}")
     
     def _construct_form(self, i, **kwargs):
         """Construct form with company_id and request."""
+        logger.info(f"BaseLineFormSet._construct_form() called for index {i}")
         form = super()._construct_form(i, **kwargs)
+        logger.info(f"  Form {i} constructed: instance pk={getattr(form.instance, 'pk', None)}, item_id={getattr(form.instance, 'item_id', None)}")
         form.company_id = self.company_id
         form.request = self.request
         # Update querysets after company_id is set
@@ -761,6 +817,17 @@ class BaseLineFormSet(forms.BaseInlineFormSet):
         # Also update destination_type queryset if method exists
         if hasattr(form, '_update_destination_type_queryset'):
             form._update_destination_type_queryset()
+        # Log item field state
+        if hasattr(form, 'fields') and 'item' in form.fields:
+            item_field = form.fields['item']
+            item_id = getattr(form.instance, 'item_id', None)
+            logger.info(f"  Form {i} item field after update: queryset count={item_field.queryset.count()}, value={form['item'].value()}, instance item_id={item_id}")
+            if item_id:
+                try:
+                    in_queryset = item_field.queryset.filter(pk=item_id).exists()
+                    logger.info(f"  Form {i} instance item_id={item_id} in queryset: {in_queryset}")
+                except Exception as e:
+                    logger.warning(f"  Form {i} error checking item in queryset: {e}")
         return form
     
     @property
@@ -769,6 +836,22 @@ class BaseLineFormSet(forms.BaseInlineFormSet):
         form = self._construct_form('__prefix__')
         form.company_id = self.company_id
         form.request = self.request
+        # Set document on instance if instance has document_id (for empty forms in edit mode)
+        # This prevents RelatedObjectDoesNotExist when accessing form.instance.item
+        if hasattr(self, 'instance') and self.instance and hasattr(self.instance, 'pk') and self.instance.pk:
+            if hasattr(form.instance, 'document'):
+                # Try to set document from parent instance
+                try:
+                    # Check if document field exists and is a ForeignKey
+                    if hasattr(form.instance, 'document_id'):
+                        # Set document_id directly to avoid RelatedObjectDoesNotExist
+                        form.instance.document_id = self.instance.pk
+                    else:
+                        # Try to set document object
+                        form.instance.document = self.instance
+                except Exception:
+                    # If document is a ForeignKey and instance doesn't exist, skip
+                    pass
         # Update querysets after company_id is set
         if hasattr(form, '_update_querysets_after_company_id'):
             form._update_querysets_after_company_id()

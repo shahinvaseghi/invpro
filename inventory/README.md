@@ -113,6 +113,15 @@ Each model enforces unique constraints tailored to multi-company setups and uses
 - `create_issue_from_warehouse_request.html`: صفحه واسط انتخاب مقدار برای ایجاد حواله از درخواست انبار.
 - `inventory/stocktaking_form.html`: قالب مشترک فرم‌های شمارش موجودی به همراه اسکریپت‌های پویا برای به‌روزرسانی واحد و انبار مجاز بر اساس انتخاب کالا.
 - `inventory/receipt_form.html`: قالب پایه برای فرم‌های رسید و حواله که شامل JavaScript برای به‌روزرسانی پویای dropdown های واحد و انبار بر اساس انتخاب کالا است. تابع `updateUnitChoices()` واحدها را به‌روزرسانی می‌کند و تابع `updateWarehouseChoices()` انبارهای مجاز را به‌روزرسانی می‌کند.
+
+  **ویژگی‌های JavaScript**:
+  - `filterItemsForRow()`: فیلتر کردن کالاها بر اساس type, category, subcategory و search term
+  - `setupItemSelectHandlers()`: تنظیم event handlers برای تغییرات کالا و به‌روزرسانی واحد/انبار
+  - `initializeLineFormFilters()`: مقداردهی اولیه فیلترها برای تمام خطوط فرم
+  - Event delegation برای تغییرات کالا در formset
+  - مدیریت صحیح مقدار "None" در search input (تبدیل به empty string)
+  - Re-attachment خودکار event handlers پس از DOM manipulation
+  - لاگ‌های جامع برای debugging در Console و ترمینال Django
 - `stocktaking_deficit.html`, `stocktaking_surplus.html`, `stocktaking_records.html`: صفحات لیست سندهای شمارش که اکنون دکمه «ایجاد» و لینک ویرایش/حذف/مشاهده به ویوهای جدید دارند و وضعیت قفل سند را نمایش می‌دهند. دکمه‌های حذف به صورت شرطی بر اساس دسترسی کاربر نمایش داده می‌شوند.
 - `*_confirm_delete.html`: تمپلیت‌های تأیید حذف برای تمام انواع اسناد (رسیدها، حواله‌ها، شمارش موجودی) که جزئیات سند را نمایش داده و از کاربر تأیید می‌گیرند.
 

@@ -82,6 +82,7 @@ urlpatterns = [
     path('receipts/temporary/', views.ReceiptTemporaryListView.as_view(), name='receipt_temporary'),
     path('receipts/temporary/create/', views.ReceiptTemporaryCreateView.as_view(), name='receipt_temporary_create'),
     path('receipts/temporary/create-from-request/<int:pk>/', views.ReceiptTemporaryCreateFromPurchaseRequestView.as_view(), name='receipt_temporary_create_from_request'),
+    path('receipts/temporary/<int:pk>/', views.ReceiptTemporaryDetailView.as_view(), name='receipt_temporary_detail'),
     path('receipts/temporary/<int:pk>/edit/', views.ReceiptTemporaryUpdateView.as_view(), name='receipt_temporary_edit'),
     path('receipts/temporary/<int:pk>/delete/', views.ReceiptTemporaryDeleteView.as_view(), name='receipt_temporary_delete'),
     path('receipts/temporary/<int:pk>/lock/', views.ReceiptTemporaryLockView.as_view(), name='receipt_temporary_lock'),

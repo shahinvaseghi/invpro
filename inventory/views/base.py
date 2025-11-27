@@ -16,6 +16,9 @@ from django.shortcuts import get_object_or_404
 from .. import models
 from .. import forms
 from ..services import serials as serial_service
+import logging
+
+logger = logging.getLogger('inventory.views.base')
 
 
 class InventoryBaseView(LoginRequiredMixin):
@@ -238,18 +241,28 @@ class LineFormsetMixin:
     
     def build_line_formset(self, data=None, instance=None, company_id: Optional[int] = None, request=None):
         """Build line formset for the document."""
+        logger.info("=" * 80)
+        logger.info("LineFormsetMixin.build_line_formset() called")
+        logger.info(f"data is None: {data is None}")
+        logger.info(f"instance: {instance}")
+        logger.info(f"company_id: {company_id}")
         if instance is None:
             instance = getattr(self, "object", None)
+            logger.info(f"Instance from self.object: {instance}")
         if company_id is None:
             if instance and instance.company_id:
                 company_id = instance.company_id
             else:
                 company_id = self.request.session.get('active_company_id')
+        logger.info(f"Final company_id: {company_id}")
         if request is None:
             request = getattr(self, 'request', None)
         
         if self.formset_class is None:
             raise ValueError("formset_class must be set in view class")
+        
+        logger.info(f"Formset class: {self.formset_class}")
+        logger.info(f"Formset prefix: {self.formset_prefix}")
         
         kwargs: Dict[str, Any] = {
             'instance': instance,
@@ -259,7 +272,14 @@ class LineFormsetMixin:
         }
         if data is not None:
             kwargs['data'] = data
-        return self.formset_class(**kwargs)
+            logger.info(f"Data provided, keys: {list(data.keys())[:10]}...")
+        logger.info(f"Formset kwargs: instance={instance}, prefix={self.formset_prefix}, company_id={company_id}")
+        formset = self.formset_class(**kwargs)
+        logger.info(f"Formset created, forms count: {len(formset.forms)}")
+        for i, form in enumerate(formset.forms):
+            if form.instance.pk:
+                logger.info(f"  Form {i}: instance pk={form.instance.pk}, item_id={getattr(form.instance, 'item_id', None)}, item={form.instance.item if hasattr(form.instance, 'item') and form.instance.item else 'None'}")
+        return formset
     
     def get_line_formset(self, data=None):
         """Get line formset for current request."""
@@ -267,12 +287,21 @@ class LineFormsetMixin:
     
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
         """Add line formset to context."""
+        logger.info("=" * 80)
+        logger.info("LineFormsetMixin.get_context_data() called")
+        logger.info(f"Request method: {self.request.method}")
         context = super().get_context_data(**kwargs)
+        logger.info(f"Context keys before formset: {list(context.keys())}")
         if 'lines_formset' not in context:
             if self.request.method == 'POST':
+                logger.info("Building formset with POST data")
                 context['lines_formset'] = self.get_line_formset(data=self.request.POST)
             else:
+                logger.info("Building formset without data (GET request)")
                 context['lines_formset'] = self.get_line_formset()
+            logger.info(f"Formset added to context, forms count: {len(context['lines_formset'].forms)}")
+        else:
+            logger.info("Formset already in context")
         return context
     
     def form_invalid(self, form):

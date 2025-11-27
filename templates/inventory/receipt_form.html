@@ -144,6 +144,7 @@
                 <div class="form-field">
                   <label>{{ line_form.item.label }}{% if line_form.item.field.required %}*{% endif %}</label>
                   <div class="item-select-wrapper">
+                    {% if not document_is_locked %}
                     <div class="item-filters">
                       <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
                         <option value="">{% trans "Type" %}</option>
@@ -168,6 +169,7 @@
                             value="{{ current_item_search }}"
                             style="flex: 2; min-width: 150px;">
                     </div>
+                    {% endif %}
                     {{ line_form.item }}
                   </div>
                   {% if line_form.item.errors %}
@@ -473,6 +475,7 @@
                 <div class="form-field">
                   <label>{{ line_form.item.label }}{% if line_form.item.field.required %}*{% endif %}</label>
                   <div class="item-select-wrapper">
+                    {% if not document_is_locked %}
                     <div class="item-filters">
                       <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
                         <option value="">{% trans "Type" %}</option>
@@ -497,6 +500,7 @@
                             value="{{ current_item_search }}"
                             style="flex: 2; min-width: 150px;">
                     </div>
+                    {% endif %}
                     {{ line_form.item }}
                   </div>
                   {% if line_form.item.errors %}
@@ -735,6 +739,7 @@
                 <div class="form-field">
                   <label>{{ line_form.item.label }}{% if line_form.item.field.required %}*{% endif %}</label>
                   <div class="item-select-wrapper">
+                    {% if not document_is_locked %}
                     <div class="item-filters">
                       <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
                         <option value="">{% trans "Type" %}</option>
@@ -759,6 +764,7 @@
                             value="{{ current_item_search }}"
                             style="flex: 2; min-width: 150px;">
                     </div>
+                    {% endif %}
                     {{ line_form.item }}
                   </div>
                   {% if line_form.item.errors %}
@@ -1545,14 +1551,52 @@ document.addEventListener('submit', function(e) {
 document.addEventListener('submit', function(e) {
 }, false); // Bubble phase
 
+console.log('[SCRIPT] Script file loaded, waiting for DOMContentLoaded...');
+
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('[DOMContentLoaded] ===== DOMContentLoaded event fired =====');
   
   const formsetContainer = document.getElementById('lines-formset');
+  console.log('[DOMContentLoaded] formsetContainer:', formsetContainer);
   const totalFormsInput = document.querySelector('input[name$="-TOTAL_FORMS"]');
+  console.log('[DOMContentLoaded] totalFormsInput:', totalFormsInput);
   const addLineBtn = document.getElementById('add-line-btn');
+  console.log('[DOMContentLoaded] addLineBtn:', addLineBtn);
   const unitChoicesUrl = '{% url "inventory:item_allowed_units" %}';
   const warehouseChoicesUrl = '{% url "inventory:item_allowed_warehouses" %}';
   const temporaryReceiptDataUrl = '{% url "inventory:temporary_receipt_data" %}';
+  console.log('[DOMContentLoaded] URLs - unitChoicesUrl:', unitChoicesUrl, 'warehouseChoicesUrl:', warehouseChoicesUrl);
+  
+  // Initialize: Disable all unit and warehouse selects that don't have an item selected
+  {% if not document_is_locked %}
+  console.log('[DOMContentLoaded] Initializing unit and warehouse selects...');
+  document.querySelectorAll('.line-form').forEach(function(lineForm) {
+    const itemSelect = lineForm.querySelector('select[name*="-item"]');
+    const unitSelect = lineForm.querySelector('select[name*="-unit"]');
+    const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+    
+    if (itemSelect && unitSelect) {
+      if (!itemSelect.value || itemSelect.value === '') {
+        unitSelect.disabled = true;
+        const placeholder = unitSelect.querySelector('option[value=""]');
+        if (!placeholder || (placeholder && placeholder.textContent.indexOf('Select Item') === -1)) {
+          unitSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+        }
+      }
+    }
+    
+    if (itemSelect && warehouseSelect) {
+      if (!itemSelect.value || itemSelect.value === '') {
+        warehouseSelect.disabled = true;
+        const placeholder = warehouseSelect.querySelector('option[value=""]');
+        if (!placeholder || (placeholder && placeholder.textContent.indexOf('Select Item') === -1)) {
+          warehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+        }
+      }
+    }
+  });
+  console.log('[DOMContentLoaded] Unit and warehouse selects initialized');
+  {% endif %}
   
   // Save selected serials to localStorage before form submission (for error recovery)
   const form = document.getElementById('receipt-form');
@@ -2101,35 +2145,128 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function setupItemSelectHandlers(lineForm) {
-    if (!lineForm) return;
+    console.log('[setupItemSelectHandlers] Called for lineForm:', lineForm);
+    if (!lineForm) {
+      console.log('[setupItemSelectHandlers] No lineForm provided');
+      return;
+    }
     const itemSelect = lineForm.querySelector('select[name*="-item"]');
-    if (!itemSelect) return;
+    if (!itemSelect) {
+      console.log('[setupItemSelectHandlers] No itemSelect found');
+      return;
+    }
     const unitSelect = lineForm.querySelector('select[name*="-unit"]');
     const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
     
+    console.log('[setupItemSelectHandlers] Found selects:', {
+      itemSelect: itemSelect ? itemSelect.name : 'none',
+      unitSelect: unitSelect ? unitSelect.name : 'none',
+      warehouseSelect: warehouseSelect ? warehouseSelect.name : 'none',
+      itemValue: itemSelect.value
+    });
+    
+    // Check if handlers are already attached (to avoid duplicates)
+    // But allow re-attachment if the select element was replaced (e.g., by filterItemsForRow)
+    if (itemSelect.dataset.handlersAttached === 'true') {
+      console.log('[setupItemSelectHandlers] Handlers already attached, removing flag for re-attachment');
+      // Remove the flag and re-attach to ensure handlers work after DOM manipulation
+      delete itemSelect.dataset.handlersAttached;
+    }
+    
+    // Attach event handlers directly to itemSelect
+    // We'll re-attach after DOM manipulation if needed
     if (unitSelect) {
-      if (itemSelect.value) {
-        updateUnitChoices(itemSelect, unitSelect);
+      // Always attach handler, even if item is not selected yet
+      // Create new handler
+      const unitChangeHandler = function(e) {
+        console.log('[setupItemSelectHandlers] Item changed event fired (direct), value:', this.value, 'event:', e);
+        // Get fresh reference to unitSelect in case DOM changed
+        const freshUnitSelect = lineForm.querySelector('select[name*="-unit"]');
+        if (freshUnitSelect) {
+          updateUnitChoices(this, freshUnitSelect);
+        } else {
+          console.error('[setupItemSelectHandlers] Could not find unit select after item change');
+        }
+      };
+      // Remove old handler if exists (by cloning the node to remove all listeners)
+      if (itemSelect.dataset.handlersAttached === 'true') {
+        // Clone node to remove all event listeners
+        const newItemSelect = itemSelect.cloneNode(true);
+        itemSelect.parentNode.replaceChild(newItemSelect, itemSelect);
+        // Update reference
+        const updatedItemSelect = lineForm.querySelector('select[name*="-item"]');
+        if (updatedItemSelect) {
+          updatedItemSelect.addEventListener('change', unitChangeHandler);
+          updatedItemSelect.dataset.handlersAttached = 'true';
+        }
+      } else {
+        itemSelect.addEventListener('change', unitChangeHandler);
+        itemSelect.dataset.handlersAttached = 'true';
       }
-      itemSelect.addEventListener('change', function() {
+      console.log('[setupItemSelectHandlers] Unit change handler attached (direct) to:', itemSelect.name);
+      
+      // If item is already selected, update units immediately
+      if (itemSelect.value) {
+        console.log('[setupItemSelectHandlers] Item has value, updating unit choices immediately:', itemSelect.value);
         updateUnitChoices(itemSelect, unitSelect);
-      });
+      } else {
+        // If no item selected, disable unit select
+        unitSelect.disabled = true;
+        const placeholder = unitSelect.querySelector('option[value=""]');
+        if (!placeholder || placeholder.textContent.indexOf('Select Item') === -1) {
+          unitSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+        }
+      }
     }
     
     if (warehouseSelect) {
-      if (itemSelect.value) {
-        updateWarehouseChoices(itemSelect, warehouseSelect);
+      // Always attach handler, even if item is not selected yet
+      // Create new handler
+      const warehouseChangeHandler = function(e) {
+        console.log('[setupItemSelectHandlers] Item changed event fired (direct), value:', this.value, 'event:', e);
+        // Get fresh reference to warehouseSelect in case DOM changed
+        const freshWarehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+        if (freshWarehouseSelect) {
+          updateWarehouseChoices(this, freshWarehouseSelect);
+        } else {
+          console.error('[setupItemSelectHandlers] Could not find warehouse select after item change');
+        }
+      };
+      // Use the same itemSelect (already cloned above if needed)
+      const currentItemSelect = lineForm.querySelector('select[name*="-item"]');
+      if (currentItemSelect) {
+        currentItemSelect.addEventListener('change', warehouseChangeHandler);
       }
-      itemSelect.addEventListener('change', function() {
+      console.log('[setupItemSelectHandlers] Warehouse change handler attached (direct) to:', itemSelect.name);
+      
+      // If item is already selected, update warehouses immediately
+      if (itemSelect.value) {
+        console.log('[setupItemSelectHandlers] Item has value, updating warehouse choices immediately:', itemSelect.value);
         updateWarehouseChoices(itemSelect, warehouseSelect);
-      });
+      } else {
+        // If no item selected, disable warehouse select
+        warehouseSelect.disabled = true;
+        const placeholder = warehouseSelect.querySelector('option[value=""]');
+        if (!placeholder || placeholder.textContent.indexOf('Select Item') === -1) {
+          warehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+        }
+      }
     }
+    
+    // Mark as attached
+    itemSelect.dataset.handlersAttached = 'true';
+    console.log('[setupItemSelectHandlers] Handlers attached successfully');
   }
   
   function attachItemChangeHandlersToAllLines() {
-    document.querySelectorAll('.line-form').forEach(function(lineForm) {
+    console.log('[attachItemChangeHandlersToAllLines] Called');
+    const lineForms = document.querySelectorAll('.line-form');
+    console.log('[attachItemChangeHandlersToAllLines] Found', lineForms.length, 'line forms');
+    lineForms.forEach(function(lineForm, index) {
+      console.log('[attachItemChangeHandlersToAllLines] Setting up handlers for line form', index);
       setupItemSelectHandlers(lineForm);
     });
+    console.log('[attachItemChangeHandlersToAllLines] Completed');
   }
   
   function getLineForms() {
@@ -2148,28 +2285,57 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   // Update unit choices when item changes
   function updateUnitChoices(itemSelect, unitSelect) {
+    console.log('='.repeat(80));
+    console.log('[updateUnitChoices] ===== START =====');
+    console.log('[updateUnitChoices] Called with itemId:', itemSelect.value);
+    console.log('[updateUnitChoices] Item select name:', itemSelect.name);
+    console.log('[updateUnitChoices] Unit select name:', unitSelect ? unitSelect.name : 'none');
+    
     const itemId = itemSelect.value;
     if (!itemId) {
-      unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
+      console.log('[updateUnitChoices] No itemId, clearing unit select');
+      unitSelect.disabled = true;
+      unitSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+      console.log('[updateUnitChoices] ===== END (no itemId) =====');
       return;
     }
     
+    // Enable unit select when item is selected
+    unitSelect.disabled = false;
+    
     // Show loading state
     unitSelect.disabled = true;
+    const currentValue = unitSelect.value;
     unitSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
     
     const url = unitChoicesUrl + '?item_id=' + itemId;
+    console.log('[updateUnitChoices] Preparing to fetch units from server');
+    console.log('[updateUnitChoices] URL:', url);
+    console.log('[updateUnitChoices] Current unit value:', currentValue);
+    console.log('[updateUnitChoices] Sending request to server...');
     
+    const fetchStartTime = Date.now();
     fetch(url)
       .then(response => {
+        const fetchDuration = Date.now() - fetchStartTime;
+        console.log('[updateUnitChoices] Response received from server');
+        console.log('[updateUnitChoices] Response status:', response.status);
+        console.log('[updateUnitChoices] Response statusText:', response.statusText);
+        console.log('[updateUnitChoices] Fetch duration:', fetchDuration, 'ms');
+        
         if (!response.ok) {
+          console.error('[updateUnitChoices] Response not OK, status:', response.status);
           throw new Error('Network response was not ok: ' + response.status);
         }
         return response.json();
       })
       .then(data => {
+        console.log('[updateUnitChoices] Response data received from server');
+        console.log('[updateUnitChoices] Data:', JSON.stringify(data, null, 2));
+        console.log('[updateUnitChoices] Units count:', data.units ? data.units.length : 0);
+        console.log('[updateUnitChoices] Default unit:', data.default_unit);
         if (data.error) {
-          console.error('Error fetching units:', data.error);
+          console.error('[updateUnitChoices] Error fetching units:', data.error);
           unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
           unitSelect.disabled = false;
           alert('{% trans "Error loading units" %}: ' + data.error);
@@ -2180,17 +2346,22 @@ document.addEventListener('DOMContentLoaded', function() {
         unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
         
         if (data.units && data.units.length > 0) {
+          console.log('[updateUnitChoices] Adding', data.units.length, 'units to select');
           let hasSelectedValue = false;
-          data.units.forEach(function(unit) {
+          data.units.forEach(function(unit, index) {
+            console.log(`[updateUnitChoices]   Unit ${index + 1}: value="${unit.value}", label="${unit.label}"`);
             const option = document.createElement('option');
             option.value = unit.value;
             option.textContent = unit.label;
             if (unit.value === currentValue) {
               option.selected = true;
               hasSelectedValue = true;
+              console.log(`[updateUnitChoices]   Unit ${index + 1} matches current value, selected`);
             }
             unitSelect.appendChild(option);
           });
+          console.log('[updateUnitChoices] All units added to select');
+          console.log('[updateUnitChoices] Has selected value:', hasSelectedValue);
           
           // If no value was selected and we have a default unit, select it
           if (!hasSelectedValue && data.default_unit && data.units.length > 0) {
@@ -2224,27 +2395,48 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         unitSelect.disabled = false;
+        console.log('[updateUnitChoices] Unit select enabled');
+        console.log('[updateUnitChoices] Final unit select value:', unitSelect.value);
+        console.log('[updateUnitChoices] Final unit select options count:', unitSelect.options.length);
         
         // Trigger change event to update any UI components
         const changeEvent = new Event('change', { bubbles: true });
         unitSelect.dispatchEvent(changeEvent);
+        console.log('[updateUnitChoices] Change event dispatched');
+        console.log('[updateUnitChoices] ===== END (success) =====');
       })
       .catch(error => {
-        console.error('Error:', error);
-        unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
-        unitSelect.disabled = false;
+        console.error('[updateUnitChoices] ===== ERROR =====');
+        console.error('[updateUnitChoices] Error:', error);
+        console.error('[updateUnitChoices] Error message:', error.message);
+        console.error('[updateUnitChoices] Error stack:', error.stack);
+        unitSelect.disabled = true;
+        unitSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
         alert('{% trans "Error loading units. Please try again." %}: ' + error.message);
+        console.log('[updateUnitChoices] ===== END (error) =====');
       });
   }
   
   // Update warehouse choices when item changes
   function updateWarehouseChoices(itemSelect, warehouseSelect) {
+    console.log('='.repeat(80));
+    console.log('[updateWarehouseChoices] ===== START =====');
+    console.log('[updateWarehouseChoices] Called with itemId:', itemSelect.value);
+    console.log('[updateWarehouseChoices] Item select name:', itemSelect.name);
+    console.log('[updateWarehouseChoices] Warehouse select name:', warehouseSelect ? warehouseSelect.name : 'none');
+    
     const itemId = itemSelect.value;
     if (!itemId) {
-      // If no item selected, show all warehouses (or clear)
-      warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
+      console.log('[updateWarehouseChoices] No itemId, clearing warehouse select');
+      // If no item selected, disable and clear
+      warehouseSelect.disabled = true;
+      warehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+      console.log('[updateWarehouseChoices] ===== END (no itemId) =====');
       return;
     }
+    
+    // Enable warehouse select when item is selected
+    warehouseSelect.disabled = false;
     
     // Show loading state
     warehouseSelect.disabled = true;
@@ -2252,17 +2444,32 @@ document.addEventListener('DOMContentLoaded', function() {
     warehouseSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
     
     const url = warehouseChoicesUrl + '?item_id=' + itemId;
+    console.log('[updateWarehouseChoices] Preparing to fetch warehouses from server');
+    console.log('[updateWarehouseChoices] URL:', url);
+    console.log('[updateWarehouseChoices] Current warehouse value:', currentValue);
+    console.log('[updateWarehouseChoices] Sending request to server...');
     
+    const fetchStartTime = Date.now();
     fetch(url)
       .then(response => {
+        const fetchDuration = Date.now() - fetchStartTime;
+        console.log('[updateWarehouseChoices] Response received from server');
+        console.log('[updateWarehouseChoices] Response status:', response.status);
+        console.log('[updateWarehouseChoices] Response statusText:', response.statusText);
+        console.log('[updateWarehouseChoices] Fetch duration:', fetchDuration, 'ms');
+        
         if (!response.ok) {
+          console.error('[updateWarehouseChoices] Response not OK, status:', response.status);
           throw new Error('Network response was not ok: ' + response.status);
         }
         return response.json();
       })
       .then(data => {
+        console.log('[updateWarehouseChoices] Response data received from server');
+        console.log('[updateWarehouseChoices] Data:', JSON.stringify(data, null, 2));
+        console.log('[updateWarehouseChoices] Warehouses count:', data.warehouses ? data.warehouses.length : 0);
         if (data.error) {
-          console.error('Error fetching warehouses:', data.error);
+          console.error('[updateWarehouseChoices] Error fetching warehouses:', data.error);
           warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
           warehouseSelect.disabled = false;
           alert('{% trans "Error loading warehouses" %}: ' + data.error);
@@ -2272,24 +2479,38 @@ document.addEventListener('DOMContentLoaded', function() {
         warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
         
         if (data.warehouses && data.warehouses.length > 0) {
-          data.warehouses.forEach(function(warehouse) {
+          console.log('[updateWarehouseChoices] Adding', data.warehouses.length, 'warehouses to select');
+          data.warehouses.forEach(function(warehouse, index) {
+            console.log(`[updateWarehouseChoices]   Warehouse ${index + 1}: value="${warehouse.value}", label="${warehouse.label}"`);
             const option = document.createElement('option');
             option.value = warehouse.value;
             option.textContent = warehouse.label;
             if (warehouse.value === currentValue) {
               option.selected = true;
+              console.log(`[updateWarehouseChoices]   Warehouse ${index + 1} matches current value, selected`);
             }
             warehouseSelect.appendChild(option);
           });
+          console.log('[updateWarehouseChoices] All warehouses added to select');
+        } else {
+          console.log('[updateWarehouseChoices] No warehouses found for this item');
         }
         
         warehouseSelect.disabled = false;
+        console.log('[updateWarehouseChoices] Warehouse select enabled');
+        console.log('[updateWarehouseChoices] Final warehouse select value:', warehouseSelect.value);
+        console.log('[updateWarehouseChoices] Final warehouse select options count:', warehouseSelect.options.length);
+        console.log('[updateWarehouseChoices] ===== END (success) =====');
       })
       .catch(error => {
-        console.error('Error loading warehouses:', error);
-        warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
-        warehouseSelect.disabled = false;
+        console.error('[updateWarehouseChoices] ===== ERROR =====');
+        console.error('[updateWarehouseChoices] Error:', error);
+        console.error('[updateWarehouseChoices] Error message:', error.message);
+        console.error('[updateWarehouseChoices] Error stack:', error.stack);
+        warehouseSelect.disabled = true;
+        warehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
         alert('{% trans "Error loading warehouses. Please try again." %}: ' + error.message);
+        console.log('[updateWarehouseChoices] ===== END (error) =====');
       });
   }
   
@@ -2308,7 +2529,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const typeId = typeSelect?.value || '';
     const categoryId = categorySelect?.value || '';
     const subcategoryId = subcategorySelect?.value || '';
-    const searchTerm = searchInput?.value?.trim() || '';
+    let searchTerm = searchInput?.value?.trim() || '';
+    
+    // Fix: If searchTerm is "None" (string), treat it as empty
+    if (searchTerm === 'None' || searchTerm === 'none') {
+      searchTerm = '';
+    }
+    
+    console.log('[filterItemsForRow] Filters - typeId:', typeId, 'categoryId:', categoryId, 'subcategoryId:', subcategoryId, 'searchTerm:', searchTerm);
     
     // Build API URL
     let apiUrl = '/inventory/api/filtered-items/';
@@ -2318,59 +2546,125 @@ document.addEventListener('DOMContentLoaded', function() {
     if (subcategoryId) params.append('subcategory_id', subcategoryId);
     if (searchTerm) params.append('search', searchTerm);
     
-    // If no filters and no search, load all items
-    // Otherwise, apply filters
+    // Always add params to URL (even if empty, API will return all items)
     if (params.toString()) {
       apiUrl += '?' + params.toString();
     }
+    // If no params at all, still call API to get all items
     
     // Fetch filtered items (or all items if no filters)
+    console.log('[filterItemsForRow] Fetching items from:', apiUrl);
     fetch(apiUrl)
-      .then(response => response.json())
+      .then(response => {
+        console.log('[filterItemsForRow] Response status:', response.status);
+        if (!response.ok) {
+          throw new Error('Network response was not ok: ' + response.status);
+        }
+        return response.json();
+      })
       .then(data => {
+        console.log('[filterItemsForRow] Received data:', data);
         if (data.items) {
+          console.log('[filterItemsForRow] Items count:', data.items.length);
           const itemMap = {};
           data.items.forEach(function(item) {
             itemMap[item.value] = item;
           });
           
+          // Save current value and label BEFORE clearing
           const currentValue = itemSelect.value;
-          const placeholder = itemSelect.options[0];
+          let currentLabel = '';
+          if (currentValue) {
+            const currentOption = Array.from(itemSelect.options).find(opt => opt.value == currentValue);
+            if (currentOption) {
+              currentLabel = currentOption.textContent;
+            }
+          }
           
-          // Clear all options except placeholder
+          // Clear all options
           itemSelect.innerHTML = '';
-          if (placeholder && placeholder.value === '') {
-            itemSelect.appendChild(placeholder.cloneNode(true));
-          } else {
-            const emptyOption = document.createElement('option');
-            emptyOption.value = '';
-            emptyOption.textContent = '--- انتخاب کنید ---';
-            itemSelect.appendChild(emptyOption);
+          
+          // Add placeholder
+          const emptyOption = document.createElement('option');
+          emptyOption.value = '';
+          emptyOption.textContent = '--- انتخاب کنید ---';
+          itemSelect.appendChild(emptyOption);
+          
+          // If current value exists and is not in filtered list, add it first (preserve existing selection)
+          if (currentValue && !itemMap[currentValue]) {
+            const preservedOption = document.createElement('option');
+            preservedOption.value = currentValue;
+            preservedOption.textContent = currentLabel || currentValue;
+            preservedOption.selected = true;
+            itemSelect.appendChild(preservedOption);
           }
           
           // Add filtered items
           data.items.forEach(function(item) {
+            // Skip if this item is already added (preserved current value)
+            if (currentValue && item.value == currentValue) {
+              return;
+            }
             const option = document.createElement('option');
             option.value = item.value;
             option.textContent = item.label;
             itemSelect.appendChild(option);
           });
           
+          console.log('[filterItemsForRow] Added', data.items.length, 'items to select');
+          
           // Restore current value if it's in filtered list
           if (currentValue && itemMap[currentValue]) {
+            console.log('[filterItemsForRow] Restoring current value:', currentValue);
             itemSelect.value = currentValue;
-          } else if (currentValue) {
-            // Current value is not in filtered list, clear it
-            itemSelect.value = '';
-            const unitSelect = rowElement.querySelector('select[name*="-unit"]');
-            if (unitSelect) {
-              updateUnitChoices(itemSelect, unitSelect);
-            }
           }
+        } else {
+          console.error('[filterItemsForRow] No items in response data');
+          // At least show placeholder
+          itemSelect.innerHTML = '<option value="">--- انتخاب کنید ---</option>';
+        }
+        
+        // Re-attach event handlers after replacing the select options
+        // This is necessary because innerHTML = '' removes event listeners
+        const lineForm = rowElement.closest('.line-form');
+        if (lineForm) {
+          console.log('[filterItemsForRow] Re-attaching event handlers after filtering items');
+          // Use setTimeout to ensure DOM is fully updated before re-attaching handlers
+          setTimeout(function() {
+            console.log('[filterItemsForRow] Re-attaching handlers now');
+            setupItemSelectHandlers(lineForm);
+            
+            // Manually update units and warehouses if item is selected
+            const freshItemSelect = lineForm.querySelector('select[name*="-item"]');
+            if (freshItemSelect && freshItemSelect.value) {
+              console.log('[filterItemsForRow] Item is selected, manually updating units and warehouses for value:', freshItemSelect.value);
+              const freshUnitSelect = lineForm.querySelector('select[name*="-unit"]');
+              const freshWarehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+              if (freshUnitSelect) {
+                console.log('[filterItemsForRow] Manually calling updateUnitChoices');
+                updateUnitChoices(freshItemSelect, freshUnitSelect);
+              }
+              if (freshWarehouseSelect) {
+                console.log('[filterItemsForRow] Manually calling updateWarehouseChoices');
+                updateWarehouseChoices(freshItemSelect, freshWarehouseSelect);
+              }
+              // Also dispatch change event for any other listeners
+              const changeEvent = new Event('change', { bubbles: true });
+              freshItemSelect.dispatchEvent(changeEvent);
+            } else {
+              console.log('[filterItemsForRow] No item selected, skipping update');
+            }
+          }, 10); // Small delay to ensure DOM is updated
+        } else {
+          console.log('[filterItemsForRow] No lineForm found for rowElement');
         }
       })
       .catch(error => {
-        console.error('Error filtering items:', error);
+        console.error('[filterItemsForRow] Error filtering items:', error);
+        console.error('[filterItemsForRow] Error details:', error.message, error.stack);
+        // Show placeholder on error
+        itemSelect.innerHTML = '<option value="">--- انتخاب کنید ---</option>';
+        alert('خطا در بارگذاری لیست کالاها: ' + error.message);
       });
   }
 
@@ -2456,7 +2750,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Initialize filters for all line forms
   function initializeLineFormFilters() {
-    document.querySelectorAll('.line-form').forEach(function(lineForm) {
+    // Don't initialize if document is locked (view mode)
+    {% if document_is_locked %}
+    return;
+    {% endif %}
+    
+    console.log('[initializeLineFormFilters] Starting initialization...');
+    const lineForms = document.querySelectorAll('.line-form');
+    console.log('[initializeLineFormFilters] Found', lineForms.length, 'line forms');
+    lineForms.forEach(function(lineForm, index) {
+      console.log('[initializeLineFormFilters] Processing line form', index);
       const typeSelect = lineForm.querySelector('.filter-type-select');
       const categorySelect = lineForm.querySelector('.filter-category-select');
       const subcategorySelect = lineForm.querySelector('.filter-subcategory-select');
@@ -2496,18 +2799,111 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       // Initialize filters - load all categories initially and filter items
-      if (typeSelect) {
-        loadCategoriesForRow(lineForm, typeSelect.value);
-      } else {
-        // If no type filter, just load all items
-        filterItemsForRow(lineForm);
+      // itemSelect is already defined above (line 2730), so we reuse it
+      const hasExistingItem = itemSelect && itemSelect.value && itemSelect.value !== '';
+      const hasOptions = itemSelect && itemSelect.options.length > 1; // More than just placeholder
+      
+      // Fix: Clear "None" value from search input if it exists
+      if (searchInput && searchInput.value === 'None') {
+        console.log('[initializeLineFormFilters] Line', index, '- Clearing "None" value from search input');
+        searchInput.value = '';
       }
+      
+      // If item is selected but options are not loaded (only placeholder), we need to load items
+      // to preserve the selection properly
+      if (hasExistingItem && !hasOptions) {
+        console.log('[initializeLineFormFilters] Line', index, '- Item selected but options not loaded, loading items');
+        // Item is selected but options are not loaded - load all items to preserve selection
+        if (typeSelect) {
+          loadCategoriesForRow(lineForm, typeSelect.value);
+        } else {
+          filterItemsForRow(lineForm);
+        }
+      } else if (!hasExistingItem) {
+        console.log('[initializeLineFormFilters] Line', index, '- No item selected, normal initialization');
+        // No item selected - normal initialization
+        if (typeSelect) {
+          loadCategoriesForRow(lineForm, typeSelect.value);
+        } else {
+          filterItemsForRow(lineForm);
+        }
+      } else {
+        console.log('[initializeLineFormFilters] Line', index, '- Item selected AND options loaded, skipping filter');
+        // Even if item is selected and options are loaded, we still need to update units and warehouses
+        // This will be done by attachItemChangeHandlersToAllLines which is called after this function
+      }
+      // If item is selected AND options are loaded, don't filter (preserve existing selection)
     });
+    console.log('[initializeLineFormFilters] Initialization completed');
   }
 
   // Initialize filters for all existing line forms
+  // BUT: Don't initialize filters if document is locked (view mode)
+  {% if not document_is_locked %}
+  console.log('[Initialization] Starting initialization...');
   initializeLineFormFilters();
+  console.log('[Initialization] Filters initialized, attaching item change handlers...');
   attachItemChangeHandlersToAllLines();
+  
+  // Use event delegation on formsetContainer to handle item changes
+  // This ensures handlers work even if DOM is replaced
+  console.log('[Initialization] Checking formsetContainer...', formsetContainer);
+  if (formsetContainer) {
+    console.log('[Initialization] formsetContainer found, setting up event delegation for item changes...');
+    formsetContainer.addEventListener('change', function(e) {
+      console.log('[Event Delegation] Change event detected on:', e.target);
+      console.log('[Event Delegation] tagName:', e.target ? e.target.tagName : 'N/A', 'name:', e.target ? e.target.name : 'N/A');
+      const target = e.target;
+      if (target && target.tagName === 'SELECT' && target.name && target.name.includes('-item')) {
+        console.log('[Event Delegation] Item change detected on:', target.name, 'value:', target.value);
+        const lineForm = target.closest('.line-form');
+        if (lineForm) {
+          console.log('[Event Delegation] Found lineForm, updating units and warehouses...');
+          const unitSelect = lineForm.querySelector('select[name*="-unit"]');
+          const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+          if (unitSelect) {
+            console.log('[Event Delegation] Calling updateUnitChoices');
+            updateUnitChoices(target, unitSelect);
+          }
+          if (warehouseSelect) {
+            console.log('[Event Delegation] Calling updateWarehouseChoices');
+            updateWarehouseChoices(target, warehouseSelect);
+          }
+        } else {
+          console.error('[Event Delegation] Could not find lineForm for item select:', target.name);
+        }
+      } else {
+        console.log('[Event Delegation] Change event is not for item select. Target:', target);
+        console.log('[Event Delegation] tagName:', target ? target.tagName : 'N/A', 'name:', target ? target.name : 'N/A');
+      }
+    });
+    console.log('[Initialization] Event delegation set up successfully');
+  } else {
+    console.error('[Initialization] formsetContainer NOT FOUND! Event delegation cannot be set up.');
+  }
+  
+  // After attaching handlers, ensure units and warehouses are updated for any pre-selected items
+  // This is important for edit mode where items are already selected
+  console.log('[Initialization] Ensuring units and warehouses are updated for pre-selected items...');
+  document.querySelectorAll('.line-form').forEach(function(lineForm) {
+    const itemSelect = lineForm.querySelector('select[name*="-item"]');
+    if (itemSelect && itemSelect.value) {
+      console.log('[Initialization] Found pre-selected item:', itemSelect.value, 'in form:', itemSelect.name);
+      const unitSelect = lineForm.querySelector('select[name*="-unit"]');
+      const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+      if (unitSelect) {
+        console.log('[Initialization] Updating unit choices for pre-selected item');
+        updateUnitChoices(itemSelect, unitSelect);
+      }
+      if (warehouseSelect) {
+        console.log('[Initialization] Updating warehouse choices for pre-selected item');
+        updateWarehouseChoices(itemSelect, warehouseSelect);
+      }
+    }
+  });
+  
+  console.log('[Initialization] Initialization completed');
+  {% endif %}
   
   // Attach item change handlers for single-line forms (like ReceiptTemporary)
   // Handle forms without lines_formset (single-line forms)
@@ -2726,6 +3122,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
       
+      // Setup item change handlers for new form
+      setupItemSelectHandlers(newForm);
+      
+      // Disable unit and warehouse selects for new form (no item selected yet)
+      const newFormUnitSelect = newForm.querySelector('select[name*="-unit"]');
+      const newFormWarehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
+      if (newFormUnitSelect) {
+        newFormUnitSelect.disabled = true;
+        newFormUnitSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+      }
+      if (newFormWarehouseSelect) {
+        newFormWarehouseSelect.disabled = true;
+        newFormWarehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+      }
+      
       // Setup filters for new form
       const typeSelect = newForm.querySelector('.filter-type-select');
       const categorySelect = newForm.querySelector('.filter-category-select');
@@ -2790,103 +3201,98 @@ document.addEventListener('DOMContentLoaded', function() {
           prevSibling.remove();
         }
       }
-      const newUnitSelect = newForm.querySelector('select[name*="-unit"]');
-      if (newItemSelect && newUnitSelect) {
+      // Note: setupItemSelectHandlers is called above, so we don't need to duplicate event handlers here
+      // But we still need to handle serial button visibility and work lines
+      const newWarehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
+      
+      if (newWarehouseSelect) {
+        newWarehouseSelect.addEventListener('change', function() {
+          // Update serial button visibility when warehouse changes
+          if (typeof updateSerialButtonVisibility === 'function') {
+            updateSerialButtonVisibility(newForm);
+          }
+          
+          // Update work lines if destination type is work_line
+          const choiceSelect = newForm.querySelector('select[id*="destination_type_choice"]');
+          const workLineField = newForm.querySelector('select[id*="destination_work_line"]');
+          if (choiceSelect && choiceSelect.value === 'work_line' && workLineField && typeof updateWorkLineChoices === 'function') {
+            updateWorkLineChoices(newWarehouseSelect, workLineField);
+          }
+        });
+      }
+      
+      // Add handler for serial button visibility when item changes (setupItemSelectHandlers doesn't handle this)
+      if (newItemSelect) {
+        newItemSelect.addEventListener('change', function() {
+          // Update serial button visibility when item changes
+          if (typeof updateSerialButtonVisibility === 'function') {
+            updateSerialButtonVisibility(newForm);
+          }
+        });
+      }
+      
+      // Attach serial selection button handler for new form
+      const newSelectSerialsBtn = newForm.querySelector('.select-serials-btn');
+      if (newSelectSerialsBtn && typeof openSerialModal === 'function') {
+        newSelectSerialsBtn.addEventListener('click', function() {
+          openSerialModal(newForm);
+        });
+      }
+      
+      // Handle destination type choice for new form
+      const newChoiceSelect = newForm.querySelector('select[id*="destination_type_choice"]');
+      if (newChoiceSelect) {
+        const newCompanyUnitField = newForm.querySelector('select[id*="destination_company_unit"]');
+        const newCompanyUnitFieldContainer = newCompanyUnitField ? newCompanyUnitField.closest('.destination-company-unit-field') : null;
+        const newWorkLineField = newForm.querySelector('select[id*="destination_work_line"]');
+        const newWorkLineFieldContainer = newWorkLineField ? newWorkLineField.closest('.destination-work-line-field') : null;
         const newWarehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
+        const newConsumptionTypeHidden = newForm.querySelector('input[name*="-consumption_type"]');
         
-        if (newItemSelect && newUnitSelect) {
-          newItemSelect.addEventListener('change', function() {
-            updateUnitChoices(newItemSelect, newUnitSelect);
-          });
+        function toggleFieldsForNewForm() {
+          const value = newChoiceSelect.value;
+          
+          // Update hidden consumption_type field
+          if (newConsumptionTypeHidden) {
+            newConsumptionTypeHidden.value = value;
+          }
+          
+          if (newCompanyUnitFieldContainer) {
+            newCompanyUnitFieldContainer.style.display = (value === 'company_unit') ? 'block' : 'none';
+            if (value !== 'company_unit' && newCompanyUnitField) {
+              newCompanyUnitField.value = '';
+            }
+          }
+          if (newWorkLineFieldContainer) {
+            newWorkLineFieldContainer.style.display = (value === 'work_line') ? 'block' : 'none';
+            if (value !== 'work_line' && newWorkLineField) {
+              newWorkLineField.value = '';
+            } else if (value === 'work_line' && newWarehouseSelect && newWorkLineField && typeof updateWorkLineChoices === 'function') {
+              // When work_line is selected, update work lines based on warehouse
+              updateWorkLineChoices(newWarehouseSelect, newWorkLineField);
+            }
+          }
         }
         
-        if (newItemSelect && newWarehouseSelect) {
-          newItemSelect.addEventListener('change', function() {
-            updateWarehouseChoices(newItemSelect, newWarehouseSelect);
-            // Update serial button visibility when item changes
-            if (typeof updateSerialButtonVisibility === 'function') {
-              updateSerialButtonVisibility(newForm);
-            }
-          });
-          
+        // Initial toggle
+        toggleFieldsForNewForm();
+        
+        // Add change handler
+        newChoiceSelect.addEventListener('change', toggleFieldsForNewForm);
+        
+        // Update work lines when warehouse changes (only if work_line is selected)
+        if (newWarehouseSelect && newWorkLineField) {
           newWarehouseSelect.addEventListener('change', function() {
-            // Update serial button visibility when warehouse changes
-            if (typeof updateSerialButtonVisibility === 'function') {
-              updateSerialButtonVisibility(newForm);
-            }
-            
-            // Update work lines if destination type is work_line
-            const choiceSelect = newForm.querySelector('select[id*="destination_type_choice"]');
-            const workLineField = newForm.querySelector('select[id*="destination_work_line"]');
-            if (choiceSelect && choiceSelect.value === 'work_line' && workLineField && typeof updateWorkLineChoices === 'function') {
-              updateWorkLineChoices(newWarehouseSelect, workLineField);
+            if (newChoiceSelect.value === 'work_line' && typeof updateWorkLineChoices === 'function') {
+              updateWorkLineChoices(newWarehouseSelect, newWorkLineField);
             }
           });
         }
-        
-        // Attach serial selection button handler for new form
-        const newSelectSerialsBtn = newForm.querySelector('.select-serials-btn');
-        if (newSelectSerialsBtn && typeof openSerialModal === 'function') {
-          newSelectSerialsBtn.addEventListener('click', function() {
-            openSerialModal(newForm);
-          });
-        }
-        
-        // Handle destination type choice for new form
-        const newChoiceSelect = newForm.querySelector('select[id*="destination_type_choice"]');
-        if (newChoiceSelect) {
-          const newCompanyUnitField = newForm.querySelector('select[id*="destination_company_unit"]');
-          const newCompanyUnitFieldContainer = newCompanyUnitField ? newCompanyUnitField.closest('.destination-company-unit-field') : null;
-          const newWorkLineField = newForm.querySelector('select[id*="destination_work_line"]');
-          const newWorkLineFieldContainer = newWorkLineField ? newWorkLineField.closest('.destination-work-line-field') : null;
-          const newWarehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
-          const newConsumptionTypeHidden = newForm.querySelector('input[name*="-consumption_type"]');
-          
-          function toggleFieldsForNewForm() {
-            const value = newChoiceSelect.value;
-            
-            // Update hidden consumption_type field
-            if (newConsumptionTypeHidden) {
-              newConsumptionTypeHidden.value = value;
-            }
-            
-            if (newCompanyUnitFieldContainer) {
-              newCompanyUnitFieldContainer.style.display = (value === 'company_unit') ? 'block' : 'none';
-              if (value !== 'company_unit' && newCompanyUnitField) {
-                newCompanyUnitField.value = '';
-              }
-            }
-            if (newWorkLineFieldContainer) {
-              newWorkLineFieldContainer.style.display = (value === 'work_line') ? 'block' : 'none';
-              if (value !== 'work_line' && newWorkLineField) {
-                newWorkLineField.value = '';
-              } else if (value === 'work_line' && newWarehouseSelect && newWorkLineField && typeof updateWorkLineChoices === 'function') {
-                // When work_line is selected, update work lines based on warehouse
-                updateWorkLineChoices(newWarehouseSelect, newWorkLineField);
-              }
-            }
-          }
-          
-          // Initial toggle
-          toggleFieldsForNewForm();
-          
-          // Add change handler
-          newChoiceSelect.addEventListener('change', toggleFieldsForNewForm);
-          
-          // Update work lines when warehouse changes (only if work_line is selected)
-          if (newWarehouseSelect && newWorkLineField) {
-            newWarehouseSelect.addEventListener('change', function() {
-              if (newChoiceSelect.value === 'work_line' && typeof updateWorkLineChoices === 'function') {
-                updateWorkLineChoices(newWarehouseSelect, newWorkLineField);
-              }
-            });
-          }
-        }
-        
-        // Initial check for serial button visibility
-        if (typeof updateSerialButtonVisibility === 'function') {
-          updateSerialButtonVisibility(newForm);
-        }
+      }
+      
+      // Initial check for serial button visibility
+      if (typeof updateSerialButtonVisibility === 'function') {
+        updateSerialButtonVisibility(newForm);
       }
       
       // Add search to new selects (exclude filter selects explicitly)

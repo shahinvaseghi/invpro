@@ -458,4 +458,8 @@
    - جستجو در نام و کد کالا (`item_search`)
    - فیلترها و جستجو از طریق API endpoint `/inventory/api/filtered-items/` در template اعمال می‌شوند
    - فیلترها اختیاری هستند و می‌توانند به صورت ترکیبی استفاده شوند
+   - API فقط کالاهای enabled (`is_enabled=1`) را برمی‌گرداند
+   - Response شامل `total_count` برای نمایش تعداد کل کالاهای پیدا شده است
+   - مدیریت خودکار مقدار "None" در search input (تبدیل به empty string)
+   - Event handlers به صورت خودکار پس از DOM manipulation دوباره attach می‌شوند
 
