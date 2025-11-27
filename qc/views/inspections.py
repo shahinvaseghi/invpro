@@ -76,9 +76,9 @@ class TemporaryReceiptQCApproveView(FeaturePermissionRequiredMixin, QCBaseView, 
             receipt.qc_approved_by = request.user
             receipt.qc_approved_at = timezone.now()
             receipt.qc_approval_notes = approval_notes
-            receipt.status = inventory_models.ReceiptTemporary.Status.AWAITING_INSPECTION  # Keep status as awaiting inspection, but mark as approved
+            receipt.status = inventory_models.ReceiptTemporary.Status.APPROVED
             receipt.is_locked = 1  # Lock the receipt after approval
-            receipt.save()
+            receipt.save(update_fields=['qc_approved_by', 'qc_approved_at', 'qc_approval_notes', 'status', 'is_locked'])
             
             messages.success(request, _('Temporary receipt approved for QC. The receipt is now locked and can be converted to a permanent receipt.'))
         

@@ -325,25 +325,70 @@ def get_temporary_receipt_data(request: HttpRequest) -> JsonResponse:
             company_id=company_id
         )
 
+        # Get all lines from temporary receipt
+        lines = temp_receipt.lines.all()
+        if not lines.exists():
+            # Log for debugging
+            logger.warning(
+                f"Temporary receipt {temp_receipt.document_code} (ID: {temp_receipt.pk}, "
+                f"Company: {temp_receipt.company_id}) has no lines. "
+                f"This receipt cannot be converted to permanent receipt."
+            )
+            return JsonResponse({
+                'error': 'Temporary receipt has no lines',
+                'message': _('رسید موقت انتخاب شده هیچ خطی ندارد. لطفاً یک رسید موقت معتبر با حداقل یک خط انتخاب کنید.')
+            }, status=400)
+
+        # For backward compatibility, return first line data as main data
+        # And include all lines in a 'lines' array
+        first_line = lines.first()
+        
+        # Supplier info is stored on the temporary receipt header
+        supplier = temp_receipt.supplier
+        supplier_id = supplier.pk if supplier else None
+        supplier_code = supplier.public_code if supplier else None
+        supplier_name = supplier.name if supplier else None
+
         # Return temporary receipt data for auto-filling
+        # Main data (first line for backward compatibility)
         data: Dict[str, Any] = {
-            'item_id': temp_receipt.item_id,
-            'item_code': temp_receipt.item.item_code,
-            'item_name': temp_receipt.item.name,
-            'warehouse_id': temp_receipt.warehouse_id,
-            'warehouse_code': temp_receipt.warehouse.public_code,
-            'warehouse_name': temp_receipt.warehouse.name,
-            'quantity': str(temp_receipt.quantity),
-            'entered_quantity': str(temp_receipt.entered_quantity) if temp_receipt.entered_quantity else str(temp_receipt.quantity),
-            'unit': temp_receipt.unit,
-            'entered_unit': temp_receipt.entered_unit if temp_receipt.entered_unit else temp_receipt.unit,
-            'supplier_id': temp_receipt.supplier_id if temp_receipt.supplier else None,
-            'supplier_code': temp_receipt.supplier.public_code if temp_receipt.supplier else None,
-            'supplier_name': temp_receipt.supplier.name if temp_receipt.supplier else None,
+            'item_id': first_line.item_id,
+            'item_code': first_line.item.item_code,
+            'item_name': first_line.item.name,
+            'warehouse_id': first_line.warehouse_id,
+            'warehouse_code': first_line.warehouse.public_code,
+            'warehouse_name': first_line.warehouse.name,
+            'quantity': str(first_line.quantity),
+            'entered_quantity': str(first_line.entered_quantity) if first_line.entered_quantity else str(first_line.quantity),
+            'unit': first_line.unit,
+            'entered_unit': first_line.entered_unit if first_line.entered_unit else first_line.unit,
+            'supplier_id': supplier_id,
+            'supplier_code': supplier_code,
+            'supplier_name': supplier_name,
+            # Include all lines for multi-line support
+            'lines': [
+                {
+                    'item_id': line.item_id,
+                    'item_code': line.item.item_code,
+                    'item_name': line.item.name,
+                    'warehouse_id': line.warehouse_id,
+                    'warehouse_code': line.warehouse.public_code,
+                    'warehouse_name': line.warehouse.name,
+                    'quantity': str(line.quantity),
+                    'entered_quantity': str(line.entered_quantity) if line.entered_quantity else str(line.quantity),
+                    'unit': line.unit,
+                    'entered_unit': line.entered_unit if line.entered_unit else line.unit,
+                    'supplier_id': supplier_id,
+                    'supplier_code': supplier_code,
+                    'supplier_name': supplier_name,
+                }
+                for line in lines
+            ],
         }
 
         return JsonResponse(data)
     except Exception as e:
+        logger.error(f"Error in get_temporary_receipt_data: {e}", exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
 
 

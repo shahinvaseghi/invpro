@@ -168,7 +168,7 @@ class ReceiptTests(InventoryModelTests):
         self.assertTrue(receipt.document_code.startswith("PRM-"))
     
     def test_receipt_temporary_status(self) -> None:
-        """Test that temporary receipts start with AWAITING_INSPECTION status."""
+        """Test that temporary receipts start with DRAFT status."""
         item = self.create_item()
         receipt = inventory_models.ReceiptTemporary.objects.create(
             company=self.company,
@@ -180,7 +180,7 @@ class ReceiptTests(InventoryModelTests):
             supplier=self.supplier,
             is_enabled=1,
         )
-        self.assertEqual(receipt.status, inventory_models.ReceiptTemporary.Status.AWAITING_INSPECTION)
+        self.assertEqual(receipt.status, inventory_models.ReceiptTemporary.Status.DRAFT)
 
 
 class SerialTests(InventoryModelTests):

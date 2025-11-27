@@ -1885,6 +1885,236 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
+  function resetLineFormFields(lineForm) {
+    if (!lineForm) return;
+    lineForm.classList.remove('deleted');
+    lineForm.querySelectorAll('input, textarea').forEach(function(input) {
+      if (input.type === 'checkbox') {
+        input.checked = false;
+      } else if (input.type !== 'hidden') {
+        input.value = '';
+      } else if (input.name && input.name.endsWith('-id')) {
+        input.value = '';
+      }
+    });
+    lineForm.querySelectorAll('select').forEach(function(select) {
+      select.selectedIndex = 0;
+    });
+  }
+  
+  function updateLineFormIndex(lineForm, index) {
+    if (!lineForm) return;
+    lineForm.setAttribute('data-form-index', index);
+    lineForm.querySelectorAll('[name]').forEach(function(el) {
+      if (el.name) {
+        el.name = el.name.replace(/lines-(\d+)-/g, `lines-${index}-`);
+      }
+    });
+    lineForm.querySelectorAll('[id]').forEach(function(el) {
+      if (el.id) {
+        el.id = el.id.replace(/lines-(\d+)-/g, `lines-${index}-`);
+      }
+    });
+    lineForm.querySelectorAll('label[for]').forEach(function(label) {
+      if (label.htmlFor) {
+        label.htmlFor = label.htmlFor.replace(/lines-(\d+)-/g, `lines-${index}-`);
+      }
+    });
+    const headerTitle = lineForm.querySelector('.line-header h4');
+    if (headerTitle) {
+      headerTitle.textContent = '{% trans "Line" %} ' + (index + 1);
+    }
+  }
+  
+  function setSelectValue(select, value, label) {
+    if (!select) return;
+    if (value === undefined || value === null || value === '') {
+      select.value = '';
+      return;
+    }
+    let option = Array.from(select.options).find(opt => opt.value == value);
+    if (!option) {
+      option = document.createElement('option');
+      option.value = value;
+      option.textContent = label || value;
+      select.appendChild(option);
+    }
+    select.value = value;
+  }
+  
+  function populateLineFormFields(lineForm, lineData) {
+    if (!lineForm || !lineData) return;
+    const itemSelect = lineForm.querySelector('select[name*="-item"]');
+    const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+    const unitSelect = lineForm.querySelector('select[name*="-unit"]');
+    const quantityInput = lineForm.querySelector('input[name*="-quantity"]');
+    const supplierSelect = lineForm.querySelector('select[name*="-supplier"]');
+    
+    // First, set the item and load units and warehouses
+    if (itemSelect && lineData.item_id) {
+      const itemLabel = lineData.item_name && lineData.item_code
+        ? `${lineData.item_name} (${lineData.item_code})`
+        : (lineData.item_name || lineData.item_code || lineData.item_id);
+      setSelectValue(itemSelect, lineData.item_id, itemLabel);
+      
+      // Load units and warehouses in parallel
+      const promises = [];
+      
+      if (unitSelect) {
+        promises.push(
+          fetch(unitChoicesUrl + '?item_id=' + lineData.item_id)
+            .then(response => response.json())
+            .then(data => {
+              if (data.error) {
+                console.error('Error fetching units:', data.error);
+                return;
+              }
+              unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
+              if (data.units && data.units.length > 0) {
+                data.units.forEach(function(unit) {
+                  const option = document.createElement('option');
+                  option.value = unit.value;
+                  option.textContent = unit.label;
+                  unitSelect.appendChild(option);
+                });
+              }
+              // Set the unit value after loading
+              const unitValue = lineData.entered_unit || lineData.unit;
+              if (unitValue) {
+                setSelectValue(unitSelect, unitValue, unitValue);
+              }
+            })
+            .catch(error => {
+              console.error('Error loading units:', error);
+            })
+        );
+      }
+      
+      if (warehouseSelect) {
+        promises.push(
+          fetch(warehouseChoicesUrl + '?item_id=' + lineData.item_id)
+            .then(response => response.json())
+            .then(data => {
+              if (data.error) {
+                console.error('Error fetching warehouses:', data.error);
+                return;
+              }
+              warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
+              if (data.warehouses && data.warehouses.length > 0) {
+                data.warehouses.forEach(function(warehouse) {
+                  const option = document.createElement('option');
+                  option.value = warehouse.value;
+                  option.textContent = warehouse.label;
+                  warehouseSelect.appendChild(option);
+                });
+              }
+              // Set the warehouse value after loading
+              if (lineData.warehouse_id) {
+                setSelectValue(warehouseSelect, lineData.warehouse_id, lineData.warehouse_name || lineData.warehouse_code || lineData.warehouse_id);
+              }
+            })
+            .catch(error => {
+              console.error('Error loading warehouses:', error);
+            })
+        );
+      }
+      
+      // Wait for both to complete
+      Promise.all(promises).then(() => {
+        // Trigger change event after everything is loaded
+        if (itemSelect) {
+          const changeEvent = new Event('change', { bubbles: true });
+          itemSelect.dispatchEvent(changeEvent);
+        }
+      });
+    } else {
+      // If no item, set warehouse and unit directly
+      if (warehouseSelect && lineData.warehouse_id) {
+        setSelectValue(warehouseSelect, lineData.warehouse_id, lineData.warehouse_name || lineData.warehouse_code || lineData.warehouse_id);
+      }
+      
+      if (unitSelect && (lineData.entered_unit || lineData.unit)) {
+        const unitValue = lineData.entered_unit || lineData.unit;
+        setSelectValue(unitSelect, unitValue, unitValue);
+      }
+    }
+    
+    if (quantityInput) {
+      quantityInput.value = lineData.entered_quantity || lineData.quantity || '';
+    }
+    
+    if (supplierSelect && lineData.supplier_id) {
+      setSelectValue(supplierSelect, lineData.supplier_id, lineData.supplier_name || lineData.supplier_code || lineData.supplier_id);
+    }
+  }
+  
+  function rebuildLineFormsFromTemporaryReceipt(linesData) {
+    if (!lineFormTemplate || !formsetContainer || !totalFormsInput) return;
+    if (!Array.isArray(linesData) || !linesData.length) return;
+    
+    formsetContainer.innerHTML = '';
+    
+    linesData.forEach(function(lineData, index) {
+      const newForm = lineFormTemplate.cloneNode(true);
+      resetLineFormFields(newForm);
+      updateLineFormIndex(newForm, index);
+      populateLineFormFields(newForm, lineData);
+      formsetContainer.appendChild(newForm);
+    });
+    
+    totalFormsInput.value = linesData.length;
+    initializeLineFormFilters();
+    attachItemChangeHandlersToAllLines();
+    removeSearchBoxesFromFilterSelects();
+    removeSearchBoxesFromItemSelects();
+  }
+  
+  function setupItemSelectHandlers(lineForm) {
+    if (!lineForm) return;
+    const itemSelect = lineForm.querySelector('select[name*="-item"]');
+    if (!itemSelect) return;
+    const unitSelect = lineForm.querySelector('select[name*="-unit"]');
+    const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+    
+    if (unitSelect) {
+      if (itemSelect.value) {
+        updateUnitChoices(itemSelect, unitSelect);
+      }
+      itemSelect.addEventListener('change', function() {
+        updateUnitChoices(itemSelect, unitSelect);
+      });
+    }
+    
+    if (warehouseSelect) {
+      if (itemSelect.value) {
+        updateWarehouseChoices(itemSelect, warehouseSelect);
+      }
+      itemSelect.addEventListener('change', function() {
+        updateWarehouseChoices(itemSelect, warehouseSelect);
+      });
+    }
+  }
+  
+  function attachItemChangeHandlersToAllLines() {
+    document.querySelectorAll('.line-form').forEach(function(lineForm) {
+      setupItemSelectHandlers(lineForm);
+    });
+  }
+  
+  function getLineForms() {
+    if (!formsetContainer) return [];
+    return Array.from(formsetContainer.querySelectorAll('.line-form'));
+  }
+  
+  function ensureLineFormCount(count) {
+    if (!formsetContainer || !totalFormsInput || !addLineBtn) return [];
+    let forms = getLineForms();
+    while (forms.length < count) {
+      addLineBtn.click();
+      forms = getLineForms();
+    }
+    return forms;
+  }
   // Update unit choices when item changes
   function updateUnitChoices(itemSelect, unitSelect) {
     const itemId = itemSelect.value;
@@ -2244,39 +2474,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Attach item change handlers for multi-line forms (inlinesets)
-  document.querySelectorAll('.line-form select[name*="-item"]').forEach(function(itemSelect) {
-    const lineForm = itemSelect.closest('.line-form');
-    const unitSelect = lineForm.querySelector('select[name*="-unit"]');
-    const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
-    
-    if (unitSelect) {
-      // Load units if item is already selected (for edit mode)
-      if (itemSelect.value) {
-        updateUnitChoices(itemSelect, unitSelect);
-      }
-      
-      // Attach change handler for units
-      itemSelect.addEventListener('change', function() {
-        updateUnitChoices(itemSelect, unitSelect);
-      });
-    }
-    
-    if (warehouseSelect) {
-      // Load warehouses if item is already selected (for edit mode)
-      if (itemSelect.value) {
-        updateWarehouseChoices(itemSelect, warehouseSelect);
-      }
-      
-      // Attach change handler for warehouses
-      itemSelect.addEventListener('change', function() {
-        updateWarehouseChoices(itemSelect, warehouseSelect);
-      });
-    }
-  });
-  
   // Initialize filters for all existing line forms
   initializeLineFormFilters();
+  attachItemChangeHandlersToAllLines();
   
   // Attach item change handlers for single-line forms (like ReceiptTemporary)
   // Handle forms without lines_formset (single-line forms)
@@ -2321,7 +2521,35 @@ document.addEventListener('DOMContentLoaded', function() {
       const tempReceiptId = this.value;
       
       if (!tempReceiptId) {
-        return; // No temporary receipt selected
+        // Clear all lines if no temporary receipt selected
+        const forms = getLineForms();
+        forms.forEach(function(lineForm, index) {
+          if (index > 0) {
+            // Keep first form, remove others
+            const deleteCheckbox = lineForm.querySelector('input[type="checkbox"][name*="DELETE"]');
+            if (deleteCheckbox) {
+              deleteCheckbox.checked = true;
+              lineForm.classList.add('deleted');
+            }
+          } else {
+            // Reset first form
+            resetLineFormFields(lineForm);
+            const deleteCheckbox = lineForm.querySelector('input[type="checkbox"][name*="DELETE"]');
+            if (deleteCheckbox) {
+              deleteCheckbox.checked = false;
+              lineForm.classList.remove('deleted');
+            }
+          }
+        });
+        totalFormsInput.value = 1;
+        totalFormsInput.setAttribute('value', 1);
+        
+        // Clear header supplier
+        const headerSupplierField = document.querySelector('select[name="supplier"]');
+        if (headerSupplierField) {
+          headerSupplierField.value = '';
+        }
+        return;
       }
       
       
@@ -2336,168 +2564,70 @@ document.addEventListener('DOMContentLoaded', function() {
           }
           
           
-          // Check if a line with this item already exists
-          const existingLine = formsetContainer.querySelector(`select[name*="-item"][value="${data.item_id}"]`);
-          if (existingLine) {
-            // If line exists, update it
-            const lineForm = existingLine.closest('.line-form');
-            if (lineForm) {
-              // Update existing line
-              const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
-              const quantityInput = lineForm.querySelector('input[name*="-quantity"]');
-              const unitSelect = lineForm.querySelector('select[name*="-unit"]');
-              const supplierSelect = lineForm.querySelector('select[name*="-supplier"]');
-              
-              if (warehouseSelect && data.warehouse_id) {
-                warehouseSelect.value = data.warehouse_id;
-                // Trigger warehouse change to update units if needed
-                if (warehouseSelect.dispatchEvent) {
-                  warehouseSelect.dispatchEvent(new Event('change'));
-                }
-              }
-              
-              if (quantityInput && data.entered_quantity) {
-                quantityInput.value = data.entered_quantity;
-              }
-              
-              if (unitSelect && data.entered_unit) {
-                // First, update units for the item
-                if (existingLine && typeof updateUnitChoices === 'function') {
-                  updateUnitChoices(existingLine, unitSelect);
-                  // Then set the unit after units are loaded
-                  setTimeout(() => {
-                    unitSelect.value = data.entered_unit;
-                  }, 300);
-                }
-              }
-              
-              if (supplierSelect && data.supplier_id) {
-                supplierSelect.value = data.supplier_id;
-              }
-              
-              return;
-            }
+          const headerSupplierField = document.querySelector('select[name="supplier"]');
+          if (headerSupplierField && data.supplier_id) {
+            setSelectValue(headerSupplierField, data.supplier_id, data.supplier_name || data.supplier_code || data.supplier_id);
           }
           
-          // Add new line with temporary receipt data
-          const totalForms = parseInt(totalFormsInput.value);
-          const newFormIndex = totalForms;
+          let linesData = Array.isArray(data.lines) && data.lines.length ? data.lines : [{
+            item_id: data.item_id,
+            item_code: data.item_code,
+            item_name: data.item_name,
+            warehouse_id: data.warehouse_id,
+            warehouse_code: data.warehouse_code,
+            warehouse_name: data.warehouse_name,
+            quantity: data.quantity,
+            entered_quantity: data.entered_quantity,
+            unit: data.unit,
+            entered_unit: data.entered_unit,
+          }];
           
-          // Clone the last form (or first if none exists)
-          const lastForm = formsetContainer.querySelector('.line-form:last-child');
-          if (!lastForm) {
-            console.error('No line form found to clone');
-            return;
-          }
+          linesData = linesData.map(function(line) {
+            return Object.assign({}, line, {
+              supplier_id: line.supplier_id || data.supplier_id || null,
+              supplier_code: line.supplier_code || data.supplier_code || null,
+              supplier_name: line.supplier_name || data.supplier_name || null,
+            });
+          });
           
-          const newForm = lastForm.cloneNode(true);
-          
-          // Update form indices
-          newForm.querySelectorAll('input, select, textarea').forEach(function(input) {
-            const name = input.name;
-            if (name) {
-              input.name = name.replace(/-(\d+)-/, '-' + newFormIndex + '-');
-              input.id = input.id ? input.id.replace(/-(\d+)-/, '-' + newFormIndex + '-') : '';
+          // Clear existing lines before adding new ones
+          const existingForms = getLineForms();
+          existingForms.forEach(function(lineForm, index) {
+            resetLineFormFields(lineForm);
+            const deleteCheckbox = lineForm.querySelector('input[type="checkbox"][name*="DELETE"]');
+            if (deleteCheckbox) {
+              deleteCheckbox.checked = false;
+              lineForm.classList.remove('deleted');
             }
           });
           
-          // Update line number
-          const lineHeader = newForm.querySelector('.line-header h4');
-          if (lineHeader) {
-            lineHeader.textContent = '{% trans "Line" %} ' + (newFormIndex + 1);
-          }
-          
-          // Reset delete checkbox
-          const deleteCheckbox = newForm.querySelector('input[type="checkbox"][name*="DELETE"]');
-          if (deleteCheckbox) {
-            deleteCheckbox.checked = false;
-            newForm.classList.remove('deleted');
-          }
-          
-          // Set values from temporary receipt
-          const itemSelect = newForm.querySelector('select[name*="-item"]');
-          const warehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
-          const quantityInput = newForm.querySelector('input[name*="-quantity"]');
-          const unitSelect = newForm.querySelector('select[name*="-unit"]');
-          const supplierSelect = newForm.querySelector('select[name*="-supplier"]');
-          
-          if (itemSelect && data.item_id) {
-            itemSelect.value = data.item_id;
+          const forms = ensureLineFormCount(linesData.length || 1);
+          forms.forEach(function(lineForm, index) {
+            // Update form index to ensure correct formset indices
+            updateLineFormIndex(lineForm, index);
             
-            // Load units for the item
-            if (unitSelect && typeof updateUnitChoices === 'function') {
-              updateUnitChoices(itemSelect, unitSelect);
-              
-              // Set unit after units are loaded
-              setTimeout(() => {
-                if (data.entered_unit) {
-                  // Try to find the unit in the options
-                  const unitOption = Array.from(unitSelect.options).find(opt => opt.value === data.entered_unit);
-                  if (unitOption) {
-                    unitSelect.value = data.entered_unit;
-                  } else {
-                    // If unit not found, create a new option
-                    const option = document.createElement('option');
-                    option.value = data.entered_unit;
-                    option.textContent = data.entered_unit;
-                    unitSelect.appendChild(option);
-                    unitSelect.value = data.entered_unit;
-                  }
-                }
-              }, 300);
-            }
-            
-            // Load warehouses for the item
-            if (warehouseSelect && typeof updateWarehouseChoices === 'function') {
-              updateWarehouseChoices(itemSelect, warehouseSelect);
-              
-              // Set warehouse after warehouses are loaded
-              setTimeout(() => {
-                if (data.warehouse_id) {
-                  warehouseSelect.value = data.warehouse_id;
-                }
-              }, 300);
-            }
-          }
-          
-          if (quantityInput && data.entered_quantity) {
-            quantityInput.value = data.entered_quantity;
-          }
-          
-          if (supplierSelect && data.supplier_id) {
-            supplierSelect.value = data.supplier_id;
-          }
-          
-          // Add to container
-          formsetContainer.appendChild(newForm);
-          
-          // Update total forms
-          totalFormsInput.value = totalForms + 1;
-          
-          // Re-attach event handlers for the new line
-          if (deleteCheckbox) {
-            deleteCheckbox.addEventListener('change', function() {
-              const lineForm = this.closest('.line-form');
-              if (this.checked) {
-                lineForm.classList.add('deleted');
-              } else {
+            const deleteCheckbox = lineForm.querySelector('input[type="checkbox"][name*="DELETE"]');
+            if (index < linesData.length) {
+              if (deleteCheckbox) {
+                deleteCheckbox.checked = false;
                 lineForm.classList.remove('deleted');
               }
-            });
-          }
+              resetLineFormFields(lineForm);
+              populateLineFormFields(lineForm, linesData[index]);
+            } else {
+              resetLineFormFields(lineForm);
+              if (deleteCheckbox) {
+                deleteCheckbox.checked = true;
+                lineForm.classList.add('deleted');
+              }
+            }
+          });
           
-          if (itemSelect && unitSelect) {
-            itemSelect.addEventListener('change', function() {
-              updateUnitChoices(itemSelect, unitSelect);
-            });
-          }
+          const formCount = getLineForms().length;
+          totalFormsInput.value = formCount;
+          totalFormsInput.setAttribute('value', formCount);
           
-          if (itemSelect && warehouseSelect) {
-            itemSelect.addEventListener('change', function() {
-              updateWarehouseChoices(itemSelect, warehouseSelect);
-            });
-          }
-          
+          attachItemChangeHandlersToAllLines();
         })
         .catch(error => {
           console.error('Error fetching temporary receipt data:', error);

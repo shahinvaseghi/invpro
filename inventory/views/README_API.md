@@ -226,7 +226,7 @@
 **Query Parameters**:
 - `temporary_receipt_id` (required): شناسه receipt موقت
 
-**Response**:
+**Response** (Success):
 ```json
 {
   "item_id": 1,
@@ -241,12 +241,57 @@
   "entered_unit": "EA",
   "supplier_id": 1,
   "supplier_code": "SUP-001",
-  "supplier_name": "Supplier Name"
+  "supplier_name": "Supplier Name",
+  "lines": [
+    {
+      "item_id": 1,
+      "item_code": "ITM-001",
+      "item_name": "Item Name",
+      "warehouse_id": 1,
+      "warehouse_code": "WH-001",
+      "warehouse_name": "Warehouse Name",
+      "quantity": "100.00",
+      "entered_quantity": "100.00",
+      "unit": "EA",
+      "entered_unit": "EA",
+      "supplier_id": 1,
+      "supplier_code": "SUP-001",
+      "supplier_name": "Supplier Name"
+    },
+    ...
+  ]
+}
+```
+
+**Response** (Error):
+```json
+{
+  "error": "Temporary receipt has no lines",
+  "message": "رسید موقت انتخاب شده هیچ خطی ندارد. لطفاً یک رسید موقت معتبر با حداقل یک خط انتخاب کنید."
 }
 ```
 
 **منطق**:
 - دریافت داده‌های receipt موقت برای auto-filling permanent receipt
+- اقلام و انبارها از `ReceiptTemporaryLine` خوانده می‌شوند؛ اطلاعات تأمین‌کننده همیشه از خود `ReceiptTemporary` گرفته می‌شود (چون خطوط فیلد supplier ندارند)
+- داده‌های اولین خط به عنوان داده اصلی برگردانده می‌شود (برای backward compatibility)
+- همه خطوط در آرایه `lines` برگردانده می‌شوند (برای پشتیبانی از چندخطی)
+- اگر رسید موقت هیچ خطی نداشته باشد، خطا برمی‌گرداند
+
+**نکات مهم**:
+- رسید موقت باید حداقل یک خط داشته باشد
+- تأمین‌کننده فقط در سطح هدر نگه‌داری می‌شود و برای هر خط همان مقدار تکرار می‌شود
+- برای رسیدهای موقت قدیمی که خط ندارند، خطا برمی‌گرداند
+
+**استفاده در Frontend**:
+- این API توسط JavaScript در فرم ایجاد رسید دائم استفاده می‌شود
+- هنگام انتخاب temporary receipt در dropdown، یک event listener تغییر را trigger می‌کند
+- داده‌های دریافت شده برای populate کردن خطوط formset استفاده می‌شوند:
+  - برای هر خط، یک فرم جدید ایجاد می‌شود
+  - item، warehouse، quantity، unit و supplier به‌صورت خودکار set می‌شوند
+  - units و warehouses با استفاده از `Promise.all` به‌صورت موازی لود می‌شوند
+  - بعد از لود شدن options، مقادیر set می‌شوند
+- اگر temporary receipt انتخاب نشود، خطوط پاک می‌شوند
 
 **URL**: `/inventory/api/temporary-receipt-data/`
 

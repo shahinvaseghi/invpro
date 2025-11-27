@@ -100,7 +100,10 @@
 
 **متدها**:
 - `get_queryset()`: `prefetch_related('lines__item', 'lines__warehouse')`, `select_related('created_by', 'converted_receipt')`
+- `_apply_filters(queryset)`: اعمال فیلترهای `status`, `converted`, `search` (querystring)
+- `_get_stats()`: محاسبه آمار کارت‌های بالای صفحه (total, awaiting_qc, qc_passed, converted)
 - `get_context_data()`: اضافه کردن URLs و delete permissions
+  - Context اضافی: `status_filter`, `converted_filter`, `search_query`, `stats`
 
 **URL**: `/inventory/receipts/temporary/`
 
@@ -121,11 +124,11 @@
 - `receipt_variant`: `'temporary'`
 
 **متدها**:
-- `form_valid()`: تنظیم `company_id`, `created_by`, `status = AWAITING_INSPECTION`، ذخیره formset
+- `form_valid()`: تنظیم `company_id`, `created_by` و ذخیره formset (status در حالت `DRAFT` باقی می‌ماند تا کاربر دستی به QC ارسال کند)
 - `get_fieldsets()`: `[(_('Document Info'), ['expected_receipt_date', 'supplier', 'source_document_type', 'source_document_code', 'qc_approval_notes'])]`
 
 **نکات مهم**:
-- Status به `AWAITING_INSPECTION` تنظیم می‌شود (برای QC)
+- سند بعد از ایجاد در وضعیت `DRAFT` باقی می‌ماند؛ کاربر باید از View «ارسال به QC» استفاده کند.
 - اگر formset invalid باشد، document حذف می‌شود
 - باید حداقل یک valid line وجود داشته باشد
 
@@ -197,11 +200,12 @@
 - `allow_own_scope`: `True`
 
 **متدها**:
-- `post()`: بررسی lock و conversion، تنظیم `status = AWAITING_INSPECTION`
+- `post()`: بررسی lock و conversion، فقط در حالت `DRAFT` مجاز است و سپس `status = AWAITING_INSPECTION`
 
 **نکات مهم**:
 - فقط اگر قفل نشده و convert نشده باشد
-- اگر قبلاً `AWAITING_INSPECTION` باشد، info message
+- اگر status برابر `AWAITING_INSPECTION` باشد، پیام اطلاع‌رسانی نمایش داده می‌شود
+- اگر status برابر `APPROVED` یا `CLOSED` باشد، ارسال مجدد مجاز نیست
 
 **URL**: `/inventory/receipts/temporary/<pk>/send-to-qc/`
 
@@ -214,7 +218,7 @@
 **متدها**:
 - `get_purchase_request()`: دریافت purchase request از URL
 - `get_context_data()`: دریافت selected lines از session، populate formset با initial data
-- `form_valid()`: ذخیره receipt، به‌روزرسانی `quantity_fulfilled` در purchase request lines، پاک کردن session
+- `form_valid()`: ذخیره receipt (status = `DRAFT`)، به‌روزرسانی `quantity_fulfilled` در purchase request lines، پاک کردن session
 
 **Session Key**: `purchase_request_{pk}_receipt_temporary_lines`
 
@@ -265,6 +269,18 @@
 **متدها**:
 - `form_valid()`: تنظیم `company_id`, `created_by`، ذخیره formset
 - `get_fieldsets()`: `[(_('Document Info'), ['document_code', 'document_date', 'requires_temporary_receipt', 'temporary_receipt', 'purchase_request', 'warehouse_request'])]`
+
+**Auto-Fill از Temporary Receipt**:
+- هنگام انتخاب `temporary_receipt` در dropdown، JavaScript به‌صورت خودکار:
+  1. داده‌های رسید موقت را از API `temporary_receipt_data` دریافت می‌کند
+  2. خطوط موجود را reset می‌کند
+  3. برای هر خط از temporary receipt، یک فرم جدید ایجاد می‌کند
+  4. index های formset را به‌درستی تنظیم می‌کند (`updateLineFormIndex`)
+  5. item را set می‌کند و با استفاده از `Promise.all`، units و warehouses را به‌صورت موازی لود می‌کند
+  6. بعد از لود شدن options، warehouse و unit را set می‌کند
+  7. quantity و supplier را populate می‌کند
+- اگر temporary receipt انتخاب نشود، خطوط پاک می‌شوند
+- Validation در `ReceiptPermanentLineForm.clean_item()`: اگر temporary receipt انتخاب شده باشد، validation برای کالاهای `requires_temporary_receipt=1` را skip می‌کند
 
 **URL**: `/inventory/receipts/permanent/create/`
 

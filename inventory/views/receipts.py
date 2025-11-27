@@ -26,6 +26,7 @@ from shared.utils.permissions import get_user_feature_permissions, has_feature_p
 from .. import models
 from .. import forms
 from ..services import serials as serial_service
+from django.db.models import Q
 
 
 # ============================================================================
@@ -179,15 +180,20 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
     paginate_by = 50
 
     def get_queryset(self):
-        """Prefetch related objects for efficient display."""
+        """Prefetch related objects for efficient display and apply filters."""
         queryset = super().get_queryset()
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            queryset = queryset.filter(company_id=company_id)
+        queryset = queryset.filter(is_enabled=1)
         # Prefetch lines with related items, warehouses, and suppliers for efficient display
         # Also prefetch converted_receipt for linking
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse',
         ).select_related('created_by', 'converted_receipt')
-        return queryset
+        queryset = self._apply_filters(queryset)
+        return queryset.distinct()
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context for template."""
@@ -203,7 +209,56 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
         context['empty_heading'] = _('No Temporary Receipts Found')
         context['empty_text'] = _('Start by creating your first temporary receipt.')
         self.add_delete_permissions_to_context(context, 'inventory.receipts.temporary')
+        context['status_filter'] = self.request.GET.get('status', '')
+        context['converted_filter'] = self.request.GET.get('converted', '')
+        context['search_query'] = self.request.GET.get('search', '').strip()
+        context['stats'] = self._get_stats()
         return context
+
+    def _apply_filters(self, queryset):
+        """Apply status, conversion, and search filters."""
+        status_param = self.request.GET.get('status')
+        status_map = {
+            'draft': models.ReceiptTemporary.Status.DRAFT,
+            'awaiting_qc': models.ReceiptTemporary.Status.AWAITING_INSPECTION,
+            'qc_passed': models.ReceiptTemporary.Status.APPROVED,
+            'qc_failed': models.ReceiptTemporary.Status.CLOSED,
+        }
+        if status_param in status_map:
+            queryset = queryset.filter(status=status_map[status_param])
+        
+        converted_param = self.request.GET.get('converted')
+        if converted_param == '1':
+            queryset = queryset.filter(is_converted=1)
+        elif converted_param == '0':
+            queryset = queryset.filter(is_converted=0)
+        
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            queryset = queryset.filter(
+                Q(document_code__icontains=search_query) |
+                Q(lines__item__name__icontains=search_query) |
+                Q(lines__item__item_code__icontains=search_query)
+            )
+        return queryset
+
+    def _get_stats(self) -> Dict[str, int]:
+        """Return aggregate stats for summary cards."""
+        stats = {
+            'total': 0,
+            'awaiting_qc': 0,
+            'qc_passed': 0,
+            'converted': 0,
+        }
+        company_id = self.request.session.get('active_company_id')
+        if not company_id:
+            return stats
+        base_qs = models.ReceiptTemporary.objects.filter(company_id=company_id, is_enabled=1)
+        stats['total'] = base_qs.count()
+        stats['awaiting_qc'] = base_qs.filter(status=models.ReceiptTemporary.Status.AWAITING_INSPECTION).count()
+        stats['qc_passed'] = base_qs.filter(status=models.ReceiptTemporary.Status.APPROVED).count()
+        stats['converted'] = base_qs.filter(is_converted=1).count()
+        return stats
 
 
 class ReceiptTemporaryCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
@@ -221,8 +276,6 @@ class ReceiptTemporaryCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
         """Save document and line formset."""
         form.instance.company_id = self.request.session.get('active_company_id')
         form.instance.created_by = self.request.user
-        # Set status to AWAITING_INSPECTION so it appears in QC module
-        form.instance.status = models.ReceiptTemporary.Status.AWAITING_INSPECTION
         
         # Save document first
         self.object = form.save()
@@ -252,7 +305,7 @@ class ReceiptTemporaryCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
 
         self._save_line_formset(lines_formset)
         
-        messages.success(self.request, _('رسید موقت با موفقیت ایجاد شد و برای بازرسی QC ارسال شد.'))
+        messages.success(self.request, _('رسید موقت با موفقیت ایجاد شد. برای ارسال به QC از دکمه‌ی "ارسال به QC" استفاده کنید.'))
         return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self) -> list:
@@ -357,9 +410,18 @@ class ReceiptTemporarySendToQCView(FeaturePermissionRequiredMixin, InventoryBase
             messages.error(request, _('This receipt has already been converted to a permanent receipt.'))
             return HttpResponseRedirect(reverse('inventory:receipt_temporary'))
         
-        # Check if already in QC
+        # Check current status
         if receipt.status == models.ReceiptTemporary.Status.AWAITING_INSPECTION:
             messages.info(request, _('This receipt is already awaiting QC inspection.'))
+            return HttpResponseRedirect(reverse('inventory:receipt_temporary'))
+        if receipt.status == models.ReceiptTemporary.Status.APPROVED:
+            messages.info(request, _('This receipt has already been approved by QC.'))
+            return HttpResponseRedirect(reverse('inventory:receipt_temporary'))
+        if receipt.status == models.ReceiptTemporary.Status.CLOSED:
+            messages.error(request, _('This receipt is closed/rejected and cannot be sent to QC.'))
+            return HttpResponseRedirect(reverse('inventory:receipt_temporary'))
+        if receipt.status != models.ReceiptTemporary.Status.DRAFT:
+            messages.error(request, _('Only draft receipts can be sent to QC.'))
             return HttpResponseRedirect(reverse('inventory:receipt_temporary'))
         
         # Update status to AWAITING_INSPECTION
@@ -438,6 +500,19 @@ class ReceiptPermanentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
         # Handle line formset
         lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
         if not lines_formset.is_valid():
+            # Debug: print formset errors
+            print("=" * 80)
+            print("FORMSET ERRORS:")
+            print(f"Non-form errors: {lines_formset.non_form_errors()}")
+            for i, form in enumerate(lines_formset.forms):
+                if form.errors:
+                    print(f"Form {i} errors: {form.errors}")
+                    print(f"Form {i} cleaned_data: {form.cleaned_data}")
+            print("POST data for lines:")
+            for key, value in self.request.POST.items():
+                if 'lines-' in key:
+                    print(f"  {key}: {value}")
+            print("=" * 80)
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
@@ -818,7 +893,6 @@ class ReceiptTemporaryCreateFromPurchaseRequestView(ReceiptTemporaryCreateView):
         # Save receipt
         form.instance.company_id = self.request.session.get('active_company_id')
         form.instance.created_by = self.request.user
-        form.instance.status = models.ReceiptTemporary.Status.AWAITING_INSPECTION
         self.object = form.save()
         
         # Update purchase request line quantity_fulfilled

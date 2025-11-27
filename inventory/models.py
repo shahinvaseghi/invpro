@@ -888,6 +888,7 @@ class ReceiptTemporary(InventoryDocumentBase):
         DRAFT = 0, _("Draft")
         AWAITING_INSPECTION = 1, _("Awaiting inspection")
         CLOSED = 2, _("Closed/Cancelled")
+        APPROVED = 3, _("QC Approved")
 
     document_code = models.CharField(max_length=20, unique=True)
     document_date = models.DateField(default=timezone.now)
@@ -1673,14 +1674,10 @@ class ReceiptTemporaryLine(ReceiptLineBase):
     def __str__(self) -> str:
         return f"{self.document.document_code} - {self.item.name}"
     
-    def __str__(self) -> str:
-        return f"{self.document.document_code} - {self.item.name}"
-    
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        if self.supplier and not self.supplier_code:
-            self.supplier_code = self.supplier.public_code
-            super().save(*args, **kwargs)
+        # ReceiptTemporaryLine doesn't have supplier field (supplier is on ReceiptTemporary header)
+        # So we don't need to set supplier_code here
 
 
 # ============================================================================

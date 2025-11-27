@@ -194,6 +194,7 @@ class ReceiptPermanentForm(forms.ModelForm):
                     company_id=self.company_id,
                     qc_approved_by__isnull=False,  # Must be QC approved
                     qc_approved_at__isnull=False,   # Must have approval date
+                    status=ReceiptTemporary.Status.APPROVED,
                     is_converted=0,  # Not yet converted
                     is_enabled=1
                 ).order_by('-document_date', 'document_code')
@@ -902,6 +903,21 @@ class ReceiptPermanentLineForm(ReceiptLineBaseForm):
         
         # Check if item requires temporary receipt
         if item and item.requires_temporary_receipt == 1:
+            # If this line is part of a permanent receipt that has a temporary receipt selected,
+            # allow it (the item comes from the temporary receipt)
+            if hasattr(self, 'instance') and self.instance and hasattr(self.instance, 'document'):
+                parent_doc = self.instance.document
+                if parent_doc and parent_doc.temporary_receipt_id:
+                    # Temporary receipt is selected, so this item is allowed
+                    return item
+            
+            # For new instances, check POST data to see if temporary_receipt is selected
+            if hasattr(self, 'data') and self.data:
+                temp_receipt_id = self.data.get('temporary_receipt', '')
+                if temp_receipt_id:
+                    # Temporary receipt is selected, so this item is allowed
+                    return item
+            
             raise forms.ValidationError(
                 _('این کالا نیاز به رسید موقت دارد. لطفاً ابتدا رسید موقت ایجاد کنید و پس از تایید QC، رسید دائم را ثبت کنید.')
             )

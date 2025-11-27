@@ -79,7 +79,7 @@
 **Fields**:
 - `document_code`: کد سند (HiddenInput، auto-generated)
 - `document_date`: تاریخ سند (HiddenInput، auto-generated)
-- `temporary_receipt`: رسید موقت مرتبط (Select، فقط رسیدهای QC-approved و unconverted)
+- `temporary_receipt`: رسید موقت مرتبط (Select، فقط رسیدهای QC-approved (status=`APPROVED`) و unconverted)
 - `purchase_request`: درخواست خرید مرتبط (Select)
 
 **متدها**:
@@ -88,7 +88,7 @@
 - **Parameters**:
   - `company_id`: شناسه شرکت فعال
 - **Logic**:
-  - فیلتر کردن `temporary_receipt` به فقط رسیدهای QC-approved و unconverted
+  - فیلتر کردن `temporary_receipt` به فقط رسیدهای QC-approved (status=`APPROVED`) و unconverted
   - فیلتر کردن `purchase_request` بر اساس `company_id`
 
 #### `clean_document_code(self) -> str`
@@ -333,7 +333,8 @@
 - **Logic**:
   - فراخوانی `super().clean_item()`
   - بررسی اینکه کالا نیاز به رسید موقت نداشته باشد (`requires_temporary_receipt != 1`)
-  - اگر نیاز به رسید موقت داشته باشد، خطا می‌دهد
+  - **استثنا**: اگر temporary receipt در POST data انتخاب شده باشد یا document قبلاً save شده و `temporary_receipt_id` دارد، validation را skip می‌کند (چون کالا از temporary receipt آمده است)
+  - اگر نیاز به رسید موقت داشته باشد و temporary receipt انتخاب نشده باشد، خطا می‌دهد
 
 ---
 

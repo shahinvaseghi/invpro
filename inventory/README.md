@@ -33,7 +33,11 @@ Contains all inventory-related entities. Major groups:
 - **Requests & Receipts**
   - `PurchaseRequest`: captures multi-line item requests with priority, status workflow, and references. Approved purchase requests can be used to directly create receipts (Temporary, Permanent, or Consignment) through intermediate selection pages.
   - `WarehouseRequest`: captures single-line internal material requests with priority, status workflow, and references. Approved warehouse requests can be used to directly create issues (Permanent, Consumption, or Consignment) through intermediate selection pages.
-  - `ReceiptTemporary`: intake staging record (awaiting QC); caches item/warehouse codes and supplier code, tracks QC approval.
+  - `ReceiptTemporary`: intake staging record (awaiting QC); caches item/warehouse codes and supplier code, tracks QC approval. Statuses include:
+    - `DRAFT`: تازه ایجاد شده و هنوز برای QC ارسال نشده.
+    - `AWAITING_INSPECTION`: پس از فشردن دکمه «ارسال به QC».
+    - `APPROVED`: پس از تأیید QC (سند قفل می‌شود و آماده‌ی تبدیل است).
+    - `CLOSED`: اسنادی که لغو یا توسط QC رد شده‌اند.
   - `ReceiptPermanent`: finalized receipt (optionally linked to temporary receipt and purchase request).
   - `ReceiptConsignment`: consignment handling with ownership status, conversion links, and optional temporary receipt reference.
 
@@ -46,6 +50,7 @@ Contains all inventory-related entities. Major groups:
       - **`IssueConsumptionLine`**: فیلد `consumption_type` می‌تواند واحد کاری (`company_unit`) یا خط کاری (`work_line`) باشد که از طریق `destination_type_choice` در فرم انتخاب می‌شود.
       - **`IssueConsignmentLine`**: فیلد `destination_type` به صورت اختیاری واحد کاری (`CompanyUnit`) را نگه می‌دارد.
     - `ReceiptPermanentLine`, `ReceiptConsignmentLine`: ردیف‌های رسید که شامل کالا، انبار، مقدار، واحد و اطلاعات قیمت‌گذاری هستند.
+    - `ReceiptTemporaryLine`: ردیف‌های رسید موقت که فقط اطلاعات کالا، انبار، مقدار و واحد را ذخیره می‌کنند. اطلاعات تأمین‌کننده در سطح سربرگ (`ReceiptTemporary`) نگه‌داری می‌شود و این مدل عمداً فیلد `supplier` ندارد؛ هر کدی که به داده‌های تأمین‌کننده نیاز دارد باید از خود سند موقت استفاده کند.
   - هر Line می‌تواند **چندین سریال** داشته باشد (از طریق `ManyToManyField` به `ItemSerial`). سریال‌ها در سطح Line مدیریت می‌شوند، نه در سطح سند.
   - برای هر Line که کالای آن `has_lot_tracking=1` دارد، یک دکمه «Assign Serials» یا «Manage Serials» در فرم سند نمایش داده می‌شود که کاربر را به صفحه اختصاصی مدیریت سریال آن Line می‌برد.
 
