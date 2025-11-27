@@ -268,6 +268,25 @@
                   {% trans "View" %}
                 </a>
                 <span class="badge badge-locked" style="margin-top:4px;">{% trans "Locked" %}</span>
+                {% if receipt.created_by == user %}
+                  {% if can_unlock_own %}
+                    <form method="post" action="{% url unlock_url_name receipt.pk %}" style="display: inline; margin: 0;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to unlock this receipt?" %}');">
+                        {% trans "Unlock" %}
+                      </button>
+                    </form>
+                  {% endif %}
+                {% else %}
+                  {% if can_unlock_other %}
+                    <form method="post" action="{% url unlock_url_name receipt.pk %}" style="display: inline; margin: 0;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to unlock this receipt?" %}');">
+                        {% trans "Unlock" %}
+                      </button>
+                    </form>
+                  {% endif %}
+                {% endif %}
                 {% if serial_url_name and receipt.lines.all %}
                   {% with first_line=receipt.lines.all|first %}
                     {% if first_line.item.has_lot_tracking == 1 %}

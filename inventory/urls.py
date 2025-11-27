@@ -85,6 +85,7 @@ urlpatterns = [
     path('receipts/temporary/<int:pk>/edit/', views.ReceiptTemporaryUpdateView.as_view(), name='receipt_temporary_edit'),
     path('receipts/temporary/<int:pk>/delete/', views.ReceiptTemporaryDeleteView.as_view(), name='receipt_temporary_delete'),
     path('receipts/temporary/<int:pk>/lock/', views.ReceiptTemporaryLockView.as_view(), name='receipt_temporary_lock'),
+    path('receipts/temporary/<int:pk>/unlock/', views.ReceiptTemporaryUnlockView.as_view(), name='receipt_temporary_unlock'),
     path('receipts/temporary/<int:pk>/send-to-qc/', views.ReceiptTemporarySendToQCView.as_view(), name='receipt_temporary_send_to_qc'),
     path('receipts/permanent/', views.ReceiptPermanentListView.as_view(), name='receipt_permanent'),
     path('receipts/permanent/create/', views.ReceiptPermanentCreateView.as_view(), name='receipt_permanent_create'),
@@ -92,6 +93,7 @@ urlpatterns = [
     path('receipts/permanent/<int:pk>/edit/', views.ReceiptPermanentUpdateView.as_view(), name='receipt_permanent_edit'),
     path('receipts/permanent/<int:pk>/delete/', views.ReceiptPermanentDeleteView.as_view(), name='receipt_permanent_delete'),
     path('receipts/permanent/<int:pk>/lock/', views.ReceiptPermanentLockView.as_view(), name='receipt_permanent_lock'),
+    path('receipts/permanent/<int:pk>/unlock/', views.ReceiptPermanentUnlockView.as_view(), name='receipt_permanent_unlock'),
     path('receipts/permanent/<int:pk>/lines/<int:line_id>/serials/', views.ReceiptPermanentLineSerialAssignmentView.as_view(), name='receipt_permanent_line_serials'),
     path('receipts/consignment/', views.ReceiptConsignmentListView.as_view(), name='receipt_consignment'),
     path('receipts/consignment/create/', views.ReceiptConsignmentCreateView.as_view(), name='receipt_consignment_create'),
@@ -99,6 +101,7 @@ urlpatterns = [
     path('receipts/consignment/<int:pk>/edit/', views.ReceiptConsignmentUpdateView.as_view(), name='receipt_consignment_edit'),
     path('receipts/consignment/<int:pk>/delete/', views.ReceiptConsignmentDeleteView.as_view(), name='receipt_consignment_delete'),
     path('receipts/consignment/<int:pk>/lock/', views.ReceiptConsignmentLockView.as_view(), name='receipt_consignment_lock'),
+    path('receipts/consignment/<int:pk>/unlock/', views.ReceiptConsignmentUnlockView.as_view(), name='receipt_consignment_unlock'),
     path('receipts/consignment/<int:pk>/lines/<int:line_id>/serials/', views.ReceiptConsignmentLineSerialAssignmentView.as_view(), name='receipt_consignment_line_serials'),
     
     # Issues

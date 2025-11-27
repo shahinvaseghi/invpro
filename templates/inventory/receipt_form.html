@@ -34,7 +34,7 @@
   {% endif %}
   {% endif %}
 
-  <form method="post" class="entity-form" id="receipt-form" novalidate>
+  <form method="post" class="entity-form" id="receipt-form" novalidate{% if document_is_locked %} onsubmit="return false;"{% endif %}>
     {% csrf_token %}
     {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
 
@@ -100,9 +100,11 @@
             {% trans "Add one or more items to this document. Each line represents a single item with its quantity and other details." %}
           </p>
         </div>
+        {% if not document_is_locked %}
         <button type="button" id="add-line-btn" class="btn btn-success" style="padding: 0.5rem 1rem;">
           <span style="font-size: 1.2rem; margin-right: 0.25rem;">+</span> {% trans "Add Line" %}
         </button>
+        {% endif %}
       </div>
       {% if lines_formset.non_form_errors %}
         <div class="alert alert-danger">
@@ -982,15 +984,44 @@
     {% endif %}
 
     <div class="form-actions">
-      {% if not document_is_locked %}
+      {% if document_is_locked %}
+      <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back" %}</a>
+      {% else %}
       <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-      {% endif %}
       <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+      {% endif %}
     </div>
   </form>
 </div>
 
 <script>
+// Disable all form fields if document is locked
+{% if document_is_locked %}
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('receipt-form');
+  if (form) {
+    // Disable all input, select, and textarea fields
+    const fields = form.querySelectorAll('input, select, textarea, button[type="button"]');
+    fields.forEach(function(field) {
+      if (field.type !== 'hidden' && field.id !== 'add-line-btn') {
+        field.disabled = true;
+      }
+    });
+    // Hide delete checkboxes
+    const deleteCheckboxes = form.querySelectorAll('input[type="checkbox"][name*="DELETE"]');
+    deleteCheckboxes.forEach(function(checkbox) {
+      checkbox.disabled = true;
+      checkbox.closest('.line-delete')?.style.setProperty('display', 'none', 'important');
+    });
+    // Hide add line button
+    const addLineBtn = document.getElementById('add-line-btn');
+    if (addLineBtn) {
+      addLineBtn.style.display = 'none';
+    }
+  }
+});
+{% endif %}
+
 // Direct test - attach to button IMMEDIATELY when script loads
 document.addEventListener('DOMContentLoaded', function() {
   const btn = document.querySelector('button[type="submit"]');

@@ -20,7 +20,7 @@ from django.core.exceptions import PermissionDenied
 from decimal import Decimal, InvalidOperation
 import json
 
-from .base import InventoryBaseView, DocumentLockProtectedMixin, DocumentLockView, LineFormsetMixin
+from .base import InventoryBaseView, DocumentLockProtectedMixin, DocumentLockView, DocumentUnlockView, LineFormsetMixin
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
 from .. import models
@@ -202,6 +202,7 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
         context['edit_url_name'] = 'inventory:receipt_temporary_edit'
         context['delete_url_name'] = 'inventory:receipt_temporary_delete'
         context['lock_url_name'] = 'inventory:receipt_temporary_lock'
+        context['unlock_url_name'] = 'inventory:receipt_temporary_unlock'
         context['create_label'] = _('Temporary Receipt')
         context['show_qc'] = True
         context['show_conversion'] = True
@@ -209,6 +210,16 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
         context['empty_heading'] = _('No Temporary Receipts Found')
         context['empty_text'] = _('Start by creating your first temporary receipt.')
         self.add_delete_permissions_to_context(context, 'inventory.receipts.temporary')
+        # Add unlock permissions
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        company_id = self.request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(self.request.user, company_id)
+        context['can_unlock_own'] = self.request.user.is_superuser or has_feature_permission(
+            permissions, 'inventory.receipts.temporary', 'unlock_own', allow_own_scope=True
+        )
+        context['can_unlock_other'] = self.request.user.is_superuser or has_feature_permission(
+            permissions, 'inventory.receipts.temporary', 'unlock_other', allow_own_scope=False
+        )
         context['status_filter'] = self.request.GET.get('status', '')
         context['converted_filter'] = self.request.GET.get('converted', '')
         context['search_query'] = self.request.GET.get('search', '').strip()
@@ -385,6 +396,15 @@ class ReceiptTemporaryLockView(DocumentLockView):
     success_message = _('رسید موقت قفل شد و دیگر قابل ویرایش نیست.')
 
 
+class ReceiptTemporaryUnlockView(DocumentUnlockView):
+    """Unlock view for temporary receipts."""
+    model = models.ReceiptTemporary
+    success_url_name = 'inventory:receipt_temporary'
+    success_message = _('رسید موقت از قفل خارج شد و قابل ویرایش است.')
+    feature_code = 'inventory.receipts.temporary'
+    required_action = 'unlock_own'
+
+
 class ReceiptTemporarySendToQCView(FeaturePermissionRequiredMixin, InventoryBaseView, View):
     """View to send a temporary receipt to QC inspection."""
     feature_code = 'inventory.receipts.temporary'
@@ -463,11 +483,23 @@ class ReceiptPermanentListView(InventoryBaseView, ListView):
         context['edit_url_name'] = 'inventory:receipt_permanent_edit'
         context['delete_url_name'] = 'inventory:receipt_permanent_delete'
         context['lock_url_name'] = 'inventory:receipt_permanent_lock'
+        context['unlock_url_name'] = 'inventory:receipt_permanent_unlock'
         context['create_label'] = _('Permanent Receipt')
         context['show_qc'] = False
         context['show_conversion'] = False
         context['show_temporary_receipt'] = True
         context['show_purchase_request'] = True
+        self.add_delete_permissions_to_context(context, 'inventory.receipts.permanent')
+        # Add unlock permissions
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        company_id = self.request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(self.request.user, company_id)
+        context['can_unlock_own'] = self.request.user.is_superuser or has_feature_permission(
+            permissions, 'inventory.receipts.permanent', 'unlock_own', allow_own_scope=True
+        )
+        context['can_unlock_other'] = self.request.user.is_superuser or has_feature_permission(
+            permissions, 'inventory.receipts.permanent', 'unlock_other', allow_own_scope=False
+        )
         context['empty_heading'] = _('No Permanent Receipts Found')
         context['empty_text'] = _('Start by creating your first permanent receipt.')
         # serial_url_name removed - serials are managed per line in edit view
@@ -635,6 +667,15 @@ class ReceiptPermanentLockView(DocumentLockView):
     success_message = _('رسید دائم قفل شد و دیگر قابل ویرایش نیست.')
 
 
+class ReceiptPermanentUnlockView(DocumentUnlockView):
+    """Unlock view for permanent receipts."""
+    model = models.ReceiptPermanent
+    success_url_name = 'inventory:receipt_permanent'
+    success_message = _('رسید دائم از قفل خارج شد و قابل ویرایش است.')
+    feature_code = 'inventory.receipts.permanent'
+    required_action = 'unlock_own'
+
+
 # ============================================================================
 # Consignment Receipt Views
 # ============================================================================
@@ -664,12 +705,24 @@ class ReceiptConsignmentListView(InventoryBaseView, ListView):
         context['edit_url_name'] = 'inventory:receipt_consignment_edit'
         context['delete_url_name'] = 'inventory:receipt_consignment_delete'
         context['lock_url_name'] = 'inventory:receipt_consignment_lock'
+        context['unlock_url_name'] = 'inventory:receipt_consignment_unlock'
         context['create_label'] = _('Consignment Receipt')
         context['show_qc'] = False
         context['show_conversion'] = False
         context['empty_heading'] = _('No Consignment Receipts Found')
         context['empty_text'] = _('Start by creating your first consignment receipt.')
         # serial_url_name removed - serials are managed per line in edit view
+        self.add_delete_permissions_to_context(context, 'inventory.receipts.consignment')
+        # Add unlock permissions
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        company_id = self.request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(self.request.user, company_id)
+        context['can_unlock_own'] = self.request.user.is_superuser or has_feature_permission(
+            permissions, 'inventory.receipts.consignment', 'unlock_own', allow_own_scope=True
+        )
+        context['can_unlock_other'] = self.request.user.is_superuser or has_feature_permission(
+            permissions, 'inventory.receipts.consignment', 'unlock_other', allow_own_scope=False
+        )
         context['temporary_receipt_url_name'] = 'inventory:receipt_temporary_edit'
         context['purchase_request_url_name'] = 'inventory:purchase_request_edit'
         self.add_delete_permissions_to_context(context, 'inventory.receipts.consignment')
@@ -1547,6 +1600,15 @@ class ReceiptConsignmentLockView(DocumentLockView):
     model = models.ReceiptConsignment
     success_url_name = 'inventory:receipt_consignment'
     success_message = _('رسید امانی قفل شد و دیگر قابل ویرایش نیست.')
+
+
+class ReceiptConsignmentUnlockView(DocumentUnlockView):
+    """Unlock view for consignment receipts."""
+    model = models.ReceiptConsignment
+    success_url_name = 'inventory:receipt_consignment'
+    success_message = _('رسید امانی از قفل خارج شد و قابل ویرایش است.')
+    feature_code = 'inventory.receipts.consignment'
+    required_action = 'unlock_own'
 
 
 # ============================================================================

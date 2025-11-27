@@ -2,10 +2,11 @@
 
 **هدف**: Base classes و mixins قابل استفاده مجدد برای تمام inventory views
 
-این فایل شامل 5 کلاس:
+این فایل شامل 6 کلاس:
 - `InventoryBaseView`: Base view با context مشترک
-- `DocumentLockProtectedMixin`: محافظت از سندهای قفل شده
+- `DocumentLockProtectedMixin`: محافظت از سندهای قفل شده (فقط برای modification methods)
 - `DocumentLockView`: View برای lock کردن سندها
+- `DocumentUnlockView`: View برای unlock کردن سندها با permission checking
 - `LineFormsetMixin`: Mixin برای مدیریت line formsets
 - `ItemUnitFormsetMixin`: Mixin برای مدیریت item unit formsets
 
@@ -95,14 +96,14 @@
 
 ### `DocumentLockProtectedMixin`
 
-**توضیح**: جلوگیری از ویرایش یا حذف سندهای قفل شده
+**توضیح**: جلوگیری از ویرایش یا حذف سندهای قفل شده (نه مشاهده)
 
 **Attributes**:
 - `lock_redirect_url_name`: `''` (override در subclasses)
 - `lock_error_message`: `_('سند قفل شده و قابل ویرایش یا حذف نیست.')`
 - `owner_field`: `'created_by'` (field برای بررسی owner)
 - `owner_error_message`: `_('فقط ایجاد کننده می‌تواند این سند را ویرایش کند.')`
-- `protected_methods`: `('get', 'post', 'put', 'patch', 'delete')`
+- `protected_methods`: `('post', 'put', 'patch', 'delete')` - **GET شامل نمی‌شود**
 
 **متدها**:
 
@@ -145,6 +146,119 @@
 ## DocumentLockView
 
 ### `DocumentLockView(LoginRequiredMixin, View)`
+
+**توضیح**: View برای lock کردن سندها
+
+**Attributes**:
+- `model`: مدل سند (باید در subclass تنظیم شود)
+- `success_url_name`: نام URL برای redirect بعد از lock
+- `success_message`: پیام موفقیت
+- `already_locked_message`: پیام برای سندهای قبلاً قفل شده
+- `lock_field`: نام فیلد lock (پیش‌فرض: `'is_locked'`)
+
+**متدها**:
+
+#### `post(self, request, *args, **kwargs) -> HttpResponseRedirect`
+
+**توضیح**: Lock کردن سند
+
+**Logic**:
+- بررسی اینکه سند قبلاً قفل نشده باشد
+- تنظیم `is_locked = 1`
+- تنظیم `locked_at` و `locked_by` (اگر وجود داشته باشند)
+- ذخیره سند
+- نمایش پیام موفقیت
+- Redirect به `success_url_name`
+
+---
+
+## DocumentUnlockView
+
+### `DocumentUnlockView(LoginRequiredMixin, View)`
+
+**توضیح**: View برای unlock کردن سندها با permission checking
+
+**Attributes**:
+- `model`: مدل سند (باید در subclass تنظیم شود)
+- `success_url_name`: نام URL برای redirect بعد از unlock
+- `success_message`: پیام موفقیت
+- `already_unlocked_message`: پیام برای سندهای قبلاً unlock شده
+- `lock_field`: نام فیلد lock (پیش‌فرض: `'is_locked'`)
+- `feature_code`: کد feature برای permission checking
+- `required_action`: action مورد نیاز (پیش‌فرض: `'unlock_own'`)
+
+**متدها**:
+
+#### `dispatch(self, request, *args, **kwargs) -> HttpResponse`
+
+**توضیح**: بررسی permissions قبل از unlock
+
+**Logic**:
+- **Superuser bypass**: اگر کاربر superuser باشد، اجازه داده می‌شود
+- بررسی `unlock_own` برای اسناد خود کاربر
+- بررسی `unlock_other` برای اسناد سایر کاربران
+- اگر permission نداشته باشد، `PermissionDenied` می‌دهد
+
+#### `post(self, request, *args, **kwargs) -> HttpResponseRedirect`
+
+**توضیح**: Unlock کردن سند
+
+**Logic**:
+- بررسی اینکه سند قبلاً unlock نشده باشد
+- تنظیم `is_locked = 0`
+- پاک کردن `locked_at` و `locked_by` (اگر وجود داشته باشند)
+- ذخیره سند
+- نمایش پیام موفقیت
+- Redirect به `success_url_name`
+
+**نکته**: این view از `shared.utils.permissions` برای بررسی دسترسی‌ها استفاده می‌کند.
+
+---
+
+## DocumentUnlockView
+
+### `DocumentUnlockView(LoginRequiredMixin, View)`
+
+**توضیح**: View عمومی برای unlock کردن سندهای inventory با permission checking
+
+**Inheritance**: `LoginRequiredMixin, View`
+
+**Attributes**:
+- `model`: `None` (باید در subclass تنظیم شود)
+- `success_url_name`: `''` (باید در subclass تنظیم شود)
+- `success_message`: `_('سند با موفقیت از قفل خارج شد و قابل ویرایش است.')`
+- `already_unlocked_message`: `_('این سند قبلاً از قفل خارج شده است.')`
+- `lock_field`: `'is_locked'`
+- `feature_code`: `''` (باید در subclass تنظیم شود)
+- `required_action`: `'unlock_own'` (action برای permission checking)
+
+**متدها**:
+
+#### `dispatch(self, request, *args, **kwargs) -> HttpResponse`
+
+**توضیح**: بررسی permissions قبل از unlock
+
+**منطق**:
+- **Superuser bypass**: اگر کاربر superuser باشد، اجازه داده می‌شود
+- بررسی `unlock_own` برای اسناد خود کاربر
+- بررسی `unlock_other` برای اسناد سایر کاربران
+- اگر permission نداشته باشد، `PermissionDenied` می‌دهد
+
+#### `post(self, request, *args, **kwargs) -> HttpResponseRedirect`
+
+**توضیح**: Unlock کردن سند
+
+**منطق**:
+1. بررسی `model` و `success_url_name`
+2. دریافت object
+3. بررسی `is_locked` (اگر unlock شده باشد، پیام info)
+4. فراخوانی `before_unlock()` (اگر `False` برگرداند، لغو)
+5. تنظیم `is_locked = 0`, `locked_at = None`, `locked_by = None`
+6. فراخوانی `after_unlock()`
+7. نمایش پیام موفقیت
+8. Redirect به `success_url_name`
+
+---
 
 **توضیح**: View عمومی برای lock کردن سندهای inventory
 
@@ -427,8 +541,9 @@
 - تمام mixins بر اساس `active_company_id` فیلتر می‌کنند
 
 ### 2. Lock Mechanism
-- `DocumentLockProtectedMixin` از ویرایش/حذف قفل شده جلوگیری می‌کند
+- `DocumentLockProtectedMixin` از ویرایش/حذف قفل شده جلوگیری می‌کند (اما GET مجاز است)
 - `DocumentLockView` برای lock کردن استفاده می‌شود
+- `DocumentUnlockView` برای unlock کردن با permission checking استفاده می‌شود
 
 ### 3. Formset Management
 - `LineFormsetMixin` برای multi-line documents

@@ -59,9 +59,11 @@ class DocumentLockProtectedMixin:
     lock_error_message = _('سند قفل شده و قابل ویرایش یا حذف نیست.')
     owner_field: str = 'created_by'
     owner_error_message = _('فقط ایجاد کننده می‌تواند این سند را ویرایش کند.')
-    protected_methods = ('get', 'post', 'put', 'patch', 'delete')
+    # Only protect modification methods, not GET (viewing)
+    protected_methods = ('post', 'put', 'patch', 'delete')
 
     def dispatch(self, request, *args, **kwargs):
+        # Only block modification methods (POST, PUT, PATCH, DELETE), not GET
         if request.method.lower() in self.protected_methods:
             obj = self.get_object()
             self.object = obj
@@ -133,6 +135,96 @@ class DocumentLockView(LoginRequiredMixin, View):
                 update_fields.add('edited_by')
             obj.save(update_fields=list(update_fields))
             self.after_lock(obj, request)
+            messages.success(request, self.success_message)
+
+        return HttpResponseRedirect(reverse(self.success_url_name))
+
+
+class DocumentUnlockView(LoginRequiredMixin, View):
+    """Generic view to unlock inventory documents."""
+
+    model = None
+    success_url_name: str = ''
+    success_message = _('سند با موفقیت از قفل خارج شد و قابل ویرایش است.')
+    already_unlocked_message = _('این سند قبلاً از قفل خارج شده است.')
+    lock_field: str = 'is_locked'
+    feature_code: str = ''
+    required_action: str = 'unlock_own'
+
+    def after_unlock(self, obj, request) -> None:
+        """Hook for subclasses to perform extra actions after unlocking."""
+        return None
+
+    def before_unlock(self, obj, request) -> bool:
+        """Hook executed before unlocking. Return False to cancel unlock."""
+        return True
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check permissions before allowing unlock."""
+        # Superuser bypass
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        
+        if not self.feature_code:
+            messages.error(request, _('پیکربندی باز کردن قفل سند نامعتبر است.'))
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+        
+        obj = get_object_or_404(
+            self.model,
+            pk=kwargs.get('pk'),
+            company_id=request.session.get('active_company_id')
+        )
+        
+        # Check permissions
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        from django.core.exceptions import PermissionDenied
+        
+        company_id = request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(request.user, company_id)
+        
+        # Check if user is owner and has UNLOCK_OWN permission
+        is_owner = obj.created_by == request.user if obj.created_by else False
+        can_unlock_own = has_feature_permission(permissions, self.feature_code, 'unlock_own', allow_own_scope=True)
+        can_unlock_other = has_feature_permission(permissions, self.feature_code, 'unlock_other', allow_own_scope=False)
+        
+        if is_owner and not can_unlock_own:
+            raise PermissionDenied(_('شما اجازه باز کردن قفل اسناد خود را ندارید.'))
+        elif not is_owner and not can_unlock_other:
+            raise PermissionDenied(_('شما اجازه باز کردن قفل اسناد سایر کاربران را ندارید.'))
+        
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        if self.model is None or not self.success_url_name:
+            messages.error(request, _('پیکربندی باز کردن قفل سند نامعتبر است.'))
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+
+        queryset = self.model.objects.all()
+        company_id = request.session.get('active_company_id')
+        if company_id and hasattr(self.model, 'company_id'):
+            queryset = queryset.filter(company_id=company_id)
+
+        obj = get_object_or_404(queryset, pk=kwargs.get('pk'))
+
+        if not getattr(obj, self.lock_field, 0):
+            messages.info(request, self.already_unlocked_message)
+        else:
+            if not self.before_unlock(obj, request):
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse(self.success_url_name)))
+
+            update_fields = {self.lock_field}
+            setattr(obj, self.lock_field, 0)
+            if hasattr(obj, 'locked_at'):
+                obj.locked_at = None
+                update_fields.add('locked_at')
+            if hasattr(obj, 'locked_by_id'):
+                obj.locked_by = None
+                update_fields.add('locked_by')
+            if hasattr(obj, 'edited_by_id'):
+                obj.edited_by = request.user
+                update_fields.add('edited_by')
+            obj.save(update_fields=list(update_fields))
+            self.after_unlock(obj, request)
             messages.success(request, self.success_message)
 
         return HttpResponseRedirect(reverse(self.success_url_name))
