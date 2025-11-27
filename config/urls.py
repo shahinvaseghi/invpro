@@ -43,4 +43,10 @@ urlpatterns += i18n_patterns(
     path("production/", include("production.urls")),
     path("qc/", include("qc.urls")),
     path("ticketing/", include("ticketing.urls")),
+    path("accounting/", include("accounting.urls")),
+    path("sales/", include("sales.urls")),
+    path("hr/", include("hr.urls")),
+    path("office-automation/", include("office_automation.urls")),
+    path("transportation/", include("transportation.urls")),
+    path("procurement/", include("procurement.urls")),
 )

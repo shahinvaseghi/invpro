@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Procurement" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="section-header">
+        <h1>{% trans "Procurement" %}</h1>
+        <p>{% trans "Procurement and purchasing management" %}</p>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <h2>{% trans "Procurement Module" %}</h2>
+            <p>{% trans "This module is under development. Procurement management features will be available soon." %}</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

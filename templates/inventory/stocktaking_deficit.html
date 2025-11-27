@@ -59,61 +59,120 @@
     <tbody>
       {% if records %}
         {% for record in records %}
-        <tr>
-          <td><code>{{ record.document_code }}</code></td>
-          <td>{{ record.document_date|jalali_date }}</td>
-          <td>
-            <strong>{{ record.item.name }}</strong><br>
-            <small style="color: #6b7280;"><code>{{ record.item_code }}</code></small>
-          </td>
-          <td>{{ record.warehouse.name }}</td>
-          <td style="text-align: right;">{{ record.quantity_expected|floatformat:2 }}</td>
-          <td style="text-align: right;">{{ record.quantity_counted|floatformat:2 }}</td>
-          <td style="text-align: right; color: #ef4444;">-{{ record.quantity_adjusted|floatformat:2 }}</td>
-          <td>
-            {% if record.is_locked %}
-              <span class="badge badge-active">✓ {% trans "Posted" %}</span>
-            {% else %}
-              <span class="badge badge-draft">{% trans "Draft" %}</span>
-            {% endif %}
-          </td>
-          <td>
-            <div class="action-buttons">
-              {% if edit_url_name %}
-              <a href="{% url edit_url_name record.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
-                {% if record.is_locked %}{% trans "View" %}{% else %}{% trans "Edit" %}{% endif %}
-              </a>
-              {% endif %}
-              {% if record.is_locked %}
-                <span class="badge-locked">{% trans "Locked" %}</span>
-              {% else %}
-                {% if delete_url_name %}
-                  {% if record.created_by == user %}
-                    {% if can_delete_own %}
-                      <a href="{% url delete_url_name record.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this record?" %}');">
-                        {% trans "Delete" %}
-                      </a>
-                    {% endif %}
+          {% with lines=record.lines.all %}
+            {% if lines %}
+              {% for line in lines %}
+              <tr>
+                {% if forloop.first %}
+                <td rowspan="{{ lines|length }}"><code>{{ record.document_code }}</code></td>
+                <td rowspan="{{ lines|length }}">{{ record.document_date|jalali_date }}</td>
+                {% endif %}
+                <td>
+                  <strong>{{ line.item.name }}</strong><br>
+                  <small style="color: #6b7280;"><code>{{ line.item_code }}</code></small>
+                </td>
+                <td>{{ line.warehouse.name }}</td>
+                <td style="text-align: right;">{{ line.quantity_expected|floatformat:2 }}</td>
+                <td style="text-align: right;">{{ line.quantity_counted|floatformat:2 }}</td>
+                <td style="text-align: right; color: #ef4444;">-{{ line.quantity_adjusted|floatformat:2 }}</td>
+                {% if forloop.first %}
+                <td rowspan="{{ lines|length }}">
+                  {% if record.is_locked %}
+                    <span class="badge badge-active">✓ {% trans "Posted" %}</span>
                   {% else %}
-                    {% if can_delete_other %}
-                      <a href="{% url delete_url_name record.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this record?" %}');">
-                        {% trans "Delete" %}
-                      </a>
-                    {% endif %}
+                    <span class="badge badge-draft">{% trans "Draft" %}</span>
                   {% endif %}
+                </td>
+                <td rowspan="{{ lines|length }}">
+                  <div class="action-buttons">
+                    {% if edit_url_name %}
+                    <a href="{% url edit_url_name record.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+                      {% if record.is_locked %}{% trans "View" %}{% else %}{% trans "Edit" %}{% endif %}
+                    </a>
+                    {% endif %}
+                    {% if record.is_locked %}
+                      <span class="badge-locked">{% trans "Locked" %}</span>
+                    {% else %}
+                      {% if delete_url_name %}
+                        {% if record.created_by == user %}
+                          {% if can_delete_own %}
+                            <a href="{% url delete_url_name record.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this record?" %}');">
+                              {% trans "Delete" %}
+                            </a>
+                          {% endif %}
+                        {% else %}
+                          {% if can_delete_other %}
+                            <a href="{% url delete_url_name record.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this record?" %}');">
+                              {% trans "Delete" %}
+                            </a>
+                          {% endif %}
+                        {% endif %}
+                      {% endif %}
+                      {% if lock_url_name %}
+                      <form method="post" action="{% url lock_url_name record.pk %}" class="inline-lock-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;">
+                          {% trans "Lock" %}
+                        </button>
+                      </form>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                </td>
                 {% endif %}
-                {% if lock_url_name %}
-                <form method="post" action="{% url lock_url_name record.pk %}" class="inline-lock-form">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;">
-                    {% trans "Lock" %}
-                  </button>
-                </form>
-                {% endif %}
-              {% endif %}
-            </div>
-          </td>
-        </tr>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td><code>{{ record.document_code }}</code></td>
+                <td>{{ record.document_date|jalali_date }}</td>
+                <td colspan="5" style="text-align: center; color: #6b7280;">{% trans "No items" %}</td>
+                <td>
+                  {% if record.is_locked %}
+                    <span class="badge badge-active">✓ {% trans "Posted" %}</span>
+                  {% else %}
+                    <span class="badge badge-draft">{% trans "Draft" %}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    {% if edit_url_name %}
+                    <a href="{% url edit_url_name record.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+                      {% if record.is_locked %}{% trans "View" %}{% else %}{% trans "Edit" %}{% endif %}
+                    </a>
+                    {% endif %}
+                    {% if record.is_locked %}
+                      <span class="badge-locked">{% trans "Locked" %}</span>
+                    {% else %}
+                      {% if delete_url_name %}
+                        {% if record.created_by == user %}
+                          {% if can_delete_own %}
+                            <a href="{% url delete_url_name record.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this record?" %}');">
+                              {% trans "Delete" %}
+                            </a>
+                          {% endif %}
+                        {% else %}
+                          {% if can_delete_other %}
+                            <a href="{% url delete_url_name record.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this record?" %}');">
+                              {% trans "Delete" %}
+                            </a>
+                          {% endif %}
+                        {% endif %}
+                      {% endif %}
+                      {% if lock_url_name %}
+                      <form method="post" action="{% url lock_url_name record.pk %}" class="inline-lock-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;">
+                          {% trans "Lock" %}
+                        </button>
+                      </form>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endif %}
+          {% endwith %}
         {% endfor %}
       {% else %}
         <tr>

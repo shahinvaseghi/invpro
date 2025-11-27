@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Human Resources" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="section-header">
+        <h1>{% trans "Human Resources" %}</h1>
+        <p>{% trans "HR management and personnel operations" %}</p>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <h2>{% trans "HR Module" %}</h2>
+            <p>{% trans "This module is under development. Human resources management features will be available soon." %}</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

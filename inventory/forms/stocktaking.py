@@ -2,25 +2,62 @@
 Stocktaking forms for inventory module.
 
 This module contains forms for:
-- Stocktaking Deficit
-- Stocktaking Surplus
+- Stocktaking Deficit (with line items)
+- Stocktaking Surplus (with line items)
 - Stocktaking Record
 """
 from typing import Optional
 
 from django import forms
+from django.forms import inlineformset_factory
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from inventory.models import StocktakingDeficit, StocktakingSurplus, StocktakingRecord
+from inventory.models import (
+    StocktakingDeficit,
+    StocktakingDeficitLine,
+    StocktakingSurplus,
+    StocktakingSurplusLine,
+    StocktakingRecord,
+)
 from inventory.forms.base import (
     StocktakingBaseForm,
     generate_document_code,
+    BaseLineFormSet,
 )
 
 
 class StocktakingDeficitForm(StocktakingBaseForm):
-    """Create/update form for stocktaking deficit adjustments."""
+    """Header-only form for stocktaking deficit documents with multi-line support."""
+
+    class Meta:
+        model = StocktakingDeficit
+        fields = [
+            'document_code',
+            'document_date',
+            'stocktaking_session_id',
+        ]
+        widgets = {
+            'document_code': forms.HiddenInput(),
+            'document_date': forms.HiddenInput(),
+            'stocktaking_session_id': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+    def save(self, commit: bool = True):
+        """Save with auto-generated document code."""
+        instance = super().save(commit=False)
+        if not instance.document_code:
+            instance.document_code = generate_document_code(StocktakingDeficit, instance.company_id, "STD")
+        if not instance.document_date:
+            instance.document_date = timezone.now().date()
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
+
+
+class StocktakingDeficitLineForm(StocktakingBaseForm):
+    """Form for stocktaking deficit line items."""
 
     unit = forms.ChoiceField(
         label=_('Unit'),
@@ -29,11 +66,8 @@ class StocktakingDeficitForm(StocktakingBaseForm):
     )
 
     class Meta:
-        model = StocktakingDeficit
+        model = StocktakingDeficitLine
         fields = [
-            'document_code',
-            'document_date',
-            'stocktaking_session_id',
             'item',
             'warehouse',
             'unit',
@@ -48,7 +82,6 @@ class StocktakingDeficitForm(StocktakingBaseForm):
             'adjustment_metadata',
         ]
         widgets = {
-            'stocktaking_session_id': forms.NumberInput(attrs={'class': 'form-control'}),
             'quantity_expected': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'quantity_counted': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'quantity_adjusted': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
@@ -77,29 +110,9 @@ class StocktakingDeficitForm(StocktakingBaseForm):
                 pass
         return cleaned_data
 
-    def save(self, commit: bool = True):
-        """Save with auto-generated document code."""
-        instance = super().save(commit=False)
-        if not instance.document_code:
-            instance.document_code = generate_document_code(StocktakingDeficit, instance.company_id, "STD")
-        if not instance.document_date:
-            instance.document_date = timezone.now().date()
-        instance.item_code = instance.item.item_code if instance.item_id else instance.item_code
-        instance.warehouse_code = instance.warehouse.public_code if instance.warehouse_id else instance.warehouse_code
-        if commit:
-            instance.save()
-            self.save_m2m()
-        return instance
-
 
 class StocktakingSurplusForm(StocktakingBaseForm):
-    """Create/update form for stocktaking surplus adjustments."""
-
-    unit = forms.ChoiceField(
-        label=_('Unit'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        required=True,
-    )
+    """Header-only form for stocktaking surplus documents with multi-line support."""
 
     class Meta:
         model = StocktakingSurplus
@@ -107,6 +120,45 @@ class StocktakingSurplusForm(StocktakingBaseForm):
             'document_code',
             'document_date',
             'stocktaking_session_id',
+        ]
+        widgets = {
+            'document_code': forms.HiddenInput(),
+            'document_date': forms.HiddenInput(),
+            'stocktaking_session_id': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+    def save(self, commit: bool = True):
+        """Save with auto-generated document code."""
+        instance = super().save(commit=False)
+        if not instance.document_code:
+            instance.document_code = generate_document_code(StocktakingSurplus, instance.company_id, "STS")
+        if not instance.document_date:
+            instance.document_date = timezone.now().date()
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
+
+
+class StocktakingSurplusLineForm(StocktakingBaseForm):
+    """Form for stocktaking surplus line items."""
+
+    unit = forms.ChoiceField(
+        label=_('Unit'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=True,
+    )
+    
+    def __init__(self, *args, **kwargs):
+        """Initialize form and customize labels."""
+        super().__init__(*args, **kwargs)
+        # Change label for quantity_adjusted to "مقدار افزایش یافته" for surplus
+        if 'quantity_adjusted' in self.fields:
+            self.fields['quantity_adjusted'].label = _('مقدار افزایش یافته')
+
+    class Meta:
+        model = StocktakingSurplusLine
+        fields = [
             'item',
             'warehouse',
             'unit',
@@ -121,7 +173,6 @@ class StocktakingSurplusForm(StocktakingBaseForm):
             'adjustment_metadata',
         ]
         widgets = {
-            'stocktaking_session_id': forms.NumberInput(attrs={'class': 'form-control'}),
             'quantity_expected': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'quantity_counted': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'quantity_adjusted': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
@@ -149,20 +200,6 @@ class StocktakingSurplusForm(StocktakingBaseForm):
             except TypeError:
                 pass
         return cleaned_data
-
-    def save(self, commit: bool = True):
-        """Save with auto-generated document code."""
-        instance = super().save(commit=False)
-        if not instance.document_code:
-            instance.document_code = generate_document_code(StocktakingSurplus, instance.company_id, "STS")
-        if not instance.document_date:
-            instance.document_date = timezone.now().date()
-        instance.item_code = instance.item.item_code if instance.item_id else instance.item_code
-        instance.warehouse_code = instance.warehouse.public_code if instance.warehouse_id else instance.warehouse_code
-        if commit:
-            instance.save()
-            self.save_m2m()
-        return instance
 
 
 class StocktakingRecordForm(StocktakingBaseForm):
@@ -277,4 +314,28 @@ class StocktakingRecordForm(StocktakingBaseForm):
             instance.save()
             self.save_m2m()
         return instance
+
+
+# Create formsets
+StocktakingDeficitLineFormSet = inlineformset_factory(
+    StocktakingDeficit,
+    StocktakingDeficitLine,
+    form=StocktakingDeficitLineForm,
+    formset=BaseLineFormSet,
+    extra=1,
+    can_delete=True,
+    min_num=1,
+    validate_min=True,
+)
+
+StocktakingSurplusLineFormSet = inlineformset_factory(
+    StocktakingSurplus,
+    StocktakingSurplusLine,
+    form=StocktakingSurplusLineForm,
+    formset=BaseLineFormSet,
+    extra=1,
+    can_delete=True,
+    min_num=1,
+    validate_min=True,
+)
 

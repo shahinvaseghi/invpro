@@ -3393,6 +3393,153 @@ msgstr "انبار"
 msgid "Quality Control"
 msgstr "کنترل کیفیت"
 
+# Accounting Module
+msgid "Accounting"
+msgstr "حسابداری"
+
+msgid "General"
+msgstr "عمومی"
+
+msgid "General Ledgers"
+msgstr "اسناد کل"
+
+msgid "Subsidiary Ledgers"
+msgstr "معین‌ها"
+
+msgid "Detail Ledgers"
+msgstr "تفصیلی‌ها"
+
+msgid "Accounting Documents"
+msgstr "اسناد حسابداری"
+
+msgid "Entry Document"
+msgstr "سند ورودی"
+
+msgid "Exit Document"
+msgstr "سند خروجی"
+
+msgid "Treasury"
+msgstr "خزانه"
+
+msgid "Expense Document"
+msgstr "سند هزینه"
+
+msgid "Income Document"
+msgstr "سند درآمد"
+
+msgid "Payroll"
+msgstr "حقوق و دستمزد"
+
+msgid "Payroll Document"
+msgstr "سند حقوق دستمزد"
+
+msgid "Decrees"
+msgstr "حکم‌ها"
+
+msgid "Decree Groups"
+msgstr "گروه‌بندی حکم‌ها"
+
+msgid "Decree Subgroups"
+msgstr "زیر گروه‌بندی حکم‌ها"
+
+# Sales Module
+msgid "Sales"
+msgstr "فروش"
+
+msgid "Sales Invoice"
+msgstr "صدور فاکتور فروش"
+
+# Human Resources Module
+msgid "Human Resources"
+msgstr "منابع انسانی"
+
+msgid "Create Personnel"
+msgstr "ایجاد پرسنل"
+
+msgid "Assign Decree"
+msgstr "تخصیص حکم"
+
+msgid "Personnel Form"
+msgstr "فرم پرسنل"
+
+msgid "Form Groups"
+msgstr "گروه‌بندی فرم"
+
+msgid "Form Subgroups"
+msgstr "زیر گروه‌بندی فرم"
+
+msgid "Requests"
+msgstr "درخواست‌ها"
+
+msgid "Leave Request"
+msgstr "درخواست مرخصی"
+
+msgid "Sick Leave Request"
+msgstr "درخواست استعلاجی"
+
+msgid "Loan Request"
+msgstr "درخواست وام"
+
+msgid "Loans"
+msgstr "وام"
+
+msgid "Loan Management"
+msgstr "مدیریت وام"
+
+msgid "Scheduling"
+msgstr "نوبت‌بندی"
+
+msgid "Savings Fund"
+msgstr "صندوق اندوخته"
+
+# Office Automation Module
+msgid "Office Automation"
+msgstr "اتوماسیون اداری"
+
+msgid "Inbox"
+msgstr "کارتابل"
+
+msgid "Incoming Letters"
+msgstr "نامه‌های ورودی"
+
+msgid "Write Letter"
+msgstr "نوشتن نامه"
+
+msgid "Fill Form"
+msgstr "پر کردن فرم"
+
+msgid "Process Engine"
+msgstr "موتور تولید فرایند"
+
+msgid "Process-Form Connection"
+msgstr "ارتباط فرایند و فرم‌ها"
+
+msgid "Forms"
+msgstr "فرم‌ها"
+
+msgid "Form Builder"
+msgstr "ساخت فرم"
+
+# Transportation Module
+msgid "Transportation"
+msgstr "حمل و نقل"
+
+# Procurement Module
+msgid "Procurement"
+msgstr "تدارکات"
+
+msgid "Purchases"
+msgstr "خریدها"
+
+msgid "Buyers"
+msgstr "خریداران"
+
+msgid "Define Buyers"
+msgstr "تعریف خریداران"
+
+msgid "Assign Buyers"
+msgstr "تخصیص خریداران"
+
 msgid "Company created successfully."
 msgstr "شرکت با موفقیت ایجاد شد."
 

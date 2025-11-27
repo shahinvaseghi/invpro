@@ -15,7 +15,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.safestring import mark_safe
 import json
 
-from .base import InventoryBaseView, DocumentLockProtectedMixin, DocumentLockView
+from .base import InventoryBaseView, DocumentLockProtectedMixin, DocumentLockView, LineFormsetMixin
 from .receipts import DocumentDeleteViewBase
 from .. import models
 from .. import forms
@@ -27,7 +27,7 @@ from .. import forms
 
 class StocktakingFormMixin(InventoryBaseView):
     """Shared helpers for stocktaking create/update views."""
-    template_name = 'inventory/stocktaking_form.html'
+    template_name = 'inventory/receipt_form.html'  # Use receipt_form.html for multi-line support
     form_title = ''
     list_url_name = ''
     lock_url_name = ''
@@ -44,40 +44,57 @@ class StocktakingFormMixin(InventoryBaseView):
         return []
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add form context including fieldsets and unit/warehouse options."""
+        """Add form context for receipt_form.html template."""
         context = super().get_context_data(**kwargs)
         context['form_title'] = self.form_title
-        form = context.get('form')
-        raw_fieldsets = self.get_fieldsets()
-        render_fieldsets = []
-        used_fields = []
-        if form:
-            for title, names in raw_fieldsets:
-                bound_fields = []
-                for name in names:
-                    if name in form.fields:
-                        bound_fields.append(form[name])
-                        used_fields.append(name)
-                if bound_fields:
-                    render_fieldsets.append((title, bound_fields))
-        context['fieldsets'] = render_fieldsets
-        context['used_fields'] = used_fields
         context['list_url'] = reverse_lazy(self.list_url_name)
         context['is_edit'] = bool(getattr(self, 'object', None))
+        
+        # Create fieldsets for receipt_form.html template
+        form = context.get('form')
+        if form:
+            fieldsets = []
+            used_fields = []
+            
+            # Document information section
+            doc_fields = []
+            for field_name in ['stocktaking_session_id']:
+                if field_name in form.fields:
+                    doc_fields.append(form[field_name])
+                    used_fields.append(field_name)
+            if doc_fields:
+                fieldsets.append((_('اطلاعات سند'), doc_fields))
+            
+            # Add any remaining visible fields
+            remaining_fields = []
+            hidden_field_names = [f.name for f in form.hidden_fields()]
+            for field_name, field in form.fields.items():
+                if field_name not in used_fields and field_name not in hidden_field_names:
+                    remaining_fields.append(form[field_name])
+            if remaining_fields:
+                fieldsets.append((_('سایر اطلاعات'), remaining_fields))
+            
+            context['fieldsets'] = fieldsets
+            context['used_fields'] = used_fields
+        
+        # Add item filter data for search bar
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            context['item_types'] = models.ItemType.objects.filter(
+                company_id=company_id, is_enabled=1
+            ).order_by('name')
+            context['item_categories'] = models.ItemCategory.objects.filter(
+                company_id=company_id, is_enabled=1
+            ).order_by('name')
+            context['item_subcategories'] = models.ItemSubcategory.objects.filter(
+                company_id=company_id, is_enabled=1
+            ).order_by('name')
+        else:
+            context['item_types'] = []
+            context['item_categories'] = []
+            context['item_subcategories'] = []
 
-        unit_map: Dict[str, list] = {}
-        warehouse_map: Dict[str, list] = {}
-        if form and 'item' in form.fields:
-            item_queryset = form.fields['item'].queryset
-            for item in item_queryset:
-                unit_map[str(item.pk)] = form._get_item_allowed_units(item)
-                warehouse_map[str(item.pk)] = form._get_item_allowed_warehouses(item)
-        context['unit_options_json'] = mark_safe(json.dumps(unit_map, ensure_ascii=False))
-        context['unit_placeholder'] = str(forms.UNIT_CHOICES[0][1])
-        context['warehouse_options_json'] = mark_safe(json.dumps(warehouse_map, ensure_ascii=False))
-        context['warehouse_placeholder'] = _("--- انتخاب کنید ---")
-
-        instance = getattr(form, 'instance', None)
+        instance = getattr(self, 'object', None)
         context['document_instance'] = instance
         if instance and getattr(instance, 'pk', None):
             is_locked = bool(getattr(instance, 'is_locked', 0))
@@ -104,6 +121,15 @@ class StocktakingDeficitListView(InventoryBaseView, ListView):
     context_object_name = 'records'
     paginate_by = 50
 
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse'
+        ).select_related('created_by')
+        return queryset
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context for template."""
         context = super().get_context_data(**kwargs)
@@ -115,60 +141,90 @@ class StocktakingDeficitListView(InventoryBaseView, ListView):
         return context
 
 
-class StocktakingDeficitCreateView(StocktakingFormMixin, CreateView):
+class StocktakingDeficitCreateView(LineFormsetMixin, StocktakingFormMixin, CreateView):
     """Create view for stocktaking deficit records."""
     model = models.StocktakingDeficit
     form_class = forms.StocktakingDeficitForm
+    formset_class = forms.StocktakingDeficitLineFormSet
     success_url = reverse_lazy('inventory:stocktaking_deficit')
     form_title = _('ایجاد سند کسری انبارگردانی')
     list_url_name = 'inventory:stocktaking_deficit'
     lock_url_name = 'inventory:stocktaking_deficit_lock'
 
     def form_valid(self, form):
-        """Set company and created_by before saving."""
-        company_id: Optional[int] = self.request.session.get('active_company_id')
-        form.instance.company_id = company_id
+        """Save document and line formset."""
+        form.instance.company_id = self.request.session.get('active_company_id')
         form.instance.created_by = self.request.user
-        response = super().form_valid(form)
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        if not lines_formset.is_valid():
+            # If formset is invalid, delete the main object and re-render
+            self.object.delete()
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # Check if we have at least one valid line before saving
+        valid_lines = []
+        for form in lines_formset.forms:
+            if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                valid_lines.append(form)
+        
+        if not valid_lines:
+            self.object.delete()
+            form.add_error(None, _('حداقل یک ردیف کالا الزامی است.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        self._save_line_formset(lines_formset)
         messages.success(self.request, _('سند کسری انبارگردانی با موفقیت ایجاد شد.'))
-        return response
-
-    def get_fieldsets(self) -> list:
-        """Return fieldsets configuration."""
-        return [
-            (_('اطلاعات سند'), ['stocktaking_session_id', 'item', 'warehouse', 'unit']),
-            (_('مقادیر'), ['quantity_expected', 'quantity_counted', 'quantity_adjusted']),
-            (_('ارزش‌گذاری'), ['valuation_method', 'unit_cost', 'total_cost']),
-            (_('جزئیات اضافه'), ['reason_code', 'investigation_reference']),
-        ]
+        return HttpResponseRedirect(self.get_success_url())
 
 
-class StocktakingDeficitUpdateView(DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView):
+class StocktakingDeficitUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView):
     """Update view for stocktaking deficit records."""
     model = models.StocktakingDeficit
     form_class = forms.StocktakingDeficitForm
+    formset_class = forms.StocktakingDeficitLineFormSet
     success_url = reverse_lazy('inventory:stocktaking_deficit')
     form_title = _('ویرایش سند کسری انبارگردانی')
     list_url_name = 'inventory:stocktaking_deficit'
     lock_url_name = 'inventory:stocktaking_deficit_lock'
+    lock_redirect_url_name = 'inventory:stocktaking_deficit'
+
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse'
+        ).select_related('created_by')
+        return queryset
 
     def form_valid(self, form):
-        """Set edited_by before saving."""
-        form.instance.edited_by = self.request.user
+        """Save document and line formset."""
         if not form.instance.created_by_id:
             form.instance.created_by = self.request.user
-        response = super().form_valid(form)
+        form.instance.edited_by = self.request.user
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        self._save_line_formset(lines_formset)
         messages.success(self.request, _('سند کسری انبارگردانی با موفقیت بروزرسانی شد.'))
-        return response
-
-    def get_fieldsets(self) -> list:
-        """Return fieldsets configuration."""
-        return [
-            (_('اطلاعات سند'), ['stocktaking_session_id', 'item', 'warehouse', 'unit']),
-            (_('مقادیر'), ['quantity_expected', 'quantity_counted', 'quantity_adjusted']),
-            (_('ارزش‌گذاری'), ['valuation_method', 'unit_cost', 'total_cost']),
-            (_('جزئیات اضافه'), ['reason_code', 'investigation_reference']),
-        ]
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class StocktakingDeficitDeleteView(DocumentDeleteViewBase):
@@ -200,6 +256,15 @@ class StocktakingSurplusListView(InventoryBaseView, ListView):
     context_object_name = 'records'
     paginate_by = 50
 
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse'
+        ).select_related('created_by')
+        return queryset
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context for template."""
         context = super().get_context_data(**kwargs)
@@ -211,60 +276,90 @@ class StocktakingSurplusListView(InventoryBaseView, ListView):
         return context
 
 
-class StocktakingSurplusCreateView(StocktakingFormMixin, CreateView):
+class StocktakingSurplusCreateView(LineFormsetMixin, StocktakingFormMixin, CreateView):
     """Create view for stocktaking surplus records."""
     model = models.StocktakingSurplus
     form_class = forms.StocktakingSurplusForm
+    formset_class = forms.StocktakingSurplusLineFormSet
     success_url = reverse_lazy('inventory:stocktaking_surplus')
     form_title = _('ایجاد سند مازاد انبارگردانی')
     list_url_name = 'inventory:stocktaking_surplus'
     lock_url_name = 'inventory:stocktaking_surplus_lock'
 
     def form_valid(self, form):
-        """Set company and created_by before saving."""
-        company_id: Optional[int] = self.request.session.get('active_company_id')
-        form.instance.company_id = company_id
+        """Save document and line formset."""
+        form.instance.company_id = self.request.session.get('active_company_id')
         form.instance.created_by = self.request.user
-        response = super().form_valid(form)
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        if not lines_formset.is_valid():
+            # If formset is invalid, delete the main object and re-render
+            self.object.delete()
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # Check if we have at least one valid line before saving
+        valid_lines = []
+        for form in lines_formset.forms:
+            if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                valid_lines.append(form)
+        
+        if not valid_lines:
+            self.object.delete()
+            form.add_error(None, _('حداقل یک ردیف کالا الزامی است.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        self._save_line_formset(lines_formset)
         messages.success(self.request, _('سند مازاد انبارگردانی با موفقیت ایجاد شد.'))
-        return response
-
-    def get_fieldsets(self) -> list:
-        """Return fieldsets configuration."""
-        return [
-            (_('اطلاعات سند'), ['stocktaking_session_id', 'item', 'warehouse', 'unit']),
-            (_('مقادیر'), ['quantity_expected', 'quantity_counted', 'quantity_adjusted']),
-            (_('ارزش‌گذاری'), ['valuation_method', 'unit_cost', 'total_cost']),
-            (_('جزئیات اضافه'), ['reason_code', 'investigation_reference']),
-        ]
+        return HttpResponseRedirect(self.get_success_url())
 
 
-class StocktakingSurplusUpdateView(DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView):
+class StocktakingSurplusUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView):
     """Update view for stocktaking surplus records."""
     model = models.StocktakingSurplus
     form_class = forms.StocktakingSurplusForm
+    formset_class = forms.StocktakingSurplusLineFormSet
     success_url = reverse_lazy('inventory:stocktaking_surplus')
     form_title = _('ویرایش سند مازاد انبارگردانی')
     list_url_name = 'inventory:stocktaking_surplus'
     lock_url_name = 'inventory:stocktaking_surplus_lock'
+    lock_redirect_url_name = 'inventory:stocktaking_surplus'
+
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse'
+        ).select_related('created_by')
+        return queryset
 
     def form_valid(self, form):
-        """Set edited_by before saving."""
-        form.instance.edited_by = self.request.user
+        """Save document and line formset."""
         if not form.instance.created_by_id:
             form.instance.created_by = self.request.user
-        response = super().form_valid(form)
+        form.instance.edited_by = self.request.user
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        self._save_line_formset(lines_formset)
         messages.success(self.request, _('سند مازاد انبارگردانی با موفقیت بروزرسانی شد.'))
-        return response
-
-    def get_fieldsets(self) -> list:
-        """Return fieldsets configuration."""
-        return [
-            (_('اطلاعات سند'), ['stocktaking_session_id', 'item', 'warehouse', 'unit']),
-            (_('مقادیر'), ['quantity_expected', 'quantity_counted', 'quantity_adjusted']),
-            (_('ارزش‌گذاری'), ['valuation_method', 'unit_cost', 'total_cost']),
-            (_('جزئیات اضافه'), ['reason_code', 'investigation_reference']),
-        ]
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class StocktakingSurplusDeleteView(DocumentDeleteViewBase):

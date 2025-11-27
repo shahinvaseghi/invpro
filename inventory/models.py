@@ -1794,6 +1794,7 @@ class IssueConsignment(InventoryDocumentBase):
 
 
 class StocktakingDeficit(InventoryDocumentBase):
+    """Header-only model for stocktaking deficit documents with multi-line support."""
     document_code = models.CharField(_("Document Code"), max_length=20, unique=True)
     document_date = models.DateField(_("Document Date"), default=timezone.now)
     stocktaking_session_id = models.BigIntegerField(
@@ -1801,57 +1802,8 @@ class StocktakingDeficit(InventoryDocumentBase):
         null=True,
         blank=True,
     )
-    item = models.ForeignKey(
-        Item,
-        on_delete=models.PROTECT,
-        related_name="stocktaking_deficits",
-    )
-    item_code = models.CharField(_("Item Code"), max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
-    warehouse = models.ForeignKey(
-        Warehouse,
-        on_delete=models.PROTECT,
-        related_name="stocktaking_deficits",
-    )
-    warehouse_code = models.CharField(_("Warehouse Code"), max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
-    unit = models.CharField(_("Unit"), max_length=30)
-    quantity_expected = models.DecimalField(
-        _("Quantity Expected"),
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-    )
-    quantity_counted = models.DecimalField(
-        _("Quantity Counted"),
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-    )
-    quantity_adjusted = models.DecimalField(
-        _("Quantity Adjusted"),
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-    )
-    valuation_method = models.CharField(_("Valuation Method"), max_length=30, blank=True)
-    unit_cost = models.DecimalField(
-        _("Unit Cost"),
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    total_cost = models.DecimalField(
-        _("Total Cost"),
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    reason_code = models.CharField(_("Reason Code"), max_length=30, blank=True)
-    investigation_reference = models.CharField(_("Investigation Reference"), max_length=30, blank=True)
-    adjustment_metadata = models.JSONField(default=dict, blank=True)
+    # Header-level fields only - item/warehouse/unit/quantity moved to StocktakingDeficitLine
+    document_metadata = models.JSONField(default=dict, blank=True)
 
     class Meta:
         verbose_name = _("Stocktaking Deficit")
@@ -1861,15 +1813,9 @@ class StocktakingDeficit(InventoryDocumentBase):
     def __str__(self) -> str:
         return self.document_code
 
-    def save(self, *args, **kwargs):
-        if not self.item_code:
-            self.item_code = self.item.item_code
-        if not self.warehouse_code:
-            self.warehouse_code = self.warehouse.public_code
-        super().save(*args, **kwargs)
-
 
 class StocktakingSurplus(InventoryDocumentBase):
+    """Header-only model for stocktaking surplus documents with multi-line support."""
     document_code = models.CharField(_("Document Code"), max_length=20, unique=True)
     document_date = models.DateField(_("Document Date"), default=timezone.now)
     stocktaking_session_id = models.BigIntegerField(
@@ -1877,16 +1823,36 @@ class StocktakingSurplus(InventoryDocumentBase):
         null=True,
         blank=True,
     )
+    # Header-level fields only - item/warehouse/unit/quantity moved to StocktakingSurplusLine
+    document_metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        verbose_name = _("Stocktaking Surplus")
+        verbose_name_plural = _("Stocktaking Surpluses")
+        ordering = ("-document_date", "document_code")
+
+    def __str__(self) -> str:
+        return self.document_code
+
+
+class StocktakingDeficitLine(InventoryBaseModel, SortableModel):
+    """Line item for stocktaking deficit documents."""
+    
+    document = models.ForeignKey(
+        "StocktakingDeficit",
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
     item = models.ForeignKey(
         Item,
         on_delete=models.PROTECT,
-        related_name="stocktaking_surpluses",
+        related_name="stocktaking_deficit_lines",
     )
     item_code = models.CharField(_("Item Code"), max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
     warehouse = models.ForeignKey(
         Warehouse,
         on_delete=models.PROTECT,
-        related_name="stocktaking_surpluses",
+        related_name="stocktaking_deficit_lines",
     )
     warehouse_code = models.CharField(_("Warehouse Code"), max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
     unit = models.CharField(_("Unit"), max_length=30)
@@ -1928,19 +1894,103 @@ class StocktakingSurplus(InventoryDocumentBase):
     reason_code = models.CharField(_("Reason Code"), max_length=30, blank=True)
     investigation_reference = models.CharField(_("Investigation Reference"), max_length=30, blank=True)
     adjustment_metadata = models.JSONField(default=dict, blank=True)
-
+    
     class Meta:
-        verbose_name = _("Stocktaking Surplus")
-        verbose_name_plural = _("Stocktaking Surpluses")
-        ordering = ("-document_date", "document_code")
-
+        verbose_name = _("Stocktaking Deficit Line")
+        verbose_name_plural = _("Stocktaking Deficit Lines")
+        ordering = ("sort_order", "id")
+        indexes = [
+            models.Index(fields=("company", "document"), name="inv_std_line_doc_idx"),
+            models.Index(fields=("company", "item"), name="inv_std_line_item_idx"),
+        ]
+    
     def __str__(self) -> str:
-        return self.document_code
-
+        return f"{self.document.document_code} - {self.item.name}"
+    
     def save(self, *args, **kwargs):
-        if not self.item_code:
+        if self.item and not self.item_code:
             self.item_code = self.item.item_code
-        if not self.warehouse_code:
+        if self.warehouse and not self.warehouse_code:
+            self.warehouse_code = self.warehouse.public_code
+        super().save(*args, **kwargs)
+
+
+class StocktakingSurplusLine(InventoryBaseModel, SortableModel):
+    """Line item for stocktaking surplus documents."""
+    
+    document = models.ForeignKey(
+        "StocktakingSurplus",
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    item = models.ForeignKey(
+        Item,
+        on_delete=models.PROTECT,
+        related_name="stocktaking_surplus_lines",
+    )
+    item_code = models.CharField(_("Item Code"), max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
+    warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.PROTECT,
+        related_name="stocktaking_surplus_lines",
+    )
+    warehouse_code = models.CharField(_("Warehouse Code"), max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
+    unit = models.CharField(_("Unit"), max_length=30)
+    quantity_expected = models.DecimalField(
+        _("Quantity Expected"),
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+    )
+    quantity_counted = models.DecimalField(
+        _("Quantity Counted"),
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+    )
+    quantity_adjusted = models.DecimalField(
+        _("Quantity Adjusted"),
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+    )
+    valuation_method = models.CharField(_("Valuation Method"), max_length=30, blank=True)
+    unit_cost = models.DecimalField(
+        _("Unit Cost"),
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        null=True,
+        blank=True,
+    )
+    total_cost = models.DecimalField(
+        _("Total Cost"),
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        null=True,
+        blank=True,
+    )
+    reason_code = models.CharField(_("Reason Code"), max_length=30, blank=True)
+    investigation_reference = models.CharField(_("Investigation Reference"), max_length=30, blank=True)
+    adjustment_metadata = models.JSONField(default=dict, blank=True)
+    
+    class Meta:
+        verbose_name = _("Stocktaking Surplus Line")
+        verbose_name_plural = _("Stocktaking Surplus Lines")
+        ordering = ("sort_order", "id")
+        indexes = [
+            models.Index(fields=("company", "document"), name="inv_sts_line_doc_idx"),
+            models.Index(fields=("company", "item"), name="inv_sts_line_item_idx"),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.document.document_code} - {self.item.name}"
+    
+    def save(self, *args, **kwargs):
+        if self.item and not self.item_code:
+            self.item_code = self.item.item_code
+        if self.warehouse and not self.warehouse_code:
             self.warehouse_code = self.warehouse.public_code
         super().save(*args, **kwargs)
 

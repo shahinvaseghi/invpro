@@ -145,6 +145,13 @@ class AccessLevelPermissionMixin:
             'production': _('Production'),
             'inventory': _('Inventory'),
             'qc': _('Quality Control'),
+            'ticketing': _('Ticketing'),
+            'accounting': _('Accounting'),
+            'sales': _('Sales'),
+            'hr': _('Human Resources'),
+            'office_automation': _('Office Automation'),
+            'transportation': _('Transportation'),
+            'procurement': _('Procurement'),
         }
         
         for module_code, module_features in sorted(grouped_features.items()):

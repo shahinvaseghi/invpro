@@ -354,6 +354,94 @@
               </div>
               {% endif %}
 
+              {# Stocktaking fields: quantity_expected, quantity_counted, quantity_adjusted #}
+              {% if 'quantity_expected' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field">
+                  <label>{{ line_form.quantity_expected.label }}{% if line_form.quantity_expected.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_expected }}
+                  {% if line_form.quantity_expected.errors %}
+                    <span class="error">{{ line_form.quantity_expected.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% if 'quantity_counted' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.quantity_counted.label }}{% if line_form.quantity_counted.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_counted }}
+                  {% if line_form.quantity_counted.errors %}
+                    <span class="error">{{ line_form.quantity_counted.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'quantity_adjusted' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.quantity_adjusted.label }}{% if line_form.quantity_adjusted.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_adjusted }}
+                  {% if line_form.quantity_adjusted.errors %}
+                    <span class="error">{{ line_form.quantity_adjusted.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {# Stocktaking fields: valuation_method, unit_cost, total_cost #}
+              {% if 'valuation_method' in line_form.fields or 'unit_cost' in line_form.fields or 'total_cost' in line_form.fields %}
+              <div class="form-row">
+                {% if 'valuation_method' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.valuation_method.label }}</label>
+                  {{ line_form.valuation_method }}
+                  {% if line_form.valuation_method.errors %}
+                    <span class="error">{{ line_form.valuation_method.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'unit_cost' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit_cost.label }}</label>
+                  {{ line_form.unit_cost }}
+                  {% if line_form.unit_cost.errors %}
+                    <span class="error">{{ line_form.unit_cost.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'total_cost' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.total_cost.label }}</label>
+                  {{ line_form.total_cost }}
+                  {% if line_form.total_cost.errors %}
+                    <span class="error">{{ line_form.total_cost.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {# Stocktaking fields: reason_code, investigation_reference #}
+              {% if 'reason_code' in line_form.fields or 'investigation_reference' in line_form.fields %}
+              <div class="form-row">
+                {% if 'reason_code' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.reason_code.label }}</label>
+                  {{ line_form.reason_code }}
+                  {% if line_form.reason_code.errors %}
+                    <span class="error">{{ line_form.reason_code.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'investigation_reference' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.investigation_reference.label }}</label>
+                  {{ line_form.investigation_reference }}
+                  {% if line_form.investigation_reference.errors %}
+                    <span class="error">{{ line_form.investigation_reference.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
               {% if 'line_notes' in line_form.fields %}
               <div class="form-row">
                 <div class="form-field full-width">
@@ -621,6 +709,94 @@
               </div>
               {% endif %}
 
+              {# Stocktaking fields: quantity_expected, quantity_counted, quantity_adjusted #}
+              {% if 'quantity_expected' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field">
+                  <label>{{ line_form.quantity_expected.label }}{% if line_form.quantity_expected.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_expected }}
+                  {% if line_form.quantity_expected.errors %}
+                    <span class="error">{{ line_form.quantity_expected.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% if 'quantity_counted' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.quantity_counted.label }}{% if line_form.quantity_counted.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_counted }}
+                  {% if line_form.quantity_counted.errors %}
+                    <span class="error">{{ line_form.quantity_counted.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'quantity_adjusted' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.quantity_adjusted.label }}{% if line_form.quantity_adjusted.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_adjusted }}
+                  {% if line_form.quantity_adjusted.errors %}
+                    <span class="error">{{ line_form.quantity_adjusted.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {# Stocktaking fields: valuation_method, unit_cost, total_cost #}
+              {% if 'valuation_method' in line_form.fields or 'unit_cost' in line_form.fields or 'total_cost' in line_form.fields %}
+              <div class="form-row">
+                {% if 'valuation_method' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.valuation_method.label }}</label>
+                  {{ line_form.valuation_method }}
+                  {% if line_form.valuation_method.errors %}
+                    <span class="error">{{ line_form.valuation_method.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'unit_cost' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit_cost.label }}</label>
+                  {{ line_form.unit_cost }}
+                  {% if line_form.unit_cost.errors %}
+                    <span class="error">{{ line_form.unit_cost.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'total_cost' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.total_cost.label }}</label>
+                  {{ line_form.total_cost }}
+                  {% if line_form.total_cost.errors %}
+                    <span class="error">{{ line_form.total_cost.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {# Stocktaking fields: reason_code, investigation_reference #}
+              {% if 'reason_code' in line_form.fields or 'investigation_reference' in line_form.fields %}
+              <div class="form-row">
+                {% if 'reason_code' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.reason_code.label }}</label>
+                  {{ line_form.reason_code }}
+                  {% if line_form.reason_code.errors %}
+                    <span class="error">{{ line_form.reason_code.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'investigation_reference' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.investigation_reference.label }}</label>
+                  {{ line_form.investigation_reference }}
+                  {% if line_form.investigation_reference.errors %}
+                    <span class="error">{{ line_form.investigation_reference.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
               {% if 'line_notes' in line_form.fields %}
               <div class="form-row">
                 <div class="form-field full-width">
@@ -882,6 +1058,94 @@
                     <span class="error">{{ line_form.expected_receipt_date.errors.0 }}</span>
                   {% endif %}
                 </div>
+              </div>
+              {% endif %}
+
+              {# Stocktaking fields: quantity_expected, quantity_counted, quantity_adjusted #}
+              {% if 'quantity_expected' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field">
+                  <label>{{ line_form.quantity_expected.label }}{% if line_form.quantity_expected.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_expected }}
+                  {% if line_form.quantity_expected.errors %}
+                    <span class="error">{{ line_form.quantity_expected.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% if 'quantity_counted' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.quantity_counted.label }}{% if line_form.quantity_counted.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_counted }}
+                  {% if line_form.quantity_counted.errors %}
+                    <span class="error">{{ line_form.quantity_counted.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'quantity_adjusted' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.quantity_adjusted.label }}{% if line_form.quantity_adjusted.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_adjusted }}
+                  {% if line_form.quantity_adjusted.errors %}
+                    <span class="error">{{ line_form.quantity_adjusted.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {# Stocktaking fields: valuation_method, unit_cost, total_cost #}
+              {% if 'valuation_method' in line_form.fields or 'unit_cost' in line_form.fields or 'total_cost' in line_form.fields %}
+              <div class="form-row">
+                {% if 'valuation_method' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.valuation_method.label }}</label>
+                  {{ line_form.valuation_method }}
+                  {% if line_form.valuation_method.errors %}
+                    <span class="error">{{ line_form.valuation_method.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'unit_cost' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit_cost.label }}</label>
+                  {{ line_form.unit_cost }}
+                  {% if line_form.unit_cost.errors %}
+                    <span class="error">{{ line_form.unit_cost.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'total_cost' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.total_cost.label }}</label>
+                  {{ line_form.total_cost }}
+                  {% if line_form.total_cost.errors %}
+                    <span class="error">{{ line_form.total_cost.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {# Stocktaking fields: reason_code, investigation_reference #}
+              {% if 'reason_code' in line_form.fields or 'investigation_reference' in line_form.fields %}
+              <div class="form-row">
+                {% if 'reason_code' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.reason_code.label }}</label>
+                  {{ line_form.reason_code }}
+                  {% if line_form.reason_code.errors %}
+                    <span class="error">{{ line_form.reason_code.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'investigation_reference' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.investigation_reference.label }}</label>
+                  {{ line_form.investigation_reference }}
+                  {% if line_form.investigation_reference.errors %}
+                    <span class="error">{{ line_form.investigation_reference.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
               </div>
               {% endif %}
 

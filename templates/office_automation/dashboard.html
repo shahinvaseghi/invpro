@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Office Automation" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="section-header">
+        <h1>{% trans "Office Automation" %}</h1>
+        <p>{% trans "Office automation and administrative processes" %}</p>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <h2>{% trans "Office Automation Module" %}</h2>
+            <p>{% trans "This module is under development. Office automation features will be available soon." %}</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

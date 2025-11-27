@@ -30,90 +30,71 @@ def get_last_stocktaking_baseline(
     if as_of_date is None:
         as_of_date = timezone.now().date()
     
-    # Try to find surplus/deficit documents (old approach)
-    latest_surplus = models.StocktakingSurplus.objects.filter(
+    # First, try to find approved StocktakingRecord (this is the proper baseline)
+    latest_record = models.StocktakingRecord.objects.filter(
         company_id=company_id,
-        warehouse_id=warehouse_id,
-        item_id=item_id,
         document_date__lte=as_of_date,
+        approval_status='approved',
         is_locked=1,
         is_enabled=1,
     ).order_by('-document_date', '-id').first()
     
-    latest_deficit = models.StocktakingDeficit.objects.filter(
+    if latest_record:
+        # Use the record date as baseline, but start from beginning of time for movements
+        # This ensures all receipts/issues before and after baseline_date are included
+        # Deficit/surplus documents will be included as movements after baseline_date
+        return {
+            'baseline_date': date(1900, 1, 1),  # Start from beginning to include all movements
+            'baseline_quantity': Decimal('0'),
+            'stocktaking_record_id': latest_record.id,
+            'stocktaking_record_code': latest_record.document_code,
+            'stocktaking_record_date': latest_record.document_date,  # Keep original date for reference
+        }
+    
+    # If no StocktakingRecord found, check if there are any deficit/surplus documents
+    # In this case, we use the earliest deficit/surplus date as baseline
+    # But baseline_quantity should be 0, and deficit/surplus will be movements
+    earliest_surplus_line = models.StocktakingSurplusLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
         item_id=item_id,
-        document_date__lte=as_of_date,
-        is_locked=1,
-        is_enabled=1,
-    ).order_by('-document_date', '-id').first()
+        document__document_date__lte=as_of_date,
+        document__is_locked=1,
+        document__is_enabled=1,
+    ).select_related('document').order_by('document__document_date', 'id').first()
     
-    latest_date = None
-    if latest_surplus and latest_deficit:
-        latest_date = max(latest_surplus.document_date, latest_deficit.document_date)
-    elif latest_surplus:
-        latest_date = latest_surplus.document_date
-    elif latest_deficit:
-        latest_date = latest_deficit.document_date
-    
-    # If no surplus/deficit found, try to find approved StocktakingRecord
-    if not latest_date:
-        latest_record = models.StocktakingRecord.objects.filter(
-            company_id=company_id,
-            document_date__lte=as_of_date,
-            approval_status='approved',
-            is_locked=1,
-            is_enabled=1,
-        ).order_by('-document_date', '-id').first()
-        
-        if latest_record:
-            # Use the record date as baseline, but quantity = 0 (will calculate from receipts/issues)
-            return {
-                'baseline_date': latest_record.document_date,
-                'baseline_quantity': Decimal('0'),
-                'stocktaking_record_id': latest_record.id,
-                'stocktaking_record_code': latest_record.document_code,
-            }
-        else:
-            # No stocktaking at all - start from zero
-            return {
-                'baseline_date': None,
-                'baseline_quantity': Decimal('0'),
-                'stocktaking_record_id': None,
-            }
-    
-    # Get the surplus/deficit for this specific item and warehouse
-    # from the documents referenced in the stocktaking record
-    baseline_qty = Decimal('0')
-    
-    # Check surplus documents
-    surplus_docs = models.StocktakingSurplus.objects.filter(
+    earliest_deficit_line = models.StocktakingDeficitLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
         item_id=item_id,
-        document_date__lte=latest_date,
-        is_locked=1,
-        is_enabled=1,
-    ).aggregate(total=Sum('quantity_adjusted'))
+        document__document_date__lte=as_of_date,
+        document__is_locked=1,
+        document__is_enabled=1,
+    ).select_related('document').order_by('document__document_date', 'id').first()
     
-    # Check deficit documents
-    deficit_docs = models.StocktakingDeficit.objects.filter(
-        company_id=company_id,
-        warehouse_id=warehouse_id,
-        item_id=item_id,
-        document_date__lte=latest_date,
-        is_locked=1,
-        is_enabled=1,
-    ).aggregate(total=Sum('quantity_adjusted'))
+    earliest_date = None
+    if earliest_surplus_line and earliest_deficit_line:
+        earliest_date = min(earliest_surplus_line.document.document_date, earliest_deficit_line.document.document_date)
+    elif earliest_surplus_line:
+        earliest_date = earliest_surplus_line.document.document_date
+    elif earliest_deficit_line:
+        earliest_date = earliest_deficit_line.document.document_date
     
-    baseline_qty = (surplus_docs['total'] or Decimal('0')) - (deficit_docs['total'] or Decimal('0'))
+    if earliest_date:
+        # Use earliest deficit/surplus date as baseline, but quantity = 0
+        # Deficit/surplus documents will be included as movements after this baseline
+        return {
+            'baseline_date': earliest_date,
+            'baseline_quantity': Decimal('0'),
+            'stocktaking_record_id': None,
+            'stocktaking_record_code': None,
+        }
     
+    # No stocktaking at all - start from zero
     return {
-        'baseline_date': latest_date,
-        'baseline_quantity': baseline_qty,
+        'baseline_date': None,
+        'baseline_quantity': Decimal('0'),
         'stocktaking_record_id': None,
-        'stocktaking_record_code': None,
     }
 
 
@@ -162,7 +143,7 @@ def calculate_movements_after_baseline(
         company_id=company_id,
         warehouse_id=warehouse_id,
         item_id=item_id,
-        document__document_date__gt=baseline_date,
+        document__document_date__gte=baseline_date,
         document__document_date__lte=as_of_date,
         document__is_enabled=1,
     ).aggregate(total=Sum('quantity'))
@@ -171,19 +152,19 @@ def calculate_movements_after_baseline(
         company_id=company_id,
         warehouse_id=warehouse_id,
         item_id=item_id,
-        document__document_date__gt=baseline_date,
+        document__document_date__gte=baseline_date,
         document__document_date__lte=as_of_date,
         document__is_enabled=1,
     ).aggregate(total=Sum('quantity'))
     
-    surplus = models.StocktakingSurplus.objects.filter(
+    surplus = models.StocktakingSurplusLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
         item_id=item_id,
-        document_date__gt=baseline_date,
-        document_date__lte=as_of_date,
-        is_locked=1,
-        is_enabled=1,
+        document__document_date__gte=baseline_date,
+        document__document_date__lte=as_of_date,
+        document__is_locked=1,
+        document__is_enabled=1,
     ).aggregate(total=Sum('quantity_adjusted'))
     
     receipts_total = (
@@ -197,7 +178,7 @@ def calculate_movements_after_baseline(
         company_id=company_id,
         warehouse_id=warehouse_id,
         item_id=item_id,
-        document__document_date__gt=baseline_date,
+        document__document_date__gte=baseline_date,
         document__document_date__lte=as_of_date,
         document__is_enabled=1,
     ).aggregate(total=Sum('quantity'))
@@ -206,7 +187,7 @@ def calculate_movements_after_baseline(
         company_id=company_id,
         warehouse_id=warehouse_id,
         item_id=item_id,
-        document__document_date__gt=baseline_date,
+        document__document_date__gte=baseline_date,
         document__document_date__lte=as_of_date,
         document__is_enabled=1,
     ).aggregate(total=Sum('quantity'))
@@ -215,19 +196,19 @@ def calculate_movements_after_baseline(
         company_id=company_id,
         warehouse_id=warehouse_id,
         item_id=item_id,
-        document__document_date__gt=baseline_date,
+        document__document_date__gte=baseline_date,
         document__document_date__lte=as_of_date,
         document__is_enabled=1,
     ).aggregate(total=Sum('quantity'))
     
-    deficit = models.StocktakingDeficit.objects.filter(
+    deficit = models.StocktakingDeficitLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
         item_id=item_id,
-        document_date__gt=baseline_date,
-        document_date__lte=as_of_date,
-        is_locked=1,
-        is_enabled=1,
+        document__document_date__gte=baseline_date,
+        document__document_date__lte=as_of_date,
+        document__is_locked=1,
+        document__is_enabled=1,
     ).aggregate(total=Sum('quantity_adjusted'))
     
     issues_total = (
@@ -337,6 +318,9 @@ def calculate_warehouse_balances(
     Returns:
         List of balance dictionaries (one per item)
     """
+    if as_of_date is None:
+        as_of_date = timezone.now().date()
+    
     # Get all items that have activity in this warehouse (receipts, issues, or stocktaking)
     from django.db.models import Q
     
@@ -349,47 +333,55 @@ def calculate_warehouse_balances(
     ).values_list('id', flat=True)
     
     # Second, get items with actual transactions in this warehouse (only enabled documents)
+    # Filter by as_of_date to only include items with activity up to that date
     items_with_receipts = models.ReceiptPermanentLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
         document__is_enabled=1,
+        document__document_date__lte=as_of_date,
     ).values_list('item_id', flat=True).distinct()
     
     items_with_consignment_receipts = models.ReceiptConsignmentLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
         document__is_enabled=1,
+        document__document_date__lte=as_of_date,
     ).values_list('item_id', flat=True).distinct()
     
     items_with_issues = models.IssuePermanentLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
         document__is_enabled=1,
+        document__document_date__lte=as_of_date,
     ).values_list('item_id', flat=True).distinct()
     
     items_with_consumption = models.IssueConsumptionLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
         document__is_enabled=1,
+        document__document_date__lte=as_of_date,
     ).values_list('item_id', flat=True).distinct()
     
     items_with_consignment_issues = models.IssueConsignmentLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
         document__is_enabled=1,
+        document__document_date__lte=as_of_date,
     ).values_list('item_id', flat=True).distinct()
     
     # Also check for items with stocktaking records (surplus/deficit)
-    items_with_surplus = models.StocktakingSurplus.objects.filter(
+    items_with_surplus = models.StocktakingSurplusLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
-        is_enabled=1,
+        document__is_enabled=1,
+        document__document_date__lte=as_of_date,
     ).values_list('item_id', flat=True).distinct()
     
-    items_with_deficit = models.StocktakingDeficit.objects.filter(
+    items_with_deficit = models.StocktakingDeficitLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
-        is_enabled=1,
+        document__is_enabled=1,
+        document__document_date__lte=as_of_date,
     ).values_list('item_id', flat=True).distinct()
     
     # Combine all item IDs
