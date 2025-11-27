@@ -442,23 +442,67 @@ class IssueLineBaseForm(forms.ModelForm):
                 self.fields['item'].label_from_instance = lambda obj: f"{obj.name} · {obj.item_code}"
             
             if 'warehouse' in self.fields:
-                # For existing instances, include the current warehouse even if disabled
-                queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
-                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
-                    # Include the current warehouse even if it's disabled
-                    queryset = Warehouse.objects.filter(
-                        company_id=self.company_id
-                    ).filter(
-                        Q(is_enabled=1) | Q(pk=self.instance.warehouse_id)
-                    )
-                self.fields['warehouse'].queryset = queryset.order_by('name')
-                self.fields['warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
+                # First, try to get item to set warehouse queryset based on allowed warehouses
+                item = None
+                if getattr(self.instance, 'item_id', None):
+                    try:
+                        item = Item.objects.filter(pk=self.instance.item_id, company_id=self.company_id).first()
+                    except Exception:
+                        pass
+                
+                if item:
+                    # Set warehouse queryset based on item's allowed warehouses
+                    self._set_warehouse_queryset(item=item)
+                else:
+                    # Fallback: For existing instances, include the current warehouse even if disabled
+                    queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
+                    if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
+                        # Include the current warehouse even if it's disabled
+                        queryset = Warehouse.objects.filter(
+                            company_id=self.company_id
+                        ).filter(
+                            Q(is_enabled=1) | Q(pk=self.instance.warehouse_id)
+                        )
+                    self.fields['warehouse'].queryset = queryset.order_by('name')
+                    self.fields['warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
         
         # Set unit choices - this must be done before restoring initial values
         self._set_unit_choices()
         
         # Restore entered values if editing
         if not self.is_bound and getattr(self.instance, 'pk', None):
+            # Get item first to set unit choices properly
+            # Use item_id to avoid RelatedObjectDoesNotExist if document is missing
+            item_id = getattr(self.instance, 'item_id', None)
+            item = None
+            if item_id:
+                # Check if document exists before accessing item (to avoid RelatedObjectDoesNotExist)
+                document_id = getattr(self.instance, 'document_id', None)
+                if document_id:
+                    try:
+                        # Try to get item directly by item_id to avoid accessing through instance
+                        item = Item.objects.filter(pk=item_id, company_id=self.company_id).first()
+                        if not item:
+                            # Fallback: try to access through instance
+                            item = getattr(self.instance, 'item', None)
+                    except Exception:
+                        pass
+                else:
+                    # Try to get item directly by item_id
+                    try:
+                        item = Item.objects.filter(pk=item_id, company_id=self.company_id).first()
+                    except Exception:
+                        pass
+            
+            if item and 'unit' in self.fields:
+                # Set unit choices based on item
+                self._set_unit_choices(item=item)
+            
+            # Set warehouse queryset based on item (for existing instances)
+            if item and 'warehouse' in self.fields:
+                self._set_warehouse_queryset(item=item)
+            
+            # Get unit value from entered_unit or unit (prioritize entered_unit for display)
             entry_unit = getattr(self.instance, 'entered_unit', '') or getattr(self.instance, 'unit', '')
             if 'unit' in self.fields and entry_unit:
                 # Ensure the unit is in choices, if not add it
@@ -467,6 +511,7 @@ class IssueLineBaseForm(forms.ModelForm):
                 if entry_unit not in unit_codes:
                     # Add current unit to choices if not present
                     self.fields['unit'].choices = unit_choices + [(entry_unit, entry_unit)]
+                
                 # Django ChoiceField uses instance.field for display when editing
                 # So we need to set instance.unit to the entered_unit for proper display
                 if hasattr(self.instance, 'unit'):
@@ -475,6 +520,7 @@ class IssueLineBaseForm(forms.ModelForm):
                         self.instance._original_unit = self.instance.unit
                     # Set unit to entered_unit for display purposes
                     self.instance.unit = entry_unit
+                
                 # Also set initial as backup
                 self.initial['unit'] = entry_unit
             

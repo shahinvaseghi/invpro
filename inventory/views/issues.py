@@ -9,7 +9,7 @@ This module contains views for:
 """
 from typing import Dict, Any, Optional
 from django.contrib import messages
-from django.views.generic import ListView, CreateView, UpdateView, FormView
+from django.views.generic import ListView, CreateView, UpdateView, FormView, DetailView
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.shortcuts import get_object_or_404
@@ -52,11 +52,42 @@ class IssuePermanentListView(InventoryBaseView, ListView):
         context['edit_url_name'] = 'inventory:issue_permanent_edit'
         context['delete_url_name'] = 'inventory:issue_permanent_delete'
         context['lock_url_name'] = 'inventory:issue_permanent_lock'
+        context['detail_url_name'] = 'inventory:issue_permanent_detail'
         context['create_label'] = _('Permanent Issue')
         context['show_warehouse_request'] = True
         context['warehouse_request_url_name'] = 'inventory:warehouse_request_edit'
         context['serial_url_name'] = None
         self.add_delete_permissions_to_context(context, 'inventory.issues.permanent')
+        return context
+
+
+class IssuePermanentDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing permanent issues (read-only)."""
+    model = models.IssuePermanent
+    template_name = 'inventory/issue_detail.html'
+    context_object_name = 'issue'
+    
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        # Filter by company_id (from InventoryBaseView)
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            queryset = queryset.filter(company_id=company_id)
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse'
+        ).select_related('created_by', 'warehouse_request', 'department_unit')
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'inventory'
+        context['issue_variant'] = 'permanent'
+        context['list_url'] = reverse('inventory:issue_permanent')
+        context['edit_url'] = reverse('inventory:issue_permanent_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
         return context
 
 
@@ -131,11 +162,14 @@ class IssuePermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, Rec
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
+        # Filter by company_id (from InventoryBaseView)
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            queryset = queryset.filter(company_id=company_id)
         queryset = queryset.prefetch_related(
             'lines__item',
-            'lines__warehouse',
-            'lines__supplier'
-        ).select_related('created_by', 'warehouse_request')
+            'lines__warehouse'
+        ).select_related('created_by', 'warehouse_request', 'department_unit')
         return queryset
 
     def form_valid(self, form):
@@ -264,9 +298,40 @@ class IssueConsumptionListView(InventoryBaseView, ListView):
         context['edit_url_name'] = 'inventory:issue_consumption_edit'
         context['delete_url_name'] = 'inventory:issue_consumption_delete'
         context['lock_url_name'] = 'inventory:issue_consumption_lock'
+        context['detail_url_name'] = 'inventory:issue_consumption_detail'
         context['create_label'] = _('Consumption Issue')
         context['serial_url_name'] = None
         self.add_delete_permissions_to_context(context, 'inventory.issues.consumption')
+        return context
+
+
+class IssueConsumptionDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing consumption issues (read-only)."""
+    model = models.IssueConsumption
+    template_name = 'inventory/issue_detail.html'
+    context_object_name = 'issue'
+    
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        # Filter by company_id (from InventoryBaseView)
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            queryset = queryset.filter(company_id=company_id)
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse'
+        ).select_related('created_by', 'department_unit')
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'inventory'
+        context['issue_variant'] = 'consumption'
+        context['list_url'] = reverse('inventory:issue_consumption')
+        context['edit_url'] = reverse('inventory:issue_consumption_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
         return context
 
 
@@ -382,11 +447,14 @@ class IssueConsumptionUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
+        # Filter by company_id (from InventoryBaseView)
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            queryset = queryset.filter(company_id=company_id)
         queryset = queryset.prefetch_related(
             'lines__item',
-            'lines__warehouse',
-            'lines__supplier'
-        ).select_related('created_by', 'warehouse_request')
+            'lines__warehouse'
+        ).select_related('created_by', 'department_unit')
         return queryset
 
     def form_valid(self, form):
@@ -499,9 +567,40 @@ class IssueConsignmentListView(InventoryBaseView, ListView):
         context['edit_url_name'] = 'inventory:issue_consignment_edit'
         context['delete_url_name'] = 'inventory:issue_consignment_delete'
         context['lock_url_name'] = 'inventory:issue_consignment_lock'
+        context['detail_url_name'] = 'inventory:issue_consignment_detail'
         context['create_label'] = _('Consignment Issue')
         context['serial_url_name'] = None
         self.add_delete_permissions_to_context(context, 'inventory.issues.consignment')
+        return context
+
+
+class IssueConsignmentDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing consignment issues (read-only)."""
+    model = models.IssueConsignment
+    template_name = 'inventory/issue_detail.html'
+    context_object_name = 'issue'
+    
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        # Filter by company_id (from InventoryBaseView)
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            queryset = queryset.filter(company_id=company_id)
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse'
+        ).select_related('created_by', 'department_unit')
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'inventory'
+        context['issue_variant'] = 'consignment'
+        context['list_url'] = reverse('inventory:issue_consignment')
+        context['edit_url'] = reverse('inventory:issue_consignment_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
         return context
 
 
@@ -558,11 +657,14 @@ class IssueConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
+        # Filter by company_id (from InventoryBaseView)
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            queryset = queryset.filter(company_id=company_id)
         queryset = queryset.prefetch_related(
             'lines__item',
-            'lines__warehouse',
-            'lines__supplier'
-        ).select_related('created_by', 'warehouse_request')
+            'lines__warehouse'
+        ).select_related('created_by', 'department_unit')
         return queryset
 
     def form_valid(self, form):
