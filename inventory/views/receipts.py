@@ -426,6 +426,37 @@ class ReceiptPermanentDetailView(InventoryBaseView, DetailView):
         return context
 
 
+class ReceiptConsignmentDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing consignment receipts (read-only)."""
+    model = models.ReceiptConsignment
+    template_name = 'inventory/receipt_detail.html'
+    context_object_name = 'receipt'
+    
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        # Filter by company_id (from InventoryBaseView)
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            queryset = queryset.filter(company_id=company_id)
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse',
+            'lines__supplier'
+        ).select_related('created_by')
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'inventory'
+        context['receipt_variant'] = 'consignment'
+        context['list_url'] = reverse('inventory:receipt_consignment')
+        context['edit_url'] = reverse('inventory:receipt_consignment_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
+        return context
+
+
 class ReceiptTemporaryUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
     """Update view for temporary receipts."""
     model = models.ReceiptTemporary
@@ -1698,6 +1729,10 @@ class ReceiptConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin,
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
+        # Filter by company_id (from InventoryBaseView)
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            queryset = queryset.filter(company_id=company_id)
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse',

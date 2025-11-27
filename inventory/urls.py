@@ -100,6 +100,7 @@ urlpatterns = [
     path('receipts/consignment/', views.ReceiptConsignmentListView.as_view(), name='receipt_consignment'),
     path('receipts/consignment/create/', views.ReceiptConsignmentCreateView.as_view(), name='receipt_consignment_create'),
     path('receipts/consignment/create-from-request/<int:pk>/', views.ReceiptConsignmentCreateFromPurchaseRequestView.as_view(), name='receipt_consignment_create_from_request'),
+    path('receipts/consignment/<int:pk>/', views.ReceiptConsignmentDetailView.as_view(), name='receipt_consignment_detail'),
     path('receipts/consignment/<int:pk>/edit/', views.ReceiptConsignmentUpdateView.as_view(), name='receipt_consignment_edit'),
     path('receipts/consignment/<int:pk>/delete/', views.ReceiptConsignmentDeleteView.as_view(), name='receipt_consignment_delete'),
     path('receipts/consignment/<int:pk>/lock/', views.ReceiptConsignmentLockView.as_view(), name='receipt_consignment_lock'),
