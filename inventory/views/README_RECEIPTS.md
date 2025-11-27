@@ -267,8 +267,28 @@
 - `receipt_variant`: `'permanent'`
 
 **متدها**:
-- `form_valid()`: تنظیم `company_id`, `created_by`، ذخیره formset
-- `get_fieldsets()`: `[(_('Document Info'), ['document_code', 'document_date', 'requires_temporary_receipt', 'temporary_receipt', 'purchase_request', 'warehouse_request'])]`
+
+#### `form_valid(self, form)`
+- **Logic**:
+  1. تنظیم `company_id` و `created_by` روی form instance
+  2. Save کردن document (header)
+  3. دریافت `temporary_receipt` از form.cleaned_data یا POST data
+  4. ساخت formset با instance (document save شده)
+  5. پاس دادن `temporary_receipt` به همه forms در formset (از طریق `_temp_receipt` attribute)
+  6. Set کردن `document` روی همه line instances برای دسترسی در `clean_item`
+  7. Validation formset:
+     - اگر validation خطا بدهد:
+       - Document را delete می‌کند
+       - `form.instance` را reset می‌کند (برای render درست در template)
+       - Formset را با `instance=None` و همان POST data دوباره می‌سازد (برای حفظ خطاهای validation)
+       - فرم را با خطاها render می‌کند
+     - اگر validation موفق باشد:
+       - بررسی می‌کند که حداقل یک خط معتبر وجود داشته باشد
+       - اگر خط معتبری نباشد، document را delete می‌کند و خطا نمایش می‌دهد
+       - در غیر این صورت، خطوط را ذخیره می‌کند
+
+#### `get_fieldsets() -> list`
+- Returns: `[(_('Document Info'), ['document_code', 'document_date', 'requires_temporary_receipt', 'temporary_receipt', 'purchase_request', 'warehouse_request'])]`
 
 **Auto-Fill از Temporary Receipt**:
 - هنگام انتخاب `temporary_receipt` در dropdown، JavaScript به‌صورت خودکار:
@@ -280,7 +300,9 @@
   6. بعد از لود شدن options، warehouse و unit را set می‌کند
   7. quantity و supplier را populate می‌کند
 - اگر temporary receipt انتخاب نشود، خطوط پاک می‌شوند
-- Validation در `ReceiptPermanentLineForm.clean_item()`: اگر temporary receipt انتخاب شده باشد، validation برای کالاهای `requires_temporary_receipt=1` را skip می‌کند
+- **Validation**: در `ReceiptPermanentLineForm.clean_item()`:
+  - اگر temporary receipt انتخاب شده باشد (از طریق `_temp_receipt` attribute یا `document.temporary_receipt_id` یا POST data)، validation برای کالاهای `requires_temporary_receipt=1` را skip می‌کند
+  - در غیر این صورت، اگر کالا نیاز به temporary receipt داشته باشد، خطای validation نمایش داده می‌شود
 
 **URL**: `/inventory/receipts/permanent/create/`
 

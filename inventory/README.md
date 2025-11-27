@@ -75,6 +75,7 @@ Each model enforces unique constraints tailored to multi-company setups and uses
   - واحدهای انتخابی را با فهرست واحد اصلی و تبدیل‌های تعریف‌شده محدود می‌کنند و مقدار/قیمت را قبل از ذخیره به واحد اصلی کالا تبدیل می‌کنند.
   - در حالت ویرایش، سرآیند سند را به شکل فقط خواندنی نمایش می‌دهند.
   - برای هر ردیف که کالای آن `has_lot_tracking=1` دارد، دکمه «Manage Serials» نمایش داده می‌شود.
+  - **Auto-Fill از Temporary Receipt**: در `ReceiptPermanentCreateView`، هنگام انتخاب `temporary_receipt` در dropdown، JavaScript به‌صورت خودکار خطوط را از temporary receipt populate می‌کند. Validation در `ReceiptPermanentLineForm.clean_item()` برای کالاهای `requires_temporary_receipt=1` را skip می‌کند اگر temporary receipt انتخاب شده باشد. اگر formset validation خطا بدهد، document delete می‌شود و formset با POST data دوباره ساخته می‌شود تا خطاهای validation حفظ شوند.
 - `IssuePermanentCreateView`/`UpdateView`, `IssueConsumptionCreateView`/`UpdateView`, `IssueConsignmentCreateView`/`UpdateView`: صفحات اختصاصی برای ایجاد/ویرایش حواله‌ها با **پشتیبانی چند ردیف**. این ویوها:
   - از `LineFormsetMixin` استفاده می‌کنند تا فرم‌ست ردیف‌ها را مدیریت کنند.
   - امکان انتخاب واحد سازمانی مقصد (و برای حواله مصرف، خط تولید) را در سطح سند فراهم می‌کنند.

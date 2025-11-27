@@ -497,22 +497,42 @@ class ReceiptPermanentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
         # Save document first
         self.object = form.save()
         
+        # Get temporary_receipt from form to pass to formset forms
+        temp_receipt = form.cleaned_data.get('temporary_receipt') if hasattr(form, 'cleaned_data') else None
+        
+        # Also check POST data directly in case cleaned_data is not available
+        if not temp_receipt:
+            temp_receipt_id = self.request.POST.get('temporary_receipt', '')
+            if temp_receipt_id:
+                try:
+                    temp_receipt = models.ReceiptTemporary.objects.get(pk=temp_receipt_id, company_id=self.object.company_id)
+                except (models.ReceiptTemporary.DoesNotExist, ValueError):
+                    pass
+        
+        # Also check if temporary_receipt is set on the saved object
+        if not temp_receipt and self.object.temporary_receipt_id:
+            temp_receipt = self.object.temporary_receipt
+        
         # Handle line formset
         lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        
+        # Pass temporary_receipt to all forms in formset for validation BEFORE validation
+        # Also set document on all instances so they can access it in clean_item
+        if temp_receipt:
+            for form in lines_formset.forms:
+                form._temp_receipt = temp_receipt
+                # Set document on instance so clean_item can access it
+                if hasattr(form, 'instance') and form.instance:
+                    form.instance.document = self.object
+        
         if not lines_formset.is_valid():
-            # Debug: print formset errors
-            print("=" * 80)
-            print("FORMSET ERRORS:")
-            print(f"Non-form errors: {lines_formset.non_form_errors()}")
-            for i, form in enumerate(lines_formset.forms):
-                if form.errors:
-                    print(f"Form {i} errors: {form.errors}")
-                    print(f"Form {i} cleaned_data: {form.cleaned_data}")
-            print("POST data for lines:")
-            for key, value in self.request.POST.items():
-                if 'lines-' in key:
-                    print(f"  {key}: {value}")
-            print("=" * 80)
+            # Delete the document since formset validation failed
+            self.object.delete()
+            # Reset form.instance to None so template renders in create mode
+            form.instance = self.model()
+            form.instance.pk = None
+            # Rebuild formset with None instance but keep the same POST data to preserve validation errors
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )

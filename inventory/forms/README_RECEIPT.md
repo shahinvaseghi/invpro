@@ -333,8 +333,12 @@
 - **Logic**:
   - فراخوانی `super().clean_item()`
   - بررسی اینکه کالا نیاز به رسید موقت نداشته باشد (`requires_temporary_receipt != 1`)
-  - **استثنا**: اگر temporary receipt در POST data انتخاب شده باشد یا document قبلاً save شده و `temporary_receipt_id` دارد، validation را skip می‌کند (چون کالا از temporary receipt آمده است)
-  - اگر نیاز به رسید موقت داشته باشد و temporary receipt انتخاب نشده باشد، خطا می‌دهد
+  - **استثناها** (اگر کالا نیاز به temporary receipt داشته باشد، اما یکی از شرایط زیر برقرار باشد، validation skip می‌شود):
+    1. اگر `_temp_receipt` attribute روی form set شده باشد (از view پاس داده شده)
+    2. اگر `self.instance.document` وجود داشته باشد و `temporary_receipt_id` داشته باشد
+    3. اگر `self.formset.instance` وجود داشته باشد و `temporary_receipt_id` داشته باشد
+    4. اگر `temporary_receipt` در formset.data یا self.data وجود داشته باشد
+  - اگر نیاز به رسید موقت داشته باشد و هیچ یک از استثناها برقرار نباشد، خطای validation نمایش داده می‌شود: "این کالا نیاز به رسید موقت دارد. لطفاً ابتدا رسید موقت ایجاد کنید و پس از تایید QC، رسید دائم را ثبت کنید."
 
 ---
 

@@ -903,15 +903,37 @@ class ReceiptPermanentLineForm(ReceiptLineBaseForm):
         
         # Check if item requires temporary receipt
         if item and item.requires_temporary_receipt == 1:
-            # If this line is part of a permanent receipt that has a temporary receipt selected,
-            # allow it (the item comes from the temporary receipt)
-            if hasattr(self, 'instance') and self.instance and hasattr(self.instance, 'document'):
-                parent_doc = self.instance.document
+            # Check if temporary receipt is selected (passed from view)
+            if hasattr(self, '_temp_receipt') and self._temp_receipt:
+                # Temporary receipt is selected, so this item is allowed
+                return item
+            
+            # Check if temporary receipt is selected in the parent document
+            # Document is already saved at this point, so we can check it
+            if hasattr(self, 'instance') and self.instance:
+                # Try to get document from instance
+                parent_doc = getattr(self.instance, 'document', None)
                 if parent_doc and parent_doc.temporary_receipt_id:
                     # Temporary receipt is selected, so this item is allowed
                     return item
+                
+                # For new instances, document might not be set yet
+                # Try to get it from formset's instance
+                if hasattr(self, 'formset') and self.formset and hasattr(self.formset, 'instance'):
+                    parent_doc = self.formset.instance
+                    if parent_doc and parent_doc.temporary_receipt_id:
+                        # Temporary receipt is selected, so this item is allowed
+                        return item
             
             # For new instances, check POST data to see if temporary_receipt is selected
+            # Try to get it from formset's data if available
+            if hasattr(self, 'formset') and self.formset and hasattr(self.formset, 'data'):
+                temp_receipt_id = self.formset.data.get('temporary_receipt', '')
+                if temp_receipt_id:
+                    # Temporary receipt is selected, so this item is allowed
+                    return item
+            
+            # Also check self.data directly
             if hasattr(self, 'data') and self.data:
                 temp_receipt_id = self.data.get('temporary_receipt', '')
                 if temp_receipt_id:
