@@ -91,6 +91,7 @@ urlpatterns = [
     path('receipts/permanent/', views.ReceiptPermanentListView.as_view(), name='receipt_permanent'),
     path('receipts/permanent/create/', views.ReceiptPermanentCreateView.as_view(), name='receipt_permanent_create'),
     path('receipts/permanent/create-from-request/<int:pk>/', views.ReceiptPermanentCreateFromPurchaseRequestView.as_view(), name='receipt_permanent_create_from_request'),
+    path('receipts/permanent/<int:pk>/', views.ReceiptPermanentDetailView.as_view(), name='receipt_permanent_detail'),
     path('receipts/permanent/<int:pk>/edit/', views.ReceiptPermanentUpdateView.as_view(), name='receipt_permanent_edit'),
     path('receipts/permanent/<int:pk>/delete/', views.ReceiptPermanentDeleteView.as_view(), name='receipt_permanent_delete'),
     path('receipts/permanent/<int:pk>/lock/', views.ReceiptPermanentLockView.as_view(), name='receipt_permanent_lock'),

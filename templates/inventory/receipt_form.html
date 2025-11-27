@@ -1002,6 +1002,7 @@
 
 <script>
 // Disable all form fields if document is locked
+/* eslint-disable */
 {% if document_is_locked %}
 document.addEventListener('DOMContentLoaded', function() {
   const form = document.getElementById('receipt-form');
@@ -1027,6 +1028,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 {% endif %}
+/* eslint-enable */
 
 // Direct test - attach to button IMMEDIATELY when script loads
 document.addEventListener('DOMContentLoaded', function() {
@@ -1321,9 +1323,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 /* Hide any search inputs that are directly before or after filter selects */
-.item-filters .select-search-input {
-  /* Will be handled by JavaScript, but CSS as backup for immediate hiding */
-}
+/* Note: This rule is intentionally empty - JavaScript handles the hiding */
 
 /* Hide search inputs that are siblings of filter selects (using adjacent sibling selector) */
 .item-filters .filter-type-select + .select-search-input,
@@ -1568,6 +1568,7 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log('[DOMContentLoaded] URLs - unitChoicesUrl:', unitChoicesUrl, 'warehouseChoicesUrl:', warehouseChoicesUrl);
   
   // Initialize: Disable all unit and warehouse selects that don't have an item selected
+  /* eslint-disable */
   {% if not document_is_locked %}
   console.log('[DOMContentLoaded] Initializing unit and warehouse selects...');
   document.querySelectorAll('.line-form').forEach(function(lineForm) {
@@ -1592,11 +1593,23 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!placeholder || (placeholder && placeholder.textContent.indexOf('Select Item') === -1)) {
           warehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
         }
+      } else {
+        // Item is already selected (edit mode), update warehouses
+        console.log('[DOMContentLoaded] Item already selected, updating warehouse choices for item:', itemSelect.value);
+        // Save current warehouse value before updating
+        const currentWarehouseValue = warehouseSelect.value || warehouseSelect.querySelector('option[selected]')?.value;
+        console.log('[DOMContentLoaded] Current warehouse value before update:', currentWarehouseValue);
+        // Store it in a data attribute so updateWarehouseChoices can use it
+        if (currentWarehouseValue) {
+          warehouseSelect.setAttribute('data-initial-value', currentWarehouseValue);
+        }
+        updateWarehouseChoices(itemSelect, warehouseSelect);
       }
     }
   });
   console.log('[DOMContentLoaded] Unit and warehouse selects initialized');
   {% endif %}
+  /* eslint-enable */
   
   // Save selected serials to localStorage before form submission (for error recovery)
   const form = document.getElementById('receipt-form');
@@ -2440,7 +2453,24 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Show loading state
     warehouseSelect.disabled = true;
-    const currentValue = warehouseSelect.value;
+    
+    // Get current value from multiple sources
+    let currentValue = warehouseSelect.value;
+    if (!currentValue) {
+      // Try to find selected option
+      const selectedOption = warehouseSelect.querySelector('option[selected]');
+      if (selectedOption) {
+        currentValue = selectedOption.value;
+        console.log('[updateWarehouseChoices] Found selected option, value:', currentValue);
+      }
+    }
+    // Also check if there's a value attribute on the select itself (from Django form)
+    if (!currentValue && warehouseSelect.hasAttribute('data-initial-value')) {
+      currentValue = warehouseSelect.getAttribute('data-initial-value');
+      console.log('[updateWarehouseChoices] Found data-initial-value:', currentValue);
+    }
+    
+    console.log('[updateWarehouseChoices] Current warehouse value (before clearing):', currentValue);
     warehouseSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
     
     const url = warehouseChoicesUrl + '?item_id=' + itemId;
@@ -2485,13 +2515,34 @@ document.addEventListener('DOMContentLoaded', function() {
             const option = document.createElement('option');
             option.value = warehouse.value;
             option.textContent = warehouse.label;
-            if (warehouse.value === currentValue) {
+            if (warehouse.value == currentValue || warehouse.value === currentValue) {
               option.selected = true;
-              console.log(`[updateWarehouseChoices]   Warehouse ${index + 1} matches current value, selected`);
+              console.log(`[updateWarehouseChoices]   Warehouse ${index + 1} matches current value (${currentValue}), selected`);
             }
             warehouseSelect.appendChild(option);
           });
           console.log('[updateWarehouseChoices] All warehouses added to select');
+          
+          // After adding all options, explicitly set the value if currentValue exists
+          if (currentValue) {
+            const matchingOption = Array.from(warehouseSelect.options).find(opt => opt.value == currentValue || opt.value === currentValue);
+            if (matchingOption) {
+              warehouseSelect.value = matchingOption.value;
+              console.log('[updateWarehouseChoices] Explicitly set warehouse select value to:', matchingOption.value);
+            } else {
+              console.warn('[updateWarehouseChoices] Current value', currentValue, 'not found in warehouse options. Available values:', Array.from(warehouseSelect.options).map(opt => opt.value));
+            }
+          } else {
+            // If no currentValue, check if there's a data-initial-value attribute
+            const initialValue = warehouseSelect.getAttribute('data-initial-value');
+            if (initialValue) {
+              const matchingOption = Array.from(warehouseSelect.options).find(opt => opt.value == initialValue || opt.value === initialValue);
+              if (matchingOption) {
+                warehouseSelect.value = matchingOption.value;
+                console.log('[updateWarehouseChoices] Set warehouse select value from data-initial-value:', matchingOption.value);
+              }
+            }
+          }
         } else {
           console.log('[updateWarehouseChoices] No warehouses found for this item');
         }
@@ -2751,9 +2802,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize filters for all line forms
   function initializeLineFormFilters() {
     // Don't initialize if document is locked (view mode)
+    /* eslint-disable */
     {% if document_is_locked %}
     return;
     {% endif %}
+    /* eslint-enable */
     
     console.log('[initializeLineFormFilters] Starting initialization...');
     const lineForms = document.querySelectorAll('.line-form');
@@ -2839,6 +2892,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Initialize filters for all existing line forms
   // BUT: Don't initialize filters if document is locked (view mode)
+  /* eslint-disable */
   {% if not document_is_locked %}
   console.log('[Initialization] Starting initialization...');
   initializeLineFormFilters();
@@ -2897,13 +2951,31 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       if (warehouseSelect) {
         console.log('[Initialization] Updating warehouse choices for pre-selected item');
+        // Save current warehouse value before updating
+        const currentWarehouseValue = warehouseSelect.value || warehouseSelect.querySelector('option[selected]')?.value;
+        console.log('[Initialization] Current warehouse value before update:', currentWarehouseValue);
+        // Store it in a data attribute so updateWarehouseChoices can use it
+        if (currentWarehouseValue) {
+          warehouseSelect.setAttribute('data-initial-value', currentWarehouseValue);
+        }
         updateWarehouseChoices(itemSelect, warehouseSelect);
+      }
+    }
+    
+    // Also ensure setupItemSelectHandlers is called for all existing forms
+    if (itemSelect) {
+      const unitSelect = lineForm.querySelector('select[name*="-unit"]');
+      const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+      if (unitSelect || warehouseSelect) {
+        console.log('[Initialization] Setting up item select handlers for existing form');
+        setupItemSelectHandlers(lineForm);
       }
     }
   });
   
   console.log('[Initialization] Initialization completed');
   {% endif %}
+  /* eslint-enable */
   
   // Attach item change handlers for single-line forms (like ReceiptTemporary)
   // Handle forms without lines_formset (single-line forms)

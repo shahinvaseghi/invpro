@@ -29,7 +29,7 @@ class InventoryBaseView(LoginRequiredMixin):
         """Filter queryset by active company."""
         queryset = super().get_queryset()
         company_id = self.request.session.get('active_company_id')
-        if company_id and hasattr(queryset.model, 'company'):
+        if company_id and (hasattr(queryset.model, 'company') or hasattr(queryset.model, 'company_id')):
             queryset = queryset.filter(company_id=company_id)
         return queryset
     

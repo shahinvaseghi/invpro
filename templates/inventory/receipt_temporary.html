@@ -264,7 +264,7 @@
           <td>
             <div class="action-buttons">
               {% if receipt.is_locked %}
-                <a href="{% url 'inventory:receipt_temporary_detail' receipt.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+                <a href="{% url detail_url_name receipt.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
                   {% trans "View" %}
                 </a>
                 <span class="badge badge-locked" style="margin-top:4px;">{% trans "Locked" %}</span>

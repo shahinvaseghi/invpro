@@ -466,12 +466,14 @@ class ReceiptLineBaseForm(forms.ModelForm):
             if 'item' in self.fields:
                 logger.info("Setting up item field queryset")
                 # For existing instances, include the current item even if disabled
-                queryset = Item.objects.filter(company_id=self.company_id, is_enabled=1)
+                # Use models.Item instead of Item to avoid UnboundLocalError
+                from .. import models
+                queryset = models.Item.objects.filter(company_id=self.company_id, is_enabled=1)
                 logger.info(f"Initial queryset count (enabled only): {queryset.count()}")
                 if getattr(self.instance, 'pk', None) and getattr(self.instance, 'item_id', None):
                     logger.info(f"Instance has pk and item_id, including current item in queryset")
                     # Include the current item even if it's disabled
-                    queryset = Item.objects.filter(
+                    queryset = models.Item.objects.filter(
                         company_id=self.company_id
                     ).filter(
                         Q(is_enabled=1) | Q(pk=self.instance.item_id)
@@ -488,17 +490,30 @@ class ReceiptLineBaseForm(forms.ModelForm):
                     logger.info(f"Instance item_id={self.instance.item_id} in queryset: {in_queryset}")
             
             if 'warehouse' in self.fields:
-                # For existing instances, include the current warehouse even if disabled
-                queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
-                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
-                    # Include the current warehouse even if it's disabled
-                    queryset = Warehouse.objects.filter(
-                        company_id=self.company_id
-                    ).filter(
-                        Q(is_enabled=1) | Q(pk=self.instance.warehouse_id)
-                    )
-                self.fields['warehouse'].queryset = queryset.order_by('name')
-                self.fields['warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
+                # First, try to get item to set warehouse queryset based on allowed warehouses
+                item = None
+                if getattr(self.instance, 'item_id', None):
+                    try:
+                        from .. import models
+                        item = models.Item.objects.filter(pk=self.instance.item_id, company_id=self.company_id).first()
+                    except Exception:
+                        pass
+                
+                if item:
+                    # Set warehouse queryset based on item's allowed warehouses
+                    self._set_warehouse_queryset(item=item)
+                else:
+                    # Fallback: For existing instances, include the current warehouse even if disabled
+                    queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
+                    if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
+                        # Include the current warehouse even if it's disabled
+                        queryset = Warehouse.objects.filter(
+                            company_id=self.company_id
+                        ).filter(
+                            Q(is_enabled=1) | Q(pk=self.instance.warehouse_id)
+                        )
+                    self.fields['warehouse'].queryset = queryset.order_by('name')
+                    self.fields['warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
             
             if 'supplier' in self.fields:
                 # For existing instances, include the current supplier even if disabled
@@ -572,6 +587,11 @@ class ReceiptLineBaseForm(forms.ModelForm):
                 logger.info("Setting unit choices for item")
                 # Set unit choices based on item
                 self._set_unit_choices_for_item(item)
+            
+            # Set warehouse queryset based on item (for existing instances)
+            if item and 'warehouse' in self.fields:
+                logger.info("Setting warehouse queryset for item")
+                self._set_warehouse_queryset(item=item)
             
             # Get unit value from entered_unit or unit (prioritize entered_unit for display)
             entry_unit = getattr(self.instance, 'entered_unit', '') or getattr(self.instance, 'unit', '')

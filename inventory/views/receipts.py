@@ -237,6 +237,7 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
         """Add context for template."""
         context = super().get_context_data(**kwargs)
         context['create_url'] = reverse_lazy('inventory:receipt_temporary_create')
+        context['detail_url_name'] = 'inventory:receipt_temporary_detail'
         context['edit_url_name'] = 'inventory:receipt_temporary_edit'
         context['delete_url_name'] = 'inventory:receipt_temporary_delete'
         context['lock_url_name'] = 'inventory:receipt_temporary_lock'
@@ -373,6 +374,10 @@ class ReceiptTemporaryDetailView(InventoryBaseView, DetailView):
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
+        # Filter by company_id (from InventoryBaseView)
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            queryset = queryset.filter(company_id=company_id)
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse'
@@ -386,6 +391,37 @@ class ReceiptTemporaryDetailView(InventoryBaseView, DetailView):
         context['receipt_variant'] = 'temporary'
         context['list_url'] = reverse('inventory:receipt_temporary')
         context['edit_url'] = reverse('inventory:receipt_temporary_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
+        return context
+
+
+class ReceiptPermanentDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing permanent receipts (read-only)."""
+    model = models.ReceiptPermanent
+    template_name = 'inventory/receipt_detail.html'
+    context_object_name = 'receipt'
+    
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        # Filter by company_id (from InventoryBaseView)
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            queryset = queryset.filter(company_id=company_id)
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse',
+            'lines__supplier'
+        ).select_related('created_by', 'temporary_receipt', 'purchase_request')
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'inventory'
+        context['receipt_variant'] = 'permanent'
+        context['list_url'] = reverse('inventory:receipt_permanent')
+        context['edit_url'] = reverse('inventory:receipt_permanent_edit', kwargs={'pk': self.object.pk})
         context['can_edit'] = not getattr(self.object, 'is_locked', 0)
         return context
 
@@ -570,6 +606,7 @@ class ReceiptPermanentListView(InventoryBaseView, ListView):
         """Add context for template."""
         context = super().get_context_data(**kwargs)
         context['create_url'] = reverse_lazy('inventory:receipt_permanent_create')
+        context['detail_url_name'] = 'inventory:receipt_permanent_detail'
         context['edit_url_name'] = 'inventory:receipt_permanent_edit'
         context['delete_url_name'] = 'inventory:receipt_permanent_delete'
         context['lock_url_name'] = 'inventory:receipt_permanent_lock'
@@ -802,6 +839,7 @@ class ReceiptConsignmentListView(InventoryBaseView, ListView):
         """Add context for template."""
         context = super().get_context_data(**kwargs)
         context['create_url'] = reverse_lazy('inventory:receipt_consignment_create')
+        context['detail_url_name'] = 'inventory:receipt_consignment_detail'
         context['edit_url_name'] = 'inventory:receipt_consignment_edit'
         context['delete_url_name'] = 'inventory:receipt_consignment_delete'
         context['lock_url_name'] = 'inventory:receipt_consignment_lock'
