@@ -200,12 +200,43 @@ def get_filtered_items(request: HttpRequest) -> JsonResponse:
         category_id = request.GET.get('category_id')
         subcategory_id = request.GET.get('subcategory_id')
         search_term = request.GET.get('search', '').strip()
+        # Allow including specific item_id even if user doesn't have permission (for initial data)
+        include_item_id = request.GET.get('include_item_id')
 
         # Start with all enabled items in company
         items = models.Item.objects.filter(
             company_id=company_id,
             is_enabled=1
         ).select_related('type', 'category', 'subcategory')
+
+        # Apply permission filter (own vs all) - but allow superuser to see all
+        if not request.user.is_superuser:
+            from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+            permissions = get_user_feature_permissions(request.user, company_id)
+            can_view_all = has_feature_permission(permissions, 'inventory.master.items', 'view_all', allow_own_scope=False)
+            can_view_own = has_feature_permission(permissions, 'inventory.master.items', 'view_own', allow_own_scope=True)
+            
+            if can_view_all:
+                # User can see all items, no filter needed
+                pass
+            elif can_view_own:
+                # User can only see own items
+                items = items.filter(created_by=request.user)
+            else:
+                # User has no view permission, return empty
+                items = items.none()
+        
+        # If include_item_id is provided, include it even if it doesn't match filters
+        # This is useful for initial data in formsets (e.g., from purchase requests)
+        if include_item_id:
+            try:
+                include_item = models.Item.objects.get(pk=include_item_id, company_id=company_id)
+                if not items.filter(pk=include_item_id).exists():
+                    # Add it to queryset using union
+                    items = items.union(models.Item.objects.filter(pk=include_item_id))
+                    logger.info(f"get_filtered_items: Including item_id={include_item_id} even though it doesn't match filters")
+            except models.Item.DoesNotExist:
+                pass
 
         # Apply filters
         if type_id:
@@ -243,6 +274,7 @@ def get_filtered_items(request: HttpRequest) -> JsonResponse:
         logger.info(f"get_filtered_items: Returning {len(items_data)} items")
         return JsonResponse({'items': items_data, 'total_count': total_count})
     except Exception as e:
+        logger.error(f"get_filtered_items: Error: {e}", exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
 
 

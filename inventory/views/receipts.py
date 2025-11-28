@@ -1004,19 +1004,12 @@ class ReceiptTemporaryCreateFromPurchaseRequestView(ReceiptTemporaryCreateView):
                     logger.info(f"  Found line: item={line.item.name if line.item else 'None'} (pk={line.item.pk if line.item else None}), "
                                f"unit={line.unit}, quantity_requested={line.quantity_requested}")
                     
-                    # Get warehouse from item's allowed warehouses (first one)
-                    from inventory.models import ItemWarehouse
-                    item_warehouse = ItemWarehouse.objects.filter(
-                        item=line.item,
-                        company_id=purchase_request.company_id,
-                        is_enabled=1
-                    ).first()
-                    warehouse = item_warehouse.warehouse if item_warehouse else None
-                    logger.info(f"  Warehouse: {warehouse.name if warehouse else 'None'} (pk={warehouse.pk if warehouse else None})")
+                    # Don't set warehouse - let user select it
+                    # Warehouse should be empty so user can choose from allowed warehouses
                     
                     initial_item = {
                         'item': line.item.pk if line.item else None,
-                        'warehouse': warehouse.pk if warehouse else None,
+                        'warehouse': None,  # Leave empty for user to select
                         'unit': line.unit,
                         'quantity': str(Decimal(quantity)),
                         'entered_unit': line.unit,
@@ -1052,57 +1045,71 @@ class ReceiptTemporaryCreateFromPurchaseRequestView(ReceiptTemporaryCreateView):
             # Build formset with initial data
             logger.info("Building formset with initial data")
             company_id = self.request.session.get('active_company_id')
+            # Build formset with initial data - Django formsets accept initial as a list of dicts
+            # But we need to ensure enough forms are created (Django only creates forms based on extra + initial)
+            # So we need to manually adjust the formset after creation
             formset_kwargs = {
                 'instance': None,
                 'prefix': self.formset_prefix,
                 'company_id': company_id,
+                'initial': initial_data,  # Pass initial data to formset constructor
             }
             lines_formset = self.formset_class(**formset_kwargs)
             
-            # Adjust number of forms to match initial_data length
+            # Django creates forms based on: initial data + extra
+            # If we have 3 initial items and extra=1, Django creates 4 forms (3 from initial + 1 extra)
+            # But we want exactly len(initial_data) forms, so we need to adjust
+            logger.info(f"Formset created with {len(lines_formset.forms)} forms (initial_data has {len(initial_data)} items)")
+            
+            # Ensure we have exactly len(initial_data) forms
             while len(lines_formset.forms) < len(initial_data):
+                # Add more forms if needed
                 lines_formset.forms.append(lines_formset._construct_form(len(lines_formset.forms)))
+                logger.info(f"Added form {len(lines_formset.forms) - 1}")
+            
+            # Remove extra forms beyond initial_data length
             while len(lines_formset.forms) > len(initial_data):
                 lines_formset.forms.pop()
+                logger.info(f"Removed extra form, now {len(lines_formset.forms)} forms")
             
-            # Update management form TOTAL_FORMS
+            # Update management form TOTAL_FORMS to match initial_data length
             if lines_formset.management_form:
                 lines_formset.management_form.initial['TOTAL_FORMS'] = len(initial_data)
                 lines_formset.management_form.fields['TOTAL_FORMS'].initial = len(initial_data)
+                # Also update the bound value if form is bound
+                if hasattr(lines_formset.management_form, 'data'):
+                    lines_formset.management_form.data = lines_formset.management_form.data.copy()
+                    lines_formset.management_form.data[lines_formset.management_form.add_prefix('TOTAL_FORMS')] = str(len(initial_data))
             
-            # Set initial data and ensure querysets include selected items
+            # Ensure querysets include selected items (for item field)
             from django.db.models import Q
             
             for idx, form in enumerate(lines_formset.forms):
                 if idx < len(initial_data):
                     init_data = initial_data[idx]
-                    logger.info(f"Setting initial data for form {idx}: {init_data}")
-                    form.initial = init_data
+                    logger.info(f"Processing form {idx} with initial data: {init_data}")
                     
-                    # For each field, set initial and ensure queryset includes the value
-                    for field_name, field_value in init_data.items():
-                        if field_name in form.fields and field_value:
-                            field = form.fields[field_name]
-                            # For ModelChoiceField, set initial to the actual object
-                            if hasattr(field, 'queryset') and hasattr(field.queryset, 'model'):
-                                try:
-                                    obj = field.queryset.model.objects.get(pk=field_value)
-                                    field.initial = obj
-                                    logger.info(f"  Set {field_name} initial to object: {obj}")
-                                    # Check if it's in current queryset
-                                    if not field.queryset.filter(pk=field_value).exists():
-                                        # Add it to queryset
-                                        field.queryset = field.queryset.model.objects.filter(
-                                            Q(pk=field_value) | Q(pk__in=field.queryset.values_list('pk', flat=True))
-                                        )
-                                        logger.info(f"  Added {field_name} {field_value} to queryset")
-                                except field.queryset.model.DoesNotExist:
-                                    logger.warning(f"  {field_name} object with pk={field_value} not found")
-                                    field.initial = field_value # Fallback to PK if object not found
-                            else:
-                                # For non-ModelChoiceField, just set the value
-                                field.initial = field_value
-                            logger.info(f"  Set {field_name} initial to: {field.initial}")
+                    # For item field, ensure it's in queryset even if user doesn't have permission
+                    if 'item' in form.fields and init_data.get('item'):
+                        item_id = init_data['item']
+                        field = form.fields['item']
+                        if hasattr(field, 'queryset') and hasattr(field.queryset, 'model'):
+                            # Check if item is in queryset
+                            if not field.queryset.filter(pk=item_id).exists():
+                                # Add it to queryset
+                                field.queryset = field.queryset.model.objects.filter(
+                                    Q(pk=item_id) | Q(pk__in=field.queryset.values_list('pk', flat=True))
+                                )
+                                logger.info(f"  Added item {item_id} to queryset")
+                            
+                            # Set initial to the actual object
+                            try:
+                                obj = field.queryset.model.objects.get(pk=item_id)
+                                field.initial = obj
+                                form.initial['item'] = obj
+                                logger.info(f"  Set item initial to object: {obj}")
+                            except field.queryset.model.DoesNotExist:
+                                logger.warning(f"  Item {item_id} not found")
                     
                     # Keep form unbound so initial values are displayed
                     form.is_bound = False
@@ -1234,19 +1241,12 @@ class ReceiptPermanentCreateFromPurchaseRequestView(ReceiptPermanentCreateView):
                     logger.info(f"  Found line: item={line.item.name if line.item else 'None'} (pk={line.item.pk if line.item else None}), "
                                f"unit={line.unit}, quantity_requested={line.quantity_requested}")
                     
-                    # Get warehouse from item's allowed warehouses (first one)
-                    from inventory.models import ItemWarehouse
-                    item_warehouse = ItemWarehouse.objects.filter(
-                        item=line.item,
-                        company_id=purchase_request.company_id,
-                        is_enabled=1
-                    ).first()
-                    warehouse = item_warehouse.warehouse if item_warehouse else None
-                    logger.info(f"  Warehouse: {warehouse.name if warehouse else 'None'} (pk={warehouse.pk if warehouse else None})")
+                    # Don't set warehouse - let user select it
+                    # Warehouse should be empty so user can choose from allowed warehouses
                     
                     initial_item = {
                         'item': line.item.pk if line.item else None,
-                        'warehouse': warehouse.pk if warehouse else None,
+                        'warehouse': None,  # Leave empty for user to select
                         'unit': line.unit,
                         'quantity': str(Decimal(quantity)),
                         'entered_unit': line.unit,
@@ -1279,94 +1279,77 @@ class ReceiptPermanentCreateFromPurchaseRequestView(ReceiptPermanentCreateView):
             logger.info(f"Current formset has {len(context['lines_formset'].forms)} forms")
             logger.info(f"Using initial_data with {len(initial_data)} items")
             
-            # Build formset with initial data
+            # Build formset with initial data - Django formsets accept initial as a list of dicts
+            # But we need to ensure enough forms are created (Django only creates forms based on extra + initial)
+            # So we need to manually adjust the formset after creation
             logger.info("Building formset with initial data")
-            # Create formset with initial data
             company_id = self.request.session.get('active_company_id')
             formset_kwargs = {
                 'instance': None,
                 'prefix': self.formset_prefix,
                 'company_id': company_id,
+                'initial': initial_data,  # Pass initial data to formset constructor
             }
             lines_formset = self.formset_class(**formset_kwargs)
             
-            # Adjust number of forms to match initial_data length
+            # Django creates forms based on: initial data + extra
+            # If we have 3 initial items and extra=1, Django creates 4 forms (3 from initial + 1 extra)
+            # But we want exactly len(initial_data) forms, so we need to adjust
+            logger.info(f"Formset created with {len(lines_formset.forms)} forms (initial_data has {len(initial_data)} items)")
+            
+            # Ensure we have exactly len(initial_data) forms
             while len(lines_formset.forms) < len(initial_data):
+                # Add more forms if needed
                 lines_formset.forms.append(lines_formset._construct_form(len(lines_formset.forms)))
+                logger.info(f"Added form {len(lines_formset.forms) - 1}")
+            
+            # Remove extra forms beyond initial_data length
             while len(lines_formset.forms) > len(initial_data):
                 lines_formset.forms.pop()
+                logger.info(f"Removed extra form, now {len(lines_formset.forms)} forms")
             
-            # Update management form TOTAL_FORMS
+            # Update management form TOTAL_FORMS to match initial_data length
             if lines_formset.management_form:
                 lines_formset.management_form.initial['TOTAL_FORMS'] = len(initial_data)
                 lines_formset.management_form.fields['TOTAL_FORMS'].initial = len(initial_data)
+                # Also update the bound value if form is bound
+                if hasattr(lines_formset.management_form, 'data'):
+                    lines_formset.management_form.data = lines_formset.management_form.data.copy()
+                    lines_formset.management_form.data[lines_formset.management_form.add_prefix('TOTAL_FORMS')] = str(len(initial_data))
             
-            # Set initial data and ensure querysets include selected items
+            # Ensure querysets include selected items (for item field)
             from django.db.models import Q
-            from django.http import QueryDict
             
             for idx, form in enumerate(lines_formset.forms):
                 if idx < len(initial_data):
                     init_data = initial_data[idx]
-                    logger.info(f"Setting initial data for form {idx}: {init_data}")
-                    form.initial = init_data
+                    logger.info(f"Processing form {idx} with initial data: {init_data}")
                     
-                    # For each field, set initial and ensure queryset includes the value
-                    for field_name, field_value in init_data.items():
-                        if field_name in form.fields and field_value:
-                            form.fields[field_name].initial = field_value
-                            logger.info(f"  Setting {field_name} = {field_value}")
+                    # For item field, ensure it's in queryset even if user doesn't have permission
+                    if 'item' in form.fields and init_data.get('item'):
+                        item_id = init_data['item']
+                        field = form.fields['item']
+                        if hasattr(field, 'queryset') and hasattr(field.queryset, 'model'):
+                            # Check if item is in queryset
+                            if not field.queryset.filter(pk=item_id).exists():
+                                # Add it to queryset
+                                field.queryset = field.queryset.model.objects.filter(
+                                    Q(pk=item_id) | Q(pk__in=field.queryset.values_list('pk', flat=True))
+                                )
+                                logger.info(f"  Added item {item_id} to queryset")
                             
-                            # For ModelChoiceField, ensure selected value is in queryset
-                            field = form.fields[field_name]
-                            if hasattr(field, 'queryset') and hasattr(field.queryset, 'model'):
-                                model = field.queryset.model
-                                try:
-                                    obj = model.objects.get(pk=field_value)
-                                    # Check if it's in current queryset
-                                    if not field.queryset.filter(pk=field_value).exists():
-                                        # Add it to queryset
-                                        field.queryset = model.objects.filter(
-                                            Q(pk=field_value) | Q(pk__in=field.queryset.values_list('pk', flat=True))
-                                        )
-                                        logger.info(f"  Added {field_name} {field_value} to queryset")
-                                except model.DoesNotExist:
-                                    logger.warning(f"  {field_name} {field_value} does not exist in model {model}")
-                                    pass
-                    
-                    # CRITICAL: For ModelChoiceField, we need to set the initial value directly
-                    # and keep form unbound so Django displays the initial value
-                    # Django ModelChoiceField displays initial values in unbound forms
-                    for field_name, field_value in init_data.items():
-                        if field_name in form.fields and field_value:
-                            field = form.fields[field_name]
-                            # For ModelChoiceField, set initial to the actual object
-                            if hasattr(field, 'queryset') and hasattr(field.queryset, 'model'):
-                                try:
-                                    obj = field.queryset.model.objects.get(pk=field_value)
-                                    field.initial = obj
-                                    logger.info(f"  Set {field_name} initial to object: {obj}")
-                                except field.queryset.model.DoesNotExist:
-                                    logger.warning(f"  {field_name} object with pk={field_value} not found")
-                                    field.initial = field_value
-                            else:
-                                # For non-ModelChoiceField, just set the value
-                                field.initial = field_value
-                                logger.info(f"  Set {field_name} initial to: {field_value}")
+                            # Set initial to the actual object
+                            try:
+                                obj = field.queryset.model.objects.get(pk=item_id)
+                                field.initial = obj
+                                form.initial['item'] = obj
+                                logger.info(f"  Set item initial to object: {obj}")
+                            except field.queryset.model.DoesNotExist:
+                                logger.warning(f"  Item {item_id} not found")
                     
                     # Keep form unbound so initial values are displayed
                     form.is_bound = False
                     logger.info(f"  Form {idx} kept unbound, is_bound: {form.is_bound}")
-                    
-                    # Log field values
-                    if 'item' in form.fields:
-                        item_field = form.fields['item']
-                        logger.info(f"Form {idx} item field initial: {item_field.initial}")
-                        logger.info(f"Form {idx} item field initial type: {type(item_field.initial)}")
-                    if 'warehouse' in form.fields:
-                        warehouse_field = form.fields['warehouse']
-                        logger.info(f"Form {idx} warehouse field initial: {warehouse_field.initial}")
-                        logger.info(f"Form {idx} warehouse field initial type: {type(warehouse_field.initial)}")
                 else:
                     form.is_bound = False
                     logger.info(f"Form {idx} has no initial data, keeping unbound")
@@ -1565,93 +1548,77 @@ class ReceiptConsignmentCreateFromPurchaseRequestView(ReceiptConsignmentCreateVi
             logger.info(f"Current formset has {len(context['lines_formset'].forms)} forms")
             logger.info(f"Using initial_data with {len(initial_data)} items")
             
-            # Build formset with initial data
+            # Build formset with initial data - Django formsets accept initial as a list of dicts
+            # But we need to ensure enough forms are created (Django only creates forms based on extra + initial)
+            # So we need to manually adjust the formset after creation
             logger.info("Building formset with initial data")
-            # Create formset with initial data
             company_id = self.request.session.get('active_company_id')
             formset_kwargs = {
                 'instance': None,
                 'prefix': self.formset_prefix,
                 'company_id': company_id,
+                'initial': initial_data,  # Pass initial data to formset constructor
             }
             lines_formset = self.formset_class(**formset_kwargs)
             
-            # Adjust number of forms to match initial_data length
+            # Django creates forms based on: initial data + extra
+            # If we have 3 initial items and extra=1, Django creates 4 forms (3 from initial + 1 extra)
+            # But we want exactly len(initial_data) forms, so we need to adjust
+            logger.info(f"Formset created with {len(lines_formset.forms)} forms (initial_data has {len(initial_data)} items)")
+            
+            # Ensure we have exactly len(initial_data) forms
             while len(lines_formset.forms) < len(initial_data):
+                # Add more forms if needed
                 lines_formset.forms.append(lines_formset._construct_form(len(lines_formset.forms)))
+                logger.info(f"Added form {len(lines_formset.forms) - 1}")
+            
+            # Remove extra forms beyond initial_data length
             while len(lines_formset.forms) > len(initial_data):
                 lines_formset.forms.pop()
+                logger.info(f"Removed extra form, now {len(lines_formset.forms)} forms")
             
-            # Update management form TOTAL_FORMS
+            # Update management form TOTAL_FORMS to match initial_data length
             if lines_formset.management_form:
                 lines_formset.management_form.initial['TOTAL_FORMS'] = len(initial_data)
                 lines_formset.management_form.fields['TOTAL_FORMS'].initial = len(initial_data)
+                # Also update the bound value if form is bound
+                if hasattr(lines_formset.management_form, 'data'):
+                    lines_formset.management_form.data = lines_formset.management_form.data.copy()
+                    lines_formset.management_form.data[lines_formset.management_form.add_prefix('TOTAL_FORMS')] = str(len(initial_data))
             
-            # Set initial data and ensure querysets include selected items
+            # Ensure querysets include selected items (for item field)
             from django.db.models import Q
             
             for idx, form in enumerate(lines_formset.forms):
                 if idx < len(initial_data):
                     init_data = initial_data[idx]
-                    logger.info(f"Setting initial data for form {idx}: {init_data}")
-                    form.initial = init_data
+                    logger.info(f"Processing form {idx} with initial data: {init_data}")
                     
-                    # For each field, set initial and ensure queryset includes the value
-                    for field_name, field_value in init_data.items():
-                        if field_name in form.fields and field_value:
-                            form.fields[field_name].initial = field_value
-                            logger.info(f"  Setting {field_name} = {field_value}")
+                    # For item field, ensure it's in queryset even if user doesn't have permission
+                    if 'item' in form.fields and init_data.get('item'):
+                        item_id = init_data['item']
+                        field = form.fields['item']
+                        if hasattr(field, 'queryset') and hasattr(field.queryset, 'model'):
+                            # Check if item is in queryset
+                            if not field.queryset.filter(pk=item_id).exists():
+                                # Add it to queryset
+                                field.queryset = field.queryset.model.objects.filter(
+                                    Q(pk=item_id) | Q(pk__in=field.queryset.values_list('pk', flat=True))
+                                )
+                                logger.info(f"  Added item {item_id} to queryset")
                             
-                            # For ModelChoiceField, ensure selected value is in queryset
-                            field = form.fields[field_name]
-                            if hasattr(field, 'queryset') and hasattr(field.queryset, 'model'):
-                                model = field.queryset.model
-                                try:
-                                    obj = model.objects.get(pk=field_value)
-                                    # Check if it's in current queryset
-                                    if not field.queryset.filter(pk=field_value).exists():
-                                        # Add it to queryset
-                                        field.queryset = model.objects.filter(
-                                            Q(pk=field_value) | Q(pk__in=field.queryset.values_list('pk', flat=True))
-                                        )
-                                        logger.info(f"  Added {field_name} {field_value} to queryset")
-                                except model.DoesNotExist:
-                                    logger.warning(f"  {field_name} {field_value} does not exist in model {model}")
-                                    pass
-                    
-                    # CRITICAL: For ModelChoiceField, we need to set the initial value directly
-                    # and keep form unbound so Django displays the initial value
-                    # Django ModelChoiceField displays initial values in unbound forms
-                    for field_name, field_value in init_data.items():
-                        if field_name in form.fields and field_value:
-                            field = form.fields[field_name]
-                            # For ModelChoiceField, set initial to the actual object
-                            if hasattr(field, 'queryset') and hasattr(field.queryset, 'model'):
-                                try:
-                                    obj = field.queryset.model.objects.get(pk=field_value)
-                                    field.initial = obj
-                                    logger.info(f"  Set {field_name} initial to object: {obj}")
-                                except field.queryset.model.DoesNotExist:
-                                    logger.warning(f"  {field_name} object with pk={field_value} not found")
-                                    field.initial = field_value
-                            else:
-                                # For non-ModelChoiceField, just set the value
-                                field.initial = field_value
-                                logger.info(f"  Set {field_name} initial to: {field_value}")
+                            # Set initial to the actual object
+                            try:
+                                obj = field.queryset.model.objects.get(pk=item_id)
+                                field.initial = obj
+                                form.initial['item'] = obj
+                                logger.info(f"  Set item initial to object: {obj}")
+                            except field.queryset.model.DoesNotExist:
+                                logger.warning(f"  Item {item_id} not found")
                     
                     # Keep form unbound so initial values are displayed
                     form.is_bound = False
                     logger.info(f"  Form {idx} kept unbound, is_bound: {form.is_bound}")
-                    
-                    # Log field values
-                    if 'item' in form.fields:
-                        item_field = form.fields['item']
-                        logger.info(f"Form {idx} item field initial: {item_field.initial}")
-                        logger.info(f"Form {idx} item field initial type: {type(item_field.initial)}")
-                    if 'warehouse' in form.fields:
-                        warehouse_field = form.fields['warehouse']
-                        logger.info(f"Form {idx} warehouse field initial: {warehouse_field.initial}")
-                        logger.info(f"Form {idx} warehouse field initial type: {type(warehouse_field.initial)}")
                 else:
                     form.is_bound = False
                     logger.info(f"Form {idx} has no initial data, keeping unbound")

@@ -462,18 +462,39 @@ class ReceiptLineBaseForm(forms.ModelForm):
                 from .. import models
                 queryset = models.Item.objects.filter(company_id=self.company_id, is_enabled=1)
                 logger.info(f"Initial queryset count (enabled only): {queryset.count()}")
+                
+                # Collect item IDs that should be included (from instance or initial data)
+                item_ids_to_include = []
+                
+                # Include item from instance if it exists
                 if getattr(self.instance, 'pk', None) and getattr(self.instance, 'item_id', None):
-                    logger.info(f"Instance has pk and item_id, including current item in queryset")
-                    # Include the current item even if it's disabled
+                    item_ids_to_include.append(self.instance.item_id)
+                    logger.info(f"Instance has pk and item_id={self.instance.item_id}, will include in queryset")
+                
+                # Include item from initial data if it exists (for formsets with pre-populated data)
+                if 'item' in self.initial and self.initial['item']:
+                    initial_item_id = self.initial['item']
+                    if isinstance(initial_item_id, models.Item):
+                        initial_item_id = initial_item_id.pk
+                    if initial_item_id and initial_item_id not in item_ids_to_include:
+                        item_ids_to_include.append(initial_item_id)
+                        logger.info(f"Initial data has item_id={initial_item_id}, will include in queryset")
+                
+                # Build queryset with included items
+                if item_ids_to_include:
+                    logger.info(f"Including {len(item_ids_to_include)} items in queryset: {item_ids_to_include}")
                     queryset = models.Item.objects.filter(
                         company_id=self.company_id
                     ).filter(
-                        Q(is_enabled=1) | Q(pk=self.instance.item_id)
+                        Q(is_enabled=1) | Q(pk__in=item_ids_to_include)
                     )
-                    logger.info(f"Final queryset count (with current item): {queryset.count()}")
-                    logger.info(f"Current item_id in queryset: {queryset.filter(pk=self.instance.item_id).exists()}")
+                    logger.info(f"Final queryset count (with included items): {queryset.count()}")
+                    for item_id in item_ids_to_include:
+                        in_queryset = queryset.filter(pk=item_id).exists()
+                        logger.info(f"Item_id={item_id} in queryset: {in_queryset}")
                 else:
-                    logger.info("Instance has no pk or item_id, using enabled items only")
+                    logger.info("No items to include, using enabled items only")
+                
                 self.fields['item'].queryset = queryset.order_by('name')
                 self.fields['item'].label_from_instance = lambda obj: f"{obj.name} · {obj.item_code}"
                 logger.info(f"Item field queryset set, count: {self.fields['item'].queryset.count()}")
