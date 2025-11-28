@@ -38,54 +38,99 @@
     </div>
   </div>
 
-  <form method="post" class="entity-form" action="{% url 'qc:temporary_receipt_rejection_management_save' receipt.pk %}">
+  <form method="post" class="entity-form" action="{% url 'qc:temporary_receipt_rejection_management_save' receipt.pk %}" id="rejection-form">
     {% csrf_token %}
     
     <div class="form-section">
       <h3>{% trans "Manage Rejection Reasons" %}</h3>
-      <p class="form-text">{% trans "Enter rejection reasons for each rejected line. This information will be used for tracking and reporting." %}</p>
+      <p class="form-text">{% trans "Enter detailed rejection reasons for each rejected line. You can add multiple reasons for different quantities of the same rejected item." %}</p>
       
-      <table class="data-table" style="margin-top: 1rem;">
-        <thead>
-          <tr>
-            <th>{% trans "Item" %}</th>
-            <th>{% trans "Warehouse" %}</th>
-            <th>{% trans "Unit" %}</th>
-            <th>{% trans "Rejected Quantity" %}</th>
-            <th>{% trans "Rejection Reason" %} *</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for line in rejected_lines %}
-          <tr>
-            <td>
-              <strong>{{ line.item.name }}</strong><br>
-              <small style="color: #6b7280;"><code>{{ line.item.item_code }}</code></small>
-            </td>
-            <td>{{ line.warehouse.name }}</td>
-            <td>{{ line.unit }}</td>
-            <td style="text-align: right; font-weight: 600; color: #ef4444;">
-              {{ line.qc_rejected_quantity|floatformat:2 }}
-            </td>
-            <td>
-              <textarea 
-                name="rejection_reason_{{ line.pk }}" 
-                id="rejection_reason_{{ line.pk }}"
-                class="form-control"
-                rows="3"
-                required
-                placeholder="{% trans 'Enter rejection reason for this line...' %}">{{ line.qc_rejection_reason }}</textarea>
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="5" style="text-align: center; padding: 2rem; color: #6b7280;">
-              {% trans "No rejected lines found in this receipt." %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      {% for line in rejected_lines %}
+      <div class="rejected-line-section" data-line-id="{{ line.pk }}" style="margin-bottom: 2rem; padding: 1.5rem; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <div>
+            <strong>{{ line.item.name }}</strong>
+            <small style="color: #6b7280; margin-right: 0.5rem;"><code>{{ line.item.item_code }}</code></small>
+            <span style="margin-right: 1rem;">|</span>
+            <span>{% trans "Warehouse" %}: {{ line.warehouse.name }}</span>
+            <span style="margin-right: 1rem;">|</span>
+            <span>{% trans "Unit" %}: {{ line.unit }}</span>
+            <span style="margin-right: 1rem;">|</span>
+            <span style="color: #ef4444; font-weight: 600;">{% trans "Rejected Quantity" %}: {{ line.qc_rejected_quantity|floatformat:2 }}</span>
+          </div>
+          <button type="button" class="btn btn-sm btn-success add-detail-btn" data-line-id="{{ line.pk }}" style="padding: 4px 12px; font-size: 0.85rem;">
+            + {% trans "Add Detail" %}
+          </button>
+        </div>
+        
+        <div class="rejection-details-container" data-line-id="{{ line.pk }}">
+          <table class="detail-table" style="width: 100%;">
+            <thead>
+              <tr>
+                <th style="width: 150px;">{% trans "Quantity" %} *</th>
+                <th>{% trans "Rejection Reason" %} *</th>
+                <th style="width: 80px;">{% trans "Actions" %}</th>
+              </tr>
+            </thead>
+            <tbody class="detail-tbody" data-line-id="{{ line.pk }}">
+              {% for detail in line.rejection_details.all %}
+              <tr class="detail-row" data-line-id="{{ line.pk }}">
+                <td>
+                  <input type="number" 
+                         name="detail_quantity_{{ line.pk }}[]" 
+                         class="form-control detail-quantity"
+                         data-line-id="{{ line.pk }}"
+                         data-max="{{ line.qc_rejected_quantity|floatformat:2 }}"
+                         value="{{ detail.quantity|floatformat:2 }}"
+                         min="0"
+                         max="{{ line.qc_rejected_quantity|floatformat:2 }}"
+                         step="0.001"
+                         required
+                         style="width: 100%; text-align: right;">
+                  <input type="hidden" name="detail_id_{{ line.pk }}[]" value="{{ detail.pk }}">
+                </td>
+                <td>
+                  <textarea 
+                    name="detail_reason_{{ line.pk }}[]" 
+                    class="form-control detail-reason"
+                    rows="2"
+                    required
+                    placeholder="{% trans 'Enter detailed rejection reason...' %}">{{ detail.reason }}</textarea>
+                </td>
+                <td style="text-align: center;">
+                  <button type="button" class="btn btn-sm btn-danger remove-detail-btn" style="padding: 2px 8px; font-size: 0.75rem;">
+                    ✗
+                  </button>
+                </td>
+              </tr>
+              {% empty %}
+              <tr class="detail-row empty-row" data-line-id="{{ line.pk }}">
+                <td colspan="3" style="text-align: center; padding: 1rem; color: #6b7280;">
+                  {% trans "No details added. Click 'Add Detail' to add rejection details." %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3">
+                  <div class="quantity-summary" data-line-id="{{ line.pk }}" style="margin-top: 0.5rem; padding: 0.5rem; background-color: #f3f4f6; border-radius: 4px;">
+                    <strong>{% trans "Total" %}: <span class="total-quantity" data-line-id="{{ line.pk }}">0.00</span> / <span class="max-quantity" data-line-id="{{ line.pk }}">{{ line.qc_rejected_quantity|floatformat:2 }}</span></strong>
+                    <span class="quantity-error" data-line-id="{{ line.pk }}" style="color: #ef4444; margin-right: 1rem; display: none;">
+                      {% trans "Total quantity exceeds rejected quantity!" %}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+      {% empty %}
+      <div style="text-align: center; padding: 2rem; color: #6b7280;">
+        {% trans "No rejected lines found in this receipt." %}
+      </div>
+      {% endfor %}
     </div>
 
     <div class="form-actions">
@@ -97,7 +142,7 @@
 
 <style>
 .form-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 2rem auto;
   background: #ffffff;
   padding: 2rem;
@@ -112,13 +157,16 @@
   font-weight: 600;
 }
 
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
+.rejected-line-section {
+  margin-bottom: 2rem;
 }
 
-.data-table th {
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.detail-table th {
   background-color: #f3f4f6;
   padding: 0.75rem;
   text-align: right;
@@ -128,13 +176,20 @@
   border-bottom: 2px solid #e5e7eb;
 }
 
-.data-table td {
+.detail-table td {
   padding: 0.75rem;
   border-bottom: 1px solid #e5e7eb;
 }
 
-.data-table tbody tr:hover {
+.detail-table tbody tr:hover {
   background-color: #f9fafb;
+}
+
+.empty-row td {
+  text-align: center;
+  padding: 1rem;
+  color: #6b7280;
+  font-style: italic;
 }
 
 .form-actions {
@@ -146,5 +201,165 @@
   border-top: 1px solid #e5e7eb;
 }
 </style>
-{% endblock %}
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Add detail button functionality
+  document.querySelectorAll('.add-detail-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const lineId = this.getAttribute('data-line-id');
+      const tbody = document.querySelector('.detail-tbody[data-line-id="' + lineId + '"]');
+      const maxQuantity = parseFloat(this.closest('.rejected-line-section').querySelector('.max-quantity').textContent);
+      
+      // Remove empty row if exists
+      const emptyRow = tbody.querySelector('.empty-row');
+      if (emptyRow) {
+        emptyRow.remove();
+      }
+      
+      // Create new row
+      const newRow = document.createElement('tr');
+      newRow.className = 'detail-row';
+      newRow.setAttribute('data-line-id', lineId);
+      newRow.innerHTML = `
+        <td>
+          <input type="number" 
+                 name="detail_quantity_${lineId}[]" 
+                 class="form-control detail-quantity"
+                 data-line-id="${lineId}"
+                 data-max="${maxQuantity}"
+                 value="0"
+                 min="0"
+                 max="${maxQuantity}"
+                 step="0.001"
+                 required
+                 style="width: 100%; text-align: right;">
+          <input type="hidden" name="detail_id_${lineId}[]" value="">
+        </td>
+        <td>
+          <textarea 
+            name="detail_reason_${lineId}[]" 
+            class="form-control detail-reason"
+            rows="2"
+            required
+            placeholder="{% trans 'Enter detailed rejection reason...' %}"></textarea>
+        </td>
+        <td style="text-align: center;">
+          <button type="button" class="btn btn-sm btn-danger remove-detail-btn" style="padding: 2px 8px; font-size: 0.75rem;">
+            ✗
+          </button>
+        </td>
+      `;
+      
+      tbody.appendChild(newRow);
+      
+      // Attach event listeners to new row
+      attachRowListeners(newRow, lineId);
+      
+      // Update totals
+      updateQuantityTotal(lineId);
+    });
+  });
+  
+  // Remove detail button functionality (event delegation)
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('remove-detail-btn')) {
+      const row = e.target.closest('.detail-row');
+      const lineId = row.getAttribute('data-line-id');
+      const tbody = row.closest('tbody');
+      
+      row.remove();
+      
+      // If no rows left, add empty row
+      if (tbody.querySelectorAll('.detail-row').length === 0) {
+        const emptyRow = document.createElement('tr');
+        emptyRow.className = 'detail-row empty-row';
+        emptyRow.setAttribute('data-line-id', lineId);
+        emptyRow.innerHTML = `
+          <td colspan="3" style="text-align: center; padding: 1rem; color: #6b7280;">
+            {% trans "No details added. Click 'Add Detail' to add rejection details." %}
+          </td>
+        `;
+        tbody.appendChild(emptyRow);
+      }
+      
+      updateQuantityTotal(lineId);
+    }
+  });
+  
+  // Attach listeners to existing rows
+  document.querySelectorAll('.detail-row').forEach(function(row) {
+    if (!row.classList.contains('empty-row')) {
+      const lineId = row.getAttribute('data-line-id');
+      attachRowListeners(row, lineId);
+    }
+  });
+  
+  function attachRowListeners(row, lineId) {
+    const quantityInput = row.querySelector('.detail-quantity');
+    if (quantityInput) {
+      quantityInput.addEventListener('input', function() {
+        updateQuantityTotal(lineId);
+      });
+    }
+  }
+  
+  function updateQuantityTotal(lineId) {
+    const tbody = document.querySelector('.detail-tbody[data-line-id="' + lineId + '"]');
+    const quantityInputs = tbody.querySelectorAll('.detail-quantity:not([disabled])');
+    const maxQuantity = parseFloat(document.querySelector('.max-quantity[data-line-id="' + lineId + '"]').textContent);
+    
+    let total = 0;
+    quantityInputs.forEach(function(input) {
+      const value = parseFloat(input.value) || 0;
+      total += value;
+    });
+    
+    const totalSpan = document.querySelector('.total-quantity[data-line-id="' + lineId + '"]');
+    const errorSpan = document.querySelector('.quantity-error[data-line-id="' + lineId + '"]');
+    
+    totalSpan.textContent = total.toFixed(2);
+    
+    if (total > maxQuantity) {
+      totalSpan.style.color = '#ef4444';
+      if (errorSpan) {
+        errorSpan.style.display = 'inline';
+      }
+    } else {
+      totalSpan.style.color = '#111827';
+      if (errorSpan) {
+        errorSpan.style.display = 'none';
+      }
+    }
+  }
+  
+  // Initialize totals for all lines
+  document.querySelectorAll('.rejected-line-section').forEach(function(section) {
+    const lineId = section.getAttribute('data-line-id');
+    updateQuantityTotal(lineId);
+  });
+  
+  // Form validation before submit
+  document.getElementById('rejection-form').addEventListener('submit', function(e) {
+    let hasError = false;
+    
+    document.querySelectorAll('.rejected-line-section').forEach(function(section) {
+      const lineId = section.getAttribute('data-line-id');
+      const totalSpan = document.querySelector('.total-quantity[data-line-id="' + lineId + '"]');
+      const maxQuantity = parseFloat(document.querySelector('.max-quantity[data-line-id="' + lineId + '"]').textContent);
+      const total = parseFloat(totalSpan.textContent) || 0;
+      
+      if (total !== maxQuantity) {
+        hasError = true;
+        alert('{% trans "For line" %} ' + section.querySelector('strong').textContent.trim() + ', {% trans "total detail quantities must equal rejected quantity" %}: ' + maxQuantity.toFixed(2));
+      }
+    });
+    
+    if (hasError) {
+      e.preventDefault();
+      return false;
+    }
+  });
+});
+</script>
+{% endblock %}

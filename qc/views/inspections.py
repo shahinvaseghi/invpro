@@ -327,11 +327,11 @@ class TemporaryReceiptQCRejectionManagementView(FeaturePermissionRequiredMixin, 
         context = super().get_context_data(**kwargs)
         receipt = self.get_receipt()
         
-        # Get only rejected lines
+        # Get only rejected lines with their rejection details
         rejected_lines = receipt.lines.filter(
             is_enabled=1,
             is_qc_rejected=1
-        ).select_related('item', 'warehouse').order_by('sort_order', 'id')
+        ).select_related('item', 'warehouse').prefetch_related('rejection_details').order_by('sort_order', 'id')
         
         context['receipt'] = receipt
         context['rejected_lines'] = rejected_lines
@@ -346,7 +346,7 @@ class TemporaryReceiptQCRejectionManagementSaveView(FeaturePermissionRequiredMix
     required_action = 'approve'
     
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseRedirect:
-        """Save rejection reasons for rejected lines."""
+        """Save rejection reasons and details for rejected lines."""
         receipt = get_object_or_404(
             inventory_models.ReceiptTemporary,
             pk=kwargs['pk'],
@@ -354,25 +354,88 @@ class TemporaryReceiptQCRejectionManagementSaveView(FeaturePermissionRequiredMix
             is_enabled=1
         )
         
-        # Get rejected lines and their rejection reasons
+        # Get rejected lines
         rejected_lines = receipt.lines.filter(is_enabled=1, is_qc_rejected=1)
+        company_id = request.session.get('active_company_id')
+        
+        if not company_id:
+            messages.error(request, _('No active company selected.'))
+            return HttpResponseRedirect(reverse('qc:temporary_receipts'))
+        
         updated_count = 0
+        detail_count = 0
         
         with transaction.atomic():
             for line in rejected_lines:
                 line_id = str(line.pk)
-                rejection_reason_key = f'rejection_reason_{line_id}'
-                rejection_reason = request.POST.get(rejection_reason_key, '').strip()
                 
-                if rejection_reason:
-                    line.qc_rejection_reason = rejection_reason
-                    line.save(update_fields=['qc_rejection_reason'])
-                    updated_count += 1
+                # Get detail quantities and reasons
+                detail_quantities = request.POST.getlist(f'detail_quantity_{line_id}[]')
+                detail_reasons = request.POST.getlist(f'detail_reason_{line_id}[]')
+                detail_ids = request.POST.getlist(f'detail_id_{line_id}[]')
+                
+                # Validate total quantity
+                total_detail_quantity = sum(Decimal(str(qty)) for qty in detail_quantities if qty)
+                
+                if abs(total_detail_quantity - line.qc_rejected_quantity) > Decimal('0.001'):
+                    messages.error(request, _('For line {item}, total detail quantities ({total}) must equal rejected quantity ({rejected}).').format(
+                        item=line.item.name,
+                        total=total_detail_quantity,
+                        rejected=line.qc_rejected_quantity
+                    ))
+                    return HttpResponseRedirect(reverse('qc:temporary_receipt_rejection_management', kwargs={'pk': receipt.pk}))
+                
+                # Delete existing details that are not in the new list
+                existing_detail_ids = [str(d.id) for d in line.rejection_details.all()]
+                detail_ids_to_keep = [did for did in detail_ids if did and did in existing_detail_ids]
+                line.rejection_details.exclude(pk__in=detail_ids_to_keep).delete()
+                
+                # Update or create details
+                for i, (quantity_str, reason) in enumerate(zip(detail_quantities, detail_reasons)):
+                    if not quantity_str or not reason.strip():
+                        continue
+                    
+                    try:
+                        quantity = Decimal(str(quantity_str))
+                        if quantity <= 0:
+                            continue
+                        
+                        reason = reason.strip()
+                        if not reason:
+                            continue
+                        
+                        detail_id = detail_ids[i] if i < len(detail_ids) and detail_ids[i] else None
+                        
+                        if detail_id:
+                            # Update existing detail
+                            detail = line.rejection_details.filter(pk=detail_id).first()
+                            if detail:
+                                detail.quantity = quantity
+                                detail.reason = reason
+                                detail.save(update_fields=['quantity', 'reason'])
+                                detail_count += 1
+                        else:
+                            # Create new detail
+                            inventory_models.QCRejectionDetail.objects.create(
+                                line=line,
+                                company_id=company_id,
+                                quantity=quantity,
+                                reason=reason,
+                                created_by=request.user
+                            )
+                            detail_count += 1
+                    except (ValueError, InvalidOperation):
+                        continue
+                
+                updated_count += 1
         
-        if updated_count > 0:
-            messages.success(request, _('Rejection reasons saved for {count} line(s).').format(count=updated_count))
+        if detail_count > 0:
+            messages.success(request, _('Rejection details saved: {count} detail(s) for {lines} line(s).').format(
+                count=detail_count,
+                lines=updated_count
+            ))
         else:
-            messages.warning(request, _('No rejection reasons were provided.'))
+            messages.warning(request, _('No rejection details were provided.'))
         
         return HttpResponseRedirect(reverse('qc:temporary_receipts'))
 

@@ -1617,6 +1617,57 @@ class ReceiptTemporaryLine(ReceiptLineBase):
         # So we don't need to set supplier_code here
 
 
+class QCRejectionDetail(models.Model):
+    """Detailed rejection reasons for a rejected temporary receipt line."""
+    
+    line = models.ForeignKey(
+        "ReceiptTemporaryLine",
+        on_delete=models.CASCADE,
+        related_name="rejection_details",
+        verbose_name=_("Receipt Line"),
+    )
+    company = models.ForeignKey(
+        "shared.Company",
+        on_delete=models.CASCADE,
+        related_name="qc_rejection_details",
+        verbose_name=_("Company"),
+    )
+    quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        verbose_name=_("Rejected Quantity"),
+        help_text=_("Quantity rejected for this specific reason"),
+    )
+    reason = models.TextField(
+        verbose_name=_("Rejection Reason"),
+        help_text=_("Detailed reason for rejecting this quantity"),
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_("Created At"),
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="qc_rejection_details_created",
+        verbose_name=_("Created By"),
+    )
+    
+    class Meta:
+        verbose_name = _("QC Rejection Detail")
+        verbose_name_plural = _("QC Rejection Details")
+        ordering = ("id",)
+        indexes = [
+            models.Index(fields=("company", "line"), name="qc_rej_detail_line_idx"),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.line.item.name} - {self.quantity} - {self.reason[:50]}"
+
+
 # ============================================================================
 # Issue and Receipt Document Models (Header-only, multi-line support)
 # ============================================================================
