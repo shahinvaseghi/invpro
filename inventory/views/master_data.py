@@ -37,6 +37,12 @@ class ItemTypeListView(InventoryBaseView, ListView):
     template_name = 'inventory/item_types.html'
     context_object_name = 'item_types'
     paginate_by = 50
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_types', 'created_by')
+        return queryset
 
 
 class ItemTypeCreateView(InventoryBaseView, CreateView):
@@ -66,6 +72,12 @@ class ItemTypeUpdateView(InventoryBaseView, UpdateView):
     form_class = forms.ItemTypeForm
     template_name = 'inventory/itemtype_form.html'
     success_url = reverse_lazy('inventory:item_types')
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_types', 'created_by')
+        return queryset
     
     def form_valid(self, form):
         """Set edited_by before saving."""
@@ -152,6 +164,12 @@ class ItemCategoryListView(InventoryBaseView, ListView):
     template_name = 'inventory/item_categories.html'
     context_object_name = 'item_categories'
     paginate_by = 50
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_categories', 'created_by')
+        return queryset
 
 
 class ItemCategoryCreateView(InventoryBaseView, CreateView):
@@ -181,6 +199,12 @@ class ItemCategoryUpdateView(InventoryBaseView, UpdateView):
     form_class = forms.ItemCategoryForm
     template_name = 'inventory/itemcategory_form.html'
     success_url = reverse_lazy('inventory:item_categories')
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_categories', 'created_by')
+        return queryset
     
     def form_valid(self, form):
         """Set edited_by before saving."""
@@ -267,6 +291,12 @@ class ItemSubcategoryListView(InventoryBaseView, ListView):
     template_name = 'inventory/item_subcategories.html'
     context_object_name = 'item_subcategories'
     paginate_by = 50
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_subcategories', 'created_by')
+        return queryset
 
 
 class ItemSubcategoryCreateView(InventoryBaseView, CreateView):
@@ -296,6 +326,12 @@ class ItemSubcategoryUpdateView(InventoryBaseView, UpdateView):
     form_class = forms.ItemSubcategoryForm
     template_name = 'inventory/itemsubcategory_form.html'
     success_url = reverse_lazy('inventory:item_subcategories')
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_subcategories', 'created_by')
+        return queryset
     
     def form_valid(self, form):
         """Set edited_by before saving."""
@@ -385,6 +421,9 @@ class ItemListView(InventoryBaseView, ListView):
         """Return items with filters and search, ordered by newest first."""
         queryset = super().get_queryset()
         queryset = queryset.select_related('type', 'category', 'subcategory')
+        
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.items', 'created_by')
         
         # Search by item code or name (Persian or English)
         search = (self.request.GET.get('search') or '').strip()
@@ -589,6 +628,12 @@ class ItemUpdateView(ItemUnitFormsetMixin, InventoryBaseView, UpdateView):
     template_name = 'inventory/item_form.html'
     success_url = reverse_lazy('inventory:items')
     
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.items', 'created_by')
+        return queryset
+    
     def get_form_kwargs(self):
         """Pass company_id to form."""
         kwargs = super().get_form_kwargs()
@@ -713,6 +758,12 @@ class WarehouseListView(InventoryBaseView, ListView):
     template_name = 'inventory/warehouses.html'
     context_object_name = 'warehouses'
     paginate_by = 50
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.warehouses', 'created_by')
+        return queryset
 
 
 class WarehouseCreateView(InventoryBaseView, CreateView):
@@ -742,6 +793,12 @@ class WarehouseUpdateView(InventoryBaseView, UpdateView):
     form_class = forms.WarehouseForm
     template_name = 'inventory/warehouse_form.html'
     success_url = reverse_lazy('inventory:warehouses')
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.warehouses', 'created_by')
+        return queryset
     
     def form_valid(self, form):
         """Set edited_by before saving."""
@@ -828,6 +885,12 @@ class SupplierCategoryListView(InventoryBaseView, ListView):
     template_name = 'inventory/supplier_categories.html'
     context_object_name = 'supplier_categories'
     paginate_by = 50
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.suppliers.categories', 'created_by')
+        return queryset
 
 
 class SupplierCategoryCreateView(InventoryBaseView, CreateView):
@@ -917,6 +980,12 @@ class SupplierCategoryUpdateView(InventoryBaseView, UpdateView):
     form_class = forms.SupplierCategoryForm
     template_name = 'inventory/suppliercategory_form.html'
     success_url = reverse_lazy('inventory:supplier_categories')
+
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.suppliers.categories', 'created_by')
+        return queryset
 
     def get_form_kwargs(self):
         """Pass company_id to form."""
@@ -1011,6 +1080,12 @@ class SupplierListView(InventoryBaseView, ListView):
     template_name = 'inventory/suppliers.html'
     context_object_name = 'suppliers'
     paginate_by = 50
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.suppliers.list', 'created_by')
+        return queryset
 
 
 class SupplierCreateView(InventoryBaseView, CreateView):
@@ -1041,6 +1116,12 @@ class SupplierUpdateView(InventoryBaseView, UpdateView):
     form_class = forms.SupplierForm
     template_name = 'inventory/supplier_form.html'
     success_url = reverse_lazy('inventory:suppliers')
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.suppliers.list', 'created_by')
+        return queryset
     
     def form_valid(self, form):
         """Set edited_by before saving."""
