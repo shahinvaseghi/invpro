@@ -220,13 +220,12 @@
         </div>
 
         <div class="nav-group">
-          <button type="button" class="nav-group-header" data-submenu="ticketing-management">
-            <span>{% trans "Ticket Management" %}</span>
+          <button type="button" class="nav-group-header" data-submenu="ticketing-templates">
+            <span>{% trans "Templates" %}</span>
             <span class="nav-group-icon">▼</span>
           </button>
-          <div class="nav-group-content" id="ticketing-management">
+          <div class="nav-group-content" id="ticketing-templates">
             <a href="{% url 'ticketing:templates' %}" class="nav-link-sub">{% trans "Templates" %}</a>
-            <a href="{% url 'ticketing:template_create' %}" class="nav-link-sub">{% trans "Create Template" %}</a>
             <a href="{% url 'ticketing:categories' %}" class="nav-link-sub">{% trans "Categories" %}</a>
             <a href="{% url 'ticketing:subcategories' %}" class="nav-link-sub">{% trans "Subcategories" %}</a>
           </div>

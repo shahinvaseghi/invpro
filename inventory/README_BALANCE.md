@@ -40,10 +40,15 @@ Current Balance = Baseline (from last stocktaking)
 ```
 
 **Logic**:
-1. Find most recent approved `StocktakingRecord` before `as_of_date`
-2. Sum surplus documents linked to that stocktaking
-3. Subtract deficit documents linked to that stocktaking
-4. Return net quantity as baseline
+1. First, try to find the most recent approved and locked `StocktakingRecord` before `as_of_date`
+   - If found: Returns `baseline_date=date(1900, 1, 1)` (start from beginning to include all movements), `baseline_quantity=0`, and includes `stocktaking_record_id` and `stocktaking_record_code` for reference
+   - The actual stocktaking record date is stored in `stocktaking_record_date` for reference
+2. If no `StocktakingRecord` found, check for earliest deficit/surplus documents before `as_of_date`
+   - If found: Uses the earliest deficit/surplus document date as `baseline_date`, `baseline_quantity=0`
+   - Deficit/surplus documents will be included as movements after this baseline
+3. If no stocktaking documents at all: Returns `baseline_date=None`, `baseline_quantity=0`
+
+**Important**: The baseline quantity is always `0` because all movements (including deficit/surplus) are calculated as movements after the baseline date. This ensures a complete audit trail.
 
 **Example**:
 ```python
@@ -80,16 +85,20 @@ baseline = get_last_stocktaking_baseline(
 ```
 
 **Queries**:
-- `ReceiptPermanent` where `is_locked=1` and `document_date` in range
-- `StocktakingSurplus` where `is_locked=1` and `document_date` in range
-- `IssuePermanent` where `is_locked=1` and `document_date` in range
-- `IssueConsumption` where `is_locked=1` and `document_date` in range
-- `StocktakingDeficit` where `is_locked=1` and `document_date` in range
+- `ReceiptPermanentLine` where `document__is_enabled=1` and `document_date` in range
+- `ReceiptConsignmentLine` where `document__is_enabled=1` and `document_date` in range
+- `StocktakingSurplusLine` where `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
+- `IssuePermanentLine` where `document__is_enabled=1` and `document_date` in range
+- `IssueConsumptionLine` where `document__is_enabled=1` and `document_date` in range
+- `IssueConsignmentLine` where `document__is_enabled=1` and `document_date` in range
+- `StocktakingDeficitLine` where `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
 
 **Important Notes**:
-- Only locked documents are included (`is_locked=1`)
-- Consignment receipts/issues are excluded (don't affect owned inventory)
-- Temporary receipts are excluded (not yet converted to permanent)
+- Receipts and Issues: Only enabled documents are included (`is_enabled=1`)
+- Stocktaking (Deficit/Surplus): Both `is_locked=1` AND `is_enabled=1` are required
+- Consignment receipts/issues ARE included (they affect inventory balance)
+- Temporary receipts are excluded (not included in the queries)
+- Date handling: Automatically converts string dates to date objects, defaults to `date(1900, 1, 1)` if `baseline_date` is None
 
 **Example**:
 ```python
@@ -187,16 +196,28 @@ balance = calculate_item_balance(
 (Each dict is same format as `calculate_item_balance()`)
 
 **Logic**:
-1. Find all items with:
-   - Warehouse assignment (`ItemWarehouse`), OR
-   - Actual transactions in the warehouse (receipts/issues/stocktaking)
+1. Find all items with activity in the warehouse:
+   - Items with warehouse assignment (`ItemWarehouse` where `warehouse_id` matches and `is_enabled=1`), OR
+   - Items with actual transactions:
+     * `ReceiptPermanentLine` (enabled documents only)
+     * `ReceiptConsignmentLine` (enabled documents only)
+     * `IssuePermanentLine` (enabled documents only)
+     * `IssueConsumptionLine` (enabled documents only)
+     * `IssueConsignmentLine` (enabled documents only)
+     * `StocktakingSurplusLine` (enabled documents only)
+     * `StocktakingDeficitLine` (enabled documents only)
 2. **Important**: Items with actual transactions are included even if disabled (`is_enabled=0`)
    - This ensures complete audit trail visibility
    - Items with only warehouse assignment still require `is_enabled=1`
-3. Apply optional type/category filters
+3. Apply optional type/category filters (`item_type_id`, `item_category_id`)
 4. Calculate balance for each item using `calculate_item_balance()`
-5. Filter out items with zero balance and no activity
-6. Return list of balances
+5. **Filtering**: Only includes items where:
+   - `current_balance != 0`, OR
+   - `receipts_total > 0`, OR
+   - `issues_total > 0`
+   - This excludes items with zero balance and no activity
+6. Error handling: If calculation fails for an item, logs error and continues with other items
+7. Return list of balances
 
 **Performance**:
 - Runs one query per item (N+1 pattern)

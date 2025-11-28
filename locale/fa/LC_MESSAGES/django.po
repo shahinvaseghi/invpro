@@ -76,7 +76,7 @@ msgid "Selected unit is not configured for this item."
 msgstr "واحد انتخاب‌شده برای این کالا تعریف نشده است."
 
 msgid "Use the \"Assign Serials\" action to manage serial numbers."
-msgstr ""
+msgstr "از عمل \"اختصاص سریال\" برای مدیریت شماره‌های سریال استفاده کنید."
 
 msgid "unit"
 msgstr "واحد"
@@ -91,11 +91,11 @@ msgid "Selected work line belongs to a different warehouse."
 msgstr "خط کار انتخاب‌شده متعلق به انبار دیگری است."
 
 msgid "Quantity must be a whole number for serialised items."
-msgstr ""
+msgstr "برای کالاهای دارای سریال، مقدار باید یک عدد صحیح باشد."
 
 #, python-format
 msgid "Select exactly %(count)s serial numbers."
-msgstr ""
+msgstr "دقیقاً %(count)s شماره سریال انتخاب کنید."
 
 #, fuzzy
 #| msgid "Selected unit is not configured for this item."
@@ -105,16 +105,16 @@ msgstr "واحد انتخاب‌شده برای این کالا تعریف نش�
 msgid ""
 "انبار انتخاب شده برای این کالا مجاز نیست. لطفاً یکی از انبارهای مجاز را "
 "انتخاب کنید."
-msgstr ""
+msgstr "انبار انتخاب شده برای این کالا مجاز نیست. لطفاً یکی از انبارهای مجاز را انتخاب کنید."
 
 msgid ""
 "این کالا هیچ انبار مجازی ندارد. لطفاً ابتدا در تعریف کالا، حداقل یک انبار "
 "مجاز را انتخاب کنید."
-msgstr ""
+msgstr "این کالا هیچ انبار مجازی ندارد. لطفاً ابتدا در تعریف کالا، حداقل یک انبار مجاز را انتخاب کنید."
 
 #, python-format
 msgid "Please add at least %(min_num)d line(s) with an item."
-msgstr ""
+msgstr "لطفاً حداقل %(min_num)d ردیف با کالا اضافه کنید."
 
 msgid "Organizational Unit"
 msgstr "واحد سازمانی"
@@ -125,30 +125,26 @@ msgstr "اختیاری: مشخص کنید این حواله به کدام واح
 msgid "Optional: specify which company unit received this consignment."
 msgstr "اختیاری: مشخص کنید این رسید امانی به کدام واحد سازمانی تحویل شده است."
 
-#, fuzzy
-#| msgid "Mobile Number"
 msgid "Serial Numbers"
-msgstr "شماره موبایل"
+msgstr "شماره‌های سریال"
 
 #, python-format
 msgid "%(count)s serial(s) required for this line."
-msgstr ""
+msgstr "برای این ردیف %(count)s شماره سریال مورد نیاز است."
 
 msgid "This item does not require serial tracking."
-msgstr ""
+msgstr "این کالا نیاز به رهگیری سریال ندارد."
 
 msgid "Quantity must be a whole number before assigning serials."
-msgstr ""
+msgstr "قبل از اختصاص سریال، مقدار باید یک عدد صحیح باشد."
 
 #, python-format
 msgid ""
 "You must select exactly %(count)s serial(s). Currently %(current)s selected."
-msgstr ""
+msgstr "باید دقیقاً %(count)s شماره سریال انتخاب کنید. در حال حاضر %(current)s مورد انتخاب شده است."
 
-#, fuzzy
-#| msgid "Select users who should belong to this group."
 msgid "Selected serials do not belong to the requested item."
-msgstr "کاربرانی را که باید عضو این گروه باشند انتخاب کنید."
+msgstr "شماره‌های سریال انتخاب‌شده متعلق به کالای درخواستی نیستند."
 
 msgid "Unit"
 msgstr "واحد"
@@ -156,65 +152,49 @@ msgstr "واحد"
 #, python-format
 msgid ""
 "موجودی کافی نیست. موجودی فعلی: %(balance)s، مقدار درخواستی: %(requested)s"
-msgstr ""
+msgstr "موجودی کافی نیست. موجودی فعلی: %(balance)s، مقدار درخواستی: %(requested)s"
 
-#, fuzzy
-#| msgid "واحد اصلی"
 msgid "واحد کاری"
-msgstr "واحد اصلی"
+msgstr "واحد کاری"
 
 msgid "واحد کاری که این حواله را دریافت می‌کند."
-msgstr ""
+msgstr "واحد کاری که این حواله را دریافت می‌کند."
 
 msgid "واحد کاری (Company Unit)"
-msgstr ""
+msgstr "واحد کاری (Company Unit)"
 
-#, fuzzy
-#| msgid "نوع کالا"
 msgid "نوع مقصد"
-msgstr "نوع کالا"
+msgstr "نوع مقصد"
 
-#, fuzzy
-#| msgid "حداقل یک انبار باید انتخاب شود."
 msgid "ابتدا نوع مقصد را انتخاب کنید."
-msgstr "حداقل یک انبار باید انتخاب شود."
+msgstr "ابتدا نوع مقصد را انتخاب کنید."
 
 msgid "خط کاری"
-msgstr ""
+msgstr "خط کاری"
 
 msgid "Work Line"
 msgstr "خط کار"
 
 msgid "خط کاری (Work Line)"
-msgstr ""
+msgstr "خط کاری (Work Line)"
 
-#, fuzzy
-#| msgid "Please select a company first."
 msgid "Please select a destination type."
-msgstr "لطفاً ابتدا یک شرکت انتخاب کنید."
+msgstr "لطفاً نوع مقصد را انتخاب کنید."
 
-#, fuzzy
-#| msgid "Please select a company first."
 msgid "Please select a company unit."
-msgstr "لطفاً ابتدا یک شرکت انتخاب کنید."
+msgstr "لطفاً یک واحد سازمانی انتخاب کنید."
 
 msgid "Work line option is not available. Production module is not installed."
-msgstr ""
+msgstr "گزینه خط کاری در دسترس نیست. ماژول تولید نصب نشده است."
 
-#, fuzzy
-#| msgid "Please select a company first."
 msgid "Please select a work line."
-msgstr "لطفاً ابتدا یک شرکت انتخاب کنید."
+msgstr "لطفاً یک خط کاری انتخاب کنید."
 
-#, fuzzy
-#| msgid "Consignment Receipts"
 msgid "Consignment Receipt"
-msgstr "رسیدهای امانی"
+msgstr "رسید امانی"
 
-#, fuzzy
-#| msgid "Optional: specify which company unit received this issue."
 msgid "Optional: specify which consignment receipt this issue is related to."
-msgstr "اختیاری: مشخص کنید این حواله به کدام واحد سازمانی تحویل شده است."
+msgstr "اختیاری: مشخص کنید این حواله به کدام رسید امانی مربوط است."
 
 msgid "Name (Persian)"
 msgstr "نام (فارسی)"
@@ -234,10 +214,8 @@ msgstr "ترتیب نمایش"
 msgid "Status"
 msgstr "وضعیت"
 
-#, fuzzy
-#| msgid "Item Categories"
 msgid "Item Category"
-msgstr "دسته‌بندی اقلام"
+msgstr "دسته‌بندی کالا"
 
 msgid "Phone Number"
 msgstr "شماره تلفن"
@@ -266,21 +244,19 @@ msgstr "شناسه مالیاتی"
 msgid "دستهٔ اصلی"
 msgstr "دستهٔ اصلی"
 
-#, fuzzy
-#| msgid "ایجاد دسته‌بندی تأمین‌کننده"
 msgid "زیردسته‌های قابل تأمین"
-msgstr "ایجاد دسته‌بندی تأمین‌کننده"
+msgstr "زیردسته‌های قابل تأمین"
 
 msgid "در صورت نیاز، زیردسته‌های مربوط به این تأمین‌کننده را انتخاب کنید."
-msgstr ""
+msgstr "در صورت نیاز، زیردسته‌های مربوط به این تأمین‌کننده را انتخاب کنید."
 
 msgid "کالاهای قابل تأمین"
-msgstr ""
+msgstr "کالاهای قابل تأمین"
 
 msgid ""
 "کالاهای موجود در همان دسته‌بندی (و زیردسته‌های انتخابی) را می‌توانید انتخاب "
 "کنید."
-msgstr ""
+msgstr "کالاهای موجود در همان دسته‌بندی (و زیردسته‌های انتخابی) را می‌توانید انتخاب کنید."
 
 msgid "تأمین‌کننده"
 msgstr "تأمین‌کننده"
@@ -302,10 +278,8 @@ msgstr "برای این تأمین‌کننده و دسته‌بندی قبلا�
 msgid "زیردسته‌های انتخاب‌شده باید متعلق به همان دسته باشند."
 msgstr "انبارهای انتخاب شده باید متعلق به همان شرکت فعال باشند."
 
-#, fuzzy
-#| msgid "انبارهای انتخاب شده باید متعلق به همان شرکت فعال باشند."
 msgid "کالاهای انتخاب‌شده باید در زیردسته‌های انتخاب‌شده یا همان دسته باشند."
-msgstr "انبارهای انتخاب شده باید متعلق به همان شرکت فعال باشند."
+msgstr "کالاهای انتخاب‌شده باید در زیردسته‌های انتخاب‌شده یا همان دسته باشند."
 
 msgid "قابل فروش است"
 msgstr "قابل فروش است"
@@ -329,7 +303,7 @@ msgid "انبارهای مجاز"
 msgstr "انبارهای مجاز"
 
 msgid "حداقل یک انبار انتخاب کنید؛ اولین مورد به عنوان انبار اصلی ذخیره می‌شود."
-msgstr ""
+msgstr "حداقل یک انبار انتخاب کنید؛ اولین مورد به عنوان انبار اصلی ذخیره می‌شود."
 "حداقل یک انبار انتخاب کنید؛ اولین مورد به عنوان انبار اصلی ذخیره می‌شود."
 
 msgid "نوع کالا"
@@ -351,7 +325,7 @@ msgid "نام (English)"
 msgstr "نام (English)"
 
 msgid "بچ نامبر ثانویه"
-msgstr ""
+msgstr "شماره بچ ثانویه"
 
 msgid "شناسه مالیاتی"
 msgstr "شناسه مالیاتی"
@@ -456,20 +430,20 @@ msgid "Selected conversion receipt belongs to a different company."
 msgstr "خط کار انتخاب‌شده متعلق به انبار دیگری است."
 
 msgid "Entered Price Unit"
-msgstr ""
+msgstr "واحد قیمت وارد شده"
 
 msgid "Optional: unit for price (e.g., BOX)"
-msgstr ""
+msgstr "اختیاری: واحد قیمت (مثلاً BOX)"
 
 msgid ""
 "Unit for entered_unit_price (e.g., BOX, CARTON). If empty, same as "
 "entered_unit."
-msgstr ""
+msgstr "واحد برای entered_unit_price (مثلاً BOX, CARTON). اگر خالی باشد، همان entered_unit استفاده می‌شود."
 
 msgid ""
 "این کالا نیاز به رسید موقت دارد. لطفاً ابتدا رسید موقت ایجاد کنید و پس از "
 "تایید QC، رسید دائم را ثبت کنید."
-msgstr ""
+msgstr "این کالا نیاز به رسید موقت دارد. لطفاً ابتدا رسید موقت ایجاد کنید و پس از تایید QC، رسید دائم را ثبت کنید."
 
 msgid "Needed By Date"
 msgstr "تاریخ مورد نیاز"
@@ -483,10 +457,8 @@ msgstr "کد دلیل / یادداشت"
 msgid "Approver"
 msgstr "تاییدکننده"
 
-#, fuzzy
-#| msgid "Selected approver must belong to the active company."
 msgid "Selected approver must have access to the active company."
-msgstr "تاییدکننده انتخاب‌شده باید متعلق به شرکت فعال باشد."
+msgstr "تاییدکننده انتخاب‌شده باید به شرکت فعال دسترسی داشته باشد."
 
 msgid "Item"
 msgstr "کالا"
@@ -522,27 +494,25 @@ msgid "تایید شده"
 msgstr "تایید"
 
 msgid "رد شده"
-msgstr ""
+msgstr "رد شده"
 
 msgid "وضعیت تایید"
 msgstr "وضعیت تایید"
 
-#, fuzzy
-#| msgid "تنها تاییدکننده تعیین‌شده می‌تواند این درخواست را تایید کند."
 msgid "فقط تأییدکننده انتخاب شده می‌تواند وضعیت را تغییر دهد"
-msgstr "تنها تاییدکننده تعیین‌شده می‌تواند این درخواست را تایید کند."
+msgstr "فقط تأییدکننده انتخاب شده می‌تواند وضعیت را تغییر دهد"
 
 msgid "Only numeric characters are allowed."
 msgstr "تنها استفاده از ارقام مجاز است."
 
 msgid "Toman"
-msgstr ""
+msgstr "تومان"
 
 msgid "Rial"
-msgstr ""
+msgstr "ریال"
 
 msgid "US Dollar"
-msgstr ""
+msgstr "دلار آمریکا"
 
 msgid "Item Type"
 msgstr "نوع کالا"
@@ -563,7 +533,7 @@ msgid "Warehouses"
 msgstr "انبارها"
 
 msgid "User-defined secondary batch number"
-msgstr ""
+msgstr "شماره بچ ثانویه تعریف شده توسط کاربر"
 
 msgid "Items"
 msgstr "اقلام"
@@ -571,8 +541,6 @@ msgstr "اقلام"
 msgid "Item Specification"
 msgstr "مشخصات کالا"
 
-#, fuzzy
-#| msgid "Inspections"
 msgid "Item Specifications"
 msgstr "مشخصات کالاها"
 
@@ -582,15 +550,11 @@ msgstr "تبدیل واحد کالا"
 msgid "Item Unit Conversions"
 msgstr "تبدیل‌های واحد کالا"
 
-#, fuzzy
-#| msgid "Warehouses"
 msgid "Item Warehouse"
-msgstr "انبارها"
+msgstr "انبار کالا"
 
-#, fuzzy
-#| msgid "Warehouses"
 msgid "Item Warehouses"
-msgstr "انبارها"
+msgstr "انبارهای کالا"
 
 msgid "Item Substitute"
 msgstr "کالای جایگزین"
@@ -601,28 +565,20 @@ msgstr "کالاهای جایگزین"
 msgid "Suppliers"
 msgstr "تامین‌کنندگان"
 
-#, fuzzy
-#| msgid "Supplier Categories"
 msgid "Supplier Category"
-msgstr "دسته‌بندی تامین‌کنندگان"
+msgstr "دسته‌بندی تأمین‌کننده"
 
 msgid "Supplier Categories"
 msgstr "دسته‌بندی تامین‌کنندگان"
 
-#, fuzzy
-#| msgid "Supplier Categories"
 msgid "Supplier Subcategory"
-msgstr "دسته‌بندی تامین‌کنندگان"
+msgstr "زیردسته‌بندی تأمین‌کننده"
 
-#, fuzzy
-#| msgid "Supplier Categories"
 msgid "Supplier Subcategories"
-msgstr "دسته‌بندی تامین‌کنندگان"
+msgstr "زیردسته‌بندی‌های تأمین‌کننده"
 
-#, fuzzy
-#| msgid "Supplier List"
 msgid "Supplier Item"
-msgstr "لیست تامین‌کنندگان"
+msgstr "کالای تأمین‌کننده"
 
 msgid "Supplier Items"
 msgstr "اقلام تأمین‌کننده"
@@ -645,18 +601,14 @@ msgstr "پیش‌نویس"
 msgid "Approved"
 msgstr "تایید شده"
 
-#, fuzzy
-#| msgid "Orders"
 msgid "Ordered"
-msgstr "سفارشات"
+msgstr "سفارش داده شده"
 
 msgid "Fulfilled"
 msgstr "تکمیل‌شده"
 
-#, fuzzy
-#| msgid "Cancel"
 msgid "Cancelled"
-msgstr "لغو"
+msgstr "لغو شده"
 
 msgid "Purchase Request"
 msgstr "درخواست خرید"
@@ -664,20 +616,14 @@ msgstr "درخواست خرید"
 msgid "Purchase Requests"
 msgstr "درخواست‌های خرید"
 
-#, fuzzy
-#| msgid "Purchase Request"
 msgid "Purchase Request Line"
-msgstr "درخواست خرید"
+msgstr "ردیف درخواست خرید"
 
-#, fuzzy
-#| msgid "Purchase Requests"
 msgid "Purchase Request Lines"
-msgstr "درخواست‌های خرید"
+msgstr "ردیف‌های درخواست خرید"
 
-#, fuzzy
-#| msgid "Receipt Inspections"
 msgid "Awaiting inspection"
-msgstr "بازرسی رسیدها"
+msgstr "در انتظار بازرسی"
 
 msgid "Closed/Cancelled"
 msgstr "بسته/لغو‌شده"
@@ -688,10 +634,8 @@ msgstr "رسید موقت"
 msgid "Temporary Receipts"
 msgstr "رسیدهای موقت"
 
-#, fuzzy
-#| msgid "Permanent Receipts"
 msgid "Permanent Receipt"
-msgstr "رسیدهای دائم"
+msgstr "رسید دائم"
 
 msgid "Permanent Receipts"
 msgstr "رسیدهای دائم"
@@ -699,45 +643,35 @@ msgstr "رسیدهای دائم"
 msgid "Consignment Receipts"
 msgstr "رسیدهای امانی"
 
-#, fuzzy
-#| msgid "Items"
 msgid "Item Lot"
-msgstr "اقلام"
+msgstr "لات کالا"
 
-#, fuzzy
-#| msgid "Items"
 msgid "Item Lots"
-msgstr "اقلام"
+msgstr "لات‌های کالا"
 
 msgid "Available"
-msgstr ""
+msgstr "موجود"
 
 msgid "Reserved"
-msgstr ""
+msgstr "رزرو شده"
 
 msgid "Issued"
 msgstr "صادر شده"
 
-#, fuzzy
-#| msgid "Consignment Issues"
 msgid "Consumed"
-msgstr "حواله‌های امانی"
+msgstr "مصرف شده"
 
-#, fuzzy
-#| msgid "Return Document"
 msgid "Returned"
-msgstr "سند بازگشت"
+msgstr "بازگشت داده شده"
 
 msgid "Damaged"
-msgstr ""
+msgstr "آسیب دیده"
 
 msgid "User-defined secondary serial number"
-msgstr ""
+msgstr "شماره سریال ثانویه تعریف شده توسط کاربر"
 
-#, fuzzy
-#| msgid "Item Subcategories"
 msgid "Item Serial"
-msgstr "زیر‌دسته‌های کالا"
+msgstr "سریال کالا"
 
 #, fuzzy
 #| msgid "Item Subcategories"
@@ -760,63 +694,41 @@ msgstr "مقصد و دلیل"
 msgid "Adjusted"
 msgstr "مقدار تعدیل‌شده"
 
-#, fuzzy
-#| msgid "Item Subcategory"
 msgid "Item Serial History"
-msgstr "زیر‌دسته کالا"
+msgstr "تاریخچه سریال کالا"
 
-#, fuzzy
-#| msgid "Permanent Issues"
 msgid "Permanent Issue Line"
-msgstr "حواله‌های دائم"
+msgstr "ردیف حواله دائم"
 
-#, fuzzy
-#| msgid "Permanent Issues"
 msgid "Permanent Issue Lines"
-msgstr "حواله‌های دائم"
+msgstr "ردیف‌های حواله دائم"
 
 msgid "Work line (optional, only if production module is installed)"
-msgstr ""
+msgstr "خط کاری (اختیاری، فقط در صورت نصب ماژول تولید)"
 
-#, fuzzy
-#| msgid "Consumption Issue"
 msgid "Consumption Issue Line"
-msgstr "حواله مصرف"
+msgstr "ردیف حواله مصرف"
 
-#, fuzzy
-#| msgid "Consumption Issues"
 msgid "Consumption Issue Lines"
-msgstr "حواله‌های مصرفی"
+msgstr "ردیف‌های حواله مصرف"
 
-#, fuzzy
-#| msgid "Consignment Issue"
 msgid "Consignment Issue Line"
-msgstr "حواله امانی"
+msgstr "ردیف حواله امانی"
 
-#, fuzzy
-#| msgid "Consignment Issues"
 msgid "Consignment Issue Lines"
-msgstr "حواله‌های امانی"
+msgstr "ردیف‌های حواله امانی"
 
-#, fuzzy
-#| msgid "Permanent Receipts"
 msgid "Permanent Receipt Line"
-msgstr "رسیدهای دائم"
+msgstr "ردیف رسید دائم"
 
-#, fuzzy
-#| msgid "Permanent Receipts"
 msgid "Permanent Receipt Lines"
-msgstr "رسیدهای دائم"
+msgstr "ردیف‌های رسید دائم"
 
-#, fuzzy
-#| msgid "Consignment Receipts"
 msgid "Consignment Receipt Line"
-msgstr "رسیدهای امانی"
+msgstr "ردیف رسید امانی"
 
-#, fuzzy
-#| msgid "Consignment Receipts"
 msgid "Consignment Receipt Lines"
-msgstr "رسیدهای امانی"
+msgstr "ردیف‌های رسید امانی"
 
 #, fuzzy
 #| msgid "Temporary Receipt"
@@ -828,10 +740,8 @@ msgstr "رسید موقت"
 msgid "Temporary Receipt Lines"
 msgstr "رسیدهای موقت"
 
-#, fuzzy
-#| msgid "Permanent Issues"
 msgid "Permanent Issue"
-msgstr "حواله‌های دائم"
+msgstr "حواله دائم"
 
 msgid "Permanent Issues"
 msgstr "حواله‌های دائم"
@@ -937,24 +847,20 @@ msgid "Warehouse Requests"
 msgstr "درخواست از انبار"
 
 msgid "Quantity must be a number for serialised items."
-msgstr ""
+msgstr "برای کالاهای دارای سریال، مقدار باید یک عدد باشد."
 
 msgid "Quantity must be a whole number when tracking serials."
-msgstr ""
+msgstr "هنگام رهگیری سریال، مقدار باید یک عدد صحیح باشد."
 
 #, python-format
 msgid "Could not generate unique serial code after %(attempts)s attempts."
-msgstr ""
+msgstr "پس از %(attempts)s تلاش، نتوانست کد سریال یکتا تولید کند."
 
-#, fuzzy
-#| msgid "No Items Found"
 msgid "Item not found"
-msgstr "هیچ قلمی یافت نشد"
+msgstr "کالا یافت نشد"
 
-#, fuzzy
-#| msgid "Warehouses"
 msgid "Warehouse not found"
-msgstr "انبارها"
+msgstr "انبار یافت نشد"
 
 msgid "سند قفل شده و قابل ویرایش یا حذف نیست."
 msgstr "سند قفل شده و قابل ویرایش یا حذف نیست."
@@ -974,45 +880,35 @@ msgstr "پیکربندی قفل سند نامعتبر است."
 msgid "شرکت فعال مشخص نشده است."
 msgstr "شرکت فعال مشخص نشده است."
 
-#, fuzzy
-#| msgid "ایجاد حواله دائم"
 msgid "حواله دائم"
-msgstr "ایجاد حواله دائم"
+msgstr "حواله دائم"
 
-#, fuzzy
-#| msgid "ایجاد حواله مصرف"
 msgid "حواله مصرف"
-msgstr "ایجاد حواله مصرف"
+msgstr "حواله مصرف"
 
-#, fuzzy
-#| msgid "ایجاد حواله امانی"
 msgid "حواله امانی"
-msgstr "ایجاد حواله امانی"
+msgstr "حواله امانی"
 
-#, fuzzy
-#| msgid "کد کاربری باید دقیقاً دو رقم باشد."
 msgid "مقدار باید بیشتر از صفر باشد."
-msgstr "کد کاربری باید دقیقاً دو رقم باشد."
+msgstr "مقدار باید بیشتر از صفر باشد."
 
 msgid "مقدار بیشتر از مقدار باقیمانده بود و به مقدار باقیمانده تنظیم شد."
-msgstr ""
+msgstr "مقدار بیشتر از مقدار باقیمانده بود و به مقدار باقیمانده تنظیم شد."
 
 msgid "مقدار وارد شده معتبر نیست."
-msgstr ""
+msgstr "مقدار وارد شده معتبر نیست."
 
 msgid "ایجاد حواله دائم"
 msgstr "ایجاد حواله دائم"
 
 msgid "Please add at least one line with an item."
-msgstr ""
+msgstr "لطفاً حداقل یک ردیف با کالا اضافه کنید."
 
 msgid "حواله دائم با موفقیت ایجاد شد."
 msgstr "حواله دائم با موفقیت ایجاد شد."
 
-#, fuzzy
-#| msgid "Document Code"
 msgid "Document Info"
-msgstr "کد سند"
+msgstr "اطلاعات سند"
 
 msgid "ویرایش حواله دائم"
 msgstr "ویرایش حواله دائم"
@@ -1020,34 +916,32 @@ msgstr "ویرایش حواله دائم"
 msgid "حواله دائم با موفقیت ویرایش شد."
 msgstr "حواله دائم با موفقیت ویرایش شد."
 
-#, fuzzy
-#| msgid "حواله دائم با موفقیت ایجاد شد."
 msgid "حواله دائم با موفقیت حذف شد."
-msgstr "حواله دائم با موفقیت ایجاد شد."
+msgstr "حواله دائم با موفقیت حذف شد."
 
 msgid "حواله دائم قفل شد و دیگر قابل ویرایش نیست."
 msgstr "حواله دائم قفل شد و دیگر قابل ویرایش نیست."
 
 #, python-format
 msgid "برای ردیف %(item)s، مقدار باید پیش از قفل‌شدن عدد صحیح باشد."
-msgstr ""
+msgstr "برای ردیف %(item)s، مقدار باید پیش از قفل‌شدن عدد صحیح باشد."
 
 #, python-format
 msgid ""
 "برای ردیف %(item)s، پیش از قفل کردن باید %(expected)s سریال انتخاب شود (الان "
 "%(selected)s عدد ثبت شده است)."
-msgstr ""
+msgstr "برای ردیف %(item)s، پیش از قفل کردن باید %(expected)s سریال انتخاب شود (الان %(selected)s عدد ثبت شده است)."
 
 msgid "ایجاد حواله مصرف"
 msgstr "ایجاد حواله مصرف"
 
 #, python-format
 msgid "Line %(line)d - %(field)s: %(error)s"
-msgstr ""
+msgstr "ردیف %(line)d - %(field)s: %(error)s"
 
 msgid ""
 "Please add at least one line with an item and complete all required fields."
-msgstr ""
+msgstr "لطفاً حداقل یک ردیف با کالا اضافه کنید و تمام فیلدهای الزامی را تکمیل کنید."
 
 msgid "حواله مصرف با موفقیت ایجاد شد."
 msgstr "حواله مصرف با موفقیت ایجاد شد."
@@ -1058,10 +952,8 @@ msgstr "ویرایش حواله مصرف"
 msgid "حواله مصرف با موفقیت ویرایش شد."
 msgstr "حواله مصرف با موفقیت ویرایش شد."
 
-#, fuzzy
-#| msgid "حواله مصرف با موفقیت ایجاد شد."
 msgid "حواله مصرفی با موفقیت حذف شد."
-msgstr "حواله مصرف با موفقیت ایجاد شد."
+msgstr "حواله مصرفی با موفقیت حذف شد."
 
 msgid "حواله مصرفی قفل شد و دیگر قابل ویرایش نیست."
 msgstr "حواله مصرفی قفل شد و دیگر قابل ویرایش نیست."
@@ -1078,59 +970,41 @@ msgstr "ویرایش حواله امانی"
 msgid "حواله امانی با موفقیت ویرایش شد."
 msgstr "حواله امانی با موفقیت ویرایش شد."
 
-#, fuzzy
-#| msgid "حواله امانی با موفقیت ایجاد شد."
 msgid "حواله امانی با موفقیت حذف شد."
-msgstr "حواله امانی با موفقیت ایجاد شد."
+msgstr "حواله امانی با موفقیت حذف شد."
 
 msgid "حواله امانی قفل شد و دیگر قابل ویرایش نیست."
 msgstr "حواله امانی قفل شد و دیگر قابل ویرایش نیست."
 
-#, fuzzy
-#| msgid "نیاز به رهگیری لات دارد"
 msgid "این کالا نیازی به سریال ندارد."
-msgstr "نیاز به رهگیری لات دارد"
+msgstr "این کالا نیازی به سریال ندارد."
 
 msgid "برای سند قفل‌شده امکان تغییر سریال وجود ندارد."
-msgstr ""
+msgstr "برای سند قفل‌شده امکان تغییر سریال وجود ندارد."
 
-#, fuzzy
-#| msgid "حواله مصرف با موفقیت ویرایش شد."
 msgid "سریال‌های ردیف با موفقیت ذخیره شد."
-msgstr "حواله مصرف با موفقیت ویرایش شد."
+msgstr "سریال‌های ردیف با موفقیت ذخیره شد."
 
-#, fuzzy
-#| msgid "ویرایش درخواست خرید"
 msgid "ایجاد حواله دائم از درخواست انبار"
-msgstr "ویرایش درخواست خرید"
+msgstr "ایجاد حواله دائم از درخواست انبار"
 
-#, fuzzy
-#| msgid "حواله دائم با موفقیت ایجاد شد."
 msgid "حواله دائم از درخواست انبار با موفقیت ایجاد شد."
-msgstr "حواله دائم با موفقیت ایجاد شد."
+msgstr "حواله دائم از درخواست انبار با موفقیت ایجاد شد."
 
-#, fuzzy
-#| msgid "ویرایش درخواست خرید"
 msgid "ایجاد حواله مصرف از درخواست انبار"
-msgstr "ویرایش درخواست خرید"
+msgstr "ایجاد حواله مصرف از درخواست انبار"
 
-#, fuzzy
-#| msgid "حواله مصرف با موفقیت ایجاد شد."
 msgid "حواله مصرف از درخواست انبار با موفقیت ایجاد شد."
-msgstr "حواله مصرف با موفقیت ایجاد شد."
+msgstr "حواله مصرف از درخواست انبار با موفقیت ایجاد شد."
 
-#, fuzzy
-#| msgid "ویرایش درخواست خرید"
 msgid "ایجاد حواله امانی از درخواست انبار"
-msgstr "ویرایش درخواست خرید"
+msgstr "ایجاد حواله امانی از درخواست انبار"
 
-#, fuzzy
-#| msgid "حواله امانی با موفقیت ایجاد شد."
 msgid "حواله امانی از درخواست انبار با موفقیت ایجاد شد."
-msgstr "حواله امانی با موفقیت ایجاد شد."
+msgstr "حواله امانی از درخواست انبار با موفقیت ایجاد شد."
 
 msgid "کتابخانه openpyxl نصب نشده است. لطفاً آن را نصب کنید."
-msgstr ""
+msgstr "کتابخانه openpyxl نصب نشده است. لطفاً آن را نصب کنید."
 
 #, fuzzy
 #| msgid "حداقل یک انبار باید انتخاب شود."
@@ -1168,7 +1042,7 @@ msgid "قابل فروش (1=بله، 0=خیر)"
 msgstr "قابل فروش است"
 
 msgid "رهگیری لات (1=بله، 0=خیر)"
-msgstr ""
+msgstr "رهگیری لات (1=بله، 0=خیر)"
 
 #, fuzzy
 #| msgid "رسید موقت با موفقیت ایجاد شد."
@@ -1181,7 +1055,7 @@ msgid "واحد گزارش"
 msgstr "واحد اصلی"
 
 msgid "فعال (1=بله، 0=خیر)"
-msgstr ""
+msgstr "فعال (1=بله، 0=خیر)"
 
 #, fuzzy
 #| msgid "انبارهای انتخاب شده باید متعلق به همان شرکت فعال باشند."
@@ -1194,10 +1068,10 @@ msgid "انواع کالا"
 msgstr "نوع کالا"
 
 msgid "کد"
-msgstr ""
+msgstr "کد"
 
 msgid "نام"
-msgstr ""
+msgstr "نام"
 
 #, fuzzy
 #| msgid "دسته‌بندی"
@@ -1225,7 +1099,7 @@ msgid "لطفاً یک فایل Excel انتخاب کنید."
 msgstr "حداقل یک انبار باید انتخاب شود."
 
 msgid "فایل باید با فرمت Excel (.xlsx یا .xls) باشد."
-msgstr ""
+msgstr "فایل باید با فرمت Excel (.xlsx یا .xls) باشد."
 
 #, fuzzy
 #| msgid "کالا با موفقیت ایجاد شد."
@@ -1233,16 +1107,16 @@ msgid "{} کالا با موفقیت وارد شد."
 msgstr "کالا با موفقیت ایجاد شد."
 
 msgid "{} ردیف دارای خطا بودند."
-msgstr ""
+msgstr "{} ردیف دارای خطا بودند."
 
 msgid "خطا در پردازش فایل: {}"
-msgstr ""
+msgstr "خطا در پردازش فایل: {}"
 
 msgid "خطا در خواندن ردیف: {}"
-msgstr ""
+msgstr "خطا در خواندن ردیف: {}"
 
 msgid "نوع کالا الزامی است."
-msgstr ""
+msgstr "نوع کالا الزامی است."
 
 #, fuzzy
 #| msgid "دسته‌بندی کالا"
@@ -1265,10 +1139,10 @@ msgid "کد کاربری باید دقیقاً 2 رقم عددی باشد."
 msgstr "کد کاربری باید دقیقاً دو رقم باشد."
 
 msgid "نام فارسی الزامی است."
-msgstr ""
+msgstr "نام فارسی الزامی است."
 
 msgid "نام انگلیسی الزامی است."
-msgstr ""
+msgstr "نام انگلیسی الزامی است."
 
 #, fuzzy
 #| msgid "واحد اصلی"
@@ -1399,7 +1273,7 @@ msgstr "کالا با موفقیت ایجاد شد."
 
 #, python-brace-format
 msgid "نمی‌توان این کالا را حذف کرد چون در {models} استفاده شده است."
-msgstr ""
+msgstr "نمی‌توان این کالا را حذف کرد چون در {models} استفاده شده است."
 
 #, fuzzy
 #| msgid "Person created successfully."
@@ -1427,7 +1301,7 @@ msgid "انبار با موفقیت حذف شد."
 msgstr "کالا با موفقیت ایجاد شد."
 
 msgid "خط مصرف"
-msgstr ""
+msgstr "خط مصرف"
 
 #, fuzzy
 #| msgid "ایجاد رسید دائم"
@@ -1435,7 +1309,7 @@ msgid "خط رسید دائم"
 msgstr "ایجاد رسید دائم"
 
 msgid "خطوط مصرف"
-msgstr ""
+msgstr "خطوط مصرف"
 
 #, fuzzy
 #| msgid "ایجاد رسید دائم"
@@ -1444,7 +1318,7 @@ msgstr "ایجاد رسید دائم"
 
 #, python-brace-format
 msgid "نمی‌توان این انبار را حذف کرد چون در {models} استفاده شده است."
-msgstr ""
+msgstr "نمی‌توان این انبار را حذف کرد چون در {models} استفاده شده است."
 
 msgid "دسته‌بندی تأمین‌کننده با موفقیت ایجاد شد."
 msgstr "دسته‌بندی تأمین‌کننده با موفقیت ایجاد شد."
@@ -1546,13 +1420,13 @@ msgid "This receipt is already locked and cannot be sent to QC."
 msgstr "این سند قفل شده و دیگر قابل ویرایش یا حذف نیست."
 
 msgid "This receipt has already been converted to a permanent receipt."
-msgstr ""
+msgstr "این رسید قبلاً به رسید دائم تبدیل شده است."
 
 msgid "This receipt is already awaiting QC inspection."
-msgstr ""
+msgstr "این رسید در حال حاضر در انتظار بازرسی QC است."
 
 msgid "Temporary receipt has been sent to QC inspection."
-msgstr ""
+msgstr "رسید موقت به بازرسی QC ارسال شد."
 
 #, fuzzy
 #| msgid "Permanent Receipts"
@@ -1645,7 +1519,7 @@ msgid "%(count)s سریال جدید ایجاد شد."
 msgstr "رسید دائم با موفقیت ایجاد شد."
 
 msgid "سریال جدیدی برای ایجاد وجود نداشت."
-msgstr ""
+msgstr "سریال جدیدی برای ایجاد وجود نداشت."
 
 msgid "ایجاد درخواست خرید"
 msgstr "ایجاد درخواست خرید"
@@ -1834,7 +1708,7 @@ msgid "Finished Product"
 msgstr "محصول نهایی"
 
 msgid "Version"
-msgstr ""
+msgstr "نسخه"
 
 msgid "Active"
 msgstr "فعال"
@@ -2063,10 +1937,8 @@ msgstr "تلفن"
 msgid "Mobile"
 msgstr "موبایل"
 
-#, fuzzy
-#| msgid "Companies"
 msgid "Company Units"
-msgstr "شرکت‌ها"
+msgstr "واحدهای سازمانی"
 
 msgid "Select one or more organizational units."
 msgstr "یک یا چند واحد سازمانی انتخاب کنید."
@@ -2089,13 +1961,13 @@ msgid "خطوط کاری"
 msgstr "واحد اصلی"
 
 msgid "یک یا چند خط کاری را برای این فرایند انتخاب کنید"
-msgstr ""
+msgstr "یک یا چند خط کاری را برای این فرایند انتخاب کنید"
 
 msgid "فهرست مواد اولیه (BOM)"
-msgstr ""
+msgstr "فهرست مواد اولیه (BOM)"
 
 msgid "نسخه"
-msgstr ""
+msgstr "نسخه"
 
 #, fuzzy
 #| msgid "توضیح"
@@ -2229,16 +2101,16 @@ msgid "Unit is required for the selected material."
 msgstr "واحد اندازه‌گیری (مثلاً: کیلوگرم، متر، عدد)"
 
 msgid "پرسنل"
-msgstr ""
+msgstr "پرسنل"
 
 msgid "یک یا چند پرسنل را برای این خط کاری انتخاب کنید"
-msgstr ""
+msgstr "یک یا چند پرسنل را برای این خط کاری انتخاب کنید"
 
 msgid "ماشین‌ها"
-msgstr ""
+msgstr "ماشین‌ها"
 
 msgid "یک یا چند ماشین را برای این خط کاری انتخاب کنید"
-msgstr ""
+msgstr "یک یا چند ماشین را برای این خط کاری انتخاب کنید"
 
 #, fuzzy
 #| msgid "انبارهای مجاز"
@@ -2246,7 +2118,7 @@ msgid "انبار (اختیاری)"
 msgstr "انبارهای مجاز"
 
 msgid "People"
-msgstr "People"
+msgstr "افراد"
 
 #, fuzzy
 #| msgid "Personnel"
@@ -2295,7 +2167,7 @@ msgid "Retired"
 msgstr "الزامی"
 
 msgid "Machines"
-msgstr ""
+msgstr "ماشین‌ها"
 
 msgid "BOM"
 msgstr "فهرست مواد"
@@ -2504,21 +2376,21 @@ msgstr ""
 #, fuzzy, python-format
 #| msgid "BOM created successfully."
 msgid "BOM created successfully with %(count)s material line(s)."
-msgstr "BOM با موفقیت ایجاد شد."
+msgstr "فهرست مواد اولیه با %(count)s ردیف مواد با موفقیت ایجاد شد."
 
 msgid "Edit BOM"
 msgstr "ویرایش BOM"
 
 msgid "BOM updated successfully."
-msgstr "BOM با موفقیت به‌روزرسانی شد."
+msgstr "فهرست مواد اولیه با موفقیت به‌روزرسانی شد."
 
 msgid "BOM deleted successfully."
-msgstr "BOM با موفقیت حذف شد."
+msgstr "فهرست مواد اولیه با موفقیت حذف شد."
 
 #, fuzzy
 #| msgid "BOM created successfully."
 msgid "Machine created successfully."
-msgstr "BOM با موفقیت ایجاد شد."
+msgstr "ماشین با موفقیت ایجاد شد."
 
 #, fuzzy
 #| msgid "Select Warehouse"
@@ -2528,7 +2400,7 @@ msgstr "انتخاب انبار"
 #, fuzzy
 #| msgid "BOM updated successfully."
 msgid "Machine updated successfully."
-msgstr "BOM با موفقیت به‌روزرسانی شد."
+msgstr "ماشین با موفقیت به‌روزرسانی شد."
 
 #, fuzzy
 #| msgid "Warehouses"
@@ -2538,7 +2410,7 @@ msgstr "انبارها"
 #, fuzzy
 #| msgid "BOM deleted successfully."
 msgid "Machine deleted successfully."
-msgstr "BOM با موفقیت حذف شد."
+msgstr "ماشین با موفقیت حذف شد."
 
 msgid "Create Performance Record"
 msgstr "ایجاد سند عملکرد"
@@ -2790,7 +2662,7 @@ msgstr "شخص با موفقیت ایجاد شد."
 #, fuzzy
 #| msgid "BOM created successfully."
 msgid "Work line created successfully."
-msgstr "BOM با موفقیت ایجاد شد."
+msgstr "خط کار با موفقیت ایجاد شد."
 
 #, fuzzy
 #| msgid "Work Line"
@@ -2800,7 +2672,7 @@ msgstr "خط کار"
 #, fuzzy
 #| msgid "BOM updated successfully."
 msgid "Work line updated successfully."
-msgstr "BOM با موفقیت به‌روزرسانی شد."
+msgstr "خط کار با موفقیت به‌روزرسانی شد."
 
 #, fuzzy
 #| msgid "Work Line"
@@ -2810,7 +2682,7 @@ msgstr "خط کار"
 #, fuzzy
 #| msgid "BOM deleted successfully."
 msgid "Work line deleted successfully."
-msgstr "BOM با موفقیت حذف شد."
+msgstr "خط کار با موفقیت حذف شد."
 
 msgid "Passed"
 msgstr "قبول شده"
@@ -2863,7 +2735,7 @@ msgid "Additional info"
 msgstr "اطلاعات تکمیلی"
 
 msgid "Global Role"
-msgstr "Global Role"
+msgstr "نقش سراسری"
 
 msgid "Code"
 msgstr "کد"
@@ -2909,10 +2781,10 @@ msgid "Group Name"
 msgstr "نام گروه"
 
 msgid "Disabled"
-msgstr "Disabled"
+msgstr "غیرفعال"
 
 msgid "Enabled"
-msgstr "Enabled"
+msgstr "فعال"
 
 #, fuzzy
 #| msgid "Last Name"
@@ -2971,7 +2843,7 @@ msgstr ""
 #, fuzzy
 #| msgid "email address"
 msgid "Default sender email address"
-msgstr "email address"
+msgstr "آدرس ایمیل فرستنده پیش‌فرض"
 
 msgid "Default sender name (optional)"
 msgstr ""
@@ -3027,29 +2899,27 @@ msgid "Company"
 msgstr "شرکت"
 
 msgid "Access Level"
-msgstr "Access Level"
+msgstr "سطح دسترسی"
 
 msgid "Primary"
-msgstr "Primary"
+msgstr "اصلی"
 
 msgid "Only one primary company may be selected per user."
-msgstr "Only one primary company may be selected per user."
+msgstr "فقط یک شرکت اصلی می‌تواند برای هر کاربر انتخاب شود."
 
 msgid "email address"
-msgstr "email address"
+msgstr "آدرس ایمیل"
 
 msgid "Default company to use when user logs in"
-msgstr "Default company to use when user logs in"
+msgstr "شرکت پیش‌فرض برای استفاده هنگام ورود کاربر"
 
 #, fuzzy
 #| msgid "Username"
 msgid "User"
 msgstr "نام کاربری"
 
-#, fuzzy
-#| msgid "Username"
 msgid "Users"
-msgstr "نام کاربری"
+msgstr "کاربران"
 
 msgid "Companies"
 msgstr "شرکت‌ها"
@@ -3060,22 +2930,22 @@ msgid "Company Unit"
 msgstr "شرکت"
 
 msgid "Access Level Permission"
-msgstr "Access Level Permission"
+msgstr "مجوز سطح دسترسی"
 
 msgid "Access Level Permissions"
-msgstr "Access Level Permissions"
+msgstr "مجوزهای سطح دسترسی"
 
 msgid "Group Profile"
-msgstr "Group Profile"
+msgstr "پروفایل گروه"
 
 msgid "Group Profiles"
-msgstr "Group Profiles"
+msgstr "پروفایل‌های گروه"
 
 msgid "User Company Access"
-msgstr "User Company Access"
+msgstr "دسترسی کاربر به شرکت"
 
 msgid "User Company Accesses"
-msgstr "User Company Accesses"
+msgstr "دسترسی‌های کاربر به شرکت"
 
 msgid "Connection Timeout"
 msgstr ""
@@ -3084,7 +2954,7 @@ msgid "SMTP Server"
 msgstr ""
 
 msgid "SMTP Servers"
-msgstr ""
+msgstr "سرورهای SMTP"
 
 msgid "Section code must be exactly 6 digits."
 msgstr ""
@@ -3252,8 +3122,6 @@ msgstr "پرسنل"
 msgid "Processes"
 msgstr "فرآیندها"
 
-#, fuzzy
-#| msgid "Production Orders"
 msgid "Product Orders"
 msgstr "سفارشات تولید"
 
@@ -3305,22 +3173,22 @@ msgid "Access level deleted successfully."
 msgstr "شخص با موفقیت حذف شد."
 
 msgid "View own records"
-msgstr "View own records"
+msgstr "مشاهده رکوردهای خود"
 
 msgid "View all records"
-msgstr "View all records"
+msgstr "مشاهده تمام رکوردها"
 
 # Common Terms
 msgid "Create"
 msgstr "ایجاد"
 
 msgid "Edit own records"
-msgstr "Edit own records"
+msgstr "ویرایش رکوردهای خود"
 
 #, fuzzy
 #| msgid "Edit own records"
 msgid "Edit others records"
-msgstr "Edit own records"
+msgstr "ویرایش رکوردهای دیگران"
 
 #, fuzzy
 #| msgid "Delete Person"
@@ -3333,16 +3201,16 @@ msgid "Delete others records"
 msgstr "حذف شخص"
 
 msgid "Lock own documents"
-msgstr "Lock own documents"
+msgstr "قفل کردن اسناد خود"
 
 msgid "Lock others documents"
-msgstr "Lock others documents"
+msgstr "قفل کردن اسناد دیگران"
 
 msgid "Unlock own documents"
-msgstr "Unlock own documents"
+msgstr "باز کردن قفل اسناد خود"
 
 msgid "Unlock others documents"
-msgstr "Unlock others documents"
+msgstr "باز کردن قفل اسناد دیگران"
 
 #, fuzzy
 #| msgid "Approved"
@@ -3718,7 +3586,10 @@ msgid "Guest"
 msgstr "مهمان"
 
 msgid "Logout"
-msgstr ""
+msgstr "خروج"
+
+msgid "Templates"
+msgstr "تمپلیت‌ها"
 
 msgid "Welcome"
 msgstr "خوش آمدید"
@@ -3997,7 +3868,7 @@ msgid "Source/Destination"
 msgstr "توضیحات"
 
 msgid "مرکز مصرف/تامین"
-msgstr ""
+msgstr "مرکز مصرف/تامین"
 
 # BOM Form - Multi-line
 #, fuzzy
@@ -4141,7 +4012,7 @@ msgstr "سند بازگشت"
 #, fuzzy
 #| msgid "Lock own documents"
 msgid "Lock Document"
-msgstr "Lock own documents"
+msgstr "قفل کردن سند"
 
 msgid "Available Serials"
 msgstr ""
@@ -5150,7 +5021,7 @@ msgstr "سراسری"
 
 #, python-format
 msgid "Page %(page_obj.number)s of %(page_obj.paginator.num_pages)s"
-msgstr "Page %(page_obj.number)s of %(page_obj.paginator.num_pages)s"
+msgstr "صفحه %(page_obj.number)s از %(page_obj.paginator.num_pages)s"
 
 #, fuzzy
 #| msgid "No Personnel Found"

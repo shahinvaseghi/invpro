@@ -495,24 +495,27 @@ invproj/
 
 ## 📊 آمار کلی
 
-- **جمع کل فایل‌های README**: 80 فایل
-- **Views**: 42 فایل (36 فایل قدیمی + 6 فایل جدید)
+- **جمع کل فایل‌های README**: 120 فایل
+- **Root/Docs**: 3 فایل (README.md, DOCUMENTATION_STRUCTURE.md, DOCUMENTATION_STATUS.md, docs/README.md, docs/ENTITY_REFERENCE_SYSTEM.md, docs/MIGRATIONS_README.md)
+- **Module Main**: 13 فایل (README.md برای هر ماژول + README_FORMS.md, README_BALANCE.md, README_BOM.md)
+- **Views**: 42 فایل
 - **Forms**: 24 فایل
 - **Utils**: 6 فایل
 - **Services**: 1 فایل
 - **Template Tags**: 3 فایل
 - **Context Processors**: 2 فایل
 - **Management Commands**: 1 فایل
-- **Migrations**: 1 فایل README کلی
-- **Other**: 1 فایل (ui/README.md)
+- **Migrations**: 5 فایل README (هر ماژول)
+- **Templates**: 1 فایل (templates/inventory/README.md)
+- **Other**: 19 فایل (README.md در پوشه‌های مختلف)
 
 **ماژول‌های جدید:**
-- Accounting: 1 فایل README
-- Sales: 1 فایل README
-- HR: 1 فایل README
-- Office Automation: 1 فایل README
-- Transportation: 1 فایل README
-- Procurement: 1 فایل README
+- Accounting: 1 فایل README (README_VIEWS.md)
+- Sales: 1 فایل README (README_VIEWS.md)
+- HR: 1 فایل README (README_VIEWS.md)
+- Office Automation: 1 فایل README (README_VIEWS.md)
+- Transportation: 1 فایل README (README_VIEWS.md)
+- Procurement: 1 فایل README (README_VIEWS.md)
 
 ---
 

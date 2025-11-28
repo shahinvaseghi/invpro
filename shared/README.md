@@ -21,6 +21,9 @@ Defines the reusable abstractions and core shared tables.
   - `UserCompanyAccess`: maps users to companies with the role they hold; enforces one record per user/company pair.
   - `SectionRegistry`: Central registry for all application sections/features. Each section has a unique 6-digit code (XXYYZZ format) and nickname. Used by the Entity Reference System for cross-module action execution.
   - `ActionRegistry`: Registry of actions available for each section. Actions define what can be done in a section (e.g., show, approve, delete). Used by the Entity Reference System for dynamic action execution.
+  - `GroupProfile`: extends Django's `Group` model with additional metadata and access level assignments.
+  - `SMTPServer`: SMTP server configuration for email notifications.
+  - `Notification`: user notifications for system events (approvals, requests, etc.) with read/unread status tracking.
 
 All models inherit the appropriate mixins to guarantee consistent auditing and isolation.
 

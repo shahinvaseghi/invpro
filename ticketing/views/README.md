@@ -25,7 +25,11 @@
 - **توضیح**: CRUD views برای زیردسته‌بندی تیکت‌ها
 
 ### debug.py
+- **README**: [README_DEBUG.md](README_DEBUG.md)
 - **توضیح**: Views برای debugging (در development)
+
+### entity_reference.py
+- **توضیح**: Views مربوط به Entity Reference System
 
 ### placeholders.py
 - **Views**: TicketRespondView, TemplateCreateView, CategoriesView, AutoResponseView

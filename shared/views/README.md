@@ -33,7 +33,11 @@
 - **توضیح**: CRUD views برای تنظیمات سرور SMTP
 
 ### auth.py
+- **README**: [README_AUTH.md](README_AUTH.md)
 - **توضیح**: Views مربوط به authentication (login, logout, etc.)
+
+### notifications.py
+- **توضیح**: Views مربوط به notifications (mark as read/unread)
 
 ---
 

@@ -31,10 +31,11 @@
 **مقدار بازگشتی**:
 ```python
 {
-    'baseline_date': date or None,          # تاریخ آخرین شمارش
-    'baseline_quantity': Decimal,            # مقدار از شمارش
-    'stocktaking_record_id': int or None,   # شناسه سند شمارش
-    'stocktaking_record_code': str or None   # کد سند شمارش
+    'baseline_date': date or None,          # تاریخ baseline (date(1900, 1, 1) اگر StocktakingRecord پیدا شود، تاریخ اولین کسری/مازاد در غیر این صورت، یا None)
+    'baseline_quantity': Decimal,            # همیشه 0 (تمام حرکات بعد از baseline محاسبه می‌شوند)
+    'stocktaking_record_id': int or None,   # شناسه سند شمارش (اگر پیدا شود)
+    'stocktaking_record_code': str or None,  # کد سند شمارش (اگر پیدا شود)
+    'stocktaking_record_date': date or None  # تاریخ واقعی سند شمارش (اگر پیدا شود، برای مرجع)
 }
 ```
 
@@ -53,10 +54,16 @@ baseline = get_last_stocktaking_baseline(
 ```
 
 **منطق**:
-1. آخرین سند `StocktakingRecord` تایید شده قبل از `as_of_date` را پیدا می‌کند
-2. مجموع اسناد مازاد مرتبط با آن شمارش را محاسبه می‌کند
-3. مجموع اسناد کسری مرتبط با آن شمارش را کم می‌کند
-4. مقدار خالص را به عنوان baseline برمی‌گرداند
+1. ابتدا آخرین سند `StocktakingRecord` تایید شده و قفل شده قبل از `as_of_date` را پیدا می‌کند
+   - اگر پیدا شود: `baseline_date=date(1900, 1, 1)` (شروع از ابتدا برای شامل کردن تمام حرکات) و `baseline_quantity=0` برمی‌گرداند
+   - همچنین `stocktaking_record_id` و `stocktaking_record_code` را برای مرجع شامل می‌کند
+   - تاریخ واقعی سند شمارش در `stocktaking_record_date` ذخیره می‌شود
+2. اگر `StocktakingRecord` پیدا نشود، اولین اسناد کسری/مازاد قبل از `as_of_date` را بررسی می‌کند
+   - اگر پیدا شود: از تاریخ اولین سند کسری/مازاد به عنوان `baseline_date` استفاده می‌کند، `baseline_quantity=0`
+   - اسناد کسری/مازاد به عنوان حرکات بعد از این baseline محاسبه می‌شوند
+3. اگر هیچ سند شمارشی وجود نداشته باشد: `baseline_date=None` و `baseline_quantity=0` برمی‌گرداند
+
+**نکته مهم**: مقدار baseline همیشه `0` است زیرا تمام حرکات (شامل کسری/مازاد) به عنوان حرکات بعد از تاریخ baseline محاسبه می‌شوند. این امر یک audit trail کامل را تضمین می‌کند.
 
 ---
 
@@ -75,9 +82,9 @@ baseline = get_last_stocktaking_baseline(
 ```python
 {
     'receipts_total': Decimal,     # مجموع رسیدهای دائم + امانی + مازاد
-    'issues_total': Decimal,       # مجموع حواله‌های دائم + مصرف + کسری
+    'issues_total': Decimal,       # مجموع حواله‌های دائم + مصرف + امانی + کسری
     'surplus_total': Decimal,      # فقط مازاد
-    'deficit_total': Decimal        # فقط کسری
+    'deficit_total': Decimal       # فقط کسری
 }
 ```
 
@@ -97,9 +104,11 @@ movements = calculate_movements_after_baseline(
 ```
 
 **نکات مهم**:
-- فقط اسناد قفل شده (`is_locked=1`) را شامل می‌شود
-- رسیدهای امانی و حواله‌های امانی را شامل می‌شود (اما فقط برای محاسبه موجودی)
-- رسیدهای موقت را شامل نمی‌شود (هنوز تبدیل نشده‌اند)
+- رسیدها و حواله‌ها: فقط اسناد فعال (`is_enabled=1`) شامل می‌شوند
+- شمارش (کسری/مازاد): هم `is_locked=1` و هم `is_enabled=1` لازم است
+- رسیدهای امانی و حواله‌های امانی شامل می‌شوند (بر موجودی تأثیر می‌گذارند)
+- رسیدهای موقت شامل نمی‌شوند (در کوئری‌ها وجود ندارند)
+- مدیریت تاریخ: به صورت خودکار تاریخ‌های رشته‌ای را به date object تبدیل می‌کند، اگر `baseline_date` None باشد، از `date(1900, 1, 1)` استفاده می‌کند
 
 ---
 
@@ -190,17 +199,28 @@ balances = calculate_warehouse_balances(
 ```
 
 **منطق**:
-1. تمام کالاهایی که:
-   - تخصیص انبار دارند (`ItemWarehouse`), یا
-   - تراکنش واقعی در انبار دارند (رسید/حواله/شمارش)
-2. فیلترهای اختیاری را اعمال می‌کند
-3. برای هر کالا `calculate_item_balance()` را فراخوانی می‌کند
-4. کالاهایی با موجودی صفر و بدون فعالیت را فیلتر می‌کند
-5. لیست موجودی‌ها را برمی‌گرداند
-
-**نکات مهم**:
-- کالاهایی با تراکنش واقعی حتی اگر `is_enabled=0` باشند، شامل می‌شوند (برای audit trail)
-- کالاهایی که فقط تخصیص انبار دارند، باید `is_enabled=1` باشند
+1. تمام کالاهایی که فعالیت در انبار دارند را پیدا می‌کند:
+   - کالاهایی با تخصیص انبار (`ItemWarehouse` که `warehouse_id` مطابقت دارد و `is_enabled=1`), یا
+   - کالاهایی با تراکنش واقعی:
+     * `ReceiptPermanentLine` (فقط اسناد فعال)
+     * `ReceiptConsignmentLine` (فقط اسناد فعال)
+     * `IssuePermanentLine` (فقط اسناد فعال)
+     * `IssueConsumptionLine` (فقط اسناد فعال)
+     * `IssueConsignmentLine` (فقط اسناد فعال)
+     * `StocktakingSurplusLine` (فقط اسناد فعال)
+     * `StocktakingDeficitLine` (فقط اسناد فعال)
+2. **نکته مهم**: کالاهایی با تراکنش واقعی حتی اگر `is_enabled=0` باشند، شامل می‌شوند
+   - این امر یک audit trail کامل را تضمین می‌کند
+   - کالاهایی که فقط تخصیص انبار دارند، باید `is_enabled=1` باشند
+3. فیلترهای اختیاری را اعمال می‌کند (`item_type_id`, `item_category_id`)
+4. برای هر کالا `calculate_item_balance()` را فراخوانی می‌کند
+5. **فیلتر کردن**: فقط کالاهایی که:
+   - `current_balance != 0`, یا
+   - `receipts_total > 0`, یا
+   - `issues_total > 0`
+   - این کالاهایی با موجودی صفر و بدون فعالیت را حذف می‌کند
+6. مدیریت خطا: اگر محاسبه برای یک کالا ناموفق باشد، خطا را ثبت می‌کند و با کالاهای دیگر ادامه می‌دهد
+7. لیست موجودی‌ها را برمی‌گرداند
 
 ---
 

@@ -35,6 +35,12 @@ Defines all production entities. Structure:
   - `TransferToLine`: documents material transfers to production lines for a specific order with workflow status.
   - `TransferToLineItem`: line items for transfers, capturing required versus transferred quantities, source warehouse, destination work center, and scrap allowance. Caches item and warehouse codes.
 
+- **Performance Records**
+  - `PerformanceRecord`: records production performance for a specific order with workflow status, materials, personnel, and machines used.
+  - `PerformanceRecordMaterial`: line items for materials used in performance records, capturing item, quantity, unit, and warehouse.
+  - `PerformanceRecordPerson`: line items for personnel used in performance records, capturing person, hours worked, and role.
+  - `PerformanceRecordMachine`: line items for machines used in performance records, capturing machine, hours used, and maintenance notes.
+
 All models inherit audit fields and apply `save()` overrides to populate cached codes where necessary. Personnel models (`Person`, `PersonAssignment`) were moved from the `shared` module to better align with production workflows and resource management.
 
 **Automatic Code Generation:**

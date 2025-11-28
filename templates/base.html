@@ -234,13 +234,12 @@
                   </div>
                 </div>
                 <div class="dropdown-submenu">
-                  <button type="button" class="dropdown-item dropdown-toggle" data-submenu="ticketing-management">
-                    <span>{% trans "Ticket Management" %}</span>
+                  <button type="button" class="dropdown-item dropdown-toggle" data-submenu="ticketing-templates">
+                    <span>{% trans "Templates" %}</span>
                     <span class="dropdown-arrow">▶</span>
                   </button>
-                  <div class="dropdown-menu-sub" id="ticketing-management">
+                  <div class="dropdown-menu-sub" id="ticketing-templates">
                     <a href="{% url 'ticketing:templates' %}" class="dropdown-item-sub">{% trans "Templates" %}</a>
-                    <a href="{% url 'ticketing:template_create' %}" class="dropdown-item-sub">{% trans "Create Template" %}</a>
                     <a href="{% url 'ticketing:categories' %}" class="dropdown-item-sub">{% trans "Categories" %}</a>
                     <a href="{% url 'ticketing:subcategories' %}" class="dropdown-item-sub">{% trans "Subcategories" %}</a>
                   </div>

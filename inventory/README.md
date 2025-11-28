@@ -32,7 +32,9 @@ Contains all inventory-related entities. Major groups:
 
 - **Requests & Receipts**
   - `PurchaseRequest`: captures multi-line item requests with priority, status workflow, and references. Approved purchase requests can be used to directly create receipts (Temporary, Permanent, or Consignment) through intermediate selection pages.
+    - `PurchaseRequestLine`: line items for purchase requests, storing item, quantity, unit, and request details.
   - `WarehouseRequest`: captures single-line internal material requests with priority, status workflow, and references. Approved warehouse requests can be used to directly create issues (Permanent, Consumption, or Consignment) through intermediate selection pages.
+    - `WarehouseRequestLine`: line items for warehouse requests, storing item, quantity, unit, and request details.
   - `ReceiptTemporary`: intake staging record (awaiting QC); caches item/warehouse codes and supplier code, tracks QC approval. Statuses include:
     - `DRAFT`: تازه ایجاد شده و هنوز برای QC ارسال نشده.
     - `AWAITING_INSPECTION`: پس از فشردن دکمه «ارسال به QC».
@@ -56,6 +58,8 @@ Contains all inventory-related entities. Major groups:
 
 - **Stocktaking**
   - `StocktakingDeficit`, `StocktakingSurplus`: adjustment documents capturing counted vs expected quantities, valuation, and posting info.
+    - `StocktakingDeficitLine`: line items for deficit documents, storing item, warehouse, expected quantity, counted quantity, and variance.
+    - `StocktakingSurplusLine`: line items for surplus documents, storing item, warehouse, expected quantity, counted quantity, and variance.
   - `StocktakingRecord`: final confirmation for a stocktaking session with references to variance documents.
 
 Each model enforces unique constraints tailored to multi-company setups and uses `save()` overrides to populate cached fields or generate codes.
