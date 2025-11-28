@@ -9,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
+from shared.views.base import EditLockProtectedMixin
 from production.forms import MachineForm
 from production.models import Machine
 
@@ -85,7 +86,7 @@ class MachineCreateView(FeaturePermissionRequiredMixin, CreateView):
         return context
 
 
-class MachineUpdateView(FeaturePermissionRequiredMixin, UpdateView):
+class MachineUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
     """Update an existing machine."""
     model = Machine
     form_class = MachineForm

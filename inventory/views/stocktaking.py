@@ -16,6 +16,7 @@ from django.utils.safestring import mark_safe
 import json
 
 from .base import InventoryBaseView, DocumentLockProtectedMixin, DocumentLockView, LineFormsetMixin
+from shared.views.base import EditLockProtectedMixin
 from .receipts import DocumentDeleteViewBase
 from .. import models
 from .. import forms
@@ -188,7 +189,7 @@ class StocktakingDeficitCreateView(LineFormsetMixin, StocktakingFormMixin, Creat
         return HttpResponseRedirect(self.get_success_url())
 
 
-class StocktakingDeficitUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView):
+class StocktakingDeficitUpdateView(EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView):
     """Update view for stocktaking deficit records."""
     model = models.StocktakingDeficit
     form_class = forms.StocktakingDeficitForm
@@ -327,7 +328,7 @@ class StocktakingSurplusCreateView(LineFormsetMixin, StocktakingFormMixin, Creat
         return HttpResponseRedirect(self.get_success_url())
 
 
-class StocktakingSurplusUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView):
+class StocktakingSurplusUpdateView(EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView):
     """Update view for stocktaking surplus records."""
     model = models.StocktakingSurplus
     form_class = forms.StocktakingSurplusForm
@@ -445,7 +446,7 @@ class StocktakingRecordCreateView(StocktakingFormMixin, CreateView):
         ]
 
 
-class StocktakingRecordUpdateView(DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView):
+class StocktakingRecordUpdateView(EditLockProtectedMixin, DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView):
     """Update view for stocktaking records."""
     model = models.StocktakingRecord
     form_class = forms.StocktakingRecordForm

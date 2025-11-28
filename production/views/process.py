@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
+from shared.views.base import EditLockProtectedMixin
 from production.forms import (
     ProcessForm,
     ProcessOperationFormSet,
@@ -225,7 +226,7 @@ class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
         return context
 
 
-class ProcessUpdateView(FeaturePermissionRequiredMixin, UpdateView):
+class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
     """Update an existing process."""
     model = Process
     form_class = ProcessForm

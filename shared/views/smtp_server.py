@@ -11,6 +11,7 @@ from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.models import SMTPServer
 from shared.forms import SMTPServerForm
+from shared.views.base import EditLockProtectedMixin
 
 
 class SMTPServerListView(FeaturePermissionRequiredMixin, ListView):
@@ -57,7 +58,7 @@ class SMTPServerCreateView(FeaturePermissionRequiredMixin, CreateView):
         return context
 
 
-class SMTPServerUpdateView(FeaturePermissionRequiredMixin, UpdateView):
+class SMTPServerUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
     """Update an existing SMTP server configuration."""
     model = SMTPServer
     form_class = SMTPServerForm

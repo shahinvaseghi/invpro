@@ -13,7 +13,7 @@ This package contains refactored views organized by functionality:
 __all__ = []
 
 # Import base mixins
-from shared.views.base import UserAccessFormsetMixin, AccessLevelPermissionMixin
+from shared.views.base import UserAccessFormsetMixin, AccessLevelPermissionMixin, EditLockProtectedMixin
 
 # Import auth views
 from shared.views.auth import set_active_company, custom_login
@@ -70,6 +70,7 @@ __all__ = [
     # Base mixins
     'UserAccessFormsetMixin',
     'AccessLevelPermissionMixin',
+    'EditLockProtectedMixin',
     # Auth views
     'set_active_company',
     'custom_login',

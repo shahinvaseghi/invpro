@@ -21,6 +21,14 @@
     </div>
   </div>
 
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
   <div class="filter-panel">
     <h3>{% trans "Filter & Search" %}</h3>
     <form method="get" class="filter-form">

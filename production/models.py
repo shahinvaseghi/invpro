@@ -10,6 +10,7 @@ from shared.models import (
     ActivatableModel,
     CompanyScopedModel,
     CompanyUnit,
+    EditableModel,
     ENABLED_FLAG_CHOICES,
     LockableModel,
     MetadataModel,
@@ -37,6 +38,7 @@ class ProductionBaseModel(
     TimeStampedModel,
     ActivatableModel,
     MetadataModel,
+    EditableModel,
 ):
     class Meta:
         abstract = True
@@ -53,6 +55,7 @@ class Person(
     ActivatableModel,
     SortableModel,
     MetadataModel,
+    EditableModel,
 ):
     public_code = models.CharField(
         max_length=8,

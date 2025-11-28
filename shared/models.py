@@ -24,6 +24,8 @@ __all__ = [
     "MetadataModel",
     "SortableModel",
     "CompanyScopedModel",
+    "LockableModel",
+    "EditableModel",
     "User",
     "Company",
     "CompanyUnit",
@@ -102,7 +104,69 @@ class SortableModel(models.Model):
         abstract = True
 
 
-class LockableModel(models.Model):
+class EditableModel(models.Model):
+    """
+    Mixin to track which user is currently editing a record.
+    Prevents concurrent editing by multiple users.
+    """
+    editing_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="%(app_label)s_%(class)s_editing",
+        null=True,
+        blank=True,
+        help_text=_("User currently editing this record"),
+    )
+    editing_started_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_("When editing session started"),
+    )
+    editing_session_key = models.CharField(
+        max_length=40,
+        blank=True,
+        help_text=_("Django session key of the editing user"),
+    )
+
+    class Meta:
+        abstract = True
+
+    def clear_edit_lock(self):
+        """Clear the edit lock for this record."""
+        self.editing_by = None
+        self.editing_started_at = None
+        self.editing_session_key = ''
+        self.save(update_fields=['editing_by', 'editing_started_at', 'editing_session_key'])
+
+    def is_being_edited_by(self, user=None, session_key=None):
+        """
+        Check if this record is being edited by someone else.
+        
+        Args:
+            user: User object to check if they are the editor
+            session_key: Session key to check if it matches
+            
+        Returns:
+            bool: True if record is being edited by someone else (not by the given user/session)
+        """
+        # If no editor, record is not being edited
+        if not self.editing_by:
+            return False
+        
+        # If user provided and matches the editor, record is not being edited by someone else
+        if user and self.editing_by_id == user.id:
+            return False
+        
+        # If session_key provided and matches, record is not being edited by someone else
+        # Only check session_key if it's not empty (empty session_key means new session)
+        if session_key and session_key.strip() and self.editing_session_key == session_key:
+            return False
+        
+        # Record is being edited by someone else
+        return True
+
+
+class LockableModel(EditableModel):
     is_locked = models.PositiveSmallIntegerField(default=0)
     locked_at = models.DateTimeField(null=True, blank=True)
     locked_by = models.ForeignKey(
@@ -147,7 +211,7 @@ class CompanyScopedModel(models.Model):
         super().save(*args, **kwargs)
 
 
-class User(AbstractUser, MetadataModel):
+class User(AbstractUser, MetadataModel, EditableModel):
     email = models.EmailField(_("email address"), unique=True)
     phone_number = models.CharField(max_length=30, blank=True)
     mobile_number = models.CharField(max_length=30, blank=True)
@@ -172,7 +236,7 @@ class User(AbstractUser, MetadataModel):
         return self.get_full_name() or self.username
 
 
-class Company(TimeStampedModel, ActivatableModel, MetadataModel):
+class Company(TimeStampedModel, ActivatableModel, MetadataModel, EditableModel):
     public_code = models.CharField(
         max_length=3,
         unique=True,
@@ -200,7 +264,7 @@ class Company(TimeStampedModel, ActivatableModel, MetadataModel):
         return self.display_name
 
 
-class CompanyUnit(CompanyScopedModel, TimeStampedModel, ActivatableModel, MetadataModel):
+class CompanyUnit(CompanyScopedModel, TimeStampedModel, ActivatableModel, MetadataModel, EditableModel):
     public_code = models.CharField(
         max_length=5,
         validators=[NUMERIC_CODE_VALIDATOR],
@@ -236,7 +300,7 @@ class CompanyUnit(CompanyScopedModel, TimeStampedModel, ActivatableModel, Metada
         return self.name
 
 
-class AccessLevel(TimeStampedModel, ActivatableModel, MetadataModel):
+class AccessLevel(TimeStampedModel, ActivatableModel, MetadataModel, EditableModel):
     code = models.CharField(max_length=30, unique=True, blank=True, editable=False)
     name = models.CharField(max_length=120)
     description = models.TextField(blank=True)
@@ -286,7 +350,7 @@ class AccessLevel(TimeStampedModel, ActivatableModel, MetadataModel):
         super().save(*args, **kwargs)
 
 
-class AccessLevelPermission(TimeStampedModel, MetadataModel):
+class AccessLevelPermission(TimeStampedModel, MetadataModel, EditableModel):
     access_level = models.ForeignKey(
         AccessLevel,
         on_delete=models.CASCADE,
@@ -315,7 +379,7 @@ class AccessLevelPermission(TimeStampedModel, MetadataModel):
         return f"{self.access_level.code} · {self.module_code}:{self.resource_code}"
 
 
-class GroupProfile(TimeStampedModel, ActivatableModel, MetadataModel):
+class GroupProfile(TimeStampedModel, ActivatableModel, MetadataModel, EditableModel):
     group = models.OneToOneField(
         Group,
         on_delete=models.CASCADE,
@@ -371,7 +435,7 @@ class UserCompanyAccess(TimeStampedModel, ActivatableModel, MetadataModel):
         return f"{self.user} @ {self.company}"
 
 
-class SMTPServer(TimeStampedModel, ActivatableModel, MetadataModel):
+class SMTPServer(TimeStampedModel, ActivatableModel, MetadataModel, EditableModel):
     """
     SMTP Server configuration for sending email notifications.
     Global configuration (not company-scoped).

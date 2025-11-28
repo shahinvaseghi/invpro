@@ -19,6 +19,7 @@ from ..forms.templates import (
 )
 from .base import TicketingBaseView
 from shared.mixins import FeaturePermissionRequiredMixin
+from shared.views.base import EditLockProtectedMixin
 
 
 class TicketTemplateListView(FeaturePermissionRequiredMixin, TicketingBaseView, ListView):
@@ -238,7 +239,7 @@ class TicketTemplateCreateView(FeaturePermissionRequiredMixin, TicketingBaseView
         return response
 
 
-class TicketTemplateUpdateView(FeaturePermissionRequiredMixin, TicketingBaseView, UpdateView):
+class TicketTemplateUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, TicketingBaseView, UpdateView):
     """View for editing an existing ticket template."""
 
     model = models.TicketTemplate

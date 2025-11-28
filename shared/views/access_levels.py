@@ -8,7 +8,7 @@ from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
-from shared.views.base import AccessLevelPermissionMixin
+from shared.views.base import AccessLevelPermissionMixin, EditLockProtectedMixin
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.models import AccessLevel
 from shared.forms import AccessLevelForm
@@ -69,12 +69,13 @@ class AccessLevelCreateView(FeaturePermissionRequiredMixin, AccessLevelPermissio
         return response
 
 
-class AccessLevelUpdateView(FeaturePermissionRequiredMixin, AccessLevelPermissionMixin, UpdateView):
+class AccessLevelUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, AccessLevelPermissionMixin, UpdateView):
     """Update an existing access level."""
     model = AccessLevel
     form_class = AccessLevelForm
     template_name = 'shared/access_level_form.html'
     success_url = reverse_lazy('shared:access_levels')
+    edit_lock_redirect_url_name = 'shared:access_levels'
     feature_code = 'shared.access_levels'
     required_action = 'edit_own'
 

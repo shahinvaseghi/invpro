@@ -11,7 +11,7 @@ from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
-from shared.views.base import UserAccessFormsetMixin
+from shared.views.base import UserAccessFormsetMixin, EditLockProtectedMixin
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.forms import UserCreateForm, UserUpdateForm
 
@@ -89,7 +89,7 @@ class UserCreateView(FeaturePermissionRequiredMixin, UserAccessFormsetMixin, Cre
         return HttpResponseRedirect(self.get_success_url())
 
 
-class UserUpdateView(FeaturePermissionRequiredMixin, UserAccessFormsetMixin, UpdateView):
+class UserUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UserAccessFormsetMixin, UpdateView):
     """Update an existing user."""
     model = User
     form_class = UserUpdateForm

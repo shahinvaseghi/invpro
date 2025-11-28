@@ -13,6 +13,7 @@ from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 from django.views import View
 
 from shared.mixins import FeaturePermissionRequiredMixin
+from shared.views.base import EditLockProtectedMixin
 from inventory.utils.codes import generate_sequential_code
 from production.forms import TransferToLineForm, TransferToLineItemFormSet
 from production.models import TransferToLine, TransferToLineItem, ProductOrder
@@ -197,7 +198,7 @@ class TransferToLineCreateView(FeaturePermissionRequiredMixin, CreateView):
         return response
 
 
-class TransferToLineUpdateView(FeaturePermissionRequiredMixin, UpdateView):
+class TransferToLineUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
     """Update an existing transfer to line request (only extra items can be edited)."""
     model = TransferToLine
     form_class = TransferToLineForm

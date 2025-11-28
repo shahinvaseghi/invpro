@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
+from shared.views.base import EditLockProtectedMixin
 from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
 from inventory.utils.codes import generate_sequential_code
 from production.forms import ProductOrderForm
@@ -287,7 +288,7 @@ class ProductOrderCreateView(FeaturePermissionRequiredMixin, CreateView):
         return context
 
 
-class ProductOrderUpdateView(FeaturePermissionRequiredMixin, UpdateView):
+class ProductOrderUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
     """Update an existing product order."""
     model = ProductOrder
     form_class = ProductOrderForm

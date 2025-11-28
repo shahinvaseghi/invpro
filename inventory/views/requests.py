@@ -20,6 +20,7 @@ import json
 
 from .base import InventoryBaseView, LineFormsetMixin
 from shared.mixins import FeaturePermissionRequiredMixin
+from shared.views.base import EditLockProtectedMixin
 from .. import models
 from .. import forms
 from ..models import Item, ItemUnit
@@ -269,7 +270,7 @@ class PurchaseRequestCreateView(LineFormsetMixin, PurchaseRequestFormMixin, Crea
         ]
 
 
-class PurchaseRequestUpdateView(LineFormsetMixin, PurchaseRequestFormMixin, UpdateView):
+class PurchaseRequestUpdateView(EditLockProtectedMixin, LineFormsetMixin, PurchaseRequestFormMixin, UpdateView):
     """Update view for purchase requests."""
     model = models.PurchaseRequest
     form_class = forms.PurchaseRequestForm
@@ -621,7 +622,7 @@ class WarehouseRequestCreateView(LineFormsetMixin, WarehouseRequestFormMixin, Cr
         ]
 
 
-class WarehouseRequestUpdateView(LineFormsetMixin, WarehouseRequestFormMixin, UpdateView):
+class WarehouseRequestUpdateView(EditLockProtectedMixin, LineFormsetMixin, WarehouseRequestFormMixin, UpdateView):
     """Update view for warehouse requests."""
     model = models.WarehouseRequest
     form_class = forms.WarehouseRequestForm

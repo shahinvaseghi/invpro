@@ -21,6 +21,7 @@ from django.utils.translation import gettext_lazy as _
 
 from .base import InventoryBaseView, ItemUnitFormsetMixin
 from shared.mixins import FeaturePermissionRequiredMixin
+from shared.views.base import EditLockProtectedMixin
 from .. import models
 from .. import forms
 
@@ -66,7 +67,7 @@ class ItemTypeCreateView(InventoryBaseView, CreateView):
         return context
 
 
-class ItemTypeUpdateView(InventoryBaseView, UpdateView):
+class ItemTypeUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView):
     """Update view for item types."""
     model = models.ItemType
     form_class = forms.ItemTypeForm
@@ -193,7 +194,7 @@ class ItemCategoryCreateView(InventoryBaseView, CreateView):
         return context
 
 
-class ItemCategoryUpdateView(InventoryBaseView, UpdateView):
+class ItemCategoryUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView):
     """Update view for item categories."""
     model = models.ItemCategory
     form_class = forms.ItemCategoryForm
@@ -320,7 +321,7 @@ class ItemSubcategoryCreateView(InventoryBaseView, CreateView):
         return context
 
 
-class ItemSubcategoryUpdateView(InventoryBaseView, UpdateView):
+class ItemSubcategoryUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView):
     """Update view for item subcategories."""
     model = models.ItemSubcategory
     form_class = forms.ItemSubcategoryForm
@@ -621,7 +622,7 @@ class ItemCreateView(ItemUnitFormsetMixin, InventoryBaseView, CreateView):
         return context
 
 
-class ItemUpdateView(ItemUnitFormsetMixin, InventoryBaseView, UpdateView):
+class ItemUpdateView(EditLockProtectedMixin, ItemUnitFormsetMixin, InventoryBaseView, UpdateView):
     """Update view for items with unit formset."""
     model = models.Item
     form_class = forms.ItemForm
@@ -787,7 +788,7 @@ class WarehouseCreateView(InventoryBaseView, CreateView):
         return context
 
 
-class WarehouseUpdateView(InventoryBaseView, UpdateView):
+class WarehouseUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView):
     """Update view for warehouses."""
     model = models.Warehouse
     form_class = forms.WarehouseForm
@@ -974,7 +975,7 @@ class SupplierCategoryCreateView(InventoryBaseView, CreateView):
         return context
 
 
-class SupplierCategoryUpdateView(InventoryBaseView, UpdateView):
+class SupplierCategoryUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView):
     """Update view for supplier categories."""
     model = models.SupplierCategory
     form_class = forms.SupplierCategoryForm
@@ -1110,7 +1111,7 @@ class SupplierCreateView(InventoryBaseView, CreateView):
         return context
 
 
-class SupplierUpdateView(InventoryBaseView, UpdateView):
+class SupplierUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView):
     """Update view for suppliers."""
     model = models.Supplier
     form_class = forms.SupplierForm

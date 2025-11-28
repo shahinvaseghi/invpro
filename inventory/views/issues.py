@@ -17,6 +17,7 @@ from django.utils.translation import gettext_lazy as _
 from decimal import Decimal, InvalidOperation
 
 from .base import InventoryBaseView, DocumentLockProtectedMixin, DocumentLockView, LineFormsetMixin
+from shared.views.base import EditLockProtectedMixin
 from .receipts import DocumentDeleteViewBase, ReceiptFormMixin
 from shared.mixins import FeaturePermissionRequiredMixin
 from .. import models
@@ -151,7 +152,7 @@ class IssuePermanentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
         ]
 
 
-class IssuePermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
+class IssuePermanentUpdateView(EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
     """Update view for permanent issues."""
     model = models.IssuePermanent
     form_class = forms.IssuePermanentForm
@@ -442,7 +443,7 @@ class IssueConsumptionCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
         ]
 
 
-class IssueConsumptionUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
+class IssueConsumptionUpdateView(EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
     """Update view for consumption issues."""
     model = models.IssueConsumption
     form_class = forms.IssueConsumptionForm
@@ -658,7 +659,7 @@ class IssueConsignmentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
         ]
 
 
-class IssueConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
+class IssueConsignmentUpdateView(EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
     """Update view for consignment issues."""
     model = models.IssueConsignment
     form_class = forms.IssueConsignmentForm

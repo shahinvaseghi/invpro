@@ -21,6 +21,7 @@ from decimal import Decimal, InvalidOperation
 import json
 
 from .base import InventoryBaseView, DocumentLockProtectedMixin, DocumentLockView, DocumentUnlockView, LineFormsetMixin
+from shared.views.base import EditLockProtectedMixin
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
 from .. import models
@@ -470,7 +471,7 @@ class ReceiptConsignmentDetailView(InventoryBaseView, DetailView):
         return context
 
 
-class ReceiptTemporaryUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
+class ReceiptTemporaryUpdateView(EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
     """Update view for temporary receipts."""
     model = models.ReceiptTemporary
     form_class = forms.ReceiptTemporaryForm
@@ -773,7 +774,7 @@ class ReceiptPermanentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
         ]
 
 
-class ReceiptPermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
+class ReceiptPermanentUpdateView(EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
     """Update view for permanent receipts."""
     model = models.ReceiptPermanent
     form_class = forms.ReceiptPermanentForm
@@ -1725,7 +1726,7 @@ class ReceiptConsignmentCreateFromPurchaseRequestView(ReceiptConsignmentCreateVi
         ]
 
 
-class ReceiptConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
+class ReceiptConsignmentUpdateView(EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
     """Update view for consignment receipts."""
     model = models.ReceiptConsignment
     form_class = forms.ReceiptConsignmentForm

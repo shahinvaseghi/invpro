@@ -13,6 +13,7 @@ from django.views.generic import ListView, CreateView, UpdateView
 
 from .. import models
 from .base import TicketingBaseView
+from shared.views.base import EditLockProtectedMixin
 
 
 class TicketListView(TicketingBaseView, ListView):
@@ -210,7 +211,7 @@ class TicketCreateView(TicketingBaseView, CreateView):
         return reverse_lazy("ticketing:ticket_list")
 
 
-class TicketEditView(TicketingBaseView, UpdateView):
+class TicketEditView(EditLockProtectedMixin, TicketingBaseView, UpdateView):
     """View for editing an existing ticket."""
 
     model = models.Ticket
