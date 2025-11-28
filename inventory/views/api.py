@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse, HttpRequest
 from django.shortcuts import get_object_or_404
+from django.utils.translation import gettext_lazy as _
 from .. import models
 from ..forms import UNIT_CHOICES
 

@@ -3157,7 +3157,11 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
           if (data.error) {
             console.error('Error fetching temporary receipt data:', data.error);
-            alert('خطا در بارگذاری اطلاعات رسید موقت: ' + data.error);
+            // Use message if available, otherwise use error
+            const errorMessage = data.message || data.error;
+            alert('خطا در بارگذاری اطلاعات رسید موقت: ' + errorMessage);
+            // Clear the selection
+            temporaryReceiptSelect.value = '';
             return;
           }
           

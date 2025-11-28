@@ -193,7 +193,11 @@ class ReceiptPermanentForm(forms.ModelForm):
         
         if self.company_id:
             if 'temporary_receipt' in self.fields:
-                # Only show temporary receipts that are QC approved and not yet converted
+                # Only show temporary receipts that are QC approved, not yet converted, and have at least one line
+                from django.db.models import Exists, OuterRef
+                from inventory.models import ReceiptTemporaryLine
+                
+                # Filter to only receipts that have at least one line
                 self.fields['temporary_receipt'].queryset = ReceiptTemporary.objects.filter(
                     company_id=self.company_id,
                     qc_approved_by__isnull=False,  # Must be QC approved
@@ -201,6 +205,14 @@ class ReceiptPermanentForm(forms.ModelForm):
                     status=ReceiptTemporary.Status.APPROVED,
                     is_converted=0,  # Not yet converted
                     is_enabled=1
+                ).filter(
+                    # Only include receipts that have at least one line
+                    Exists(
+                        ReceiptTemporaryLine.objects.filter(
+                            document=OuterRef('pk'),
+                            is_enabled=1
+                        )
+                    )
                 ).order_by('-document_date', 'document_code')
                 self.fields['temporary_receipt'].label_from_instance = lambda obj: f"{obj.document_code}"
             
