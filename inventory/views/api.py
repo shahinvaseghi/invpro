@@ -427,23 +427,29 @@ def get_temporary_receipt_data(request: HttpRequest) -> JsonResponse:
             company_id=company_id
         )
 
-        # Get all lines from temporary receipt
-        lines = temp_receipt.lines.all()
-        if not lines.exists():
+        # Get only QC-approved lines from temporary receipt
+        # Only include lines that are approved (is_qc_approved=1) and have approved quantity
+        approved_lines = temp_receipt.lines.filter(
+            is_enabled=1,
+            is_qc_approved=1,
+            qc_approved_quantity__isnull=False
+        )
+        
+        if not approved_lines.exists():
             # Log for debugging
             logger.warning(
                 f"Temporary receipt {temp_receipt.document_code} (ID: {temp_receipt.pk}, "
-                f"Company: {temp_receipt.company_id}) has no lines. "
+                f"Company: {temp_receipt.company_id}) has no QC-approved lines. "
                 f"This receipt cannot be converted to permanent receipt."
             )
             return JsonResponse({
-                'error': 'Temporary receipt has no lines',
-                'message': _('رسید موقت انتخاب شده هیچ خطی ندارد. لطفاً یک رسید موقت معتبر با حداقل یک خط انتخاب کنید.')
+                'error': 'Temporary receipt has no approved lines',
+                'message': _('رسید موقت انتخاب شده هیچ خط تایید شده‌ای ندارد. لطفاً ابتدا خطوط را در بخش QC تایید کنید.')
             }, status=400)
 
-        # For backward compatibility, return first line data as main data
-        # And include all lines in a 'lines' array
-        first_line = lines.first()
+        # For backward compatibility, return first approved line data as main data
+        # And include all approved lines in a 'lines' array
+        first_line = approved_lines.first()
         
         # Supplier info is stored on the temporary receipt header
         supplier = temp_receipt.supplier
@@ -452,6 +458,7 @@ def get_temporary_receipt_data(request: HttpRequest) -> JsonResponse:
         supplier_name = supplier.name if supplier else None
 
         # Return temporary receipt data for auto-filling
+        # Use QC-approved quantities instead of original quantities
         # Main data (first line for backward compatibility)
         data: Dict[str, Any] = {
             'item_id': first_line.item_id,
@@ -460,14 +467,14 @@ def get_temporary_receipt_data(request: HttpRequest) -> JsonResponse:
             'warehouse_id': first_line.warehouse_id,
             'warehouse_code': first_line.warehouse.public_code,
             'warehouse_name': first_line.warehouse.name,
-            'quantity': str(first_line.quantity),
-            'entered_quantity': str(first_line.entered_quantity) if first_line.entered_quantity else str(first_line.quantity),
+            'quantity': str(first_line.qc_approved_quantity),  # Use approved quantity
+            'entered_quantity': str(first_line.qc_approved_quantity),  # Use approved quantity
             'unit': first_line.unit,
             'entered_unit': first_line.entered_unit if first_line.entered_unit else first_line.unit,
             'supplier_id': supplier_id,
             'supplier_code': supplier_code,
             'supplier_name': supplier_name,
-            # Include all lines for multi-line support
+            # Include all approved lines for multi-line support
             'lines': [
                 {
                     'item_id': line.item_id,
@@ -476,15 +483,15 @@ def get_temporary_receipt_data(request: HttpRequest) -> JsonResponse:
                     'warehouse_id': line.warehouse_id,
                     'warehouse_code': line.warehouse.public_code,
                     'warehouse_name': line.warehouse.name,
-                    'quantity': str(line.quantity),
-                    'entered_quantity': str(line.entered_quantity) if line.entered_quantity else str(line.quantity),
+                    'quantity': str(line.qc_approved_quantity),  # Use approved quantity
+                    'entered_quantity': str(line.qc_approved_quantity),  # Use approved quantity
                     'unit': line.unit,
                     'entered_unit': line.entered_unit if line.entered_unit else line.unit,
                     'supplier_id': supplier_id,
                     'supplier_code': supplier_code,
                     'supplier_name': supplier_name,
                 }
-                for line in lines
+                for line in approved_lines
             ],
         }
 

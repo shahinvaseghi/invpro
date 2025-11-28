@@ -1568,6 +1568,17 @@ class ReceiptTemporaryLine(ReceiptLineBase):
         related_name="lines",
     )
     expected_receipt_date = models.DateField(null=True, blank=True)
+    # QC approval fields
+    is_qc_approved = models.PositiveSmallIntegerField(default=0, help_text=_("Whether this line is approved by QC"))
+    qc_approved_quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        validators=[POSITIVE_DECIMAL],
+        help_text=_("Quantity approved by QC (can be less than original quantity)")
+    )
+    qc_approval_notes = models.TextField(blank=True, help_text=_("QC approval notes for this line"))
     
     class Meta:
         verbose_name = _("Temporary Receipt Line")
@@ -1580,6 +1591,14 @@ class ReceiptTemporaryLine(ReceiptLineBase):
     
     def __str__(self) -> str:
         return f"{self.document.document_code} - {self.item.name}"
+    
+    @property
+    def quantity_available_for_approval(self):
+        """Calculate remaining quantity available for QC approval."""
+        if self.is_qc_approved and self.qc_approved_quantity:
+            # If already approved, return the difference
+            return self.quantity - self.qc_approved_quantity
+        return self.quantity
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)

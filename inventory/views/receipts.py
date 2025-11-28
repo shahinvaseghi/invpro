@@ -228,9 +228,14 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.temporary', 'created_by')
         # Prefetch lines with related items, warehouses, and suppliers for efficient display
         # Also prefetch converted_receipt for linking
+        # Use Prefetch to filter only enabled lines
+        from django.db.models import Prefetch
         queryset = queryset.prefetch_related(
-            'lines__item',
-            'lines__warehouse',
+            Prefetch(
+                'lines',
+                queryset=models.ReceiptTemporaryLine.objects.filter(is_enabled=1).select_related('item', 'warehouse'),
+                to_attr='enabled_lines'
+            )
         ).select_related('created_by', 'converted_receipt')
         queryset = self._apply_filters(queryset)
         return queryset.distinct()

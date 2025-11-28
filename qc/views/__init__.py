@@ -13,6 +13,7 @@ from qc.views.base import QCBaseView
 # Import inspection views
 from qc.views.inspections import (
     TemporaryReceiptQCListView,
+    TemporaryReceiptQCLineSelectionView,
     TemporaryReceiptQCApproveView,
     TemporaryReceiptQCRejectView,
 )
@@ -22,6 +23,7 @@ __all__ = [
     'QCBaseView',
     # Inspection views
     'TemporaryReceiptQCListView',
+    'TemporaryReceiptQCLineSelectionView',
     'TemporaryReceiptQCApproveView',
     'TemporaryReceiptQCRejectView',
 ]
