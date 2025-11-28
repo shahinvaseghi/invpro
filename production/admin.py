@@ -42,6 +42,24 @@ class ProcessStepAdmin(admin.ModelAdmin):
     ordering = ("process", "sequence_order")
 
 
+@admin.register(models.ProcessOperation)
+class ProcessOperationAdmin(admin.ModelAdmin):
+    list_display = ("company", "process", "sequence_order", "name", "labor_minutes_per_unit", "machine_minutes_per_unit", "is_enabled")
+    list_filter = ("company", "process", "is_enabled")
+    search_fields = ("process__process_code", "name", "description")
+    ordering = ("process", "sequence_order", "id")
+    readonly_fields = ("company_code",)
+
+
+@admin.register(models.ProcessOperationMaterial)
+class ProcessOperationMaterialAdmin(admin.ModelAdmin):
+    list_display = ("company", "operation", "material_item_code", "quantity_used", "unit")
+    list_filter = ("company", "operation__process")
+    search_fields = ("operation__process__process_code", "material_item_code", "bom_material__material_item_code")
+    ordering = ("operation", "id")
+    readonly_fields = ("material_item_code", "unit", "company_code")
+
+
 @admin.register(models.ProductOrder)
 class ProductOrderAdmin(admin.ModelAdmin):
     list_display = ("company", "order_code", "finished_item_code", "quantity_planned", "status", "priority")

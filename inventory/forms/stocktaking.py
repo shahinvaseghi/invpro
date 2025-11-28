@@ -92,6 +92,65 @@ class StocktakingDeficitLineForm(StocktakingBaseForm):
             'investigation_reference': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
+    def clean_unit(self):
+        """Validate unit and ensure it's in choices."""
+        unit = self.cleaned_data.get('unit')
+        if not unit:
+            return unit
+        
+        # Get item - try from cleaned_data first, then from data
+        item = None
+        if 'item' in self.cleaned_data:
+            item_id = self.cleaned_data.get('item')
+            if item_id:
+                try:
+                    from inventory.models import Item
+                    item = Item.objects.get(pk=item_id, company_id=self.company_id)
+                except (Item.DoesNotExist, ValueError, TypeError):
+                    pass
+        
+        # If item not in cleaned_data yet, try to get from data
+        if not item and self.data:
+            item_id = self.data.get(self.add_prefix('item'))
+            if item_id:
+                try:
+                    from inventory.models import Item
+                    item = Item.objects.get(pk=item_id, company_id=self.company_id)
+                except (Item.DoesNotExist, ValueError, TypeError):
+                    pass
+        
+        # If still no item, try instance
+        if not item and hasattr(self.instance, 'item_id') and self.instance.item_id:
+            item = self.instance.item
+        
+        # If we have an item, check if unit is allowed
+        if item:
+            # Get allowed units for this item
+            allowed_units = self._get_item_allowed_units(item)
+            allowed_codes = [row['value'] for row in allowed_units]
+            
+            # If unit is not in allowed units, add it to choices
+            if unit not in allowed_codes:
+                # Add unit to choices to avoid validation error
+                current_choices = list(self.fields['unit'].choices)
+                unit_codes = [code for code, _ in current_choices if code]
+                if unit not in unit_codes:
+                    from inventory.forms.base import UNIT_CHOICES
+                    label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                    label = label_map.get(unit, unit)
+                    self.fields['unit'].choices = current_choices + [(unit, label)]
+        else:
+            # No item yet - just ensure unit is in choices (accept any valid unit)
+            current_choices = list(self.fields['unit'].choices)
+            unit_codes = [code for code, _ in current_choices if code]
+            if unit not in unit_codes:
+                from inventory.forms.base import UNIT_CHOICES
+                label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                label = label_map.get(unit, unit)
+                self.fields['unit'].choices = current_choices + [(unit, label)]
+        
+        return unit
+
     def clean(self):
         """Validate quantity calculations."""
         cleaned_data = super().clean()
@@ -182,6 +241,65 @@ class StocktakingSurplusLineForm(StocktakingBaseForm):
             'reason_code': forms.TextInput(attrs={'class': 'form-control'}),
             'investigation_reference': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+    def clean_unit(self):
+        """Validate unit and ensure it's in choices."""
+        unit = self.cleaned_data.get('unit')
+        if not unit:
+            return unit
+        
+        # Get item - try from cleaned_data first, then from data
+        item = None
+        if 'item' in self.cleaned_data:
+            item_id = self.cleaned_data.get('item')
+            if item_id:
+                try:
+                    from inventory.models import Item
+                    item = Item.objects.get(pk=item_id, company_id=self.company_id)
+                except (Item.DoesNotExist, ValueError, TypeError):
+                    pass
+        
+        # If item not in cleaned_data yet, try to get from data
+        if not item and self.data:
+            item_id = self.data.get(self.add_prefix('item'))
+            if item_id:
+                try:
+                    from inventory.models import Item
+                    item = Item.objects.get(pk=item_id, company_id=self.company_id)
+                except (Item.DoesNotExist, ValueError, TypeError):
+                    pass
+        
+        # If still no item, try instance
+        if not item and hasattr(self.instance, 'item_id') and self.instance.item_id:
+            item = self.instance.item
+        
+        # If we have an item, check if unit is allowed
+        if item:
+            # Get allowed units for this item
+            allowed_units = self._get_item_allowed_units(item)
+            allowed_codes = [row['value'] for row in allowed_units]
+            
+            # If unit is not in allowed units, add it to choices
+            if unit not in allowed_codes:
+                # Add unit to choices to avoid validation error
+                current_choices = list(self.fields['unit'].choices)
+                unit_codes = [code for code, _ in current_choices if code]
+                if unit not in unit_codes:
+                    from inventory.forms.base import UNIT_CHOICES
+                    label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                    label = label_map.get(unit, unit)
+                    self.fields['unit'].choices = current_choices + [(unit, label)]
+        else:
+            # No item yet - just ensure unit is in choices (accept any valid unit)
+            current_choices = list(self.fields['unit'].choices)
+            unit_codes = [code for code, _ in current_choices if code]
+            if unit not in unit_codes:
+                from inventory.forms.base import UNIT_CHOICES
+                label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                label = label_map.get(unit, unit)
+                self.fields['unit'].choices = current_choices + [(unit, label)]
+        
+        return unit
 
     def clean(self):
         """Validate quantity calculations."""

@@ -25,10 +25,12 @@
     <table class="data-table">
       <thead>
         <tr>
+          <th style="width: 40px;"></th>
           <th>{% trans "Code" %}</th>
           <th>{% trans "Finished Item" %}</th>
           <th>{% trans "BOM" %}</th>
           <th>{% trans "Revision" %}</th>
+          <th>{% trans "Operations" %}</th>
           <th>{% trans "Work Lines" %}</th>
           <th>{% trans "Status" %}</th>
           <th>{% trans "Actions" %}</th>
@@ -37,7 +39,14 @@
       <tbody>
         {% if processes %}
           {% for process in processes %}
-          <tr>
+          <tr data-process-id="{{ process.pk }}">
+            <td style="text-align: center;">
+              {% if process.operations.exists %}
+                <button type="button" class="toggle-operations-btn" onclick="toggleOperations({{ process.pk }})" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem;">
+                  <span class="toggle-icon">▶</span>
+                </button>
+              {% endif %}
+            </td>
             <td><code>{{ process.process_code }}</code></td>
             <td><strong>{{ process.finished_item.name }}</strong></td>
             <td>
@@ -50,6 +59,19 @@
             <td>
               {% if process.revision %}
                 {{ process.revision }}
+              {% else %}
+                <span style="color: #9ca3af;">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if process.operations %}
+                {% with operations_count=process.operations.count %}
+                  {% if operations_count > 0 %}
+                    <span class="operations-count">{{ operations_count }} {% trans "operation(s)" %}</span>
+                  {% else %}
+                    <span style="color: #9ca3af;">—</span>
+                  {% endif %}
+                {% endwith %}
               {% else %}
                 <span style="color: #9ca3af;">—</span>
               {% endif %}
@@ -84,10 +106,54 @@
               </a>
             </td>
           </tr>
+          <!-- Operations detail row (hidden by default) -->
+          {% if process.operations and process.operations.count > 0 %}
+          <tr class="operations-detail-row" id="operations-detail-{{ process.pk }}" style="display: none; background: #f9fafb;">
+            <td colspan="9" style="padding: 1rem 2rem;">
+              <h4 style="margin-top: 0; margin-bottom: 1rem; color: #374151;">{% trans "Production Operations" %}</h4>
+              <div class="operations-list">
+                {% for operation in process.operations.all %}
+                <div class="operation-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
+                    <div>
+                      <strong>{% trans "Operation" %} #{{ operation.sequence_order }}</strong>
+                      {% if operation.name %}
+                        <span style="color: #6b7280; margin-right: 0.5rem;">· {{ operation.name }}</span>
+                      {% endif %}
+                    </div>
+                    <div style="font-size: 0.875rem; color: #6b7280;">
+                      <span>⚙️ {{ operation.labor_minutes_per_unit }} {% trans "min labor" %}</span>
+                      <span style="margin-right: 1rem;">|</span>
+                      <span>🔧 {{ operation.machine_minutes_per_unit }} {% trans "min machine" %}</span>
+                    </div>
+                  </div>
+                  {% if operation.description %}
+                    <p style="margin: 0.5rem 0; color: #6b7280; font-size: 0.875rem;">{{ operation.description }}</p>
+                  {% endif %}
+                  {% if operation.operation_materials.exists %}
+                    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #f3f4f6;">
+                      <strong style="font-size: 0.875rem; color: #374151;">{% trans "Materials Used" %}:</strong>
+                      <ul style="margin: 0.5rem 0 0 0; padding-right: 1.5rem; list-style: none; font-size: 0.875rem;">
+                        {% for material in operation.operation_materials.all %}
+                        <li style="margin-bottom: 0.25rem;">
+                          <code style="font-size: 0.8rem;">{{ material.bom_material.material_item_code }}</code>
+                          <span style="color: #6b7280;">{{ material.bom_material.material_item.name|default:material.bom_material.material_item_code }}</span>
+                          <span style="color: #9ca3af; margin-right: 0.5rem;">({{ material.quantity_used }} {{ material.unit }})</span>
+                        </li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  {% endif %}
+                </div>
+                {% endfor %}
+              </div>
+            </td>
+          </tr>
+          {% endif %}
           {% endfor %}
         {% else %}
           <tr>
-            <td colspan="7">
+            <td colspan="9">
               <div class="empty-state">
                 <div class="empty-state-icon">⚙️</div>
                 <h3>{% trans "No Processes Found" %}</h3>
@@ -103,5 +169,64 @@
     </table>
   </div>
 </div>
+
+<style>
+.toggle-operations-btn {
+  transition: transform 0.2s;
+}
+
+.toggle-operations-btn .toggle-icon {
+  display: inline-block;
+  transition: transform 0.2s;
+}
+
+.toggle-operations-btn.expanded .toggle-icon {
+  transform: rotate(90deg);
+}
+
+.operations-detail-row {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+
+.operations-count {
+  color: #3b82f6;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.operation-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.operation-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+</style>
+
+<script>
+function toggleOperations(processId) {
+  const detailRow = document.getElementById('operations-detail-' + processId);
+  const toggleBtn = event.target.closest('.toggle-operations-btn');
+  
+  if (detailRow.style.display === 'none') {
+    detailRow.style.display = 'table-row';
+    toggleBtn.classList.add('expanded');
+  } else {
+    detailRow.style.display = 'none';
+    toggleBtn.classList.remove('expanded');
+  }
+}
+</script>
 {% endblock %}
 

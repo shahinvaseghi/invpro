@@ -641,12 +641,14 @@ class ReceiptPermanentListView(InventoryBaseView, ListView):
         queryset = super().get_queryset()
         # Filter by user permissions (own vs all)
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.permanent', 'created_by')
-        # Prefetch lines with related items, warehouses, and suppliers for efficient display
-        # Also prefetch temporary_receipt and purchase_request for linking
+        # Use Prefetch to filter only enabled lines
+        from django.db.models import Prefetch
         queryset = queryset.prefetch_related(
-            'lines__item',
-            'lines__warehouse',
-            'lines__supplier'
+            Prefetch(
+                'lines',
+                queryset=models.ReceiptPermanentLine.objects.filter(is_enabled=1).select_related('item', 'warehouse', 'supplier'),
+                to_attr='enabled_lines'
+            )
         ).select_related('created_by', 'temporary_receipt', 'purchase_request')
         return queryset
 
@@ -879,11 +881,14 @@ class ReceiptConsignmentListView(InventoryBaseView, ListView):
         queryset = super().get_queryset()
         # Filter by user permissions (own vs all)
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.consignment', 'created_by')
-        # Prefetch lines with related items, warehouses, and suppliers for efficient display
+        # Use Prefetch to filter only enabled lines
+        from django.db.models import Prefetch
         queryset = queryset.prefetch_related(
-            'lines__item',
-            'lines__warehouse',
-            'lines__supplier'
+            Prefetch(
+                'lines',
+                queryset=models.ReceiptConsignmentLine.objects.filter(is_enabled=1).select_related('item', 'warehouse', 'supplier'),
+                to_attr='enabled_lines'
+            )
         ).select_related('created_by')
         return queryset
 

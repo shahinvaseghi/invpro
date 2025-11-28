@@ -1652,6 +1652,31 @@ document.addEventListener('submit', function(e) {
 
 console.log('[SCRIPT] Script file loaded, waiting for DOMContentLoaded...');
 
+// Auto-calculate quantity_adjusted for stocktaking forms (defined at global scope for access from addLineBtn handler)
+function calculateQuantityAdjusted(lineForm) {
+  const quantityExpectedInput = lineForm.querySelector('input[name*="-quantity_expected"]');
+  const quantityCountedInput = lineForm.querySelector('input[name*="-quantity_counted"]');
+  const quantityAdjustedInput = lineForm.querySelector('input[name*="-quantity_adjusted"]');
+  
+  if (!quantityExpectedInput || !quantityCountedInput || !quantityAdjustedInput) {
+    return; // Not a stocktaking form
+  }
+  
+  const expected = parseFloat(quantityExpectedInput.value) || 0;
+  const counted = parseFloat(quantityCountedInput.value) || 0;
+  
+  // Check if this is deficit or surplus by checking the form title or URL
+  const isDeficit = window.location.pathname.includes('deficit');
+  const adjusted = isDeficit ? (expected - counted) : (counted - expected);
+  
+  // Only set if adjusted is non-negative (validation will catch negative values)
+  if (adjusted >= 0) {
+    quantityAdjustedInput.value = adjusted.toFixed(6);
+  } else {
+    quantityAdjustedInput.value = '';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   console.log('[DOMContentLoaded] ===== DOMContentLoaded event fired =====');
   
@@ -1729,13 +1754,44 @@ document.addEventListener('DOMContentLoaded', function() {
       const line0DestChoice = document.querySelector('select[name*="lines-0-destination_type_choice"]');
       const line0DestType = document.querySelector('select[name*="lines-0-destination_type"]');
       
+      // Check if this is a stocktaking form (has quantity_expected field)
+      const line0QuantityExpected = document.querySelector('input[name="lines-0-quantity_expected"]');
+      const line0QuantityCounted = document.querySelector('input[name="lines-0-quantity_counted"]');
+      const line0QuantityAdjusted = document.querySelector('input[name="lines-0-quantity_adjusted"]');
+      const isStocktakingForm = !!line0QuantityExpected;
       
       // Check for any empty required fields
       let missingFields = [];
       if (!line0Item || !line0Item.value) missingFields.push('Item');
       if (!line0Warehouse || !line0Warehouse.value) missingFields.push('Warehouse');
       if (!line0Unit || !line0Unit.value) missingFields.push('Unit');
-      if (!line0Quantity || !line0Quantity.value) missingFields.push('Quantity');
+      
+      if (isStocktakingForm) {
+        // For stocktaking forms, check quantity_expected, quantity_counted, and quantity_adjusted
+        if (!line0QuantityExpected || !line0QuantityExpected.value) missingFields.push('Quantity Expected');
+        if (!line0QuantityCounted || !line0QuantityCounted.value) missingFields.push('Quantity Counted');
+        // quantity_adjusted is auto-calculated, but we should ensure it has a value
+        if (line0QuantityAdjusted && (!line0QuantityAdjusted.value || line0QuantityAdjusted.value === '')) {
+          // Try to calculate it if expected and counted are available
+          if (line0QuantityExpected && line0QuantityExpected.value && line0QuantityCounted && line0QuantityCounted.value) {
+            const expected = parseFloat(line0QuantityExpected.value) || 0;
+            const counted = parseFloat(line0QuantityCounted.value) || 0;
+            // Check if this is deficit or surplus by checking the form title or URL
+            const isDeficit = window.location.pathname.includes('deficit');
+            const adjusted = isDeficit ? (expected - counted) : (counted - expected);
+            if (adjusted >= 0) {
+              line0QuantityAdjusted.value = adjusted;
+            } else {
+              missingFields.push('Quantity Adjusted (calculated value is negative)');
+            }
+          } else {
+            missingFields.push('Quantity Adjusted');
+          }
+        }
+      } else {
+        // For regular forms, check quantity
+        if (!line0Quantity || !line0Quantity.value) missingFields.push('Quantity');
+      }
       
       // Only check destination_type_choice for Consumption Issues (it has destination_type_choice field)
       // For Permanent/Consignment Issues, destination_type is optional
@@ -3301,6 +3357,26 @@ document.addEventListener('DOMContentLoaded', function() {
       // Setup item change handlers for new form
       setupItemSelectHandlers(newForm);
       
+      // Setup quantity_adjusted auto-calculation for stocktaking forms
+      const quantityExpectedInput = newForm.querySelector('input[name*="-quantity_expected"]');
+      const quantityCountedInput = newForm.querySelector('input[name*="-quantity_counted"]');
+      if (quantityExpectedInput) {
+        quantityExpectedInput.addEventListener('input', function() {
+          calculateQuantityAdjusted(newForm);
+        });
+        quantityExpectedInput.addEventListener('change', function() {
+          calculateQuantityAdjusted(newForm);
+        });
+      }
+      if (quantityCountedInput) {
+        quantityCountedInput.addEventListener('input', function() {
+          calculateQuantityAdjusted(newForm);
+        });
+        quantityCountedInput.addEventListener('change', function() {
+          calculateQuantityAdjusted(newForm);
+        });
+      }
+      
       // Disable unit and warehouse selects for new form (no item selected yet)
       const newFormUnitSelect = newForm.querySelector('select[name*="-unit"]');
       const newFormWarehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
@@ -3849,6 +3925,35 @@ document.addEventListener('DOMContentLoaded', function() {
           updateWorkLineChoices(warehouseSelect, workLineField);
         }
       });
+    }
+  });
+  
+  // Attach event listeners for auto-calculation
+  document.querySelectorAll('.line-form').forEach(function(lineForm) {
+    const quantityExpectedInput = lineForm.querySelector('input[name*="-quantity_expected"]');
+    const quantityCountedInput = lineForm.querySelector('input[name*="-quantity_counted"]');
+    
+    if (quantityExpectedInput) {
+      quantityExpectedInput.addEventListener('input', function() {
+        calculateQuantityAdjusted(lineForm);
+      });
+      quantityExpectedInput.addEventListener('change', function() {
+        calculateQuantityAdjusted(lineForm);
+      });
+    }
+    
+    if (quantityCountedInput) {
+      quantityCountedInput.addEventListener('input', function() {
+        calculateQuantityAdjusted(lineForm);
+      });
+      quantityCountedInput.addEventListener('change', function() {
+        calculateQuantityAdjusted(lineForm);
+      });
+    }
+    
+    // Initial calculation if values are already present
+    if (quantityExpectedInput && quantityCountedInput) {
+      calculateQuantityAdjusted(lineForm);
     }
   });
   

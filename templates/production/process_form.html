@@ -171,6 +171,139 @@
         </div>
       </div>
 
+      <!-- بخش عملیات تولید -->
+      {% if form.bom %}
+      <div class="form-section">
+        <h3>{% trans "Production Operations" %}</h3>
+        <p class="form-help-text">{% trans "Define production operations and materials used in each operation" %}</p>
+        
+        {{ operations_formset.management_form }}
+        
+        {% if operations_formset.non_form_errors %}
+          <div class="alert alert-error">
+            {{ operations_formset.non_form_errors }}
+          </div>
+        {% endif %}
+
+        <div id="operations-container">
+          {% for operation_form in operations_formset %}
+            <div class="operation-row" data-operation-index="{{ forloop.counter0 }}">
+              <div class="operation-header">
+                <h4>{% trans "Operation" %} #<span class="operation-number">{{ forloop.counter }}</span></h4>
+                {% if operation_form.DELETE %}
+                  {{ operation_form.DELETE }}
+                  <label for="{{ operation_form.DELETE.id_for_label }}" class="delete-operation-label">
+                    🗑️ {% trans "Delete Operation" %}
+                  </label>
+                {% else %}
+                  <button type="button" class="btn-remove-operation" onclick="removeOperation(this)">× {% trans "Remove" %}</button>
+                {% endif %}
+              </div>
+              
+              <div class="operation-form-fields">
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="{{ operation_form.name.id_for_label }}">{{ operation_form.name.label }}</label>
+                    {{ operation_form.name }}
+                    {% if operation_form.name.errors %}
+                      <span class="error">{{ operation_form.name.errors.0 }}</span>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="form-field">
+                    <label for="{{ operation_form.sequence_order.id_for_label }}">{{ operation_form.sequence_order.label }}</label>
+                    {{ operation_form.sequence_order }}
+                    {% if operation_form.sequence_order.errors %}
+                      <span class="error">{{ operation_form.sequence_order.errors.0 }}</span>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="{{ operation_form.labor_minutes_per_unit.id_for_label }}">{{ operation_form.labor_minutes_per_unit.label }}</label>
+                    {{ operation_form.labor_minutes_per_unit }}
+                    {% if operation_form.labor_minutes_per_unit.errors %}
+                      <span class="error">{{ operation_form.labor_minutes_per_unit.errors.0 }}</span>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="form-field">
+                    <label for="{{ operation_form.machine_minutes_per_unit.id_for_label }}">{{ operation_form.machine_minutes_per_unit.label }}</label>
+                    {{ operation_form.machine_minutes_per_unit }}
+                    {% if operation_form.machine_minutes_per_unit.errors %}
+                      <span class="error">{{ operation_form.machine_minutes_per_unit.errors.0 }}</span>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="form-field">
+                  <label for="{{ operation_form.description.id_for_label }}">{{ operation_form.description.label }}</label>
+                  {{ operation_form.description }}
+                  {% if operation_form.description.errors %}
+                    <span class="error">{{ operation_form.description.errors.0 }}</span>
+                  {% endif %}
+                </div>
+
+                <div class="form-field">
+                  <label for="{{ operation_form.notes.id_for_label }}">{{ operation_form.notes.label }}</label>
+                  {{ operation_form.notes }}
+                  {% if operation_form.notes.errors %}
+                    <span class="error">{{ operation_form.notes.errors.0 }}</span>
+                  {% endif %}
+                </div>
+
+                <!-- Materials formset for this operation -->
+                <div class="operation-materials-section">
+                  <h5>{% trans "Materials Used in This Operation" %}</h5>
+                  
+                  <div class="materials-table-wrapper">
+                    <table class="materials-table">
+                      <thead>
+                        <tr>
+                          <th>{% trans "Material from BOM" %}</th>
+                          <th style="width: 150px;">{% trans "Quantity Used" %}</th>
+                          <th style="width: 80px;">{% trans "Unit" %}</th>
+                          <th style="width: 60px;">{% trans "Delete" %}</th>
+                        </tr>
+                      </thead>
+                      <tbody class="operation-materials-tbody" data-operation-index="{{ forloop.counter0 }}">
+                        <!-- Materials will be added here via JavaScript -->
+                        <tr class="material-row-placeholder">
+                          <td colspan="4" class="text-center" style="color: #9ca3af; padding: 1rem;">
+                            {% trans "No materials added yet. Select a BOM first." %}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  <button type="button" class="btn btn-secondary btn-sm add-material-btn" 
+                          data-operation-index="{{ forloop.counter0 }}"
+                          onclick="addMaterialToOperation({{ forloop.counter0 }})"
+                          {% if not form.bom.value %}disabled{% endif %}>
+                    ➕ {% trans "Add Material" %}
+                  </button>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="formset-actions">
+          <button type="button" class="btn btn-secondary" id="add-operation-btn" onclick="addOperation()">
+            ➕ {% trans "Add Operation" %}
+          </button>
+        </div>
+      </div>
+      {% else %}
+      <div class="form-section">
+        <div class="info-banner" style="background: #fef3c7; border-color: #fbbf24;">
+          <p style="margin: 0;">⚠️ {% trans "Please select a BOM first to add production operations" %}</p>
+        </div>
+      </div>
+      {% endif %}
+
       <div class="form-actions">
         <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
         <a href="{% url 'production:processes' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
@@ -349,6 +482,588 @@
 .btn-secondary:hover {
   background: #4b5563;
 }
+
+.btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+/* Operation Styles */
+.operation-row {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  background: #f9fafb;
+}
+
+.operation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.operation-header h4 {
+  margin: 0;
+  font-size: 1.125rem;
+  color: #1f2937;
+}
+
+.delete-operation-label {
+  cursor: pointer;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+.btn-remove-operation {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 0.375rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.btn-remove-operation:hover {
+  background: #b91c1c;
+}
+
+.operation-form-fields {
+  display: grid;
+  gap: 1rem;
+}
+
+.operation-materials-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.operation-materials-section h5 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: #374151;
+}
+
+.materials-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+.materials-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.materials-table th {
+  background: #f3f4f6;
+  padding: 0.75rem;
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.materials-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.materials-table input,
+.materials-table select {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.form-help-text {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.add-material-btn {
+  margin-top: 0.5rem;
+}
+
+.text-center {
+  text-align: center;
+}
 </style>
+
+<script>
+// BOM change handler - load materials when BOM is selected
+document.addEventListener('DOMContentLoaded', function() {
+  const bomSelect = document.getElementById('{{ form.bom.id_for_label }}');
+  
+  if (bomSelect) {
+    bomSelect.addEventListener('change', function() {
+      const bomId = this.value;
+      // Enable/disable add material buttons based on BOM selection
+      const addMaterialBtns = document.querySelectorAll('.add-material-btn');
+      addMaterialBtns.forEach(btn => {
+        btn.disabled = !bomId;
+      });
+      
+      // Reload materials dropdowns if BOM is selected
+      if (bomId) {
+        loadBOMMaterials(bomId);
+      }
+    });
+    
+    // Initial state
+    if (bomSelect.value) {
+      loadBOMMaterials(bomSelect.value);
+    }
+  }
+  
+    // Load existing operations materials if in edit mode
+  {% if existing_operations_data %}
+    const bomSelect = document.getElementById('{{ form.bom.id_for_label }}');
+    const bomId = bomSelect ? bomSelect.value : '';
+    
+    if (bomId) {
+      loadBOMMaterials(bomId).then(() => {
+        {% for op_data in existing_operations_data %}
+          loadExistingOperationMaterials({{ forloop.counter0 }}, {{ op_data.operation.id }}, {{ op_data.materials|length }});
+        {% endfor %}
+      });
+    }
+  {% endif %}
+});
+
+// Store BOM materials globally
+let bomMaterialsCache = {};
+
+function loadBOMMaterials(bomId) {
+  return new Promise((resolve, reject) => {
+    if (!bomId) {
+      bomMaterialsCache = {};
+      // Disable all add material buttons
+      document.querySelectorAll('.add-material-btn').forEach(btn => {
+        btn.disabled = true;
+      });
+      resolve([]);
+      return;
+    }
+    
+    // Check cache first
+    if (bomMaterialsCache[bomId]) {
+      resolve(bomMaterialsCache[bomId]);
+      return;
+    }
+    
+    // Fetch BOM materials via AJAX
+    fetch(`/production/api/bom/${bomId}/materials/`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to load BOM materials');
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Cache materials
+        bomMaterialsCache[bomId] = data.materials;
+        
+        // Enable all add material buttons
+        document.querySelectorAll('.add-material-btn').forEach(btn => {
+          btn.disabled = false;
+        });
+        
+        // Update all existing material selects
+        document.querySelectorAll('.operation-material-bom-material').forEach(select => {
+          updateMaterialSelect(select, data.materials);
+        });
+        
+        console.log(`Loaded ${data.materials.length} materials from BOM ${bomId}`);
+        resolve(data.materials);
+      })
+      .catch(error => {
+        console.error('Error loading BOM materials:', error);
+        alert('خطا در بارگذاری مواد BOM. لطفاً دوباره تلاش کنید.');
+        reject(error);
+      });
+  });
+}
+
+function updateMaterialSelect(selectElement, materials) {
+  const currentValue = selectElement.value;
+  selectElement.innerHTML = '<option value="">---</option>';
+  
+  materials.forEach(material => {
+    const option = document.createElement('option');
+    option.value = material.id;
+    option.textContent = `${material.material_item_code} - ${material.material_item_name}`;
+    option.dataset.unit = material.unit;
+    option.dataset.quantityPerUnit = material.quantity_per_unit;
+    selectElement.appendChild(option);
+  });
+  
+  // Restore previous value if still valid
+  if (currentValue) {
+    selectElement.value = currentValue;
+  }
+}
+
+let operationCounter = {{ operations_formset.total_form_count|default:0 }};
+
+function addOperation() {
+  const container = document.getElementById('operations-container');
+  const totalForms = document.getElementById('id_operations-TOTAL_FORMS');
+  const formCount = parseInt(totalForms.value);
+  
+  const newOperationHtml = `
+    <div class="operation-row" data-operation-index="${formCount}">
+      <div class="operation-header">
+        <h4>{% trans "Operation" %} #<span class="operation-number">${formCount + 1}</span></h4>
+        <button type="button" class="btn-remove-operation" onclick="removeOperation(this)">× {% trans "Remove" %}</button>
+      </div>
+      
+      <div class="operation-form-fields">
+        <div class="form-row">
+          <div class="form-field">
+            <label>{% trans "Operation Name" %}</label>
+            <input type="text" name="operations-${formCount}-name" class="form-control operation-name" />
+          </div>
+          <div class="form-field">
+            <label>{% trans "Sequence Order" %}</label>
+            <input type="number" name="operations-${formCount}-sequence_order" class="form-control operation-sequence" min="1" value="${formCount + 1}" />
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label>{% trans "Labor Minutes per Unit" %}</label>
+            <input type="number" name="operations-${formCount}-labor_minutes_per_unit" class="form-control operation-labor-minutes" step="0.000001" min="0" />
+          </div>
+          <div class="form-field">
+            <label>{% trans "Machine Minutes per Unit" %}</label>
+            <input type="number" name="operations-${formCount}-machine_minutes_per_unit" class="form-control operation-machine-minutes" step="0.000001" min="0" />
+          </div>
+        </div>
+        
+        <div class="form-field">
+          <label>{% trans "Description" %}</label>
+          <input type="text" name="operations-${formCount}-description" class="form-control operation-description" />
+        </div>
+        
+        <div class="form-field">
+          <label>{% trans "Notes" %}</label>
+          <textarea name="operations-${formCount}-notes" class="form-control operation-notes" rows="2"></textarea>
+        </div>
+        
+        <div class="operation-materials-section">
+          <h5>{% trans "Materials Used in This Operation" %}</h5>
+          <div class="materials-table-wrapper">
+            <table class="materials-table">
+              <thead>
+                <tr>
+                  <th>{% trans "Material from BOM" %}</th>
+                  <th style="width: 150px;">{% trans "Quantity Used" %}</th>
+                  <th style="width: 80px;">{% trans "Unit" %}</th>
+                  <th style="width: 60px;">{% trans "Delete" %}</th>
+                </tr>
+              </thead>
+              <tbody class="operation-materials-tbody" data-operation-index="${formCount}">
+                <tr class="material-row-placeholder">
+                  <td colspan="4" class="text-center" style="color: #9ca3af; padding: 1rem;">
+                    {% trans "No materials added yet." %}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm add-material-btn" 
+                  data-operation-index="${formCount}"
+                  onclick="addMaterialToOperation(${formCount})"
+                  {% if not form.bom.value %}disabled{% endif %}>
+            ➕ {% trans "Add Material" %}
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  container.insertAdjacentHTML('beforeend', newOperationHtml);
+  totalForms.value = formCount + 1;
+  operationCounter++;
+  
+  // Update operation numbers
+  updateOperationNumbers();
+}
+
+function removeOperation(button) {
+  const operationRow = button.closest('.operation-row');
+  operationRow.remove();
+  updateOperationNumbers();
+}
+
+function updateOperationNumbers() {
+  const operations = document.querySelectorAll('.operation-row');
+  operations.forEach((op, index) => {
+    const numberSpan = op.querySelector('.operation-number');
+    if (numberSpan) {
+      numberSpan.textContent = index + 1;
+    }
+  });
+}
+
+let materialCounters = {};
+
+function addMaterialToOperation(operationIndex) {
+  if (!materialCounters[operationIndex]) {
+    materialCounters[operationIndex] = 0;
+  }
+  
+  const materialIndex = materialCounters[operationIndex]++;
+  const tbody = document.querySelector(`.operation-materials-tbody[data-operation-index="${operationIndex}"]`);
+  
+  // Remove placeholder if exists
+  const placeholder = tbody.querySelector('.material-row-placeholder');
+  if (placeholder) {
+    placeholder.remove();
+  }
+  
+  const bomSelect = document.getElementById('{{ form.bom.id_for_label }}');
+  const bomId = bomSelect ? bomSelect.value : '';
+  
+  const newMaterialRow = `
+    <tr class="material-row" data-material-index="${materialIndex}">
+      <td>
+        <select name="materials-${operationIndex}-${materialIndex}-bom_material" class="form-control operation-material-bom-material" required>
+          <option value="">---</option>
+          <!-- Options will be loaded from BOM -->
+        </select>
+      </td>
+      <td>
+        <input type="number" name="materials-${operationIndex}-${materialIndex}-quantity_used" 
+               class="form-control operation-material-quantity" step="0.000001" min="0" required />
+      </td>
+      <td>
+        <input type="text" name="materials-${operationIndex}-${materialIndex}-unit" 
+               class="form-control operation-material-unit" readonly />
+      </td>
+      <td class="text-center">
+        <button type="button" class="btn-remove-material" onclick="removeMaterial(this)">×</button>
+      </td>
+    </tr>
+  `;
+  
+  tbody.insertAdjacentHTML('beforeend', newMaterialRow);
+  
+  // Load BOM materials if BOM is selected
+  if (bomId) {
+    loadBOMMaterialsForOperation(operationIndex, materialIndex, bomId);
+  } else {
+    // If no BOM selected, use cached materials if available
+    const bomSelect = document.getElementById('{{ form.bom.id_for_label }}');
+    const currentBomId = bomSelect ? bomSelect.value : '';
+    if (currentBomId && bomMaterialsCache[currentBomId]) {
+      const select = tbody.querySelector(`.material-row[data-material-index="${materialIndex}"] .operation-material-bom-material`);
+      if (select) {
+        updateMaterialSelect(select, bomMaterialsCache[currentBomId]);
+        attachMaterialSelectHandlers(select);
+      }
+    }
+  }
+}
+
+function removeMaterial(button) {
+  const row = button.closest('.material-row');
+  const tbody = row.closest('tbody');
+  row.remove();
+  
+  // Show placeholder if no materials left
+  if (tbody.querySelectorAll('.material-row').length === 0) {
+    tbody.innerHTML = `
+      <tr class="material-row-placeholder">
+        <td colspan="4" class="text-center" style="color: #9ca3af; padding: 1rem;">
+          {% trans "No materials added yet." %}
+        </td>
+      </tr>
+    `;
+  }
+}
+
+function loadBOMMaterialsForOperation(operationIndex, materialIndex, bomId) {
+  const select = document.querySelector(
+    `.operation-materials-tbody[data-operation-index="${operationIndex}"] .material-row[data-material-index="${materialIndex}"] .operation-material-bom-material`
+  );
+  
+  if (!select) {
+    return;
+  }
+  
+  // Check cache first
+  if (bomMaterialsCache[bomId]) {
+    updateMaterialSelect(select, bomMaterialsCache[bomId]);
+    attachMaterialSelectHandlers(select);
+    return;
+  }
+  
+  // Fetch if not in cache
+  fetch(`/production/api/bom/${bomId}/materials/`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to load BOM materials');
+      }
+      return response.json();
+    })
+    .then(data => {
+      bomMaterialsCache[bomId] = data.materials;
+      updateMaterialSelect(select, data.materials);
+      attachMaterialSelectHandlers(select);
+    })
+    .catch(error => {
+      console.error('Error loading BOM materials:', error);
+      alert('خطا در بارگذاری مواد BOM. لطفاً دوباره تلاش کنید.');
+    });
+}
+
+function attachMaterialSelectHandlers(selectElement) {
+  // Remove existing handlers
+  const newSelect = selectElement.cloneNode(true);
+  selectElement.parentNode.replaceChild(newSelect, selectElement);
+  
+  // Add change handler to update unit and set default quantity
+  newSelect.addEventListener('change', function() {
+    const materialRow = this.closest('.material-row');
+    if (!materialRow) return;
+    
+    const unitInput = materialRow.querySelector('.operation-material-unit');
+    const quantityInput = materialRow.querySelector('.operation-material-quantity');
+    
+    if (this.selectedOptions[0] && this.selectedOptions[0].value) {
+      const selectedOption = this.selectedOptions[0];
+      const unit = selectedOption.dataset.unit || '';
+      const quantityPerUnit = selectedOption.dataset.quantityPerUnit || '';
+      
+      if (unitInput) {
+        unitInput.value = unit;
+      }
+      
+      // Set default quantity to BOM quantity if quantity input is empty
+      if (quantityInput && !quantityInput.value && quantityPerUnit) {
+        quantityInput.value = quantityPerUnit;
+      }
+    } else {
+      if (unitInput) {
+        unitInput.value = '';
+      }
+    }
+  });
+}
+
+// Load existing operation materials (for edit mode)
+function loadExistingOperationMaterials(operationIndex, operationId, materialCount) {
+  const tbody = document.querySelector(`.operation-materials-tbody[data-operation-index="${operationIndex}"]`);
+  if (!tbody) return;
+  
+  // Remove placeholder
+  const placeholder = tbody.querySelector('.material-row-placeholder');
+  if (placeholder) {
+    placeholder.remove();
+  }
+  
+  const bomSelect = document.getElementById('{{ form.bom.id_for_label }}');
+  const bomId = bomSelect ? bomSelect.value : '';
+  
+  if (!bomId) {
+    return;
+  }
+  
+  // Add existing materials from server data
+  {% if existing_operations_data %}
+    {% for op_data in existing_operations_data %}
+      {% if op_data.materials %}
+        {% for material in op_data.materials %}
+          addExistingMaterialToOperation(
+            {{ forloop.parentloop.counter0 }}, 
+            {{ material.bom_material_id }}, 
+            '{{ material.quantity_used }}', 
+            '{{ material.unit }}', 
+            {{ material.id|default:"null" }}
+          );
+        {% endfor %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+}
+
+function addExistingMaterialToOperation(operationIndex, bomMaterialId, quantityUsed, unit, materialId) {
+  if (!materialCounters[operationIndex]) {
+    materialCounters[operationIndex] = 0;
+  }
+  
+  const materialIndex = materialCounters[operationIndex]++;
+  const tbody = document.querySelector(`.operation-materials-tbody[data-operation-index="${operationIndex}"]`);
+  
+  if (!tbody) return;
+  
+  // Remove placeholder if exists
+  const placeholder = tbody.querySelector('.material-row-placeholder');
+  if (placeholder) {
+    placeholder.remove();
+  }
+  
+  const bomSelect = document.getElementById('{{ form.bom.id_for_label }}');
+  const bomId = bomSelect ? bomSelect.value : '';
+  
+  const newMaterialRow = `
+    <tr class="material-row" data-material-index="${materialIndex}">
+      <td>
+        <select name="materials-${operationIndex}-${materialIndex}-bom_material" class="form-control operation-material-bom-material" required>
+          <option value="">---</option>
+        </select>
+        ${materialId ? `<input type="hidden" name="materials-${operationIndex}-${materialIndex}-id" value="${materialId}" />` : ''}
+      </td>
+      <td>
+        <input type="number" name="materials-${operationIndex}-${materialIndex}-quantity_used" 
+               class="form-control operation-material-quantity" step="0.000001" min="0" value="${quantityUsed}" required />
+      </td>
+      <td>
+        <input type="text" name="materials-${operationIndex}-${materialIndex}-unit" 
+               class="form-control operation-material-unit" value="${unit}" readonly />
+      </td>
+      <td class="text-center">
+        <button type="button" class="btn-remove-material" onclick="removeMaterial(this)">×</button>
+      </td>
+    </tr>
+  `;
+  
+  tbody.insertAdjacentHTML('beforeend', newMaterialRow);
+  
+  // Load BOM materials and set selected value
+  if (bomId && bomMaterialsCache[bomId]) {
+    const select = tbody.querySelector(`.material-row[data-material-index="${materialIndex}"] .operation-material-bom-material`);
+    if (select) {
+      updateMaterialSelect(select, bomMaterialsCache[bomId]);
+      attachMaterialSelectHandlers(select);
+      select.value = bomMaterialId;
+      // Trigger change to update unit
+      select.dispatchEvent(new Event('change'));
+    }
+  } else if (bomId) {
+    // Wait for BOM materials to load
+    loadBOMMaterials(bomId).then(() => {
+      const select = tbody.querySelector(`.material-row[data-material-index="${materialIndex}"] .operation-material-bom-material`);
+      if (select) {
+        select.value = bomMaterialId;
+        // Trigger change to update unit
+        select.dispatchEvent(new Event('change'));
+      }
+    });
+  }
+}
+</script>
 {% endblock %}
 
