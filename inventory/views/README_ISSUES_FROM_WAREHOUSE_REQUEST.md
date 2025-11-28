@@ -151,12 +151,28 @@
 - `feature_code`: `'inventory.issues.consumption'`
 - `required_action`: `'create'`
 
-**متدها**: مشابه `IssuePermanentCreateFromWarehouseRequestView`
+**متدها**:
+
+#### `get_warehouse_request(self) -> WarehouseRequest`
+- مشابه `IssuePermanentCreateFromWarehouseRequestView`
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+- مشابه `IssuePermanentCreateFromWarehouseRequestView`
+- **تفاوت**: Initial data شامل `consumption_type` و `destination_type_choice` است
+- `consumption_type` بر اساس `department_unit` تعیین می‌شود
+
+#### `form_valid(self, form) -> HttpResponseRedirect`
+- مشابه `IssuePermanentCreateFromWarehouseRequestView`
+- **تفاوت**: `warehouse_request` به issue link نمی‌شود (فقط `department_unit`)
+
+#### `get_fieldsets(self) -> list`
+- مشابه `IssuePermanentCreateFromWarehouseRequestView`
 
 **تفاوت‌ها**:
 - Session key: `warehouse_request_{pk}_issue_consumption_data`
 - Initial data شامل: `consumption_type`, `destination_type_choice`
 - `consumption_type` بر اساس `department_unit` تعیین می‌شود
+- `warehouse_request` به issue document link نمی‌شود
 
 ---
 
@@ -184,10 +200,24 @@
 - `feature_code`: `'inventory.issues.consignment'`
 - `required_action`: `'create'`
 
-**متدها**: مشابه `IssuePermanentCreateFromWarehouseRequestView`
+**متدها**:
+
+#### `get_warehouse_request(self) -> WarehouseRequest`
+- مشابه `IssuePermanentCreateFromWarehouseRequestView`
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+- مشابه `IssuePermanentCreateFromWarehouseRequestView`
+
+#### `form_valid(self, form) -> HttpResponseRedirect`
+- مشابه `IssuePermanentCreateFromWarehouseRequestView`
+- **تفاوت**: `warehouse_request` به issue link نمی‌شود (فقط `department_unit`)
+
+#### `get_fieldsets(self) -> list`
+- مشابه `IssuePermanentCreateFromWarehouseRequestView`
 
 **تفاوت‌ها**:
 - Session key: `warehouse_request_{pk}_issue_consignment_data`
+- `warehouse_request` به issue document link نمی‌شود
 
 ---
 
@@ -205,7 +235,8 @@
 - Quantity از session استفاده می‌شود (نه از warehouse request)
 
 ### 3. Warehouse Request Linking
-- `warehouse_request` به issue document link می‌شود
+- **Permanent Issue**: `warehouse_request` به issue document link می‌شود
+- **Consumption/Consignment Issue**: `warehouse_request` link نمی‌شود (فقط `department_unit` کپی می‌شود)
 - `department_unit` از warehouse request کپی می‌شود
 
 ### 4. Validation

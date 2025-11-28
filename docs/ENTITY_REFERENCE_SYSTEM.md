@@ -23,7 +23,13 @@ XX YY ZZ
 - `02` - Inventory
 - `03` - Production
 - `04` - Quality Control (QC)
-- `05` - Ticketing (future)
+- `05` - Ticketing
+- `06` - Accounting
+- `07` - Sales
+- `08` - Human Resources (HR)
+- `09` - Office Automation
+- `10` - Transportation
+- `11` - Procurement
 
 ---
 
@@ -138,6 +144,145 @@ XX YY ZZ
 | `050100` | `ticket_categories` | Ticket Categories | Ticket category management |
 | `050200` | `ticket_templates` | Ticket Templates | Ticket template management |
 | `050300` | `ticket_subcategories` | Ticket Subcategories | Ticket subcategory management |
+
+---
+
+### Module 06 - Accounting
+
+#### Dashboard (06 00 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `060000` | `accounting_dashboard` | Accounting Dashboard | Main dashboard for accounting module |
+
+#### General Section (06 01 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `060101` | `general_ledger` | General Ledger | General ledger documents |
+| `060102` | `subsidiary_ledger` | Subsidiary Ledgers | Subsidiary ledger management |
+| `060103` | `detail_ledger` | Detail Ledgers | Detail ledger management |
+
+#### Accounting Documents (06 02 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `060201` | `accounting_document_entry` | Entry Document | Accounting entry document |
+| `060202` | `accounting_document_exit` | Exit Document | Accounting exit document |
+
+#### Treasury (06 03 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `060301` | `treasury_expense` | Expense Document | Treasury expense document |
+| `060302` | `treasury_income` | Income Document | Treasury income document |
+
+#### Payroll (06 04 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `060401` | `payroll_document` | Payroll Document | Payroll document management |
+| `060402` | `payroll_decrees` | Decrees | Payroll decree management |
+| `060403` | `payroll_decree_groups` | Decree Groups | Payroll decree group management |
+| `060404` | `payroll_decree_subgroups` | Decree Subgroups | Payroll decree subgroup management |
+
+---
+
+### Module 07 - Sales
+
+#### Dashboard (07 00 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `070000` | `sales_dashboard` | Sales Dashboard | Main dashboard for sales module |
+
+#### Sales Invoice (07 01 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `070101` | `sales_invoice` | Sales Invoice | Create and manage sales invoices |
+
+---
+
+### Module 08 - Human Resources (HR)
+
+#### Dashboard (08 00 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `080000` | `hr_dashboard` | HR Dashboard | Main dashboard for HR module |
+
+#### Personnel Section (08 01 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `080101` | `personnel_create` | Create Personnel | Create new personnel record |
+| `080102` | `personnel_decree_assignment` | Decree Assignment | Assign decrees to personnel |
+| `080103` | `personnel_form_create` | Personnel Form | Create personnel form |
+| `080104` | `personnel_form_groups` | Form Groups | Personnel form group management |
+| `080105` | `personnel_form_subgroups` | Form Subgroups | Personnel form subgroup management |
+
+#### Requests Section (08 02 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `080201` | `leave_request` | Leave Request | Leave request management |
+| `080202` | `sick_leave_request` | Sick Leave Request | Sick leave request management |
+| `080203` | `loan_request` | Loan Request | Loan request management |
+
+#### Loans Section (08 03 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `080301` | `loan_management` | Loan Management | Loan management |
+| `080302` | `loan_scheduling` | Loan Scheduling | Loan scheduling management |
+| `080303` | `savings_fund` | Savings Fund | Savings fund management |
+
+---
+
+### Module 09 - Office Automation
+
+#### Dashboard (09 00 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `090000` | `office_automation_dashboard` | Office Automation Dashboard | Main dashboard for office automation module |
+
+#### Inbox Section (09 01 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `090101` | `incoming_letters` | Incoming Letters | Incoming letters management |
+| `090102` | `write_letter` | Write Letter | Write new letter |
+| `090103` | `fill_form` | Fill Form | Fill form management |
+
+#### Processes Section (09 02 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `090201` | `process_engine` | Process Engine | Process engine management |
+| `090202` | `process_form_connection` | Process-Form Connection | Process and form connection management |
+
+#### Forms Section (09 03 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `090301` | `form_builder` | Form Builder | Form builder tool |
+
+---
+
+### Module 10 - Transportation
+
+#### Dashboard (10 00 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `100000` | `transportation_dashboard` | Transportation Dashboard | Main dashboard for transportation module |
+
+---
+
+### Module 11 - Procurement
+
+#### Dashboard (11 00 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `110000` | `procurement_dashboard` | Procurement Dashboard | Main dashboard for procurement module |
+
+#### Purchase Section (11 01 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `110101` | `purchases` | Purchases | Purchase management |
+
+#### Buyers Section (11 02 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `110201` | `buyers` | Buyers | Buyer list management |
+| `110202` | `buyer_create` | Create Buyer | Create new buyer |
+| `110203` | `buyer_assignment` | Buyer Assignment | Assign buyers to purchases |
 
 ---
 
@@ -338,6 +483,369 @@ Each section can define multiple actions. Actions are defined per section with t
 
 ---
 
+### Accounting
+
+#### Accounting Dashboard (060000 / accounting_dashboard)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show accounting dashboard |
+
+#### General Ledger (060101 / general_ledger)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show general ledger documents with optional filters |
+| `add` | - | Create new general ledger document |
+| `edit` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Edit general ledger document - can use either id or code |
+| `delete` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Delete general ledger document - can use either id or code |
+| `lock` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Lock general ledger document - can use either id or code |
+
+#### Subsidiary Ledger (060102 / subsidiary_ledger)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show subsidiary ledgers with optional filters |
+| `add` | - | Create new subsidiary ledger |
+| `edit` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Edit subsidiary ledger - can use either id or code |
+| `delete` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Delete subsidiary ledger - can use either id or code |
+| `lock` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Lock subsidiary ledger - can use either id or code |
+
+#### Detail Ledger (060103 / detail_ledger)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show detail ledgers with optional filters |
+| `add` | - | Create new detail ledger |
+| `edit` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Edit detail ledger - can use either id or code |
+| `delete` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Delete detail ledger - can use either id or code |
+| `lock` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Lock detail ledger - can use either id or code |
+
+#### Accounting Document Entry (060201 / accounting_document_entry)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show entry documents with optional filters |
+| `add` | - | Create new entry document |
+| `edit` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Edit entry document - can use either id or code |
+| `delete` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Delete entry document - can use either id or code |
+| `lock` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Lock entry document - can use either id or code |
+
+#### Accounting Document Exit (060202 / accounting_document_exit)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show exit documents with optional filters |
+| `add` | - | Create new exit document |
+| `edit` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Edit exit document - can use either id or code |
+| `delete` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Delete exit document - can use either id or code |
+| `lock` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Lock exit document - can use either id or code |
+
+#### Treasury Expense (060301 / treasury_expense)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show expense documents with optional filters |
+| `add` | - | Create new expense document |
+| `edit` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Edit expense document - can use either id or code |
+| `delete` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Delete expense document - can use either id or code |
+| `lock` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Lock expense document - can use either id or code |
+
+#### Treasury Income (060302 / treasury_income)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show income documents with optional filters |
+| `add` | - | Create new income document |
+| `edit` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Edit income document - can use either id or code |
+| `delete` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Delete income document - can use either id or code |
+| `lock` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Lock income document - can use either id or code |
+
+#### Payroll Document (060401 / payroll_document)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show payroll documents with optional filters |
+| `add` | - | Create new payroll document |
+| `edit` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Edit payroll document - can use either id or code |
+| `delete` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Delete payroll document - can use either id or code |
+| `lock` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Lock payroll document - can use either id or code |
+
+#### Payroll Decrees (060402 / payroll_decrees)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show payroll decrees |
+| `add` | - | Create new decree |
+| `edit` | `id=<decree_id>`, `code=<decree_code>` (اختیاری) | Edit decree - can use either id or code |
+| `delete` | `id=<decree_id>`, `code=<decree_code>` (اختیاری) | Delete decree - can use either id or code |
+
+#### Payroll Decree Groups (060403 / payroll_decree_groups)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show decree groups |
+| `add` | - | Create new decree group |
+| `edit` | `id=<group_id>`, `code=<group_code>` (اختیاری) | Edit decree group - can use either id or code |
+| `delete` | `id=<group_id>`, `code=<group_code>` (اختیاری) | Delete decree group - can use either id or code |
+
+#### Payroll Decree Subgroups (060404 / payroll_decree_subgroups)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show decree subgroups |
+| `add` | - | Create new decree subgroup |
+| `edit` | `id=<subgroup_id>`, `code=<subgroup_code>` (اختیاری) | Edit decree subgroup - can use either id or code |
+| `delete` | `id=<subgroup_id>`, `code=<subgroup_code>` (اختیاری) | Delete decree subgroup - can use either id or code |
+
+---
+
+### Sales
+
+#### Sales Dashboard (070000 / sales_dashboard)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show sales dashboard |
+
+#### Sales Invoice (070101 / sales_invoice)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show sales invoices with optional filters |
+| `create` | - | Create new sales invoice |
+| `edit` | `id=<invoice_id>`, `code=<invoice_code>` (اختیاری) | Edit sales invoice - can use either id or code |
+| `delete` | `id=<invoice_id>`, `code=<invoice_code>` (اختیاری) | Delete sales invoice - can use either id or code |
+| `lock` | `id=<invoice_id>`, `code=<invoice_code>` (اختیاری) | Lock sales invoice - can use either id or code |
+
+---
+
+### Human Resources (HR)
+
+#### HR Dashboard (080000 / hr_dashboard)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show HR dashboard |
+
+#### Create Personnel (080101 / personnel_create)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `create` | - | Create new personnel record |
+| `show` | - | Show personnel list |
+| `edit` | `id=<personnel_id>`, `code=<personnel_code>` (اختیاری) | Edit personnel - can use either id or code |
+| `delete` | `id=<personnel_id>`, `code=<personnel_code>` (اختیاری) | Delete personnel - can use either id or code |
+
+#### Decree Assignment (080102 / personnel_decree_assignment)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show decree assignments |
+| `assign` | `personnel_id=<personnel_id>`, `decree_id=<decree_id>` | Assign decree to personnel |
+| `edit` | `id=<assignment_id>` | Edit decree assignment |
+| `delete` | `id=<assignment_id>` | Delete decree assignment |
+
+#### Personnel Form (080103 / personnel_form_create)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show personnel forms |
+| `create` | - | Create new personnel form |
+| `edit` | `id=<form_id>`, `code=<form_code>` (اختیاری) | Edit personnel form - can use either id or code |
+| `delete` | `id=<form_id>`, `code=<form_code>` (اختیاری) | Delete personnel form - can use either id or code |
+
+#### Personnel Form Groups (080104 / personnel_form_groups)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show form groups |
+| `add` | - | Create new form group |
+| `edit` | `id=<group_id>`, `code=<group_code>` (اختیاری) | Edit form group - can use either id or code |
+| `delete` | `id=<group_id>`, `code=<group_code>` (اختیاری) | Delete form group - can use either id or code |
+
+#### Personnel Form Subgroups (080105 / personnel_form_subgroups)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show form subgroups |
+| `add` | - | Create new form subgroup |
+| `edit` | `id=<subgroup_id>`, `code=<subgroup_code>` (اختیاری) | Edit form subgroup - can use either id or code |
+| `delete` | `id=<subgroup_id>`, `code=<subgroup_code>` (اختیاری) | Delete form subgroup - can use either id or code |
+
+#### Leave Request (080201 / leave_request)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<pending\|approved\|rejected\|all>` | Show leave requests with optional filters |
+| `add` | - | Create new leave request |
+| `edit` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Edit leave request - can use either id or code |
+| `approve` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Approve leave request - can use either id or code |
+| `reject` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Reject leave request - can use either id or code |
+
+#### Sick Leave Request (080202 / sick_leave_request)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<pending\|approved\|rejected\|all>` | Show sick leave requests with optional filters |
+| `add` | - | Create new sick leave request |
+| `edit` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Edit sick leave request - can use either id or code |
+| `approve` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Approve sick leave request - can use either id or code |
+| `reject` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Reject sick leave request - can use either id or code |
+
+#### Loan Request (080203 / loan_request)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<pending\|approved\|rejected\|all>` | Show loan requests with optional filters |
+| `add` | - | Create new loan request |
+| `edit` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Edit loan request - can use either id or code |
+| `approve` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Approve loan request - can use either id or code |
+| `reject` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Reject loan request - can use either id or code |
+
+#### Loan Management (080301 / loan_management)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show loan management |
+| `add` | - | Create new loan |
+| `edit` | `id=<loan_id>`, `code=<loan_code>` (اختیاری) | Edit loan - can use either id or code |
+| `delete` | `id=<loan_id>`, `code=<loan_code>` (اختیاری) | Delete loan - can use either id or code |
+
+#### Loan Scheduling (080302 / loan_scheduling)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show loan scheduling |
+| `schedule` | `loan_id=<loan_id>`, `schedule_date=<date>` | Schedule loan payment |
+
+#### Savings Fund (080303 / savings_fund)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show savings fund |
+| `add` | - | Create new savings fund record |
+| `edit` | `id=<record_id>`, `code=<record_code>` (اختیاری) | Edit savings fund record - can use either id or code |
+| `delete` | `id=<record_id>`, `code=<record_code>` (اختیاری) | Delete savings fund record - can use either id or code |
+
+---
+
+### Office Automation
+
+#### Office Automation Dashboard (090000 / office_automation_dashboard)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show office automation dashboard |
+
+#### Incoming Letters (090101 / incoming_letters)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|sent\|received\|all>` | Show incoming letters with optional filters |
+| `view` | `id=<letter_id>`, `code=<letter_code>` (اختیاری) | View incoming letter - can use either id or code |
+
+#### Write Letter (090102 / write_letter)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `create` | - | Write new letter |
+| `show` | `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|sent\|all>` | Show written letters with optional filters |
+| `edit` | `id=<letter_id>`, `code=<letter_code>` (اختیاری) | Edit letter - can use either id or code |
+| `send` | `id=<letter_id>`, `code=<letter_code>` (اختیاری) | Send letter - can use either id or code |
+
+#### Fill Form (090103 / fill_form)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `form_id=<form_id>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|submitted\|all>` | Show filled forms with optional filters |
+| `fill` | `form_id=<form_id>` | Fill form |
+| `edit` | `id=<filled_form_id>`, `code=<filled_form_code>` (اختیاری) | Edit filled form - can use either id or code |
+| `submit` | `id=<filled_form_id>`, `code=<filled_form_code>` (اختیاری) | Submit filled form - can use either id or code |
+
+#### Process Engine (090201 / process_engine)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show process engine |
+| `add` | - | Create new process |
+| `edit` | `id=<process_id>`, `code=<process_code>` (اختیاری) | Edit process - can use either id or code |
+| `delete` | `id=<process_id>`, `code=<process_code>` (اختیاری) | Delete process - can use either id or code |
+
+#### Process-Form Connection (090202 / process_form_connection)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show process-form connections |
+| `add` | - | Create new process-form connection |
+| `edit` | `id=<connection_id>` | Edit process-form connection |
+| `delete` | `id=<connection_id>` | Delete process-form connection |
+
+#### Form Builder (090301 / form_builder)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show form builder |
+| `create` | - | Create new form |
+| `edit` | `id=<form_id>`, `code=<form_code>` (اختیاری) | Edit form - can use either id or code |
+| `delete` | `id=<form_id>`, `code=<form_code>` (اختیاری) | Delete form - can use either id or code |
+
+---
+
+### Transportation
+
+#### Transportation Dashboard (100000 / transportation_dashboard)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show transportation dashboard |
+
+---
+
+### Procurement
+
+#### Procurement Dashboard (110000 / procurement_dashboard)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show procurement dashboard |
+
+#### Purchases (110101 / purchases)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show purchases with optional filters |
+| `add` | - | Create new purchase |
+| `edit` | `id=<purchase_id>`, `code=<purchase_code>` (اختیاری) | Edit purchase - can use either id or code |
+| `delete` | `id=<purchase_id>`, `code=<purchase_code>` (اختیاری) | Delete purchase - can use either id or code |
+| `lock` | `id=<purchase_id>`, `code=<purchase_code>` (اختیاری) | Lock purchase - can use either id or code |
+
+#### Buyers (110201 / buyers)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show buyers list |
+| `add` | - | Create new buyer |
+| `edit` | `id=<buyer_id>`, `code=<buyer_code>` (اختیاری) | Edit buyer - can use either id or code |
+| `delete` | `id=<buyer_id>`, `code=<buyer_code>` (اختیاری) | Delete buyer - can use either id or code |
+
+#### Create Buyer (110202 / buyer_create)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `create` | - | Create new buyer |
+
+#### Buyer Assignment (110203 / buyer_assignment)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show buyer assignments |
+| `assign` | `buyer_id=<buyer_id>`, `purchase_id=<purchase_id>` | Assign buyer to purchase |
+| `edit` | `id=<assignment_id>` | Edit buyer assignment |
+| `delete` | `id=<assignment_id>` | Delete buyer assignment |
+
+---
+
 ## Parameter Types
 
 Parameters can be:
@@ -396,6 +904,45 @@ warehouse_requests:lock:code={document.code}
 | **Issues - Consumption** | 020702 | `show`, `add`, `edit`, `delete`, `lock` |
 | **Issues - Consignment** | 020703 | `show`, `add`, `edit`, `delete`, `lock` |
 | **Inspections** | 041000 | `show`, `showown`, `approve`, `reject` |
+| **Accounting Dashboard** | 060000 | `show` |
+| **General Ledger** | 060101 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Subsidiary Ledger** | 060102 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Detail Ledger** | 060103 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Accounting Document Entry** | 060201 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Accounting Document Exit** | 060202 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Treasury Expense** | 060301 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Treasury Income** | 060302 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Payroll Document** | 060401 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Payroll Decrees** | 060402 | `show`, `add`, `edit`, `delete` |
+| **Payroll Decree Groups** | 060403 | `show`, `add`, `edit`, `delete` |
+| **Payroll Decree Subgroups** | 060404 | `show`, `add`, `edit`, `delete` |
+| **Sales Dashboard** | 070000 | `show` |
+| **Sales Invoice** | 070101 | `show`, `create`, `edit`, `delete`, `lock` |
+| **HR Dashboard** | 080000 | `show` |
+| **Create Personnel** | 080101 | `create`, `show`, `edit`, `delete` |
+| **Decree Assignment** | 080102 | `show`, `assign`, `edit`, `delete` |
+| **Personnel Form** | 080103 | `show`, `create`, `edit`, `delete` |
+| **Personnel Form Groups** | 080104 | `show`, `add`, `edit`, `delete` |
+| **Personnel Form Subgroups** | 080105 | `show`, `add`, `edit`, `delete` |
+| **Leave Request** | 080201 | `show`, `add`, `edit`, `approve`, `reject` |
+| **Sick Leave Request** | 080202 | `show`, `add`, `edit`, `approve`, `reject` |
+| **Loan Request** | 080203 | `show`, `add`, `edit`, `approve`, `reject` |
+| **Loan Management** | 080301 | `show`, `add`, `edit`, `delete` |
+| **Loan Scheduling** | 080302 | `show`, `schedule` |
+| **Savings Fund** | 080303 | `show`, `add`, `edit`, `delete` |
+| **Office Automation Dashboard** | 090000 | `show` |
+| **Incoming Letters** | 090101 | `show`, `view` |
+| **Write Letter** | 090102 | `create`, `show`, `edit`, `send` |
+| **Fill Form** | 090103 | `show`, `fill`, `edit`, `submit` |
+| **Process Engine** | 090201 | `show`, `add`, `edit`, `delete` |
+| **Process-Form Connection** | 090202 | `show`, `add`, `edit`, `delete` |
+| **Form Builder** | 090301 | `show`, `create`, `edit`, `delete` |
+| **Transportation Dashboard** | 100000 | `show` |
+| **Procurement Dashboard** | 110000 | `show` |
+| **Purchases** | 110101 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Buyers** | 110201 | `show`, `add`, `edit`, `delete` |
+| **Create Buyer** | 110202 | `create` |
+| **Buyer Assignment** | 110203 | `show`, `assign`, `edit`, `delete` |
 
 **نکات مهم:**
 - برای جزئیات کامل actions و پارامترهای آن‌ها، به بخش [Action Definitions](#action-definitions) مراجعه کنید

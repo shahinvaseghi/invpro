@@ -3,7 +3,8 @@ URL configuration for shared module.
 """
 from django.urls import path
 from . import views
-from .views.auth import mark_notification_read
+from .views.auth import mark_notification_read, mark_notification_unread
+from .views.notifications import NotificationListView
 
 app_name = 'shared'
 
@@ -32,6 +33,8 @@ urlpatterns = [
     path('smtp-servers/create/', views.SMTPServerCreateView.as_view(), name='smtp_server_create'),
     path('smtp-servers/<int:pk>/edit/', views.SMTPServerUpdateView.as_view(), name='smtp_server_edit'),
     path('smtp-servers/<int:pk>/delete/', views.SMTPServerDeleteView.as_view(), name='smtp_server_delete'),
+    path('notifications/', NotificationListView.as_view(), name='notifications'),
     path('mark-notification-read/', mark_notification_read, name='mark_notification_read'),
+    path('mark-notification-unread/', mark_notification_unread, name='mark_notification_unread'),
 ]
 

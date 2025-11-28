@@ -2,16 +2,17 @@
 
 **هدف**: Views برای authentication و session management در ماژول shared
 
-این فایل شامل **3 function-based view**:
+این فایل شامل **4 function-based view**:
 - `set_active_company`: تنظیم شرکت فعال در session
 - `custom_login`: صفحه login سفارشی
 - `mark_notification_read`: علامت‌گذاری notification به عنوان خوانده شده
+- `mark_notification_unread`: علامت‌گذاری notification به عنوان خوانده نشده
 
 ---
 
 ## وابستگی‌ها
 
-- `shared.models`: `UserCompanyAccess`
+- `shared.models`: `UserCompanyAccess`, `Notification`
 - `django.contrib.auth`: `authenticate`, `login as auth_login`
 - `django.contrib.auth.decorators`: `login_required`
 - `django.http`: `HttpResponseRedirect`, `HttpRequest`
@@ -121,34 +122,78 @@
 
 **Method**: `POST`
 
-**توضیح**: علامت‌گذاری notification به عنوان خوانده شده در session.
+**توضیح**: علامت‌گذاری notification به عنوان خوانده شده در database.
 
 **Request POST Data**:
-- `notification_key`: کلید notification (required)
+- `notification_key`: کلید notification (optional)
+- `notification_id`: شناسه notification (optional)
 - `next`: URL برای redirect بعد از علامت‌گذاری (optional)
 
 **مقدار بازگشتی**:
 - `HttpResponseRedirect`: redirect به `next` یا `/`
 
 **منطق**:
-1. دریافت `notification_key` از POST
+1. دریافت `notification_key` یا `notification_id` از POST
 2. اگر `notification_key` موجود باشد:
-   - دریافت `read_notifications` از session (default: empty set)
-   - تبدیل به set (اگر list باشد)
-   - اضافه کردن `notification_key` به set
-   - ذخیره در session به عنوان list
-   - تنظیم `request.session.modified = True`
-3. Redirect به `next` (از POST) یا `/`
+   - دریافت notification از database با `Notification.objects.get(notification_key=notification_key, user=request.user)`
+   - فراخوانی `notification.mark_as_read(user=request.user)`
+3. اگر `notification_id` موجود باشد:
+   - Parse کردن به integer
+   - دریافت notification از database با `Notification.objects.get(id=notification_id, user=request.user)`
+   - فراخوانی `notification.mark_as_read(user=request.user)`
+4. اگر notification پیدا نشد (DoesNotExist): ignore
+5. Redirect به `next` (از POST) یا `/`
 
-**Session Structure**:
-- `read_notifications`: list of notification keys
+**Error Handling**:
+- اگر notification پیدا نشد: ignore (no error)
+- اگر `notification_id` معتبر نباشد (ValueError): ignore
 
 **نکات مهم**:
-- Notifications در session ذخیره می‌شوند (not in database)
-- از set برای جلوگیری از duplicates استفاده می‌شود
-- در session به عنوان list ذخیره می‌شود
+- Notifications در database ذخیره می‌شوند
+- فقط notifications متعلق به user فعلی قابل علامت‌گذاری هستند
+- می‌تواند با `notification_key` یا `notification_id` کار کند
 
 **URL**: `/shared/mark-notification-read/`
+
+---
+
+## mark_notification_unread
+
+**Type**: Function-based view
+
+**Decorators**: `@login_required`, `@require_POST`
+
+**Method**: `POST`
+
+**توضیح**: علامت‌گذاری notification به عنوان خوانده نشده در database.
+
+**Request POST Data**:
+- `notification_id`: شناسه notification (required)
+- `next`: URL برای redirect بعد از علامت‌گذاری (optional)
+
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect به `next` یا `/`
+
+**منطق**:
+1. دریافت `notification_id` از POST
+2. اگر `notification_id` موجود باشد:
+   - Parse کردن به integer
+   - دریافت notification از database با `Notification.objects.get(id=notification_id, user=request.user)`
+   - فراخوانی `notification.mark_as_unread(user=request.user)`
+3. اگر notification پیدا نشد (DoesNotExist): ignore
+4. اگر `notification_id` معتبر نباشد (ValueError): ignore
+5. Redirect به `next` (از POST) یا `/`
+
+**Error Handling**:
+- اگر notification پیدا نشد: ignore (no error)
+- اگر `notification_id` معتبر نباشد (ValueError): ignore
+
+**نکات مهم**:
+- Notifications در database ذخیره می‌شوند
+- فقط notifications متعلق به user فعلی قابل علامت‌گذاری هستند
+- فقط با `notification_id` کار می‌کند (not with `notification_key`)
+
+**URL**: `/shared/mark-notification-unread/`
 
 ---
 
@@ -168,8 +213,10 @@
 - Custom login page با UI زیبا
 
 ### 4. Notification Management
-- Notifications در session ذخیره می‌شوند
-- از set برای جلوگیری از duplicates استفاده می‌شود
+- Notifications در database ذخیره می‌شوند
+- از `Notification` model برای مدیریت استفاده می‌شود
+- `mark_notification_read`: می‌تواند با `notification_key` یا `notification_id` کار کند
+- `mark_notification_unread`: فقط با `notification_id` کار می‌کند
 
 ### 5. Redirect Handling
 - از `next` parameter برای redirect بعد از action استفاده می‌شود
@@ -194,6 +241,7 @@
 # shared/urls.py
 path('set-active-company/', set_active_company, name='set_active_company'),
 path('mark-notification-read/', mark_notification_read, name='mark_notification_read'),
+path('mark-notification-unread/', mark_notification_unread, name='mark_notification_unread'),
 
 # Main urls.py
 path('login/', custom_login, name='login'),
@@ -205,6 +253,7 @@ path('login/', custom_login, name='login'),
 
 ### Shared Models
 - از `UserCompanyAccess` برای بررسی دسترسی به company استفاده می‌کند
+- از `Notification` برای مدیریت notifications استفاده می‌کند
 
 ### Django Auth
 - از Django's built-in `authenticate` و `login` استفاده می‌کند

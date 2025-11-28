@@ -92,6 +92,27 @@
 
 ---
 
+#### `filter_queryset_by_permissions(self, queryset, feature_code: str, owner_field: str = 'created_by') -> QuerySet`
+
+**توضیح**: فیلتر queryset بر اساس permissions کاربر.
+
+**پارامترهای ورودی**:
+- `queryset`: queryset برای فیلتر
+- `feature_code`: کد feature برای permission checking (مثلاً `'inventory.receipts.temporary'`)
+- `owner_field`: نام فیلد owner/creator (پیش‌فرض: `'created_by'`)
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده
+
+**منطق**:
+1. اگر کاربر superuser باشد، queryset را بدون تغییر برمی‌گرداند
+2. دریافت permissions از `get_user_feature_permissions()`
+3. بررسی `view_all` permission (اگر داشته باشد، queryset را بدون تغییر برمی‌گرداند)
+4. بررسی `view_own` permission (اگر داشته باشد، queryset را بر اساس `owner_field` فیلتر می‌کند)
+5. اگر هیچ permission نداشته باشد، empty queryset برمی‌گرداند
+
+---
+
 ## DocumentLockProtectedMixin
 
 ### `DocumentLockProtectedMixin`
@@ -147,14 +168,16 @@
 
 ### `DocumentLockView(LoginRequiredMixin, View)`
 
-**توضیح**: View برای lock کردن سندها
+**توضیح**: View عمومی برای lock کردن سندهای inventory
+
+**Inheritance**: `LoginRequiredMixin, View`
 
 **Attributes**:
-- `model`: مدل سند (باید در subclass تنظیم شود)
-- `success_url_name`: نام URL برای redirect بعد از lock
-- `success_message`: پیام موفقیت
-- `already_locked_message`: پیام برای سندهای قبلاً قفل شده
-- `lock_field`: نام فیلد lock (پیش‌فرض: `'is_locked'`)
+- `model`: `None` (باید در subclass تنظیم شود)
+- `success_url_name`: `''` (باید در subclass تنظیم شود)
+- `success_message`: `_('سند با موفقیت قفل شد و دیگر قابل ویرایش نیست.')`
+- `already_locked_message`: `_('این سند قبلاً قفل شده است.')`
+- `lock_field`: `'is_locked'`
 
 **متدها**:
 
@@ -162,13 +185,26 @@
 
 **توضیح**: Lock کردن سند
 
-**Logic**:
-- بررسی اینکه سند قبلاً قفل نشده باشد
-- تنظیم `is_locked = 1`
-- تنظیم `locked_at` و `locked_by` (اگر وجود داشته باشند)
-- ذخیره سند
-- نمایش پیام موفقیت
-- Redirect به `success_url_name`
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
+
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect به `success_url_name`
+
+**منطق**:
+1. بررسی `model` و `success_url_name`
+2. دریافت object
+3. بررسی `is_locked` (اگر قفل شده باشد، پیام info)
+4. فراخوانی `before_lock()` (اگر `False` برگرداند، لغو)
+5. تنظیم `is_locked = 1`, `locked_at = timezone.now()`, `locked_by = request.user`
+6. فراخوانی `after_lock()`
+7. نمایش پیام موفقیت
+8. Redirect به `success_url_name`
+
+**Hooks**:
+- `before_lock(obj, request) -> bool`: Hook که قبل از lock اجرا می‌شود. اگر `False` برگرداند، lock لغو می‌شود.
+- `after_lock(obj, request) -> None`: Hook برای subclasses برای انجام actions اضافی بعد از lock.
 
 ---
 
@@ -258,72 +294,9 @@
 7. نمایش پیام موفقیت
 8. Redirect به `success_url_name`
 
----
-
-**توضیح**: View عمومی برای lock کردن سندهای inventory
-
-**Inheritance**: `LoginRequiredMixin, View`
-
-**Attributes**:
-- `model`: `None` (باید در subclass تنظیم شود)
-- `success_url_name`: `''` (باید در subclass تنظیم شود)
-- `success_message`: `_('سند با موفقیت قفل شد و دیگر قابل ویرایش نیست.')`
-- `already_locked_message`: `_('این سند قبلاً قفل شده است.')`
-- `lock_field`: `'is_locked'`
-
-**متدها**:
-
-#### `after_lock(self, obj, request) -> None`
-
-**توضیح**: Hook برای subclasses برای انجام actions اضافی بعد از lock.
-
-**پارامترهای ورودی**:
-- `obj`: object که lock شده
-- `request`: HTTP request
-
-**مقدار بازگشتی**: ندارد
-
-**نکات مهم**:
-- می‌تواند در subclasses override شود
-
----
-
-#### `before_lock(self, obj, request) -> bool`
-
-**توضیح**: Hook که قبل از lock اجرا می‌شود. اگر `False` برگرداند، lock لغو می‌شود.
-
-**پارامترهای ورودی**:
-- `obj`: object که باید lock شود
-- `request`: HTTP request
-
-**مقدار بازگشتی**:
-- `bool`: `True` برای ادامه، `False` برای لغو
-
-**نکات مهم**:
-- می‌تواند در subclasses override شود
-
----
-
-#### `post(self, request, *args, **kwargs) -> HttpResponseRedirect`
-
-**توضیح**: Lock کردن سند.
-
-**پارامترهای ورودی**:
-- `request`: HTTP request
-- `*args`, `**kwargs`: آرگومان‌های اضافی
-
-**مقدار بازگشتی**:
-- `HttpResponseRedirect`: redirect به `success_url_name`
-
-**منطق**:
-1. بررسی `model` و `success_url_name`
-2. دریافت object
-3. بررسی `is_locked` (اگر قفل شده باشد، پیام info)
-4. فراخوانی `before_lock()` (اگر `False` برگرداند، لغو)
-5. تنظیم `is_locked = 1`, `locked_at = timezone.now()`, `locked_by = request.user`
-6. فراخوانی `after_lock()`
-7. نمایش پیام موفقیت
-8. Redirect به `success_url_name`
+**Hooks**:
+- `before_unlock(obj, request) -> bool`: Hook که قبل از unlock اجرا می‌شود. اگر `False` برگرداند، unlock لغو می‌شود.
+- `after_unlock(obj, request) -> None`: Hook برای subclasses برای انجام actions اضافی بعد از unlock.
 
 ---
 

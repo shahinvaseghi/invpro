@@ -79,21 +79,54 @@
 #### `get_context_data(**kwargs) -> Dict[str, Any]`
 - اضافه کردن `formset` (با instance=None در create mode)
 
-#### `form_valid(form: TransferToLineForm) -> HttpResponseRedirect`
+#### `form_valid(self, form: TransferToLineForm) -> HttpResponseRedirect`
+
+**توضیح**: ذخیره transfer request و ایجاد items از BOM.
+
+**پارامترهای ورودی**:
+- `form`: فرم معتبر `TransferToLineForm`
+
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect به success URL
+
 **منطق**:
-1. تنظیم `company_id`, `created_by`, `status=PENDING_APPROVAL`
-2. تولید `transfer_code` با prefix `'TR'`
-3. ذخیره transfer header
-4. ذخیره extra items از formset (`is_extra=1`)
-5. ایجاد items از BOM:
-   - محاسبه `quantity_required = quantity_planned × quantity_per_unit`
-   - پیدا کردن `source_warehouse` از `ItemWarehouse`
-   - ایجاد `TransferToLineItem` برای هر BOM material (`is_extra=0`)
+1. بررسی `active_company_id` (اگر وجود نداشته باشد، error و `form_invalid` برمی‌گرداند)
+2. تنظیم `form.instance.company_id`, `created_by`, `status = PENDING_APPROVAL`
+3. تولید `transfer_code`:
+   - اگر `transfer_code` وجود نداشته باشد:
+     - استفاده از `generate_sequential_code()` با prefix `'TR'` و width `8`
+4. ذخیره transfer header با `super().form_valid(form)`
+5. ساخت formset از POST data با instance
+6. ذخیره extra items از formset:
+   - اگر formset valid باشد:
+     - برای هر item form:
+       - اگر valid و not deleted باشد:
+         - ذخیره با `commit=False`
+         - تنظیم `transfer`, `company_id`, `is_extra = 1`, `created_by`
+         - ذخیره item
+7. ایجاد items از BOM:
+   - اگر `order` و `order.bom` موجود باشند:
+     - برای هر `BOMMaterial`:
+       - محاسبه `quantity_required = quantity_planned × quantity_per_unit`
+       - پیدا کردن `source_warehouse` از `ItemWarehouse` (اولین allowed warehouse)
+       - اگر warehouse پیدا نشد:
+         - نمایش warning message
+         - skip کردن item
+       - تلاش برای پیدا کردن `destination_work_center` از process (فعلاً None)
+       - ایجاد `TransferToLineItem`:
+         - تنظیم `material_item`, `material_item_code`
+         - تنظیم `quantity_required`, `unit`
+         - تنظیم `source_warehouse`, `source_warehouse_code`
+         - تنظیم `material_scrap_allowance` از BOM
+         - تنظیم `is_extra = 0` (از BOM)
+8. نمایش پیام موفقیت
+9. بازگشت response
 
 **نکات مهم**:
-- از `@transaction.atomic` استفاده می‌کند
-- Items از BOM به صورت خودکار ایجاد می‌شوند
-- Extra items از formset ذخیره می‌شوند
+- از `@transaction.atomic` decorator استفاده می‌کند
+- Items از BOM به صورت خودکار ایجاد می‌شوند (`is_extra = 0`)
+- Extra items از formset ذخیره می‌شوند (`is_extra = 1`)
+- اگر warehouse برای item پیدا نشد، warning نمایش می‌دهد و item را skip می‌کند
 
 **URL**: `/production/transfer-requests/create/`
 
@@ -121,22 +154,64 @@
 
 **متدها**:
 
-#### `get_context_data(**kwargs) -> Dict[str, Any]`
-- اضافه کردن `formset` (فقط extra items با `is_extra=1`)
-- اضافه کردن `bom_items` (read-only، `is_extra=0`)
-- اضافه کردن `is_locked`
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
 
-#### `form_valid(form: TransferToLineForm) -> HttpResponseRedirect`
+**توضیح**: اضافه کردن formset (فقط extra items) و bom_items (read-only) به context.
+
+**Context Variables**:
+- `form_title`: `_('Edit Transfer Request')`
+- `formset`: `TransferToLineItemFormSet` (فقط extra items با `is_extra=1`)
+- `bom_items`: QuerySet از BOM items (read-only، `is_extra=0`)
+- `is_locked`: Boolean (آیا transfer قفل شده است)
+
 **منطق**:
-1. بررسی `is_locked` و `status` (فقط `PENDING_APPROVAL` قابل ویرایش)
-2. تنظیم `edited_by`
-3. ذخیره transfer header
-4. ذخیره extra items از formset
+1. دریافت context از `super().get_context_data()`
+2. اضافه کردن `form_title`
+3. ساخت formset:
+   - اگر POST: از POST data
+   - اگر GET: از instance
+4. فیلتر کردن formset queryset به فقط `is_extra=1`
+5. اضافه کردن `bom_items` از `object.items.filter(is_extra=0)`
+6. اضافه کردن `is_locked` از `object.is_locked == 1`
+7. بازگشت context
+
+---
+
+#### `form_valid(self, form: TransferToLineForm) -> HttpResponseRedirect`
+
+**توضیح**: ذخیره transfer request و extra items (فقط اگر قابل ویرایش باشد).
+
+**پارامترهای ورودی**:
+- `form`: فرم معتبر `TransferToLineForm`
+
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect به success URL
+
+**منطق**:
+1. بررسی `is_locked`:
+   - اگر `is_locked == 1` باشد:
+     - نمایش error message
+     - redirect به success URL (بدون ذخیره)
+2. بررسی `status`:
+   - اگر `status != PENDING_APPROVAL` باشد:
+     - نمایش error message
+     - redirect به success URL (بدون ذخیره)
+3. تنظیم `form.instance.edited_by = request.user`
+4. ذخیره transfer header با `super().form_valid(form)`
+5. ساخت formset از POST data:
+   - فیلتر queryset به فقط `is_extra=1`
+6. ذخیره formset:
+   - اگر formset valid باشد:
+     - فراخوانی `formset.save()`
+7. نمایش پیام موفقیت
+8. بازگشت response
 
 **نکات مهم**:
-- فقط extra items قابل ویرایش هستند
-- BOM items read-only هستند
+- فقط extra items قابل ویرایش هستند (`is_extra=1`)
+- BOM items read-only هستند (`is_extra=0`)
 - فقط اگر `status=PENDING_APPROVAL` باشد قابل ویرایش است
+- اگر `is_locked=1` باشد، قابل ویرایش نیست
+- از `@transaction.atomic` decorator استفاده می‌کند
 
 **URL**: `/production/transfer-requests/<pk>/edit/`
 
@@ -177,23 +252,51 @@
 
 **متدها**:
 
-#### `post(request, *args, **kwargs) -> JsonResponse`
+#### `post(self, request, *args, **kwargs) -> JsonResponse`
+
+**توضیح**: تایید transfer request و قفل کردن آن.
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args, **kwargs`: آرگومان‌های اضافی (شامل `pk`)
+
+**مقدار بازگشتی**:
+- `JsonResponse`: JSON response با success یا error message
+
 **منطق**:
-1. دریافت `transfer_id` از kwargs
-2. بررسی `active_company_id`
-3. دریافت transfer object
-4. بررسی authorization (user باید `approved_by` باشد)
-5. بررسی status (نباید approved یا rejected باشد)
-6. Approve و lock:
-   - `status = APPROVED`
-   - `is_locked = 1`
-   - `locked_at = timezone.now()`
-   - `locked_by = request.user`
-7. بازگشت `JsonResponse` با success message
+1. دریافت `transfer_id` از `kwargs.get('pk')`
+2. بررسی `active_company_id`:
+   - اگر وجود نداشته باشد:
+     - بازگشت `JsonResponse` با error و status `400`
+3. دریافت transfer object:
+   - اگر پیدا نشد:
+     - بازگشت `JsonResponse` با error و status `404`
+4. بررسی authorization:
+   - اگر `transfer.approved_by != request.user`:
+     - بازگشت `JsonResponse` با error و status `403`
+5. بررسی status:
+   - اگر `status == APPROVED`:
+     - بازگشت `JsonResponse` با error و status `400`
+   - اگر `status == REJECTED`:
+     - بازگشت `JsonResponse` با error و status `400`
+6. Approve و lock در `transaction.atomic()`:
+   - تنظیم `status = APPROVED`
+   - تنظیم `is_locked = 1`
+   - تنظیم `locked_at = timezone.now()`
+   - تنظیم `locked_by = request.user`
+   - ذخیره transfer
+7. نمایش پیام موفقیت
+8. بازگشت `JsonResponse` با success message
+
+**Error Responses**:
+- `400`: Company not selected یا already approved/rejected
+- `403`: User not authorized
+- `404`: Transfer not found
 
 **نکات مهم**:
-- از `transaction.atomic` استفاده می‌کند
-- بعد از approve، transfer قفل می‌شود
+- از `transaction.atomic()` استفاده می‌کند
+- بعد از approve، transfer قفل می‌شود (`is_locked=1`)
+- فقط `approved_by` می‌تواند approve کند
 
 **URL**: `/production/transfer-requests/<pk>/approve/`
 
@@ -211,20 +314,48 @@
 
 **متدها**:
 
-#### `post(request, *args, **kwargs) -> JsonResponse`
+#### `post(self, request, *args, **kwargs) -> JsonResponse`
+
+**توضیح**: رد transfer request.
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args, **kwargs`: آرگومان‌های اضافی (شامل `pk`)
+
+**مقدار بازگشتی**:
+- `JsonResponse`: JSON response با success یا error message
+
 **منطق**:
-1. دریافت `transfer_id` از kwargs
-2. بررسی `active_company_id`
-3. دریافت transfer object
-4. بررسی authorization (user باید `approved_by` باشد)
-5. بررسی status (نباید approved یا rejected باشد)
-6. Reject:
-   - `status = REJECTED`
-7. بازگشت `JsonResponse` با success message
+1. دریافت `transfer_id` از `kwargs.get('pk')`
+2. بررسی `active_company_id`:
+   - اگر وجود نداشته باشد:
+     - بازگشت `JsonResponse` با error و status `400`
+3. دریافت transfer object:
+   - اگر پیدا نشد:
+     - بازگشت `JsonResponse` با error و status `404`
+4. بررسی authorization:
+   - اگر `transfer.approved_by != request.user`:
+     - بازگشت `JsonResponse` با error و status `403`
+5. بررسی status:
+   - اگر `status == APPROVED`:
+     - بازگشت `JsonResponse` با error و status `400`
+   - اگر `status == REJECTED`:
+     - بازگشت `JsonResponse` با error و status `400`
+6. Reject در `transaction.atomic()`:
+   - تنظیم `status = REJECTED`
+   - ذخیره transfer
+7. نمایش پیام موفقیت
+8. بازگشت `JsonResponse` با success message
+
+**Error Responses**:
+- `400`: Company not selected یا already approved/rejected
+- `403`: User not authorized
+- `404`: Transfer not found
 
 **نکات مهم**:
-- از `transaction.atomic` استفاده می‌کند
-- بعد از reject، transfer قفل نمی‌شود
+- از `transaction.atomic()` استفاده می‌کند
+- بعد از reject، transfer قفل نمی‌شود (برخلاف approve)
+- فقط `approved_by` می‌تواند reject کند
 
 **URL**: `/production/transfer-requests/<pk>/reject/`
 

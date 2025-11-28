@@ -224,6 +224,8 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
         if company_id:
             queryset = queryset.filter(company_id=company_id)
         queryset = queryset.filter(is_enabled=1)
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.temporary', 'created_by')
         # Prefetch lines with related items, warehouses, and suppliers for efficient display
         # Also prefetch converted_receipt for linking
         queryset = queryset.prefetch_related(
@@ -378,6 +380,8 @@ class ReceiptTemporaryDetailView(InventoryBaseView, DetailView):
         company_id = self.request.session.get('active_company_id')
         if company_id:
             queryset = queryset.filter(company_id=company_id)
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.temporary', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse'
@@ -408,6 +412,8 @@ class ReceiptPermanentDetailView(InventoryBaseView, DetailView):
         company_id = self.request.session.get('active_company_id')
         if company_id:
             queryset = queryset.filter(company_id=company_id)
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.permanent', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse',
@@ -439,6 +445,8 @@ class ReceiptConsignmentDetailView(InventoryBaseView, DetailView):
         company_id = self.request.session.get('active_company_id')
         if company_id:
             queryset = queryset.filter(company_id=company_id)
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.consignment', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse',
@@ -476,6 +484,8 @@ class ReceiptTemporaryUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
         logger.info(f"Request method: {self.request.method}")
         logger.info(f"Request path: {self.request.path}")
         queryset = super().get_queryset()
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.temporary', 'created_by')
         # ReceiptTemporaryLine doesn't have supplier field (supplier is on ReceiptTemporary header)
         queryset = queryset.prefetch_related(
             'lines__item',
@@ -624,6 +634,8 @@ class ReceiptPermanentListView(InventoryBaseView, ListView):
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.permanent', 'created_by')
         # Prefetch lines with related items, warehouses, and suppliers for efficient display
         # Also prefetch temporary_receipt and purchase_request for linking
         queryset = queryset.prefetch_related(
@@ -769,6 +781,8 @@ class ReceiptPermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.permanent', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse',
@@ -858,6 +872,8 @@ class ReceiptConsignmentListView(InventoryBaseView, ListView):
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.consignment', 'created_by')
         # Prefetch lines with related items, warehouses, and suppliers for efficient display
         queryset = queryset.prefetch_related(
             'lines__item',
@@ -1733,6 +1749,8 @@ class ReceiptConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin,
         company_id = self.request.session.get('active_company_id')
         if company_id:
             queryset = queryset.filter(company_id=company_id)
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.consignment', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse',

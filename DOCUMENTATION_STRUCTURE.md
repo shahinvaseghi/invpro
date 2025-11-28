@@ -122,6 +122,24 @@ invproj/
 │   │
 │   └── 📄 README_CONTEXT_PROCESSORS.md
 │
+├── 📁 accounting/
+│   └── 📄 README_VIEWS.md
+│
+├── 📁 sales/
+│   └── 📄 README_VIEWS.md
+│
+├── 📁 hr/
+│   └── 📄 README_VIEWS.md
+│
+├── 📁 office_automation/
+│   └── 📄 README_VIEWS.md
+│
+├── 📁 transportation/
+│   └── 📄 README_VIEWS.md
+│
+├── 📁 procurement/
+│   └── 📄 README_VIEWS.md
+│
 └── 📁 ui/
     ├── 📄 README.md
     └── 📄 README_CONTEXT_PROCESSORS.md
@@ -421,10 +439,64 @@ invproj/
 
 ---
 
+### Accounting Module
+
+#### Views
+
+**`accounting/README_VIEWS.md`**
+مستندسازی 12 کلاس view برای ماژول حسابداری: Dashboard, General Ledger, Subsidiary Ledger, Detail Ledger, Accounting Documents (Entry/Exit), Treasury (Expense/Income), Payroll (Document, Decrees, Decree Groups, Decree Subgroups). شامل FeaturePermissionRequiredMixin و placeholder views.
+
+---
+
+### Sales Module
+
+#### Views
+
+**`sales/README_VIEWS.md`**
+مستندسازی 2 کلاس view برای ماژول فروش: Dashboard و Sales Invoice Create. شامل FeaturePermissionRequiredMixin و placeholder views.
+
+---
+
+### Human Resources (HR) Module
+
+#### Views
+
+**`hr/README_VIEWS.md`**
+مستندسازی 12 کلاس view برای ماژول منابع انسانی: Dashboard, Personnel (Create, Decree Assignment, Form, Form Groups, Form Subgroups), Requests (Leave, Sick Leave, Loan), Loans (Management, Scheduling, Savings Fund). شامل FeaturePermissionRequiredMixin و placeholder views.
+
+---
+
+### Office Automation Module
+
+#### Views
+
+**`office_automation/README_VIEWS.md`**
+مستندسازی 7 کلاس view برای ماژول اتوماسیون اداری: Dashboard, Inbox (Incoming Letters, Write Letter, Fill Form), Processes (Engine, Form Connection), Forms (Builder). شامل FeaturePermissionRequiredMixin و placeholder views.
+
+---
+
+### Transportation Module
+
+#### Views
+
+**`transportation/README_VIEWS.md`**
+مستندسازی 1 کلاس view برای ماژول حمل و نقل: Dashboard. شامل FeaturePermissionRequiredMixin و placeholder view.
+
+---
+
+### Procurement Module
+
+#### Views
+
+**`procurement/README_VIEWS.md`**
+مستندسازی 4 کلاس view برای ماژول تدارکات: Dashboard, Purchases, Buyers (List, Create, Assignment). شامل FeaturePermissionRequiredMixin و placeholder views.
+
+---
+
 ## 📊 آمار کلی
 
-- **جمع کل فایل‌های README**: 74 فایل
-- **Views**: 36 فایل
+- **جمع کل فایل‌های README**: 80 فایل
+- **Views**: 42 فایل (36 فایل قدیمی + 6 فایل جدید)
 - **Forms**: 24 فایل
 - **Utils**: 6 فایل
 - **Services**: 1 فایل
@@ -433,6 +505,14 @@ invproj/
 - **Management Commands**: 1 فایل
 - **Migrations**: 1 فایل README کلی
 - **Other**: 1 فایل (ui/README.md)
+
+**ماژول‌های جدید:**
+- Accounting: 1 فایل README
+- Sales: 1 فایل README
+- HR: 1 فایل README
+- Office Automation: 1 فایل README
+- Transportation: 1 فایل README
+- Procurement: 1 فایل README
 
 ---
 

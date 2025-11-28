@@ -34,6 +34,7 @@ __all__ = [
     "SMTPServer",
     "SectionRegistry",
     "ActionRegistry",
+    "Notification",
     "NUMERIC_CODE_VALIDATOR",
     "ENABLED_FLAG_CHOICES",
 ]
@@ -646,4 +647,90 @@ class ActionRegistry(TimeStampedModel, ActivatableModel, MetadataModel, Sortable
 
     def __str__(self) -> str:
         return f"{self.section.section_code}:{self.action_name} - {self.action_label}"
+
+
+class Notification(TimeStampedModel):
+    """User notification model for storing notifications in database."""
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        verbose_name=_("User"),
+    )
+    company = models.ForeignKey(
+        "Company",
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        null=True,
+        blank=True,
+        verbose_name=_("Company"),
+    )
+    notification_type = models.CharField(
+        max_length=50,
+        verbose_name=_("Notification Type"),
+        help_text=_("Type of notification (e.g., 'approval_pending', 'approved')"),
+    )
+    notification_key = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name=_("Notification Key"),
+        help_text=_("Unique key for this notification (e.g., 'approval_pending_purchase_1')"),
+    )
+    message = models.TextField(
+        verbose_name=_("Message"),
+        help_text=_("Notification message text"),
+    )
+    url_name = models.CharField(
+        max_length=100,
+        verbose_name=_("URL Name"),
+        help_text=_("Django URL name to redirect to"),
+    )
+    count = models.PositiveIntegerField(
+        default=1,
+        verbose_name=_("Count"),
+        help_text=_("Number of items in this notification"),
+    )
+    is_read = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=0,
+        verbose_name=_("Is Read"),
+        help_text=_("Whether this notification has been read"),
+    )
+    read_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Read At"),
+        help_text=_("When this notification was read"),
+    )
+    
+    class Meta:
+        verbose_name = _("Notification")
+        verbose_name_plural = _("Notifications")
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["user", "is_read", "created_at"], name="notification_user_read_idx"),
+            models.Index(fields=["company", "is_read"], name="notification_company_read_idx"),
+            models.Index(fields=["notification_key"], name="notification_key_idx"),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.user.username} - {self.message} ({'Read' if self.is_read else 'Unread'})"
+    
+    def mark_as_read(self, user=None):
+        """Mark this notification as read."""
+        from django.utils import timezone
+        self.is_read = 1
+        self.read_at = timezone.now()
+        if user:
+            self.edited_by = user
+        self.save(update_fields=['is_read', 'read_at', 'edited_by', 'edited_at'])
+    
+    def mark_as_unread(self, user=None):
+        """Mark this notification as unread."""
+        self.is_read = 0
+        self.read_at = None
+        if user:
+            self.edited_by = user
+        self.save(update_fields=['is_read', 'read_at', 'edited_by', 'edited_at'])
 

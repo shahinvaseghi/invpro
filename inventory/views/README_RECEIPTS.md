@@ -2,9 +2,12 @@
 
 **هدف**: Views برای مدیریت رسیدها (Receipts) در ماژول inventory
 
-این فایل شامل **27 کلاس view**:
+این فایل شامل **33 کلاس view**:
 - **2 Base Classes**: `DocumentDeleteViewBase`, `ReceiptFormMixin`
-- **15 Receipt Views**: 5 برای هر نوع (Temporary, Permanent, Consignment)
+- **18 Receipt Views**: 
+  - Temporary: List, Create, Detail, Update, Delete, Lock, Unlock, SendToQC (8 views)
+  - Permanent: List, Create, Detail, Update, Delete, Lock, Unlock (7 views)
+  - Consignment: List, Create, Detail, Update, Delete, Lock, Unlock (7 views)
 - **3 Create from Purchase Request Views**: برای هر نوع receipt
 - **6 Serial Assignment Views**: 2 base + 4 subclass
 
@@ -153,6 +156,31 @@
 
 ---
 
+### ReceiptTemporaryDetailView
+
+**Type**: `InventoryBaseView, DetailView`
+
+**Template**: `inventory/receipt_detail.html`
+
+**Attributes**:
+- `model`: `ReceiptTemporary`
+- `context_object_name`: `'receipt'`
+
+**متدها**:
+- `get_queryset()`: فیلتر بر اساس company و permissions، prefetch related objects
+- `get_context_data()`: اضافه کردن `receipt_variant`, `list_url`, `edit_url`, `can_edit`
+
+**Context Variables**:
+- `receipt`: instance رسید موقت
+- `receipt_variant`: `'temporary'`
+- `list_url`: URL لیست رسیدهای موقت
+- `edit_url`: URL ویرایش رسید
+- `can_edit`: `bool` - آیا رسید قفل نشده است
+
+**URL**: `/inventory/receipts/temporary/<pk>/`
+
+---
+
 ### ReceiptTemporaryUpdateView
 
 **Type**: `LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView`
@@ -202,6 +230,21 @@
 - `success_message`: `_('رسید موقت قفل شد و دیگر قابل ویرایش نیست.')`
 
 **URL**: `/inventory/receipts/temporary/<pk>/lock/`
+
+---
+
+### ReceiptTemporaryUnlockView
+
+**Type**: `DocumentUnlockView`
+
+**Attributes**:
+- `model`: `ReceiptTemporary`
+- `success_url_name`: `'inventory:receipt_temporary'`
+- `success_message`: `_('رسید موقت از قفل خارج شد و قابل ویرایش است.')`
+- `feature_code`: `'inventory.receipts.temporary'`
+- `required_action`: `'unlock_own'` (از DocumentUnlockView)
+
+**URL**: `/inventory/receipts/temporary/<pk>/unlock/`
 
 ---
 
@@ -325,6 +368,31 @@
 
 ---
 
+### ReceiptPermanentDetailView
+
+**Type**: `InventoryBaseView, DetailView`
+
+**Template**: `inventory/receipt_detail.html`
+
+**Attributes**:
+- `model`: `ReceiptPermanent`
+- `context_object_name`: `'receipt'`
+
+**متدها**:
+- `get_queryset()`: فیلتر بر اساس company و permissions، prefetch related objects (شامل `temporary_receipt`, `purchase_request`)
+- `get_context_data()`: اضافه کردن `receipt_variant`, `list_url`, `edit_url`, `can_edit`
+
+**Context Variables**:
+- `receipt`: instance رسید دائم
+- `receipt_variant`: `'permanent'`
+- `list_url`: URL لیست رسیدهای دائم
+- `edit_url`: URL ویرایش رسید
+- `can_edit`: `bool` - آیا رسید قفل نشده است
+
+**URL**: `/inventory/receipts/permanent/<pk>/`
+
+---
+
 ### ReceiptPermanentUpdateView
 
 **Type**: `LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView`
@@ -372,6 +440,21 @@
 - `after_lock()`: تولید سریال‌ها برای lines (اگر نیاز باشد)
 
 **URL**: `/inventory/receipts/permanent/<pk>/lock/`
+
+---
+
+### ReceiptPermanentUnlockView
+
+**Type**: `DocumentUnlockView`
+
+**Attributes**:
+- `model`: `ReceiptPermanent`
+- `success_url_name`: `'inventory:receipt_permanent'`
+- `success_message`: `_('رسید دائم از قفل خارج شد و قابل ویرایش است.')`
+- `feature_code`: `'inventory.receipts.permanent'`
+- `required_action`: `'unlock_own'` (از DocumentUnlockView)
+
+**URL**: `/inventory/receipts/permanent/<pk>/unlock/`
 
 ---
 
@@ -426,6 +509,31 @@
 
 ---
 
+### ReceiptConsignmentDetailView
+
+**Type**: `InventoryBaseView, DetailView`
+
+**Template**: `inventory/receipt_detail.html`
+
+**Attributes**:
+- `model`: `ReceiptConsignment`
+- `context_object_name`: `'receipt'`
+
+**متدها**:
+- `get_queryset()`: فیلتر بر اساس company و permissions، prefetch related objects
+- `get_context_data()`: اضافه کردن `receipt_variant`, `list_url`, `edit_url`, `can_edit`
+
+**Context Variables**:
+- `receipt`: instance رسید امانی
+- `receipt_variant`: `'consignment'`
+- `list_url`: URL لیست رسیدهای امانی
+- `edit_url`: URL ویرایش رسید
+- `can_edit`: `bool` - آیا رسید قفل نشده است
+
+**URL**: `/inventory/receipts/consignment/<pk>/`
+
+---
+
 ### ReceiptConsignmentUpdateView
 
 **Type**: `LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView`
@@ -472,6 +580,21 @@
 - `success_message`: `_('رسید امانی قفل شد و دیگر قابل ویرایش نیست.')`
 
 **URL**: `/inventory/receipts/consignment/<pk>/lock/`
+
+---
+
+### ReceiptConsignmentUnlockView
+
+**Type**: `DocumentUnlockView`
+
+**Attributes**:
+- `model`: `ReceiptConsignment`
+- `success_url_name`: `'inventory:receipt_consignment'`
+- `success_message`: `_('رسید امانی از قفل خارج شد و قابل ویرایش است.')`
+- `feature_code`: `'inventory.receipts.consignment'`
+- `required_action`: `'unlock_own'` (از DocumentUnlockView)
+
+**URL**: `/inventory/receipts/consignment/<pk>/unlock/`
 
 ---
 

@@ -587,14 +587,36 @@
               </div>
               <div class="notification-list">
                 {% for notification in notifications %}
-                <a href="{% url notification.url %}" 
-                   class="notification-item notification-{{ notification.type }}"
-                   data-notification-key="{{ notification.key }}"
-                   onclick="event.preventDefault(); markNotificationAsRead('{{ notification.key }}', '{% url notification.url %}');">
-                  <div class="notification-message">{{ notification.message }}</div>
-                  <div class="notification-time">{% trans "Click to view" %}</div>
-                </a>
+                <div class="notification-item notification-{{ notification.type }} {% if notification.is_read %}notification-read{% else %}notification-unread{% endif %}">
+                  <a href="{% url notification.url %}" 
+                     class="notification-link"
+                     data-notification-key="{{ notification.key }}"
+                     data-notification-id="{{ notification.id }}">
+                    <div class="notification-message">{{ notification.message }}</div>
+                    <div class="notification-time">{% trans "Click to view" %}</div>
+                  </a>
+                  <div class="notification-actions">
+                    {% if notification.is_read %}
+                      <form method="post" action="{% url 'shared:mark_notification_unread' %}" style="display: inline;" onsubmit="event.stopPropagation();">
+                        {% csrf_token %}
+                        <input type="hidden" name="notification_id" value="{{ notification.id }}">
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="btn-notification-action" title="{% trans 'Mark as Unread' %}">📬</button>
+                      </form>
+                    {% else %}
+                      <form method="post" action="{% url 'shared:mark_notification_read' %}" style="display: inline;" onsubmit="event.stopPropagation();">
+                        {% csrf_token %}
+                        <input type="hidden" name="notification_id" value="{{ notification.id }}">
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="btn-notification-action" title="{% trans 'Mark as Read' %}">✓</button>
+                      </form>
+                    {% endif %}
+                  </div>
+                </div>
                 {% endfor %}
+              </div>
+              <div class="notification-footer">
+                <a href="{% url 'shared:notifications' %}" class="notification-view-all">{% trans "View All Notifications" %}</a>
               </div>
               {% else %}
               <div class="notification-empty">
@@ -907,7 +929,7 @@
       });
       
       // Mark notification as read
-      function markNotificationAsRead(notificationKey, redirectUrl) {
+      function markNotificationAsRead(notificationKey, notificationId, redirectUrl) {
         // Get CSRF token from any form on the page
         let csrfToken = null;
         const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
@@ -935,7 +957,12 @@
         // Use fetch API to mark notification as read, then redirect
         const formData = new FormData();
         formData.append('csrfmiddlewaretoken', csrfToken);
-        formData.append('notification_key', notificationKey);
+        if (notificationKey) {
+          formData.append('notification_key', notificationKey);
+        }
+        if (notificationId) {
+          formData.append('notification_id', notificationId);
+        }
         formData.append('next', redirectUrl);
         
         fetch('{% url "shared:mark_notification_read" %}', {

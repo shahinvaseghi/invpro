@@ -39,6 +39,8 @@ class IssuePermanentListView(InventoryBaseView, ListView):
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.permanent', 'created_by')
         queryset = queryset.select_related('created_by', 'department_unit', 'warehouse_request').prefetch_related(
             'lines__item',
             'lines__warehouse',
@@ -74,6 +76,8 @@ class IssuePermanentDetailView(InventoryBaseView, DetailView):
         company_id = self.request.session.get('active_company_id')
         if company_id:
             queryset = queryset.filter(company_id=company_id)
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.permanent', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse'
@@ -166,6 +170,8 @@ class IssuePermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, Rec
         company_id = self.request.session.get('active_company_id')
         if company_id:
             queryset = queryset.filter(company_id=company_id)
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.permanent', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse'
@@ -288,6 +294,8 @@ class IssueConsumptionListView(InventoryBaseView, ListView):
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.consumption', 'created_by')
         queryset = queryset.select_related('created_by')
         return queryset
 
@@ -318,6 +326,8 @@ class IssueConsumptionDetailView(InventoryBaseView, DetailView):
         company_id = self.request.session.get('active_company_id')
         if company_id:
             queryset = queryset.filter(company_id=company_id)
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.consumption', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse'
@@ -451,6 +461,8 @@ class IssueConsumptionUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
         company_id = self.request.session.get('active_company_id')
         if company_id:
             queryset = queryset.filter(company_id=company_id)
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.consumption', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse'
@@ -557,6 +569,8 @@ class IssueConsignmentListView(InventoryBaseView, ListView):
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.consignment', 'created_by')
         queryset = queryset.select_related('created_by')
         return queryset
 
@@ -587,6 +601,8 @@ class IssueConsignmentDetailView(InventoryBaseView, DetailView):
         company_id = self.request.session.get('active_company_id')
         if company_id:
             queryset = queryset.filter(company_id=company_id)
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.consignment', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse'
@@ -661,6 +677,8 @@ class IssueConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
         company_id = self.request.session.get('active_company_id')
         if company_id:
             queryset = queryset.filter(company_id=company_id)
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.consignment', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse'

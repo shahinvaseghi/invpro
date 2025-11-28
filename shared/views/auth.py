@@ -76,22 +76,61 @@ def custom_login(request: HttpRequest):
 @require_POST
 def mark_notification_read(request: HttpRequest) -> HttpResponseRedirect:
     """
-    Mark a notification as read in the session.
+    Mark a notification as read in the database.
     
-    Expects POST parameter 'notification_key'.
+    Expects POST parameter 'notification_key' or 'notification_id'.
     """
     notification_key: Optional[str] = request.POST.get('notification_key')
+    notification_id: Optional[str] = request.POST.get('notification_id')
     
     if notification_key:
-        # Get read notifications from session
-        read_notifications = request.session.get('read_notifications', set())
-        if not isinstance(read_notifications, set):
-            read_notifications = set(read_notifications)
-        
-        # Add this notification to read list
-        read_notifications.add(notification_key)
-        request.session['read_notifications'] = list(read_notifications)
-        request.session.modified = True
+        # Mark notification by key
+        from shared.models import Notification
+        try:
+            notification = Notification.objects.get(
+                notification_key=notification_key,
+                user=request.user,
+            )
+            notification.mark_as_read(user=request.user)
+        except Notification.DoesNotExist:
+            pass
+    elif notification_id:
+        # Mark notification by ID
+        from shared.models import Notification
+        try:
+            notification = Notification.objects.get(
+                id=notification_id,
+                user=request.user,
+            )
+            notification.mark_as_read(user=request.user)
+        except (Notification.DoesNotExist, ValueError):
+            pass
+    
+    # Redirect back to the referring page or home
+    return HttpResponseRedirect(request.POST.get('next', '/'))
+
+
+@login_required
+@require_POST
+def mark_notification_unread(request: HttpRequest) -> HttpResponseRedirect:
+    """
+    Mark a notification as unread in the database.
+    
+    Expects POST parameter 'notification_id'.
+    """
+    notification_id: Optional[str] = request.POST.get('notification_id')
+    
+    if notification_id:
+        # Mark notification by ID
+        from shared.models import Notification
+        try:
+            notification = Notification.objects.get(
+                id=notification_id,
+                user=request.user,
+            )
+            notification.mark_as_unread(user=request.user)
+        except (Notification.DoesNotExist, ValueError):
+            pass
     
     # Redirect back to the referring page or home
     return HttpResponseRedirect(request.POST.get('next', '/'))

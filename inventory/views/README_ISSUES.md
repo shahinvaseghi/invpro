@@ -40,16 +40,17 @@
 
 **Context Variables**:
 - `issues`: queryset حواله‌های دائم (paginated)
-- `create_url`: URL برای ایجاد حواله جدید
-- `edit_url_name`: نام URL pattern برای ویرایش
-- `delete_url_name`: نام URL pattern برای حذف
-- `lock_url_name`: نام URL pattern برای قفل کردن
+- `create_url`: `reverse_lazy('inventory:issue_permanent_create')`
+- `edit_url_name`: `'inventory:issue_permanent_edit'`
+- `delete_url_name`: `'inventory:issue_permanent_delete'`
+- `lock_url_name`: `'inventory:issue_permanent_lock'`
+- `detail_url_name`: `'inventory:issue_permanent_detail'` (از کد)
 - `create_label`: `_('Permanent Issue')`
 - `show_warehouse_request`: `True` (نمایش لینک درخواست انبار)
 - `warehouse_request_url_name`: `'inventory:warehouse_request_edit'`
 - `serial_url_name`: `None`
-- `can_delete_own`: `bool` - آیا کاربر می‌تواند حواله‌های خودش را حذف کند
-- `can_delete_all`: `bool` - آیا کاربر می‌تواند همه حواله‌ها را حذف کند
+- `can_delete_own`: `bool` - آیا کاربر می‌تواند حواله‌های خودش را حذف کند (از `add_delete_permissions_to_context()`)
+- `can_delete_all`: `bool` - آیا کاربر می‌تواند همه حواله‌ها را حذف کند (از `add_delete_permissions_to_context()`)
 - `active_module`: `'inventory'` (از `InventoryBaseView`)
 
 **متدها**:
@@ -93,6 +94,61 @@
 - `can_delete_own`, `can_delete_all`: از `add_delete_permissions_to_context()` (از `DocumentDeleteViewBase`)
 
 **URL**: `/inventory/issues/permanent/`
+
+---
+
+### `IssuePermanentDetailView`
+
+**توضیح**: نمایش جزئیات حواله دائم (فقط خواندنی)
+
+**Type**: `InventoryBaseView, DetailView`
+
+**Template**: `inventory/issue_detail.html`
+
+**Attributes**:
+- `model`: `models.IssuePermanent`
+- `template_name`: `'inventory/issue_detail.html'`
+- `context_object_name`: `'issue'`
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch برای بهینه‌سازی query برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset با `select_related` و `prefetch_related`
+
+**منطق**:
+1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
+2. فیلتر بر اساس permissions (own vs all) با `filter_queryset_by_permissions()`
+3. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
+4. `select_related('created_by', 'warehouse_request', 'department_unit')` را اعمال می‌کند
+5. queryset را برمی‌گرداند
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با تمام متغیرهای لازم
+
+**Context Variables اضافه شده**:
+- `issue`: instance حواله دائم
+- `active_module`: `'inventory'`
+- `issue_variant`: `'permanent'`
+- `list_url`: URL لیست حواله‌های دائم
+- `edit_url`: URL ویرایش حواله
+- `can_edit`: `bool` - آیا حواله قفل نشده است
+
+**URL**: `/inventory/issues/permanent/<pk>/`
 
 ---
 
@@ -409,6 +465,47 @@
 
 ---
 
+### `IssueConsumptionDetailView`
+
+**توضیح**: نمایش جزئیات حواله مصرف (فقط خواندنی)
+
+**Type**: `InventoryBaseView, DetailView`
+
+**Template**: `inventory/issue_detail.html`
+
+**Attributes**:
+- `model`: `models.IssueConsumption`
+- `template_name`: `'inventory/issue_detail.html'`
+- `context_object_name`: `'issue'`
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch برای بهینه‌سازی query برمی‌گرداند.
+
+**منطق**:
+1. queryset را از `super().get_queryset()` دریافت می‌کند (فیلتر شده بر اساس company)
+2. فیلتر بر اساس permissions (own vs all) با `filter_queryset_by_permissions()`
+3. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
+4. `select_related('created_by', 'warehouse_request', 'department_unit')` را اعمال می‌کند
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**Context Variables اضافه شده**:
+- `issue`: instance حواله مصرف
+- `active_module`: `'inventory'`
+- `issue_variant`: `'consumption'`
+- `list_url`: URL لیست حواله‌های مصرف
+- `edit_url`: URL ویرایش حواله
+- `can_edit`: `bool` - آیا حواله قفل نشده است
+
+**URL**: `/inventory/issues/consumption/<pk>/`
+
+---
+
 ### `IssueConsumptionCreateView`
 
 **توضیح**: ایجاد حواله مصرف جدید
@@ -679,6 +776,47 @@
 - مشابه `IssueConsumptionListView.get_context_data()` اما با URL های مربوط به consignment
 
 **URL**: `/inventory/issues/consignment/`
+
+---
+
+### `IssueConsignmentDetailView`
+
+**توضیح**: نمایش جزئیات حواله امانی (فقط خواندنی)
+
+**Type**: `InventoryBaseView, DetailView`
+
+**Template**: `inventory/issue_detail.html`
+
+**Attributes**:
+- `model`: `models.IssueConsignment`
+- `template_name`: `'inventory/issue_detail.html'`
+- `context_object_name`: `'issue'`
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch برای بهینه‌سازی query برمی‌گرداند.
+
+**منطق**:
+1. queryset را از `super().get_queryset()` دریافت می‌کند (فیلتر شده بر اساس company)
+2. فیلتر بر اساس permissions (own vs all) با `filter_queryset_by_permissions()`
+3. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
+4. `select_related('created_by')` را اعمال می‌کند
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**Context Variables اضافه شده**:
+- `issue`: instance حواله امانی
+- `active_module`: `'inventory'`
+- `issue_variant`: `'consignment'`
+- `list_url`: URL لیست حواله‌های امانی
+- `edit_url`: URL ویرایش حواله
+- `can_edit`: `bool` - آیا حواله قفل نشده است
+
+**URL**: `/inventory/issues/consignment/<pk>/`
 
 ---
 

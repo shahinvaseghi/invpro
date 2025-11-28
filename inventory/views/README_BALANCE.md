@@ -96,12 +96,17 @@
 - `error`: پیام خطا (در صورت وجود)
 
 **منطق**:
-1. دریافت baseline از آخرین انبارگردانی
-2. دریافت تمام receipts (Permanent, Consignment)
-3. دریافت تمام issues (Permanent, Consumption, Consignment)
-4. ترکیب و مرتب‌سازی تراکنش‌ها بر اساس تاریخ
-5. محاسبه running balance برای هر تراکنش
-6. محاسبه موجودی فعلی
+1. Parse کردن تاریخ (Gregorian یا Jalali)
+2. دریافت baseline از آخرین انبارگردانی با `get_last_stocktaking_baseline()`
+3. دریافت تمام receipts (Permanent, Consignment) از `baseline_date` تا `as_of_date`
+4. دریافت تمام issues (Permanent, Consumption, Consignment) از `baseline_date` تا `as_of_date`
+5. دریافت stocktaking surplus lines (positive movements) از `baseline_date` تا `as_of_date`
+6. دریافت stocktaking deficit lines (negative movements) از `baseline_date` تا `as_of_date`
+7. ترکیب تمام تراکنش‌ها در یک لیست
+8. مرتب‌سازی تراکنش‌ها بر اساس تاریخ
+9. محاسبه running balance برای هر تراکنش (شروع از `baseline_quantity`)
+10. محاسبه موجودی فعلی (آخرین running balance)
+11. محاسبه مجموع receipts و issues
 
 **URL**: `/inventory/balance/details/<item_id>/<warehouse_id>/`
 
@@ -164,6 +169,21 @@
 ### 3. Transaction Types
 - **Receipts**: Permanent, Consignment
 - **Issues**: Permanent, Consumption, Consignment
+- **Stocktaking Surplus**: Positive movements (quantity_adjusted)
+- **Stocktaking Deficit**: Negative movements (quantity_adjusted)
+
+**Transaction Structure**:
+- `date`: تاریخ تراکنش
+- `type`: `'receipt'` یا `'issue'`
+- `type_label`: نام فارسی نوع تراکنش
+- `document_code`: کد سند
+- `document_id`: شناسه سند
+- `document_type`: نوع سند (permanent_receipt, consignment_receipt, permanent_issue, consumption_issue, consignment_issue, stocktaking_surplus, stocktaking_deficit)
+- `quantity`: مقدار
+- `unit`: واحد
+- `created_by`: نام کاربر ایجادکننده
+- `source_destination`: منبع/مقصد (supplier name برای receipts، department unit/work line name برای issues)
+- `running_balance`: موجودی پس از این تراکنش
 
 ### 4. Running Balance
 - برای هر تراکنش، running balance محاسبه می‌شود

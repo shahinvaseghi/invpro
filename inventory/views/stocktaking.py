@@ -124,6 +124,8 @@ class StocktakingDeficitListView(InventoryBaseView, ListView):
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.deficit', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse'
@@ -200,6 +202,8 @@ class StocktakingDeficitUpdateView(LineFormsetMixin, DocumentLockProtectedMixin,
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.deficit', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse'
@@ -259,6 +263,8 @@ class StocktakingSurplusListView(InventoryBaseView, ListView):
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.surplus', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse'
@@ -335,6 +341,8 @@ class StocktakingSurplusUpdateView(LineFormsetMixin, DocumentLockProtectedMixin,
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.surplus', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse'
@@ -391,6 +399,13 @@ class StocktakingRecordListView(InventoryBaseView, ListView):
     context_object_name = 'records'
     paginate_by = 50
 
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.records', 'created_by')
+        return queryset
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context for template."""
         context = super().get_context_data(**kwargs)
@@ -438,6 +453,13 @@ class StocktakingRecordUpdateView(DocumentLockProtectedMixin, StocktakingFormMix
     form_title = _('ویرایش سند نهایی انبارگردانی')
     list_url_name = 'inventory:stocktaking_records'
     lock_url_name = 'inventory:stocktaking_record_lock'
+
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.records', 'created_by')
+        return queryset
 
     def form_valid(self, form):
         """Set edited_by before saving."""
