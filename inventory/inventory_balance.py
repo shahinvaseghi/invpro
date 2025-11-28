@@ -51,46 +51,9 @@ def get_last_stocktaking_baseline(
             'stocktaking_record_date': latest_record.document_date,  # Keep original date for reference
         }
     
-    # If no StocktakingRecord found, check if there are any deficit/surplus documents
-    # In this case, we use the earliest deficit/surplus date as baseline
-    # But baseline_quantity should be 0, and deficit/surplus will be movements
-    earliest_surplus_line = models.StocktakingSurplusLine.objects.filter(
-        company_id=company_id,
-        warehouse_id=warehouse_id,
-        item_id=item_id,
-        document__document_date__lte=as_of_date,
-        document__is_locked=1,
-        document__is_enabled=1,
-    ).select_related('document').order_by('document__document_date', 'id').first()
-    
-    earliest_deficit_line = models.StocktakingDeficitLine.objects.filter(
-        company_id=company_id,
-        warehouse_id=warehouse_id,
-        item_id=item_id,
-        document__document_date__lte=as_of_date,
-        document__is_locked=1,
-        document__is_enabled=1,
-    ).select_related('document').order_by('document__document_date', 'id').first()
-    
-    earliest_date = None
-    if earliest_surplus_line and earliest_deficit_line:
-        earliest_date = min(earliest_surplus_line.document.document_date, earliest_deficit_line.document.document_date)
-    elif earliest_surplus_line:
-        earliest_date = earliest_surplus_line.document.document_date
-    elif earliest_deficit_line:
-        earliest_date = earliest_deficit_line.document.document_date
-    
-    if earliest_date:
-        # Use earliest deficit/surplus date as baseline, but quantity = 0
-        # Deficit/surplus documents will be included as movements after this baseline
-        return {
-            'baseline_date': earliest_date,
-            'baseline_quantity': Decimal('0'),
-            'stocktaking_record_id': None,
-            'stocktaking_record_code': None,
-        }
-    
-    # No stocktaking at all - start from zero
+    # If no StocktakingRecord found, return None for baseline_date
+    # Deficit/surplus documents will be included as movements, but only if there's a StocktakingRecord
+    # Without a StocktakingRecord, there's no proper baseline
     return {
         'baseline_date': None,
         'baseline_quantity': Decimal('0'),

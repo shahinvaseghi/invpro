@@ -65,6 +65,44 @@ class StocktakingDeficitLineForm(StocktakingBaseForm):
         required=True,
     )
 
+    def full_clean(self):
+        """Override to update unit choices before validation."""
+        # Update unit choices if item and unit are in data
+        if self.data:
+            item_id = self.data.get(self.add_prefix('item'))
+            unit_value = self.data.get(self.add_prefix('unit'))
+            
+            if item_id and unit_value:
+                try:
+                    from inventory.models import Item
+                    item = Item.objects.get(pk=item_id, company_id=self.company_id)
+                    # Get allowed units
+                    allowed_units = self._get_item_allowed_units(item)
+                    allowed_codes = [row['value'] for row in allowed_units]
+                    
+                    # If unit is not in allowed units, add it to choices
+                    current_choices = list(self.fields['unit'].choices)
+                    unit_codes = [code for code, _ in current_choices if code]
+                    
+                    if unit_value not in unit_codes:
+                        from inventory.forms.base import UNIT_CHOICES
+                        label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                        label = label_map.get(unit_value, unit_value)
+                        self.fields['unit'].choices = current_choices + [(unit_value, label)]
+                except (Item.DoesNotExist, ValueError, TypeError):
+                    pass
+            elif unit_value:
+                # If no item but unit is provided, just add unit to choices
+                current_choices = list(self.fields['unit'].choices)
+                unit_codes = [code for code, _ in current_choices if code]
+                if unit_value not in unit_codes:
+                    from inventory.forms.base import UNIT_CHOICES
+                    label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                    label = label_map.get(unit_value, unit_value)
+                    self.fields['unit'].choices = current_choices + [(unit_value, label)]
+        
+        return super().full_clean()
+
     class Meta:
         model = StocktakingDeficitLine
         fields = [
@@ -98,62 +136,44 @@ class StocktakingDeficitLineForm(StocktakingBaseForm):
         if not unit:
             return unit
         
-        # Get item - try from cleaned_data first, then from data
-        item = None
-        if 'item' in self.cleaned_data:
-            item_id = self.cleaned_data.get('item')
-            if item_id:
-                try:
-                    from inventory.models import Item
-                    item = Item.objects.get(pk=item_id, company_id=self.company_id)
-                except (Item.DoesNotExist, ValueError, TypeError):
-                    pass
-        
-        # If item not in cleaned_data yet, try to get from data
-        if not item and self.data:
-            item_id = self.data.get(self.add_prefix('item'))
-            if item_id:
-                try:
-                    from inventory.models import Item
-                    item = Item.objects.get(pk=item_id, company_id=self.company_id)
-                except (Item.DoesNotExist, ValueError, TypeError):
-                    pass
-        
-        # If still no item, try instance
-        if not item and hasattr(self.instance, 'item_id') and self.instance.item_id:
-            item = self.instance.item
-        
-        # If we have an item, check if unit is allowed
-        if item:
-            # Get allowed units for this item
-            allowed_units = self._get_item_allowed_units(item)
-            allowed_codes = [row['value'] for row in allowed_units]
-            
-            # If unit is not in allowed units, add it to choices
-            if unit not in allowed_codes:
-                # Add unit to choices to avoid validation error
-                current_choices = list(self.fields['unit'].choices)
-                unit_codes = [code for code, _ in current_choices if code]
-                if unit not in unit_codes:
-                    from inventory.forms.base import UNIT_CHOICES
-                    label_map = {value: str(label) for value, label in UNIT_CHOICES}
-                    label = label_map.get(unit, unit)
-                    self.fields['unit'].choices = current_choices + [(unit, label)]
-        else:
-            # No item yet - just ensure unit is in choices (accept any valid unit)
-            current_choices = list(self.fields['unit'].choices)
-            unit_codes = [code for code, _ in current_choices if code]
-            if unit not in unit_codes:
-                from inventory.forms.base import UNIT_CHOICES
-                label_map = {value: str(label) for value, label in UNIT_CHOICES}
-                label = label_map.get(unit, unit)
-                self.fields['unit'].choices = current_choices + [(unit, label)]
+        # Always ensure unit is in choices to avoid validation error
+        # Detailed validation will be done in clean() method
+        current_choices = list(self.fields['unit'].choices)
+        unit_codes = [code for code, _ in current_choices if code]
+        if unit not in unit_codes:
+            from inventory.forms.base import UNIT_CHOICES
+            label_map = {value: str(label) for value, label in UNIT_CHOICES}
+            label = label_map.get(unit, unit)
+            self.fields['unit'].choices = current_choices + [(unit, label)]
         
         return unit
 
     def clean(self):
         """Validate quantity calculations."""
         cleaned_data = super().clean()
+        
+        # Ensure unit is in choices (do this after all fields are cleaned)
+        unit = cleaned_data.get('unit')
+        item = cleaned_data.get('item')
+        if unit and item:
+            try:
+                from inventory.models import Item
+                item_obj = Item.objects.get(pk=item, company_id=self.company_id)
+                allowed_units = self._get_item_allowed_units(item_obj)
+                allowed_codes = [row['value'] for row in allowed_units]
+                
+                # If unit is not in allowed units, add it to choices
+                if unit not in allowed_codes:
+                    current_choices = list(self.fields['unit'].choices)
+                    unit_codes = [code for code, _ in current_choices if code]
+                    if unit not in unit_codes:
+                        from inventory.forms.base import UNIT_CHOICES
+                        label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                        label = label_map.get(unit, unit)
+                        self.fields['unit'].choices = current_choices + [(unit, label)]
+            except (Item.DoesNotExist, ValueError, TypeError):
+                pass
+        
         expected = cleaned_data.get('quantity_expected')
         counted = cleaned_data.get('quantity_counted')
         if expected is not None and counted is not None:
@@ -215,6 +235,44 @@ class StocktakingSurplusLineForm(StocktakingBaseForm):
         if 'quantity_adjusted' in self.fields:
             self.fields['quantity_adjusted'].label = _('مقدار افزایش یافته')
 
+    def full_clean(self):
+        """Override to update unit choices before validation."""
+        # Update unit choices if item and unit are in data
+        if self.data:
+            item_id = self.data.get(self.add_prefix('item'))
+            unit_value = self.data.get(self.add_prefix('unit'))
+            
+            if item_id and unit_value:
+                try:
+                    from inventory.models import Item
+                    item = Item.objects.get(pk=item_id, company_id=self.company_id)
+                    # Get allowed units
+                    allowed_units = self._get_item_allowed_units(item)
+                    allowed_codes = [row['value'] for row in allowed_units]
+                    
+                    # If unit is not in allowed units, add it to choices
+                    current_choices = list(self.fields['unit'].choices)
+                    unit_codes = [code for code, _ in current_choices if code]
+                    
+                    if unit_value not in unit_codes:
+                        from inventory.forms.base import UNIT_CHOICES
+                        label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                        label = label_map.get(unit_value, unit_value)
+                        self.fields['unit'].choices = current_choices + [(unit_value, label)]
+                except (Item.DoesNotExist, ValueError, TypeError):
+                    pass
+            elif unit_value:
+                # If no item but unit is provided, just add unit to choices
+                current_choices = list(self.fields['unit'].choices)
+                unit_codes = [code for code, _ in current_choices if code]
+                if unit_value not in unit_codes:
+                    from inventory.forms.base import UNIT_CHOICES
+                    label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                    label = label_map.get(unit_value, unit_value)
+                    self.fields['unit'].choices = current_choices + [(unit_value, label)]
+        
+        return super().full_clean()
+
     class Meta:
         model = StocktakingSurplusLine
         fields = [
@@ -248,62 +306,44 @@ class StocktakingSurplusLineForm(StocktakingBaseForm):
         if not unit:
             return unit
         
-        # Get item - try from cleaned_data first, then from data
-        item = None
-        if 'item' in self.cleaned_data:
-            item_id = self.cleaned_data.get('item')
-            if item_id:
-                try:
-                    from inventory.models import Item
-                    item = Item.objects.get(pk=item_id, company_id=self.company_id)
-                except (Item.DoesNotExist, ValueError, TypeError):
-                    pass
-        
-        # If item not in cleaned_data yet, try to get from data
-        if not item and self.data:
-            item_id = self.data.get(self.add_prefix('item'))
-            if item_id:
-                try:
-                    from inventory.models import Item
-                    item = Item.objects.get(pk=item_id, company_id=self.company_id)
-                except (Item.DoesNotExist, ValueError, TypeError):
-                    pass
-        
-        # If still no item, try instance
-        if not item and hasattr(self.instance, 'item_id') and self.instance.item_id:
-            item = self.instance.item
-        
-        # If we have an item, check if unit is allowed
-        if item:
-            # Get allowed units for this item
-            allowed_units = self._get_item_allowed_units(item)
-            allowed_codes = [row['value'] for row in allowed_units]
-            
-            # If unit is not in allowed units, add it to choices
-            if unit not in allowed_codes:
-                # Add unit to choices to avoid validation error
-                current_choices = list(self.fields['unit'].choices)
-                unit_codes = [code for code, _ in current_choices if code]
-                if unit not in unit_codes:
-                    from inventory.forms.base import UNIT_CHOICES
-                    label_map = {value: str(label) for value, label in UNIT_CHOICES}
-                    label = label_map.get(unit, unit)
-                    self.fields['unit'].choices = current_choices + [(unit, label)]
-        else:
-            # No item yet - just ensure unit is in choices (accept any valid unit)
-            current_choices = list(self.fields['unit'].choices)
-            unit_codes = [code for code, _ in current_choices if code]
-            if unit not in unit_codes:
-                from inventory.forms.base import UNIT_CHOICES
-                label_map = {value: str(label) for value, label in UNIT_CHOICES}
-                label = label_map.get(unit, unit)
-                self.fields['unit'].choices = current_choices + [(unit, label)]
+        # Always ensure unit is in choices to avoid validation error
+        # Detailed validation will be done in clean() method
+        current_choices = list(self.fields['unit'].choices)
+        unit_codes = [code for code, _ in current_choices if code]
+        if unit not in unit_codes:
+            from inventory.forms.base import UNIT_CHOICES
+            label_map = {value: str(label) for value, label in UNIT_CHOICES}
+            label = label_map.get(unit, unit)
+            self.fields['unit'].choices = current_choices + [(unit, label)]
         
         return unit
 
     def clean(self):
         """Validate quantity calculations."""
         cleaned_data = super().clean()
+        
+        # Ensure unit is in choices (do this after all fields are cleaned)
+        unit = cleaned_data.get('unit')
+        item = cleaned_data.get('item')
+        if unit and item:
+            try:
+                from inventory.models import Item
+                item_obj = Item.objects.get(pk=item, company_id=self.company_id)
+                allowed_units = self._get_item_allowed_units(item_obj)
+                allowed_codes = [row['value'] for row in allowed_units]
+                
+                # If unit is not in allowed units, add it to choices
+                if unit not in allowed_codes:
+                    current_choices = list(self.fields['unit'].choices)
+                    unit_codes = [code for code, _ in current_choices if code]
+                    if unit not in unit_codes:
+                        from inventory.forms.base import UNIT_CHOICES
+                        label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                        label = label_map.get(unit, unit)
+                        self.fields['unit'].choices = current_choices + [(unit, label)]
+            except (Item.DoesNotExist, ValueError, TypeError):
+                pass
+        
         expected = cleaned_data.get('quantity_expected')
         counted = cleaned_data.get('quantity_counted')
         if expected is not None and counted is not None:

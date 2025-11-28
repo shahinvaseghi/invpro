@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: invproj\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-24 18:47+0000\n"
+"POT-Creation-Date: 2025-11-28 15:15+0000\n"
 "PO-Revision-Date: 2025-11-09 00:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: Persian\n"
@@ -105,12 +105,16 @@ msgstr "واحد انتخاب‌شده برای این کالا تعریف نش�
 msgid ""
 "انبار انتخاب شده برای این کالا مجاز نیست. لطفاً یکی از انبارهای مجاز را "
 "انتخاب کنید."
-msgstr "انبار انتخاب شده برای این کالا مجاز نیست. لطفاً یکی از انبارهای مجاز را انتخاب کنید."
+msgstr ""
+"انبار انتخاب شده برای این کالا مجاز نیست. لطفاً یکی از انبارهای مجاز را "
+"انتخاب کنید."
 
 msgid ""
 "این کالا هیچ انبار مجازی ندارد. لطفاً ابتدا در تعریف کالا، حداقل یک انبار "
 "مجاز را انتخاب کنید."
-msgstr "این کالا هیچ انبار مجازی ندارد. لطفاً ابتدا در تعریف کالا، حداقل یک انبار مجاز را انتخاب کنید."
+msgstr ""
+"این کالا هیچ انبار مجازی ندارد. لطفاً ابتدا در تعریف کالا، حداقل یک انبار "
+"مجاز را انتخاب کنید."
 
 #, python-format
 msgid "Please add at least %(min_num)d line(s) with an item."
@@ -141,7 +145,9 @@ msgstr "قبل از اختصاص سریال، مقدار باید یک عدد ص
 #, python-format
 msgid ""
 "You must select exactly %(count)s serial(s). Currently %(current)s selected."
-msgstr "باید دقیقاً %(count)s شماره سریال انتخاب کنید. در حال حاضر %(current)s مورد انتخاب شده است."
+msgstr ""
+"باید دقیقاً %(count)s شماره سریال انتخاب کنید. در حال حاضر %(current)s مورد "
+"انتخاب شده است."
 
 msgid "Selected serials do not belong to the requested item."
 msgstr "شماره‌های سریال انتخاب‌شده متعلق به کالای درخواستی نیستند."
@@ -152,7 +158,8 @@ msgstr "واحد"
 #, python-format
 msgid ""
 "موجودی کافی نیست. موجودی فعلی: %(balance)s، مقدار درخواستی: %(requested)s"
-msgstr "موجودی کافی نیست. موجودی فعلی: %(balance)s، مقدار درخواستی: %(requested)s"
+msgstr ""
+"موجودی کافی نیست. موجودی فعلی: %(balance)s، مقدار درخواستی: %(requested)s"
 
 msgid "واحد کاری"
 msgstr "واحد کاری"
@@ -256,7 +263,9 @@ msgstr "کالاهای قابل تأمین"
 msgid ""
 "کالاهای موجود در همان دسته‌بندی (و زیردسته‌های انتخابی) را می‌توانید انتخاب "
 "کنید."
-msgstr "کالاهای موجود در همان دسته‌بندی (و زیردسته‌های انتخابی) را می‌توانید انتخاب کنید."
+msgstr ""
+"کالاهای موجود در همان دسته‌بندی (و زیردسته‌های انتخابی) را می‌توانید انتخاب "
+"کنید."
 
 msgid "تأمین‌کننده"
 msgstr "تأمین‌کننده"
@@ -303,8 +312,9 @@ msgid "انبارهای مجاز"
 msgstr "انبارهای مجاز"
 
 msgid "حداقل یک انبار انتخاب کنید؛ اولین مورد به عنوان انبار اصلی ذخیره می‌شود."
-msgstr "حداقل یک انبار انتخاب کنید؛ اولین مورد به عنوان انبار اصلی ذخیره می‌شود."
-"حداقل یک انبار انتخاب کنید؛ اولین مورد به عنوان انبار اصلی ذخیره می‌شود."
+msgstr ""
+"حداقل یک انبار انتخاب کنید؛ اولین مورد به عنوان انبار اصلی ذخیره می‌شود.حداقل "
+"یک انبار انتخاب کنید؛ اولین مورد به عنوان انبار اصلی ذخیره می‌شود."
 
 msgid "نوع کالا"
 msgstr "نوع کالا"
@@ -429,21 +439,12 @@ msgstr "درخواست انبار انتخاب‌شده مربوط به کالا
 msgid "Selected conversion receipt belongs to a different company."
 msgstr "خط کار انتخاب‌شده متعلق به انبار دیگری است."
 
-msgid "Entered Price Unit"
-msgstr "واحد قیمت وارد شده"
-
-msgid "Optional: unit for price (e.g., BOX)"
-msgstr "اختیاری: واحد قیمت (مثلاً BOX)"
-
-msgid ""
-"Unit for entered_unit_price (e.g., BOX, CARTON). If empty, same as "
-"entered_unit."
-msgstr "واحد برای entered_unit_price (مثلاً BOX, CARTON). اگر خالی باشد، همان entered_unit استفاده می‌شود."
-
 msgid ""
 "این کالا نیاز به رسید موقت دارد. لطفاً ابتدا رسید موقت ایجاد کنید و پس از "
 "تایید QC، رسید دائم را ثبت کنید."
-msgstr "این کالا نیاز به رسید موقت دارد. لطفاً ابتدا رسید موقت ایجاد کنید و پس از تایید QC، رسید دائم را ثبت کنید."
+msgstr ""
+"این کالا نیاز به رسید موقت دارد. لطفاً ابتدا رسید موقت ایجاد کنید و پس از "
+"تایید QC، رسید دائم را ثبت کنید."
 
 msgid "Needed By Date"
 msgstr "تاریخ مورد نیاز"
@@ -466,11 +467,11 @@ msgstr "کالا"
 msgid "Requested Quantity"
 msgstr "مقدار درخواست‌شده"
 
-msgid "Warehouse"
-msgstr "انبار"
-
 msgid "Purpose / Notes"
 msgstr "هدف / یادداشت‌ها"
+
+msgid "Warehouse"
+msgstr "انبار"
 
 #, fuzzy
 #| msgid "Selected warehouse is not permitted for this item."
@@ -479,6 +480,11 @@ msgstr "انبار انتخاب‌شده برای این کالا مجاز نی�
 
 msgid "Counted quantity cannot exceed expected balance for a deficit document."
 msgstr "مقدار شمارش‌شده نمی‌تواند از موجودی انتظار‌رفته در سند کسری بیشتر باشد."
+
+#, fuzzy
+#| msgid "مقدار معادل"
+msgid "مقدار افزایش یافته"
+msgstr "مقدار معادل"
 
 msgid "Counted quantity cannot be less than expected for a surplus document."
 msgstr "مقدار شمارش‌شده در سند مازاد نمی‌تواند کمتر از مقدار انتظار‌رفته باشد."
@@ -628,6 +634,11 @@ msgstr "در انتظار بازرسی"
 msgid "Closed/Cancelled"
 msgstr "بسته/لغو‌شده"
 
+#, fuzzy
+#| msgid "Approved"
+msgid "QC Approved"
+msgstr "تایید شده"
+
 msgid "Temporary Receipt"
 msgstr "رسید موقت"
 
@@ -730,6 +741,26 @@ msgstr "ردیف رسید امانی"
 msgid "Consignment Receipt Lines"
 msgstr "ردیف‌های رسید امانی"
 
+msgid "Whether this line is approved by QC"
+msgstr ""
+
+msgid "Quantity approved by QC (can be less than original quantity)"
+msgstr ""
+
+msgid "QC approval notes for this line"
+msgstr ""
+
+msgid "Whether this line is rejected by QC"
+msgstr ""
+
+#, fuzzy
+#| msgid "Quantity Expected"
+msgid "Quantity rejected by QC"
+msgstr "مقدار مورد انتظار"
+
+msgid "QC rejection reason for this line"
+msgstr ""
+
 #, fuzzy
 #| msgid "Temporary Receipt"
 msgid "Temporary Receipt Line"
@@ -739,6 +770,48 @@ msgstr "رسید موقت"
 #| msgid "Temporary Receipts"
 msgid "Temporary Receipt Lines"
 msgstr "رسیدهای موقت"
+
+#, fuzzy
+#| msgid "Request Code"
+msgid "Receipt Line"
+msgstr "کد درخواست"
+
+msgid "Company"
+msgstr "شرکت"
+
+#, fuzzy
+#| msgid "Requested Quantity"
+msgid "Rejected Quantity"
+msgstr "مقدار درخواست‌شده"
+
+msgid "Quantity rejected for this specific reason"
+msgstr ""
+
+#, fuzzy
+#| msgid "Destination & Reason"
+msgid "Rejection Reason"
+msgstr "مقصد و دلیل"
+
+msgid "Detailed reason for rejecting this quantity"
+msgstr ""
+
+# Common Terms
+#, fuzzy
+#| msgid "Create"
+msgid "Created At"
+msgstr "ایجاد"
+
+# BOM Form - Multi-line
+#, fuzzy
+#| msgid "Create BOM"
+msgid "Created By"
+msgstr "ایجاد BOM"
+
+msgid "QC Rejection Detail"
+msgstr ""
+
+msgid "QC Rejection Details"
+msgstr ""
 
 msgid "Permanent Issue"
 msgstr "حواله دائم"
@@ -760,6 +833,18 @@ msgstr "حواله‌های امانی"
 
 msgid "Stocktaking Session ID"
 msgstr "شناسه جلسه شمارش"
+
+msgid "Stocktaking Deficit"
+msgstr "کسری شمارش موجودی"
+
+msgid "Stocktaking Deficits"
+msgstr "کسری‌های شمارش موجودی"
+
+msgid "Stocktaking Surplus"
+msgstr "مازاد شمارش موجودی"
+
+msgid "Stocktaking Surpluses"
+msgstr "مازادهای شمارش موجودی"
 
 msgid "Item Code"
 msgstr "کد کالا"
@@ -792,16 +877,24 @@ msgstr "کد دلیل"
 msgid "Investigation Reference"
 msgstr "مرجع بررسی"
 
-msgid "Stocktaking Deficit"
+#, fuzzy
+#| msgid "Stocktaking Deficit"
+msgid "Stocktaking Deficit Line"
 msgstr "کسری شمارش موجودی"
 
-msgid "Stocktaking Deficits"
+#, fuzzy
+#| msgid "Stocktaking Deficits"
+msgid "Stocktaking Deficit Lines"
 msgstr "کسری‌های شمارش موجودی"
 
-msgid "Stocktaking Surplus"
-msgstr "مازاد شمارش موجودی"
+#, fuzzy
+#| msgid "Stocktaking Surpluses"
+msgid "Stocktaking Surplus Line"
+msgstr "مازادهای شمارش موجودی"
 
-msgid "Stocktaking Surpluses"
+#, fuzzy
+#| msgid "Stocktaking Surpluses"
+msgid "Stocktaking Surplus Lines"
 msgstr "مازادهای شمارش موجودی"
 
 msgid "Inventory Snapshot Time"
@@ -846,6 +939,16 @@ msgstr "درخواست انبار"
 msgid "Warehouse Requests"
 msgstr "درخواست از انبار"
 
+#, fuzzy
+#| msgid "Warehouse Request"
+msgid "Warehouse Request Line"
+msgstr "درخواست انبار"
+
+#, fuzzy
+#| msgid "Warehouse Requests"
+msgid "Warehouse Request Lines"
+msgstr "درخواست از انبار"
+
 msgid "Quantity must be a number for serialised items."
 msgstr "برای کالاهای دارای سریال، مقدار باید یک عدد باشد."
 
@@ -856,11 +959,32 @@ msgstr "هنگام رهگیری سریال، مقدار باید یک عدد ص�
 msgid "Could not generate unique serial code after %(attempts)s attempts."
 msgstr "پس از %(attempts)s تلاش، نتوانست کد سریال یکتا تولید کند."
 
+#, fuzzy
+#| msgid ""
+#| "انبار انتخاب شده برای این کالا مجاز نیست. لطفاً یکی از انبارهای مجاز را "
+#| "انتخاب کنید."
+msgid ""
+"رسید موقت انتخاب شده هیچ خط تایید شده‌ای ندارد. لطفاً ابتدا خطوط را در بخش QC "
+"تایید کنید."
+msgstr ""
+"انبار انتخاب شده برای این کالا مجاز نیست. لطفاً یکی از انبارهای مجاز را "
+"انتخاب کنید."
+
 msgid "Item not found"
 msgstr "کالا یافت نشد"
 
 msgid "Warehouse not found"
 msgstr "انبار یافت نشد"
+
+#, fuzzy
+#| msgid "ایجاد سند مازاد انبارگردانی"
+msgid "مازاد انبارگردانی"
+msgstr "ایجاد سند مازاد انبارگردانی"
+
+#, fuzzy
+#| msgid "ایجاد سند کسری انبارگردانی"
+msgid "کسری انبارگردانی"
+msgstr "ایجاد سند کسری انبارگردانی"
 
 msgid "سند قفل شده و قابل ویرایش یا حذف نیست."
 msgstr "سند قفل شده و قابل ویرایش یا حذف نیست."
@@ -876,6 +1000,31 @@ msgstr "این سند قبلاً قفل شده است."
 
 msgid "پیکربندی قفل سند نامعتبر است."
 msgstr "پیکربندی قفل سند نامعتبر است."
+
+#, fuzzy
+#| msgid "سند با موفقیت قفل شد و دیگر قابل ویرایش نیست."
+msgid "سند با موفقیت از قفل خارج شد و قابل ویرایش است."
+msgstr "سند با موفقیت قفل شد و دیگر قابل ویرایش نیست."
+
+#, fuzzy
+#| msgid "این سند قبلاً قفل شده است."
+msgid "این سند قبلاً از قفل خارج شده است."
+msgstr "این سند قبلاً قفل شده است."
+
+#, fuzzy
+#| msgid "پیکربندی قفل سند نامعتبر است."
+msgid "پیکربندی باز کردن قفل سند نامعتبر است."
+msgstr "پیکربندی قفل سند نامعتبر است."
+
+#, fuzzy
+#| msgid "شما مجوز تایید درخواست خرید را ندارید."
+msgid "شما اجازه باز کردن قفل اسناد خود را ندارید."
+msgstr "شما مجوز تایید درخواست خرید را ندارید."
+
+#, fuzzy
+#| msgid "شما مجوز تایید درخواست خرید را ندارید."
+msgid "شما اجازه باز کردن قفل اسناد سایر کاربران را ندارید."
+msgstr "شما مجوز تایید درخواست خرید را ندارید."
 
 msgid "شرکت فعال مشخص نشده است."
 msgstr "شرکت فعال مشخص نشده است."
@@ -930,7 +1079,9 @@ msgstr "برای ردیف %(item)s، مقدار باید پیش از قفل‌ش
 msgid ""
 "برای ردیف %(item)s، پیش از قفل کردن باید %(expected)s سریال انتخاب شود (الان "
 "%(selected)s عدد ثبت شده است)."
-msgstr "برای ردیف %(item)s، پیش از قفل کردن باید %(expected)s سریال انتخاب شود (الان %(selected)s عدد ثبت شده است)."
+msgstr ""
+"برای ردیف %(item)s، پیش از قفل کردن باید %(expected)s سریال انتخاب شود (الان "
+"%(selected)s عدد ثبت شده است)."
 
 msgid "ایجاد حواله مصرف"
 msgstr "ایجاد حواله مصرف"
@@ -941,7 +1092,8 @@ msgstr "ردیف %(line)d - %(field)s: %(error)s"
 
 msgid ""
 "Please add at least one line with an item and complete all required fields."
-msgstr "لطفاً حداقل یک ردیف با کالا اضافه کنید و تمام فیلدهای الزامی را تکمیل کنید."
+msgstr ""
+"لطفاً حداقل یک ردیف با کالا اضافه کنید و تمام فیلدهای الزامی را تکمیل کنید."
 
 msgid "حواله مصرف با موفقیت ایجاد شد."
 msgstr "حواله مصرف با موفقیت ایجاد شد."
@@ -1200,9 +1352,34 @@ msgid "Edit Item Type"
 msgstr "انواع قلم"
 
 #, fuzzy
-#| msgid "Company deleted successfully."
-msgid "Item Type deleted successfully."
-msgstr "شرکت با موفقیت حذف شد."
+#| msgid "کالا با موفقیت ایجاد شد."
+msgid "نوع کالا با موفقیت حذف شد."
+msgstr "کالا با موفقیت ایجاد شد."
+
+#, fuzzy
+#| msgid "نوع کالا"
+msgid "کالا"
+msgstr "نوع کالا"
+
+#, fuzzy
+#| msgid "کالا حذف شد."
+msgid "کالاها"
+msgstr "کالا حذف شد."
+
+#, fuzzy
+#| msgid "فهرست مواد اولیه (BOM)"
+msgid "ماده اولیه BOM"
+msgstr "فهرست مواد اولیه (BOM)"
+
+#, fuzzy
+#| msgid "فهرست مواد اولیه (BOM)"
+msgid "مواد اولیه BOM"
+msgstr "فهرست مواد اولیه (BOM)"
+
+#, fuzzy, python-brace-format
+#| msgid "نمی‌توان این کالا را حذف کرد چون در {models} استفاده شده است."
+msgid "نمی‌توان این نوع کالا را حذف کرد چون در ساختار {models} استفاده شده است."
+msgstr "نمی‌توان این کالا را حذف کرد چون در {models} استفاده شده است."
 
 #, fuzzy
 #| msgid "Company created successfully."
@@ -1225,9 +1402,25 @@ msgid "Edit Item Category"
 msgstr "دسته‌بندی اقلام"
 
 #, fuzzy
-#| msgid "Company deleted successfully."
-msgid "Item Category deleted successfully."
-msgstr "شرکت با موفقیت حذف شد."
+#| msgid "کالا با موفقیت ایجاد شد."
+msgid "دسته‌بندی کالا با موفقیت حذف شد."
+msgstr "کالا با موفقیت ایجاد شد."
+
+#, fuzzy
+#| msgid "دسته‌بندی کالا"
+msgid "زیر دسته‌بندی کالا"
+msgstr "دسته‌بندی کالا"
+
+#, fuzzy
+#| msgid "دسته‌بندی"
+msgid "زیر دسته‌بندی‌های کالا"
+msgstr "دسته‌بندی"
+
+#, fuzzy, python-brace-format
+#| msgid "نمی‌توان این کالا را حذف کرد چون در {models} استفاده شده است."
+msgid ""
+"نمی‌توان این دسته‌بندی کالا را حذف کرد چون در ساختار {models} استفاده شده است."
+msgstr "نمی‌توان این کالا را حذف کرد چون در {models} استفاده شده است."
 
 #, fuzzy
 #| msgid "Company created successfully."
@@ -1250,9 +1443,16 @@ msgid "Edit Item Subcategory"
 msgstr "دسته‌بندی اقلام"
 
 #, fuzzy
-#| msgid "Company deleted successfully."
-msgid "Item Subcategory deleted successfully."
-msgstr "شرکت با موفقیت حذف شد."
+#| msgid "رسید امانی با موفقیت ایجاد شد."
+msgid "زیر دسته‌بندی کالا با موفقیت حذف شد."
+msgstr "رسید امانی با موفقیت ایجاد شد."
+
+#, fuzzy, python-brace-format
+#| msgid "نمی‌توان این کالا را حذف کرد چون در {models} استفاده شده است."
+msgid ""
+"نمی‌توان این زیر دسته‌بندی کالا را حذف کرد چون در ساختار {models} استفاده شده "
+"است."
+msgstr "نمی‌توان این کالا را حذف کرد چون در {models} استفاده شده است."
 
 msgid "کالا با موفقیت ایجاد شد."
 msgstr "کالا با موفقیت ایجاد شد."
@@ -1397,7 +1597,9 @@ msgstr "ایجاد رسید موقت"
 
 #, fuzzy
 #| msgid "رسید موقت با موفقیت ایجاد شد."
-msgid "رسید موقت با موفقیت ایجاد شد و برای بازرسی QC ارسال شد."
+msgid ""
+"رسید موقت با موفقیت ایجاد شد. برای ارسال به QC از دکمه‌ی \"ارسال به QC\" "
+"استفاده کنید."
 msgstr "رسید موقت با موفقیت ایجاد شد."
 
 msgid "ویرایش رسید موقت"
@@ -1415,6 +1617,11 @@ msgid "رسید موقت قفل شد و دیگر قابل ویرایش نیست.
 msgstr "رسید موقت قفل شد و دیگر قابل ویرایش نیست."
 
 #, fuzzy
+#| msgid "رسید موقت قفل شد و دیگر قابل ویرایش نیست."
+msgid "رسید موقت از قفل خارج شد و قابل ویرایش است."
+msgstr "رسید موقت قفل شد و دیگر قابل ویرایش نیست."
+
+#, fuzzy
 #| msgid "This document is locked and can no longer be edited or deleted."
 msgid "This receipt is already locked and cannot be sent to QC."
 msgstr "این سند قفل شده و دیگر قابل ویرایش یا حذف نیست."
@@ -1424,6 +1631,21 @@ msgstr "این رسید قبلاً به رسید دائم تبدیل شده اس
 
 msgid "This receipt is already awaiting QC inspection."
 msgstr "این رسید در حال حاضر در انتظار بازرسی QC است."
+
+#, fuzzy
+#| msgid "This receipt has already been converted to a permanent receipt."
+msgid "This receipt has already been approved by QC."
+msgstr "این رسید قبلاً به رسید دائم تبدیل شده است."
+
+#, fuzzy
+#| msgid "This document is locked and can no longer be edited or deleted."
+msgid "This receipt is closed/rejected and cannot be sent to QC."
+msgstr "این سند قفل شده و دیگر قابل ویرایش یا حذف نیست."
+
+#, fuzzy
+#| msgid "Temporary receipt has been sent to QC inspection."
+msgid "Only draft receipts can be sent to QC."
+msgstr "رسید موقت به بازرسی QC ارسال شد."
 
 msgid "Temporary receipt has been sent to QC inspection."
 msgstr "رسید موقت به بازرسی QC ارسال شد."
@@ -1459,6 +1681,11 @@ msgid "رسید دائم قفل شد و دیگر قابل ویرایش نیست.
 msgstr "رسید دائم قفل شد و دیگر قابل ویرایش نیست."
 
 #, fuzzy
+#| msgid "رسید دائم قفل شد و دیگر قابل ویرایش نیست."
+msgid "رسید دائم از قفل خارج شد و قابل ویرایش است."
+msgstr "رسید دائم قفل شد و دیگر قابل ویرایش نیست."
+
+#, fuzzy
 #| msgid "Consignment Receipts"
 msgid "No Consignment Receipts Found"
 msgstr "رسیدهای امانی"
@@ -1477,6 +1704,11 @@ msgstr "رسید امانی با موفقیت ایجاد شد."
 #, fuzzy
 #| msgid "انبارهای انتخاب شده باید متعلق به همان شرکت فعال باشند."
 msgid "خطا: اطلاعات ردیف‌های انتخاب شده یافت نشد."
+msgstr "انبارهای انتخاب شده باید متعلق به همان شرکت فعال باشند."
+
+#, fuzzy
+#| msgid "انبارهای انتخاب شده باید متعلق به همان شرکت فعال باشند."
+msgid "خطا در ذخیره ردیف‌ها. لطفاً دوباره تلاش کنید."
 msgstr "انبارهای انتخاب شده باید متعلق به همان شرکت فعال باشند."
 
 #, fuzzy
@@ -1506,6 +1738,11 @@ msgid "رسید امانی با موفقیت حذف شد."
 msgstr "رسید امانی با موفقیت ایجاد شد."
 
 msgid "رسید امانی قفل شد و دیگر قابل ویرایش نیست."
+msgstr "رسید امانی قفل شد و دیگر قابل ویرایش نیست."
+
+#, fuzzy
+#| msgid "رسید امانی قفل شد و دیگر قابل ویرایش نیست."
+msgid "رسید امانی از قفل خارج شد و قابل ویرایش است."
 msgstr "رسید امانی قفل شد و دیگر قابل ویرایش نیست."
 
 #, fuzzy
@@ -1614,23 +1851,24 @@ msgstr "ایجاد رسید امانی"
 msgid "لطفاً حداقل یک ردیف را انتخاب کنید."
 msgstr "حداقل یک انبار باید انتخاب شود."
 
-msgid "ایجاد سند کسری انبارگردانی"
-msgstr "ایجاد سند کسری انبارگردانی"
-
-msgid "سند کسری انبارگردانی با موفقیت ایجاد شد."
-msgstr "سند کسری انبارگردانی با موفقیت ایجاد شد."
-
 msgid "اطلاعات سند"
 msgstr "اطلاعات سند"
 
-msgid "مقادیر"
-msgstr "مقادیر"
+#, fuzzy
+#| msgid "اطلاعات سند"
+msgid "سایر اطلاعات"
+msgstr "اطلاعات سند"
 
-msgid "ارزش‌گذاری"
-msgstr "ارزش‌گذاری"
+msgid "ایجاد سند کسری انبارگردانی"
+msgstr "ایجاد سند کسری انبارگردانی"
 
-msgid "جزئیات اضافه"
-msgstr "جزئیات اضافه"
+#, fuzzy
+#| msgid "نوع کالا الزامی است."
+msgid "حداقل یک ردیف کالا الزامی است."
+msgstr "نوع کالا الزامی است."
+
+msgid "سند کسری انبارگردانی با موفقیت ایجاد شد."
+msgstr "سند کسری انبارگردانی با موفقیت ایجاد شد."
 
 msgid "ویرایش سند کسری انبارگردانی"
 msgstr "ویرایش سند کسری انبارگردانی"
@@ -1709,9 +1947,6 @@ msgstr "محصول نهایی"
 
 msgid "Version"
 msgstr "نسخه"
-
-msgid "Active"
-msgstr "فعال"
 
 #, fuzzy
 #| msgid "Material Category Filter"
@@ -1990,6 +2225,38 @@ msgid "وضعیت"
 msgstr "وضعیت تایید"
 
 #, fuzzy
+#| msgid "Material Type"
+msgid "Material from BOM"
+msgstr "نوع ماده"
+
+#, fuzzy
+#| msgid "Quantity Adjusted"
+msgid "Quantity Used"
+msgstr "مقدار تعدیل‌شده"
+
+#, fuzzy
+#| msgid "Unit of measurement (e.g., kg, m, pcs)"
+msgid "Quantity is required when material is selected."
+msgstr "واحد اندازه‌گیری (مثلاً: کیلوگرم، متر، عدد)"
+
+msgid "Each material can only be selected once per operation."
+msgstr ""
+
+#, fuzzy
+#| msgid "Optional"
+msgid "Operation Name"
+msgstr "اختیاری"
+
+msgid "Sequence Order"
+msgstr "ترتیب استفاده"
+
+msgid "Labor Minutes per Unit"
+msgstr ""
+
+msgid "Machine Minutes per Unit"
+msgstr ""
+
+#, fuzzy
 #| msgid "Document Date"
 msgid "Due Date"
 msgstr "تاریخ سند"
@@ -2215,6 +2482,75 @@ msgstr "مرحلهٔ فرآیند"
 
 msgid "Process Steps"
 msgstr "مراحل فرآیند"
+
+msgid "Production process this operation belongs to"
+msgstr ""
+
+msgid "Name of the operation"
+msgstr ""
+
+msgid "Description of the operation"
+msgstr ""
+
+msgid "Execution order (can be same for parallel operations)"
+msgstr ""
+
+msgid "Labor minutes required per unit"
+msgstr ""
+
+msgid "Machine minutes required per unit"
+msgstr ""
+
+#, fuzzy
+#| msgid "Additional Information"
+msgid "Additional notes for this operation"
+msgstr "اطلاعات تکمیلی"
+
+#, fuzzy
+#| msgid "Process-Form Connection"
+msgid "Process Operation"
+msgstr "ارتباط فرایند و فرم‌ها"
+
+#, fuzzy
+#| msgid "Processes"
+msgid "Process Operations"
+msgstr "فرآیندها"
+
+#, fuzzy
+#| msgid "Production Order"
+msgid "Production operation"
+msgstr "سفارش تولید"
+
+#, fuzzy
+#| msgid "BOM Materials"
+msgid "BOM material being used"
+msgstr "مواد BOM"
+
+msgid "Material item (cached from BOM material)"
+msgstr ""
+
+#, fuzzy
+#| msgid "Required"
+msgid "Material item code (cached)"
+msgstr "الزامی"
+
+msgid "Quantity used in this operation"
+msgstr ""
+
+#, fuzzy
+#| msgid "Unit of measurement (e.g., kg, m, pcs)"
+msgid "Unit of measurement (cached from BOM material)"
+msgstr "واحد اندازه‌گیری (مثلاً: کیلوگرم، متر، عدد)"
+
+#, fuzzy
+#| msgid "Performance Records"
+msgid "Process Operation Material"
+msgstr "اسناد عملکرد"
+
+#, fuzzy
+#| msgid "Performance Records"
+msgid "Process Operation Materials"
+msgstr "اسناد عملکرد"
 
 msgid "Planned"
 msgstr "برنامه‌ریزی‌شده"
@@ -2718,9 +3054,35 @@ msgstr "رسیدهای موقت"
 msgid "This receipt is already locked."
 msgstr ""
 
+#, fuzzy
+#| msgid "Select Category"
+msgid "QC Approval - Select Lines"
+msgstr "انتخاب دسته‌بندی"
+
+#, python-brace-format
 msgid ""
-"Temporary receipt approved for QC. The receipt is now locked and can be "
+"For line {item}, total approved and rejected quantities ({total}) exceed "
+"original quantity ({original})."
+msgstr ""
+
+#, fuzzy
+#| msgid "Please add at least one line with an item."
+msgid "Please select at least one line to approve or reject."
+msgstr "لطفاً حداقل یک ردیف با کالا اضافه کنید."
+
+msgid ""
+"Lines processed. Some lines were approved and some were rejected. You can "
+"now manage rejection reasons."
+msgstr ""
+
+#, fuzzy
+#| msgid "This receipt has already been converted to a permanent receipt."
+msgid ""
+"Selected lines approved for QC. The receipt is now locked and can be "
 "converted to a permanent receipt."
+msgstr "این رسید قبلاً به رسید دائم تبدیل شده است."
+
+msgid "Selected lines rejected for QC. You can now manage rejection reasons."
 msgstr ""
 
 msgid "Rejection notes are required."
@@ -2729,6 +3091,27 @@ msgstr ""
 msgid ""
 "Temporary receipt rejected for QC. The receipt is now locked and cannot be "
 "converted to a permanent receipt."
+msgstr ""
+
+#, fuzzy
+#| msgid "Loan Management"
+msgid "QC Rejection Reasons Management"
+msgstr "مدیریت وام"
+
+msgid "No active company selected."
+msgstr ""
+
+#, python-brace-format
+msgid ""
+"For line {item}, total detail quantities ({total}) must equal rejected "
+"quantity ({rejected})."
+msgstr ""
+
+#, python-brace-format
+msgid "Rejection details saved: {count} detail(s) for {lines} line(s)."
+msgstr ""
+
+msgid "No rejection details were provided."
 msgstr ""
 
 msgid "Additional info"
@@ -2866,6 +3249,9 @@ msgstr "گروه‌ها"
 msgid "Assign the user to one or more groups."
 msgstr "کاربر را به یک یا چند گروه اختصاص دهید."
 
+msgid "Active"
+msgstr "فعال"
+
 msgid "Staff User"
 msgstr "کاربر کارکنان"
 
@@ -2894,9 +3280,6 @@ msgstr "تأیید گذرواژه جدید"
 
 msgid "The new passwords do not match."
 msgstr "گذرواژه‌های جدید یکسان نیستند."
-
-msgid "Company"
-msgstr "شرکت"
 
 msgid "Access Level"
 msgstr "سطح دسترسی"
@@ -3116,6 +3499,63 @@ msgstr ""
 msgid "Action Registry"
 msgstr "تراکنش‌ها"
 
+#, fuzzy
+#| msgid "Notifications"
+msgid "Notification Type"
+msgstr "اعلان‌ها"
+
+msgid "Type of notification (e.g., 'approval_pending', 'approved')"
+msgstr ""
+
+#, fuzzy
+#| msgid "Notifications"
+msgid "Notification Key"
+msgstr "اعلان‌ها"
+
+msgid "Unique key for this notification (e.g., 'approval_pending_purchase_1')"
+msgstr ""
+
+msgid "Message"
+msgstr ""
+
+#, fuzzy
+#| msgid "Notifications"
+msgid "Notification message text"
+msgstr "اعلان‌ها"
+
+msgid "Django URL name to redirect to"
+msgstr ""
+
+#, fuzzy
+#| msgid "Country"
+msgid "Count"
+msgstr "کشور"
+
+msgid "Number of items in this notification"
+msgstr ""
+
+msgid "Is Read"
+msgstr ""
+
+#, fuzzy
+#| msgid "Whether this material is optional or required"
+msgid "Whether this notification has been read"
+msgstr "آیا این ماده اختیاری است یا الزامی"
+
+msgid "Read At"
+msgstr ""
+
+msgid "When this notification was read"
+msgstr ""
+
+#, fuzzy
+#| msgid "Notifications"
+msgid "Notification"
+msgstr "اعلان‌ها"
+
+msgid "Notifications"
+msgstr "اعلان‌ها"
+
 msgid "Personnel"
 msgstr "پرسنل"
 
@@ -3134,6 +3574,149 @@ msgid "QC Inspections"
 msgstr "بازرسی‌ها"
 
 #, fuzzy
+#| msgid "Accounting Posted"
+msgid "Accounting Dashboard"
+msgstr "ثبت حسابداری انجام شد"
+
+#, fuzzy
+#| msgid "General Ledgers"
+msgid "General Ledger"
+msgstr "اسناد کل"
+
+msgid "Subsidiary Ledgers"
+msgstr "معین‌ها"
+
+msgid "Detail Ledgers"
+msgstr "تفصیلی‌ها"
+
+msgid "Entry Document"
+msgstr "سند ورودی"
+
+msgid "Exit Document"
+msgstr "سند خروجی"
+
+msgid "Expense Document"
+msgstr "سند هزینه"
+
+msgid "Income Document"
+msgstr "سند درآمد"
+
+msgid "Payroll Document"
+msgstr "سند حقوق دستمزد"
+
+msgid "Decrees"
+msgstr "حکم‌ها"
+
+msgid "Decree Groups"
+msgstr "گروه‌بندی حکم‌ها"
+
+#, fuzzy
+#| msgid "Decree Subgroups"
+msgid "Decree Sub-Groups"
+msgstr "زیر گروه‌بندی حکم‌ها"
+
+#, fuzzy
+#| msgid "Dashboard"
+msgid "Sales Dashboard"
+msgstr "داشبورد"
+
+msgid "Sales Invoice"
+msgstr "صدور فاکتور فروش"
+
+#, fuzzy
+#| msgid "Dashboard"
+msgid "HR Dashboard"
+msgstr "داشبورد"
+
+#, fuzzy
+#| msgid "Personnel"
+msgid "Personnel Decree Assignment"
+msgstr "پرسنل"
+
+#, fuzzy
+#| msgid "Personnel Form"
+msgid "Personnel Forms"
+msgstr "فرم پرسنل"
+
+#, fuzzy
+#| msgid "Personnel Form"
+msgid "Personnel Form Groups"
+msgstr "فرم پرسنل"
+
+#, fuzzy
+#| msgid "Personnel Form"
+msgid "Personnel Form Sub-Groups"
+msgstr "فرم پرسنل"
+
+#, fuzzy
+#| msgid "Leave Request"
+msgid "Leave Requests"
+msgstr "درخواست مرخصی"
+
+#, fuzzy
+#| msgid "Sick Leave Request"
+msgid "Sick Leave Requests"
+msgstr "درخواست استعلاجی"
+
+#, fuzzy
+#| msgid "Loan Request"
+msgid "Loan Requests"
+msgstr "درخواست وام"
+
+msgid "Loan Management"
+msgstr "مدیریت وام"
+
+#, fuzzy
+#| msgid "Scheduling"
+msgid "Loan Scheduling"
+msgstr "نوبت‌بندی"
+
+msgid "Savings Fund"
+msgstr "صندوق اندوخته"
+
+# Office Automation Module
+#, fuzzy
+#| msgid "Office Automation"
+msgid "Office Automation Dashboard"
+msgstr "اتوماسیون اداری"
+
+msgid "Incoming Letters"
+msgstr "نامه‌های ورودی"
+
+msgid "Write Letter"
+msgstr "نوشتن نامه"
+
+msgid "Fill Form"
+msgstr "پر کردن فرم"
+
+msgid "Process Engine"
+msgstr "موتور تولید فرایند"
+
+msgid "Process-Form Connection"
+msgstr "ارتباط فرایند و فرم‌ها"
+
+msgid "Form Builder"
+msgstr "ساخت فرم"
+
+# Transportation Module
+#, fuzzy
+#| msgid "Transportation"
+msgid "Transportation Dashboard"
+msgstr "حمل و نقل"
+
+# Procurement Module
+#, fuzzy
+#| msgid "Procurement"
+msgid "Procurement Dashboard"
+msgstr "تدارکات"
+
+msgid "Purchases"
+msgstr "خریدها"
+
+msgid "Buyers"
+msgstr "خریداران"
+
+#, fuzzy
 #| msgid "Pending Approval"
 msgid "Pending Approval Request"
 msgstr "در انتظار تأیید"
@@ -3142,11 +3725,6 @@ msgstr "در انتظار تأیید"
 #| msgid "Request Code"
 msgid "Request Approved"
 msgstr "کد درخواست"
-
-#, fuzzy
-#| msgid "Notifications"
-msgid "Notification"
-msgstr "اعلان‌ها"
 
 msgid "This is an automated notification from invproj system."
 msgstr ""
@@ -3261,132 +3839,24 @@ msgstr "انبار"
 msgid "Quality Control"
 msgstr "کنترل کیفیت"
 
+msgid "Ticketing"
+msgstr "تیکتینگ"
+
 # Accounting Module
 msgid "Accounting"
 msgstr "حسابداری"
-
-msgid "General"
-msgstr "عمومی"
-
-msgid "General Ledgers"
-msgstr "اسناد کل"
-
-msgid "Subsidiary Ledgers"
-msgstr "معین‌ها"
-
-msgid "Detail Ledgers"
-msgstr "تفصیلی‌ها"
-
-msgid "Accounting Documents"
-msgstr "اسناد حسابداری"
-
-msgid "Entry Document"
-msgstr "سند ورودی"
-
-msgid "Exit Document"
-msgstr "سند خروجی"
-
-msgid "Treasury"
-msgstr "خزانه"
-
-msgid "Expense Document"
-msgstr "سند هزینه"
-
-msgid "Income Document"
-msgstr "سند درآمد"
-
-msgid "Payroll"
-msgstr "حقوق و دستمزد"
-
-msgid "Payroll Document"
-msgstr "سند حقوق دستمزد"
-
-msgid "Decrees"
-msgstr "حکم‌ها"
-
-msgid "Decree Groups"
-msgstr "گروه‌بندی حکم‌ها"
-
-msgid "Decree Subgroups"
-msgstr "زیر گروه‌بندی حکم‌ها"
 
 # Sales Module
 msgid "Sales"
 msgstr "فروش"
 
-msgid "Sales Invoice"
-msgstr "صدور فاکتور فروش"
-
 # Human Resources Module
 msgid "Human Resources"
 msgstr "منابع انسانی"
 
-msgid "Create Personnel"
-msgstr "ایجاد پرسنل"
-
-msgid "Assign Decree"
-msgstr "تخصیص حکم"
-
-msgid "Personnel Form"
-msgstr "فرم پرسنل"
-
-msgid "Form Groups"
-msgstr "گروه‌بندی فرم"
-
-msgid "Form Subgroups"
-msgstr "زیر گروه‌بندی فرم"
-
-msgid "Requests"
-msgstr "درخواست‌ها"
-
-msgid "Leave Request"
-msgstr "درخواست مرخصی"
-
-msgid "Sick Leave Request"
-msgstr "درخواست استعلاجی"
-
-msgid "Loan Request"
-msgstr "درخواست وام"
-
-msgid "Loans"
-msgstr "وام"
-
-msgid "Loan Management"
-msgstr "مدیریت وام"
-
-msgid "Scheduling"
-msgstr "نوبت‌بندی"
-
-msgid "Savings Fund"
-msgstr "صندوق اندوخته"
-
 # Office Automation Module
 msgid "Office Automation"
 msgstr "اتوماسیون اداری"
-
-msgid "Inbox"
-msgstr "کارتابل"
-
-msgid "Incoming Letters"
-msgstr "نامه‌های ورودی"
-
-msgid "Write Letter"
-msgstr "نوشتن نامه"
-
-msgid "Fill Form"
-msgstr "پر کردن فرم"
-
-msgid "Process Engine"
-msgstr "موتور تولید فرایند"
-
-msgid "Process-Form Connection"
-msgstr "ارتباط فرایند و فرم‌ها"
-
-msgid "Forms"
-msgstr "فرم‌ها"
-
-msgid "Form Builder"
-msgstr "ساخت فرم"
 
 # Transportation Module
 msgid "Transportation"
@@ -3395,18 +3865,6 @@ msgstr "حمل و نقل"
 # Procurement Module
 msgid "Procurement"
 msgstr "تدارکات"
-
-msgid "Purchases"
-msgstr "خریدها"
-
-msgid "Buyers"
-msgstr "خریداران"
-
-msgid "Define Buyers"
-msgstr "تعریف خریداران"
-
-msgid "Assign Buyers"
-msgstr "تخصیص خریداران"
 
 msgid "Company created successfully."
 msgstr "شرکت با موفقیت ایجاد شد."
@@ -3496,6 +3954,24 @@ msgstr "شخص با موفقیت به‌روزرسانی شد."
 msgid "User deleted successfully."
 msgstr "شخص با موفقیت حذف شد."
 
+msgid "Financial management and accounting operations"
+msgstr ""
+
+#, fuzzy
+#| msgid "Accounting Posted"
+msgid "Accounting Module"
+msgstr "ثبت حسابداری انجام شد"
+
+msgid ""
+"This module is under development. Financial management features will be "
+"available soon."
+msgstr ""
+
+#, fuzzy
+#| msgid "This feature is under development. Coming soon..."
+msgid "This page is under development."
+msgstr "این امکان در حال توسعه است. به زودی..."
+
 msgid "invproj Platform"
 msgstr "سامانه invproj"
 
@@ -3505,14 +3981,8 @@ msgstr ""
 msgid "Dashboard"
 msgstr "داشبورد"
 
-msgid "Create Item"
-msgstr "ایجاد کالا"
-
 msgid "Edit Items"
 msgstr "ویرایش کالاها"
-
-msgid "Master Data"
-msgstr "اطلاعات پایه"
 
 msgid "Receipts"
 msgstr "رسیدها"
@@ -3535,9 +4005,6 @@ msgstr "عملکرد"
 msgid "Inspections"
 msgstr "بازرسی‌ها"
 
-msgid "Ticketing"
-msgstr "تیکتینگ"
-
 msgid "Tickets"
 msgstr "تیکت‌ها"
 
@@ -3549,21 +4016,12 @@ msgstr "ایجاد تیکت"
 msgid "Respond to Ticket"
 msgstr "پاسخ به تیکت"
 
-#, fuzzy
-#| msgid "Inventory Balance"
-msgid "Ticket Management"
-msgstr "مدیریت تیکت‌ها"
+msgid "Templates"
+msgstr "تمپلیت‌ها"
 
-#, fuzzy
-#| msgid "Create Item Type +"
-msgid "Create Template"
-msgstr "ایجاد تمپلیت"
-
-#: templates/ticketing/categories.html:8
 msgid "Categories"
 msgstr "دسته‌بندی‌ها"
 
-#: templates/ticketing/subcategories.html:8
 msgid "Subcategories"
 msgstr "زیردسته‌بندی‌ها"
 
@@ -3573,11 +4031,82 @@ msgstr "اتوماسیون"
 msgid "Auto Response"
 msgstr "پاسخ خودکار"
 
-msgid "Notifications"
-msgstr "اعلان‌ها"
+msgid "General"
+msgstr "عمومی"
+
+msgid "General Ledgers"
+msgstr "اسناد کل"
+
+msgid "Accounting Documents"
+msgstr "اسناد حسابداری"
+
+msgid "Treasury"
+msgstr "خزانه"
+
+msgid "Payroll"
+msgstr "حقوق و دستمزد"
+
+msgid "Decree Subgroups"
+msgstr "زیر گروه‌بندی حکم‌ها"
+
+msgid "Create Personnel"
+msgstr "ایجاد پرسنل"
+
+msgid "Assign Decree"
+msgstr "تخصیص حکم"
+
+msgid "Personnel Form"
+msgstr "فرم پرسنل"
+
+msgid "Form Groups"
+msgstr "گروه‌بندی فرم"
+
+msgid "Form Subgroups"
+msgstr "زیر گروه‌بندی فرم"
+
+msgid "Requests"
+msgstr "درخواست‌ها"
+
+msgid "Leave Request"
+msgstr "درخواست مرخصی"
+
+msgid "Sick Leave Request"
+msgstr "درخواست استعلاجی"
+
+msgid "Loan Request"
+msgstr "درخواست وام"
+
+msgid "Loans"
+msgstr "وام"
+
+msgid "Scheduling"
+msgstr "نوبت‌بندی"
+
+msgid "Inbox"
+msgstr "کارتابل"
+
+msgid "Forms"
+msgstr "فرم‌ها"
+
+msgid "Define Buyers"
+msgstr "تعریف خریداران"
+
+msgid "Assign Buyers"
+msgstr "تخصیص خریداران"
 
 msgid "Click to view"
 msgstr "برای مشاهده کلیک کنید"
+
+msgid "Mark as Unread"
+msgstr ""
+
+msgid "Mark as Read"
+msgstr ""
+
+#, fuzzy
+#| msgid "Notifications"
+msgid "View All Notifications"
+msgstr "اعلان‌ها"
 
 msgid "No notifications"
 msgstr "اعلانی وجود ندارد"
@@ -3588,14 +4117,34 @@ msgstr "مهمان"
 msgid "Logout"
 msgstr "خروج"
 
-msgid "Templates"
-msgstr "تمپلیت‌ها"
-
 msgid "Welcome"
 msgstr "خوش آمدید"
 
 msgid "Select a module from the sidebar."
 msgstr "یک ماژول از منوی کناری انتخاب کنید."
+
+msgid "HR management and personnel operations"
+msgstr ""
+
+#, fuzzy
+#| msgid "Document Code"
+msgid "HR Module"
+msgstr "کد سند"
+
+msgid ""
+"This module is under development. Human resources management features will "
+"be available soon."
+msgstr ""
+
+#, fuzzy
+#| msgid "Personnel"
+msgid "Decree Assignment"
+msgstr "پرسنل"
+
+#, fuzzy
+#| msgid "Create Personnel"
+msgid "Create Personnel Form"
+msgstr "ایجاد پرسنل"
 
 #, fuzzy
 #| msgid "Inventory Balance"
@@ -3870,12 +4419,6 @@ msgstr "توضیحات"
 msgid "مرکز مصرف/تامین"
 msgstr "مرکز مصرف/تامین"
 
-# BOM Form - Multi-line
-#, fuzzy
-#| msgid "Create BOM"
-msgid "Created By"
-msgstr "ایجاد BOM"
-
 #, fuzzy
 #| msgid "Current Balance"
 msgid "Running Balance"
@@ -3917,6 +4460,58 @@ msgid "Do you really want to delete this consumption issue?"
 msgstr "آیا واقعاً می‌خواهید این شرکت را حذف کنید؟"
 
 #, fuzzy
+#| msgid "Create Item"
+msgid "View Issue"
+msgstr "ایجاد کالا"
+
+#, fuzzy
+#| msgid "Status"
+msgid "Lock Status"
+msgstr "وضعیت"
+
+msgid "Locked"
+msgstr "قفل شده"
+
+#, fuzzy
+#| msgid "Edit"
+msgid "Editable"
+msgstr "ویرایش"
+
+msgid "This document is locked and can no longer be edited or deleted."
+msgstr "این سند قفل شده و دیگر قابل ویرایش یا حذف نیست."
+
+#, fuzzy
+#| msgid "Document Info"
+msgid "Document Information"
+msgstr "اطلاعات سند"
+
+#, fuzzy
+#| msgid "Document Code"
+msgid "Document Lines"
+msgstr "کد سند"
+
+#, fuzzy
+#| msgid "Description"
+msgid "Destination"
+msgstr "توضیحات"
+
+#, fuzzy
+#| msgid "Consumption Issue"
+msgid "Consumption Type"
+msgstr "حواله مصرف"
+
+#, fuzzy
+#| msgid "Start by creating your first item type."
+msgid "No lines found for this document."
+msgstr "با ایجاد اولین نوع قلم شروع کنید."
+
+msgid "Back to List"
+msgstr ""
+
+msgid "Edit"
+msgstr "ویرایش"
+
+#, fuzzy
 #| msgid "Total Items"
 msgid "Total"
 msgstr "تعداد کالا"
@@ -3935,12 +4530,6 @@ msgstr ""
 
 msgid "View"
 msgstr "مشاهده"
-
-msgid "Locked"
-msgstr "قفل شده"
-
-msgid "Edit"
-msgstr "ویرایش"
 
 #, fuzzy
 #| msgid "Do you really want to delete this person?"
@@ -4000,9 +4589,6 @@ msgstr "کد سند"
 #| msgid "Required"
 msgid "Serials Required"
 msgstr "الزامی"
-
-msgid "Back to List"
-msgstr ""
 
 #, fuzzy
 #| msgid "Return Document"
@@ -4091,6 +4677,9 @@ msgstr "هیچ عملیات اضافی در دسترس نیست."
 msgid "Lock a receipt for a lot-tracked item to generate serial numbers."
 msgstr ""
 
+msgid "Master Data"
+msgstr "اطلاعات پایه"
+
 msgid "Inactive"
 msgstr "غیرفعال"
 
@@ -4114,6 +4703,11 @@ msgstr ""
 #| msgid "Add Material Line"
 msgid "Add Line"
 msgstr "افزودن ردیف ماده"
+
+#, fuzzy
+#| msgid "Search by code or name"
+msgid "Search by name or code..."
+msgstr "جستجو با کد یا نام"
 
 #, fuzzy
 #| msgid "Item Categories"
@@ -4152,22 +4746,19 @@ msgid "Do you really want to delete this consignment receipt?"
 msgstr "آیا واقعاً می‌خواهید این شخص را حذف کنید؟"
 
 #, fuzzy
-#| msgid "Status"
-msgid "Lock Status"
-msgstr "وضعیت"
+#| msgid "Receipts"
+msgid "View Receipt"
+msgstr "رسیدها"
 
 #, fuzzy
-#| msgid "Edit"
-msgid "Editable"
-msgstr "ویرایش"
-
-msgid "This document is locked and can no longer be edited or deleted."
-msgstr "این سند قفل شده و دیگر قابل ویرایش یا حذف نیست."
+#| msgid "Expected Return Date"
+msgid "Expected Receipt Date"
+msgstr "تاریخ بازگشت مورد انتظار"
 
 #, fuzzy
-#| msgid "Document Code"
-msgid "Document Lines"
-msgstr "کد سند"
+#| msgid "Approver Notes"
+msgid "QC Approval Notes"
+msgstr "یادداشت‌های تأییدکننده"
 
 msgid ""
 "Add one or more items to this document. Each line represents a single item "
@@ -4202,6 +4793,14 @@ msgstr "محدوده مشاهده"
 
 msgid "Assigned:"
 msgstr ""
+
+msgid "Back"
+msgstr ""
+
+#, fuzzy
+#| msgid "Select Item Type"
+msgid "Select Item First"
+msgstr "انتخاب نوع کالا"
 
 #, fuzzy
 #| msgid "Search"
@@ -4307,11 +4906,26 @@ msgstr "ماده اولیه با موفقیت ایجاد شد."
 msgid "Error saving secondary serial code."
 msgstr ""
 
-msgid "Converted"
-msgstr "تبدیل شده"
-
 msgid "Awaiting QC"
 msgstr "در انتظار کنترل کیفیت"
+
+#, fuzzy
+#| msgid "Passed"
+msgid "QC Passed"
+msgstr "قبول شده"
+
+#, fuzzy
+#| msgid "Rejected"
+msgid "QC Rejected"
+msgstr "رد شده"
+
+#, fuzzy
+#| msgid "Converted"
+msgid "Not Converted"
+msgstr "تبدیل شده"
+
+msgid "Converted"
+msgstr "تبدیل شده"
 
 msgid "Closed"
 msgstr "بسته شده"
@@ -4321,6 +4935,14 @@ msgstr "بله"
 
 msgid "No"
 msgstr "خیر"
+
+#, fuzzy
+#| msgid "Do you really want to delete this person?"
+msgid "Are you sure you want to unlock this receipt?"
+msgstr "آیا واقعاً می‌خواهید این شخص را حذف کنید؟"
+
+msgid "Unlock"
+msgstr ""
 
 #, fuzzy
 #| msgid "Do you really want to delete this person?"
@@ -4362,6 +4984,11 @@ msgstr "ثبت‌شده"
 #| msgid "Do you really want to delete this person?"
 msgid "Are you sure you want to delete this record?"
 msgstr "آیا واقعاً می‌خواهید این شخص را حذف کنید؟"
+
+#, fuzzy
+#| msgid "item"
+msgid "No items"
+msgstr "کالا"
 
 msgid "No Deficit Records Found"
 msgstr "هیچ سند کسری یافت نشد"
@@ -4407,6 +5034,22 @@ msgstr "اسناد شمارش موجودی نشان می‌دهند که مقا�
 
 #, fuzzy
 #| msgid "Surplus Records"
+msgid "No Surplus Records Found"
+msgstr "مازاد موجودی"
+
+#, fuzzy
+#| msgid ""
+#| "Deficit records are created during stocktaking when counted quantity is "
+#| "less than expected."
+msgid ""
+"Surplus records are created during stocktaking when counted quantity is more "
+"than expected."
+msgstr ""
+"در فرایند شمارش موجودی، زمانی که مقدار شمارش‌شده کمتر از مقدار مورد انتظار "
+"باشد، سند کسری ایجاد می‌شود."
+
+#, fuzzy
+#| msgid "Surplus Records"
 msgid "Delete Surplus Record"
 msgstr "مازاد موجودی"
 
@@ -4414,6 +5057,14 @@ msgstr "مازاد موجودی"
 #| msgid "Do you really want to delete this BOM material record?"
 msgid "Do you really want to delete this surplus record?"
 msgstr "آیا واقعاً می‌خواهید این رکورد ماده اولیه را حذف کنید؟"
+
+msgid ""
+"Add one or more items to this warehouse request. Each line represents a "
+"single item with its quantity and warehouse."
+msgstr ""
+
+msgid "--- Select ---"
+msgstr ""
 
 #, fuzzy
 #| msgid "No Items Found"
@@ -4434,6 +5085,47 @@ msgstr "انبارها"
 #| msgid "Start by creating your first item."
 msgid "Start by creating your first warehouse."
 msgstr "با ایجاد اولین قلم شروع کنید."
+
+msgid "Office automation and administrative processes"
+msgstr ""
+
+# Office Automation Module
+#, fuzzy
+#| msgid "Office Automation"
+msgid "Office Automation Module"
+msgstr "اتوماسیون اداری"
+
+#, fuzzy
+#| msgid "This feature is under development. Coming soon..."
+msgid ""
+"This module is under development. Office automation features will be "
+"available soon."
+msgstr "این امکان در حال توسعه است. به زودی..."
+
+#, fuzzy
+#| msgid "Personnel"
+msgid "Buyer Assignment"
+msgstr "پرسنل"
+
+# BOM Form - Multi-line
+#, fuzzy
+#| msgid "Create BOM"
+msgid "Create Buyer"
+msgstr "ایجاد BOM"
+
+msgid "Procurement and purchasing management"
+msgstr ""
+
+# Procurement Module
+#, fuzzy
+#| msgid "Procurement"
+msgid "Procurement Module"
+msgstr "تدارکات"
+
+msgid ""
+"This module is under development. Procurement management features will be "
+"available soon."
+msgstr ""
 
 msgid "Delete BOM"
 msgstr "حذف BOM"
@@ -4750,14 +5442,88 @@ msgid ""
 msgstr ""
 
 #, fuzzy
+#| msgid "Production Orders"
+msgid "Production Operations"
+msgstr "سفارشات تولید"
+
+msgid "Define production operations and materials used in each operation"
+msgstr ""
+
+#, fuzzy
+#| msgid "Optional"
+msgid "Operation"
+msgstr "اختیاری"
+
+#, fuzzy
+#| msgid "Delete Person"
+msgid "Delete Operation"
+msgstr "حذف شخص"
+
+msgid "Remove"
+msgstr ""
+
+#, fuzzy
+#| msgid "Material Category Filter"
+msgid "Materials Used in This Operation"
+msgstr "فیلتر دسته‌بندی ماده"
+
+#, fuzzy
+#| msgid "No items with inventory activity found for the selected filters."
+msgid "No materials added yet. Select a BOM first."
+msgstr "هیچ کالایی با فعالیت موجودی برای فیلترهای انتخاب‌شده یافت نشد."
+
+#, fuzzy
+#| msgid "Add Material Line"
+msgid "Add Material"
+msgstr "افزودن ردیف ماده"
+
+#, fuzzy
+#| msgid "Optional"
+msgid "Add Operation"
+msgstr "اختیاری"
+
+#, fuzzy
+#| msgid "Please select a company first."
+msgid "Please select a BOM first to add production operations"
+msgstr "لطفاً ابتدا یک شرکت انتخاب کنید."
+
+#, fuzzy
+#| msgid "No extra actions available."
+msgid "No materials added yet."
+msgstr "هیچ عملیات اضافی در دسترس نیست."
+
+#, fuzzy
 #| msgid "Processes"
 msgid "Process"
 msgstr "فرآیندها"
 
 #, fuzzy
+#| msgid "Optional"
+msgid "Operations"
+msgstr "اختیاری"
+
+#, fuzzy
+#| msgid "Optional"
+msgid "operation(s)"
+msgstr "اختیاری"
+
+#, fuzzy
 #| msgid "Planned"
 msgid "and"
 msgstr "برنامه‌ریزی‌شده"
+
+msgid "min labor"
+msgstr ""
+
+#, fuzzy
+#| msgid "Warehouses"
+msgid "min machine"
+msgstr "انبارها"
+
+#, fuzzy
+#| msgid "BOM Materials"
+msgid "Materials Used"
+msgstr "مواد BOM"
 
 #, fuzzy
 #| msgid "No Items Found"
@@ -4930,16 +5696,118 @@ msgstr "هیچ شرکتی یافت نشد"
 msgid "Start by creating your first work line."
 msgstr "با ایجاد اولین قلم شروع کنید."
 
-msgid "QC"
+#, fuzzy
+#| msgid "Inspections"
+msgid "QC Inspection"
+msgstr "بازرسی‌ها"
+
+#, fuzzy
+#| msgid "Temporary Receipt"
+msgid "Temporary Receipt Information"
+msgstr "رسید موقت"
+
+msgid "Select Lines for QC Approval/Rejection"
+msgstr ""
+
+msgid ""
+"Select lines to approve or reject. You can approve part of a line and reject "
+"the rest. The sum of approved and rejected quantities should not exceed the "
+"original quantity."
 msgstr ""
 
 #, fuzzy
-#| msgid "Do you really want to delete this person?"
-msgid "Are you sure you want to approve this receipt for QC?"
-msgstr "آیا واقعاً می‌خواهید این شخص را حذف کنید؟"
+#| msgid "Approver Notes"
+msgid "Approval Notes"
+msgstr "یادداشت‌های تأییدکننده"
 
-msgid "Approval notes (optional)"
+msgid "General approval notes for this receipt..."
 msgstr ""
+
+msgid "Select All for Approval"
+msgstr ""
+
+msgid "Select All for Rejection"
+msgstr ""
+
+#, fuzzy
+#| msgid "Quantity"
+msgid "Original Quantity"
+msgstr "مقدار"
+
+#, fuzzy
+#| msgid "QC Notes"
+msgid "Line Notes"
+msgstr "یادداشت‌های QC"
+
+#, fuzzy
+#| msgid "Optional"
+msgid "Optional notes for this line"
+msgstr "اختیاری"
+
+#, fuzzy
+#| msgid "Start by creating your first item type."
+msgid "No lines found in this receipt."
+msgstr "با ایجاد اولین نوع قلم شروع کنید."
+
+msgid "Save Approval/Rejection"
+msgstr ""
+
+msgid "Total approved and rejected quantities cannot exceed original quantity"
+msgstr ""
+
+#, fuzzy
+#| msgid "Destination & Reason"
+msgid "Rejection Reasons"
+msgstr "مقصد و دلیل"
+
+msgid "Manage Rejection Reasons"
+msgstr ""
+
+msgid ""
+"Enter detailed rejection reasons for each rejected line. You can add "
+"multiple reasons for different quantities of the same rejected item."
+msgstr ""
+
+#, fuzzy
+#| msgid "Details"
+msgid "Add Detail"
+msgstr "جزئیات"
+
+msgid "Enter detailed rejection reason..."
+msgstr ""
+
+msgid "No details added. Click 'Add Detail' to add rejection details."
+msgstr ""
+
+msgid "Total quantity exceeds rejected quantity!"
+msgstr ""
+
+#, fuzzy
+#| msgid "Start by creating your first item type."
+msgid "No rejected lines found in this receipt."
+msgstr "با ایجاد اولین نوع قلم شروع کنید."
+
+msgid "Save Rejection Reasons"
+msgstr ""
+
+#, fuzzy
+#| msgid "work line"
+msgid "For line"
+msgstr "خط کار"
+
+msgid "total detail quantities must equal rejected quantity"
+msgstr ""
+
+msgid "QC"
+msgstr ""
+
+msgid "By"
+msgstr ""
+
+#, fuzzy
+#| msgid "Approver Notes"
+msgid "Approve Lines"
+msgstr "یادداشت‌های تأییدکننده"
 
 #, fuzzy
 #| msgid "Do you really want to delete this person?"
@@ -4950,12 +5818,32 @@ msgid "Rejection notes (required)"
 msgstr ""
 
 #, fuzzy
-#| msgid "Awaiting QC"
-msgid "No Receipts Awaiting QC"
-msgstr "در انتظار کنترل کیفیت"
+#| msgid "Receipts"
+msgid "No Receipts"
+msgstr "رسیدها"
 
-msgid "There are no temporary receipts awaiting QC inspection."
+#, fuzzy
+#| msgid "temporary receipt"
+msgid "There are no temporary receipts."
+msgstr "رسید موقت"
+
+msgid "Sales management and customer relations"
 msgstr ""
+
+#, fuzzy
+#| msgid "Sales Invoice"
+msgid "Sales Module"
+msgstr "صدور فاکتور فروش"
+
+msgid ""
+"This module is under development. Sales management features will be "
+"available soon."
+msgstr ""
+
+#, fuzzy
+#| msgid "Sales Invoice"
+msgid "Create Sales Invoice"
+msgstr "صدور فاکتور فروش"
 
 msgid "Delete Access Level"
 msgstr "حذف سطح دسترسی"
@@ -5082,6 +5970,17 @@ msgstr "هیچ شرکتی یافت نشد"
 msgid "Start by creating a group and assigning access levels."
 msgstr "با ایجاد یک گروه و اختصاص سطوح دسترسی شروع کنید."
 
+msgid "Unread"
+msgstr ""
+
+msgid "Read"
+msgstr ""
+
+#, fuzzy
+#| msgid "No notifications"
+msgid "No notifications found"
+msgstr "اعلانی وجود ندارد"
+
 #, fuzzy
 #| msgid "Delete Person"
 msgid "Delete SMTP Server"
@@ -5174,33 +6073,528 @@ msgid ""
 "be implemented here."
 msgstr ""
 
+#, fuzzy
+#| msgid "Inventory Balance"
+msgid "Ticket Management"
+msgstr "مدیریت تیکت‌ها"
+
 msgid ""
 "This page is under construction. Category management functionality will be "
 "implemented here."
 msgstr ""
+
+#, fuzzy
+#| msgid "Create Item +"
+msgid "Create Category"
+msgstr "ایجاد اقلام +"
+
+#, fuzzy
+#| msgid "Search by code or name"
+msgid "Search by name or code"
+msgstr "جستجو با کد یا نام"
+
+#, fuzzy
+#| msgid "Categories"
+msgid "Main Categories"
+msgstr "دسته‌بندی‌ها"
+
+#, fuzzy
+#| msgid "Select Category"
+msgid "Parent Category"
+msgstr "انتخاب دسته‌بندی"
+
+#, fuzzy
+#| msgid "No Companies Found"
+msgid "No Categories Found"
+msgstr "هیچ شرکتی یافت نشد"
+
+#, fuzzy
+#| msgid "Start by creating your first item type."
+msgid "Start by creating your first category."
+msgstr "با ایجاد اولین نوع قلم شروع کنید."
+
+#, fuzzy
+#| msgid "Select Category"
+msgid "Delete Category"
+msgstr "انتخاب دسته‌بندی"
+
+#, fuzzy
+#| msgid "Do you really want to delete this person?"
+msgid "Are you sure you want to delete this category?"
+msgstr "آیا واقعاً می‌خواهید این شخص را حذف کنید؟"
+
+msgid "Warning"
+msgstr ""
+
+msgid "This category has"
+msgstr ""
+
+msgid "subcategory(ies). They will also be deleted."
+msgstr ""
+
+#, fuzzy
+#| msgid "Contact Information"
+msgid "Category Information"
+msgstr "اطلاعات تماس"
+
+#, fuzzy
+#| msgid "Create Person"
+msgid "Permissions"
+msgstr "ایجاد شخص"
+
+msgid ""
+"Define which users or groups can create, respond to, or close tickets in "
+"this category."
+msgstr ""
+
+#, fuzzy
+#| msgid "Groups"
+msgid "Group"
+msgstr "گروه‌ها"
+
+# Common Terms
+#, fuzzy
+#| msgid "Create"
+msgid "Can Create"
+msgstr "ایجاد"
+
+msgid "Can Respond"
+msgstr ""
+
+#, fuzzy
+#| msgid "Closed"
+msgid "Can Close"
+msgstr "بسته شده"
 
 msgid ""
 "This page is under construction. Subcategory management functionality will "
 "be implemented here."
 msgstr ""
 
+#, fuzzy
+#| msgid "Create Item +"
+msgid "Create Subcategory"
+msgstr "ایجاد اقلام +"
+
+#, fuzzy
+#| msgid "All Products"
+msgid "All Parents"
+msgstr "همه محصولات"
+
+#, fuzzy
+#| msgid "Subcategories"
+msgid "No Subcategories Found"
+msgstr "زیردسته‌بندی‌ها"
+
+#, fuzzy
+#| msgid "Start by creating your first item type."
+msgid "Start by creating your first subcategory."
+msgstr "با ایجاد اولین نوع قلم شروع کنید."
+
+#, fuzzy
+#| msgid "Item Subcategory"
+msgid "Delete Subcategory"
+msgstr "زیر‌دسته کالا"
+
+#, fuzzy
+#| msgid "Do you really want to delete this person?"
+msgid "Are you sure you want to delete this subcategory?"
+msgstr "آیا واقعاً می‌خواهید این شخص را حذف کنید؟"
+
+#, fuzzy
+#| msgid "Contact Information"
+msgid "Subcategory Information"
+msgstr "اطلاعات تماس"
+
+msgid ""
+"Define which users or groups can create, respond to, or close tickets in "
+"this subcategory."
+msgstr ""
+
+#, fuzzy
+#| msgid "Do you really want to delete this person?"
+msgid "Are you sure you want to delete this template?"
+msgstr "آیا واقعاً می‌خواهید این شخص را حذف کنید؟"
+
+#, fuzzy
+#| msgid "Templates"
+msgid "Template Code:"
+msgstr "تمپلیت‌ها"
+
+#, fuzzy
+#| msgid "Templates"
+msgid "Template Name:"
+msgstr "تمپلیت‌ها"
+
+#, fuzzy
+#| msgid "Description"
+msgid "Description:"
+msgstr "توضیحات"
+
+#, fuzzy
+#| msgid ""
+#| "This action cannot be undone. All material lines will also be deleted."
+msgid ""
+"Warning: This action cannot be undone. All associated fields, permissions, "
+"and events will also be deleted."
+msgstr "این عمل غیرقابل بازگشت است. تمام ردیف‌های ماده نیز حذف خواهند شد."
+
+#, fuzzy
+#| msgid "Create Item Type +"
+msgid "Create Template"
+msgstr "ایجاد تمپلیت"
+
 msgid ""
 "This page is under construction. Template creation functionality will be "
 "implemented here."
 msgstr ""
 
+#, fuzzy
+#| msgid "Contact Information"
+msgid "Template Information"
+msgstr "اطلاعات تماس"
+
+#, fuzzy
+#| msgid "Templates"
+msgid "Template Fields"
+msgstr "تمپلیت‌ها"
+
 msgid ""
-"This page is under construction. Ticket creation functionality will be "
-"implemented here."
+"Define the fields that will be used in tickets created from this template. "
+"Add fields one by one by filling the blank row."
 msgstr ""
+
+#, fuzzy
+#| msgid "Orders"
+msgid "Order"
+msgstr "سفارشات"
+
+#, fuzzy
+#| msgid "First Name"
+msgid "Field Name"
+msgstr "نام"
+
+#, fuzzy
+#| msgid "Material Type"
+msgid "Field Type"
+msgstr "نوع ماده"
+
+msgid "Field Key"
+msgstr ""
+
+#, fuzzy
+#| msgid "Final Value"
+msgid "Default Value"
+msgstr "ارزش نهایی"
+
+msgid "Settings"
+msgstr ""
+
+msgid "Field Settings"
+msgstr ""
+
+msgid "Validation Rules (JSON)"
+msgstr ""
+
+msgid "JSON rules for field validation (min_length, max_length, pattern, etc.)"
+msgstr ""
+
+#, fuzzy
+#| msgid "Add Material Line"
+msgid "Add Field"
+msgstr "افزودن ردیف ماده"
+
+msgid ""
+"Note: After saving, you can edit individual fields to add options (for radio/"
+"dropdown fields) and events."
+msgstr ""
+
+msgid ""
+"Define which users or groups can create, respond to, or close tickets using "
+"this template."
+msgstr ""
+
+#, fuzzy
+#| msgid "Edit Person"
+msgid "Add Permission"
+msgstr "ویرایش شخص"
+
+#, fuzzy
+#| msgid "Templates"
+msgid "Template Events"
+msgstr "تمپلیت‌ها"
+
+msgid ""
+"Define actions that will be executed when specific events occur (e.g., when "
+"a ticket is opened or closed). Use Entity Reference System syntax."
+msgstr ""
+
+#, fuzzy
+#| msgid "Item Type"
+msgid "Event Type"
+msgstr "نوع کالا"
+
+#, fuzzy
+#| msgid "Investigation Reference"
+msgid "Action Reference"
+msgstr "مرجع بررسی"
+
+msgid "Condition Rules (JSON)"
+msgstr ""
+
+#, python-brace-format
+msgid ""
+"Example: users:show:gp=superuser or 0270:approve:code={ticket.reference_code}"
+msgstr ""
+
+msgid "Example: {\\"
+msgstr ""
+
+msgid "Add Event"
+msgstr ""
+
+#, fuzzy
+#| msgid "Create Item Type +"
+msgid "Save Template"
+msgstr "ایجاد تمپلیت"
+
+msgid "No special settings for this field type"
+msgstr ""
+
+#, fuzzy
+#| msgid "%(count)s serial(s) required for this line."
+msgid "No special settings required for this field type"
+msgstr "برای این ردیف %(count)s شماره سریال مورد نیاز است."
+
+#, fuzzy
+#| msgid "Optional"
+msgid "Options Source"
+msgstr "اختیاری"
+
+msgid "Manual"
+msgstr ""
+
+#, fuzzy
+#| msgid "Investigation Reference"
+msgid "From Entity Reference"
+msgstr "مرجع بررسی"
+
+msgid "Manage Options"
+msgstr ""
+
+#, fuzzy
+#| msgid "Final Value"
+msgid "Value"
+msgstr "ارزش نهایی"
+
+msgid "Label"
+msgstr ""
+
+#, fuzzy
+#| msgid "Default Company"
+msgid "Default"
+msgstr "شرکت پیش‌فرض"
+
+#, fuzzy
+#| msgid "Is Optional"
+msgid "Add Option"
+msgstr "اختیاری بودن"
+
+#, fuzzy
+#| msgid "Receipt Inspections"
+msgid "Select section..."
+msgstr "بازرسی رسیدها"
+
+#, fuzzy
+#| msgid "Select a module from the sidebar."
+msgid "Select a section/module from the application"
+msgstr "یک ماژول از منوی کناری انتخاب کنید."
+
+#, fuzzy
+#| msgid "Actions"
+msgid "Action"
+msgstr "عملیات"
+
+#, fuzzy
+#| msgid "Select Category"
+msgid "Select action..."
+msgstr "انتخاب دسته‌بندی"
+
+#, fuzzy
+#| msgid "Selected units must belong to the active company."
+msgid "Select an action for the selected section"
+msgstr "واحدهای انتخاب‌شده باید متعلق به شرکت فعال باشند."
+
+msgid "Parameter"
+msgstr ""
+
+#, fuzzy
+#| msgid "Select Category"
+msgid "Select parameter..."
+msgstr "انتخاب دسته‌بندی"
+
+msgid "Select a parameter to configure (optional)"
+msgstr ""
+
+msgid "Parameter Value"
+msgstr ""
+
+msgid "Type or select value..."
+msgstr ""
+
+msgid "Type a value or select from the list"
+msgstr ""
+
+msgid "Auto-fill with current date"
+msgstr ""
+
+msgid "Auto-fill with current time"
+msgstr ""
+
+msgid "Auto-fill with current date and time"
+msgstr ""
+
+msgid "Auto-fill"
+msgstr ""
+
+msgid ""
+"If enabled, the field will be automatically filled with current date/time "
+"when creating a ticket"
+msgstr ""
+
+msgid "Use thousands separator (3 digits, 3 digits)"
+msgstr ""
+
+msgid ""
+"If enabled, numbers will be displayed with thousand separators (e.g., "
+"1,000,000)"
+msgstr ""
+
+#, fuzzy
+#| msgid "Final Value"
+msgid "Minimum Value"
+msgstr "ارزش نهایی"
+
+msgid "Maximum Value"
+msgstr ""
+
+msgid "Step Value"
+msgstr ""
+
+msgid "Increment between values (e.g., 1, 5, 10)"
+msgstr ""
+
+msgid "Calculation Formula"
+msgstr ""
+
+#, python-brace-format
+msgid "Use {field_key} to reference other fields. Operators: +, -, *, /, ()"
+msgstr ""
+
+#, fuzzy
+#| msgid "No extra actions available."
+msgid "No parameters available"
+msgstr "هیچ عملیات اضافی در دسترس نیست."
+
+#, fuzzy
+#| msgid "Priority"
+msgid "Default Priority"
+msgstr "اولویت"
+
+#, fuzzy
+#| msgid "Materials Count"
+msgid "Fields Count"
+msgstr "تعداد مواد"
+
+#, fuzzy
+#| msgid "No Companies Found"
+msgid "No Templates Found"
+msgstr "هیچ شرکتی یافت نشد"
+
+#, fuzzy
+#| msgid "Start by creating your first item type."
+msgid "Start by creating your first template."
+msgstr "با ایجاد اولین نوع قلم شروع کنید."
+
+msgid "Back to template selection"
+msgstr ""
+
+#, fuzzy
+#| msgid "Templates"
+msgid "Template"
+msgstr "تمپلیت‌ها"
+
+msgid "Title"
+msgstr ""
+
+#, fuzzy
+#| msgid "Rejected"
+msgid "Select..."
+msgstr "رد شده"
+
+msgid "Loading options from entity reference..."
+msgstr ""
+
+msgid "Field type"
+msgstr ""
+
+#, fuzzy
+#| msgid "Create Item Type +"
+msgid "Select a Template"
+msgstr "ایجاد تمپلیت"
+
+msgid "Choose a template to create a new ticket:"
+msgstr ""
+
+msgid "Fields"
+msgstr ""
+
+#, fuzzy
+#| msgid "No extra actions available."
+msgid "No Templates Available"
+msgstr "هیچ عملیات اضافی در دسترس نیست."
+
+msgid ""
+"You don't have permission to create tickets with any template. Please "
+"contact your administrator."
+msgstr ""
+
+#, fuzzy
+#| msgid "Templates"
+msgid "View Templates"
+msgstr "تمپلیت‌ها"
 
 msgid ""
 "This page is under construction. Ticket response functionality will be "
 "implemented here."
 msgstr ""
 
+msgid "Transportation and logistics management"
+msgstr ""
+
+# Transportation Module
+#, fuzzy
+#| msgid "Transportation"
+msgid "Transportation Module"
+msgstr "حمل و نقل"
+
+msgid ""
+"This module is under development. Transportation management features will be "
+"available soon."
+msgstr ""
+
 msgid "Supplier List"
 msgstr "لیست تامین‌کنندگان"
+
+#, fuzzy
+#| msgid "Purchases"
+msgid "Purchase"
+msgstr "خریدها"
+
+#, fuzzy
+#| msgid "Buyers"
+msgid "Buyers List"
+msgstr "خریداران"
 
 msgid "Overview of your inventory management system"
 msgstr ""
@@ -5233,17 +6627,792 @@ msgstr "در انتظار تأیید"
 msgid "Pending QC Inspections"
 msgstr "بازرسی رسیدها"
 
-#~ msgid "item"
-#~ msgstr "کالا"
+#, fuzzy
+#| msgid "Item Categories"
+msgid "Category Code"
+msgstr "دسته‌بندی اقلام"
+
+msgid "Either user or group must be set."
+msgstr ""
+
+msgid "Cannot set both user and group."
+msgstr ""
+
+msgid "Each permission entry must have either a user or a group."
+msgstr ""
+
+#, fuzzy
+#| msgid "Templates"
+msgid "Template Name"
+msgstr "تمپلیت‌ها"
+
+#, fuzzy
+#| msgid "Sort Order"
+msgid "Short Text"
+msgstr "ترتیب نمایش"
+
+msgid "Long Text"
+msgstr ""
+
+msgid "Radio Button"
+msgstr ""
+
+msgid "Dropdown"
+msgstr ""
+
+msgid "Checkbox"
+msgstr ""
+
+#, fuzzy
+#| msgid "Mobile Number"
+msgid "Number"
+msgstr "شماره موبایل"
+
+msgid "Time"
+msgstr ""
+
+msgid "DateTime"
+msgstr ""
+
+msgid "URL"
+msgstr ""
+
+msgid "File Upload"
+msgstr ""
+
+#, fuzzy
+#| msgid "References"
+msgid "Reference"
+msgstr "ارجاعات"
+
+#, fuzzy
+#| msgid "Supplier Items"
+msgid "Multi Select"
+msgstr "اقلام تأمین‌کننده"
+
+msgid "Tags"
+msgstr ""
+
+msgid "Rich Text"
+msgstr ""
+
+msgid "Color"
+msgstr ""
+
+#, fuzzy
+#| msgid "Costing"
+msgid "Rating"
+msgstr "محاسبات هزینه"
+
+msgid "Slider"
+msgstr ""
+
+msgid "Currency"
+msgstr "واحد پول"
+
+#, fuzzy
+#| msgid "Feature"
+msgid "Signature"
+msgstr "قابلیت"
+
+#, fuzzy
+#| msgid "Notifications"
+msgid "Location"
+msgstr "اعلان‌ها"
+
+#, fuzzy
+#| msgid "Calculate"
+msgid "Calculation"
+msgstr "محاسبه"
+
+msgid "Help Text"
+msgstr ""
+
+msgid "Field Configuration (JSON)"
+msgstr ""
+
+#, fuzzy
+#| msgid "Optional"
+msgid "Option Value"
+msgstr "اختیاری"
+
+#, fuzzy
+#| msgid "Actions"
+msgid "Option Label"
+msgstr "عملیات"
+
+#, python-format
+msgid ""
+"Field key '%(field_key)s' is duplicated. Field keys must be unique within a "
+"template."
+msgstr ""
+
+#, python-format
+msgid ""
+"Option value '%(option_value)s' is duplicated. Option values must be unique "
+"within a field."
+msgstr ""
+
+msgid "Assigned To"
+msgstr ""
+
+#, fuzzy
+#| msgid "Select Category"
+msgid "Ticket Category"
+msgstr "انتخاب دسته‌بندی"
+
+#, fuzzy
+#| msgid "Item Categories"
+msgid "Ticket Categories"
+msgstr "دسته‌بندی اقلام"
+
+#, fuzzy
+#| msgid "Priority"
+msgid "Priority Code"
+msgstr "اولویت"
+
+#, fuzzy
+#| msgid "Priority"
+msgid "Priority Level"
+msgstr "اولویت"
+
+msgid "Numeric level (1=highest, 5=lowest) for sorting"
+msgstr ""
+
+msgid "Hex color code for UI display (e.g., '#ff0000')"
+msgstr ""
+
+msgid "SLA Hours"
+msgstr ""
+
+msgid "Service Level Agreement hours for response time"
+msgstr ""
+
+#, fuzzy
+#| msgid "Priority"
+msgid "Ticket Priority"
+msgstr "اولویت"
+
+msgid "Ticket Priorities"
+msgstr ""
+
+msgid "Cached category code"
+msgstr ""
+
+#, fuzzy
+#| msgid "Create Person"
+msgid "Category Permission"
+msgstr "ایجاد شخص"
+
+#, fuzzy
+#| msgid "Create Person"
+msgid "Category Permissions"
+msgstr "ایجاد شخص"
+
+#, fuzzy
+#| msgid "Templates"
+msgid "Template Code"
+msgstr "تمپلیت‌ها"
+
+msgid "Auto-generated template identifier (format: TMP-YYYYMMDD-XXXXXX)"
+msgstr ""
+
+msgid "Default Priority Code"
+msgstr ""
+
+msgid "Cached default priority code"
+msgstr ""
+
+#, fuzzy
+#| msgid "Create Item Type +"
+msgid "Ticket Template"
+msgstr "ایجاد تمپلیت"
+
+#, fuzzy
+#| msgid "Templates"
+msgid "Ticket Templates"
+msgstr "تمپلیت‌ها"
+
+#, fuzzy
+#| msgid "Create Item Type +"
+msgid "Cached template code"
+msgstr "ایجاد تمپلیت"
+
+msgid "Field label/name for display"
+msgstr ""
+
+msgid ""
+"Unique identifier for the field within template (e.g., 'item_code', "
+"'description')"
+msgstr ""
+
+#, fuzzy
+#| msgid "Required"
+msgid "Is Required"
+msgstr "الزامی"
+
+msgid "Field Order"
+msgstr ""
+
+msgid "Display order (row position) in the form"
+msgstr ""
+
+#, fuzzy
+#| msgid "Valuation Method"
+msgid "Validation Rules"
+msgstr "روش ارزش‌گذاری"
+
+msgid "Validation rules (min/max length, regex patterns, etc.)"
+msgstr ""
+
+msgid "Field Config"
+msgstr ""
+
+msgid ""
+"Field-specific configuration (e.g., for reference fields: entity types, for "
+"file upload: allowed types, max size)"
+msgstr ""
+
+#, fuzzy
+#| msgid "Templates"
+msgid "Template Field"
+msgstr "تمپلیت‌ها"
+
+#, fuzzy
+#| msgid "Supplier Categories"
+msgid "Cached template reference"
+msgstr "دسته‌بندی تامین‌کنندگان"
+
+msgid "Option value (stored value)"
+msgstr ""
+
+msgid "Option label (displayed text)"
+msgstr ""
+
+#, fuzzy
+#| msgid "Production Order"
+msgid "Option Order"
+msgstr "سفارش تولید"
+
+msgid "Display order in dropdown/radio list"
+msgstr ""
+
+msgid "Is Default"
+msgstr ""
+
+msgid "Whether this option is the default selection"
+msgstr ""
+
+msgid "Template Field Option"
+msgstr ""
+
+msgid "Template Field Options"
+msgstr ""
+
+#, fuzzy
+#| msgid "Create Person"
+msgid "Template Permission"
+msgstr "ایجاد شخص"
+
+#, fuzzy
+#| msgid "Create Person"
+msgid "Template Permissions"
+msgstr "ایجاد شخص"
+
+msgid "On Open"
+msgstr ""
+
+#, fuzzy
+#| msgid "Closed"
+msgid "On Close"
+msgstr "بسته شده"
+
+#, fuzzy
+#| msgid "Auto Response"
+msgid "On Respond"
+msgstr "پاسخ خودکار"
+
+msgid "On Status Change"
+msgstr ""
+
+#, fuzzy
+#| msgid "Personnel"
+msgid "On Assigned"
+msgstr "پرسنل"
+
+msgid "On Resolved"
+msgstr ""
+
+#, fuzzy
+#| msgid "Sort Order"
+msgid "Event Order"
+msgstr "ترتیب نمایش"
+
+msgid "Execution order for multiple events of the same type"
+msgstr ""
+
+#, python-brace-format
+msgid ""
+"Entity Reference System action (e.g., 'users:show:gp=superuser', '0270:"
+"approve:code={ticket.reference_code}')"
+msgstr ""
+
+#, fuzzy
+#| msgid "Consumption Issues"
+msgid "Condition Rules"
+msgstr "حواله‌های مصرفی"
+
+msgid ""
+"JSON rules for conditional execution (e.g., {'field_key': 'priority', "
+"'operator': 'equals', 'value': 'high'})"
+msgstr ""
+
+#, fuzzy
+#| msgid "Enabled"
+msgid "Is Enabled"
+msgstr "فعال"
+
+#, fuzzy
+#| msgid "Templates"
+msgid "Template Event"
+msgstr "تمپلیت‌ها"
+
+msgid "On Change"
+msgstr ""
+
+msgid "On Set"
+msgstr ""
+
+#, fuzzy
+#| msgid "Clear"
+msgid "On Clear"
+msgstr "پاک کردن"
+
+msgid "Execution order for multiple events"
+msgstr ""
+
+msgid "Entity Reference System action to execute"
+msgstr ""
+
+msgid "JSON rules for conditional execution based on field value"
+msgstr ""
+
+msgid "Template Field Event"
+msgstr ""
+
+#, fuzzy
+#| msgid "Templates"
+msgid "Template Field Events"
+msgstr "تمپلیت‌ها"
+
+msgid "Open"
+msgstr ""
+
+#, fuzzy
+#| msgid "Assign Decree"
+msgid "Assigned"
+msgstr "تخصیص حکم"
+
+msgid "Resolved"
+msgstr ""
+
+#, fuzzy
+#| msgid "Request Code"
+msgid "Ticket Code"
+msgstr "کد درخواست"
+
+msgid "Auto-generated ticket identifier (format: TKT-YYYYMMDD-XXXXXX)"
+msgstr ""
+
+msgid "Cached priority code"
+msgstr ""
+
+#, fuzzy
+#| msgid "Requester"
+msgid "Reported By"
+msgstr "درخواست‌دهنده"
+
+msgid "Reported By Username"
+msgstr ""
+
+msgid "Cached reporter username"
+msgstr ""
+
+#, fuzzy
+#| msgid "Assign Decree"
+msgid "Assigned To Username"
+msgstr "تخصیص حکم"
+
+msgid "Cached assignee username"
+msgstr ""
+
+msgid "Assigned At"
+msgstr ""
+
+#, fuzzy
+#| msgid "Approved At"
+msgid "Opened At"
+msgstr "زمان تأیید"
+
+#, fuzzy
+#| msgid "Auto Response"
+msgid "First Response At"
+msgstr "پاسخ خودکار"
+
+#, fuzzy
+#| msgid "Approved At"
+msgid "Resolved At"
+msgstr "زمان تأیید"
+
+#, fuzzy
+#| msgid "Requester"
+msgid "Resolved By"
+msgstr "درخواست‌دهنده"
+
+#, fuzzy
+#| msgid "Closed"
+msgid "Closed At"
+msgstr "بسته شده"
+
+#, fuzzy
+#| msgid "Closed"
+msgid "Closed By"
+msgstr "بسته شده"
+
+#, fuzzy
+#| msgid "Confirmation Notes"
+msgid "Resolution Notes"
+msgstr "یادداشت‌های تأیید"
+
+#, fuzzy
+#| msgid "Create Item Type +"
+msgid "Related Entity Type"
+msgstr "ایجاد نوع قلم +"
+
+msgid "Type of related entity (e.g., 'inventory.item', 'production.order')"
+msgstr ""
+
+#, fuzzy
+#| msgid "Requested Quantity"
+msgid "Related Entity ID"
+msgstr "مقدار درخواست‌شده"
+
+#, fuzzy
+#| msgid "Request Code"
+msgid "Related Entity Code"
+msgstr "کد درخواست"
+
+msgid "Attachments"
+msgstr ""
+
+msgid "Array of file attachments with metadata"
+msgstr ""
+
+#, fuzzy
+#| msgid "Tickets"
+msgid "Ticket"
+msgstr "تیکت‌ها"
+
+msgid "Cached ticket code"
+msgstr ""
+
+msgid "Template Field Key"
+msgstr ""
+
+msgid "Cached field key for quick lookup"
+msgstr ""
+
+#, fuzzy
+#| msgid "Final Value"
+msgid "Field Value"
+msgstr "ارزش نهایی"
+
+msgid "Field value (text representation, JSON for complex types)"
+msgstr ""
+
+#, fuzzy
+#| msgid "Final Value"
+msgid "Field Value JSON"
+msgstr "ارزش نهایی"
+
+msgid "Structured field value (for reference fields, file uploads, etc.)"
+msgstr ""
+
+#, fuzzy
+#| msgid "Final Value"
+msgid "Ticket Field Value"
+msgstr "ارزش نهایی"
+
+#, fuzzy
+#| msgid "Final Value"
+msgid "Ticket Field Values"
+msgstr "ارزش نهایی"
+
+#, fuzzy
+#| msgid "Document Code"
+msgid "Comment"
+msgstr "کد سند"
+
+#, fuzzy
+#| msgid "Material Type"
+msgid "Internal Note"
+msgstr "نوع ماده"
+
+#, fuzzy
+#| msgid "Status"
+msgid "Status Change"
+msgstr "وضعیت"
+
+#, fuzzy
+#| msgid "Personnel"
+msgid "Assignment"
+msgstr "پرسنل"
+
+msgid "Comment Text"
+msgstr ""
+
+#, fuzzy
+#| msgid "Source Document Type"
+msgid "Comment Type"
+msgstr "نوع سند مبدا"
+
+msgid "Author"
+msgstr ""
+
+#, fuzzy
+#| msgid "Username"
+msgid "Author Username"
+msgstr "نام کاربری"
+
+msgid "Cached author username"
+msgstr ""
+
+msgid "Is Internal"
+msgstr ""
+
+msgid "Internal note flag (visible only to staff)"
+msgstr ""
+
+#, fuzzy
+#| msgid "Inventory Balance"
+msgid "Ticket Comment"
+msgstr "مدیریت تیکت‌ها"
+
+#, fuzzy
+#| msgid "Inventory Balance"
+msgid "Ticket Comments"
+msgstr "مدیریت تیکت‌ها"
+
+#, fuzzy
+#| msgid "First Name"
+msgid "File Name"
+msgstr "نام"
+
+msgid "File Path"
+msgstr ""
+
+msgid "Storage path relative to media root"
+msgstr ""
+
+msgid "File Size"
+msgstr ""
+
+msgid "File size in bytes"
+msgstr ""
+
+#, fuzzy
+#| msgid "Item Type"
+msgid "MIME Type"
+msgstr "نوع کالا"
+
+#, fuzzy
+#| msgid "Needed By"
+msgid "Uploaded By"
+msgstr "تاریخ نیاز"
+
+#, fuzzy
+#| msgid "Use Personnel Code as Username"
+msgid "Uploaded By Username"
+msgstr "استفاده از کد پرسنلی به عنوان نام کاربری"
+
+msgid "Cached uploader username"
+msgstr ""
+
+#, fuzzy
+#| msgid "Approved At"
+msgid "Uploaded At"
+msgstr "زمان تأیید"
+
+#, fuzzy
+#| msgid "Inventory Balance"
+msgid "Ticket Attachment"
+msgstr "مدیریت تیکت‌ها"
+
+#, fuzzy
+#| msgid "Inventory Balance"
+msgid "Ticket Attachments"
+msgstr "مدیریت تیکت‌ها"
+
+msgid "Either ticket or comment must be set."
+msgstr ""
+
+msgid "Cannot set both ticket and comment."
+msgstr ""
+
+#, fuzzy
+#| msgid "This document is locked and can no longer be edited or deleted."
+msgid "Ticket is locked and cannot be modified."
+msgstr "این سند قفل شده و دیگر قابل ویرایش یا حذف نیست."
+
+msgid "Only the ticket creator can modify this ticket."
+msgstr ""
+
+#, fuzzy
+#| msgid "Company created successfully."
+msgid "Category created successfully."
+msgstr "شرکت با موفقیت ایجاد شد."
+
+#, fuzzy
+#| msgid "Item Categories"
+msgid "Edit Category"
+msgstr "دسته‌بندی اقلام"
+
+#, fuzzy
+#| msgid "Company updated successfully."
+msgid "Category updated successfully."
+msgstr "شرکت با موفقیت به‌روزرسانی شد."
+
+#, fuzzy
+#| msgid "Company deleted successfully."
+msgid "Category deleted successfully."
+msgstr "شرکت با موفقیت حذف شد."
+
+#, fuzzy
+#| msgid "Item Subcategories"
+msgid "Ticket Subcategories"
+msgstr "زیر‌دسته‌های کالا"
+
+#, fuzzy
+#| msgid "Selected approver must belong to the active company."
+msgid "Subcategory must have a parent category."
+msgstr "تاییدکننده انتخاب‌شده باید متعلق به شرکت فعال باشد."
+
+#, fuzzy
+#| msgid "Company created successfully."
+msgid "Subcategory created successfully."
+msgstr "شرکت با موفقیت ایجاد شد."
+
+#, fuzzy
+#| msgid "Item Categories"
+msgid "Edit Subcategory"
+msgstr "دسته‌بندی اقلام"
+
+#, fuzzy
+#| msgid "Company updated successfully."
+msgid "Subcategory updated successfully."
+msgstr "شرکت با موفقیت به‌روزرسانی شد."
+
+#, fuzzy
+#| msgid "Company deleted successfully."
+msgid "Subcategory deleted successfully."
+msgstr "شرکت با موفقیت حذف شد."
+
+#, fuzzy
+#| msgid "Company created successfully."
+msgid "Template created successfully."
+msgstr "شرکت با موفقیت ایجاد شد."
+
+#, fuzzy
+#| msgid "Templates"
+msgid "Edit Template"
+msgstr "تمپلیت‌ها"
+
+#, fuzzy
+#| msgid "Company updated successfully."
+msgid "Template updated successfully."
+msgstr "شرکت با موفقیت به‌روزرسانی شد."
+
+#, fuzzy
+#| msgid "Company deleted successfully."
+msgid "Template deleted successfully."
+msgstr "شرکت با موفقیت حذف شد."
+
+#, fuzzy
+#| msgid "Create Item Type +"
+msgid "Delete Template"
+msgstr "ایجاد تمپلیت"
+
+msgid "You don't have permission to create tickets with this template."
+msgstr ""
+
+#, fuzzy
+#| msgid "Item not found"
+msgid "Template not found."
+msgstr "کالا یافت نشد"
+
+#, fuzzy
+#| msgid "Person created successfully."
+msgid "Ticket created successfully."
+msgstr "شخص با موفقیت ایجاد شد."
+
+#, fuzzy
+#| msgid "Select Warehouse"
+msgid "Edit Ticket"
+msgstr "ایجاد تیکت"
+
+#, fuzzy
+#| msgid "Person updated successfully."
+msgid "Ticket updated successfully."
+msgstr "شخص با موفقیت به‌روزرسانی شد."
+
+#~ msgid "Inventory Count Surplus"
+#~ msgstr "مازاد شمارش موجودی"
+
+#, fuzzy
+#~| msgid "Inventory Snapshot Time"
+#~ msgid "Inventory Count Shortage"
+#~ msgstr "کسری شمارش موجودی"
+
+#~ msgid "Entered Price Unit"
+#~ msgstr "واحد قیمت وارد شده"
+
+#~ msgid "Optional: unit for price (e.g., BOX)"
+#~ msgstr "اختیاری: واحد قیمت (مثلاً BOX)"
+
+#~ msgid ""
+#~ "Unit for entered_unit_price (e.g., BOX, CARTON). If empty, same as "
+#~ "entered_unit."
+#~ msgstr ""
+#~ "واحد برای entered_unit_price (مثلاً BOX, CARTON). اگر خالی باشد، همان "
+#~ "entered_unit استفاده می‌شود."
+
+#~ msgid "مقادیر"
+#~ msgstr "مقادیر"
+
+#~ msgid "ارزش‌گذاری"
+#~ msgstr "ارزش‌گذاری"
+
+#~ msgid "جزئیات اضافه"
+#~ msgstr "جزئیات اضافه"
+
+#~ msgid "Create Item"
+#~ msgstr "ایجاد کالا"
+
+#, fuzzy
+#~| msgid "Do you really want to delete this person?"
+#~ msgid "Are you sure you want to approve this receipt for QC?"
+#~ msgstr "آیا واقعاً می‌خواهید این شخص را حذف کنید؟"
+
+#, fuzzy
+#~| msgid "Awaiting QC"
+#~ msgid "No Receipts Awaiting QC"
+#~ msgstr "در انتظار کنترل کیفیت"
 
 #~ msgid "warehouse"
 #~ msgstr "انبار"
 
 #~ msgid "supplier"
 #~ msgstr "تأمین‌کننده"
-
-#~ msgid "کالا حذف شد."
-#~ msgstr "کالا حذف شد."
 
 #~ msgid "تأمین‌کننده حذف شد."
 #~ msgstr "تأمین‌کننده حذف شد."
@@ -5267,9 +7436,6 @@ msgstr "بازرسی رسیدها"
 #~ msgid "Delivered"
 #~ msgstr "تحویل شده"
 
-#~ msgid "Orders"
-#~ msgstr "سفارشات"
-
 #~ msgid "Effective Date"
 #~ msgstr "تاریخ اعتبار"
 
@@ -5284,9 +7450,6 @@ msgstr "بازرسی رسیدها"
 #~ msgid "Unit Price"
 #~ msgstr "قیمت واحد"
 
-#~ msgid "Currency"
-#~ msgstr "واحد پول"
-
 #~ msgid "Tax Amount"
 #~ msgstr "مبلغ مالیات"
 
@@ -5296,14 +7459,8 @@ msgstr "بازرسی رسیدها"
 #~ msgid "Total Amount"
 #~ msgstr "مبلغ کل"
 
-#~ msgid "Accounting Posted"
-#~ msgstr "ثبت حسابداری انجام شد"
-
 #~ msgid "Posting Date"
 #~ msgstr "تاریخ ثبت حسابداری"
-
-#~ msgid "temporary receipt"
-#~ msgstr "رسید موقت"
 
 #~ msgid "purchase request"
 #~ msgstr "درخواست خرید"
@@ -5316,9 +7473,6 @@ msgstr "بازرسی رسیدها"
 
 #~ msgid "Contract Code"
 #~ msgstr "کد قرارداد"
-
-#~ msgid "Expected Return Date"
-#~ msgstr "تاریخ بازگشت مورد انتظار"
 
 #~ msgid "Estimated Unit Price"
 #~ msgstr "بهای واحد تخمینی"
@@ -5348,9 +7502,6 @@ msgstr "بازرسی رسیدها"
 #~ msgid "Financials"
 #~ msgstr "اطلاعات مالی"
 
-#~ msgid "References"
-#~ msgstr "ارجاعات"
-
 # Quality Control Module
 #, fuzzy
 #~| msgid "Quality Control"
@@ -5366,9 +7517,6 @@ msgstr "بازرسی رسیدها"
 #~| msgid "Details"
 #~ msgid "Usage Details"
 #~ msgstr "جزئیات"
-
-#~ msgid "Costing"
-#~ msgstr "محاسبات هزینه"
 
 #~ msgid "Item Catalog"
 #~ msgstr "کاتالوگ اقلام"
@@ -5433,12 +7581,6 @@ msgstr "بازرسی رسیدها"
 #~ msgid "Sequence"
 #~ msgstr "ترتیب"
 
-#~ msgid "Sequence Order"
-#~ msgstr "ترتیب استفاده"
-
-#~ msgid "Is Optional"
-#~ msgstr "اختیاری بودن"
-
 #~ msgid "Semi-Finished"
 #~ msgstr "نیمه ساخته"
 
@@ -5474,9 +7616,6 @@ msgstr "بازرسی رسیدها"
 
 #~ msgid "Order in which materials are used (lower numbers first)"
 #~ msgstr "ترتیب استفاده از مواد (اعداد کوچکتر اول)"
-
-#~ msgid "Whether this material is optional or required"
-#~ msgstr "آیا این ماده اختیاری است یا الزامی"
 
 #~ msgid "Finished product and material cannot be the same item."
 #~ msgstr "محصول نهایی و ماده اولیه نمی‌توانند یکسان باشند."

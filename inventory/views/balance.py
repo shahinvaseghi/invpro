@@ -362,7 +362,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             transactions.append({
                 'date': surplus_line.document.document_date,
                 'type': 'receipt',
-                'type_label': _('Stocktaking Surplus'),
+                'type_label': _('مازاد انبارگردانی'),  # More specific label
                 'document_code': surplus_line.document.document_code,
                 'document_id': surplus_line.document.pk,
                 'document_type': 'stocktaking_surplus',
@@ -377,7 +377,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             transactions.append({
                 'date': deficit_line.document.document_date,
                 'type': 'issue',
-                'type_label': _('Stocktaking Deficit'),
+                'type_label': _('کسری انبارگردانی'),  # More specific label
                 'document_code': deficit_line.document.document_code,
                 'document_id': deficit_line.document.pk,
                 'document_type': 'stocktaking_deficit',
