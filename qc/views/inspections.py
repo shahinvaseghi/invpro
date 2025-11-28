@@ -34,7 +34,10 @@ class TemporaryReceiptQCListView(FeaturePermissionRequiredMixin, QCBaseView, Lis
         # Note: item and warehouse are in ReceiptTemporaryLine, not in ReceiptTemporary
         queryset = queryset.filter(
             is_enabled=1
-        ).select_related('supplier', 'created_by', 'qc_approved_by').prefetch_related('lines__item', 'lines__warehouse')
+        ).select_related('supplier', 'created_by', 'qc_approved_by').prefetch_related(
+            'lines__item', 
+            'lines__warehouse'
+        )
         # Order by: awaiting first (status=1), then approved (status=3), then rejected/closed (status=2), then by date
         queryset = queryset.order_by(
             'status',  # 1 (AWAITING_INSPECTION) < 2 (CLOSED) < 3 (APPROVED)
@@ -55,6 +58,12 @@ class TemporaryReceiptQCListView(FeaturePermissionRequiredMixin, QCBaseView, Lis
             'approved': queryset.filter(status=inventory_models.ReceiptTemporary.Status.APPROVED).count(),
             'rejected': queryset.filter(status=inventory_models.ReceiptTemporary.Status.CLOSED).count(),
         }
+        
+        # Prefetch rejected lines count for each receipt to show management button
+        receipts = context.get('receipts', [])
+        for receipt in receipts:
+            # Count rejected lines and add as attribute (without underscore for template access)
+            receipt.rejected_lines_count = receipt.lines.filter(is_enabled=1, is_qc_rejected=1).count()
         
         return context
 
@@ -126,15 +135,20 @@ class TemporaryReceiptQCApproveView(FeaturePermissionRequiredMixin, QCBaseView, 
         # Get approval notes from POST data
         approval_notes: str = request.POST.get('approval_notes', '').strip()
         
-        # Get selected lines with approved quantities
-        selected_lines = []
+        # Get selected lines with approved and rejected quantities
+        approved_lines = []
+        rejected_lines = []
+        
         for line in receipt.lines.filter(is_enabled=1):
             line_id = str(line.pk)
-            quantity_key = f'approved_quantity_{line_id}'
-            selected_key = f'selected_{line_id}'
+            approve_key = f'selected_approve_{line_id}'
+            reject_key = f'selected_reject_{line_id}'
+            approved_quantity_key = f'approved_quantity_{line_id}'
+            rejected_quantity_key = f'rejected_quantity_{line_id}'
             
-            if request.POST.get(selected_key) == 'on':
-                quantity_str = request.POST.get(quantity_key, '0')
+            # Process approved lines
+            if request.POST.get(approve_key) == 'on':
+                quantity_str = request.POST.get(approved_quantity_key, '0')
                 try:
                     quantity = Decimal(str(quantity_str))
                     if quantity > 0:
@@ -142,36 +156,114 @@ class TemporaryReceiptQCApproveView(FeaturePermissionRequiredMixin, QCBaseView, 
                         if quantity > line.quantity:
                             quantity = line.quantity
                         line_notes = request.POST.get(f'line_notes_{line_id}', '').strip()
-                        selected_lines.append({
+                        approved_lines.append({
                             'line': line,
                             'quantity': quantity,
                             'notes': line_notes,
                         })
                 except (ValueError, InvalidOperation):
                     pass
+            
+            # Process rejected lines
+            # Check if checkbox is checked OR if quantity is greater than 0
+            reject_checkbox_checked = request.POST.get(reject_key) == 'on'
+            quantity_str = request.POST.get(rejected_quantity_key, '0')
+            try:
+                quantity = Decimal(str(quantity_str))
+                if quantity > 0:
+                    # If quantity > 0, treat as rejected even if checkbox not checked
+                    if reject_checkbox_checked or quantity > 0:
+                        # Validate quantity doesn't exceed line quantity
+                        if quantity > line.quantity:
+                            quantity = line.quantity
+                        rejected_lines.append({
+                            'line': line,
+                            'quantity': quantity,
+                        })
+            except (ValueError, InvalidOperation):
+                pass
         
-        if not selected_lines:
-            messages.error(request, _('Please select at least one line to approve.'))
+        # Validate that approved + rejected quantities don't exceed original for each line
+        # Check all lines that have either approval or rejection
+        all_processed_lines = {}
+        for item in approved_lines:
+            line_id = item['line'].pk
+            all_processed_lines[line_id] = {
+                'line': item['line'],
+                'approved': item['quantity'],
+                'rejected': Decimal('0')
+            }
+        for item in rejected_lines:
+            line_id = item['line'].pk
+            if line_id in all_processed_lines:
+                all_processed_lines[line_id]['rejected'] = item['quantity']
+            else:
+                all_processed_lines[line_id] = {
+                    'line': item['line'],
+                    'approved': Decimal('0'),
+                    'rejected': item['quantity']
+                }
+        
+        # Validate each processed line
+        for line_id, data in all_processed_lines.items():
+            total = data['approved'] + data['rejected']
+            if total > data['line'].quantity:
+                messages.error(request, _('For line {item}, total approved and rejected quantities ({total}) exceed original quantity ({original}).').format(
+                    item=data['line'].item.name,
+                    total=total,
+                    original=data['line'].quantity
+                ))
+                return HttpResponseRedirect(reverse('qc:temporary_receipt_line_selection', kwargs={'pk': receipt.pk}))
+        
+        if not approved_lines and not rejected_lines:
+            messages.error(request, _('Please select at least one line to approve or reject.'))
             return HttpResponseRedirect(reverse('qc:temporary_receipt_line_selection', kwargs={'pk': receipt.pk}))
         
         with transaction.atomic():
-            # Update each selected line with QC approval
-            for item in selected_lines:
+            # Update each approved line
+            for item in approved_lines:
                 line = item['line']
                 line.is_qc_approved = 1
                 line.qc_approved_quantity = item['quantity']
                 line.qc_approval_notes = item['notes']
                 line.save(update_fields=['is_qc_approved', 'qc_approved_quantity', 'qc_approval_notes'])
             
-            # Update receipt header with QC approval
+            # Update each rejected line
+            for item in rejected_lines:
+                line = item['line']
+                line.is_qc_rejected = 1
+                line.qc_rejected_quantity = item['quantity']
+                # rejection_reason will be set later in rejection management view
+                line.save(update_fields=['is_qc_rejected', 'qc_rejected_quantity'])
+            
+            # Determine receipt status based on lines
+            # If all lines are approved, status = APPROVED
+            # If all lines are rejected, status = CLOSED
+            # If mixed, status = APPROVED (but some lines are rejected)
+            has_approved = len(approved_lines) > 0
+            has_rejected = len(rejected_lines) > 0
+            
+            if has_approved and not has_rejected:
+                receipt.status = inventory_models.ReceiptTemporary.Status.APPROVED
+            elif has_rejected and not has_approved:
+                receipt.status = inventory_models.ReceiptTemporary.Status.CLOSED
+            else:
+                # Mixed: some approved, some rejected
+                receipt.status = inventory_models.ReceiptTemporary.Status.APPROVED
+            
+            # Update receipt header
             receipt.qc_approved_by = request.user
             receipt.qc_approved_at = timezone.now()
             receipt.qc_approval_notes = approval_notes
-            receipt.status = inventory_models.ReceiptTemporary.Status.APPROVED
-            receipt.is_locked = 1  # Lock the receipt after approval
+            receipt.is_locked = 1  # Lock the receipt after approval/rejection
             receipt.save(update_fields=['qc_approved_by', 'qc_approved_at', 'qc_approval_notes', 'status', 'is_locked'])
             
-            messages.success(request, _('Selected lines approved for QC. The receipt is now locked and can be converted to a permanent receipt.'))
+            if has_approved and has_rejected:
+                messages.success(request, _('Lines processed. Some lines were approved and some were rejected. You can now manage rejection reasons.'))
+            elif has_approved:
+                messages.success(request, _('Selected lines approved for QC. The receipt is now locked and can be converted to a permanent receipt.'))
+            else:
+                messages.success(request, _('Selected lines rejected for QC. You can now manage rejection reasons.'))
         
         return HttpResponseRedirect(reverse('qc:temporary_receipts'))
 
@@ -211,6 +303,76 @@ class TemporaryReceiptQCRejectView(FeaturePermissionRequiredMixin, QCBaseView, V
             receipt.save()
             
             messages.success(request, _('Temporary receipt rejected for QC. The receipt is now locked and cannot be converted to a permanent receipt.'))
+        
+        return HttpResponseRedirect(reverse('qc:temporary_receipts'))
+
+
+class TemporaryReceiptQCRejectionManagementView(FeaturePermissionRequiredMixin, QCBaseView, TemplateView):
+    """View to manage rejection reasons for rejected lines."""
+    template_name = 'qc/temporary_receipt_rejection_management.html'
+    feature_code = 'qc.inspections'
+    required_action = 'approve'
+    
+    def get_receipt(self):
+        """Get temporary receipt from URL."""
+        return get_object_or_404(
+            inventory_models.ReceiptTemporary,
+            pk=self.kwargs['pk'],
+            company_id=self.request.session.get('active_company_id'),
+            is_enabled=1
+        )
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add receipt and rejected lines to context."""
+        context = super().get_context_data(**kwargs)
+        receipt = self.get_receipt()
+        
+        # Get only rejected lines
+        rejected_lines = receipt.lines.filter(
+            is_enabled=1,
+            is_qc_rejected=1
+        ).select_related('item', 'warehouse').order_by('sort_order', 'id')
+        
+        context['receipt'] = receipt
+        context['rejected_lines'] = rejected_lines
+        context['page_title'] = _('QC Rejection Reasons Management')
+        
+        return context
+
+
+class TemporaryReceiptQCRejectionManagementSaveView(FeaturePermissionRequiredMixin, QCBaseView, View):
+    """View to save rejection reasons for rejected lines."""
+    feature_code = 'qc.inspections'
+    required_action = 'approve'
+    
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseRedirect:
+        """Save rejection reasons for rejected lines."""
+        receipt = get_object_or_404(
+            inventory_models.ReceiptTemporary,
+            pk=kwargs['pk'],
+            company_id=request.session.get('active_company_id'),
+            is_enabled=1
+        )
+        
+        # Get rejected lines and their rejection reasons
+        rejected_lines = receipt.lines.filter(is_enabled=1, is_qc_rejected=1)
+        updated_count = 0
+        
+        with transaction.atomic():
+            for line in rejected_lines:
+                line_id = str(line.pk)
+                rejection_reason_key = f'rejection_reason_{line_id}'
+                rejection_reason = request.POST.get(rejection_reason_key, '').strip()
+                
+                if rejection_reason:
+                    line.qc_rejection_reason = rejection_reason
+                    line.save(update_fields=['qc_rejection_reason'])
+                    updated_count += 1
+        
+        if updated_count > 0:
+            messages.success(request, _('Rejection reasons saved for {count} line(s).').format(count=updated_count))
+        else:
+            messages.warning(request, _('No rejection reasons were provided.'))
         
         return HttpResponseRedirect(reverse('qc:temporary_receipts'))
 

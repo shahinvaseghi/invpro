@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "QC Rejection Reasons Management" %}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span><a href="{% url 'qc:temporary_receipts' %}">{% trans "QC Inspection" %}</a></span>
+<span class="separator">/</span>
+<span>{% trans "Rejection Reasons" %}</span>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+  <div class="receipt-info" style="margin-bottom: 2rem; padding: 1.5rem; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;">
+    <h3 style="margin-top: 0;">{% trans "Temporary Receipt Information" %}</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+      <div>
+        <strong>{% trans "Document Code" %}:</strong><br>
+        <code>{{ receipt.document_code }}</code>
+      </div>
+      <div>
+        <strong>{% trans "Document Date" %}:</strong><br>
+        {{ receipt.document_date|jalali_date }}
+      </div>
+      {% if receipt.supplier %}
+      <div>
+        <strong>{% trans "Supplier" %}:</strong><br>
+        {{ receipt.supplier.name }}
+      </div>
+      {% endif %}
+      {% if receipt.created_by %}
+      <div>
+        <strong>{% trans "Created By" %}:</strong><br>
+        {{ receipt.created_by.get_full_name|default:receipt.created_by.username }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <form method="post" class="entity-form" action="{% url 'qc:temporary_receipt_rejection_management_save' receipt.pk %}">
+    {% csrf_token %}
+    
+    <div class="form-section">
+      <h3>{% trans "Manage Rejection Reasons" %}</h3>
+      <p class="form-text">{% trans "Enter rejection reasons for each rejected line. This information will be used for tracking and reporting." %}</p>
+      
+      <table class="data-table" style="margin-top: 1rem;">
+        <thead>
+          <tr>
+            <th>{% trans "Item" %}</th>
+            <th>{% trans "Warehouse" %}</th>
+            <th>{% trans "Unit" %}</th>
+            <th>{% trans "Rejected Quantity" %}</th>
+            <th>{% trans "Rejection Reason" %} *</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for line in rejected_lines %}
+          <tr>
+            <td>
+              <strong>{{ line.item.name }}</strong><br>
+              <small style="color: #6b7280;"><code>{{ line.item.item_code }}</code></small>
+            </td>
+            <td>{{ line.warehouse.name }}</td>
+            <td>{{ line.unit }}</td>
+            <td style="text-align: right; font-weight: 600; color: #ef4444;">
+              {{ line.qc_rejected_quantity|floatformat:2 }}
+            </td>
+            <td>
+              <textarea 
+                name="rejection_reason_{{ line.pk }}" 
+                id="rejection_reason_{{ line.pk }}"
+                class="form-control"
+                rows="3"
+                required
+                placeholder="{% trans 'Enter rejection reason for this line...' %}">{{ line.qc_rejection_reason }}</textarea>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" style="text-align: center; padding: 2rem; color: #6b7280;">
+              {% trans "No rejected lines found in this receipt." %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% trans "Save Rejection Reasons" %}</button>
+      <a href="{% url 'qc:temporary_receipts' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div>
+
+<style>
+.form-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+}
+
+.receipt-info h3 {
+  margin-top: 0;
+  color: #111827;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.data-table th {
+  background-color: #f3f4f6;
+  padding: 0.75rem;
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.data-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+</style>
+{% endblock %}
+

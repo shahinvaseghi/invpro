@@ -42,8 +42,8 @@
     {% csrf_token %}
     
     <div class="form-section">
-      <h3>{% trans "Select Lines for QC Approval" %}</h3>
-      <p class="form-text">{% trans "Select the lines you want to approve for QC. You can specify approved quantities (which may be less than the original quantity)." %}</p>
+      <h3>{% trans "Select Lines for QC Approval/Rejection" %}</h3>
+      <p class="form-text">{% trans "Select lines to approve or reject. You can approve part of a line and reject the rest. The sum of approved and rejected quantities should not exceed the original quantity." %}</p>
       
       <div class="form-group" style="margin-bottom: 1rem;">
         <label for="approval_notes">{% trans "Approval Notes" %} ({% trans "Optional" %})</label>
@@ -54,13 +54,17 @@
         <thead>
           <tr>
             <th style="width: 50px;">
-              <input type="checkbox" id="select-all" style="cursor: pointer;">
+              <input type="checkbox" id="select-all-approve" style="cursor: pointer;" title="{% trans 'Select All for Approval' %}">
+            </th>
+            <th style="width: 50px;">
+              <input type="checkbox" id="select-all-reject" style="cursor: pointer;" title="{% trans 'Select All for Rejection' %}">
             </th>
             <th>{% trans "Item" %}</th>
             <th>{% trans "Warehouse" %}</th>
             <th>{% trans "Unit" %}</th>
             <th>{% trans "Original Quantity" %}</th>
-            <th>{% trans "Approved Quantity" %} *</th>
+            <th>{% trans "Approve" %}</th>
+            <th>{% trans "Reject" %}</th>
             <th>{% trans "Line Notes" %}</th>
           </tr>
         </thead>
@@ -69,11 +73,19 @@
           <tr>
             <td style="text-align: center;">
               <input type="checkbox" 
-                     name="selected_{{ line.pk }}" 
-                     id="selected_{{ line.pk }}"
-                     class="line-checkbox"
+                     name="selected_approve_{{ line.pk }}" 
+                     id="selected_approve_{{ line.pk }}"
+                     class="line-checkbox-approve"
                      data-line-id="{{ line.pk }}"
-                     {% if not line.is_qc_approved %}checked{% endif %}>
+                     {% if line.is_qc_approved and not line.is_qc_rejected %}checked{% endif %}>
+            </td>
+            <td style="text-align: center;">
+              <input type="checkbox" 
+                     name="selected_reject_{{ line.pk }}" 
+                     id="selected_reject_{{ line.pk }}"
+                     class="line-checkbox-reject"
+                     data-line-id="{{ line.pk }}"
+                     {% if line.is_qc_rejected %}checked{% endif %}>
             </td>
             <td>
               <strong>{{ line.item.name }}</strong><br>
@@ -100,7 +112,7 @@
               <input type="number" 
                      name="approved_quantity_{{ line.pk }}" 
                      id="approved_quantity_{{ line.pk }}"
-                     class="form-control quantity-input"
+                     class="form-control quantity-input-approve"
                      data-line-id="{{ line.pk }}"
                      data-max="{% if line.entered_quantity %}{{ line.entered_quantity }}{% else %}{{ line.quantity }}{% endif %}"
                      value="{% if line.is_qc_approved and line.qc_approved_quantity %}{{ line.qc_approved_quantity|floatformat:2 }}{% elif line.entered_quantity %}{{ line.entered_quantity|floatformat:2 }}{% else %}{{ line.quantity|floatformat:2 }}{% endif %}"
@@ -108,7 +120,21 @@
                      max="{% if line.entered_quantity %}{{ line.entered_quantity }}{% else %}{{ line.quantity }}{% endif %}"
                      step="0.001"
                      style="width: 120px; text-align: right;"
-                     {% if line.is_qc_approved %}disabled{% endif %}>
+                     {% if line.is_qc_approved and not line.is_qc_rejected %}disabled{% endif %}>
+            </td>
+            <td>
+              <input type="number" 
+                     name="rejected_quantity_{{ line.pk }}" 
+                     id="rejected_quantity_{{ line.pk }}"
+                     class="form-control quantity-input-reject"
+                     data-line-id="{{ line.pk }}"
+                     data-max="{% if line.entered_quantity %}{{ line.entered_quantity }}{% else %}{{ line.quantity }}{% endif %}"
+                     value="{% if line.is_qc_rejected and line.qc_rejected_quantity %}{{ line.qc_rejected_quantity|floatformat:2 }}{% else %}0{% endif %}"
+                     min="0"
+                     max="{% if line.entered_quantity %}{{ line.entered_quantity }}{% else %}{{ line.quantity }}{% endif %}"
+                     step="0.001"
+                     style="width: 120px; text-align: right;"
+                     {% if line.is_qc_rejected %}disabled{% endif %}>
             </td>
             <td>
               <input type="text" 
@@ -121,7 +147,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="7" style="text-align: center; padding: 2rem; color: #6b7280;">
+            <td colspan="9" style="text-align: center; padding: 2rem; color: #6b7280;">
               {% trans "No lines found in this receipt." %}
             </td>
           </tr>
@@ -131,7 +157,7 @@
     </div>
 
     <div class="form-actions">
-      <button type="submit" class="btn btn-success">✓ {% trans "Approve Selected Lines" %}</button>
+      <button type="submit" class="btn btn-success">✓ {% trans "Save Approval/Rejection" %}</button>
       <a href="{% url 'qc:temporary_receipts' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
     </div>
   </form>
@@ -179,10 +205,22 @@
   background-color: #f9fafb;
 }
 
-.quantity-input:disabled {
+.quantity-input-approve:disabled,
+.quantity-input-reject:disabled {
   background-color: #f3f4f6;
   color: #9ca3af;
   cursor: not-allowed;
+}
+.quantity-input-reject:not(:disabled) {
+  border-color: #e5e7eb;
+}
+.quantity-input-reject:not(:disabled):focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+.quantity-input-reject:disabled {
+  border-color: #ef4444;
+  background-color: #fef2f2;
 }
 
 .form-actions {
@@ -197,69 +235,173 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const selectAllCheckbox = document.getElementById('select-all');
-  const lineCheckboxes = document.querySelectorAll('.line-checkbox');
-  const quantityInputs = document.querySelectorAll('.quantity-input');
+  const selectAllApprove = document.getElementById('select-all-approve');
+  const selectAllReject = document.getElementById('select-all-reject');
+  const approveCheckboxes = document.querySelectorAll('.line-checkbox-approve');
+  const rejectCheckboxes = document.querySelectorAll('.line-checkbox-reject');
+  const approveQuantityInputs = document.querySelectorAll('.quantity-input-approve');
+  const rejectQuantityInputs = document.querySelectorAll('.quantity-input-reject');
   
-  // Select all functionality
-  if (selectAllCheckbox) {
-    selectAllCheckbox.addEventListener('change', function() {
-      lineCheckboxes.forEach(function(checkbox) {
+  // Function to calculate available quantity for a line
+  function getAvailableQuantity(lineId) {
+    const max = parseFloat(document.getElementById('approved_quantity_' + lineId).getAttribute('data-max')) || 0;
+    const approved = parseFloat(document.getElementById('approved_quantity_' + lineId).value) || 0;
+    const rejected = parseFloat(document.getElementById('rejected_quantity_' + lineId).value) || 0;
+    return max - approved - rejected;
+  }
+  
+  // Function to validate quantities for a line
+  function validateLineQuantities(lineId) {
+    const max = parseFloat(document.getElementById('approved_quantity_' + lineId).getAttribute('data-max')) || 0;
+    const approvedInput = document.getElementById('approved_quantity_' + lineId);
+    const rejectedInput = document.getElementById('rejected_quantity_' + lineId);
+    const approved = parseFloat(approvedInput.value) || 0;
+    const rejected = parseFloat(rejectedInput.value) || 0;
+    const total = approved + rejected;
+    
+    if (total > max) {
+      const excess = total - max;
+      if (rejected > 0) {
+        rejectedInput.value = Math.max(0, rejected - excess).toFixed(2);
+      } else {
+        approvedInput.value = Math.max(0, approved - excess).toFixed(2);
+      }
+      alert('{% trans "Total approved and rejected quantities cannot exceed original quantity" %}: ' + max.toFixed(2));
+      return false;
+    }
+    return true;
+  }
+  
+  // Select all approve functionality
+  if (selectAllApprove) {
+    selectAllApprove.addEventListener('change', function() {
+      approveCheckboxes.forEach(function(checkbox) {
         if (!checkbox.disabled) {
           checkbox.checked = this.checked;
           const lineId = checkbox.getAttribute('data-line-id');
           const quantityInput = document.getElementById('approved_quantity_' + lineId);
           if (quantityInput) {
             quantityInput.disabled = !this.checked;
+            if (!this.checked) {
+              quantityInput.value = '0';
+            } else {
+              const max = quantityInput.getAttribute('data-max');
+              const rejected = parseFloat(document.getElementById('rejected_quantity_' + lineId).value) || 0;
+              quantityInput.value = Math.max(0, parseFloat(max) - rejected).toFixed(2);
+            }
+            validateLineQuantities(lineId);
           }
         }
       }, this);
     });
   }
   
-  // Individual checkbox functionality
-  lineCheckboxes.forEach(function(checkbox) {
+  // Select all reject functionality
+  if (selectAllReject) {
+    selectAllReject.addEventListener('change', function() {
+      rejectCheckboxes.forEach(function(checkbox) {
+        if (!checkbox.disabled) {
+          checkbox.checked = this.checked;
+          const lineId = checkbox.getAttribute('data-line-id');
+          const quantityInput = document.getElementById('rejected_quantity_' + lineId);
+          if (quantityInput) {
+            quantityInput.disabled = !this.checked;
+            if (!this.checked) {
+              quantityInput.value = '0';
+            } else {
+              const max = document.getElementById('approved_quantity_' + lineId).getAttribute('data-max');
+              const approved = parseFloat(document.getElementById('approved_quantity_' + lineId).value) || 0;
+              quantityInput.value = Math.max(0, parseFloat(max) - approved).toFixed(2);
+            }
+            validateLineQuantities(lineId);
+          }
+        }
+      }, this);
+    });
+  }
+  
+  // Individual approve checkbox functionality
+  approveCheckboxes.forEach(function(checkbox) {
     checkbox.addEventListener('change', function() {
       const lineId = this.getAttribute('data-line-id');
       const quantityInput = document.getElementById('approved_quantity_' + lineId);
       if (quantityInput) {
         quantityInput.disabled = !this.checked;
         if (!this.checked) {
+          // Only clear if value is 0 or empty
+          const currentValue = parseFloat(quantityInput.value) || 0;
+          if (currentValue === 0) {
+            quantityInput.value = '0';
+          }
+        } else {
+          // When checked, set default value if current is 0
+          const currentValue = parseFloat(quantityInput.value) || 0;
+          if (currentValue === 0) {
+            const max = quantityInput.getAttribute('data-max');
+            const rejected = parseFloat(document.getElementById('rejected_quantity_' + lineId).value) || 0;
+            quantityInput.value = Math.max(0, parseFloat(max) - rejected).toFixed(2);
+          }
+        }
+        validateLineQuantities(lineId);
+      }
+    });
+  });
+  
+  // Individual reject checkbox functionality
+  rejectCheckboxes.forEach(function(checkbox) {
+    checkbox.addEventListener('change', function() {
+      const lineId = this.getAttribute('data-line-id');
+      const quantityInput = document.getElementById('rejected_quantity_' + lineId);
+      if (quantityInput) {
+        quantityInput.disabled = !this.checked;
+        if (!this.checked) {
           quantityInput.value = '0';
         } else {
-          const max = quantityInput.getAttribute('data-max');
-          quantityInput.value = max || '0';
+          const max = document.getElementById('approved_quantity_' + lineId).getAttribute('data-max');
+          const approved = parseFloat(document.getElementById('approved_quantity_' + lineId).value) || 0;
+          quantityInput.value = Math.max(0, parseFloat(max) - approved).toFixed(2);
         }
+        validateLineQuantities(lineId);
       }
     });
   });
   
-  // Quantity validation
-  quantityInputs.forEach(function(input) {
+  // Approve quantity validation
+  approveQuantityInputs.forEach(function(input) {
     input.addEventListener('change', function() {
-      const max = parseFloat(this.getAttribute('data-max')) || 0;
-      const value = parseFloat(this.value) || 0;
-      if (value > max) {
-        this.value = max.toFixed(2);
-        alert('{% trans "Approved quantity cannot exceed requested quantity" %}: ' + max.toFixed(2));
-      }
-      if (value < 0) {
-        this.value = '0';
-      }
+      const lineId = this.getAttribute('data-line-id');
+      validateLineQuantities(lineId);
     });
   });
   
-  // Update select all checkbox state
+  // Reject quantity validation
+  rejectQuantityInputs.forEach(function(input) {
+    input.addEventListener('change', function() {
+      const lineId = this.getAttribute('data-line-id');
+      validateLineQuantities(lineId);
+    });
+  });
+  
+  // Update select all checkboxes state
   function updateSelectAll() {
-    if (selectAllCheckbox && lineCheckboxes.length > 0) {
-      const checkedCount = Array.from(lineCheckboxes).filter(cb => cb.checked && !cb.disabled).length;
-      const enabledCount = Array.from(lineCheckboxes).filter(cb => !cb.disabled).length;
-      selectAllCheckbox.checked = checkedCount === enabledCount && enabledCount > 0;
-      selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < enabledCount;
+    if (selectAllApprove && approveCheckboxes.length > 0) {
+      const checkedCount = Array.from(approveCheckboxes).filter(cb => cb.checked && !cb.disabled).length;
+      const enabledCount = Array.from(approveCheckboxes).filter(cb => !cb.disabled).length;
+      selectAllApprove.checked = checkedCount === enabledCount && enabledCount > 0;
+      selectAllApprove.indeterminate = checkedCount > 0 && checkedCount < enabledCount;
+    }
+    if (selectAllReject && rejectCheckboxes.length > 0) {
+      const checkedCount = Array.from(rejectCheckboxes).filter(cb => cb.checked && !cb.disabled).length;
+      const enabledCount = Array.from(rejectCheckboxes).filter(cb => !cb.disabled).length;
+      selectAllReject.checked = checkedCount === enabledCount && enabledCount > 0;
+      selectAllReject.indeterminate = checkedCount > 0 && checkedCount < enabledCount;
     }
   }
   
-  lineCheckboxes.forEach(function(checkbox) {
+  approveCheckboxes.forEach(function(checkbox) {
+    checkbox.addEventListener('change', updateSelectAll);
+  });
+  rejectCheckboxes.forEach(function(checkbox) {
     checkbox.addEventListener('change', updateSelectAll);
   });
   

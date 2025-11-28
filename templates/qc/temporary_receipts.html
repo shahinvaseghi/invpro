@@ -200,7 +200,14 @@
             </td>
             <td>
               {% if receipt.is_locked %}
-                <span style="color: #6b7280; font-size: 0.85rem;">{% trans "Locked - No actions available" %}</span>
+                <div class="action-buttons">
+                  {% if receipt.rejected_lines_count > 0 %}
+                    <a href="{% url 'qc:temporary_receipt_rejection_management' receipt.pk %}" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem; text-decoration: none; display: inline-block;">
+                      📝 {% trans "Manage Rejection Reasons" %}
+                    </a>
+                  {% endif %}
+                  <span style="color: #6b7280; font-size: 0.85rem;">{% trans "Locked" %}</span>
+                </div>
               {% else %}
                 <div class="action-buttons">
                   <a href="{% url 'qc:temporary_receipt_line_selection' receipt.pk %}" class="btn btn-success" style="padding: 4px 12px; font-size: 0.85rem; text-decoration: none; display: inline-block;">

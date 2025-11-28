@@ -1579,6 +1579,17 @@ class ReceiptTemporaryLine(ReceiptLineBase):
         help_text=_("Quantity approved by QC (can be less than original quantity)")
     )
     qc_approval_notes = models.TextField(blank=True, help_text=_("QC approval notes for this line"))
+    # QC rejection fields
+    is_qc_rejected = models.PositiveSmallIntegerField(default=0, help_text=_("Whether this line is rejected by QC"))
+    qc_rejected_quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        validators=[POSITIVE_DECIMAL],
+        help_text=_("Quantity rejected by QC")
+    )
+    qc_rejection_reason = models.TextField(blank=True, help_text=_("QC rejection reason for this line"))
     
     class Meta:
         verbose_name = _("Temporary Receipt Line")

@@ -16,6 +16,8 @@ from qc.views.inspections import (
     TemporaryReceiptQCLineSelectionView,
     TemporaryReceiptQCApproveView,
     TemporaryReceiptQCRejectView,
+    TemporaryReceiptQCRejectionManagementView,
+    TemporaryReceiptQCRejectionManagementSaveView,
 )
 
 __all__ = [
@@ -26,5 +28,7 @@ __all__ = [
     'TemporaryReceiptQCLineSelectionView',
     'TemporaryReceiptQCApproveView',
     'TemporaryReceiptQCRejectView',
+    'TemporaryReceiptQCRejectionManagementView',
+    'TemporaryReceiptQCRejectionManagementSaveView',
 ]
 
