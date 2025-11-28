@@ -285,62 +285,7 @@
               </div>
               {% endif %}
 
-              {% if 'unit_price' in line_form.fields or 'unit_cost' in line_form.fields or 'unit_price_estimate' in line_form.fields %}
-              <div class="form-row">
-                {% if 'unit_price' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_price.label }}</label>
-                  {{ line_form.unit_price }}
-                  {% if line_form.unit_price.errors %}
-                    <span class="error">{{ line_form.unit_price.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'entered_price_unit' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.entered_price_unit.label }}{% if line_form.entered_price_unit.field.required %}*{% endif %}</label>
-                  {{ line_form.entered_price_unit }}
-                  {% if line_form.entered_price_unit.errors %}
-                    <span class="error">{{ line_form.entered_price_unit.errors.0 }}</span>
-                  {% endif %}
-                  {% if line_form.entered_price_unit.help_text %}
-                    <small class="form-text text-muted">{{ line_form.entered_price_unit.help_text }}</small>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'unit_cost' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_cost.label }}</label>
-                  {{ line_form.unit_cost }}
-                  {% if line_form.unit_cost.errors %}
-                    <span class="error">{{ line_form.unit_cost.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'unit_price_estimate' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_price_estimate.label }}</label>
-                  {{ line_form.unit_price_estimate }}
-                  {% if line_form.unit_price_estimate.errors %}
-                    <span class="error">{{ line_form.unit_price_estimate.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'currency' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.currency.label }}</label>
-                  {{ line_form.currency }}
-                  {% if line_form.currency.errors %}
-                    <span class="error">{{ line_form.currency.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-              </div>
-              {% endif %}
+              {# Price fields removed - moved to accounting module #}
 
               {% if 'expected_receipt_date' in line_form.fields %}
               <div class="form-row">
@@ -640,62 +585,7 @@
               </div>
               {% endif %}
 
-              {% if 'unit_price' in line_form.fields or 'unit_cost' in line_form.fields or 'unit_price_estimate' in line_form.fields %}
-              <div class="form-row">
-                {% if 'unit_price' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_price.label }}</label>
-                  {{ line_form.unit_price }}
-                  {% if line_form.unit_price.errors %}
-                    <span class="error">{{ line_form.unit_price.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'entered_price_unit' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.entered_price_unit.label }}{% if line_form.entered_price_unit.field.required %}*{% endif %}</label>
-                  {{ line_form.entered_price_unit }}
-                  {% if line_form.entered_price_unit.errors %}
-                    <span class="error">{{ line_form.entered_price_unit.errors.0 }}</span>
-                  {% endif %}
-                  {% if line_form.entered_price_unit.help_text %}
-                    <small class="form-text text-muted">{{ line_form.entered_price_unit.help_text }}</small>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'unit_cost' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_cost.label }}</label>
-                  {{ line_form.unit_cost }}
-                  {% if line_form.unit_cost.errors %}
-                    <span class="error">{{ line_form.unit_cost.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'unit_price_estimate' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_price_estimate.label }}</label>
-                  {{ line_form.unit_price_estimate }}
-                  {% if line_form.unit_price_estimate.errors %}
-                    <span class="error">{{ line_form.unit_price_estimate.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'currency' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.currency.label }}</label>
-                  {{ line_form.currency }}
-                  {% if line_form.currency.errors %}
-                    <span class="error">{{ line_form.currency.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-              </div>
-              {% endif %}
+              {# Price fields removed - moved to accounting module #}
 
               {% if 'expected_receipt_date' in line_form.fields %}
               <div class="form-row">
@@ -992,62 +882,7 @@
               </div>
               {% endif %}
 
-              {% if 'unit_price' in line_form.fields or 'unit_cost' in line_form.fields or 'unit_price_estimate' in line_form.fields %}
-              <div class="form-row">
-                {% if 'unit_price' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_price.label }}</label>
-                  {{ line_form.unit_price }}
-                  {% if line_form.unit_price.errors %}
-                    <span class="error">{{ line_form.unit_price.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'entered_price_unit' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.entered_price_unit.label }}{% if line_form.entered_price_unit.field.required %}*{% endif %}</label>
-                  {{ line_form.entered_price_unit }}
-                  {% if line_form.entered_price_unit.errors %}
-                    <span class="error">{{ line_form.entered_price_unit.errors.0 }}</span>
-                  {% endif %}
-                  {% if line_form.entered_price_unit.help_text %}
-                    <small class="form-text text-muted">{{ line_form.entered_price_unit.help_text }}</small>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'unit_cost' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_cost.label }}</label>
-                  {{ line_form.unit_cost }}
-                  {% if line_form.unit_cost.errors %}
-                    <span class="error">{{ line_form.unit_cost.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'unit_price_estimate' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_price_estimate.label }}</label>
-                  {{ line_form.unit_price_estimate }}
-                  {% if line_form.unit_price_estimate.errors %}
-                    <span class="error">{{ line_form.unit_price_estimate.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'currency' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.currency.label }}</label>
-                  {{ line_form.currency }}
-                  {% if line_form.currency.errors %}
-                    <span class="error">{{ line_form.currency.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-              </div>
-              {% endif %}
+              {# Price fields removed - moved to accounting module #}
 
               {% if 'expected_receipt_date' in line_form.fields %}
               <div class="form-row">

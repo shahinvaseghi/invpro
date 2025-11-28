@@ -427,13 +427,6 @@ class ReceiptLineBaseForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-control'}),
     )
     
-    entered_price_unit = forms.CharField(
-        label=_('Entered Price Unit'),
-        required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Optional: unit for price (e.g., BOX)')}),
-        help_text=_("Unit for entered_unit_price (e.g., BOX, CARTON). If empty, same as entered_unit."),
-    )
-    
     class Meta:
         abstract = True
     
@@ -460,7 +453,6 @@ class ReceiptLineBaseForm(forms.ModelForm):
         self._unit_factor = Decimal('1')
         self._entered_unit_value = None
         self._entered_quantity_value = None
-        self._entered_unit_price_value = None
         
         if self.company_id:
             if 'item' in self.fields:
@@ -532,18 +524,6 @@ class ReceiptLineBaseForm(forms.ModelForm):
         if 'unit' in self.fields:
             self.fields['unit'].choices = UNIT_CHOICES
         
-        # Ensure entered_price_unit is a CharField, not ChoiceField
-        if 'entered_price_unit' in self.fields:
-            self.fields['entered_price_unit'].required = False
-            # Make sure it's not a ChoiceField (Django might auto-convert it)
-            if isinstance(self.fields['entered_price_unit'], forms.ChoiceField):
-                # Convert to CharField
-                self.fields['entered_price_unit'] = forms.CharField(
-                    label=self.fields['entered_price_unit'].label,
-                    required=False,
-                    widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Optional: unit for price (e.g., BOX)')}),
-                    help_text=_("Unit for entered_unit_price (e.g., BOX, CARTON). If empty, same as entered_unit."),
-                )
         
         # Restore entered values if editing
         logger.info(f"Form is_bound: {self.is_bound}")
@@ -618,15 +598,6 @@ class ReceiptLineBaseForm(forms.ModelForm):
             
             if 'quantity' in self.fields and getattr(self.instance, 'entered_quantity', None) is not None:
                 self.initial['quantity'] = self.instance.entered_quantity
-            entry_price = getattr(self.instance, 'entered_unit_price', None)
-            if 'unit_price' in self.fields and entry_price is not None:
-                self.initial['unit_price'] = entry_price
-            if 'unit_price_estimate' in self.fields and entry_price is not None:
-                self.initial['unit_price_estimate'] = entry_price
-            if 'entered_price_unit' in self.fields:
-                entered_price_unit = getattr(self.instance, 'entered_price_unit', '') or getattr(self.instance, 'entered_unit', '')
-                if entered_price_unit:
-                    self.initial['entered_price_unit'] = entered_price_unit
     
     def _set_unit_choices_for_item(self, item: Optional[Item]) -> None:
         """Set unit choices based on item."""
@@ -895,120 +866,24 @@ class ReceiptLineBaseForm(forms.ModelForm):
         self.instance.unit = item.default_unit
         self.instance.quantity = cleaned_data['quantity']
     
-    def _normalize_price(self, cleaned_data: Dict[str, Any]) -> None:
-        """Normalize price to base unit and save entered value.
-        
-        Logic:
-        - entered_unit_price: Price as entered by user
-        - entered_price_unit: Unit for entered_unit_price (if empty, same as entered_unit)
-        - unit_price: Price normalized to item's default_unit (EA)
-        
-        If entered_price_unit is provided, use it for price normalization.
-        Otherwise, assume price is for the same unit as quantity (entered_unit).
-        """
-        if 'unit' not in self.fields:
-            return
-        item = self._resolve_item(cleaned_data.get('item'))
-        if not item:
-            return
-        
-        # Get the entered unit for quantity (before normalization)
-        entered_unit = getattr(self, '_entered_unit_value', None) or cleaned_data.get('unit')
-        
-        # Get the entered unit for price (if specified, otherwise use entered_unit)
-        entered_price_unit = cleaned_data.get('entered_price_unit', '').strip()
-        if not entered_price_unit:
-            entered_price_unit = entered_unit
-        
-        # Calculate price factor: convert from entered_price_unit to default_unit
-        # IMPORTANT: For price, we need the INVERSE of the quantity factor
-        # Quantity: 1 BOX = 1000 EA, so factor = 1000 (multiply BOX by 1000 to get EA)
-        # Price: 100000 per BOX -> ? per EA
-        # If 1 BOX = 1000 EA, then price per EA = price per BOX / 1000
-        # So we need to DIVIDE by the quantity factor, not multiply
-        if entered_price_unit and entered_price_unit != item.default_unit:
-            quantity_factor = self._get_unit_factor(item, entered_price_unit)
-            # For price conversion, we need the inverse: price per larger unit -> price per smaller unit
-            # Example: 100000 per BOX, 1 BOX = 1000 EA -> 100000 / 1000 = 100 per EA
-            price_factor = Decimal('1') / quantity_factor if quantity_factor != Decimal('0') else Decimal('1')
-        else:
-            price_factor = Decimal('1')
-        
-        # Handle unit_price
-        if 'unit_price' in self.fields:
-            unit_price = cleaned_data.get('unit_price')
-            if unit_price not in (None, ''):
-                if not isinstance(unit_price, Decimal):
-                    try:
-                        unit_price = Decimal(str(unit_price))
-                    except (InvalidOperation, TypeError):
-                        return
-                
-                # Save entered price (as entered by user, for entered_price_unit)
-                self._entered_unit_price_value = unit_price
-                
-                # Convert to base unit price: price per entered_price_unit -> price per default_unit
-                # Example: 100000 per BOX -> 100 per EA (if 1 BOX = 1000 EA, so divide by 1000)
-                cleaned_data['unit_price'] = unit_price * price_factor
-        
-        # Handle unit_price_estimate
-        if 'unit_price_estimate' in self.fields:
-            unit_price_estimate = cleaned_data.get('unit_price_estimate')
-            if unit_price_estimate not in (None, ''):
-                if not isinstance(unit_price_estimate, Decimal):
-                    try:
-                        unit_price_estimate = Decimal(str(unit_price_estimate))
-                    except (InvalidOperation, TypeError):
-                        return
-                # Save entered price (same as unit_price for estimate)
-                if self._entered_unit_price_value is None:
-                    self._entered_unit_price_value = unit_price_estimate
-                # Convert to base unit price using price_factor (inverse of quantity factor)
-                cleaned_data['unit_price_estimate'] = unit_price_estimate * price_factor
-    
-    def clean_entered_price_unit(self) -> str:
-        """Validate entered_price_unit."""
-        entered_price_unit = self.cleaned_data.get('entered_price_unit', '').strip()
-        # If provided, validate it's a valid unit for the item
-        if entered_price_unit:
-            item = self._resolve_item(self.cleaned_data.get('item'))
-            if item:
-                allowed_units = {row['value'] for row in self._get_item_allowed_units(item)}
-                if entered_price_unit not in allowed_units:
-                    # Don't raise error, just warn - user might enter a unit that's not in the list
-                    # But we'll use it anyway for price normalization
-                    pass
-        return entered_price_unit
-    
     def clean(self) -> Dict[str, Any]:
         """Validate and normalize form data."""
         cleaned_data = super().clean()
         self._validate_unit(cleaned_data)
         self._normalize_quantity(cleaned_data)
-        self._normalize_price(cleaned_data)
         return cleaned_data
     
     def save(self, commit: bool = True):
         """Save form instance with entered values."""
         instance = super().save(commit=False)
         
-        # Save entered unit, quantity, and price
+        # Save entered unit and quantity
         entered_unit = self._entered_unit_value or getattr(instance, 'entered_unit', '') or instance.unit
         instance.entered_unit = entered_unit
         if self._entered_quantity_value is not None:
             instance.entered_quantity = self._entered_quantity_value
         elif instance.entered_quantity is None:
             instance.entered_quantity = instance.quantity
-        if self._entered_unit_price_value is not None:
-            instance.entered_unit_price = self._entered_unit_price_value
-            # Save entered_price_unit if provided, otherwise use entered_unit
-            entered_price_unit = self.cleaned_data.get('entered_price_unit', '').strip()
-            if not entered_price_unit:
-                entered_price_unit = entered_unit
-            instance.entered_price_unit = entered_price_unit
-        elif hasattr(instance, 'entered_price_unit') and not instance.entered_price_unit:
-            # If no price entered, set entered_price_unit to entered_unit for consistency
-            instance.entered_price_unit = entered_unit
         
         if commit:
             instance.save()
@@ -1023,9 +898,8 @@ class ReceiptPermanentLineForm(ReceiptLineBaseForm):
         model = ReceiptPermanentLine
         fields = [
             'item', 'warehouse', 'unit', 'quantity',
-            'entered_unit', 'entered_quantity', 'entered_unit_price', 'entered_price_unit',
+            'entered_unit', 'entered_quantity',
             'supplier',
-            'unit_price', 'currency', 'tax_amount', 'discount_amount', 'total_amount',
             'line_notes',
         ]
         widgets = {
@@ -1034,12 +908,6 @@ class ReceiptPermanentLineForm(ReceiptLineBaseForm):
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'entered_unit': forms.TextInput(attrs={'class': 'form-control'}),
             'entered_quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'entered_unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'entered_price_unit': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Optional: unit for price (e.g., BOX)')}),
-            'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'tax_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'discount_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'total_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
     
@@ -1100,9 +968,8 @@ class ReceiptConsignmentLineForm(ReceiptLineBaseForm):
         model = ReceiptConsignmentLine
         fields = [
             'item', 'warehouse', 'unit', 'quantity',
-            'entered_unit', 'entered_quantity', 'entered_unit_price', 'entered_price_unit',
+            'entered_unit', 'entered_quantity',
             'supplier',
-            'unit_price_estimate', 'currency',
             'line_notes',
         ]
         widgets = {
@@ -1111,9 +978,6 @@ class ReceiptConsignmentLineForm(ReceiptLineBaseForm):
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'entered_unit': forms.TextInput(attrs={'class': 'form-control'}),
             'entered_quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'entered_unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'entered_price_unit': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Optional: unit for price (e.g., BOX)')}),
-            'unit_price_estimate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
 
@@ -1149,7 +1013,7 @@ class ReceiptTemporaryLineForm(ReceiptLineBaseForm):
         model = ReceiptTemporaryLine
         fields = [
             'item', 'warehouse', 'unit', 'quantity',
-            'entered_unit', 'entered_quantity', 'entered_unit_price', 'entered_price_unit',
+            'entered_unit', 'entered_quantity',
             'expected_receipt_date',
             'line_notes',
         ]
@@ -1159,8 +1023,6 @@ class ReceiptTemporaryLineForm(ReceiptLineBaseForm):
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'entered_unit': forms.TextInput(attrs={'class': 'form-control'}),
             'entered_quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'entered_unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'entered_price_unit': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Optional: unit for price (e.g., BOX)')}),
             'expected_receipt_date': JalaliDateInput(attrs={'class': 'form-control'}),
             'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }

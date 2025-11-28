@@ -55,7 +55,6 @@
             <th>{% trans "Quantity" %}</th>
             {% if issue_variant == 'permanent' %}
             <th>{% trans "Destination" %}</th>
-            <th>{% trans "Unit Price" %}</th>
             {% endif %}
             {% if issue_variant == 'consumption' %}
             <th>{% trans "Consumption Type" %}</th>
@@ -82,13 +81,6 @@
             <td>
               {% if line.destination_code %}
                 {{ line.destination_code }}
-              {% else %}
-                -
-              {% endif %}
-            </td>
-            <td style="text-align: right;">
-              {% if line.unit_price %}
-                {{ line.unit_price|floatformat:2 }}
               {% else %}
                 -
               {% endif %}

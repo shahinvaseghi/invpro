@@ -98,7 +98,7 @@
 | README File | Source File | Status | Notes |
 |-------------|-------------|--------|-------|
 | `ticketing/views/README_BASE.md` | `ticketing/views/base.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `ticketing/views/README_CATEGORIES.md` | `ticketing/views/categories.py` | ✅ Updated | بررسی شد - مستندات کامل است |
+| `ticketing/views/README_CATEGORIES.md` | `ticketing/views/categories.py` | ✅ Updated | به‌روزرسانی شد - جزئیات form_valid برای CreateView و UpdateView تکمیل شد |
 | `ticketing/views/README_SUBCATEGORIES.md` | `ticketing/views/subcategories.py` | ✅ Updated | بررسی شد - مستندات کامل است |
 | `ticketing/views/README_TEMPLATES.md` | `ticketing/views/templates.py` | ✅ Updated | بررسی شد - مستندات کامل است |
 | `ticketing/views/README_TICKETS.md` | `ticketing/views/tickets.py` | ✅ Updated | به‌روزرسانی شد - جزئیات get_context_data, get_initial, و permission checking اضافه شد |
@@ -131,7 +131,7 @@
 | `shared/views/README_GROUPS.md` | `shared/views/groups.py` | ✅ Updated | بررسی شد - مستندات کامل است |
 | `shared/views/README_COMPANY_UNITS.md` | `shared/views/company_units.py` | ✅ Updated | بررسی شد - مستندات کامل است |
 | `shared/views/README_AUTH.md` | `shared/views/auth.py` | ✅ Updated | به‌روزرسانی شد - mark_notification_unread اضافه شد، مستندات mark_notification_read اصلاح شد |
-| `shared/views/README_SMTP_SERVER.md` | `shared/views/smtp_server.py` | ✅ Updated | بررسی شد - مستندات کامل است |
+| `shared/views/README_SMTP_SERVER.md` | `shared/views/smtp_server.py` | ✅ Updated | به‌روزرسانی شد - جزئیات form_valid و delete تکمیل شد |
 | `shared/views/README_BASE.md` | `shared/views/base.py` | ✅ Updated | به‌روزرسانی شد - متدهای واقعی اضافه شد، متدهای نادرست حذف شد |
 
 ### Forms

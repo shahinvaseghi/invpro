@@ -941,7 +941,6 @@ class IssuePermanentLineForm(IssueLineBaseForm):
             'item', 'warehouse', 'unit', 'quantity',
             'entered_unit', 'entered_quantity',
             'destination_type', 'destination_id', 'destination_code', 'reason_code',
-            'unit_price', 'currency', 'tax_amount', 'discount_amount', 'total_amount',
             'line_notes',
         ]
         widgets = {
@@ -953,10 +952,6 @@ class IssuePermanentLineForm(IssueLineBaseForm):
             'destination_id': forms.NumberInput(attrs={'class': 'form-control'}),
             'destination_code': forms.TextInput(attrs={'class': 'form-control'}),
             'reason_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'tax_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'discount_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'total_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
     
@@ -1074,7 +1069,6 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
             'consumption_type', 'work_line',  # consumption_type is hidden, managed by destination_type_choice
             'reference_document_type', 'reference_document_id', 'reference_document_code',
             'production_transfer_id', 'production_transfer_code',
-            'unit_cost', 'total_cost', 'cost_center_code',
             'line_notes',
         ]
         widgets = {
@@ -1090,9 +1084,6 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
             'reference_document_code': forms.TextInput(attrs={'class': 'form-control'}),
             'production_transfer_id': forms.NumberInput(attrs={'class': 'form-control'}),
             'production_transfer_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'unit_cost': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'total_cost': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'cost_center_code': forms.HiddenInput(),  # Hidden, used internally for company_unit storage
             'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
     
@@ -1159,18 +1150,9 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
                 self.initial['consumption_type'] = dest_type
             
             if dest_type == 'company_unit':
-                # Try to get company unit from cost_center_code (where we stored it)
-                if hasattr(self.instance, 'cost_center_code') and self.instance.cost_center_code:
-                    try:
-                        unit = CompanyUnit.objects.get(
-                            company_id=self.company_id,
-                            public_code=self.instance.cost_center_code
-                        )
-                        self.initial['destination_type_choice'] = 'company_unit'
-                        self.initial['destination_company_unit'] = unit.id
-                        # Show the company unit field container (JavaScript will handle display)
-                    except CompanyUnit.DoesNotExist:
-                        pass
+                # Note: company_unit destination is stored in consumption_type only
+                # We can't retrieve the specific company_unit without destination_id field
+                self.initial['destination_type_choice'] = 'company_unit'
             elif dest_type == 'work_line' and self.instance.work_line and WorkLine:
                 self.initial['destination_type_choice'] = 'work_line'
                 self.initial['destination_work_line'] = self.instance.work_line.id
@@ -1218,23 +1200,10 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
         # Set destination based on choice
         if dest_type_choice == 'company_unit' and dest_company_unit:
             instance.consumption_type = 'company_unit'
-            # For company_unit, we store the unit ID in a way we can retrieve it later
-            # Since IssueConsumptionLine doesn't have destination_id, we can store it in cost_center_code as temporary solution
-            # Or we need to check if model has these fields
             instance.work_line = None
-            # Store company unit code in cost_center_code for now (or we could add destination fields to model)
-            if hasattr(instance, 'cost_center_code'):
-                instance.cost_center_code = dest_company_unit.public_code
         elif dest_type_choice == 'work_line' and dest_work_line and WorkLine:
             instance.consumption_type = 'work_line'
             instance.work_line = dest_work_line
-            if hasattr(instance, 'cost_center_code') and instance.cost_center_code:
-                # Clear cost_center_code if it was used for company_unit
-                try:
-                    CompanyUnit.objects.get(public_code=instance.cost_center_code)
-                    instance.cost_center_code = ''
-                except CompanyUnit.DoesNotExist:
-                    pass
         else:
             # If no choice made, this should have been caught by validation
             # But if we reach here, it means validation didn't catch it

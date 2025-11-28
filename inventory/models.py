@@ -1329,35 +1329,6 @@ class IssuePermanentLine(IssueLineBase):
     destination_id = models.BigIntegerField(null=True, blank=True)
     destination_code = models.CharField(max_length=30, blank=True)
     reason_code = models.CharField(max_length=30, blank=True)
-    unit_price = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, blank=True)
-    tax_amount = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    discount_amount = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    total_amount = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
     serials = models.ManyToManyField(
         "inventory.ItemSerial",
         related_name="issue_permanent_lines",
@@ -1391,21 +1362,6 @@ class IssueConsumptionLine(IssueLineBase):
     reference_document_code = models.CharField(max_length=30, blank=True)
     production_transfer_id = models.BigIntegerField(null=True, blank=True)
     production_transfer_code = models.CharField(max_length=30, blank=True)
-    unit_cost = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    total_cost = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    cost_center_code = models.CharField(max_length=30, blank=True)
     work_line = models.ForeignKey(
         "production.WorkLine",
         on_delete=models.SET_NULL,
@@ -1518,18 +1474,6 @@ class ReceiptLineBase(InventoryBaseModel, SortableModel):
         blank=True,
         validators=[POSITIVE_DECIMAL],
     )
-    entered_unit_price = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        null=True,
-        blank=True,
-        validators=[POSITIVE_DECIMAL],
-    )
-    entered_price_unit = models.CharField(
-        max_length=30,
-        blank=True,
-        help_text=_("Unit for entered_unit_price (e.g., BOX, CARTON). If empty, same as entered_unit."),
-    )
     line_notes = models.TextField(blank=True)
     
     class Meta:
@@ -1560,35 +1504,6 @@ class ReceiptPermanentLine(ReceiptLineBase):
         blank=True,
     )
     supplier_code = models.CharField(max_length=6, validators=[NUMERIC_CODE_VALIDATOR], blank=True)
-    unit_price = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, blank=True)
-    tax_amount = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    discount_amount = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    total_amount = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
     serials = models.ManyToManyField(
         "inventory.ItemSerial",
         related_name="receipt_permanent_lines",
@@ -1628,14 +1543,6 @@ class ReceiptConsignmentLine(ReceiptLineBase):
         related_name="consignment_receipt_lines",
     )
     supplier_code = models.CharField(max_length=6, validators=[NUMERIC_CODE_VALIDATOR])
-    unit_price_estimate = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, blank=True)
     serials = models.ManyToManyField(
         "inventory.ItemSerial",
         related_name="receipt_consignment_lines",

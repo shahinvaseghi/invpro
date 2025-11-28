@@ -72,9 +72,33 @@
 - `required_action`: `'create'`
 
 **متدها**:
-- `get_form_kwargs()`: اضافه کردن `request` به form
-- `get_context_data()`: اضافه کردن `permission_formset`
-- `form_valid()`: ذخیره category و permissions، تنظیم `company_id` برای permissions
+
+#### `get_form_kwargs(self) -> Dict[str, Any]`
+- اضافه کردن `request` به form (از طریق ایجاد form instance و تنظیم `form.request`)
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+- اضافه کردن `page_title = _('Create Category')`
+- ساخت `permission_formset`:
+  - اگر POST: از POST data
+  - اگر GET: empty formset
+  - تنظیم `request` روی تمام forms در formset
+
+#### `form_valid(self, form: TicketCategoryForm) -> HttpResponseRedirect`
+**منطق**:
+1. تنظیم `company_id` از session به `form.instance.company_id`
+2. ذخیره category با `super().form_valid(form)`
+3. ساخت `permission_formset` از POST data با instance
+4. تنظیم `request` روی تمام forms در formset
+5. اگر formset valid باشد:
+   - فراخوانی `permission_formset.save(commit=False)`
+   - برای هر permission:
+     - تنظیم `company_id`
+     - تنظیم `category_code` از `category.public_code`
+     - ذخیره permission
+6. اگر formset invalid باشد:
+   - بازگشت `form_invalid(form)`
+7. نمایش پیام موفقیت
+8. بازگشت response
 
 **URL**: `/ticketing/categories/create/`
 
@@ -101,10 +125,37 @@
 - `required_action`: `'edit_own'`
 
 **متدها**:
-- `get_form_kwargs()`: اضافه کردن `request` به form
-- `get_queryset()`: فیلتر بر اساس company
-- `get_context_data()`: اضافه کردن `permission_formset`
-- `form_valid()`: ذخیره category و permissions
+
+#### `get_form_kwargs(self) -> Dict[str, Any]`
+- اضافه کردن `request` به form (از طریق ایجاد form instance و تنظیم `form.request`)
+
+#### `get_queryset(self) -> QuerySet`
+- فیلتر بر اساس `active_company_id` از session
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+- اضافه کردن `page_title = _('Edit Category')`
+- ساخت `permission_formset`:
+  - اگر POST: از POST data
+  - اگر GET: از instance
+  - تنظیم `request` روی تمام forms در formset
+
+#### `form_valid(self, form: TicketCategoryForm) -> HttpResponseRedirect`
+**منطق**:
+1. ذخیره category با `super().form_valid(form)`
+2. ساخت `permission_formset` از POST data با instance
+3. تنظیم `request` روی تمام forms در formset
+4. اگر formset valid باشد:
+   - دریافت `company_id` از session
+   - فراخوانی `permission_formset.save(commit=False)`
+   - برای هر permission:
+     - تنظیم `company_id`
+     - تنظیم `category_code` از `category.public_code`
+     - ذخیره permission
+   - فراخوانی `permission_formset.save()` برای حذف deleted items
+5. اگر formset invalid باشد:
+   - بازگشت `form_invalid(form)`
+6. نمایش پیام موفقیت
+7. بازگشت response
 
 **URL**: `/ticketing/categories/<pk>/edit/`
 

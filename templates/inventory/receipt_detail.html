@@ -79,7 +79,6 @@
             {% endif %}
             {% if receipt_variant == 'permanent' %}
             <th>{% trans "Supplier" %}</th>
-            <th>{% trans "Unit Price" %}</th>
             {% endif %}
           </tr>
         </thead>
@@ -107,13 +106,6 @@
             <td>
               {% if line.supplier %}
                 {{ line.supplier.name }} ({{ line.supplier.supplier_code }})
-              {% else %}
-                -
-              {% endif %}
-            </td>
-            <td style="text-align: right;">
-              {% if line.unit_price %}
-                {{ line.unit_price|floatformat:2 }}
               {% else %}
                 -
               {% endif %}
