@@ -44,27 +44,8 @@
       <span class="section-icon">▼</span>
     </button>
     <div class="section-content" id="inventory">
-      {% if user_feature_permissions|feature_allowed:'inventory.master.item_types' or user_feature_permissions|feature_allowed:'inventory.master.item_categories' or user_feature_permissions|feature_allowed:'inventory.master.item_subcategories' or user_feature_permissions|feature_allowed:'inventory.master.warehouses' %}
-        <div class="nav-group">
-          <button type="button" class="nav-group-header" data-submenu="inventory-master">
-            <span>{% trans "Master Data" %}</span>
-            <span class="nav-group-icon">▼</span>
-          </button>
-          <div class="nav-group-content" id="inventory-master">
-            {% if user_feature_permissions|feature_allowed:'inventory.master.item_types' %}
-              <a href="{% url 'inventory:item_types' %}" class="nav-link-sub">{% trans "Item Types" %}</a>
-            {% endif %}
-            {% if user_feature_permissions|feature_allowed:'inventory.master.item_categories' %}
-              <a href="{% url 'inventory:item_categories' %}" class="nav-link-sub">{% trans "Item Categories" %}</a>
-            {% endif %}
-            {% if user_feature_permissions|feature_allowed:'inventory.master.item_subcategories' %}
-              <a href="{% url 'inventory:item_subcategories' %}" class="nav-link-sub">{% trans "Item Subcategories" %}</a>
-            {% endif %}
-            {% if user_feature_permissions|feature_allowed:'inventory.master.warehouses' %}
-              <a href="{% url 'inventory:warehouses' %}" class="nav-link-sub">{% trans "Warehouses" %}</a>
-            {% endif %}
-          </div>
-        </div>
+      {% if user_feature_permissions|feature_allowed:'inventory.master.warehouses' %}
+        <a href="{% url 'inventory:warehouses' %}" class="nav-link">{% trans "Warehouses" %}</a>
       {% endif %}
 
       {% if user_feature_permissions|feature_allowed:'inventory.master.items' or user_feature_permissions|feature_allowed:'inventory.balance' %}
@@ -74,9 +55,6 @@
             <span class="nav-group-icon">▼</span>
           </button>
           <div class="nav-group-content" id="inventory-items">
-            {% if user_feature_permissions|feature_allowed:'inventory.master.items:create' %}
-              <a href="{% url 'inventory:item_create' %}" class="nav-link-sub">{% trans "Create Item" %}</a>
-            {% endif %}
             {% if user_feature_permissions|feature_allowed:'inventory.master.items' %}
               <a href="{% url 'inventory:items' %}" class="nav-link-sub">{% trans "Edit Items" %}</a>
             {% endif %}

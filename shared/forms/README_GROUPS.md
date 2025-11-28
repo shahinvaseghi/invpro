@@ -78,15 +78,17 @@
 **منطق**:
 1. فراخوانی `super().save(commit=commit)` برای ذخیره group
 2. دریافت یا ایجاد `GroupProfile`:
-   - اگر موجود نباشد: ایجاد جدید
+   - استفاده از `getattr(group, 'profile', None)`
+   - اگر profile موجود نباشد: ایجاد `GroupProfile(group=group)`
 3. تنظیم profile fields:
-   - `description` از cleaned_data
-   - `is_enabled` از cleaned_data (convert to int)
-4. اگر commit=True:
-   - Save profile
-   - Set access_levels M2M
-5. اگر commit=False:
-   - Store profile در `_post_save_profile` برای later use
+   - `description` از `cleaned_data.get('description', '')`
+   - `is_enabled` از `cleaned_data.get('is_enabled', 1)` (convert to int)
+4. اگر `commit=True`:
+   - ذخیره profile با `profile.save()`
+   - Set access_levels M2M: `profile.access_levels.set(cleaned_data.get('access_levels') or [])`
+5. اگر `commit=False`:
+   - Store profile در `self._post_save_profile` برای later use در `save_m2m()`
+6. بازگشت group
 
 ---
 
@@ -95,9 +97,15 @@
 **توضیح**: ذخیره many-to-many relationships (access levels).
 
 **منطق**:
-1. فراخوانی `super().save_m2m()`
-2. اگر `_post_save_profile` موجود باشد:
-   - Save profile
+1. فراخوانی `super().save_m2m()` برای سایر M2M fields
+2. بررسی `_post_save_profile`:
+   - اگر `_post_save_profile` موجود باشد (از `commit=False` در `save()`):
+     - ذخیره profile با `profile.save()`
+     - Set access_levels M2M: `profile.access_levels.set(cleaned_data.get('access_levels') or [])`
+
+**نکات مهم**:
+- `_post_save_profile` فقط زمانی تنظیم می‌شود که `commit=False` در `save()` باشد
+- Access levels در `save_m2m()` ذخیره می‌شوند (برای compatibility با Django's form workflow)
    - Set access_levels M2M
 
 **نکات مهم**:

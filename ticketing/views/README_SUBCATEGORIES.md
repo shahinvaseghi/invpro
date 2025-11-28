@@ -73,12 +73,44 @@
 - `required_action`: `'create'`
 
 **متدها**:
-- `get_form_kwargs()`: اضافه کردن `request` به form
-- `get_context_data()`: اضافه کردن `permission_formset` و `parent_categories`
-- `form_valid()`: بررسی `parent_category` (required)، ذخیره subcategory و permissions
+
+#### `get_form_kwargs(self) -> Dict[str, Any]`
+- اضافه کردن `request` به form (از طریق ایجاد form instance و تنظیم `form.request`)
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+- اضافه کردن `page_title = _('Create Subcategory')`
+- ساخت `permission_formset`:
+  - اگر POST: از POST data
+  - اگر GET: empty formset
+  - تنظیم `request` روی تمام forms در formset
+- دریافت `parent_categories` برای dropdown:
+  - فیلتر: `company_id`, `parent_category__isnull=True`, `is_enabled=1`
+  - مرتب‌سازی بر اساس `name`
+
+#### `form_valid(self, form: TicketCategoryForm) -> HttpResponseRedirect`
+**منطق**:
+1. بررسی `parent_category`:
+   - اگر `parent_category_id` تنظیم نشده باشد:
+     - اضافه کردن error به form: `form.add_error("parent_category", _("Subcategory must have a parent category."))`
+     - بازگشت `form_invalid(form)`
+2. تنظیم `company_id` از session به `form.instance.company_id`
+3. ذخیره subcategory با `super().form_valid(form)`
+4. ساخت `permission_formset` از POST data با instance
+5. تنظیم `request` روی تمام forms در formset
+6. اگر formset valid باشد:
+   - فراخوانی `permission_formset.save(commit=False)`
+   - برای هر permission:
+     - تنظیم `company_id`
+     - تنظیم `category_code` از `category.public_code`
+     - ذخیره permission
+7. اگر formset invalid باشد:
+   - بازگشت `form_invalid(form)`
+8. نمایش پیام موفقیت
+9. بازگشت response
 
 **نکات مهم**:
 - `parent_category` required است (subcategory requirement)
+- اگر `parent_category` تنظیم نشده باشد، form invalid می‌شود
 
 **URL**: `/ticketing/subcategories/create/`
 
@@ -105,10 +137,45 @@
 - `required_action`: `'edit_own'`
 
 **متدها**:
-- `get_form_kwargs()`: اضافه کردن `request` به form
-- `get_queryset()`: فیلتر بر اساس company و `parent_category__isnull=False`
-- `get_context_data()`: اضافه کردن `permission_formset` و `parent_categories`
-- `form_valid()`: بررسی `parent_category` (required)، ذخیره subcategory و permissions
+
+#### `get_form_kwargs(self) -> Dict[str, Any]`
+- اضافه کردن `request` به form (از طریق ایجاد form instance و تنظیم `form.request`)
+
+#### `get_queryset(self) -> QuerySet`
+- فیلتر بر اساس `active_company_id` از session
+- فیلتر: `parent_category__isnull=False` (فقط subcategories)
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+- اضافه کردن `page_title = _('Edit Subcategory')`
+- ساخت `permission_formset`:
+  - اگر POST: از POST data
+  - اگر GET: از instance
+  - تنظیم `request` روی تمام forms در formset
+- دریافت `parent_categories` برای dropdown:
+  - فیلتر: `company_id`, `parent_category__isnull=True`, `is_enabled=1`
+  - مرتب‌سازی بر اساس `name`
+
+#### `form_valid(self, form: TicketCategoryForm) -> HttpResponseRedirect`
+**منطق**:
+1. بررسی `parent_category`:
+   - اگر `parent_category_id` تنظیم نشده باشد:
+     - اضافه کردن error به form
+     - بازگشت `form_invalid(form)`
+2. ذخیره subcategory با `super().form_valid(form)`
+3. ساخت `permission_formset` از POST data با instance
+4. تنظیم `request` روی تمام forms در formset
+5. اگر formset valid باشد:
+   - دریافت `company_id` از session
+   - فراخوانی `permission_formset.save(commit=False)`
+   - برای هر permission:
+     - تنظیم `company_id`
+     - تنظیم `category_code` از `category.public_code`
+     - ذخیره permission
+   - فراخوانی `permission_formset.save()` برای حذف deleted items
+6. اگر formset invalid باشد:
+   - بازگشت `form_invalid(form)`
+7. نمایش پیام موفقیت
+8. بازگشت response
 
 **URL**: `/ticketing/subcategories/<pk>/edit/`
 

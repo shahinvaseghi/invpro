@@ -173,14 +173,27 @@
 - `User`: user object
 
 **منطق**:
-1. Ensure `_pending_groups` is set
-2. فراخوانی `super().save(commit=False)`
-3. اگر `new_password1` موجود باشد: set password
-4. اگر commit=True:
-   - Save user
-   - Set groups directly
-   - فراخوانی `save_m2m()`
-5. اگر commit=False: ensure `_pending_groups` is set for later use
+1. Ensure `_pending_groups` is set:
+   - اگر `_pending_groups` موجود نباشد یا None باشد:
+     - تنظیم `_pending_groups = self.cleaned_data.get('groups')`
+2. فراخوانی `super().save(commit=False)` (ذخیره user بدون commit)
+3. بررسی password:
+   - اگر `new_password1` موجود باشد:
+     - فراخوانی `user.set_password(new_password)`
+4. اگر `commit=True`:
+   - ذخیره user با `user.save()`
+   - Set groups directly:
+     - تبدیل `_pending_groups` به list of IDs
+     - فراخوانی `user.groups.set(groups_to_set)`
+   - فراخوانی `self.save_m2m()` برای سایر M2M fields
+5. اگر `commit=False`:
+   - Ensure `_pending_groups` is set برای استفاده بعدی در `save_m2m()`
+6. بازگشت user
+
+**نکات مهم**:
+- Groups به صورت مستقیم set می‌شوند (نه از طریق `save_m2m()`)
+- Password فقط اگر `new_password1` موجود باشد تغییر می‌کند
+- `_pending_groups` باید قبل از `super().save()` تنظیم شود
 
 ---
 
@@ -224,12 +237,19 @@
 **توضیح**: Validate که فقط یک primary company انتخاب شده باشد.
 
 **منطق**:
-1. شمارش تعداد primary companies
-2. اگر بیش از یک primary company باشد: raise `ValidationError`
+1. فراخوانی `super().clean()` برای validation اولیه
+2. شمارش تعداد primary companies:
+   - برای هر form در formset:
+     - اگر form deleted باشد: skip
+     - اگر `company` موجود نباشد: skip
+     - اگر `is_primary == 1`: افزایش `primary_count`
+3. اگر `primary_count > 1`:
+   - raise `ValidationError(_('Only one primary company may be selected per user.'))`
 
 **نکات مهم**:
 - فقط یک primary company per user مجاز است
 - Deleted forms در نظر گرفته نمی‌شوند
+- Forms بدون company در نظر گرفته نمی‌شوند
 
 ---
 

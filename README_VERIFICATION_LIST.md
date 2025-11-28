@@ -64,7 +64,7 @@
 | `production/views/README_PRODUCT_ORDER.md` | `production/views/product_order.py` | ✅ Updated | به‌روزرسانی شد - جزئیات form_valid و _create_transfer_request تکمیل شد |
 | `production/views/README_MACHINE.md` | `production/views/machine.py` | ✅ Updated | بررسی شد - مستندات کامل است |
 | `production/views/README_WORK_LINE.md` | `production/views/work_line.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `production/views/README_PERSONNEL.md` | `production/views/personnel.py` | ✅ Updated | بررسی شد - مستندات کامل است |
+| `production/views/README_PERSONNEL.md` | `production/views/personnel.py` | ✅ Updated | به‌روزرسانی شد - جزئیات form_valid و delete تکمیل شد |
 | `production/views/README_TRANSFER_TO_LINE.md` | `production/views/transfer_to_line.py` | ✅ Updated | به‌روزرسانی شد - جزئیات form_valid, approve, و reject تکمیل شد |
 | `production/views/README_PERFORMANCE_RECORD.md` | `production/views/performance_record.py` | ✅ Updated | بررسی شد - مستندات کامل است |
 | `production/views/README_PLACEHOLDERS.md` | `production/views/placeholders.py` | ✅ Updated | بررسی شد - مستندات کامل است |
@@ -99,7 +99,7 @@
 |-------------|-------------|--------|-------|
 | `ticketing/views/README_BASE.md` | `ticketing/views/base.py` | ✅ Updated | بررسی شد - مستندات کامل است |
 | `ticketing/views/README_CATEGORIES.md` | `ticketing/views/categories.py` | ✅ Updated | به‌روزرسانی شد - جزئیات form_valid برای CreateView و UpdateView تکمیل شد |
-| `ticketing/views/README_SUBCATEGORIES.md` | `ticketing/views/subcategories.py` | ✅ Updated | بررسی شد - مستندات کامل است |
+| `ticketing/views/README_SUBCATEGORIES.md` | `ticketing/views/subcategories.py` | ✅ Updated | به‌روزرسانی شد - جزئیات form_valid برای CreateView و UpdateView تکمیل شد |
 | `ticketing/views/README_TEMPLATES.md` | `ticketing/views/templates.py` | ✅ Updated | بررسی شد - مستندات کامل است |
 | `ticketing/views/README_TICKETS.md` | `ticketing/views/tickets.py` | ✅ Updated | به‌روزرسانی شد - جزئیات get_context_data, get_initial, و permission checking اضافه شد |
 | `ticketing/views/README_DEBUG.md` | `ticketing/views/debug.py` | ✅ Updated | بررسی شد - مستندات کامل است |
@@ -137,11 +137,11 @@
 ### Forms
 | README File | Source File | Status | Notes |
 |-------------|-------------|--------|-------|
-| `shared/forms/README_USERS.md` | `shared/forms/users.py` | ✅ Updated | بررسی شد - مستندات کامل است |
+| `shared/forms/README_USERS.md` | `shared/forms/users.py` | ✅ Updated | به‌روزرسانی شد - جزئیات UserUpdateForm.save و BaseUserCompanyAccessFormSet.clean تکمیل شد |
 | `shared/forms/README_COMPANIES.md` | `shared/forms/companies.py` | ✅ Updated | بررسی شد - مستندات کامل است |
 | `shared/forms/README_ACCESS_LEVELS.md` | `shared/forms/access_levels.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `shared/forms/README_GROUPS.md` | `shared/forms/groups.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `shared/forms/README_SMTP_SERVER.md` | `shared/forms/smtp_server.py` | ✅ Updated | بررسی شد - مستندات کامل است |
+| `shared/forms/README_GROUPS.md` | `shared/forms/groups.py` | ✅ Updated | به‌روزرسانی شد - جزئیات save و save_m2m تکمیل شد |
+| `shared/forms/README_SMTP_SERVER.md` | `shared/forms/smtp_server.py` | ✅ Updated | به‌روزرسانی شد - جزئیات clean method تکمیل شد |
 
 ### Utils
 | README File | Source File | Status | Notes |

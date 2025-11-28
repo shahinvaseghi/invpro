@@ -72,16 +72,13 @@
                 <span class="menu-label">{% trans "Inventory" %}</span>
               </button>
               <div class="dropdown-menu" id="menu-inventory">
-                {% if user_feature_permissions|feature_allowed:'inventory.master.items' or user_feature_permissions|feature_allowed:'inventory.master.items:create' or user_feature_permissions|feature_allowed:'inventory.master.item_serials' or user_feature_permissions|feature_allowed:'inventory.balance' %}
+                {% if user_feature_permissions|feature_allowed:'inventory.master.items' or user_feature_permissions|feature_allowed:'inventory.master.item_serials' or user_feature_permissions|feature_allowed:'inventory.balance' %}
                   <div class="dropdown-submenu">
                     <button type="button" class="dropdown-item dropdown-toggle" data-submenu="inventory-items">
                       <span>{% trans "Items" %}</span>
                       <span class="dropdown-arrow">▶</span>
                     </button>
                     <div class="dropdown-menu-sub" id="inventory-items">
-                      {% if user_feature_permissions|feature_allowed:'inventory.master.items:create' %}
-                        <a href="{% url 'inventory:item_create' %}" class="dropdown-item-sub">{% trans "Create Item" %}</a>
-                      {% endif %}
                       {% if user_feature_permissions|feature_allowed:'inventory.master.items' %}
                         <a href="{% url 'inventory:items' %}" class="dropdown-item-sub">{% trans "Edit Items" %}</a>
                       {% endif %}
@@ -96,25 +93,6 @@
                 {% endif %}
                 
                 <!-- Master Data -->
-                {% if user_feature_permissions|feature_allowed:'inventory.master.item_types' or user_feature_permissions|feature_allowed:'inventory.master.item_categories' or user_feature_permissions|feature_allowed:'inventory.master.item_subcategories' %}
-                  <div class="dropdown-submenu">
-                    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="inventory-master">
-                      <span>{% trans "Master Data" %}</span>
-                      <span class="dropdown-arrow">▶</span>
-                    </button>
-                    <div class="dropdown-menu-sub" id="inventory-master">
-                      {% if user_feature_permissions|feature_allowed:'inventory.master.item_types' %}
-                        <a href="{% url 'inventory:item_types' %}" class="dropdown-item-sub">{% trans "Item Types" %}</a>
-                      {% endif %}
-                      {% if user_feature_permissions|feature_allowed:'inventory.master.item_categories' %}
-                        <a href="{% url 'inventory:item_categories' %}" class="dropdown-item-sub">{% trans "Item Categories" %}</a>
-                      {% endif %}
-                      {% if user_feature_permissions|feature_allowed:'inventory.master.item_subcategories' %}
-                        <a href="{% url 'inventory:item_subcategories' %}" class="dropdown-item-sub">{% trans "Item Subcategories" %}</a>
-                      {% endif %}
-                    </div>
-                  </div>
-                {% endif %}
                 
                 {% if user_feature_permissions|feature_allowed:'inventory.master.warehouses' %}
                   <a href="{% url 'inventory:warehouses' %}" class="dropdown-item">{% trans "Warehouses" %}</a>

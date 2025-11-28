@@ -75,12 +75,17 @@
 - `dict`: cleaned_data
 
 **منطق**:
-1. **TLS/SSL validation**:
-   - اگر `use_tls == 1` و `use_ssl == 1`: raise `ValidationError`
+1. فراخوانی `super().clean()` برای validation اولیه
+2. **TLS/SSL validation**:
+   - دریافت `use_tls` و `use_ssl` از cleaned_data
+   - اگر `use_tls == 1` و `use_ssl == 1`:
+     - raise `ValidationError(_('Cannot use both TLS and SSL. Choose one.'))`
    - نمی‌توان همزمان از TLS و SSL استفاده کرد
-2. **Password validation**:
+3. **Password validation**:
    - اگر instance جدید است (`not self.instance.pk`) و password موجود نیست:
-     - Add error به `password` field: "Password is required for new SMTP server configurations."
+     - Add error به `password` field: `_('Password is required for new SMTP server configurations.')`
+   - Password برای new instances الزامی است
+4. بازگشت cleaned_data
 
 **نکات مهم**:
 - TLS و SSL نمی‌توانند همزمان enabled باشند

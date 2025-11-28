@@ -64,9 +64,24 @@
 - `required_action`: `'create'`
 
 **متدها**:
-- `get_form_kwargs()`: اضافه کردن `company_id` به form
-- `form_valid()`: تنظیم `company_id`, `created_by`، نمایش پیام موفقیت
-- `get_context_data()`: اضافه کردن `active_module` و `form_title`
+
+#### `get_form_kwargs(self) -> Dict[str, Any]`
+- اضافه کردن `company_id` از session به form kwargs
+
+#### `form_valid(self, form: PersonForm) -> HttpResponseRedirect`
+**منطق**:
+1. بررسی `active_company_id`:
+   - اگر وجود نداشته باشد:
+     - نمایش error message
+     - بازگشت `form_invalid(form)`
+2. تنظیم `form.instance.company_id = active_company_id`
+3. تنظیم `form.instance.created_by = self.request.user`
+4. نمایش پیام موفقیت
+5. فراخوانی `super().form_valid(form)`
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+- اضافه کردن `active_module = 'production'`
+- اضافه کردن `form_title = _('Create Person')`
 
 **URL**: `/production/personnel/create/`
 
@@ -91,10 +106,23 @@
 - `required_action`: `'edit_own'`
 
 **متدها**:
-- `get_form_kwargs()`: اضافه کردن `company_id` از `object.company_id`
-- `get_queryset()`: فیلتر بر اساس company
-- `form_valid()`: تنظیم `edited_by`، نمایش پیام موفقیت
-- `get_context_data()`: اضافه کردن `active_module` و `form_title`
+
+#### `get_form_kwargs(self) -> Dict[str, Any]`
+- اضافه کردن `company_id` از `object.company_id` به form kwargs
+
+#### `get_queryset(self) -> QuerySet`
+- فیلتر بر اساس `active_company_id` از session
+- اگر `active_company_id` وجود نداشته باشد، return empty queryset
+
+#### `form_valid(self, form: PersonForm) -> HttpResponseRedirect`
+**منطق**:
+1. تنظیم `form.instance.edited_by = self.request.user`
+2. نمایش پیام موفقیت
+3. فراخوانی `super().form_valid(form)`
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+- اضافه کردن `active_module = 'production'`
+- اضافه کردن `form_title = _('Edit Person')`
 
 **URL**: `/production/personnel/<pk>/edit/`
 
@@ -116,9 +144,18 @@
 - `required_action`: `'delete_own'`
 
 **متدها**:
-- `get_queryset()`: فیلتر بر اساس company
-- `delete()`: نمایش پیام موفقیت و حذف
-- `get_context_data()`: اضافه کردن `active_module`
+
+#### `get_queryset(self) -> QuerySet`
+- فیلتر بر اساس `active_company_id` از session
+- اگر `active_company_id` وجود نداشته باشد، return empty queryset
+
+#### `delete(self, request, *args, **kwargs) -> HttpResponseRedirect`
+**منطق**:
+1. نمایش پیام موفقیت
+2. فراخوانی `super().delete()` برای حذف
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+- اضافه کردن `active_module = 'production'`
 
 **URL**: `/production/personnel/<pk>/delete/`
 
