@@ -1165,6 +1165,24 @@ class ReceiptTemporaryCreateFromPurchaseRequestView(ReceiptTemporaryCreateView):
         form.instance.created_by = self.request.user
         self.object = form.save()
         
+        # Get and validate formset
+        lines_formset = self.build_line_formset(
+            data=self.request.POST,
+            instance=self.object,
+            company_id=self.object.company_id,
+            request=self.request
+        )
+        
+        if lines_formset.is_valid():
+            # Save formset
+            self._save_line_formset(lines_formset)
+        else:
+            # If formset is invalid, show errors and redirect back
+            logger.error(f"Formset validation errors: {lines_formset.errors}")
+            logger.error(f"Formset non_form_errors: {lines_formset.non_form_errors()}")
+            messages.error(self.request, _('خطا در ذخیره ردیف‌ها. لطفاً دوباره تلاش کنید.'))
+            return self.form_invalid(form)
+        
         # Update purchase request line quantity_fulfilled
         from inventory.models import PurchaseRequestLine
         from decimal import Decimal

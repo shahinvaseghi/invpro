@@ -2072,7 +2072,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  function resetLineFormFields(lineForm) {
+  function resetLineFormFields(lineForm, preserveItem) {
     if (!lineForm) return;
     lineForm.classList.remove('deleted');
     lineForm.querySelectorAll('input, textarea').forEach(function(input) {
@@ -2085,6 +2085,10 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
     lineForm.querySelectorAll('select').forEach(function(select) {
+      // Don't reset item select if preserveItem is true
+      if (preserveItem && select.name && select.name.includes('-item')) {
+        return;
+      }
       select.selectedIndex = 0;
     });
   }
@@ -2137,83 +2141,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const quantityInput = lineForm.querySelector('input[name*="-quantity"]');
     const supplierSelect = lineForm.querySelector('select[name*="-supplier"]');
     
-    // First, set the item and load units and warehouses
+    // First, load item options if needed, then set the item
     if (itemSelect && lineData.item_id) {
       const itemLabel = lineData.item_name && lineData.item_code
         ? `${lineData.item_name} (${lineData.item_code})`
         : (lineData.item_name || lineData.item_code || lineData.item_id);
+      
+      // Set the item value (setSelectValue will add it to options if not exists)
       setSelectValue(itemSelect, lineData.item_id, itemLabel);
       
-      // Load units and warehouses in parallel
-      const promises = [];
-      
-      if (unitSelect) {
-        promises.push(
-          fetch(unitChoicesUrl + '?item_id=' + lineData.item_id)
-            .then(response => response.json())
-            .then(data => {
-              if (data.error) {
-                console.error('Error fetching units:', data.error);
-                return;
-              }
-              unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
-              if (data.units && data.units.length > 0) {
-                data.units.forEach(function(unit) {
-                  const option = document.createElement('option');
-                  option.value = unit.value;
-                  option.textContent = unit.label;
-                  unitSelect.appendChild(option);
-                });
-              }
-              // Set the unit value after loading
-              const unitValue = lineData.entered_unit || lineData.unit;
-              if (unitValue) {
-                setSelectValue(unitSelect, unitValue, unitValue);
-              }
-            })
-            .catch(error => {
-              console.error('Error loading units:', error);
-            })
-        );
-      }
-      
-      if (warehouseSelect) {
-        promises.push(
-          fetch(warehouseChoicesUrl + '?item_id=' + lineData.item_id)
-            .then(response => response.json())
-            .then(data => {
-              if (data.error) {
-                console.error('Error fetching warehouses:', data.error);
-                return;
-              }
-              warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
-              if (data.warehouses && data.warehouses.length > 0) {
-                data.warehouses.forEach(function(warehouse) {
-                  const option = document.createElement('option');
-                  option.value = warehouse.value;
-                  option.textContent = warehouse.label;
-                  warehouseSelect.appendChild(option);
-                });
-              }
-              // Set the warehouse value after loading
-              if (lineData.warehouse_id) {
-                setSelectValue(warehouseSelect, lineData.warehouse_id, lineData.warehouse_name || lineData.warehouse_code || lineData.warehouse_id);
-              }
-            })
-            .catch(error => {
-              console.error('Error loading warehouses:', error);
-            })
-        );
-      }
-      
-      // Wait for both to complete
-      Promise.all(promises).then(() => {
-        // Trigger change event after everything is loaded
-        if (itemSelect) {
-          const changeEvent = new Event('change', { bubbles: true });
-          itemSelect.dispatchEvent(changeEvent);
-        }
-      });
+      // Load units and warehouses
+      loadUnitsAndWarehousesForItem(lineForm, lineData);
     } else {
       // If no item, set warehouse and unit directly
       if (warehouseSelect && lineData.warehouse_id) {
@@ -2233,6 +2171,84 @@ document.addEventListener('DOMContentLoaded', function() {
     if (supplierSelect && lineData.supplier_id) {
       setSelectValue(supplierSelect, lineData.supplier_id, lineData.supplier_name || lineData.supplier_code || lineData.supplier_id);
     }
+  }
+  
+  function loadUnitsAndWarehousesForItem(lineForm, lineData) {
+    if (!lineForm || !lineData || !lineData.item_id) return;
+    
+    const itemSelect = lineForm.querySelector('select[name*="-item"]');
+    const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+    const unitSelect = lineForm.querySelector('select[name*="-unit"]');
+    
+    const promises = [];
+    
+    if (unitSelect) {
+      promises.push(
+        fetch(unitChoicesUrl + '?item_id=' + lineData.item_id)
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              console.error('Error fetching units:', data.error);
+              return;
+            }
+            unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
+            if (data.units && data.units.length > 0) {
+              data.units.forEach(function(unit) {
+                const option = document.createElement('option');
+                option.value = unit.value;
+                option.textContent = unit.label;
+                unitSelect.appendChild(option);
+              });
+            }
+            // Set the unit value after loading
+            const unitValue = lineData.entered_unit || lineData.unit;
+            if (unitValue) {
+              setSelectValue(unitSelect, unitValue, unitValue);
+            }
+          })
+          .catch(error => {
+            console.error('Error loading units:', error);
+          })
+      );
+    }
+    
+    if (warehouseSelect) {
+      promises.push(
+        fetch(warehouseChoicesUrl + '?item_id=' + lineData.item_id)
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              console.error('Error fetching warehouses:', data.error);
+              return;
+            }
+            warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
+            if (data.warehouses && data.warehouses.length > 0) {
+              data.warehouses.forEach(function(warehouse) {
+                const option = document.createElement('option');
+                option.value = warehouse.value;
+                option.textContent = warehouse.label;
+                warehouseSelect.appendChild(option);
+              });
+            }
+            // Set the warehouse value after loading
+            if (lineData.warehouse_id) {
+              setSelectValue(warehouseSelect, lineData.warehouse_id, lineData.warehouse_name || lineData.warehouse_code || lineData.warehouse_id);
+            }
+          })
+          .catch(error => {
+            console.error('Error loading warehouses:', error);
+          })
+      );
+    }
+    
+    // Wait for both to complete
+    Promise.all(promises).then(() => {
+      // Trigger change event after everything is loaded
+      if (itemSelect) {
+        const changeEvent = new Event('change', { bubbles: true });
+        itemSelect.dispatchEvent(changeEvent);
+      }
+    });
   }
   
   function rebuildLineFormsFromTemporaryReceipt(linesData) {
@@ -2397,11 +2413,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   // Update unit choices when item changes
   function updateUnitChoices(itemSelect, unitSelect) {
-    console.log('='.repeat(80));
-    console.log('[updateUnitChoices] ===== START =====');
-    console.log('[updateUnitChoices] Called with itemId:', itemSelect.value);
-    console.log('[updateUnitChoices] Item select name:', itemSelect.name);
-    console.log('[updateUnitChoices] Unit select name:', unitSelect ? unitSelect.name : 'none');
     
     const itemId = itemSelect.value;
     if (!itemId) {
@@ -2421,19 +2432,11 @@ document.addEventListener('DOMContentLoaded', function() {
     unitSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
     
     const url = unitChoicesUrl + '?item_id=' + itemId;
-    console.log('[updateUnitChoices] Preparing to fetch units from server');
-    console.log('[updateUnitChoices] URL:', url);
-    console.log('[updateUnitChoices] Current unit value:', currentValue);
-    console.log('[updateUnitChoices] Sending request to server...');
     
     const fetchStartTime = Date.now();
     fetch(url)
       .then(response => {
         const fetchDuration = Date.now() - fetchStartTime;
-        console.log('[updateUnitChoices] Response received from server');
-        console.log('[updateUnitChoices] Response status:', response.status);
-        console.log('[updateUnitChoices] Response statusText:', response.statusText);
-        console.log('[updateUnitChoices] Fetch duration:', fetchDuration, 'ms');
         
         if (!response.ok) {
           console.error('[updateUnitChoices] Response not OK, status:', response.status);
@@ -2442,10 +2445,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return response.json();
       })
       .then(data => {
-        console.log('[updateUnitChoices] Response data received from server');
-        console.log('[updateUnitChoices] Data:', JSON.stringify(data, null, 2));
-        console.log('[updateUnitChoices] Units count:', data.units ? data.units.length : 0);
-        console.log('[updateUnitChoices] Default unit:', data.default_unit);
         if (data.error) {
           console.error('[updateUnitChoices] Error fetching units:', data.error);
           unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
@@ -2468,12 +2467,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (unit.value === currentValue) {
               option.selected = true;
               hasSelectedValue = true;
-              console.log(`[updateUnitChoices]   Unit ${index + 1} matches current value, selected`);
             }
             unitSelect.appendChild(option);
           });
-          console.log('[updateUnitChoices] All units added to select');
-          console.log('[updateUnitChoices] Has selected value:', hasSelectedValue);
           
           // If no value was selected and we have a default unit, select it
           if (!hasSelectedValue && data.default_unit && data.units.length > 0) {
@@ -2507,35 +2503,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         unitSelect.disabled = false;
-        console.log('[updateUnitChoices] Unit select enabled');
-        console.log('[updateUnitChoices] Final unit select value:', unitSelect.value);
-        console.log('[updateUnitChoices] Final unit select options count:', unitSelect.options.length);
         
         // Trigger change event to update any UI components
         const changeEvent = new Event('change', { bubbles: true });
         unitSelect.dispatchEvent(changeEvent);
-        console.log('[updateUnitChoices] Change event dispatched');
-        console.log('[updateUnitChoices] ===== END (success) =====');
       })
       .catch(error => {
-        console.error('[updateUnitChoices] ===== ERROR =====');
-        console.error('[updateUnitChoices] Error:', error);
-        console.error('[updateUnitChoices] Error message:', error.message);
-        console.error('[updateUnitChoices] Error stack:', error.stack);
+        console.error('[updateUnitChoices] Error:', error.message);
         unitSelect.disabled = true;
         unitSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
         alert('{% trans "Error loading units. Please try again." %}: ' + error.message);
-        console.log('[updateUnitChoices] ===== END (error) =====');
       });
   }
   
   // Update warehouse choices when item changes
   function updateWarehouseChoices(itemSelect, warehouseSelect) {
-    console.log('='.repeat(80));
-    console.log('[updateWarehouseChoices] ===== START =====');
-    console.log('[updateWarehouseChoices] Called with itemId:', itemSelect.value);
-    console.log('[updateWarehouseChoices] Item select name:', itemSelect.name);
-    console.log('[updateWarehouseChoices] Warehouse select name:', warehouseSelect ? warehouseSelect.name : 'none');
     
     const itemId = itemSelect.value;
     if (!itemId) {
@@ -2560,32 +2542,21 @@ document.addEventListener('DOMContentLoaded', function() {
       const selectedOption = warehouseSelect.querySelector('option[selected]');
       if (selectedOption) {
         currentValue = selectedOption.value;
-        console.log('[updateWarehouseChoices] Found selected option, value:', currentValue);
       }
     }
     // Also check if there's a value attribute on the select itself (from Django form)
     if (!currentValue && warehouseSelect.hasAttribute('data-initial-value')) {
       currentValue = warehouseSelect.getAttribute('data-initial-value');
-      console.log('[updateWarehouseChoices] Found data-initial-value:', currentValue);
     }
     
-    console.log('[updateWarehouseChoices] Current warehouse value (before clearing):', currentValue);
     warehouseSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
     
     const url = warehouseChoicesUrl + '?item_id=' + itemId;
-    console.log('[updateWarehouseChoices] Preparing to fetch warehouses from server');
-    console.log('[updateWarehouseChoices] URL:', url);
-    console.log('[updateWarehouseChoices] Current warehouse value:', currentValue);
-    console.log('[updateWarehouseChoices] Sending request to server...');
     
     const fetchStartTime = Date.now();
     fetch(url)
       .then(response => {
         const fetchDuration = Date.now() - fetchStartTime;
-        console.log('[updateWarehouseChoices] Response received from server');
-        console.log('[updateWarehouseChoices] Response status:', response.status);
-        console.log('[updateWarehouseChoices] Response statusText:', response.statusText);
-        console.log('[updateWarehouseChoices] Fetch duration:', fetchDuration, 'ms');
         
         if (!response.ok) {
           console.error('[updateWarehouseChoices] Response not OK, status:', response.status);
@@ -2594,9 +2565,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return response.json();
       })
       .then(data => {
-        console.log('[updateWarehouseChoices] Response data received from server');
-        console.log('[updateWarehouseChoices] Data:', JSON.stringify(data, null, 2));
-        console.log('[updateWarehouseChoices] Warehouses count:', data.warehouses ? data.warehouses.length : 0);
         if (data.error) {
           console.error('[updateWarehouseChoices] Error fetching warehouses:', data.error);
           warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
@@ -2608,28 +2576,22 @@ document.addEventListener('DOMContentLoaded', function() {
         warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
         
         if (data.warehouses && data.warehouses.length > 0) {
-          console.log('[updateWarehouseChoices] Adding', data.warehouses.length, 'warehouses to select');
           data.warehouses.forEach(function(warehouse, index) {
-            console.log(`[updateWarehouseChoices]   Warehouse ${index + 1}: value="${warehouse.value}", label="${warehouse.label}"`);
             const option = document.createElement('option');
             option.value = warehouse.value;
             option.textContent = warehouse.label;
             if (warehouse.value == currentValue || warehouse.value === currentValue) {
               option.selected = true;
-              console.log(`[updateWarehouseChoices]   Warehouse ${index + 1} matches current value (${currentValue}), selected`);
             }
             warehouseSelect.appendChild(option);
           });
-          console.log('[updateWarehouseChoices] All warehouses added to select');
           
           // After adding all options, explicitly set the value if currentValue exists
           if (currentValue) {
             const matchingOption = Array.from(warehouseSelect.options).find(opt => opt.value == currentValue || opt.value === currentValue);
             if (matchingOption) {
               warehouseSelect.value = matchingOption.value;
-              console.log('[updateWarehouseChoices] Explicitly set warehouse select value to:', matchingOption.value);
             } else {
-              console.warn('[updateWarehouseChoices] Current value', currentValue, 'not found in warehouse options. Available values:', Array.from(warehouseSelect.options).map(opt => opt.value));
             }
           } else {
             // If no currentValue, check if there's a data-initial-value attribute
@@ -2638,24 +2600,16 @@ document.addEventListener('DOMContentLoaded', function() {
               const matchingOption = Array.from(warehouseSelect.options).find(opt => opt.value == initialValue || opt.value === initialValue);
               if (matchingOption) {
                 warehouseSelect.value = matchingOption.value;
-                console.log('[updateWarehouseChoices] Set warehouse select value from data-initial-value:', matchingOption.value);
               }
             }
           }
         } else {
-          console.log('[updateWarehouseChoices] No warehouses found for this item');
         }
         
         warehouseSelect.disabled = false;
-        console.log('[updateWarehouseChoices] Warehouse select enabled');
-        console.log('[updateWarehouseChoices] Final warehouse select value:', warehouseSelect.value);
-        console.log('[updateWarehouseChoices] Final warehouse select options count:', warehouseSelect.options.length);
-        console.log('[updateWarehouseChoices] ===== END (success) =====');
       })
       .catch(error => {
-        console.error('[updateWarehouseChoices] ===== ERROR =====');
-        console.error('[updateWarehouseChoices] Error:', error);
-        console.error('[updateWarehouseChoices] Error message:', error.message);
+        console.error('[updateWarehouseChoices] Error:', error.message);
         console.error('[updateWarehouseChoices] Error stack:', error.stack);
         warehouseSelect.disabled = true;
         warehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
@@ -2665,8 +2619,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Filter items for a specific row based on type, category, subcategory, and search
-  function filterItemsForRow(rowElement) {
-    if (!rowElement) return;
+  // Returns a Promise that resolves when items are loaded
+  function filterItemsForRow(rowElement, includeItemId) {
+    if (!rowElement) return Promise.resolve();
     
     const typeSelect = rowElement.querySelector('.filter-type-select');
     const categorySelect = rowElement.querySelector('.filter-category-select');
@@ -2674,7 +2629,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchInput = rowElement.querySelector('.filter-search-input');
     const itemSelect = rowElement.querySelector('select[name*="-item"]');
     
-    if (!itemSelect) return;
+    if (!itemSelect) return Promise.resolve();
     
     const typeId = typeSelect?.value || '';
     const categoryId = categorySelect?.value || '';
@@ -2686,8 +2641,6 @@ document.addEventListener('DOMContentLoaded', function() {
       searchTerm = '';
     }
     
-    console.log('[filterItemsForRow] Filters - typeId:', typeId, 'categoryId:', categoryId, 'subcategoryId:', subcategoryId, 'searchTerm:', searchTerm);
-    
     // Build API URL
     let apiUrl = '/inventory/api/filtered-items/';
     const params = new URLSearchParams();
@@ -2696,6 +2649,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (subcategoryId) params.append('subcategory_id', subcategoryId);
     if (searchTerm) params.append('search', searchTerm);
     
+    // If item is already selected or provided as parameter, include it in the API call
+    const currentValue = includeItemId || itemSelect.value;
+    if (currentValue) {
+      params.append('include_item_id', currentValue);
+    }
+    
     // Always add params to URL (even if empty, API will return all items)
     if (params.toString()) {
       apiUrl += '?' + params.toString();
@@ -2703,19 +2662,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // If no params at all, still call API to get all items
     
     // Fetch filtered items (or all items if no filters)
-    console.log('[filterItemsForRow] Fetching items from:', apiUrl);
-    fetch(apiUrl)
+    return fetch(apiUrl)
       .then(response => {
-        console.log('[filterItemsForRow] Response status:', response.status);
         if (!response.ok) {
           throw new Error('Network response was not ok: ' + response.status);
         }
         return response.json();
       })
       .then(data => {
-        console.log('[filterItemsForRow] Received data:', data);
         if (data.items) {
-          console.log('[filterItemsForRow] Items count:', data.items.length);
           const itemMap = {};
           data.items.forEach(function(item) {
             itemMap[item.value] = item;
@@ -2761,15 +2716,12 @@ document.addEventListener('DOMContentLoaded', function() {
             itemSelect.appendChild(option);
           });
           
-          console.log('[filterItemsForRow] Added', data.items.length, 'items to select');
           
           // Restore current value if it's in filtered list
           if (currentValue && itemMap[currentValue]) {
-            console.log('[filterItemsForRow] Restoring current value:', currentValue);
             itemSelect.value = currentValue;
           }
         } else {
-          console.error('[filterItemsForRow] No items in response data');
           // At least show placeholder
           itemSelect.innerHTML = '<option value="">--- انتخاب کنید ---</option>';
         }
@@ -2778,35 +2730,28 @@ document.addEventListener('DOMContentLoaded', function() {
         // This is necessary because innerHTML = '' removes event listeners
         const lineForm = rowElement.closest('.line-form');
         if (lineForm) {
-          console.log('[filterItemsForRow] Re-attaching event handlers after filtering items');
           // Use setTimeout to ensure DOM is fully updated before re-attaching handlers
           setTimeout(function() {
-            console.log('[filterItemsForRow] Re-attaching handlers now');
             setupItemSelectHandlers(lineForm);
             
             // Manually update units and warehouses if item is selected
             const freshItemSelect = lineForm.querySelector('select[name*="-item"]');
             if (freshItemSelect && freshItemSelect.value) {
-              console.log('[filterItemsForRow] Item is selected, manually updating units and warehouses for value:', freshItemSelect.value);
               const freshUnitSelect = lineForm.querySelector('select[name*="-unit"]');
               const freshWarehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
               if (freshUnitSelect) {
-                console.log('[filterItemsForRow] Manually calling updateUnitChoices');
                 updateUnitChoices(freshItemSelect, freshUnitSelect);
               }
               if (freshWarehouseSelect) {
-                console.log('[filterItemsForRow] Manually calling updateWarehouseChoices');
                 updateWarehouseChoices(freshItemSelect, freshWarehouseSelect);
               }
               // Also dispatch change event for any other listeners
               const changeEvent = new Event('change', { bubbles: true });
               freshItemSelect.dispatchEvent(changeEvent);
             } else {
-              console.log('[filterItemsForRow] No item selected, skipping update');
             }
           }, 10); // Small delay to ensure DOM is updated
         } else {
-          console.log('[filterItemsForRow] No lineForm found for rowElement');
         }
       })
       .catch(error => {
@@ -2815,6 +2760,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show placeholder on error
         itemSelect.innerHTML = '<option value="">--- انتخاب کنید ---</option>';
         alert('خطا در بارگذاری لیست کالاها: ' + error.message);
+        // Re-throw error so caller can handle it
+        throw error;
       });
   }
 
@@ -3195,7 +3142,7 @@ document.addEventListener('DOMContentLoaded', function() {
           // Clear existing lines before adding new ones
           const existingForms = getLineForms();
           existingForms.forEach(function(lineForm, index) {
-            resetLineFormFields(lineForm);
+            resetLineFormFields(lineForm, false);
             const deleteCheckbox = lineForm.querySelector('input[type="checkbox"][name*="DELETE"]');
             if (deleteCheckbox) {
               deleteCheckbox.checked = false;
@@ -3204,32 +3151,86 @@ document.addEventListener('DOMContentLoaded', function() {
           });
           
           const forms = ensureLineFormCount(linesData.length || 1);
+          
+          // First, update form indices to ensure correct formset indices
           forms.forEach(function(lineForm, index) {
-            // Update form index to ensure correct formset indices
             updateLineFormIndex(lineForm, index);
-            
-            const deleteCheckbox = lineForm.querySelector('input[type="checkbox"][name*="DELETE"]');
-            if (index < linesData.length) {
-              if (deleteCheckbox) {
-                deleteCheckbox.checked = false;
-                lineForm.classList.remove('deleted');
-              }
-              resetLineFormFields(lineForm);
-              populateLineFormFields(lineForm, linesData[index]);
-            } else {
-              resetLineFormFields(lineForm);
-              if (deleteCheckbox) {
-                deleteCheckbox.checked = true;
-                lineForm.classList.add('deleted');
-              }
-            }
           });
           
-          const formCount = getLineForms().length;
-          totalFormsInput.value = formCount;
-          totalFormsInput.setAttribute('value', formCount);
+          // Then, load items for all forms that need data
+          const loadPromises = forms.map(function(lineForm, index) {
+            if (index < linesData.length && linesData[index].item_id) {
+              const lineData = linesData[index];
+              const itemSelect = lineForm.querySelector('select[name*="-item"]');
+              
+              if (itemSelect) {
+                // Load items for this row first (with include_item_id to preserve the item)
+                // filterItemsForRow now returns a Promise
+                return filterItemsForRow(lineForm, lineData.item_id).then(function() {
+                  // Wait a bit for the setTimeout in filterItemsForRow to complete
+                  return new Promise(function(resolve) {
+                    setTimeout(function() {
+                      // After items are loaded and DOM is updated, set the item value
+                      const itemLabel = lineData.item_name && lineData.item_code
+                        ? `${lineData.item_name} (${lineData.item_code})`
+                        : (lineData.item_name || lineData.item_code || lineData.item_id);
+                      setSelectValue(itemSelect, lineData.item_id, itemLabel);
+                      resolve();
+                    }, 50);
+                  });
+                }).catch(function(error) {
+                  // Return resolved promise even on error to continue with other rows
+                  return Promise.resolve();
+                });
+              }
+            }
+            return Promise.resolve();
+          });
           
-          attachItemChangeHandlersToAllLines();
+          // After all items are loaded, populate forms
+          Promise.all(loadPromises).then(function() {
+            // Small delay to ensure all DOM updates are complete
+            setTimeout(function() {
+              forms.forEach(function(lineForm, index) {
+                const deleteCheckbox = lineForm.querySelector('input[type="checkbox"][name*="DELETE"]');
+                if (index < linesData.length) {
+                  const lineData = linesData[index];
+                  // Log only the data being passed to each row
+                  console.log(`[Row ${index + 1}] Item: ${lineData.item_name || lineData.item_code || lineData.item_id}, Quantity: ${lineData.quantity || lineData.entered_quantity}, Warehouse: ${lineData.warehouse_name || lineData.warehouse_code || lineData.warehouse_id}, Unit: ${lineData.unit || lineData.entered_unit}`);
+                  
+                  if (deleteCheckbox) {
+                    deleteCheckbox.checked = false;
+                    lineForm.classList.remove('deleted');
+                  }
+                  
+                  // Ensure item is set correctly before populating other fields
+                  const itemSelect = lineForm.querySelector('select[name*="-item"]');
+                  if (itemSelect && lineData.item_id) {
+                    const itemLabel = lineData.item_name && lineData.item_code
+                      ? `${lineData.item_name} (${lineData.item_code})`
+                      : (lineData.item_name || lineData.item_code || lineData.item_id);
+                    setSelectValue(itemSelect, lineData.item_id, itemLabel);
+                  }
+                  
+                  // Don't reset item select - it's already loaded by filterItemsForRow
+                  resetLineFormFields(lineForm, true);
+                  populateLineFormFields(lineForm, lineData);
+                } else {
+                  resetLineFormFields(lineForm, false);
+                  if (deleteCheckbox) {
+                    deleteCheckbox.checked = true;
+                    lineForm.classList.add('deleted');
+                  }
+                }
+              });
+            
+              const formCount = getLineForms().length;
+              totalFormsInput.value = formCount;
+              totalFormsInput.setAttribute('value', formCount);
+              
+              attachItemChangeHandlersToAllLines();
+            }, 100);
+          });
         })
         .catch(error => {
           console.error('Error fetching temporary receipt data:', error);
