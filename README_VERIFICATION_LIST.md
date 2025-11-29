@@ -405,7 +405,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `procurement/README_MODELS.md` | `procurement/models.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-29 22:52:30 | ✅ README newer | فایل models.py در حال حاضر خالی است - README تکمیل شد با توضیح اینکه models در آینده اضافه خواهند شد |
 | `transportation/README_MODELS.md` | `transportation/models.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-29 22:53:30 | ✅ README newer | فایل models.py در حال حاضر خالی است - README تکمیل شد با توضیح اینکه models در آینده اضافه خواهند شد |
 | `office_automation/README_MODELS.md` | `office_automation/models.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-29 22:55:06 | ✅ README newer | فایل models.py در حال حاضر خالی است - README تکمیل شد با توضیح اینکه models در آینده اضافه خواهند شد |
-| `ui/README_MODELS.md` | `ui/models.py` | ⏳ Pending | 2025-11-13 14:59:22 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `ui/README_MODELS.md` | `ui/models.py` | ✅ Updated | 2025-11-13 14:59:22 | 2025-11-29 22:56:10 | ✅ README newer | فایل models.py در حال حاضر خالی است - README تکمیل شد با توضیح اینکه models در آینده اضافه خواهند شد |
 
 ---
 
