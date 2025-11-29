@@ -44,8 +44,39 @@
 - `required_action`: `'view_own'`
 
 **متدها**:
-- `get_queryset()`: فیلتر بر اساس company، `select_related('order', 'order__bom', 'order__finished_item', 'approved_by')`، `prefetch_related('items')`، مرتب بر اساس `-transfer_date`, `transfer_code`
-- `get_context_data()`: اضافه کردن `active_module`
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با company filtering، select_related، و prefetch_related برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده با optimizations
+
+**منطق**:
+1. دریافت `active_company_id` از session
+2. اگر `active_company_id` وجود ندارد، `TransferToLine.objects.none()` برمی‌گرداند
+3. فیلتر: `TransferToLine.objects.filter(company_id=active_company_id)`
+4. **select_related**: `'order'`, `'order__bom'`, `'order__finished_item'`, `'approved_by'`
+5. **prefetch_related**: `'items'`
+6. مرتب‌سازی: `order_by('-transfer_date', 'transfer_code')` (جدیدترین اول)
+7. queryset را برمی‌گرداند
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `active_module`
+
+**Context Variables اضافه شده**:
+- `active_module`: `'production'`
 
 **URL**: `/production/transfer-requests/`
 
@@ -73,11 +104,42 @@
 
 **متدها**:
 
-#### `get_form_kwargs() -> Dict[str, Any]`
-- اضافه کردن `company_id` به form
+#### `get_form_kwargs(self) -> Dict[str, Any]`
 
-#### `get_context_data(**kwargs) -> Dict[str, Any]`
-- اضافه کردن `formset` (با instance=None در create mode)
+**توضیح**: `company_id` را به form پاس می‌دهد.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: kwargs با `company_id` اضافه شده
+
+**منطق**:
+1. kwargs را از `super().get_form_kwargs()` دریافت می‌کند
+2. `company_id` را از `request.session.get('active_company_id')` اضافه می‌کند
+3. kwargs را برمی‌گرداند
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `form_title` و `formset`
+
+**منطق**:
+1. context را از `super().get_context_data()` دریافت می‌کند
+2. اضافه کردن `form_title = _('Create Transfer Request')`
+3. **ساخت formset**:
+   - دریافت `instance` (در CreateView، `self.object` ممکن است None باشد)
+   - اگر `request.POST`: از POST data
+   - در غیر این صورت: empty formset
+   - `form_kwargs={'company_id': active_company_id}`
+4. اضافه کردن `formset` به context
+5. context را برمی‌گرداند
 
 #### `form_valid(self, form: TransferToLineForm) -> HttpResponseRedirect`
 
@@ -154,26 +216,50 @@
 
 **متدها**:
 
+#### `get_form_kwargs(self) -> Dict[str, Any]`
+
+**توضیح**: `company_id` را به form پاس می‌دهد.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: kwargs با `company_id` از session
+
+**منطق**:
+1. kwargs را از `super().get_form_kwargs()` دریافت می‌کند
+2. `company_id` را از `request.session.get('active_company_id')` اضافه می‌کند
+3. kwargs را برمی‌گرداند
+
+---
+
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
 
-**توضیح**: اضافه کردن formset (فقط extra items) و bom_items (read-only) به context.
+**توضیح**: context variables را برای template اضافه می‌کند (فقط extra items در formset).
 
-**Context Variables**:
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `form_title`, `formset`, `bom_items`, و `is_locked`
+
+**منطق**:
+1. context را از `super().get_context_data()` دریافت می‌کند
+2. اضافه کردن `form_title = _('Edit Transfer Request')`
+3. **ساخت formset**:
+   - اگر `request.POST`: از POST data
+   - در غیر این صورت: از instance
+   - `form_kwargs={'company_id': active_company_id}`
+4. **فیلتر formset queryset**: `formset.queryset = formset.queryset.filter(is_extra=1)` (فقط extra items)
+5. اضافه کردن `formset` به context
+6. اضافه کردن `bom_items = object.items.filter(is_extra=0)` (BOM items - read-only)
+7. اضافه کردن `is_locked = object.is_locked == 1`
+8. context را برمی‌گرداند
+
+**Context Variables اضافه شده**:
 - `form_title`: `_('Edit Transfer Request')`
 - `formset`: `TransferToLineItemFormSet` (فقط extra items با `is_extra=1`)
 - `bom_items`: QuerySet از BOM items (read-only، `is_extra=0`)
 - `is_locked`: Boolean (آیا transfer قفل شده است)
-
-**منطق**:
-1. دریافت context از `super().get_context_data()`
-2. اضافه کردن `form_title`
-3. ساخت formset:
-   - اگر POST: از POST data
-   - اگر GET: از instance
-4. فیلتر کردن formset queryset به فقط `is_extra=1`
-5. اضافه کردن `bom_items` از `object.items.filter(is_extra=0)`
-6. اضافه کردن `is_locked` از `object.is_locked == 1`
-7. بازگشت context
 
 ---
 
@@ -233,8 +319,45 @@
 - `required_action`: `'delete_own'`
 
 **متدها**:
-- `get_queryset()`: فیلتر بر اساس company
-- `delete()`: بررسی `is_locked` قبل از حذف
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با company filtering برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس company
+
+**منطق**:
+1. دریافت `active_company_id` از session
+2. اگر `active_company_id` وجود ندارد، `TransferToLine.objects.none()` برمی‌گرداند
+3. فیلتر: `TransferToLine.objects.filter(company_id=active_company_id)`
+4. queryset را برمی‌گرداند
+
+---
+
+#### `delete(self, request, *args, **kwargs) -> HttpResponseRedirect`
+
+**توضیح**: TransferToLine را حذف می‌کند (بعد از بررسی is_locked).
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
+
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect به `success_url`
+
+**منطق**:
+1. دریافت object: `self.object = self.get_object()`
+2. بررسی `is_locked`:
+   - اگر `is_locked == 1`:
+     - خطا: "This transfer request is locked and cannot be deleted."
+     - redirect به `success_url` (بدون حذف)
+3. فراخوانی `super().delete(request, *args, **kwargs)` (که TransferToLine را حذف می‌کند و redirect می‌کند)
+
+**نکات مهم**:
+- اگر `is_locked=1` باشد، قابل حذف نیست
 
 **URL**: `/production/transfer-requests/<pk>/delete/`
 
