@@ -211,14 +211,35 @@
 **مقدار بازگشتی**: ندارد
 
 **منطق**:
-- برای هر فیلد که وجود دارد:
-  - `item`: فیلتر بر اساس `company_id` و `is_enabled=1`، label: `"{name} · {item_code}"`
-  - `warehouse`: فیلتر بر اساس `company_id` و `is_enabled=1`، label: `"{name} · {public_code}"`
-  - `supplier`: فیلتر بر اساس `company_id` و `is_enabled=1`، label: `"{name} · {public_code}"`
-  - `temporary_receipt`: فیلتر بر اساس `company_id`، label: `"{document_code} · {item.name}"`
-  - `purchase_request`: فیلتر بر اساس `company_id` و `status=APPROVED`، label: `"{request_code} · {item.name}"`
-  - `warehouse_request`: فیلتر بر اساس `company_id` و `request_status='approved'` و `is_locked=1`، label: `"{request_code} · {item.name}"`
-  - `conversion_receipt`: فیلتر بر اساس `company_id`، label: `"{document_code} · {item.name}"`
+برای هر فیلد که وجود دارد:
+1. **`item`**:
+   - فیلتر: `company_id=self.company_id`, `is_enabled=1`
+   - **مهم**: اگر instance موجود است و `item_id` دارد، item فعلی را هم شامل می‌کند (حتی اگر disabled باشد) با `Q(is_enabled=1) | Q(pk=instance.item_id)`
+   - label: `"{name} · {item_code}"`
+2. **`warehouse`**:
+   - فیلتر: `company_id=self.company_id`, `is_enabled=1`
+   - **مهم**: اگر instance موجود است و `warehouse_id` دارد، warehouse فعلی را هم شامل می‌کند (حتی اگر disabled باشد)
+   - label: `"{name} · {public_code}"`
+3. **`supplier`**:
+   - فیلتر: `company_id=self.company_id`, `is_enabled=1`
+   - **مهم**: اگر instance موجود است و `supplier_id` دارد، supplier فعلی را هم شامل می‌کند (حتی اگر disabled باشد)
+   - label: `"{name} · {public_code}"`
+4. **`temporary_receipt`**:
+   - فیلتر: `company_id=self.company_id`
+   - مرتب‌سازی: `-document_date`, `document_code`
+   - label: `"{document_code}"` (نه `"{document_code} · {item.name}"`)
+5. **`purchase_request`**:
+   - فیلتر: `company_id=self.company_id`, `status=APPROVED`
+   - مرتب‌سازی: `-request_date`, `request_code`
+   - label: `"{request_code}"` (نه `"{request_code} · {item.name}"`)
+6. **`warehouse_request`**:
+   - فیلتر: `company_id=self.company_id`, `request_status='approved'`, `is_locked=1`
+   - مرتب‌سازی: `-needed_by_date`, `request_code`
+   - label: `"{request_code}"` (نه `"{request_code} · {item.name}"`)
+7. **`conversion_receipt`**:
+   - فیلتر: `company_id=self.company_id`
+   - مرتب‌سازی: `-document_date`, `document_code`
+   - label: `"{document_code}"` (نه `"{document_code} · {item.name}"`)
 
 ---
 
