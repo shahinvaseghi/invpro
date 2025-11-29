@@ -287,9 +287,10 @@
 **Inheritance**: `TimeStampedModel`, `ActivatableModel`, `MetadataModel`
 
 **Fields**:
-- `user` (ForeignKey → User)
-- `company` (ForeignKey → Company)
-- `access_level` (ForeignKey → AccessLevel)
+- `user` (ForeignKey → User, on_delete=CASCADE)
+- `company` (ForeignKey → Company, on_delete=CASCADE)
+- `access_level` (ForeignKey → AccessLevel, on_delete=PROTECT)
+- `is_primary` (PositiveSmallIntegerField, choices=ENABLED_FLAG_CHOICES, default=0): Company اصلی
 - `is_enabled` (PositiveSmallIntegerField): از ActivatableModel
 - و fields از mixins
 
@@ -299,6 +300,7 @@
 **نکات مهم**:
 - Mapping بین users و companies با access levels
 - یک user می‌تواند در چندین company با access levels مختلف باشد
+- `is_primary`: Company اصلی کاربر
 
 ---
 
@@ -306,19 +308,28 @@
 **Inheritance**: `TimeStampedModel`, `ActivatableModel`, `MetadataModel`, `EditableModel`
 
 **Fields**:
-- `name` (CharField, max_length=120): نام
+- `name` (CharField, max_length=120, unique=True): نام
 - `host` (CharField, max_length=255): SMTP host
-- `port` (PositiveIntegerField): SMTP port
-- `use_tls` (PositiveSmallIntegerField, choices=ENABLED_FLAG_CHOICES, default=0): استفاده از TLS
+- `port` (PositiveIntegerField, default=587): SMTP port
+- `use_tls` (PositiveSmallIntegerField, choices=ENABLED_FLAG_CHOICES, default=1): استفاده از TLS
 - `use_ssl` (PositiveSmallIntegerField, choices=ENABLED_FLAG_CHOICES, default=0): استفاده از SSL
-- `username` (CharField, max_length=255, blank=True): نام کاربری
-- `password` (CharField, max_length=255, blank=True): رمز عبور
-- `from_email` (EmailField): ایمیل فرستنده
+- `username` (CharField, max_length=255): نام کاربری
+- `password` (CharField, max_length=255): رمز عبور
+- `from_email` (EmailField, max_length=255): ایمیل فرستنده
 - `from_name` (CharField, max_length=120, blank=True): نام فرستنده
+- `timeout` (PositiveIntegerField, default=10): Connection timeout (seconds)
+- `description` (TextField, blank=True): توضیحات
 - و fields از mixins
 
+**Methods**:
+- `get_connection_config() -> dict`: بازگشت dictionary برای SMTP connection config
+
+**Ordering**: `("name",)`
+
 **نکات مهم**:
+- Global configuration (not company-scoped)
 - برای پیکربندی SMTP servers برای ارسال ایمیل
+- Default: `port=587`, `use_tls=1`
 
 ---
 
@@ -326,27 +337,41 @@
 **Inheritance**: `TimeStampedModel`, `ActivatableModel`, `MetadataModel`, `SortableModel`
 
 **Fields**:
-- `section_code` (CharField, max_length=6, unique=True, validators=[NUMERIC_CODE_VALIDATOR]): کد section (6 رقم، فرمت XXYYZZ)
-- `nickname` (CharField, max_length=50, unique=True, null=True, blank=True): نام مستعار
-- `module_code` (CharField, max_length=3): کد ماژول (3 رقم اول)
-- `menu_number` (CharField, max_length=2): شماره منو (2 رقم میانی)
-- `submenu_number` (CharField, max_length=2): شماره زیرمنو (2 رقم آخر)
+- `section_code` (CharField, max_length=6, unique=True, validators=[SECTION_CODE_VALIDATOR]): کد section (6 رقم، فرمت XXYYZZ)
+- `nickname` (CharField, max_length=50, unique=True): نام مستعار
+- `module_code` (CharField, max_length=2, validators=[NUMERIC_CODE_VALIDATOR]): کد ماژول (2 رقم)
+- `menu_number` (CharField, max_length=2, validators=[NUMERIC_CODE_VALIDATOR]): شماره منو (2 رقم)
+- `submenu_number` (CharField, max_length=2, validators=[NUMERIC_CODE_VALIDATOR], null=True, blank=True): شماره زیرمنو (2 رقم، NULL اگر submenu نداشته باشد)
 - `name` (CharField, max_length=180): نام فارسی
 - `name_en` (CharField, max_length=180, blank=True): نام انگلیسی
-- `description` (CharField, max_length=255, blank=True): توضیحات
+- `description` (TextField, blank=True): توضیحات
+- `module` (CharField, max_length=30): Module identifier (مثلاً 'shared', 'inventory')
+- `app_label` (CharField, max_length=30): Django app label
+- `list_url_name` (CharField, max_length=100, blank=True, null=True): Django URL name برای list view
+- `detail_url_name` (CharField, max_length=100, blank=True, null=True): Django URL name برای detail/edit view
 - `sort_order` (PositiveSmallIntegerField): از SortableModel
+- `activated_at`, `deactivated_at` (DateTimeField, null=True, blank=True): از ActivatableModel
 - و fields از mixins
+
+**Validators**:
+- `SECTION_CODE_VALIDATOR`: `RegexValidator(regex=r"^\d{6}$")` - دقیقاً 6 رقم
 
 **Constraints**:
 - Unique: `section_code`
-- Unique: `nickname` (اگر موجود باشد)
+- Unique: `nickname`
+
+**Indexes**:
+- `section_registry_code_idx`: روی `section_code`
+- `section_registry_nickname_idx`: روی `nickname`
+- `section_registry_module_idx`: روی `(module_code, is_enabled, sort_order)`
 
 **Ordering**: `("module_code", "menu_number", "submenu_number", "sort_order")`
 
 **نکات مهم**:
 - Central registry برای تمام sections/features
 - استفاده در Entity Reference System
-- `section_code`: فرمت XXYYZZ (module(3) + menu(2) + submenu(2))
+- `section_code`: فرمت 6 رقم (XXYYZZ: module(2) + menu(2) + submenu(2))
+- `submenu_number`: می‌تواند NULL باشد (اگر submenu نداشته باشد)
 
 ---
 
@@ -354,13 +379,27 @@
 **Inheritance**: `TimeStampedModel`, `ActivatableModel`, `MetadataModel`, `SortableModel`
 
 **Fields**:
-- `section` (ForeignKey → SectionRegistry): Section مرتبط
+- `section` (ForeignKey → SectionRegistry, on_delete=CASCADE, related_name="actions"): Section مرتبط
 - `action_name` (CharField, max_length=50): نام action (مثلاً "show", "approve", "delete")
-- `action_label` (CharField, max_length=120): برچسب فارسی
-- `action_label_en` (CharField, max_length=120, blank=True): برچسب انگلیسی
-- `parameter_schema` (JSONField, default=dict, blank=True): Schema برای parameters
+- `action_label` (CharField, max_length=180): برچسب فارسی
+- `action_label_en` (CharField, max_length=180, blank=True, null=True): برچسب انگلیسی
+- `description` (TextField, blank=True): توضیحات
+- `handler_function` (CharField, max_length=200, blank=True, null=True): Fully qualified path به handler (مثلاً 'inventory.views.requests.PurchaseRequestApproveView')
+- `url_name` (CharField, max_length=100, blank=True, null=True): Django URL name برای این action
+- `parameter_schema` (JSONField, default=dict, blank=True): JSON schema برای parameters مورد نیاز
+- `permission_required` (CharField, max_length=100, blank=True, null=True): Feature permission code مورد نیاز
+- `requires_confirmation` (PositiveSmallIntegerField, choices=ENABLED_FLAG_CHOICES, default=0): نیاز به تایید کاربر
+- `is_destructive` (PositiveSmallIntegerField, choices=ENABLED_FLAG_CHOICES, default=0): Action مخرب (مثلاً delete)
 - `sort_order` (PositiveSmallIntegerField): از SortableModel
 - و fields از mixins
+
+**Constraints**:
+- Unique: `(section, action_name)`
+
+**Indexes**:
+- `action_registry_section_idx`: روی `(section, is_enabled, sort_order)`
+- `action_registry_name_idx`: روی `action_name`
+- `action_registry_url_idx`: روی `url_name`
 
 **Ordering**: `("section", "sort_order", "action_name")`
 
@@ -368,6 +407,9 @@
 - Registry برای actions موجود در هر section
 - استفاده در Entity Reference System
 - `parameter_schema`: JSON schema برای parameters مورد نیاز action
+- `handler_function`: Path کامل به view/function handler
+- `requires_confirmation`: برای actions که نیاز به تایید دارند
+- `is_destructive`: برای actions مخرب (مثلاً delete)
 
 ---
 
@@ -375,11 +417,11 @@
 **Inheritance**: `TimeStampedModel`
 
 **Fields**:
-- `user` (ForeignKey → User): کاربر دریافت کننده
-- `company` (ForeignKey → Company, null=True, blank=True): Company context
+- `user` (ForeignKey → User, on_delete=CASCADE, related_name="notifications"): کاربر دریافت کننده
+- `company` (ForeignKey → Company, on_delete=CASCADE, related_name="notifications", null=True, blank=True): Company context
 - `notification_type` (CharField, max_length=50): نوع notification (مثلاً "approval_pending", "approved")
 - `notification_key` (CharField, max_length=100, unique=True): کلید یکتا
-- `message` (CharField, max_length=500): پیام
+- `message` (TextField): پیام
 - `url_name` (CharField, max_length=100): Django URL name
 - `count` (PositiveIntegerField, default=1): تعداد items
 - `is_read` (PositiveSmallIntegerField, choices=ENABLED_FLAG_CHOICES, default=0): خوانده شده (0=unread, 1=read)
@@ -390,10 +432,22 @@
 **Constraints**:
 - Unique: `notification_key`
 
+**Indexes**:
+- `notification_user_read_idx`: روی `(user, is_read, created_at)`
+- `notification_company_read_idx`: روی `(company, is_read)`
+- `notification_key_idx`: روی `notification_key`
+
+**Ordering**: `("-created_at",)` (جدیدترین اول)
+
+**Methods**:
+- `mark_as_read(user=None)`: Mark notification as read (set `is_read=1`, `read_at=timezone.now()`)
+- `mark_as_unread(user=None)`: Mark notification as unread (set `is_read=0`, `read_at=None`)
+
 **نکات مهم**:
 - برای notifications سیستم (approvals, requests, etc.)
 - `notification_key`: برای get_or_create logic
 - `is_read`: برای tracking read/unread status
+- `message`: TextField (نه CharField) برای پیام‌های طولانی
 
 ---
 
