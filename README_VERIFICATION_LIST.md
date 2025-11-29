@@ -174,8 +174,8 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 ### Views
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `production/views/README_BOM.md` | `production/views/bom.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 17:37:42 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `BOMCreateView.form_valid()` (11 مرحله با error handling و BOM deletion)، `BOMUpdateView.form_valid()` (7 مرحله)، و `get_queryset()`/`delete()` اضافه شد |
-| `production/views/README_PROCESS.md` | `production/views/process.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `production/views/README_BOM.md` | `production/views/bom.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 17:38:30 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `BOMCreateView.form_valid()` (11 مرحله با error handling و BOM deletion)، `BOMUpdateView.form_valid()` (7 مرحله)، و `get_queryset()`/`delete()` اضافه شد |
+| `production/views/README_PROCESS.md` | `production/views/process.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 17:53:34 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `production/views/README_PRODUCT_ORDER.md` | `production/views/product_order.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 03:55:30 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات form_valid و _create_transfer_request تکمیل شد |
 | `production/views/README_MACHINE.md` | `production/views/machine.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
 | `production/views/README_WORK_LINE.md` | `production/views/work_line.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
