@@ -360,35 +360,35 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `docs/README.md` | Docs folder | ✅ Updated | N/A | 2025-11-28 03:55:30 | ✅ N/A | بررسی شد - مستندات کامل است |
 | `docs/MIGRATIONS_README.md` | All migrations | ✅ Updated | N/A | 2025-11-13 14:59:22 | ✅ N/A | بررسی شد - مستندات کامل است |
 | `docs/ENTITY_REFERENCE_SYSTEM.md` | Entity Reference System | ✅ Updated | N/A | 2025-11-28 03:55:30 | ✅ N/A | بررسی شد - مستندات کامل است |
-| `docs/ACTIONS_LIST.md` | Actions list | ⏳ Pending | - | - | - | - |
-| `docs/ACTIONS_SUMMARY.md` | Actions summary | ⏳ Pending | - | - | - | - |
-| `docs/API_DOCUMENTATION.md` | API documentation | ⏳ Pending | - | - | - | - |
-| `docs/approval_workflow.md` | Approval workflow | ⏳ Pending | - | - | - | - |
-| `docs/ARCHITECTURE.md` | System architecture | ⏳ Pending | - | - | - | - |
-| `docs/BASE_CLASSES_MIXINS.md` | Base classes and mixins | ⏳ Pending | - | - | - | - |
-| `docs/CHANGELOG.md` | Changelog | ⏳ Pending | - | - | - | - |
-| `docs/CODE_STRUCTURE.md` | Code structure | ⏳ Pending | - | - | - | - |
-| `docs/DATABASE_DOCUMENTATION.md` | Database documentation | ⏳ Pending | - | - | - | - |
-| `docs/DEPLOYMENT.md` | Deployment guide | ⏳ Pending | - | - | - | - |
-| `docs/DEVELOPMENT.md` | Development guide | ⏳ Pending | - | - | - | - |
-| `docs/DOCUMENTATION_INDEX.md` | Documentation index | ⏳ Pending | - | - | - | - |
-| `docs/FEATURES.md` | Features list | ⏳ Pending | - | - | - | - |
-| `docs/inventory_module_db_design_plan.md` | Inventory module DB design | ⏳ Pending | - | - | - | - |
-| `docs/MODULE_DEPENDENCIES.md` | Module dependencies | ⏳ Pending | - | - | - | - |
-| `docs/production_module_db_design_plan.md` | Production module DB design | ⏳ Pending | - | - | - | - |
-| `docs/qc_module_db_design_plan.md` | QC module DB design | ⏳ Pending | - | - | - | - |
-| `docs/REFACTORING_GUIDE.md` | Refactoring guide | ⏳ Pending | - | - | - | - |
-| `docs/REFACTORING_STATUS.md` | Refactoring status | ⏳ Pending | - | - | - | - |
-| `docs/shared_module_db_design_plan.md` | Shared module DB design | ⏳ Pending | - | - | - | - |
-| `docs/system_requirements.md` | System requirements | ⏳ Pending | - | - | - | - |
-| `docs/TEMPLATE_TAGS.md` | Template tags documentation | ⏳ Pending | - | - | - | - |
-| `docs/TEST_RESULTS_FIELD_SETTINGS.md` | Test results field settings | ⏳ Pending | - | - | - | - |
-| `docs/TICKETING_ENTITY_REFERENCE_IMPLEMENTATION.md` | Ticketing entity reference implementation | ⏳ Pending | - | - | - | - |
-| `docs/ticketing_field_settings_specification.md` | Ticketing field settings specification | ⏳ Pending | - | - | - | - |
-| `docs/TICKETING_IMPLEMENTATION.md` | Ticketing implementation | ⏳ Pending | - | - | - | - |
-| `docs/ticketing_module_db_design_plan.md` | Ticketing module DB design | ⏳ Pending | - | - | - | - |
-| `docs/ui_guidelines.md` | UI guidelines | ⏳ Pending | - | - | - | - |
-| `docs/UI_UX_CHANGELOG.md` | UI/UX changelog | ⏳ Pending | - | - | - | - |
+| `docs/ACTIONS_LIST.md` | Actions list | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/ACTIONS_SUMMARY.md` | Actions summary | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/API_DOCUMENTATION.md` | API documentation | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/approval_workflow.md` | Approval workflow | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/ARCHITECTURE.md` | System architecture | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/BASE_CLASSES_MIXINS.md` | Base classes and mixins | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/CHANGELOG.md` | Changelog | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/CODE_STRUCTURE.md` | Code structure | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/DATABASE_DOCUMENTATION.md` | Database documentation | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/DEPLOYMENT.md` | Deployment guide | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/DEVELOPMENT.md` | Development guide | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/DOCUMENTATION_INDEX.md` | Documentation index | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/FEATURES.md` | Features list | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/inventory_module_db_design_plan.md` | Inventory module DB design | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/MODULE_DEPENDENCIES.md` | Module dependencies | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/production_module_db_design_plan.md` | Production module DB design | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/qc_module_db_design_plan.md` | QC module DB design | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/REFACTORING_GUIDE.md` | Refactoring guide | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/REFACTORING_STATUS.md` | Refactoring status | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/shared_module_db_design_plan.md` | Shared module DB design | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/system_requirements.md` | System requirements | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/TEMPLATE_TAGS.md` | Template tags documentation | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/TEST_RESULTS_FIELD_SETTINGS.md` | Test results field settings | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/TICKETING_ENTITY_REFERENCE_IMPLEMENTATION.md` | Ticketing entity reference implementation | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/ticketing_field_settings_specification.md` | Ticketing field settings specification | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/TICKETING_IMPLEMENTATION.md` | Ticketing implementation | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/ticketing_module_db_design_plan.md` | Ticketing module DB design | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/ui_guidelines.md` | UI guidelines | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
+| `docs/UI_UX_CHANGELOG.md` | UI/UX changelog | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل مستندات است و محتوا دارد |
 
 ## 📋 Models
 
