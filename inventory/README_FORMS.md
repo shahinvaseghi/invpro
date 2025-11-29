@@ -1,4 +1,17 @@
-# Inventory Forms Documentation
+# inventory/README_FORMS.md - Inventory Forms (Complete Documentation)
+
+**هدف**: Overview کلی از تمام form classes و formsets ماژول inventory
+
+**نکته مهم**: برای جزئیات کامل هر فایل، به README مربوطه در `inventory/forms/` مراجعه کنید:
+- `inventory/forms/README.md`: Overview کلی پوشه forms
+- `inventory/forms/README_BASE.md`: Base forms و helper functions
+- `inventory/forms/README_MASTER_DATA.md`: Master data forms
+- `inventory/forms/README_RECEIPT.md`: Receipt forms
+- `inventory/forms/README_ISSUE.md`: Issue forms
+- `inventory/forms/README_REQUEST.md`: Request forms
+- `inventory/forms/README_STOCKTAKING.md`: Stocktaking forms
+
+---
 
 ## Overview
 This document describes the forms used in the inventory module for creating and editing master data entities.
