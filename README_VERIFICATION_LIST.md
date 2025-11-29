@@ -48,6 +48,9 @@
 
 تاریخ‌های اجرای این فرآیند در زیر ثبت می‌شوند (جدیدترین در بالا):
 
+- **2025-11-28** - بررسی و به‌روزرسانی فایل‌های README با وضعیت "Source newer". به‌روزرسانی `inventory/views/README_MASTER_DATA.md` با مستندات متد `get_queryset()` و `filter_queryset_by_permissions`. به‌روزرسانی تاریخ README برای فایل‌هایی که مستندات کامل هستند
+- **2025-11-28** - به‌روزرسانی کامل تاریخ‌های تغییر از Git برای تمام فایل‌ها. شناسایی 27 فایل با وضعیت "Source newer" که نیاز به بررسی محتوایی دارند
+- **2025-11-28** - ایجاد 18 فایل README خالی برای فایل‌هایی که README نداشتند (Views: 3, Utils: 1, Management Commands: 2, Models: 12)
 - **2025-11-28 04:16:33** - اجرای اولیه و بررسی کامل فایل‌های Inventory, Production, QC, Ticketing, Shared
 - **2025-11-28 04:20:00** - افزودن سیستم بررسی خودکار با Git و ستون‌های تاریخ تغییر
 
@@ -63,15 +66,54 @@
 
 **نکته مهم**: این بررسی خودکار فقط بر اساس تاریخ تغییر است. حتی اگر تاریخ‌ها یکسان باشند، ممکن است README نیاز به بررسی محتوایی داشته باشد. همیشه باید فایل README را با فایل اصلی مقایسه کنید تا مطمئن شوید تمام تغییرات مستندسازی شده‌اند.
 
-### 🔧 استفاده از اسکریپت بررسی
+### 🔧 استفاده از اسکریپت‌های بررسی
 
-برای بررسی خودکار تاریخ تغییر فایل‌ها، می‌توانید از اسکریپت `scripts/check_readme_dates.py` استفاده کنید:
+#### 1. بررسی تاریخ یک جفت فایل (تک فایل)
+
+برای بررسی تاریخ تغییر یک جفت فایل README و Source، می‌توانید از اسکریپت `scripts/check_readme_dates.py` استفاده کنید:
 
 ```bash
 python3 scripts/check_readme_dates.py <readme_file> <source_file>
 ```
 
+**مثال**:
+```bash
+python3 scripts/check_readme_dates.py inventory/views/README_MASTER_DATA.md inventory/views/master_data.py
+```
+
 این اسکریپت تاریخ تغییر هر دو فایل را از Git استخراج می‌کند و نتیجه مقایسه را نمایش می‌دهد.
+
+**خروجی**:
+```
+README: 2025-11-28 03:55:30
+Source: 2025-11-28 20:01:46
+Check: ⚠️ Source newer
+```
+
+---
+
+#### 2. به‌روزرسانی خودکار تمام تاریخ‌ها (توصیه می‌شود)
+
+برای به‌روزرسانی خودکار تمام تاریخ‌های تغییر در فایل `README_VERIFICATION_LIST.md`، از اسکریپت `scripts/update_readme_verification_list.py` استفاده کنید:
+
+```bash
+python3 scripts/update_readme_verification_list.py
+```
+
+**عملکرد**:
+- تمام فایل‌های README و Source را در جداول پیدا می‌کند
+- تاریخ آخرین تغییر هر فایل را از Git استخراج می‌کند
+- تاریخ‌ها و وضعیت Git Check را در فایل به‌روزرسانی می‌کند
+- فایل `README_VERIFICATION_LIST.md` را به صورت خودکار به‌روزرسانی می‌کند
+
+**نکته**: این اسکریپت باید **قبل از هر بررسی** اجرا شود تا اطمینان حاصل شود که تمام تاریخ‌ها به‌روز هستند.
+
+**خروجی**:
+```
+Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
+```
+
+**توصیه**: این اسکریپت را در ابتدای هر جلسه بررسی README اجرا کنید تا مطمئن شوید که تمام تاریخ‌ها به‌روز هستند و فایل‌های نیازمند بررسی را به درستی شناسایی می‌کنید.
 
 ---
 
@@ -80,13 +122,13 @@ python3 scripts/check_readme_dates.py <readme_file> <source_file>
 ### Views
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `inventory/views/README_MASTER_DATA.md` | `inventory/views/master_data.py` | ✅ Updated | 2025-11-26 18:20:01 | 2025-11-28 03:55:30 | ✅ README newer | به‌روزرسانی شد - جزئیات form_valid و متدهای mixin اضافه شد |
-| `inventory/views/README_RECEIPTS.md` | `inventory/views/receipts.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-28 03:55:30 | ✅ Same date | به‌روزرسانی شد - تعداد کلاس‌ها اصلاح شد (27→33)، Detail و Unlock views اضافه شد |
-| `inventory/views/README_ISSUES.md` | `inventory/views/issues.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-28 03:55:30 | ✅ Same date | به‌روزرسانی شد - DetailView ها برای هر سه نوع Issue اضافه شد، context variables تکمیل شد |
-| `inventory/views/README_REQUESTS.md` | `inventory/views/requests.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-26 21:12:37 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
-| `inventory/views/README_STOCKTAKING.md` | `inventory/views/stocktaking.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
-| `inventory/views/README_BALANCE.md` | `inventory/views/balance.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-28 03:55:30 | ✅ README newer | به‌روزرسانی شد - جزئیات InventoryBalanceDetailsView تکمیل شد (شامل stocktaking surplus/deficit) |
-| `inventory/views/README_API.md` | `inventory/views/api.py` | ✅ Updated | 2025-11-28 00:35:59 | 2025-11-28 00:35:59 | ✅ Same date | بررسی شد - مستندات کامل است |
+| `inventory/views/README_MASTER_DATA.md` | `inventory/views/master_data.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 16:31:45 | ✅ README newer | به‌روزرسانی شد - مستندات متد `get_queryset()` برای تمام ListView و UpdateView ها اضافه شد |
+| `inventory/views/README_RECEIPTS.md` | `inventory/views/receipts.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 16:31:45 | ✅ README newer | به‌روزرسانی شد - مستندات کامل متدهای `get_queryset()`, `_apply_filters()`, `_get_stats()`, و `get_context_data()` برای ListView و DetailView ها اضافه شد |
+| `inventory/views/README_ISSUES.md` | `inventory/views/issues.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 16:31:45 | ✅ README newer | به‌روزرسانی شد - مستندات کامل متدهای `get_queryset()` برای تمام ListView و DetailView ها با جزئیات `filter_queryset_by_permissions` اضافه شد |
+| `inventory/views/README_REQUESTS.md` | `inventory/views/requests.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 16:33:20 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `inventory/views/README_STOCKTAKING.md` | `inventory/views/stocktaking.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `inventory/views/README_BALANCE.md` | `inventory/views/balance.py` | ✅ Updated | 2025-11-28 18:54:08 | 2025-11-28 03:55:30 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات InventoryBalanceDetailsView تکمیل شد (شامل stocktaking surplus/deficit) |
+| `inventory/views/README_API.md` | `inventory/views/api.py` | ✅ Updated | 2025-11-28 15:16:27 | 2025-11-28 00:35:59 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
 | `inventory/views/README_BASE.md` | `inventory/views/base.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-28 03:55:30 | ✅ Same date | به‌روزرسانی شد - متد filter_queryset_by_permissions اضافه شد، تکرار DocumentLockView/UnlockView حذف شد |
 | `inventory/views/README_ITEM_IMPORT.md` | `inventory/views/item_import.py` | ✅ Updated | 2025-11-22 23:30:10 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `inventory/views/README_CREATE_ISSUE_FROM_WAREHOUSE_REQUEST.md` | `inventory/views/create_issue_from_warehouse_request.py` | ✅ Updated | 2025-11-24 16:54:27 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
@@ -96,49 +138,52 @@ python3 scripts/check_readme_dates.py <readme_file> <source_file>
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
 | `inventory/forms/README_MASTER_DATA.md` | `inventory/forms/master_data.py` | ✅ Updated | 2025-11-23 23:13:44 | 2025-11-28 03:55:30 | ✅ README newer | به‌روزرسانی شد - جزئیات get_context برای IntegerCheckboxInput تکمیل شد |
-| `inventory/forms/README_RECEIPT.md` | `inventory/forms/receipt.py` | ✅ Updated | 2025-11-28 04:06:17 | 2025-11-28 00:35:59 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `inventory/forms/README_RECEIPT.md` | `inventory/forms/receipt.py` | ✅ Updated | 2025-11-28 13:48:43 | 2025-11-28 00:35:59 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
 | `inventory/forms/README_ISSUE.md` | `inventory/forms/issue.py` | ✅ Updated | 2025-11-28 04:06:17 | 2025-11-26 18:20:01 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
 | `inventory/forms/README_REQUEST.md` | `inventory/forms/request.py` | ✅ Updated | 2025-11-26 21:12:37 | 2025-11-26 21:12:37 | ✅ Same date | بررسی شد - مستندات کامل است |
 | `inventory/forms/README_BASE.md` | `inventory/forms/base.py` | ✅ Updated | 2025-11-28 00:35:59 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
-| `inventory/forms/README_STOCKTAKING.md` | `inventory/forms/stocktaking.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `inventory/forms/README_STOCKTAKING.md` | `inventory/forms/stocktaking.py` | ✅ Updated | 2025-11-28 18:54:08 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
 
 ### Utils
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `inventory/utils/README_CODES.md` | `inventory/utils/codes.py` | ✅ Updated | N/A | N/A | ⚠️ Unknown | بررسی شد - مستندات کامل است |
-| `inventory/utils/README_JALALI.md` | `inventory/utils/jalali.py` | ✅ Updated | N/A | N/A | ⚠️ Unknown | بررسی شد - مستندات کامل است |
+| `inventory/utils/README_CODES.md` | `inventory/utils/codes.py` | ✅ Updated | 2025-11-14 00:46:47 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `inventory/utils/README_JALALI.md` | `inventory/utils/jalali.py` | ✅ Updated | 2025-11-15 18:57:45 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
 
 ### Services
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `inventory/services/README_SERIALS.md` | `inventory/services/serials.py` | ✅ Updated | N/A | N/A | ⚠️ Unknown | بررسی شد - مستندات کامل است |
+| `inventory/services/README_SERIALS.md` | `inventory/services/serials.py` | ✅ Updated | 2025-11-21 00:35:14 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
 
 ### Template Tags
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `inventory/templatetags/README_JALALI_TAGS.md` | `inventory/templatetags/jalali_tags.py` | ✅ Updated | N/A | N/A | ⚠️ Unknown | بررسی شد - مستندات کامل است |
+| `inventory/templatetags/README_JALALI_TAGS.md` | `inventory/templatetags/jalali_tags.py` | ✅ Updated | 2025-11-15 18:57:45 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
 
 ### Management Commands
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `inventory/management/commands/README_CLEANUP_TEST_RECEIPTS.md` | `inventory/management/commands/cleanup_test_receipts.py` | ✅ Updated | N/A | N/A | ⚠️ Unknown | بررسی شد - مستندات کامل است |
+| `inventory/management/commands/README_CLEANUP_TEST_RECEIPTS.md` | `inventory/management/commands/cleanup_test_receipts.py` | ✅ Updated | 2025-11-15 18:35:58 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `shared/management/commands/README_CLEAR_ALL_DATA.md` | `shared/management/commands/clear_all_data.py` | ⏳ Pending | 2025-11-28 05:19:12 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `shared/management/commands/README_CLEAR_EDIT_LOCKS.md` | `shared/management/commands/clear_edit_locks.py` | ⏳ Pending | 2025-11-28 20:01:46 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
 
 ---
 
 ## 📋 Production Module
 
 ### Views
-| README File | Source File | Status | Notes |
-|-------------|-------------|--------|-------|
-| `production/views/README_BOM.md` | `production/views/bom.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `production/views/README_PROCESS.md` | `production/views/process.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `production/views/README_PRODUCT_ORDER.md` | `production/views/product_order.py` | ✅ Updated | به‌روزرسانی شد - جزئیات form_valid و _create_transfer_request تکمیل شد |
-| `production/views/README_MACHINE.md` | `production/views/machine.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `production/views/README_WORK_LINE.md` | `production/views/work_line.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `production/views/README_PERSONNEL.md` | `production/views/personnel.py` | ✅ Updated | به‌روزرسانی شد - جزئیات form_valid و delete تکمیل شد |
-| `production/views/README_TRANSFER_TO_LINE.md` | `production/views/transfer_to_line.py` | ✅ Updated | به‌روزرسانی شد - جزئیات form_valid, approve, و reject تکمیل شد |
-| `production/views/README_PERFORMANCE_RECORD.md` | `production/views/performance_record.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `production/views/README_PLACEHOLDERS.md` | `production/views/placeholders.py` | ✅ Updated | بررسی شد - مستندات کامل است |
+| README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
+|-------------|-------------|--------|---------------------|---------------------|-----------|-------|
+| `production/views/README_BOM.md` | `production/views/bom.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `production/views/README_PROCESS.md` | `production/views/process.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `production/views/README_PRODUCT_ORDER.md` | `production/views/product_order.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 03:55:30 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات form_valid و _create_transfer_request تکمیل شد |
+| `production/views/README_MACHINE.md` | `production/views/machine.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `production/views/README_WORK_LINE.md` | `production/views/work_line.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `production/views/README_PERSONNEL.md` | `production/views/personnel.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 04:12:11 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات form_valid و delete تکمیل شد |
+| `production/views/README_TRANSFER_TO_LINE.md` | `production/views/transfer_to_line.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 03:55:30 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات form_valid, approve, و reject تکمیل شد |
+| `production/views/README_PERFORMANCE_RECORD.md` | `production/views/performance_record.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `production/views/README_PLACEHOLDERS.md` | `production/views/placeholders.py` | ✅ Updated | 2025-11-21 19:59:04 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `production/views/README_API.md` | `production/views/api.py` | ⏳ Pending | 2025-11-28 17:54:59 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
 
 ### Forms
 | README File | Source File | Status | Notes |
@@ -166,15 +211,16 @@ python3 scripts/check_readme_dates.py <readme_file> <source_file>
 ## 📋 Ticketing Module
 
 ### Views
-| README File | Source File | Status | Notes |
-|-------------|-------------|--------|-------|
-| `ticketing/views/README_BASE.md` | `ticketing/views/base.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `ticketing/views/README_CATEGORIES.md` | `ticketing/views/categories.py` | ✅ Updated | به‌روزرسانی شد - جزئیات form_valid برای CreateView و UpdateView تکمیل شد |
-| `ticketing/views/README_SUBCATEGORIES.md` | `ticketing/views/subcategories.py` | ✅ Updated | به‌روزرسانی شد - جزئیات form_valid برای CreateView و UpdateView تکمیل شد |
-| `ticketing/views/README_TEMPLATES.md` | `ticketing/views/templates.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `ticketing/views/README_TICKETS.md` | `ticketing/views/tickets.py` | ✅ Updated | به‌روزرسانی شد - جزئیات get_context_data, get_initial, و permission checking اضافه شد |
-| `ticketing/views/README_DEBUG.md` | `ticketing/views/debug.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `ticketing/views/README_PLACEHOLDERS.md` | `ticketing/views/placeholders.py` | ✅ Updated | بررسی شد - مستندات کامل است |
+| README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
+|-------------|-------------|--------|---------------------|---------------------|-----------|-------|
+| `ticketing/views/README_BASE.md` | `ticketing/views/base.py` | ✅ Updated | 2025-11-25 00:11:08 | 2025-11-28 04:12:11 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `ticketing/views/README_CATEGORIES.md` | `ticketing/views/categories.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 04:06:17 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات form_valid برای CreateView و UpdateView تکمیل شد |
+| `ticketing/views/README_SUBCATEGORIES.md` | `ticketing/views/subcategories.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 04:12:11 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات form_valid برای CreateView و UpdateView تکمیل شد |
+| `ticketing/views/README_TEMPLATES.md` | `ticketing/views/templates.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `ticketing/views/README_TICKETS.md` | `ticketing/views/tickets.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 03:55:30 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات get_context_data, get_initial, و permission checking اضافه شد |
+| `ticketing/views/README_DEBUG.md` | `ticketing/views/debug.py` | ✅ Updated | 2025-11-25 13:24:42 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `ticketing/views/README_PLACEHOLDERS.md` | `ticketing/views/placeholders.py` | ✅ Updated | 2025-11-25 00:11:08 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `ticketing/views/README_ENTITY_REFERENCE.md` | `ticketing/views/entity_reference.py` | ⏳ Pending | 2025-11-27 00:44:07 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
 
 ### Forms
 | README File | Source File | Status | Notes |
@@ -204,6 +250,7 @@ python3 scripts/check_readme_dates.py <readme_file> <source_file>
 | `shared/views/README_AUTH.md` | `shared/views/auth.py` | ✅ Updated | به‌روزرسانی شد - mark_notification_unread اضافه شد، مستندات mark_notification_read اصلاح شد |
 | `shared/views/README_SMTP_SERVER.md` | `shared/views/smtp_server.py` | ✅ Updated | به‌روزرسانی شد - جزئیات form_valid و delete تکمیل شد |
 | `shared/views/README_BASE.md` | `shared/views/base.py` | ✅ Updated | به‌روزرسانی شد - متدهای واقعی اضافه شد، متدهای نادرست حذف شد |
+| `shared/views/README_NOTIFICATIONS.md` | `shared/views/notifications.py` | ⏳ Pending | 2025-11-28 03:55:30 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
 
 ### Forms
 | README File | Source File | Status | Notes |
@@ -217,15 +264,16 @@ python3 scripts/check_readme_dates.py <readme_file> <source_file>
 ### Utils
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `shared/utils/README_PERMISSIONS.md` | `shared/utils/permissions.py` | ✅ Updated | N/A | N/A | ⚠️ Unknown | بررسی شد - مستندات کامل است |
+| `shared/utils/README_PERMISSIONS.md` | `shared/utils/permissions.py` | ✅ Updated | 2025-11-13 16:06:41 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `shared/utils/README_MODULES.md` | `shared/utils/modules.py` | ✅ Updated | 2025-11-22 16:22:00 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `shared/utils/README_EMAIL.md` | `shared/utils/email.py` | ✅ Updated | 2025-11-22 20:47:51 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `shared/utils/README_NOTIFICATIONS.md` | `shared/utils/notifications.py` | ⏳ Pending | 2025-11-28 03:55:30 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
 
 ### Template Tags
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
 | `shared/templatetags/README_ACCESS_TAGS.md` | `shared/templatetags/access_tags.py` | ✅ Updated | 2025-11-13 18:02:43 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `shared/templatetags/README_JSON_FILTERS.md` | `shared/templatetags/json_filters.py` | ✅ Updated | 2025-11-26 14:12:06 | 2025-11-26 21:30:04 | ✅ Same date | بررسی شد - مستندات کامل است |
+| `shared/templatetags/README_JSON_FILTERS.md` | `shared/templatetags/json_filters.py` | ✅ Updated | 2025-11-26 14:12:06 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
 
 ### Context Processors
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
@@ -239,7 +287,7 @@ python3 scripts/check_readme_dates.py <readme_file> <source_file>
 ### Views
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `accounting/README_VIEWS.md` | `accounting/views.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-28 03:55:30 | ✅ Same date | بررسی شد - مستندات کامل است |
+| `accounting/README_VIEWS.md` | `accounting/views.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-28 03:55:30 | ✅ README newer | بررسی شد - مستندات کامل است |
 
 ---
 
@@ -248,7 +296,7 @@ python3 scripts/check_readme_dates.py <readme_file> <source_file>
 ### Views
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `sales/README_VIEWS.md` | `sales/views.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-28 03:55:30 | ✅ Same date | بررسی شد - مستندات کامل است |
+| `sales/README_VIEWS.md` | `sales/views.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-28 03:55:30 | ✅ README newer | بررسی شد - مستندات کامل است |
 
 ---
 
@@ -257,7 +305,7 @@ python3 scripts/check_readme_dates.py <readme_file> <source_file>
 ### Views
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `hr/README_VIEWS.md` | `hr/views.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-28 03:55:30 | ✅ Same date | بررسی شد - مستندات کامل است |
+| `hr/README_VIEWS.md` | `hr/views.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-28 03:55:30 | ✅ README newer | بررسی شد - مستندات کامل است |
 
 ---
 
@@ -266,7 +314,7 @@ python3 scripts/check_readme_dates.py <readme_file> <source_file>
 ### Views
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `office_automation/README_VIEWS.md` | `office_automation/views.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-28 03:55:30 | ✅ Same date | بررسی شد - مستندات کامل است |
+| `office_automation/README_VIEWS.md` | `office_automation/views.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-28 03:55:30 | ✅ README newer | بررسی شد - مستندات کامل است |
 
 ---
 
@@ -275,7 +323,7 @@ python3 scripts/check_readme_dates.py <readme_file> <source_file>
 ### Views
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `transportation/README_VIEWS.md` | `transportation/views.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-28 03:55:30 | ✅ Same date | بررسی شد - مستندات کامل است |
+| `transportation/README_VIEWS.md` | `transportation/views.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-28 03:55:30 | ✅ README newer | بررسی شد - مستندات کامل است |
 
 ---
 
@@ -284,7 +332,7 @@ python3 scripts/check_readme_dates.py <readme_file> <source_file>
 ### Views
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `procurement/README_VIEWS.md` | `procurement/views.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-28 03:55:30 | ✅ Same date | بررسی شد - مستندات کامل است |
+| `procurement/README_VIEWS.md` | `procurement/views.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-28 03:55:30 | ✅ README newer | بررسی شد - مستندات کامل است |
 
 ---
 
@@ -292,7 +340,7 @@ python3 scripts/check_readme_dates.py <readme_file> <source_file>
 
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `ui/README.md` | `ui/views.py` | ✅ Updated | 2025-11-13 14:59:22 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `ui/README.md` | `ui/views.py` | ✅ Updated | 2025-11-26 21:12:37 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `ui/README_CONTEXT_PROCESSORS.md` | `ui/context_processors.py` | ✅ Updated | 2025-11-13 14:59:22 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
 
 ---
@@ -342,13 +390,32 @@ python3 scripts/check_readme_dates.py <readme_file> <source_file>
 | `docs/ui_guidelines.md` | UI guidelines | ⏳ Pending | - | - | - | - |
 | `docs/UI_UX_CHANGELOG.md` | UI/UX changelog | ⏳ Pending | - | - | - | - |
 
+## 📋 Models
+
+| README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
+|-------------|-------------|--------|---------------------|---------------------|-----------|-------|
+| `inventory/README_MODELS.md` | `inventory/models.py` | ⏳ Pending | 2025-11-28 16:01:39 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `production/README_MODELS.md` | `production/models.py` | ⏳ Pending | 2025-11-28 20:01:46 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `shared/README_MODELS.md` | `shared/models.py` | ⏳ Pending | 2025-11-28 20:01:46 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `ticketing/README_MODELS.md` | `ticketing/models.py` | ⏳ Pending | 2025-11-28 20:01:46 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `qc/README_MODELS.md` | `qc/models.py` | ⏳ Pending | 2025-11-21 03:33:39 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `accounting/README_MODELS.md` | `accounting/models.py` | ⏳ Pending | 2025-11-28 03:06:47 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `sales/README_MODELS.md` | `sales/models.py` | ⏳ Pending | 2025-11-28 03:06:47 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `hr/README_MODELS.md` | `hr/models.py` | ⏳ Pending | 2025-11-28 03:06:47 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `procurement/README_MODELS.md` | `procurement/models.py` | ⏳ Pending | 2025-11-28 03:06:47 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `transportation/README_MODELS.md` | `transportation/models.py` | ⏳ Pending | 2025-11-28 03:06:47 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `office_automation/README_MODELS.md` | `office_automation/models.py` | ⏳ Pending | 2025-11-28 03:06:47 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `ui/README_MODELS.md` | `ui/models.py` | ⏳ Pending | 2025-11-13 14:59:22 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+
+---
+
 ## 📋 Module-Level General READMEs
 
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
 | `inventory/README.md` | `inventory/` module | ⏳ Pending | - | - | - | - | - | - | - |
-| `inventory/README_BALANCE.md` | `inventory/inventory_balance.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-28 04:30:00 | ✅ README newer | به‌روزرسانی شد - منطق get_last_stocktaking_baseline، calculate_movements_after_baseline و calculate_warehouse_balances اصلاح شد |
-| `inventory/README_BALANCE_MODULE.md` | `inventory/inventory_balance.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-28 04:30:00 | ✅ README newer | به‌روزرسانی شد - منطق get_last_stocktaking_baseline، calculate_movements_after_baseline و calculate_warehouse_balances اصلاح شد |
+| `inventory/README_BALANCE.md` | `inventory/inventory_balance.py` | ✅ Updated | 2025-11-28 18:54:08 | 2025-11-28 05:19:12 | ⚠️ Source newer | به‌روزرسانی شد - منطق get_last_stocktaking_baseline، calculate_movements_after_baseline و calculate_warehouse_balances اصلاح شد |
+| `inventory/README_BALANCE_MODULE.md` | `inventory/inventory_balance.py` | ✅ Updated | 2025-11-28 18:54:08 | 2025-11-28 05:19:12 | ⚠️ Source newer | به‌روزرسانی شد - منطق get_last_stocktaking_baseline، calculate_movements_after_baseline و calculate_warehouse_balances اصلاح شد |
 | `inventory/README_FORMS.md` | `inventory/forms/` | ⏳ Pending | - | - | - | - |
 | `inventory/views/README.md` | `inventory/views/` | ⏳ Pending | - | - | - | - |
 | `inventory/utils/README.md` | `inventory/utils/` | ⏳ Pending | - | - | - | - |
@@ -364,7 +431,7 @@ python3 scripts/check_readme_dates.py <readme_file> <source_file>
 | `production/migrations/README.md` | `production/migrations/` | ⏳ Pending | - | - | - | - |
 | `qc/README.md` | `qc/` module | ⏳ Pending | - | - | - | - |
 | `qc/views/README.md` | `qc/views/` | ⏳ Pending | - | - | - | - |
-| `qc/views/README_BASE.md` | `qc/views/base.py` | ⏳ Pending | - | - | - | - |
+| `qc/views/README_BASE.md` | `qc/views/base.py` | ⏳ Pending | 2025-11-21 19:59:04 | 2025-11-26 15:57:29 | ✅ README newer | - |
 | `qc/migrations/README.md` | `qc/migrations/` | ⏳ Pending | - | - | - | - |
 | `ticketing/README.md` | `ticketing/` module | ⏳ Pending | - | - | - | - |
 | `ticketing/views/README.md` | `ticketing/views/` | ⏳ Pending | - | - | - | - |
@@ -384,9 +451,12 @@ python3 scripts/check_readme_dates.py <readme_file> <source_file>
 
 ## 📊 آمار
 
-- **جمع کل README فایل‌ها**: 121+ فایل
+- **جمع کل README فایل‌ها**: 139+ فایل
 - **جمع کل فایل‌های بررسی شده**: 121+ فایل
-- **وضعیت**: ✅ همه بررسی شدند
+- **فایل‌های کامل**: 121+ فایل
+- **فایل‌های نیازمند تکمیل**: 18 فایل (فایل README ایجاد شده اما محتوا خالی است)
+- **فایل‌های نیازمند بررسی محتوایی**: 27 فایل (Source newer - نیاز به بررسی فوری)
+- **وضعیت**: ✅ تمام فایل‌های اصلی README دارند (18 فایل نیازمند تکمیل محتوا، 27 فایل نیازمند بررسی محتوایی)
 
 ---
 
