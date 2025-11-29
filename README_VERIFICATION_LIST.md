@@ -394,7 +394,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `inventory/README_MODELS.md` | `inventory/models.py` | ⏳ Pending | 2025-11-28 16:01:39 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `inventory/README_MODELS.md` | `inventory/models.py` | ✅ Updated | 2025-11-28 16:01:39 | 2025-11-29 19:14:01 | ✅ README newer | مستندات کامل برای 43 model class: Base Models (3 abstract)، Master Data (4)، Item Definition (6)، Supplier Relations (4)، Document Models (12: Receipts، Issues، Stocktaking)، Request Models (4)، Traceability Models (3)، QC Models (1) - شامل validators، constants، و نکات مهم |
 | `production/README_MODELS.md` | `production/models.py` | ⏳ Pending | 2025-11-28 20:01:46 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
 | `shared/README_MODELS.md` | `shared/models.py` | ⏳ Pending | 2025-11-28 20:01:46 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
 | `ticketing/README_MODELS.md` | `ticketing/models.py` | ⏳ Pending | 2025-11-28 20:01:46 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
