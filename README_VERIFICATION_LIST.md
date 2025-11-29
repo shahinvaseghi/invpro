@@ -164,7 +164,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
 | `inventory/management/commands/README_CLEANUP_TEST_RECEIPTS.md` | `inventory/management/commands/cleanup_test_receipts.py` | ✅ Updated | 2025-11-15 18:35:58 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `shared/management/commands/README_CLEAR_ALL_DATA.md` | `shared/management/commands/clear_all_data.py` | ⏳ Pending | 2025-11-28 05:19:12 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `shared/management/commands/README_CLEAR_ALL_DATA.md` | `shared/management/commands/clear_all_data.py` | ✅ Updated | 2025-11-28 05:19:12 | 2025-11-29 19:07:50 | ✅ README newer | مستندات کامل برای `Command` class: `add_arguments()` (--confirm flag)، `handle()` (منطق کامل حذف با multiple passes، PostgreSQL constraint deferral، SQL fallback با TRUNCATE CASCADE، error handling، و models حفظ شده) |
 | `shared/management/commands/README_CLEAR_EDIT_LOCKS.md` | `shared/management/commands/clear_edit_locks.py` | ⏳ Pending | 2025-11-28 20:01:46 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
 
 ---
