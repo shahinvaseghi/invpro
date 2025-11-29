@@ -438,13 +438,13 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `ticketing/forms/README.md` | `ticketing/forms/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و overview کلی forms را دارد |
 | `ticketing/utils/README.md` | `ticketing/utils/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و توابع codes.py را مستندسازی کرده |
 | `ticketing/migrations/README.md` | `ticketing/migrations/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و خلاصه migrations را دارد |
-| `shared/README.md` | `shared/` module | ⏳ Pending | - | - | - | - |
-| `shared/README_FORMS.md` | `shared/forms/` | ⏳ Pending | - | - | - | - |
-| `shared/views/README.md` | `shared/views/` | ⏳ Pending | - | - | - | - |
-| `shared/forms/README.md` | `shared/forms/` | ⏳ Pending | - | - | - | - |
-| `shared/utils/README.md` | `shared/utils/` | ⏳ Pending | - | - | - | - |
-| `shared/templatetags/README.md` | `shared/templatetags/` | ⏳ Pending | - | - | - | - |
-| `shared/migrations/README.md` | `shared/migrations/` | ⏳ Pending | - | - | - | - |
+| `shared/README.md` | `shared/` module | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | به‌روزرسانی شد - لینک به فایل‌های README جزئی‌تر اضافه شد |
+| `shared/README_FORMS.md` | `shared/forms/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و تمام forms را مستندسازی کرده |
+| `shared/views/README.md` | `shared/views/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و overview کلی views را دارد |
+| `shared/forms/README.md` | `shared/forms/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و overview کلی forms را دارد |
+| `shared/utils/README.md` | `shared/utils/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و تمام utility functions را مستندسازی کرده |
+| `shared/templatetags/README.md` | `shared/templatetags/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و تمام template tags را مستندسازی کرده |
+| `shared/migrations/README.md` | `shared/migrations/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و خلاصه migrations را دارد |
 | `templates/inventory/README.md` | `templates/inventory/` | ⏳ Pending | - | - | - | - |
 
 ---
