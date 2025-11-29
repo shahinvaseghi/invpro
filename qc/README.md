@@ -2,6 +2,11 @@
 
 The quality control module manages inspections tied to temporary inventory receipts. This README explains the custom files and classes within the app.
 
+**نکته مهم**: برای جزئیات کامل هر بخش، به فایل‌های README مربوطه مراجعه کنید:
+- **Models**: [`README_MODELS.md`](README_MODELS.md) - مستندات کامل برای 2 model class
+- **Views**: [`views/README.md`](views/README.md) - Overview کلی views
+- **Migrations**: [`migrations/README.md`](migrations/README.md) - خلاصه migrations
+
 ## models.py
 
 Defines:
