@@ -119,11 +119,79 @@
 - `paginate_by`: `50`
 
 **متدها**:
-- `get_queryset()`: `prefetch_related('lines__item', 'lines__warehouse')`, `select_related('created_by', 'converted_receipt')`
-- `_apply_filters(queryset)`: اعمال فیلترهای `status`, `converted`, `search` (querystring)
-- `_get_stats()`: محاسبه آمار کارت‌های بالای صفحه (total, awaiting_qc, qc_passed, converted)
-- `get_context_data()`: اضافه کردن URLs و delete permissions
-  - Context اضافی: `status_filter`, `converted_filter`, `search_query`, `stats`
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch، فیلتر permissions و فیلترهای اضافی آماده می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده و بهینه شده
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند
+2. فیلتر بر اساس `company_id` از session
+3. فیلتر `is_enabled=1`
+4. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.receipts.temporary', 'created_by')`
+5. Prefetch related objects:
+   - `lines` با `Prefetch` که فقط enabled lines را شامل می‌شود (`is_enabled=1`)
+   - `select_related('item', 'warehouse')` برای هر line
+   - `select_related('created_by', 'converted_receipt')` برای receipt
+6. اعمال فیلترهای اضافی با `_apply_filters(queryset)`
+7. `distinct()` برای حذف duplicate ها
+
+**نکته**: از `Prefetch` با `to_attr='enabled_lines'` استفاده می‌کند تا فقط خطوط enabled در `enabled_lines` قرار گیرند.
+
+---
+
+#### `_apply_filters(self, queryset) -> QuerySet`
+
+**توضیح**: فیلترهای `status`, `converted`, و `search` را از querystring اعمال می‌کند.
+
+**پارامترهای ورودی**:
+- `queryset`: QuerySet برای فیلتر کردن
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده
+
+**منطق**:
+1. **Status filter**: از `request.GET.get('status')` - مقادیر: `draft`, `awaiting_qc`, `qc_passed`, `qc_failed`
+2. **Converted filter**: از `request.GET.get('converted')` - مقادیر: `'1'` (converted), `'0'` (not converted)
+3. **Search filter**: از `request.GET.get('search')` - جستجو در `document_code`, `lines__item__name`, `lines__item__item_code`
+
+---
+
+#### `_get_stats(self) -> Dict[str, int]`
+
+**توضیح**: آمار کلی برای کارت‌های بالای صفحه محاسبه می‌کند.
+
+**مقدار بازگشتی**:
+- `Dict[str, int]`: شامل `total`, `awaiting_qc`, `qc_passed`, `converted`
+
+**منطق**:
+1. base queryset را بر اساس `company_id` و `is_enabled=1` می‌سازد
+2. `total`: تعداد کل receipts
+3. `awaiting_qc`: receipts با status `AWAITING_INSPECTION`
+4. `qc_passed`: receipts با status `APPROVED`
+5. `converted`: receipts با `is_converted=1`
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template آماده می‌کند.
+
+**Context Variables اضافه شده**:
+- `create_url`: URL ایجاد receipt جدید
+- `detail_url_name`, `edit_url_name`, `delete_url_name`, `lock_url_name`, `unlock_url_name`: نام URL patterns
+- `create_label`: `_('Temporary Receipt')`
+- `show_qc`: `True` (نمایش دکمه QC)
+- `show_conversion`: `True` (نمایش دکمه تبدیل)
+- `permanent_receipt_url_name`: URL برای permanent receipt
+- `empty_heading`, `empty_text`: پیام‌های خالی
+- `can_delete_own`, `can_delete_other`: permissions برای حذف (از `add_delete_permissions_to_context`)
+- `can_unlock_own`, `can_unlock_other`: permissions برای unlock
+- `status_filter`, `converted_filter`, `search_query`: مقادیر فعلی فیلترها
+- `stats`: آمار از `_get_stats()`
 
 **URL**: `/inventory/receipts/temporary/`
 
@@ -167,15 +235,34 @@
 - `context_object_name`: `'receipt'`
 
 **متدها**:
-- `get_queryset()`: فیلتر بر اساس company و permissions، prefetch related objects
-- `get_context_data()`: اضافه کردن `receipt_variant`, `list_url`, `edit_url`, `can_edit`
 
-**Context Variables**:
-- `receipt`: instance رسید موقت
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch و فیلتر permissions آماده می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده و بهینه شده
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند
+2. فیلتر بر اساس `company_id` از session
+3. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.receipts.temporary', 'created_by')`
+4. Prefetch related objects:
+   - `lines__item`, `lines__warehouse` برای lines
+   - `select_related('created_by', 'supplier')` برای receipt
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template آماده می‌کند.
+
+**Context Variables اضافه شده**:
+- `active_module`: `'inventory'`
 - `receipt_variant`: `'temporary'`
-- `list_url`: URL لیست رسیدهای موقت
-- `edit_url`: URL ویرایش رسید
-- `can_edit`: `bool` - آیا رسید قفل نشده است
+- `list_url`: URL لیست receipts
+- `edit_url`: URL ویرایش receipt
+- `can_edit`: `bool` - آیا receipt قفل نشده است (`not object.is_locked`)
 
 **URL**: `/inventory/receipts/temporary/<pk>/`
 
@@ -379,15 +466,34 @@
 - `context_object_name`: `'receipt'`
 
 **متدها**:
-- `get_queryset()`: فیلتر بر اساس company و permissions، prefetch related objects (شامل `temporary_receipt`, `purchase_request`)
-- `get_context_data()`: اضافه کردن `receipt_variant`, `list_url`, `edit_url`, `can_edit`
 
-**Context Variables**:
-- `receipt`: instance رسید دائم
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch و فیلتر permissions آماده می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده و بهینه شده
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند
+2. فیلتر بر اساس `company_id` از session
+3. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.receipts.permanent', 'created_by')`
+4. Prefetch related objects:
+   - `lines__item`, `lines__warehouse`, `lines__supplier` برای lines
+   - `select_related('created_by', 'temporary_receipt', 'purchase_request')` برای receipt
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template آماده می‌کند.
+
+**Context Variables اضافه شده**:
+- `active_module`: `'inventory'`
 - `receipt_variant`: `'permanent'`
-- `list_url`: URL لیست رسیدهای دائم
-- `edit_url`: URL ویرایش رسید
-- `can_edit`: `bool` - آیا رسید قفل نشده است
+- `list_url`: URL لیست receipts
+- `edit_url`: URL ویرایش receipt
+- `can_edit`: `bool` - آیا receipt قفل نشده است (`not object.is_locked`)
 
 **URL**: `/inventory/receipts/permanent/<pk>/`
 
@@ -520,15 +626,34 @@
 - `context_object_name`: `'receipt'`
 
 **متدها**:
-- `get_queryset()`: فیلتر بر اساس company و permissions، prefetch related objects
-- `get_context_data()`: اضافه کردن `receipt_variant`, `list_url`, `edit_url`, `can_edit`
 
-**Context Variables**:
-- `receipt`: instance رسید امانی
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch و فیلتر permissions آماده می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده و بهینه شده
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند
+2. فیلتر بر اساس `company_id` از session
+3. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.receipts.consignment', 'created_by')`
+4. Prefetch related objects:
+   - `lines__item`, `lines__warehouse`, `lines__supplier` برای lines
+   - `select_related('created_by')` برای receipt
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template آماده می‌کند.
+
+**Context Variables اضافه شده**:
+- `active_module`: `'inventory'`
 - `receipt_variant`: `'consignment'`
-- `list_url`: URL لیست رسیدهای امانی
-- `edit_url`: URL ویرایش رسید
-- `can_edit`: `bool` - آیا رسید قفل نشده است
+- `list_url`: URL لیست receipts
+- `edit_url`: URL ویرایش receipt
+- `can_edit`: `bool` - آیا receipt قفل نشده است (`not object.is_locked`)
 
 **URL**: `/inventory/receipts/consignment/<pk>/`
 

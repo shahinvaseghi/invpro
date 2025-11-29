@@ -34,8 +34,20 @@
 - `active_module`: `'inventory'` (از `InventoryBaseView`)
 
 **متدها**:
-- هیچ متد سفارشی ندارد (از متدهای پیش‌فرض `ListView` و `InventoryBaseView` استفاده می‌کند)
-  - `get_queryset()`: از `InventoryBaseView` - queryset را بر اساس `active_company_id` فیلتر می‌کند
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس permissions
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
+2. سپس `self.filter_queryset_by_permissions()` را با feature code `'inventory.master.item_types'` و owner field `'created_by'` فراخوانی می‌کند
+3. نتیجه فیلتر شده را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
 
 **URL**: `/inventory/item-types/`
 
@@ -117,6 +129,22 @@
 - `success_url`: `reverse_lazy('inventory:item_types')`
 
 **متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس permissions
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
+2. سپس `self.filter_queryset_by_permissions()` را با feature code `'inventory.master.item_types'` و owner field `'created_by'` فراخوانی می‌کند
+3. نتیجه فیلتر شده را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
 
 #### `form_valid(self, form) -> HttpResponseRedirect`
 
@@ -233,7 +261,20 @@
 - `active_module`: `'inventory'` (از `InventoryBaseView`)
 
 **متدها**:
-- هیچ متد سفارشی ندارد
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس permissions
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
+2. سپس `self.filter_queryset_by_permissions()` را با feature code `'inventory.master.item_categories'` و owner field `'created_by'` فراخوانی می‌کند
+3. نتیجه فیلتر شده را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
 
 **URL**: `/inventory/item-categories/`
 
@@ -306,6 +347,22 @@
 - `success_url`: `reverse_lazy('inventory:item_categories')`
 
 **متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس permissions
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
+2. سپس `self.filter_queryset_by_permissions()` را با feature code `'inventory.master.item_categories'` و owner field `'created_by'` فراخوانی می‌کند
+3. نتیجه فیلتر شده را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
 
 #### `form_valid(self, form) -> HttpResponseRedirect`
 
@@ -409,6 +466,23 @@
 
 **Context Variables**:
 - `item_subcategories`: queryset زیردسته‌های کالا (paginated)
+- `active_module`: `'inventory'` (از `InventoryBaseView`)
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس permissions
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
+2. سپس `self.filter_queryset_by_permissions()` را با feature code `'inventory.master.item_subcategories'` و owner field `'created_by'` فراخوانی می‌کند
+3. نتیجه فیلتر شده را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
 
 **URL**: `/inventory/item-subcategories/`
 
@@ -481,6 +555,22 @@
 - `success_url`: `reverse_lazy('inventory:item_subcategories')`
 
 **متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس permissions
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
+2. سپس `self.filter_queryset_by_permissions()` را با feature code `'inventory.master.item_subcategories'` و owner field `'created_by'` فراخوانی می‌کند
+3. نتیجه فیلتر شده را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
 
 #### `form_valid(self, form) -> HttpResponseRedirect`
 
@@ -837,6 +927,22 @@
 
 **متدها**:
 
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس permissions
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
+2. سپس `self.filter_queryset_by_permissions()` را با feature code `'inventory.master.items'` و owner field `'created_by'` فراخوانی می‌کند
+3. نتیجه فیلتر شده را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
+
 #### `get_form_kwargs(self) -> Dict[str, Any]`
 
 **توضیح**: `company_id` را به form پاس می‌دهد.
@@ -984,6 +1090,23 @@
 
 **Context Variables**:
 - `warehouses`: queryset انبارها (paginated)
+- `active_module`: `'inventory'` (از `InventoryBaseView`)
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس permissions
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
+2. سپس `self.filter_queryset_by_permissions()` را با feature code `'inventory.master.warehouses'` و owner field `'created_by'` فراخوانی می‌کند
+3. نتیجه فیلتر شده را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
 
 **URL**: `/inventory/warehouses/`
 
@@ -1056,6 +1179,22 @@
 - `success_url`: `reverse_lazy('inventory:warehouses')`
 
 **متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس permissions
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
+2. سپس `self.filter_queryset_by_permissions()` را با feature code `'inventory.master.warehouses'` و owner field `'created_by'` فراخوانی می‌کند
+3. نتیجه فیلتر شده را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
 
 #### `form_valid(self, form) -> HttpResponseRedirect`
 
@@ -1158,6 +1297,26 @@
 - `template_name`: `'inventory/supplier_categories.html'`
 - `context_object_name`: `'supplier_categories'`
 - `paginate_by`: `50`
+
+**Context Variables**:
+- `supplier_categories`: queryset دسته‌های تامین‌کنندگان (paginated)
+- `active_module`: `'inventory'` (از `InventoryBaseView`)
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس permissions
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
+2. سپس `self.filter_queryset_by_permissions()` را با feature code `'inventory.suppliers.categories'` و owner field `'created_by'` فراخوانی می‌کند
+3. نتیجه فیلتر شده را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
 
 **URL**: `/inventory/supplier-categories/`
 
@@ -1265,6 +1424,22 @@
 
 **متدها**:
 
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس permissions
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
+2. سپس `self.filter_queryset_by_permissions()` را با feature code `'inventory.suppliers.categories'` و owner field `'created_by'` فراخوانی می‌کند
+3. نتیجه فیلتر شده را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
+
 #### `get_form_kwargs(self) -> Dict[str, Any]`
 
 **پارامترهای ورودی**: ندارد
@@ -1364,6 +1539,26 @@
 - `context_object_name`: `'suppliers'`
 - `paginate_by`: `50`
 
+**Context Variables**:
+- `suppliers`: queryset تامین‌کنندگان (paginated)
+- `active_module`: `'inventory'` (از `InventoryBaseView`)
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس permissions
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
+2. سپس `self.filter_queryset_by_permissions()` را با feature code `'inventory.suppliers.list'` و owner field `'created_by'` فراخوانی می‌کند
+3. نتیجه فیلتر شده را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
 **URL**: `/inventory/suppliers/`
 
 ---
@@ -1435,6 +1630,22 @@
 - `success_url`: `reverse_lazy('inventory:suppliers')`
 
 **متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس permissions
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
+2. سپس `self.filter_queryset_by_permissions()` را با feature code `'inventory.suppliers.list'` و owner field `'created_by'` فراخوانی می‌کند
+3. نتیجه فیلتر شده را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
 
 #### `form_valid(self, form) -> HttpResponseRedirect`
 

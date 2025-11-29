@@ -66,9 +66,12 @@
 
 **منطق**:
 1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
-2. `select_related('created_by', 'department_unit', 'warehouse_request')` را اعمال می‌کند
-3. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
-4. queryset را برمی‌گرداند
+2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.issues.permanent', 'created_by')`
+3. `select_related('created_by', 'department_unit', 'warehouse_request')` را اعمال می‌کند
+4. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
+5. queryset را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
 
 ---
 
@@ -122,11 +125,14 @@
 - `QuerySet`: queryset با `select_related` و `prefetch_related`
 
 **منطق**:
-1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
-2. فیلتر بر اساس permissions (own vs all) با `filter_queryset_by_permissions()`
-3. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
-4. `select_related('created_by', 'warehouse_request', 'department_unit')` را اعمال می‌کند
-5. queryset را برمی‌گرداند
+1. queryset را از `super().get_queryset()` دریافت می‌کند
+2. فیلتر بر اساس `company_id` از session (اگر موجود باشد)
+3. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.issues.permanent', 'created_by')`
+4. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
+5. `select_related('created_by', 'warehouse_request', 'department_unit')` را اعمال می‌کند
+6. queryset را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
 
 ---
 
@@ -436,9 +442,12 @@
 - `QuerySet`: queryset با `select_related('created_by')`
 
 **منطق**:
-1. queryset را از `super().get_queryset()` دریافت می‌کند
-2. `select_related('created_by')` را اعمال می‌کند
-3. queryset را برمی‌گرداند
+1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
+2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.issues.consumption', 'created_by')`
+3. `select_related('created_by')` را اعمال می‌کند
+4. queryset را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
 
 ---
 
@@ -457,9 +466,10 @@
 - `edit_url_name`: `'inventory:issue_consumption_edit'`
 - `delete_url_name`: `'inventory:issue_consumption_delete'`
 - `lock_url_name`: `'inventory:issue_consumption_lock'`
+- `detail_url_name`: `'inventory:issue_consumption_detail'`
 - `create_label`: `_('Consumption Issue')`
 - `serial_url_name`: `None`
-- `can_delete_own`, `can_delete_all`: از `add_delete_permissions_to_context()`
+- `can_delete_own`, `can_delete_other`: از `add_delete_permissions_to_context()`
 
 **URL**: `/inventory/issues/consumption/`
 
@@ -485,17 +495,27 @@
 **توضیح**: queryset را با prefetch برای بهینه‌سازی query برمی‌گرداند.
 
 **منطق**:
-1. queryset را از `super().get_queryset()` دریافت می‌کند (فیلتر شده بر اساس company)
-2. فیلتر بر اساس permissions (own vs all) با `filter_queryset_by_permissions()`
-3. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
-4. `select_related('created_by', 'warehouse_request', 'department_unit')` را اعمال می‌کند
+1. queryset را از `super().get_queryset()` دریافت می‌کند
+2. فیلتر بر اساس `company_id` از session (اگر موجود باشد)
+3. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.issues.consumption', 'created_by')`
+4. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
+5. `select_related('created_by', 'department_unit')` را اعمال می‌کند
+6. queryset را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
 
 ---
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
 
+**توضیح**: context variables را برای template اضافه می‌کند.
+
 **Context Variables اضافه شده**:
-- `issue`: instance حواله مصرف
+- `active_module`: `'inventory'`
+- `issue_variant`: `'consumption'`
+- `list_url`: URL لیست issues
+- `edit_url`: URL ویرایش issue
+- `can_edit`: `bool` - آیا issue قفل نشده است (`not object.is_locked`)
 - `active_module`: `'inventory'`
 - `issue_variant`: `'consumption'`
 - `list_url`: URL لیست حواله‌های مصرف
@@ -758,7 +778,12 @@
 - `QuerySet`: queryset با `select_related('created_by')`
 
 **منطق**:
-- مشابه `IssueConsumptionListView.get_queryset()`
+1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
+2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.issues.consignment', 'created_by')`
+3. `select_related('created_by')` را اعمال می‌کند
+4. queryset را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
 
 ---
 
@@ -799,17 +824,27 @@
 **توضیح**: queryset را با prefetch برای بهینه‌سازی query برمی‌گرداند.
 
 **منطق**:
-1. queryset را از `super().get_queryset()` دریافت می‌کند (فیلتر شده بر اساس company)
-2. فیلتر بر اساس permissions (own vs all) با `filter_queryset_by_permissions()`
-3. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
-4. `select_related('created_by')` را اعمال می‌کند
+1. queryset را از `super().get_queryset()` دریافت می‌کند
+2. فیلتر بر اساس `company_id` از session (اگر موجود باشد)
+3. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.issues.consignment', 'created_by')`
+4. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
+5. `select_related('created_by', 'department_unit')` را اعمال می‌کند
+6. queryset را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
 
 ---
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
 
+**توضیح**: context variables را برای template اضافه می‌کند.
+
 **Context Variables اضافه شده**:
-- `issue`: instance حواله امانی
+- `active_module`: `'inventory'`
+- `issue_variant`: `'consignment'`
+- `list_url`: URL لیست issues
+- `edit_url`: URL ویرایش issue
+- `can_edit`: `bool` - آیا issue قفل نشده است (`not object.is_locked`)
 - `active_module`: `'inventory'`
 - `issue_variant`: `'consignment'`
 - `list_url`: URL لیست حواله‌های امانی
