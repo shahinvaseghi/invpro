@@ -215,7 +215,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
 | `ticketing/views/README_BASE.md` | `ticketing/views/base.py` | ✅ Updated | 2025-11-25 00:11:08 | 2025-11-28 04:12:11 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `ticketing/views/README_CATEGORIES.md` | `ticketing/views/categories.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 18:30:34 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_queryset()` (با search و parent filtering)، `get_context_data()`، `form_valid()` (با permission formset handling)، و `delete()` اضافه شد |
-| `ticketing/views/README_SUBCATEGORIES.md` | `ticketing/views/subcategories.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 04:12:11 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات form_valid برای CreateView و UpdateView تکمیل شد |
+| `ticketing/views/README_SUBCATEGORIES.md` | `ticketing/views/subcategories.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 18:34:52 | ✅ README newer | به‌روزرسانی شد - جزئیات form_valid برای CreateView و UpdateView تکمیل شد |
 | `ticketing/views/README_TEMPLATES.md` | `ticketing/views/templates.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
 | `ticketing/views/README_TICKETS.md` | `ticketing/views/tickets.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 03:55:30 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات get_context_data, get_initial, و permission checking اضافه شد |
 | `ticketing/views/README_DEBUG.md` | `ticketing/views/debug.py` | ✅ Updated | 2025-11-25 13:24:42 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
