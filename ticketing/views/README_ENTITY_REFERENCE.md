@@ -144,10 +144,11 @@
 **HTTP Method**: `GET`
 
 **Query Parameters**:
-- `parameter_name`: نام parameter (مثلاً "gp", "type", "id")
-- `parameter_type`: نوع parameter (مثلاً "string", "integer", "enum", "group", "user", "company", "company_unit")
-- `section_code`: Section code (برای برخی parameter types)
-- `action_name`: Action name (برای برخی parameter types)
+- `parameter_name`: نام parameter (مثلاً "gp", "type", "id", "code") - **required**
+- `parameter_type`: نوع parameter (مثلاً "string", "integer", "enum") - **default: "string"**
+- `parameter_enum`: JSON array از enum values (اگر type="enum")
+- `section_code`: Section code (برای parameter_name="type")
+- `action_name`: Action name (برای parameter_name="type")
 
 **مقدار بازگشتی**:
 - `JsonResponse`: JSON response با مقادیر ممکن
@@ -155,40 +156,36 @@
 **منطق**:
 1. دریافت query parameters:
    - `parameter_name = request.GET.get('parameter_name')`
-   - `parameter_type = request.GET.get('parameter_type')`
+   - `parameter_type = request.GET.get('parameter_type', 'string')` (default: 'string')
+   - `parameter_enum_str = request.GET.get('parameter_enum')`
    - `section_code = request.GET.get('section_code')`
    - `action_name = request.GET.get('action_name')`
-2. اگر `parameter_name` یا `parameter_type` موجود نیست:
-   - بازگشت `JsonResponse({'error': 'parameter_name and parameter_type required'}, status=400)`
-3. **بررسی parameter_type و ساخت values**:
-   - **"string"**: `values = []` (empty - user باید مقدار را وارد کند)
-   - **"integer"**: `values = []` (empty - user باید مقدار را وارد کند)
-   - **"enum"**: 
-     - دریافت `section_code` و `action_name`
-     - یافتن section (مشابه EntityReferenceActionsView)
-     - یافتن action: `ActionRegistry.objects.get(section=section, action_name=action_name, is_enabled=1)`
-     - دریافت `parameter_schema` از action
-     - دریافت enum values از `parameter_schema[parameter_name].get('enum', [])`
-     - ساخت values list از enum values
-   - **"group"**:
+2. اگر `parameter_name` موجود نیست:
+   - بازگشت `JsonResponse({'error': 'parameter_name required'}, status=400)`
+3. **بررسی parameter_type و parameter_name و ساخت values**:
+   - **"enum" type** (اگر `parameter_type == 'enum'` و `parameter_enum_str` موجود است):
+     - Parse کردن `parameter_enum_str` به JSON: `json.loads(parameter_enum_str)`
+     - اگر parse موفق بود و result یک list است:
+       - برای هر value در enum_values:
+         - `value`: `str(val)`
+         - `label`: `str(val).title().replace('_', ' ')` (تبدیل underscore به space و title case)
+     - اگر parse ناموفق بود: `pass` (values = [])
+   - **"gp" parameter_name** (اگر `parameter_name == 'gp'`):
      - دریافت تمام groups: `AuthGroup.objects.all().order_by('name')`
-     - ساخت values: `[{'value': str(g.id), 'label': g.name} for g in groups]`
-   - **"user"**:
-     - دریافت `company_id` از session
-     - اگر `company_id` موجود است:
-       - دریافت users: `User.objects.filter(usercompany__company_id=company_id, is_active=True).distinct().order_by('username')`
-       - ساخت values: `[{'value': str(u.id), 'label': u.username} for u in users]`
+     - برای هر group:
+       - `value`: `group.name`
+       - `label`: `group.name`
+   - **"type" parameter_name** (اگر `parameter_name == 'type'`):
+     - اگر `section_code` و `action_name` موجود هستند:
+       - **Receipt types** (اگر 'receipt' در `section_code.lower()` موجود است):
+         - `values = [{'value': 'temporary', 'label': 'Temporary'}, {'value': 'permanent', 'label': 'Permanent'}, {'value': 'consignment', 'label': 'Consignment'}]`
+       - **Issue types** (اگر 'issue' در `section_code.lower()` موجود است):
+         - `values = [{'value': 'permanent', 'label': 'Permanent'}, {'value': 'consumption', 'label': 'Consumption'}, {'value': 'consignment', 'label': 'Consignment'}]`
      - در غیر این صورت: `values = []`
-   - **"company"**:
-     - دریافت companies: `Company.objects.filter(is_enabled=1).order_by('name')`
-     - ساخت values: `[{'value': str(c.id), 'label': c.name} for c in companies]`
-   - **"company_unit"**:
-     - دریافت `company_id` از session
-     - اگر `company_id` موجود است:
-       - دریافت company units: `CompanyUnit.objects.filter(company_id=company_id, is_enabled=1).order_by('name')`
-       - ساخت values: `[{'value': str(cu.id), 'label': cu.name} for cu in company_units]`
-     - در غیر این صورت: `values = []`
-   - **default**: `values = []`
+   - **"id" و "code" parameter_name**:
+     - `values = []` (empty - frontend باید manual input را handle کند یا additional calls انجام دهد)
+   - **default** (سایر موارد):
+     - `values = []` (empty - user باید مقدار را وارد کند)
 4. بازگشت `JsonResponse({'values': values})`
 
 **Response Format**:
@@ -202,15 +199,18 @@
 ```
 
 **Error Responses**:
-- `400`: parameter_name and parameter_type required
-- `404`: Section not found (برای enum type)
+- `400`: parameter_name required
 
 **نکات مهم**:
-- برای "enum" type، نیاز به section_code و action_name دارد
-- برای "user" و "company_unit" types، نیاز به active_company_id در session دارد
+- برای "enum" type، نیاز به `parameter_enum` (JSON array) دارد
+- برای "type" parameter_name، نیاز به `section_code` و `action_name` دارد (برای context-specific values)
+- برای "id" و "code" parameters، empty array برمی‌گرداند (frontend باید manual input را handle کند)
 - نیاز به authentication دارد
 
-**URL**: `/ticketing/api/entity-reference/parameter-values/?parameter_name=gp&parameter_type=group`
+**URL Examples**:
+- `/ticketing/api/entity-reference/parameter-values/?parameter_name=gp`
+- `/ticketing/api/entity-reference/parameter-values/?parameter_name=type&parameter_type=enum&parameter_enum=["value1","value2"]`
+- `/ticketing/api/entity-reference/parameter-values/?parameter_name=type&section_code=receipt&action_name=show`
 
 ---
 
@@ -220,7 +220,11 @@
 2. **Error Handling**: تمام endpoints error handling مناسب دارند
 3. **Filtering**: فقط enabled records (`is_enabled=1`) برگردانده می‌شوند
 4. **Ordering**: تمام results مرتب می‌شوند
-5. **Session Dependency**: برخی endpoints (user، company_unit) نیاز به active_company_id در session دارند
+5. **Parameter Values Logic**: منطق بر اساس `parameter_name` و `parameter_type` است:
+   - `parameter_name="gp"`: لیست groups
+   - `parameter_name="type"`: مقادیر hardcoded بر اساس section_code (receipt/issue)
+   - `parameter_name="id"` یا `"code"`: empty array
+   - `parameter_type="enum"`: از `parameter_enum` (JSON array) استفاده می‌کند
 
 ---
 
