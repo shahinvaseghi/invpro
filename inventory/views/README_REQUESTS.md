@@ -97,8 +97,39 @@
 - `paginate_by`: `50`
 
 **متدها**:
-- `get_queryset()`: فیلتر بر اساس company، search (request_code, item name, item_code)، status، priority. مرتب بر اساس `-id`, `-request_date`, `request_code`
-- `get_context_data()`: اضافه کردن statistics (total, draft, approved, ordered, fulfilled)، filter context، approver permissions
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با فیلتر permissions، search، status و priority آماده می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده و مرتب شده
+
+**منطق**:
+1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
+2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.requests.purchase', 'requested_by')`
+3. `select_related('requested_by', 'approver')` و `prefetch_related('lines__item')` را اعمال می‌کند
+4. مرتب‌سازی بر اساس `-id`, `-request_date`, `request_code`
+5. فیلتر بر اساس `status` از `request.GET.get('status')` (اگر موجود باشد)
+6. فیلتر بر اساس `priority` از `request.GET.get('priority')` (اگر موجود باشد)
+7. جستجو در `request_code`, `item__name`, `item_code` از `request.GET.get('search')` (اگر موجود باشد)
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables شامل statistics، filter context و approver permissions را اضافه می‌کند.
+
+**Context Variables اضافه شده**:
+- `total_count`, `draft_count`, `approved_count`, `ordered_count`, `fulfilled_count`: آمار از queryset
+- `create_url`: `reverse_lazy('inventory:purchase_request_create')`
+- `edit_url_name`: `'inventory:purchase_request_edit'`
+- `approve_url_name`: `'inventory:purchase_request_approve'`
+- `status_filter`, `priority_filter`, `search_term`: مقادیر فعلی فیلترها از GET
+- `approver_user_ids`: لیست user IDs که می‌توانند approve کنند (از `get_purchase_request_approvers`)
+- `can_current_user_edit`, `can_current_user_approve`: برای هر purchase request در queryset (محاسبه شده در loop)
 
 **Query Parameters**:
 - `status`: فیلتر بر اساس status
@@ -167,8 +198,24 @@
 - `form_title`: `_('ویرایش درخواست خرید')`
 
 **متدها**:
-- `get_queryset()`: فیلتر فقط DRAFT requests created by current user
-- `form_valid()`:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را فیلتر می‌کند تا فقط DRAFT requests created by current user را شامل شود.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده
+
+**منطق**:
+1. queryset را از `super().get_queryset()` دریافت می‌کند
+2. `select_related('requested_by', 'approver')` و `prefetch_related('lines__item')` را اعمال می‌کند
+3. فیلتر می‌کند: `status = DRAFT` و `requested_by = request.user`
+
+**نکته**: این view فقط اجازه ویرایش DRAFT requests که توسط کاربر فعلی ایجاد شده‌اند را می‌دهد.
+
+---
+
+#### `form_valid(self, form) -> HttpResponseRedirect`
   1. تنظیم `company_id`, `edited_by`
   2. ذخیره document
   3. Validate و save formset
@@ -225,8 +272,38 @@
 - `paginate_by`: `50`
 
 **متدها**:
-- `get_queryset()`: فیلتر بر اساس company، search (request_code, item name, item_code)، status، priority
-- `get_context_data()`: اضافه کردن statistics (total, draft, approved, issued)، filter context، approver permissions
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با فیلتر permissions، search، status و priority آماده می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده
+
+**منطق**:
+1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
+2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.requests.warehouse', 'requester')`
+3. `select_related('item', 'warehouse', 'requester', 'approver')` را اعمال می‌کند
+4. فیلتر بر اساس `request_status` از `request.GET.get('status')` (اگر موجود باشد)
+5. فیلتر بر اساس `priority` از `request.GET.get('priority')` (اگر موجود باشد)
+6. جستجو در `request_code`, `item__name`, `item_code` از `request.GET.get('search')` (اگر موجود باشد)
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables شامل statistics، filter context و approver permissions را اضافه می‌کند.
+
+**Context Variables اضافه شده**:
+- `total_count`, `draft_count`, `approved_count`, `issued_count`: آمار از queryset
+- `create_url`: `reverse_lazy('inventory:warehouse_request_create')`
+- `edit_url_name`: `'inventory:warehouse_request_edit'`
+- `approve_url_name`: `'inventory:warehouse_request_approve'`
+- `status_filter`, `priority_filter`, `search_term`: مقادیر فعلی فیلترها از GET
+- `approver_user_ids`: لیست user IDs که می‌توانند approve کنند (از `get_feature_approvers`)
+- `can_current_user_edit`, `can_current_user_approve`: برای هر warehouse request در queryset (محاسبه شده در loop)
 
 **Query Parameters**: مشابه `PurchaseRequestListView`
 
@@ -285,8 +362,24 @@
 - `form_title`: `_('ویرایش درخواست انبار')`
 
 **متدها**:
-- `get_queryset()`: فیلتر فقط 'draft' requests created by current user. Prefetch `lines__item`, `lines__warehouse`
-- `form_valid()`:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را فیلتر می‌کند تا فقط 'draft' requests created by current user را شامل شود.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده
+
+**منطق**:
+1. queryset را از `super().get_queryset()` دریافت می‌کند
+2. `select_related('requester', 'approver')` و `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
+3. فیلتر می‌کند: `request_status = 'draft'` و `requester = request.user`
+
+**نکته**: این view فقط اجازه ویرایش draft requests که توسط کاربر فعلی ایجاد شده‌اند را می‌دهد.
+
+---
+
+#### `form_valid(self, form) -> HttpResponseRedirect`
   1. تنظیم `company_id`, `edited_by`
   2. ذخیره document
   3. Validate و save formset
