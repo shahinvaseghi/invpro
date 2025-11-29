@@ -2,6 +2,18 @@
 
 The production module captures manufacturing definitions, work centers, orders, material movements, personnel, and machines. This document describes each custom file and the classes within it.
 
+**نکته مهم**: برای جزئیات کامل هر بخش، به فایل‌های README مربوطه مراجعه کنید:
+- **Models**: [`README_MODELS.md`](README_MODELS.md) - مستندات کامل برای 21 model class
+- **Views**: [`views/README.md`](views/README.md) - Overview کلی views
+- **Forms**: [`README_FORMS.md`](README_FORMS.md) - مستندات کامل forms (Person, Machine, WorkLine, BOM, Process, ProductOrder)
+- **BOM**: [`README_BOM.md`](README_BOM.md) - مستندات کامل BOM (معماری، فرم‌ها، views، JavaScript)
+
+**نکته مهم**: برای جزئیات کامل هر بخش، به فایل‌های README مربوطه مراجعه کنید:
+- **Models**: [`README_MODELS.md`](README_MODELS.md) - مستندات کامل برای 21 model class
+- **Views**: [`views/README.md`](views/README.md) - Overview کلی views و لینک به READMEهای جزئی‌تر
+- **Forms**: [`README_FORMS.md`](README_FORMS.md) - Overview کلی forms
+- **BOM**: [`README_BOM.md`](README_BOM.md) - مستندات کامل BOM
+
 ## models.py
 
 Defines all production entities. Structure:
