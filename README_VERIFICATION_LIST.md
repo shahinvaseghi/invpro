@@ -419,8 +419,8 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `inventory/README_FORMS.md` | `inventory/forms/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | به‌روزرسانی شد - لینک به فایل‌های README جزئی‌تر اضافه شد |
 | `inventory/views/README.md` | `inventory/views/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و به تمام فایل‌های README جزئی‌تر اشاره می‌کند |
 | `inventory/utils/README.md` | `inventory/utils/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و تمام توابع utility را مستندسازی کرده (codes.py و jalali.py) |
-| `inventory/services/README.md` | `inventory/services/` | ⏳ Pending | - | - | - | - |
-| `inventory/templatetags/README.md` | `inventory/templatetags/` | ⏳ Pending | - | - | - | - |
+| `inventory/services/README.md` | `inventory/services/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و تمام توابع serial management را مستندسازی کرده (single-line و line-based) |
+| `inventory/templatetags/README.md` | `inventory/templatetags/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و تمام template tags (jalali_tags) را مستندسازی کرده |
 | `inventory/migrations/README.md` | `inventory/migrations/` | ⏳ Pending | - | - | - | - |
 | `inventory/management/commands/README.md` | `inventory/management/commands/` | ⏳ Pending | - | - | - | - |
 | `production/README.md` | `production/` module | ⏳ Pending | - | - | - | - |
