@@ -34,13 +34,29 @@ Context processors توابعی هستند که در `config/settings.py` در `
 
 **توضیح**: شرکت فعال که کاربر انتخاب کرده است.
 
-**منطق انتخاب**:
-1. ابتدا از `request.session['active_company_id']` خوانده می‌شود
-2. اگر در session نباشد، از `user.default_company` استفاده می‌شود (اگر کاربر به آن دسترسی داشته باشد)
-3. اگر default company هم نباشد یا دسترسی نداشته باشد، اولین شرکت از `user_companies` استفاده می‌شود
-4. اگر شرکت فعال پیدا شود:
-   - در `request.session['active_company_id']` ذخیره می‌شود
-   - `request.session.modified = True` تنظیم می‌شود تا اطمینان حاصل شود که session ذخیره می‌شود
+**منطق انتخاب** (فقط اگر `request.user.is_authenticated`):
+1. **مقداردهی اولیه**: `context['active_company'] = None`
+2. **دریافت active_company_id از session**: `active_company_id = request.session.get('active_company_id')`
+3. **دریافت user_companies**:
+   - `UserCompanyAccess.objects.filter(user=request.user, is_enabled=1).select_related('company')`
+   - `context['user_companies'] = [access.company for access in user_accesses]`
+4. **تنظیم active_company از session**:
+   - اگر `active_company_id` موجود است:
+     - جستجو در `user_companies` برای پیدا کردن company با `id == active_company_id`
+     - استفاده از `next()` با generator expression و fallback به `None`
+     - اگر پیدا نشد: `context['active_company'] = None`
+5. **Fallback به default company یا اولین company**:
+   - اگر `context['active_company']` موجود نیست و `user_companies` خالی نیست:
+     - **اول**: بررسی `request.user.default_company`:
+       - اگر `hasattr(request.user, 'default_company')` و `request.user.default_company` موجود است:
+         - بررسی دسترسی: اگر `default_company in context['user_companies']`:
+           - `context['active_company'] = default_company`
+     - **دوم**: اگر هنوز active_company موجود نیست:
+       - `context['active_company'] = context['user_companies'][0]` (اولین company)
+     - **ذخیره در session**:
+       - اگر `context['active_company']` موجود است:
+         - `request.session['active_company_id'] = context['active_company'].id`
+         - `request.session.modified = True` (برای اطمینان از ذخیره session)
 
 **مثال استفاده در template**:
 ```django
@@ -58,8 +74,9 @@ Context processors توابعی هستند که در `config/settings.py` در `
 **توضیح**: لیست تمام شرکت‌هایی که کاربر به آن‌ها دسترسی دارد.
 
 **منطق**:
-- از `UserCompanyAccess` با `is_enabled=1` خوانده می‌شود
-- فقط شرکت‌هایی که کاربر دسترسی دارد را شامل می‌شود
+- از `UserCompanyAccess.objects.filter(user=request.user, is_enabled=1).select_related('company')` خوانده می‌شود
+- فقط شرکت‌هایی که کاربر دسترسی دارد (`is_enabled=1`) را شامل می‌شود
+- استفاده از `select_related('company')` برای بهینه‌سازی query
 
 **مثال استفاده در template**:
 ```django
@@ -80,6 +97,11 @@ Context processors توابعی هستند که در `config/settings.py` در `
 **نوع**: `Dict[str, FeaturePermissionState]`
 
 **توضیح**: دیکشنری مجوزهای کاربر برای features مختلف.
+
+**منطق**:
+- دریافت `company_id` از `context['active_company'].id` (اگر موجود باشد) یا `None`
+- فراخوانی `get_user_feature_permissions(request.user, company_id)`
+- ذخیره در `context['user_feature_permissions']`
 
 **فرمت کلید**: Feature code با `.` به `__` تبدیل شده (مثل `inventory__receipts__permanent`)
 
@@ -161,25 +183,85 @@ Context processors توابعی هستند که در `config/settings.py` در `
 
 ### منطق Notifications
 
-#### خوانده شده‌ها (Read Notifications)
+**شرایط اجرا**: فقط اگر `request.user.is_authenticated` و `company_id` موجود باشد
 
-- در `request.session['read_notifications']` ذخیره می‌شوند
-- لیستی از کلیدهای اعلان‌ها (strings)
-- وقتی کاربر روی اعلان کلیک می‌کند، کلید به این لیست اضافه می‌شود
+**مراحل**:
+1. **مقداردهی اولیه**:
+   - `context['notifications'] = []`
+   - `context['notification_count'] = 0`
+   - دریافت `sent_email_notifications` از session (set، fallback به empty set)
+
+2. **Approval Pending Notifications** (3 نوع):
+
+   **a. Purchase Requests**:
+   - Query: `PurchaseRequest.objects.filter(company_id=company_id, status=DRAFT, approver=request.user, is_enabled=1).count()`
+   - Notification key: `f'approval_pending_purchase_{company_id}'`
+   - Message: `f'{count} درخواست خرید در انتظار تایید'`
+   - URL name: `'inventory:purchase_requests'`
+   - اگر count > 0:
+     - `get_or_create_notification()` فراخوانی می‌شود
+     - اگر notification_key در `sent_email_notifications` نیست:
+       - ساخت notification_url با `request.build_absolute_uri(reverse('inventory:purchase_requests'))`
+       - `send_notification_email()` فراخوانی می‌شود
+       - اگر موفق بود: notification_key به `sent_email_notifications` اضافه می‌شود
+       - `request.session['sent_email_notifications'] = list(sent_email_notifications)` ذخیره می‌شود
+       - Error handling: اگر exception رخ دهد، در logger ثبت می‌شود
+
+   **b. Warehouse Requests**:
+   - Query: `WarehouseRequest.objects.filter(company_id=company_id, request_status='draft', approver=request.user, is_enabled=1).count()`
+   - Notification key: `f'approval_pending_warehouse_{company_id}'`
+   - Message: `f'{count} درخواست انبار در انتظار تایید'`
+   - URL name: `'inventory:warehouse_requests'`
+   - منطق مشابه Purchase Requests
+
+   **c. Stocktaking Records**:
+   - Query: `StocktakingRecord.objects.filter(company_id=company_id, approval_status='pending', approver=request.user, is_locked=0, is_enabled=1).count()`
+   - Notification key: `f'approval_pending_stocktaking_{company_id}'`
+   - Message: `f'{count} سند شمارش در انتظار تایید'`
+   - URL name: `'inventory:stocktaking_records'`
+   - منطق مشابه Purchase Requests
+
+3. **Approved Notifications** (2 نوع - فقط 7 روز اخیر):
+
+   **a. Approved Purchase Requests**:
+   - `week_ago = timezone.now() - timezone.timedelta(days=7)`
+   - Query: `PurchaseRequest.objects.filter(company_id=company_id, requested_by=request.user, status=APPROVED, approved_at__gte=week_ago, is_enabled=1).count()`
+   - Notification key: `f'approved_purchase_{company_id}'`
+   - Message: `f'{count} درخواست خرید شما تایید شد'`
+   - URL name: `'inventory:purchase_requests'`
+   - منطق مشابه Approval Pending (با email notification)
+
+   **b. Approved Warehouse Requests**:
+   - Query: `WarehouseRequest.objects.filter(company_id=company_id, requester=request.user, request_status='approved', approved_at__gte=week_ago, is_enabled=1).count()`
+   - Notification key: `f'approved_warehouse_{company_id}'`
+   - Message: `f'{count} درخواست انبار شما تایید شد'`
+   - URL name: `'inventory:warehouse_requests'`
+   - منطق مشابه Approved Purchase Requests
+
+4. **دریافت Recent Notifications از Database**:
+   - `context['notifications'] = get_recent_notifications(request.user, company_id, limit=10)`
+   - `context['notification_count'] = get_unread_notification_count(request.user, company_id)`
 
 #### ایمیل‌های ارسال شده (Sent Email Notifications)
 
 - در `request.session['sent_email_notifications']` ذخیره می‌شوند
-- Set از کلیدهای اعلان‌ها
+- Set از کلیدهای اعلان‌ها (strings)
 - برای جلوگیری از ارسال ایمیل تکراری استفاده می‌شود
 - فقط یک بار برای هر اعلان ایمیل ارسال می‌شود
+- اگر session value یک set نیست، به empty set تبدیل می‌شود
+- بعد از ارسال موفق، به list تبدیل شده و در session ذخیره می‌شود
 
 #### ارسال ایمیل
 
-- به صورت خودکار برای اعلان‌های pending approval ارسال می‌شود
+- به صورت خودکار برای اعلان‌های approval pending و approved ارسال می‌شود
 - از `shared.utils.email.send_notification_email()` استفاده می‌کند
-- فقط اگر کاربر فیلد `email` داشته باشد
-- فقط یک بار برای هر اعلان (بر اساس کلید)
+- Parameters:
+  - `notification_type`: `'approval_pending'` یا `'approved'`
+  - `notification_message`: پیام اعلان
+  - `recipient_user`: `request.user`
+  - `notification_url`: absolute URL ساخته شده با `request.build_absolute_uri()`
+  - `company_name`: `context['active_company'].display_name` (اگر موجود باشد)
+- Error handling: اگر exception رخ دهد، در logger ثبت می‌شود (با `exc_info=True`)
 
 ---
 
