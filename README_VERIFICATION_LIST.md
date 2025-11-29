@@ -183,7 +183,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `production/views/README_TRANSFER_TO_LINE.md` | `production/views/transfer_to_line.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 18:21:36 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_queryset()` (ListView, DeleteView)، `get_context_data()` (CreateView, UpdateView با formset filtering)، و `delete()` (با is_locked check) اضافه شد |
 | `production/views/README_PERFORMANCE_RECORD.md` | `production/views/performance_record.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 18:26:29 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_queryset()` (با permission-based filtering)، `get_context_data()` (با 3 formsets)، و `delete()` (با is_locked و status checks) اضافه شد |
 | `production/views/README_PLACEHOLDERS.md` | `production/views/placeholders.py` | ✅ Updated | 2025-11-21 19:59:04 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `production/views/README_API.md` | `production/views/api.py` | ⏳ Pending | 2025-11-28 17:54:59 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `production/views/README_API.md` | `production/views/api.py` | ✅ Updated | 2025-11-28 17:54:59 | 2025-11-29 18:28:20 | ✅ README newer | تکمیل شد - مستندات کامل برای `get_bom_materials` API endpoint با جزئیات منطق، response format، و error handling اضافه شد |
 
 ### Forms
 | README File | Source File | Status | Notes |
