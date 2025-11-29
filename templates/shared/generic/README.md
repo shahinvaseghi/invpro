@@ -9,6 +9,8 @@
 3. **generic_confirm_delete.html** - برای صفحات تأیید حذف (Delete Confirmation)
 4. **generic_detail.html** - برای صفحات جزئیات (Detail/View Pages)
 5. **generic_dashboard.html** - برای صفحات Dashboard
+6. **generic_assignment.html** - برای صفحات Assignment/Workflow (Serial Assignment, Selection, Management)
+7. **generic_report.html** - برای صفحات Report/Analysis (Inventory Balance, Reports)
 
 ---
 
@@ -350,37 +352,36 @@ def item_delete(request, pk):
 
 ---
 
-## Template Tags مورد نیاز
+## 6. generic_assignment.html
 
-برای استفاده از `getattr` در template، باید یک template tag بسازید:
+برای صفحات Assignment/Workflow که نیاز به ویرایش inline در جدول دارند (مثل Serial Assignment، Line Selection، Rejection Management).
 
-```python
-# templatetags/generic_tags.py
-from django import template
+مستندات کامل: [README_GENERIC_ASSIGNMENT.md](README_GENERIC_ASSIGNMENT.md)
 
-register = template.Library()
+---
 
-@register.filter
-def getattr(obj, attr):
-    """Get attribute from object, supports nested attributes"""
-    try:
-        if '.' in attr:
-            parts = attr.split('.')
-            value = obj
-            for part in parts:
-                value = getattr(value, part, None)
-                if value is None:
-                    return None
-            return value
-        return getattr(obj, attr, None)
-    except:
-        return None
-```
+## 7. generic_report.html
 
-سپس در template:
+برای صفحات Report/Analysis با فیلتر، آمار خلاصه و جدول داده (مثل Inventory Balance، Performance Records).
+
+مستندات کامل: [README_GENERIC_REPORT.md](README_GENERIC_REPORT.md)
+
+---
+
+## Template Tags
+
+Template tags helper در `shared/templatetags/generic_tags.py` تعریف شده‌اند:
+
+- `getattr`: دریافت attribute از object با پشتیبانی از nested attributes
+- `get_field_value`: Alias برای `getattr`
+
+برای استفاده:
 ```django
 {% load generic_tags %}
+{{ object|getattr:"type.name" }}
 ```
+
+مستندات کامل: [README_GENERIC_TAGS.md](README_GENERIC_TAGS.md)
 
 ---
 

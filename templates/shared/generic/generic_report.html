@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ report_title|default:"Report" }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      {% for crumb in breadcrumbs %}
+        <span class="separator">/</span>
+        {% if crumb.url %}
+          <a href="{{ crumb.url }}">{{ crumb.label }}</a>
+        {% else %}
+          <span>{{ crumb.label }}</span>
+        {% endif %}
+      {% endfor %}
+      {% block breadcrumb_extra %}{% endblock %}
+    </nav>
+    
+    <h1 class="page-title">{{ report_title|default:"Report" }}</h1>
+    
+    {% block page_actions %}
+    <div class="page-actions">
+      {% if print_enabled %}
+        <button class="btn btn-secondary" onclick="window.print()">{% trans "Print" %}</button>
+      {% endif %}
+      {% if export_enabled %}
+        <button type="button" onclick="{{ export_function|default:'exportToExcel()' }}" class="btn btn-success">
+          {% trans "Export" %} Excel
+        </button>
+      {% endif %}
+      {% block extra_actions %}{% endblock %}
+    </div>
+    {% endblock %}
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}" style="margin-bottom: 1rem; padding: 1rem; border-radius: 4px; {% if message.tags == 'error' %}background-color: #fee; border: 1px solid #fcc; color: #c00;{% elif message.tags == 'success' %}background-color: #efe; border: 1px solid #cfc; color: #0c0;{% elif message.tags == 'warning' %}background-color: #ffe; border: 1px solid #ffc; color: #cc0;{% else %}background-color: #eef; border: 1px solid #ccf; color: #00c;{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if show_filters %}
+  <div class="filter-panel">
+    <h3>{% trans "Filter" %}</h3>
+    <form method="get" action="" class="filter-form">
+      {% block filter_fields %}
+      {% if filter_fields %}
+        {% for field in filter_fields %}
+          <div class="form-group">
+            <label for="{{ field.id }}">{{ field.label }}{% if field.required %}*{% endif %}</label>
+            {% if field.type == 'select' %}
+              <select name="{{ field.name }}" id="{{ field.id }}" class="form-control" {% if field.required %}required{% endif %}>
+                <option value="">{{ field.placeholder|default:"-- انتخاب کنید --" }}</option>
+                {% for option in field.options %}
+                  <option value="{{ option.value }}" {% if option.selected %}selected{% endif %}>
+                    {{ option.label }}
+                  </option>
+                {% endfor %}
+              </select>
+            {% elif field.type == 'date' %}
+              <input type="date" name="{{ field.name }}" id="{{ field.id }}" 
+                     value="{{ field.value|default:'' }}" 
+                     class="form-control" 
+                     {% if field.required %}required{% endif %}>
+            {% elif field.type == 'text' %}
+              <input type="text" name="{{ field.name }}" id="{{ field.id }}" 
+                     value="{{ field.value|default:'' }}" 
+                     placeholder="{{ field.placeholder|default:'' }}"
+                     class="form-control" 
+                     {% if field.required %}required{% endif %}>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% endif %}
+      {% endblock %}
+
+      <div class="form-group" style="align-self: flex-end;">
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+          {{ filter_submit_text|default:"اعمال فیلتر" }}
+        </button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  {% if stats_summary %}
+  <div class="stats-grid">
+    {% for stat in stats_summary %}
+      <div class="stat-card stat-{{ stat.color|default:'blue' }}">
+        <div class="stat-label">{{ stat.label }}</div>
+        <div class="stat-value">{{ stat.value }}</div>
+        {% if stat.sub_value %}
+        <div class="stat-sub-value">{{ stat.sub_value }}</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% block before_table %}{% endblock %}
+
+  {% if table_data %}
+  <div class="data-table-container">
+    <table class="data-table" {% if table_id %}id="{{ table_id }}"{% endif %}>
+      <thead>
+        <tr>
+          {% block table_headers %}
+          {% for header in table_headers %}
+            <th>{{ header }}</th>
+          {% endfor %}
+          {% endblock %}
+        </tr>
+      </thead>
+      <tbody>
+        {% block table_rows %}
+        {% for row in table_data %}
+        <tr>
+          {% for cell in row %}
+            <td>
+              {% if cell.type == 'code' %}
+                <code>{{ cell.value }}</code>
+              {% elif cell.type == 'badge' %}
+                {% if cell.value %}
+                  <span class="badge badge-{{ cell.badge_type|default:'active' }}">{{ cell.label|default:cell.value }}</span>
+                {% else %}
+                  <span class="badge badge-inactive">{{ cell.false_label|default:"-" }}</span>
+                {% endif %}
+              {% elif cell.type == 'link' %}
+                <a href="{{ cell.url }}">{{ cell.value }}</a>
+              {% elif cell.type == 'number' %}
+                <span style="text-align: right; display: block;">{{ cell.value|floatformat:cell.decimals|default:cell.value }}</span>
+              {% elif cell.type == 'color_number' %}
+                <span style="text-align: right; display: block; color: {{ cell.color|default:'#1f2937' }}; font-weight: 600;">
+                  {{ cell.value|floatformat:cell.decimals|default:cell.value }}
+                </span>
+              {% else %}
+                {{ cell.value|default:"-" }}
+              {% endif %}
+            </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+        {% endblock %}
+      </tbody>
+    </table>
+  </div>
+  {% elif empty_state_message %}
+  <div class="empty-state">
+    <div class="empty-state-icon">{{ empty_state_icon|default:"📊" }}</div>
+    <h3>{{ empty_state_title|default:"No data found" }}</h3>
+    <p>{{ empty_state_message }}</p>
+  </div>
+  {% endif %}
+
+  {% block after_table %}{% endblock %}
+</div>
+
+<style>
+.filter-panel {
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.filter-panel h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #1f2937;
+}
+
+.filter-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-top: 4px solid;
+}
+
+.stat-card.stat-blue {
+  border-top-color: #3b82f6;
+}
+
+.stat-card.stat-green {
+  border-top-color: #10b981;
+}
+
+.stat-card.stat-orange {
+  border-top-color: #f59e0b;
+}
+
+.stat-card.stat-red {
+  border-top-color: #ef4444;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.stat-sub-value {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin-top: 0.25rem;
+}
+
+.data-table-container {
+  margin-top: 1.5rem;
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.data-table th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  margin: 2rem 0;
+}
+
+.empty-state-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+  color: #6b7280;
+}
+
+.alert {
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.alert-success {
+  background-color: #d1fae5;
+  border-color: #10b981;
+  color: #065f46;
+}
+
+.alert-error,
+.alert-danger {
+  background-color: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+.alert-info {
+  background-color: #dbeafe;
+  border-color: #3b82f6;
+  color: #1e40af;
+}
+
+.alert-warning {
+  background-color: #fef3c7;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+</style>
+
+{% block report_scripts %}
+{% if export_enabled %}
+<script>
+function exportToExcel() {
+  const table = document.getElementById('{{ table_id|default:"reportTable" }}');
+  if (!table) {
+    alert('{% trans "No data to export" %}');
+    return;
+  }
+  
+  let csv = [];
+  const rows = table.querySelectorAll('tr');
+  
+  for (const row of rows) {
+    const cols = row.querySelectorAll('td, th');
+    const csvRow = [];
+    for (const col of cols) {
+      csvRow.push('"' + col.innerText.replace(/"/g, '""') + '"');
+    }
+    csv.push(csvRow.join(','));
+  }
+  
+  const csvContent = csv.join('\n');
+  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', '{{ export_filename|default:"report" }}.csv');
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+</script>
+{% endif %}
+{% endblock %}
+{% endblock %}
+
