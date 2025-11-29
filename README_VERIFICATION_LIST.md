@@ -429,10 +429,10 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `production/views/README.md` | `production/views/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و overview کلی views را دارد |
 | `production/forms/README.md` | `production/forms/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است |
 | `production/migrations/README.md` | `production/migrations/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است |
-| `qc/README.md` | `qc/` module | ⏳ Pending | - | - | - | - |
-| `qc/views/README.md` | `qc/views/` | ⏳ Pending | - | - | - | - |
-| `qc/views/README_BASE.md` | `qc/views/base.py` | ⏳ Pending | 2025-11-21 19:59:04 | 2025-11-26 15:57:29 | ✅ README newer | - |
-| `qc/migrations/README.md` | `qc/migrations/` | ⏳ Pending | - | - | - | - |
+| `qc/README.md` | `qc/` module | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | به‌روزرسانی شد - لینک به فایل‌های README جزئی‌تر اضافه شد |
+| `qc/views/README.md` | `qc/views/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و overview کلی views را دارد |
+| `qc/views/README_BASE.md` | `qc/views/base.py` | ✅ Updated | 2025-11-21 19:59:04 | 2025-11-26 15:57:29 | ✅ README newer | بررسی شد - فایل به‌روز است |
+| `qc/migrations/README.md` | `qc/migrations/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و خلاصه migrations را دارد |
 | `ticketing/README.md` | `ticketing/` module | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | ایجاد شد - لینک به فایل‌های README جزئی‌تر اضافه شد |
 | `ticketing/views/README.md` | `ticketing/views/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و overview کلی views را دارد |
 | `ticketing/forms/README.md` | `ticketing/forms/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و overview کلی forms را دارد |
