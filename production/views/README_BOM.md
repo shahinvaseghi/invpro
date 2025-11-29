@@ -170,26 +170,45 @@
 - `HttpResponseRedirect`: redirect به `success_url`
 
 **منطق**:
-1. `active_company_id` را از session دریافت می‌کند
-2. اگر `active_company_id` وجود ندارد، خطا نمایش می‌دهد و `form_invalid` برمی‌گرداند
-3. `form.instance.company_id` و `created_by` را تنظیم می‌کند
-4. اگر `is_enabled` تنظیم نشده است، آن را به `1` تنظیم می‌کند
-5. BOM را ذخیره می‌کند
-6. formset را با instance می‌سازد
-7. formset را validate می‌کند
-8. اگر formset معتبر نیست:
-   - BOM را حذف می‌کند
-   - خطاهای formset را نمایش می‌دهد
-   - response با form و formset برمی‌گرداند
-9. formset را ذخیره می‌کند:
-   - برای هر instance:
-     - `line_number`, `company_id`, `created_by` را تنظیم می‌کند
-     - `material_item_code` را از `material_item.item_code` auto-fill می‌کند
-     - `material_type` را از `material_item.type` auto-set می‌کند (اگر تنظیم نشده باشد)
-     - instance را ذخیره می‌کند
-   - خطوط marked for deletion را حذف می‌کند
-10. پیام موفقیت را نمایش می‌دهد
-11. redirect می‌کند
+1. دریافت `active_company_id` از session
+2. اگر `active_company_id` وجود ندارد:
+   - خطا: "Please select a company first."
+   - `form_invalid()` برمی‌گرداند
+3. تنظیم `form.instance.company_id = active_company_id`
+4. تنظیم `form.instance.created_by = request.user`
+5. تنظیم `form.instance.is_enabled = 1` (اگر تنظیم نشده باشد)
+6. **ذخیره BOM**:
+   - `self.object = form.save()` (با error handling)
+   - اگر خطا رخ دهد، خطا نمایش می‌دهد و `form_invalid()` برمی‌گرداند
+7. **ساخت formset با instance**:
+   - `BOMMaterialLineFormSet(self.request.POST, instance=self.object, prefix='materials', form_kwargs={'company_id': active_company_id})`
+8. **Validate formset**:
+   - `is_valid = formset.is_valid()`
+   - اگر معتبر نیست:
+     - **حذف BOM**: `self.object.delete()` (چون formset معتبر نیست)
+     - **نمایش خطاها**:
+       - خطاهای `non_form_errors()` را نمایش می‌دهد
+       - برای هر form در formset: خطاهای هر field را با label نمایش می‌دهد (format: "❌ ردیف {i+1} - {field_label}: {error}")
+       - اگر هیچ خطای خاصی نیست: "Please fill in all required fields in the material lines."
+     - **بازگشت response**: `render_to_response(context)` با form و formset
+9. **ذخیره formset**:
+   - `instances = formset.save(commit=False)`
+   - برای هر `line_instance`:
+     - **Validation**: بررسی `material_item` و `unit` (اگر وجود ندارد، skip)
+     - تنظیم `line_instance.bom = self.object`
+     - تنظیم `line_instance.line_number = line_number` (sequential از 1)
+     - تنظیم `line_instance.company_id = active_company_id`
+     - تنظیم `line_instance.created_by = request.user`
+     - **Auto-fill `material_item_code`**: `line_instance.material_item_code = line_instance.material_item.item_code`
+     - **Auto-set `material_type`**: اگر تنظیم نشده باشد، از `line_instance.material_item.type` (اگر type وجود ندارد، خطا و skip)
+     - ذخیره `line_instance.save()` (با error handling)
+     - افزایش `line_number` و `saved_count`
+   - **حذف خطوط**: `formset.deleted_objects` را حذف می‌کند
+   - اگر خطا در save رخ دهد: BOM را حذف می‌کند و response با errors برمی‌گرداند
+10. **پیام‌ها**:
+    - اگر `saved_count == 0`: warning: "BOM created but no material lines were saved."
+    - در غیر این صورت: success: "BOM created successfully with {count} material line(s)."
+11. Redirect به `success_url`
 
 **نکات مهم**:
 - اگر formset معتبر نیست، BOM حذف می‌شود
@@ -283,16 +302,33 @@
 - `HttpResponseRedirect`: redirect به `success_url`
 
 **منطق**:
-1. formset را از context دریافت می‌کند
-2. formset را validate می‌کند
-3. اگر formset معتبر نیست:
-   - خطاهای formset را نمایش می‌دهد
-   - `form_invalid` برمی‌گرداند
-4. `form.instance.edited_by` را تنظیم می‌کند
-5. BOM را ذخیره می‌کند
-6. formset را ذخیره می‌کند (مشابه `BOMCreateView`)
-7. پیام موفقیت را نمایش می‌دهد
-8. redirect می‌کند
+1. دریافت formset از `self.get_context_data()['formset']`
+2. **Validate formset**:
+   - `is_valid = formset.is_valid()`
+   - اگر معتبر نیست:
+     - **نمایش خطاها**:
+       - خطاهای `non_form_errors()` را نمایش می‌دهد
+       - برای هر form در formset: خطاهای هر field را با label نمایش می‌دهد (format: "❌ ردیف {i+1} - {field_label}: {error}")
+     - `form_invalid()` برمی‌گرداند
+3. تنظیم `form.instance.edited_by = request.user`
+4. **ذخیره BOM**:
+   - `self.object = form.save()` (با error handling)
+   - اگر خطا رخ دهد، خطا نمایش می‌دهد و `form_invalid()` برمی‌گرداند
+5. **ذخیره formset**:
+   - `instances = formset.save(commit=False)`
+   - برای هر `line_instance`:
+     - **Validation**: بررسی `material_item` و `unit` (اگر وجود ندارد، skip)
+     - تنظیم `line_instance.bom = self.object`
+     - تنظیم `line_instance.line_number = line_number` (sequential از 1)
+     - تنظیم `line_instance.edited_by = request.user`
+     - **Auto-fill `material_item_code`**: `line_instance.material_item_code = line_instance.material_item.item_code`
+     - **Auto-set `material_type`**: اگر تنظیم نشده باشد، از `line_instance.material_item.type` (اگر type وجود ندارد، خطا و skip)
+     - ذخیره `line_instance.save()` (با error handling)
+     - افزایش `line_number`
+   - **حذف خطوط**: `formset.deleted_objects` را حذف می‌کند
+   - اگر خطا در save رخ دهد، خطا نمایش می‌دهد و `form_invalid()` برمی‌گرداند
+6. پیام موفقیت: "BOM updated successfully."
+7. `super().form_valid(form)` را فراخوانی می‌کند (redirect)
 
 **نکات مهم**:
 - `line_number` به صورت sequential تنظیم می‌شود
@@ -337,7 +373,10 @@
 - `QuerySet`: queryset فیلتر شده بر اساس company
 
 **منطق**:
-- queryset را بر اساس `active_company_id` فیلتر می‌کند
+1. دریافت `active_company_id` از session
+2. اگر `active_company_id` وجود ندارد، `BOM.objects.none()` برمی‌گرداند
+3. فیلتر: `BOM.objects.filter(company_id=active_company_id)`
+4. queryset را برمی‌گرداند
 
 ---
 
