@@ -54,14 +54,20 @@ baseline = get_last_stocktaking_baseline(
 ```
 
 **منطق**:
-1. ابتدا آخرین سند `StocktakingRecord` تایید شده و قفل شده قبل از `as_of_date` را پیدا می‌کند
-   - اگر پیدا شود: `baseline_date=date(1900, 1, 1)` (شروع از ابتدا برای شامل کردن تمام حرکات) و `baseline_quantity=0` برمی‌گرداند
-   - همچنین `stocktaking_record_id` و `stocktaking_record_code` را برای مرجع شامل می‌کند
-   - تاریخ واقعی سند شمارش در `stocktaking_record_date` ذخیره می‌شود
-2. اگر `StocktakingRecord` پیدا نشود، اولین اسناد کسری/مازاد قبل از `as_of_date` را بررسی می‌کند
-   - اگر پیدا شود: از تاریخ اولین سند کسری/مازاد به عنوان `baseline_date` استفاده می‌کند، `baseline_quantity=0`
-   - اسناد کسری/مازاد به عنوان حرکات بعد از این baseline محاسبه می‌شوند
-3. اگر هیچ سند شمارشی وجود نداشته باشد: `baseline_date=None` و `baseline_quantity=0` برمی‌گرداند
+1. اگر `as_of_date` None باشد: `as_of_date = timezone.now().date()`
+2. جستجوی آخرین `StocktakingRecord`:
+   - Query: `StocktakingRecord.objects.filter(company_id=company_id, document_date__lte=as_of_date, approval_status='approved', is_locked=1, is_enabled=1).order_by('-document_date', '-id').first()`
+   - اگر پیدا شود:
+     - `baseline_date = date(1900, 1, 1)` (شروع از ابتدا برای شامل کردن تمام movements)
+     - `baseline_quantity = Decimal('0')` (همیشه 0 - تمام movements بعد از baseline محاسبه می‌شوند)
+     - `stocktaking_record_id = latest_record.id`
+     - `stocktaking_record_code = latest_record.document_code`
+     - `stocktaking_record_date = latest_record.document_date` (تاریخ واقعی stocktaking برای reference)
+   - اگر پیدا نشد:
+     - `baseline_date = None`
+     - `baseline_quantity = Decimal('0')`
+     - `stocktaking_record_id = None`
+     - **نکته**: Deficit/surplus documents فقط اگر StocktakingRecord وجود داشته باشد به عنوان movements محاسبه می‌شوند
 
 **نکته مهم**: مقدار baseline همیشه `0` است زیرا تمام حرکات (شامل کسری/مازاد) به عنوان حرکات بعد از تاریخ baseline محاسبه می‌شوند. این امر یک audit trail کامل را تضمین می‌کند.
 
@@ -103,12 +109,38 @@ movements = calculate_movements_after_baseline(
 # نتیجه: {'receipts_total': Decimal('250.0'), 'issues_total': Decimal('180.0'), ...}
 ```
 
+**منطق**:
+1. اگر `as_of_date` None باشد: `as_of_date = timezone.now().date()`
+2. **Date handling برای as_of_date**:
+   - اگر `isinstance(as_of_date, date)` نیست:
+     - اگر string باشد: `date.fromisoformat(as_of_date)`
+     - در غیر این صورت: `timezone.now().date()`
+     - اگر exception رخ دهد: `timezone.now().date()`
+3. **Date handling برای baseline_date**:
+   - اگر `baseline_date` None باشد: `baseline_date = date(1900, 1, 1)`
+   - اگر `isinstance(baseline_date, date)` نیست:
+     - اگر string باشد: `date.fromisoformat(baseline_date)`
+     - در غیر این صورت: `date(1900, 1, 1)`
+     - اگر exception رخ دهد: `date(1900, 1, 1)`
+4. **محاسبه Receipts** (positive movements):
+   - `ReceiptPermanentLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_enabled=1).aggregate(total=Sum('quantity'))`
+   - `ReceiptConsignmentLine`: مشابه بالا
+   - `StocktakingSurplusLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_locked=1, document__is_enabled=1).aggregate(total=Sum('quantity_adjusted'))`
+   - `receipts_total = (receipts_perm['total'] or Decimal('0')) + (receipts_consignment['total'] or Decimal('0')) + (surplus['total'] or Decimal('0'))`
+5. **محاسبه Issues** (negative movements):
+   - `IssuePermanentLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_enabled=1).aggregate(total=Sum('quantity'))`
+   - `IssueConsumptionLine`: مشابه بالا
+   - `IssueConsignmentLine`: مشابه بالا
+   - `StocktakingDeficitLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_locked=1, document__is_enabled=1).aggregate(total=Sum('quantity_adjusted'))`
+   - `issues_total = (issues_permanent['total'] or Decimal('0')) + (issues_consumption['total'] or Decimal('0')) + (issues_consignment['total'] or Decimal('0')) + (deficit['total'] or Decimal('0'))`
+6. بازگشت: `{'receipts_total': Decimal, 'issues_total': Decimal, 'surplus_total': Decimal, 'deficit_total': Decimal}`
+
 **نکات مهم**:
-- رسیدها و حواله‌ها: فقط اسناد فعال (`is_enabled=1`) شامل می‌شوند
-- شمارش (کسری/مازاد): هم `is_locked=1` و هم `is_enabled=1` لازم است
-- رسیدهای امانی و حواله‌های امانی شامل می‌شوند (بر موجودی تأثیر می‌گذارند)
-- رسیدهای موقت شامل نمی‌شوند (در کوئری‌ها وجود ندارند)
-- مدیریت تاریخ: به صورت خودکار تاریخ‌های رشته‌ای را به date object تبدیل می‌کند، اگر `baseline_date` None باشد، از `date(1900, 1, 1)` استفاده می‌کند
+- Receipts and Issues: Only enabled documents are included (`document__is_enabled=1`)
+- Stocktaking (Deficit/Surplus): Both `document__is_locked=1` AND `document__is_enabled=1` are required
+- Consignment receipts/issues ARE included (they affect inventory balance)
+- Temporary receipts are excluded (not included in the queries)
+- Date range: `document__document_date__gte=baseline_date` AND `document__document_date__lte=as_of_date`
 
 ---
 
@@ -199,28 +231,39 @@ balances = calculate_warehouse_balances(
 ```
 
 **منطق**:
-1. تمام کالاهایی که فعالیت در انبار دارند را پیدا می‌کند:
-   - کالاهایی با تخصیص انبار (`ItemWarehouse` که `warehouse_id` مطابقت دارد و `is_enabled=1`), یا
-   - کالاهایی با تراکنش واقعی:
-     * `ReceiptPermanentLine` (فقط اسناد فعال)
-     * `ReceiptConsignmentLine` (فقط اسناد فعال)
-     * `IssuePermanentLine` (فقط اسناد فعال)
-     * `IssueConsumptionLine` (فقط اسناد فعال)
-     * `IssueConsignmentLine` (فقط اسناد فعال)
-     * `StocktakingSurplusLine` (فقط اسناد فعال)
-     * `StocktakingDeficitLine` (فقط اسناد فعال)
-2. **نکته مهم**: کالاهایی با تراکنش واقعی حتی اگر `is_enabled=0` باشند، شامل می‌شوند
-   - این امر یک audit trail کامل را تضمین می‌کند
-   - کالاهایی که فقط تخصیص انبار دارند، باید `is_enabled=1` باشند
-3. فیلترهای اختیاری را اعمال می‌کند (`item_type_id`, `item_category_id`)
-4. برای هر کالا `calculate_item_balance()` را فراخوانی می‌کند
-5. **فیلتر کردن**: فقط کالاهایی که:
-   - `current_balance != 0`, یا
-   - `receipts_total > 0`, یا
-   - `issues_total > 0`
-   - این کالاهایی با موجودی صفر و بدون فعالیت را حذف می‌کند
-6. مدیریت خطا: اگر محاسبه برای یک کالا ناموفق باشد، خطا را ثبت می‌کند و با کالاهای دیگر ادامه می‌دهد
-7. لیست موجودی‌ها را برمی‌گرداند
+1. اگر `as_of_date` None باشد: `as_of_date = timezone.now().date()`
+2. **یافتن items با activity در warehouse**:
+   - **Items با warehouse assignment**: `Item.objects.filter(company_id=company_id, is_enabled=1, warehouses__warehouse_id=warehouse_id, warehouses__is_enabled=1).values_list('id', flat=True)`
+   - **Items با actual transactions** (فقط enabled documents و `document_date__lte=as_of_date`):
+     * `ReceiptPermanentLine`: `filter(company_id, warehouse_id, document__is_enabled=1, document__document_date__lte=as_of_date).values_list('item_id', flat=True).distinct()`
+     * `ReceiptConsignmentLine`: مشابه بالا
+     * `IssuePermanentLine`: مشابه بالا
+     * `IssueConsumptionLine`: مشابه بالا
+     * `IssueConsignmentLine`: مشابه بالا
+     * `StocktakingSurplusLine`: مشابه بالا (فقط `document__is_enabled=1`)
+     * `StocktakingDeficitLine`: مشابه بالا (فقط `document__is_enabled=1`)
+3. **ترکیب item IDs**:
+   - `all_item_ids = set(items_with_assignment) | set(items_with_receipts) | set(items_with_consignment_receipts) | set(items_with_issues) | set(items_with_consumption) | set(items_with_consignment_issues) | set(items_with_surplus) | set(items_with_deficit)`
+   - `items_with_transactions = set(items_with_receipts) | set(items_with_consignment_receipts) | set(items_with_issues) | set(items_with_consumption) | set(items_with_consignment_issues) | set(items_with_surplus) | set(items_with_deficit)`
+4. **ساخت query**:
+   - `items_query = Item.objects.filter(id__in=all_item_ids, company_id=company_id).filter(Q(id__in=items_with_transactions) | Q(is_enabled=1))`
+   - **نکته مهم**: Items با actual transactions حتی اگر disabled باشند (`is_enabled=0`) شامل می‌شوند (برای audit trail)
+   - Items با فقط warehouse assignment نیاز به `is_enabled=1` دارند
+5. **اعمال optional filters**:
+   - اگر `item_type_id` موجود باشد: `items_query = items_query.filter(type_id=item_type_id)`
+   - اگر `item_category_id` موجود باشد: `items_query = items_query.filter(category_id=item_category_id)`
+6. **محاسبه balance برای هر item**:
+   - برای هر item در `items_query`:
+     - فراخوانی `calculate_item_balance(company_id, warehouse_id, item.id, as_of_date)`
+     - **فیلتر کردن**: فقط items با:
+       * `current_balance != 0`، یا
+       * `receipts_total > 0`، یا
+       * `issues_total > 0`
+     - اضافه کردن به `balances` list
+     - **Error handling**: اگر exception رخ دهد:
+       * Log error با `print()` و `traceback.format_exc()`
+       * ادامه با item بعدی (`continue`)
+7. بازگشت `balances` list
 
 ---
 
