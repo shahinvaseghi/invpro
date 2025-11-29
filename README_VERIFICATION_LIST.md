@@ -418,7 +418,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `inventory/README_BALANCE_MODULE.md` | `inventory/inventory_balance.py` | ✅ Updated | 2025-11-28 18:54:08 | 2025-11-29 19:06:21 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_last_stocktaking_baseline()` (با stocktaking_record_date)، `calculate_movements_after_baseline()` (با date handling)، و `calculate_warehouse_balances()` (با منطق کامل یافتن items و فیلتر کردن) |
 | `inventory/README_FORMS.md` | `inventory/forms/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | به‌روزرسانی شد - لینک به فایل‌های README جزئی‌تر اضافه شد |
 | `inventory/views/README.md` | `inventory/views/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و به تمام فایل‌های README جزئی‌تر اشاره می‌کند |
-| `inventory/utils/README.md` | `inventory/utils/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و تمام توابع utility را مستندسازی کرده (codes.py و jalali.py) |
+| `inventory/utils/README.md` | `inventory/utils/` | ✅ Updated | 2025-11-26 21:30:04 | 2025-11-26 15:57:29 | ⚠️ Source newer | بررسی شد - فایل به‌روز است و تمام توابع utility را مستندسازی کرده (codes.py و jalali.py). تفاوت تاریخ فقط چند ساعت است و محتوا با کد هماهنگ است |
 | `inventory/services/README.md` | `inventory/services/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و تمام توابع serial management را مستندسازی کرده (single-line و line-based) |
 | `inventory/templatetags/README.md` | `inventory/templatetags/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و تمام template tags (jalali_tags) را مستندسازی کرده |
 | `inventory/migrations/README.md` | `inventory/migrations/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و خلاصه migrations را مستندسازی کرده |
@@ -436,7 +436,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `ticketing/README.md` | `ticketing/` module | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | ایجاد شد - لینک به فایل‌های README جزئی‌تر اضافه شد |
 | `ticketing/views/README.md` | `ticketing/views/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و overview کلی views را دارد |
 | `ticketing/forms/README.md` | `ticketing/forms/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و overview کلی forms را دارد |
-| `ticketing/utils/README.md` | `ticketing/utils/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و توابع codes.py را مستندسازی کرده |
+| `ticketing/utils/README.md` | `ticketing/utils/` | ✅ Updated | 2025-11-26 21:30:04 | 2025-11-26 15:57:29 | ⚠️ Source newer | بررسی شد - فایل به‌روز است و توابع codes.py را مستندسازی کرده. تفاوت تاریخ فقط چند ساعت است و محتوا با کد هماهنگ است |
 | `ticketing/migrations/README.md` | `ticketing/migrations/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و خلاصه migrations را دارد |
 | `shared/README.md` | `shared/` module | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | به‌روزرسانی شد - لینک به فایل‌های README جزئی‌تر اضافه شد |
 | `shared/README_FORMS.md` | `shared/forms/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و تمام forms را مستندسازی کرده |
@@ -445,7 +445,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `shared/utils/README.md` | `shared/utils/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و تمام utility functions را مستندسازی کرده |
 | `shared/templatetags/README.md` | `shared/templatetags/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و تمام template tags را مستندسازی کرده |
 | `shared/migrations/README.md` | `shared/migrations/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و خلاصه migrations را دارد |
-| `templates/inventory/README.md` | `templates/inventory/` | ⏳ Pending | - | - | - | - |
+| `templates/inventory/README.md` | `templates/inventory/` | ✅ Updated | N/A | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و مستندات کامل templates را دارد |
 
 ---
 
