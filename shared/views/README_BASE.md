@@ -8,87 +8,132 @@
 
 ### `UserAccessFormsetMixin`
 
-**توضیح**: مدیریت formset دسترسی شرکت کاربر در views ایجاد/ویرایش کاربر.
+**توضیح**: Helper mixin برای مدیریت `UserCompanyAccess` formsets در views ایجاد/ویرایش کاربر.
 
 **متدها**:
 
-#### `get_context_data(**kwargs) -> Dict[str, Any]`
+#### `get_access_formset(self, form: Optional[Any] = None) -> UserCompanyAccessFormSet`
 
-**توضیح**: formset دسترسی شرکت را به context اضافه می‌کند.
+**توضیح**: دریافت یا ایجاد `UserCompanyAccess` formset برای یک کاربر.
+
+**پارامترهای ورودی**:
+- `form` (Optional[Any]): فرم کاربر (اختیاری)
 
 **مقدار بازگشتی**:
-- Context با `access_formset` اضافه شده
-
----
-
-#### `form_valid(form)`
-
-**توضیح**: فرم و formset دسترسی شرکت را ذخیره می‌کند.
-
-**پارامترهای ورودی**:
-- `form`: فرم کاربر
+- `UserCompanyAccessFormSet`: formset instance
 
 **منطق**:
-1. فرم کاربر را ذخیره می‌کند
-2. formset دسترسی شرکت را ذخیره می‌کند
-3. یک دسترسی را به عنوان primary تنظیم می‌کند
-
----
-
-#### `_save_access_formset(formset) -> None`
-
-**توضیح**: instance های formset دسترسی شرکت را ذخیره می‌کند.
-
-**پارامترهای ورودی**:
-- `formset`: `UserCompanyAccessFormSet`
-
-**منطق**:
-1. دسترسی‌های valid را ذخیره می‌کند
-2. دسترسی‌های حذف شده را حذف می‌کند
-3. یک دسترسی را به عنوان primary تنظیم می‌کند
+1. تعیین instance از `form.instance` یا `self.object`
+2. اگر instance وجود نداشته باشد، یک `User()` جدید ایجاد می‌کند
+3. ساخت formset با POST data (اگر request method POST باشد) یا None
+4. بازگشت formset
 
 ---
 
 ### `AccessLevelPermissionMixin`
 
-**توضیح**: مدیریت ماتریس permission در views ایجاد/ویرایش access level.
+**توضیح**: Mixin برای مدیریت permissions در views ایجاد/ویرایش access level.
+
+**Attributes**:
+- `template_name`: `'shared/access_level_form.html'`
+- `action_labels`: Dictionary از action labels (در `__init__` تنظیم می‌شود)
 
 **متدها**:
 
-#### `get_context_data(**kwargs) -> Dict[str, Any]`
+#### `__init__(self, *args: Any, **kwargs: Any) -> None`
 
-**توضیح**: ماتریس permission را به context اضافه می‌کند.
+**توضیح**: Initialize action labels dictionary.
 
-**مقدار بازگشتی**:
-- Context با `feature_permissions` و `permission_matrix` اضافه شده
+**منطق**:
+- ساخت `action_labels` dictionary با ترجمه‌های فارسی برای تمام `PermissionAction` values
 
 ---
 
-#### `form_valid(form)`
+#### `_feature_key(self, code: str) -> str`
 
-**توضیح**: فرم access level و permissions را ذخیره می‌کند.
+**توضیح**: تبدیل feature code به HTML-safe key.
+
+**پارامترهای ورودی**:
+- `code` (str): Feature code (مثلاً `'inventory.items'`)
+
+**مقدار بازگشتی**:
+- `str`: Normalized key (مثلاً `'inventory__items'`)
+
+**منطق**:
+- جایگزینی `.` با `__` برای استفاده در templates
+
+---
+
+#### `_prepare_feature_context(self, instance: Optional[Any] = None) -> list`
+
+**توضیح**: آماده‌سازی context برای feature permissions در template.
+
+**پارامترهای ورودی**:
+- `instance` (Optional[Any]): AccessLevel instance (اختیاری)
+
+**مقدار بازگشتی**:
+- `list`: لیست dictionaries با اطلاعات features و permissions، grouped by module
+
+**منطق**:
+1. اگر instance موجود باشد، permissions موجود را از database می‌خواند
+2. برای هر feature در `FEATURE_PERMISSION_MAP`:
+   - ساخت dictionary با code, label, actions, view_scope
+   - بررسی permissions موجود و تنظیم checked states
+3. Group کردن features بر اساس module code
+4. ساخت module_list با module labels (شامل ماژول‌های جدید: accounting, sales, hr, office_automation, transportation, procurement)
+5. بازگشت module_list
+
+**Context Structure**:
+```python
+[
+    {
+        'code': 'inventory',
+        'label': 'Inventory',
+        'features': [
+            {
+                'code': 'inventory.items',
+                'html_id': 'inventory__items',
+                'label': 'Items',
+                'module_code': 'inventory',
+                'view_supported': True,
+                'view_scope': 'all',  # 'none', 'own', 'all'
+                'actions': [
+                    {
+                        'code': 'create',
+                        'label': 'Create',
+                        'checked': True
+                    },
+                    ...
+                ]
+            },
+            ...
+        ]
+    },
+    ...
+]
+```
+
+---
+
+#### `_save_permissions(self, form: Any) -> None`
+
+**توضیح**: ذخیره permissions از POST data.
 
 **پارامترهای ورودی**:
 - `form`: فرم access level
 
 **منطق**:
-1. فرم access level را ذخیره می‌کند
-2. permissions را از POST data ذخیره می‌کند
-
----
-
-#### `_save_permissions(access_level, post_data) -> None`
-
-**توضیح**: permissions را از POST data ذخیره می‌کند.
-
-**پارامترهای ورودی**:
-- `access_level`: شیء `AccessLevel`
-- `post_data`: داده‌های POST
-
-**منطق**:
-1. permissions قبلی را حذف می‌کند
-2. permissions جدید را از POST data ایجاد می‌کند
-3. metadata (actions) را ذخیره می‌کند
+1. برای هر feature در `FEATURE_PERMISSION_MAP`:
+   - خواندن `view_scope` از POST (`perm-{html_key}-view`)
+   - خواندن selected actions از POST checkboxes
+   - اگر `view_scope == 'none'` و هیچ action انتخاب نشده باشد:
+     - حذف permission موجود (اگر وجود داشته باشد)
+   - در غیر این صورت:
+     - ایجاد یا به‌روزرسانی `AccessLevelPermission`
+     - تنظیم `can_view`, `can_create`, `can_edit`, `can_delete`, `can_approve`
+     - ساخت `metadata` با `actions` dictionary
+     - ذخیره permission
+2. حذف permissions که دیگر در POST data نیستند (stale permissions)
 
 ---
 

@@ -4,9 +4,6 @@
 
 ## فایل‌ها
 
-### base.py
-- **توضیح**: کلاس‌های پایه (در `shared/views/base.py` استفاده می‌شود)
-
 ### bom.py
 - **Views**: BOMListView, BOMCreateView, BOMUpdateView, BOMDeleteView
 - **توضیح**: CRUD views برای Bill of Materials (BOM)

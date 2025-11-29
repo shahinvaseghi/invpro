@@ -210,7 +210,7 @@
           <td>
             <div class="action-buttons">
               {% if issue.is_locked %}
-                <a href="{% url edit_url_name issue.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+                <a href="{% url detail_url_name issue.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
                   {% trans "View" %}
                 </a>
                 <span class="badge-locked">{% trans "Locked" %}</span>

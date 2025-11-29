@@ -2,6 +2,18 @@
 
 The production module captures manufacturing definitions, work centers, orders, material movements, personnel, and machines. This document describes each custom file and the classes within it.
 
+**نکته مهم**: برای جزئیات کامل هر بخش، به فایل‌های README مربوطه مراجعه کنید:
+- **Models**: [`README_MODELS.md`](README_MODELS.md) - مستندات کامل برای 21 model class
+- **Views**: [`views/README.md`](views/README.md) - Overview کلی views
+- **Forms**: [`README_FORMS.md`](README_FORMS.md) - مستندات کامل forms (Person, Machine, WorkLine, BOM, Process, ProductOrder)
+- **BOM**: [`README_BOM.md`](README_BOM.md) - مستندات کامل BOM (معماری، فرم‌ها، views، JavaScript)
+
+**نکته مهم**: برای جزئیات کامل هر بخش، به فایل‌های README مربوطه مراجعه کنید:
+- **Models**: [`README_MODELS.md`](README_MODELS.md) - مستندات کامل برای 21 model class
+- **Views**: [`views/README.md`](views/README.md) - Overview کلی views و لینک به READMEهای جزئی‌تر
+- **Forms**: [`README_FORMS.md`](README_FORMS.md) - Overview کلی forms
+- **BOM**: [`README_BOM.md`](README_BOM.md) - مستندات کامل BOM
+
 ## models.py
 
 Defines all production entities. Structure:
@@ -34,6 +46,12 @@ Defines all production entities. Structure:
 - **Material Transfer**
   - `TransferToLine`: documents material transfers to production lines for a specific order with workflow status.
   - `TransferToLineItem`: line items for transfers, capturing required versus transferred quantities, source warehouse, destination work center, and scrap allowance. Caches item and warehouse codes.
+
+- **Performance Records**
+  - `PerformanceRecord`: records production performance for a specific order with workflow status, materials, personnel, and machines used.
+  - `PerformanceRecordMaterial`: line items for materials used in performance records, capturing item, quantity, unit, and warehouse.
+  - `PerformanceRecordPerson`: line items for personnel used in performance records, capturing person, hours worked, and role.
+  - `PerformanceRecordMachine`: line items for machines used in performance records, capturing machine, hours used, and maintenance notes.
 
 All models inherit audit fields and apply `save()` overrides to populate cached codes where necessary. Personnel models (`Person`, `PersonAssignment`) were moved from the `shared` module to better align with production workflows and resource management.
 

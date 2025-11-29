@@ -26,19 +26,19 @@
 <div class="stats-grid">
   <div class="stat-card">
     <div class="stat-label">{% trans "Total" %}</div>
-    <div class="stat-value">{{ receipts|length }}</div>
+    <div class="stat-value">{{ stats.total }}</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">Awaiting QC</div>
-    <div class="stat-value" style="color: #f59e0b;">0</div>
+    <div class="stat-value" style="color: #f59e0b;">{{ stats.awaiting_qc }}</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">QC Passed</div>
-    <div class="stat-value" style="color: #10b981;">0</div>
+    <div class="stat-value" style="color: #10b981;">{{ stats.qc_passed }}</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">Converted</div>
-    <div class="stat-value" style="color: #3b82f6;">0</div>
+    <div class="stat-value" style="color: #3b82f6;">{{ stats.converted }}</div>
   </div>
 </div>
 
@@ -50,9 +50,10 @@
       <label for="status">QC {% trans "Status" %}</label>
       <select name="status" id="status" class="form-control">
         <option value="">-- {% trans "All" %} --</option>
-        <option value="awaiting_qc">Awaiting QC</option>
-        <option value="qc_passed">QC Passed</option>
-        <option value="qc_failed">QC Failed</option>
+        <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>{% trans "Draft" %}</option>
+        <option value="awaiting_qc" {% if status_filter == 'awaiting_qc' %}selected{% endif %}>{% trans "Awaiting QC" %}</option>
+        <option value="qc_passed" {% if status_filter == 'qc_passed' %}selected{% endif %}>{% trans "QC Passed" %}</option>
+        <option value="qc_failed" {% if status_filter == 'qc_failed' %}selected{% endif %}>{% trans "QC Rejected" %}</option>
       </select>
     </div>
 
@@ -60,8 +61,8 @@
       <label for="converted">Conversion {% trans "Status" %}</label>
       <select name="converted" id="converted" class="form-control">
         <option value="">-- {% trans "All" %} --</option>
-        <option value="0">Not Converted</option>
-        <option value="1">Converted</option>
+        <option value="0" {% if converted_filter == '0' %}selected{% endif %}>{% trans "Not Converted" %}</option>
+        <option value="1" {% if converted_filter == '1' %}selected{% endif %}>{% trans "Converted" %}</option>
       </select>
     </div>
 
@@ -69,7 +70,7 @@
       <label for="search">{% trans "Search" %}</label>
       <input type="text" name="search" id="search" 
              placeholder="{% trans 'Document code or item' %}" 
-             value="{{ request.GET.search }}"
+             value="{{ search_query }}"
              class="form-control">
     </div>
 
@@ -145,23 +146,23 @@
             {% endif %}
           </td>
           <td>
-            {% if receipt.lines.all %}
+            {% if receipt.enabled_lines %}
               {# Temporary receipt - multiple lines #}
-              {% for line in receipt.lines.all|slice:":3" %}
+              {% for line in receipt.enabled_lines|slice:":3" %}
                 <strong>{{ line.item.name }}</strong><br>
                 <small style="color: #6b7280;"><code>{{ line.item.item_code }}</code></small>{% if not forloop.last %}<br><br>{% endif %}
               {% endfor %}
-              {% if receipt.lines.count > 3 %}
-                <small class="muted">+ {{ receipt.lines.count|add:"-3" }} {% trans "more" %}</small>
+              {% if receipt.enabled_lines|length > 3 %}
+                <small class="muted">+ {{ receipt.enabled_lines|length|add:"-3" }} {% trans "more" %}</small>
               {% endif %}
             {% else %}
               —
             {% endif %}
           </td>
           <td style="text-align: right;">
-            {% if receipt.lines.all %}
+            {% if receipt.enabled_lines %}
               {# Temporary receipt - multiple lines #}
-              {% for line in receipt.lines.all|slice:":3" %}
+              {% for line in receipt.enabled_lines|slice:":3" %}
                 {% if line.entered_quantity %}
                   {{ line.entered_quantity|floatformat:2 }}
                   {% if line.entered_unit %}
@@ -176,21 +177,21 @@
                   {{ line.quantity|floatformat:2 }} {{ line.unit }}
                 {% endif %}{% if not forloop.last %}<br>{% endif %}
               {% endfor %}
-              {% if receipt.lines.count > 3 %}
-                <small class="muted">+ {{ receipt.lines.count|add:"-3" }} {% trans "more" %}</small>
+              {% if receipt.enabled_lines|length > 3 %}
+                <small class="muted">+ {{ receipt.enabled_lines|length|add:"-3" }} {% trans "more" %}</small>
               {% endif %}
             {% else %}
               —
             {% endif %}
           </td>
           <td>
-            {% if receipt.lines.all %}
+            {% if receipt.enabled_lines %}
               {# Temporary receipt - multiple lines #}
-              {% for line in receipt.lines.all|slice:":3" %}
+              {% for line in receipt.enabled_lines|slice:":3" %}
                 {{ line.warehouse.name }}{% if not forloop.last %}<br>{% endif %}
               {% endfor %}
-              {% if receipt.lines.count > 3 %}
-                <small class="muted">+ {{ receipt.lines.count|add:"-3" }} {% trans "more" %}</small>
+              {% if receipt.enabled_lines|length > 3 %}
+                <small class="muted">+ {{ receipt.enabled_lines|length|add:"-3" }} {% trans "more" %}</small>
               {% endif %}
             {% else %}
               —
@@ -200,13 +201,13 @@
             {% if receipt.supplier %}
               {# Header-level supplier #}
               {{ receipt.supplier.name }}
-            {% elif receipt.lines.all %}
+            {% elif receipt.enabled_lines %}
               {# Line-level suppliers #}
-              {% for line in receipt.lines.all|slice:":3" %}
+              {% for line in receipt.enabled_lines|slice:":3" %}
                 {% if line.supplier %}{{ line.supplier.name }}{% else %}—{% endif %}{% if not forloop.last %}<br>{% endif %}
               {% endfor %}
-              {% if receipt.lines.count > 3 %}
-                <small class="muted">+ {{ receipt.lines.count|add:"-3" }} {% trans "more" %}</small>
+              {% if receipt.enabled_lines|length > 3 %}
+                <small class="muted">+ {{ receipt.enabled_lines|length|add:"-3" }} {% trans "more" %}</small>
               {% endif %}
             {% else %}
               —
@@ -218,6 +219,8 @@
               <span class="badge badge-pending">{% trans "Awaiting QC" %}</span>
             {% elif receipt.status == 2 %}
               <span class="badge badge-inactive">{% trans "Closed" %}</span>
+            {% elif receipt.status == 3 %}
+              <span class="badge badge-active">{% trans "QC Approved" %}</span>
             {% else %}
               <span class="badge badge-draft">{% trans "Draft" %}</span>
             {% endif %}
@@ -261,12 +264,31 @@
           <td>
             <div class="action-buttons">
               {% if receipt.is_locked %}
-                <a href="{% url edit_url_name receipt.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+                <a href="{% url detail_url_name receipt.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
                   {% trans "View" %}
                 </a>
                 <span class="badge badge-locked" style="margin-top:4px;">{% trans "Locked" %}</span>
-                {% if serial_url_name and receipt.lines.all %}
-                  {% with first_line=receipt.lines.all|first %}
+                {% if receipt.created_by == user %}
+                  {% if can_unlock_own %}
+                    <form method="post" action="{% url unlock_url_name receipt.pk %}" style="display: inline; margin: 0;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to unlock this receipt?" %}');">
+                        {% trans "Unlock" %}
+                      </button>
+                    </form>
+                  {% endif %}
+                {% else %}
+                  {% if can_unlock_other %}
+                    <form method="post" action="{% url unlock_url_name receipt.pk %}" style="display: inline; margin: 0;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to unlock this receipt?" %}');">
+                        {% trans "Unlock" %}
+                      </button>
+                    </form>
+                  {% endif %}
+                {% endif %}
+                {% if serial_url_name and receipt.enabled_lines %}
+                  {% with first_line=receipt.enabled_lines|first %}
                     {% if first_line.item.has_lot_tracking == 1 %}
                       <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
                         {% trans "View Serials" %}
@@ -286,8 +308,8 @@
                     </button>
                   </form>
                 {% endif %}
-                {% if serial_url_name and receipt.lines.all %}
-                  {% with first_line=receipt.lines.all|first %}
+                {% if serial_url_name and receipt.enabled_lines %}
+                  {% with first_line=receipt.enabled_lines|first %}
                     {% if first_line.item.has_lot_tracking == 1 %}
                       <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
                         {% trans "Manage Serials" %}

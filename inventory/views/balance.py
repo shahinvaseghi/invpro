@@ -146,7 +146,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             company_id=company_id,
             warehouse_id=warehouse_id,
             item_id=item_id,
-            document__document_date__gt=baseline_date,
+            document__document_date__gte=baseline_date,
             document__document_date__lte=as_of_date,
             document__is_enabled=1,
         ).select_related('document', 'document__created_by', 'supplier').order_by('document__document_date', 'id')
@@ -155,7 +155,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             company_id=company_id,
             warehouse_id=warehouse_id,
             item_id=item_id,
-            document__document_date__gt=baseline_date,
+            document__document_date__gte=baseline_date,
             document__document_date__lte=as_of_date,
             document__is_enabled=1,
         ).select_related('document', 'document__created_by', 'supplier').order_by('document__document_date', 'id')
@@ -165,7 +165,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             company_id=company_id,
             warehouse_id=warehouse_id,
             item_id=item_id,
-            document__document_date__gt=baseline_date,
+            document__document_date__gte=baseline_date,
             document__document_date__lte=as_of_date,
             document__is_enabled=1,
         ).select_related('document', 'document__created_by', 'document__department_unit').order_by('document__document_date', 'id')
@@ -174,7 +174,7 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             company_id=company_id,
             warehouse_id=warehouse_id,
             item_id=item_id,
-            document__document_date__gt=baseline_date,
+            document__document_date__gte=baseline_date,
             document__document_date__lte=as_of_date,
             document__is_enabled=1,
         ).select_related('document', 'document__created_by', 'document__department_unit', 'work_line').order_by('document__document_date', 'id')
@@ -183,10 +183,34 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             company_id=company_id,
             warehouse_id=warehouse_id,
             item_id=item_id,
-            document__document_date__gt=baseline_date,
+            document__document_date__gte=baseline_date,
             document__document_date__lte=as_of_date,
             document__is_enabled=1,
         ).select_related('document', 'document__created_by', 'document__department_unit').order_by('document__document_date', 'id')
+        
+        # Get stocktaking surplus (positive movements)
+        # Include surplus documents on or after baseline_date
+        surplus_lines = models.StocktakingSurplusLine.objects.filter(
+            company_id=company_id,
+            warehouse_id=warehouse_id,
+            item_id=item_id,
+            document__document_date__gte=baseline_date,
+            document__document_date__lte=as_of_date,
+            document__is_locked=1,
+            document__is_enabled=1,
+        ).select_related('document', 'document__created_by').order_by('document__document_date', 'id')
+        
+        # Get stocktaking deficit (negative movements)
+        # Include deficit documents on or after baseline_date
+        deficit_lines = models.StocktakingDeficitLine.objects.filter(
+            company_id=company_id,
+            warehouse_id=warehouse_id,
+            item_id=item_id,
+            document__document_date__gte=baseline_date,
+            document__document_date__lte=as_of_date,
+            document__is_locked=1,
+            document__is_enabled=1,
+        ).select_related('document', 'document__created_by').order_by('document__document_date', 'id')
         
         # Combine all transactions
         transactions = []
@@ -331,6 +355,36 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
                 'unit': issue.unit,
                 'created_by': issue.document.created_by.username if issue.document.created_by else '—',
                 'source_destination': destination_info,
+            })
+        
+        # Add stocktaking surplus (positive movements)
+        for surplus_line in surplus_lines:
+            transactions.append({
+                'date': surplus_line.document.document_date,
+                'type': 'receipt',
+                'type_label': _('مازاد انبارگردانی'),  # More specific label
+                'document_code': surplus_line.document.document_code,
+                'document_id': surplus_line.document.pk,
+                'document_type': 'stocktaking_surplus',
+                'quantity': surplus_line.quantity_adjusted,
+                'unit': surplus_line.unit,
+                'created_by': surplus_line.document.created_by.username if surplus_line.document.created_by else '—',
+                'source_destination': '—',
+            })
+        
+        # Add stocktaking deficit (negative movements)
+        for deficit_line in deficit_lines:
+            transactions.append({
+                'date': deficit_line.document.document_date,
+                'type': 'issue',
+                'type_label': _('کسری انبارگردانی'),  # More specific label
+                'document_code': deficit_line.document.document_code,
+                'document_id': deficit_line.document.pk,
+                'document_type': 'stocktaking_deficit',
+                'quantity': deficit_line.quantity_adjusted,
+                'unit': deficit_line.unit,
+                'created_by': deficit_line.document.created_by.username if deficit_line.document.created_by else '—',
+                'source_destination': '—',
             })
         
         # Sort by date

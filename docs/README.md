@@ -96,6 +96,12 @@ For detailed documentation about each module, check the README files in their re
 - `qc/README.md` - Quality Control module overview
 - `ui/README.md` - UI module overview
 - `templates/inventory/README.md` - Inventory module templates documentation
+- `accounting/README_VIEWS.md` - Accounting module views documentation
+- `sales/README_VIEWS.md` - Sales module views documentation
+- `hr/README_VIEWS.md` - Human Resources module views documentation
+- `office_automation/README_VIEWS.md` - Office Automation module views documentation
+- `transportation/README_VIEWS.md` - Transportation module views documentation
+- `procurement/README_VIEWS.md` - Procurement module views documentation
 
 ---
 

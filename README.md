@@ -631,9 +631,17 @@ This project includes comprehensive documentation organized by module and purpos
 | `inventory/README_FORMS.md` | Inventory module forms documentation |
 | `inventory/README_BALANCE.md` | Inventory balance calculation logic |
 | `production/README.md` | Production module overview and models (includes Personnel and Machines) |
+| `production/README_BOM.md` | BOM (Bill of Materials) system documentation |
+| `production/README_FORMS.md` | Production module forms documentation |
 | `qc/README.md` | Quality Control module overview |
 | `ui/README.md` | UI module templates and components |
 | `templates/inventory/README.md` | Inventory template documentation |
+| `accounting/README_VIEWS.md` | Accounting module views documentation |
+| `sales/README_VIEWS.md` | Sales module views documentation |
+| `hr/README_VIEWS.md` | Human Resources module views documentation |
+| `office_automation/README_VIEWS.md` | Office Automation module views documentation |
+| `transportation/README_VIEWS.md` | Transportation module views documentation |
+| `procurement/README_VIEWS.md` | Procurement module views documentation |
 
 ### 14.4 Documentation Structure
 

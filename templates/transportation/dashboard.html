@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Transportation" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="section-header">
+        <h1>{% trans "Transportation" %}</h1>
+        <p>{% trans "Transportation and logistics management" %}</p>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <h2>{% trans "Transportation Module" %}</h2>
+            <p>{% trans "This module is under development. Transportation management features will be available soon." %}</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

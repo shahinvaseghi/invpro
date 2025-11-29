@@ -16,6 +16,7 @@ from django.utils.translation import gettext_lazy as _
 from shared.models import (
     ActivatableModel,
     CompanyScopedModel,
+    EditableModel,
     ENABLED_FLAG_CHOICES,
     LockableModel,
     MetadataModel,
@@ -34,6 +35,7 @@ class TicketingBaseModel(
     TimeStampedModel,
     ActivatableModel,
     MetadataModel,
+    EditableModel,
 ):
     """Base model for all ticketing models."""
 

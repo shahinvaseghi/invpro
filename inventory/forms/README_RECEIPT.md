@@ -79,7 +79,7 @@
 **Fields**:
 - `document_code`: کد سند (HiddenInput، auto-generated)
 - `document_date`: تاریخ سند (HiddenInput، auto-generated)
-- `temporary_receipt`: رسید موقت مرتبط (Select، فقط رسیدهای QC-approved و unconverted)
+- `temporary_receipt`: رسید موقت مرتبط (Select، فقط رسیدهای QC-approved (status=`APPROVED`) و unconverted)
 - `purchase_request`: درخواست خرید مرتبط (Select)
 
 **متدها**:
@@ -88,8 +88,20 @@
 - **Parameters**:
   - `company_id`: شناسه شرکت فعال
 - **Logic**:
-  - فیلتر کردن `temporary_receipt` به فقط رسیدهای QC-approved و unconverted
-  - فیلتر کردن `purchase_request` بر اساس `company_id`
+  1. تنظیم `self.company_id` از parameter یا instance
+  2. تنظیم `document_code` و `document_date` به hidden و not required
+  3. تنظیم initial value برای `document_date` به امروز (اگر instance جدید باشد)
+  4. فیلتر کردن `temporary_receipt` queryset:
+     - فقط رسیدهای با `company_id` مطابق
+     - فقط رسیدهای QC-approved: `qc_approved_by__isnull=False`, `qc_approved_at__isnull=False`, `status=APPROVED`
+     - فقط رسیدهای unconverted: `is_converted=0`
+     - فقط رسیدهای enabled: `is_enabled=1`
+     - **مهم**: فقط رسیدهایی که حداقل یک خط دارند (با `Exists(ReceiptTemporaryLine.objects.filter(...))`)
+     - مرتب‌سازی: `-document_date`, `document_code`
+  5. فیلتر کردن `purchase_request` queryset:
+     - فقط درخواست‌های با `company_id` مطابق
+     - مرتب‌سازی: `-request_date`, `request_code`
+  6. تنظیم `label_from_instance` برای نمایش کد سند
 
 #### `clean_document_code(self) -> str`
 - **Returns**: کد سند (خالی اگر باید auto-generate شود)
@@ -105,12 +117,24 @@
 #### `save(self, commit: bool = True)`
 - **Returns**: instance ذخیره شده
 - **Logic**:
-  - تولید `document_code` با prefix "PRM" اگر خالی باشد
-  - تنظیم `requires_temporary_receipt` بر اساس انتخاب `temporary_receipt`
-  - اگر `temporary_receipt` انتخاب شده باشد:
-    - قفل کردن رسید موقت (`is_locked=1`)
-    - علامت‌گذاری به عنوان تبدیل شده (`is_converted=1`)
-    - تنظیم `converted_receipt` و `converted_receipt_code`
+  1. ذخیره instance با `super().save(commit=False)`
+  2. تولید `document_code` با prefix "PRM" اگر خالی باشد (با `generate_document_code()`)
+  3. تنظیم `document_date` به امروز اگر خالی باشد
+  4. تنظیم `requires_temporary_receipt`:
+     - اگر `temporary_receipt` انتخاب شده باشد: `requires_temporary_receipt = 1`
+     - در غیر این صورت: `requires_temporary_receipt = 0`
+  5. اگر `commit=True`:
+     - ذخیره instance
+     - **Handle temporary receipt conversion** (اگر `temporary_receipt` انتخاب شده باشد):
+       - دریافت temporary receipt
+       - به‌روزرسانی فیلدها با `update_fields`:
+         - `is_locked = 1` (اگر قفل نشده باشد)
+         - `is_converted = 1` (اگر تبدیل نشده باشد)
+         - `converted_receipt = instance` (اگر تنظیم نشده باشد)
+         - `converted_receipt_code = instance.document_code` (اگر تنظیم نشده باشد)
+         - `edited_by = instance.edited_by or instance.created_by or temp.edited_by`
+       - ذخیره temporary receipt با `update_fields`
+  6. بازگشت instance
 
 ---
 
@@ -333,7 +357,12 @@
 - **Logic**:
   - فراخوانی `super().clean_item()`
   - بررسی اینکه کالا نیاز به رسید موقت نداشته باشد (`requires_temporary_receipt != 1`)
-  - اگر نیاز به رسید موقت داشته باشد، خطا می‌دهد
+  - **استثناها** (اگر کالا نیاز به temporary receipt داشته باشد، اما یکی از شرایط زیر برقرار باشد، validation skip می‌شود):
+    1. اگر `_temp_receipt` attribute روی form set شده باشد (از view پاس داده شده)
+    2. اگر `self.instance.document` وجود داشته باشد و `temporary_receipt_id` داشته باشد
+    3. اگر `self.formset.instance` وجود داشته باشد و `temporary_receipt_id` داشته باشد
+    4. اگر `temporary_receipt` در formset.data یا self.data وجود داشته باشد
+  - اگر نیاز به رسید موقت داشته باشد و هیچ یک از استثناها برقرار نباشد، خطای validation نمایش داده می‌شود: "این کالا نیاز به رسید موقت دارد. لطفاً ابتدا رسید موقت ایجاد کنید و پس از تایید QC، رسید دائم را ثبت کنید."
 
 ---
 
@@ -453,4 +482,8 @@
    - جستجو در نام و کد کالا (`item_search`)
    - فیلترها و جستجو از طریق API endpoint `/inventory/api/filtered-items/` در template اعمال می‌شوند
    - فیلترها اختیاری هستند و می‌توانند به صورت ترکیبی استفاده شوند
+   - API فقط کالاهای enabled (`is_enabled=1`) را برمی‌گرداند
+   - Response شامل `total_count` برای نمایش تعداد کل کالاهای پیدا شده است
+   - مدیریت خودکار مقدار "None" در search input (تبدیل به empty string)
+   - Event handlers به صورت خودکار پس از DOM manipulation دوباره attach می‌شوند
 

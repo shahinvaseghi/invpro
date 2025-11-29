@@ -144,6 +144,19 @@ templates/inventory/
 {% endif %}
 ```
 
+#### Temporary Receipts (`receipt_temporary.html`)
+
+- **Stats Grid**: Uses `stats.total`, `stats.awaiting_qc`, `stats.qc_passed`, `stats.converted` (provided by `ReceiptTemporaryListView`).
+- **Filters**:
+  - `status_filter`: Values `draft`, `awaiting_qc`, `qc_passed`, `qc_failed`.
+  - `converted_filter`: `"0"` یا `"1"` برای وضعیت تبدیل.
+  - `search_query`: متن جستجو برای کد سند یا نام کالا.
+- **QC Badges**: چهار وضعیت نمایش داده می‌شود:
+  - `Draft` (badge-draft)
+  - `Awaiting QC` (badge-pending)
+  - `QC Approved` (badge-active)
+  - `Closed/Rejected` (badge-inactive)
+
 ---
 
 ### 2. Special Templates

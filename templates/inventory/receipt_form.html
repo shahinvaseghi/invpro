@@ -34,7 +34,7 @@
   {% endif %}
   {% endif %}
 
-  <form method="post" class="entity-form" id="receipt-form" novalidate>
+  <form method="post" class="entity-form" id="receipt-form" novalidate{% if document_is_locked %} onsubmit="return false;"{% endif %}>
     {% csrf_token %}
     {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
 
@@ -100,9 +100,11 @@
             {% trans "Add one or more items to this document. Each line represents a single item with its quantity and other details." %}
           </p>
         </div>
+        {% if not document_is_locked %}
         <button type="button" id="add-line-btn" class="btn btn-success" style="padding: 0.5rem 1rem;">
           <span style="font-size: 1.2rem; margin-right: 0.25rem;">+</span> {% trans "Add Line" %}
         </button>
+        {% endif %}
       </div>
       {% if lines_formset.non_form_errors %}
         <div class="alert alert-danger">
@@ -142,6 +144,7 @@
                 <div class="form-field">
                   <label>{{ line_form.item.label }}{% if line_form.item.field.required %}*{% endif %}</label>
                   <div class="item-select-wrapper">
+                    {% if not document_is_locked %}
                     <div class="item-filters">
                       <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
                         <option value="">{% trans "Type" %}</option>
@@ -166,6 +169,7 @@
                             value="{{ current_item_search }}"
                             style="flex: 2; min-width: 150px;">
                     </div>
+                    {% endif %}
                     {{ line_form.item }}
                   </div>
                   {% if line_form.item.errors %}
@@ -281,62 +285,7 @@
               </div>
               {% endif %}
 
-              {% if 'unit_price' in line_form.fields or 'unit_cost' in line_form.fields or 'unit_price_estimate' in line_form.fields %}
-              <div class="form-row">
-                {% if 'unit_price' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_price.label }}</label>
-                  {{ line_form.unit_price }}
-                  {% if line_form.unit_price.errors %}
-                    <span class="error">{{ line_form.unit_price.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'entered_price_unit' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.entered_price_unit.label }}{% if line_form.entered_price_unit.field.required %}*{% endif %}</label>
-                  {{ line_form.entered_price_unit }}
-                  {% if line_form.entered_price_unit.errors %}
-                    <span class="error">{{ line_form.entered_price_unit.errors.0 }}</span>
-                  {% endif %}
-                  {% if line_form.entered_price_unit.help_text %}
-                    <small class="form-text text-muted">{{ line_form.entered_price_unit.help_text }}</small>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'unit_cost' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_cost.label }}</label>
-                  {{ line_form.unit_cost }}
-                  {% if line_form.unit_cost.errors %}
-                    <span class="error">{{ line_form.unit_cost.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'unit_price_estimate' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_price_estimate.label }}</label>
-                  {{ line_form.unit_price_estimate }}
-                  {% if line_form.unit_price_estimate.errors %}
-                    <span class="error">{{ line_form.unit_price_estimate.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'currency' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.currency.label }}</label>
-                  {{ line_form.currency }}
-                  {% if line_form.currency.errors %}
-                    <span class="error">{{ line_form.currency.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-              </div>
-              {% endif %}
+              {# Price fields removed - moved to accounting module #}
 
               {% if 'expected_receipt_date' in line_form.fields %}
               <div class="form-row">
@@ -347,6 +296,94 @@
                     <span class="error">{{ line_form.expected_receipt_date.errors.0 }}</span>
                   {% endif %}
                 </div>
+              </div>
+              {% endif %}
+
+              {# Stocktaking fields: quantity_expected, quantity_counted, quantity_adjusted #}
+              {% if 'quantity_expected' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field">
+                  <label>{{ line_form.quantity_expected.label }}{% if line_form.quantity_expected.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_expected }}
+                  {% if line_form.quantity_expected.errors %}
+                    <span class="error">{{ line_form.quantity_expected.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% if 'quantity_counted' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.quantity_counted.label }}{% if line_form.quantity_counted.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_counted }}
+                  {% if line_form.quantity_counted.errors %}
+                    <span class="error">{{ line_form.quantity_counted.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'quantity_adjusted' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.quantity_adjusted.label }}{% if line_form.quantity_adjusted.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_adjusted }}
+                  {% if line_form.quantity_adjusted.errors %}
+                    <span class="error">{{ line_form.quantity_adjusted.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {# Stocktaking fields: valuation_method, unit_cost, total_cost #}
+              {% if 'valuation_method' in line_form.fields or 'unit_cost' in line_form.fields or 'total_cost' in line_form.fields %}
+              <div class="form-row">
+                {% if 'valuation_method' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.valuation_method.label }}</label>
+                  {{ line_form.valuation_method }}
+                  {% if line_form.valuation_method.errors %}
+                    <span class="error">{{ line_form.valuation_method.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'unit_cost' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit_cost.label }}</label>
+                  {{ line_form.unit_cost }}
+                  {% if line_form.unit_cost.errors %}
+                    <span class="error">{{ line_form.unit_cost.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'total_cost' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.total_cost.label }}</label>
+                  {{ line_form.total_cost }}
+                  {% if line_form.total_cost.errors %}
+                    <span class="error">{{ line_form.total_cost.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {# Stocktaking fields: reason_code, investigation_reference #}
+              {% if 'reason_code' in line_form.fields or 'investigation_reference' in line_form.fields %}
+              <div class="form-row">
+                {% if 'reason_code' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.reason_code.label }}</label>
+                  {{ line_form.reason_code }}
+                  {% if line_form.reason_code.errors %}
+                    <span class="error">{{ line_form.reason_code.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'investigation_reference' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.investigation_reference.label }}</label>
+                  {{ line_form.investigation_reference }}
+                  {% if line_form.investigation_reference.errors %}
+                    <span class="error">{{ line_form.investigation_reference.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
               </div>
               {% endif %}
 
@@ -471,6 +508,7 @@
                 <div class="form-field">
                   <label>{{ line_form.item.label }}{% if line_form.item.field.required %}*{% endif %}</label>
                   <div class="item-select-wrapper">
+                    {% if not document_is_locked %}
                     <div class="item-filters">
                       <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
                         <option value="">{% trans "Type" %}</option>
@@ -495,6 +533,7 @@
                             value="{{ current_item_search }}"
                             style="flex: 2; min-width: 150px;">
                     </div>
+                    {% endif %}
                     {{ line_form.item }}
                   </div>
                   {% if line_form.item.errors %}
@@ -546,62 +585,7 @@
               </div>
               {% endif %}
 
-              {% if 'unit_price' in line_form.fields or 'unit_cost' in line_form.fields or 'unit_price_estimate' in line_form.fields %}
-              <div class="form-row">
-                {% if 'unit_price' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_price.label }}</label>
-                  {{ line_form.unit_price }}
-                  {% if line_form.unit_price.errors %}
-                    <span class="error">{{ line_form.unit_price.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'entered_price_unit' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.entered_price_unit.label }}{% if line_form.entered_price_unit.field.required %}*{% endif %}</label>
-                  {{ line_form.entered_price_unit }}
-                  {% if line_form.entered_price_unit.errors %}
-                    <span class="error">{{ line_form.entered_price_unit.errors.0 }}</span>
-                  {% endif %}
-                  {% if line_form.entered_price_unit.help_text %}
-                    <small class="form-text text-muted">{{ line_form.entered_price_unit.help_text }}</small>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'unit_cost' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_cost.label }}</label>
-                  {{ line_form.unit_cost }}
-                  {% if line_form.unit_cost.errors %}
-                    <span class="error">{{ line_form.unit_cost.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'unit_price_estimate' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_price_estimate.label }}</label>
-                  {{ line_form.unit_price_estimate }}
-                  {% if line_form.unit_price_estimate.errors %}
-                    <span class="error">{{ line_form.unit_price_estimate.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'currency' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.currency.label }}</label>
-                  {{ line_form.currency }}
-                  {% if line_form.currency.errors %}
-                    <span class="error">{{ line_form.currency.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-              </div>
-              {% endif %}
+              {# Price fields removed - moved to accounting module #}
 
               {% if 'expected_receipt_date' in line_form.fields %}
               <div class="form-row">
@@ -612,6 +596,94 @@
                     <span class="error">{{ line_form.expected_receipt_date.errors.0 }}</span>
                   {% endif %}
                 </div>
+              </div>
+              {% endif %}
+
+              {# Stocktaking fields: quantity_expected, quantity_counted, quantity_adjusted #}
+              {% if 'quantity_expected' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field">
+                  <label>{{ line_form.quantity_expected.label }}{% if line_form.quantity_expected.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_expected }}
+                  {% if line_form.quantity_expected.errors %}
+                    <span class="error">{{ line_form.quantity_expected.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% if 'quantity_counted' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.quantity_counted.label }}{% if line_form.quantity_counted.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_counted }}
+                  {% if line_form.quantity_counted.errors %}
+                    <span class="error">{{ line_form.quantity_counted.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'quantity_adjusted' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.quantity_adjusted.label }}{% if line_form.quantity_adjusted.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_adjusted }}
+                  {% if line_form.quantity_adjusted.errors %}
+                    <span class="error">{{ line_form.quantity_adjusted.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {# Stocktaking fields: valuation_method, unit_cost, total_cost #}
+              {% if 'valuation_method' in line_form.fields or 'unit_cost' in line_form.fields or 'total_cost' in line_form.fields %}
+              <div class="form-row">
+                {% if 'valuation_method' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.valuation_method.label }}</label>
+                  {{ line_form.valuation_method }}
+                  {% if line_form.valuation_method.errors %}
+                    <span class="error">{{ line_form.valuation_method.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'unit_cost' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit_cost.label }}</label>
+                  {{ line_form.unit_cost }}
+                  {% if line_form.unit_cost.errors %}
+                    <span class="error">{{ line_form.unit_cost.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'total_cost' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.total_cost.label }}</label>
+                  {{ line_form.total_cost }}
+                  {% if line_form.total_cost.errors %}
+                    <span class="error">{{ line_form.total_cost.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {# Stocktaking fields: reason_code, investigation_reference #}
+              {% if 'reason_code' in line_form.fields or 'investigation_reference' in line_form.fields %}
+              <div class="form-row">
+                {% if 'reason_code' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.reason_code.label }}</label>
+                  {{ line_form.reason_code }}
+                  {% if line_form.reason_code.errors %}
+                    <span class="error">{{ line_form.reason_code.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'investigation_reference' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.investigation_reference.label }}</label>
+                  {{ line_form.investigation_reference }}
+                  {% if line_form.investigation_reference.errors %}
+                    <span class="error">{{ line_form.investigation_reference.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
               </div>
               {% endif %}
 
@@ -733,6 +805,7 @@
                 <div class="form-field">
                   <label>{{ line_form.item.label }}{% if line_form.item.field.required %}*{% endif %}</label>
                   <div class="item-select-wrapper">
+                    {% if not document_is_locked %}
                     <div class="item-filters">
                       <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
                         <option value="">{% trans "Type" %}</option>
@@ -757,6 +830,7 @@
                             value="{{ current_item_search }}"
                             style="flex: 2; min-width: 150px;">
                     </div>
+                    {% endif %}
                     {{ line_form.item }}
                   </div>
                   {% if line_form.item.errors %}
@@ -808,62 +882,7 @@
               </div>
               {% endif %}
 
-              {% if 'unit_price' in line_form.fields or 'unit_cost' in line_form.fields or 'unit_price_estimate' in line_form.fields %}
-              <div class="form-row">
-                {% if 'unit_price' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_price.label }}</label>
-                  {{ line_form.unit_price }}
-                  {% if line_form.unit_price.errors %}
-                    <span class="error">{{ line_form.unit_price.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'entered_price_unit' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.entered_price_unit.label }}{% if line_form.entered_price_unit.field.required %}*{% endif %}</label>
-                  {{ line_form.entered_price_unit }}
-                  {% if line_form.entered_price_unit.errors %}
-                    <span class="error">{{ line_form.entered_price_unit.errors.0 }}</span>
-                  {% endif %}
-                  {% if line_form.entered_price_unit.help_text %}
-                    <small class="form-text text-muted">{{ line_form.entered_price_unit.help_text }}</small>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'unit_cost' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_cost.label }}</label>
-                  {{ line_form.unit_cost }}
-                  {% if line_form.unit_cost.errors %}
-                    <span class="error">{{ line_form.unit_cost.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'unit_price_estimate' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.unit_price_estimate.label }}</label>
-                  {{ line_form.unit_price_estimate }}
-                  {% if line_form.unit_price_estimate.errors %}
-                    <span class="error">{{ line_form.unit_price_estimate.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-
-                {% if 'currency' in line_form.fields %}
-                <div class="form-field">
-                  <label>{{ line_form.currency.label }}</label>
-                  {{ line_form.currency }}
-                  {% if line_form.currency.errors %}
-                    <span class="error">{{ line_form.currency.errors.0 }}</span>
-                  {% endif %}
-                </div>
-                {% endif %}
-              </div>
-              {% endif %}
+              {# Price fields removed - moved to accounting module #}
 
               {% if 'expected_receipt_date' in line_form.fields %}
               <div class="form-row">
@@ -874,6 +893,94 @@
                     <span class="error">{{ line_form.expected_receipt_date.errors.0 }}</span>
                   {% endif %}
                 </div>
+              </div>
+              {% endif %}
+
+              {# Stocktaking fields: quantity_expected, quantity_counted, quantity_adjusted #}
+              {% if 'quantity_expected' in line_form.fields %}
+              <div class="form-row">
+                <div class="form-field">
+                  <label>{{ line_form.quantity_expected.label }}{% if line_form.quantity_expected.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_expected }}
+                  {% if line_form.quantity_expected.errors %}
+                    <span class="error">{{ line_form.quantity_expected.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% if 'quantity_counted' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.quantity_counted.label }}{% if line_form.quantity_counted.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_counted }}
+                  {% if line_form.quantity_counted.errors %}
+                    <span class="error">{{ line_form.quantity_counted.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'quantity_adjusted' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.quantity_adjusted.label }}{% if line_form.quantity_adjusted.field.required %}*{% endif %}</label>
+                  {{ line_form.quantity_adjusted }}
+                  {% if line_form.quantity_adjusted.errors %}
+                    <span class="error">{{ line_form.quantity_adjusted.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {# Stocktaking fields: valuation_method, unit_cost, total_cost #}
+              {% if 'valuation_method' in line_form.fields or 'unit_cost' in line_form.fields or 'total_cost' in line_form.fields %}
+              <div class="form-row">
+                {% if 'valuation_method' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.valuation_method.label }}</label>
+                  {{ line_form.valuation_method }}
+                  {% if line_form.valuation_method.errors %}
+                    <span class="error">{{ line_form.valuation_method.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'unit_cost' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.unit_cost.label }}</label>
+                  {{ line_form.unit_cost }}
+                  {% if line_form.unit_cost.errors %}
+                    <span class="error">{{ line_form.unit_cost.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'total_cost' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.total_cost.label }}</label>
+                  {{ line_form.total_cost }}
+                  {% if line_form.total_cost.errors %}
+                    <span class="error">{{ line_form.total_cost.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {# Stocktaking fields: reason_code, investigation_reference #}
+              {% if 'reason_code' in line_form.fields or 'investigation_reference' in line_form.fields %}
+              <div class="form-row">
+                {% if 'reason_code' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.reason_code.label }}</label>
+                  {{ line_form.reason_code }}
+                  {% if line_form.reason_code.errors %}
+                    <span class="error">{{ line_form.reason_code.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if 'investigation_reference' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.investigation_reference.label }}</label>
+                  {{ line_form.investigation_reference }}
+                  {% if line_form.investigation_reference.errors %}
+                    <span class="error">{{ line_form.investigation_reference.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
               </div>
               {% endif %}
 
@@ -982,15 +1089,46 @@
     {% endif %}
 
     <div class="form-actions">
-      {% if not document_is_locked %}
+      {% if document_is_locked %}
+      <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back" %}</a>
+      {% else %}
       <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-      {% endif %}
       <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+      {% endif %}
     </div>
   </form>
 </div>
 
 <script>
+// Disable all form fields if document is locked
+/* eslint-disable */
+{% if document_is_locked %}
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('receipt-form');
+  if (form) {
+    // Disable all input, select, and textarea fields
+    const fields = form.querySelectorAll('input, select, textarea, button[type="button"]');
+    fields.forEach(function(field) {
+      if (field.type !== 'hidden' && field.id !== 'add-line-btn') {
+        field.disabled = true;
+      }
+    });
+    // Hide delete checkboxes
+    const deleteCheckboxes = form.querySelectorAll('input[type="checkbox"][name*="DELETE"]');
+    deleteCheckboxes.forEach(function(checkbox) {
+      checkbox.disabled = true;
+      checkbox.closest('.line-delete')?.style.setProperty('display', 'none', 'important');
+    });
+    // Hide add line button
+    const addLineBtn = document.getElementById('add-line-btn');
+    if (addLineBtn) {
+      addLineBtn.style.display = 'none';
+    }
+  }
+});
+{% endif %}
+/* eslint-enable */
+
 // Direct test - attach to button IMMEDIATELY when script loads
 document.addEventListener('DOMContentLoaded', function() {
   const btn = document.querySelector('button[type="submit"]');
@@ -1284,9 +1422,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 /* Hide any search inputs that are directly before or after filter selects */
-.item-filters .select-search-input {
-  /* Will be handled by JavaScript, but CSS as backup for immediate hiding */
-}
+/* Note: This rule is intentionally empty - JavaScript handles the hiding */
 
 /* Hide search inputs that are siblings of filter selects (using adjacent sibling selector) */
 .item-filters .filter-type-select + .select-search-input,
@@ -1514,14 +1650,90 @@ document.addEventListener('submit', function(e) {
 document.addEventListener('submit', function(e) {
 }, false); // Bubble phase
 
+console.log('[SCRIPT] Script file loaded, waiting for DOMContentLoaded...');
+
+// Auto-calculate quantity_adjusted for stocktaking forms (defined at global scope for access from addLineBtn handler)
+function calculateQuantityAdjusted(lineForm) {
+  const quantityExpectedInput = lineForm.querySelector('input[name*="-quantity_expected"]');
+  const quantityCountedInput = lineForm.querySelector('input[name*="-quantity_counted"]');
+  const quantityAdjustedInput = lineForm.querySelector('input[name*="-quantity_adjusted"]');
+  
+  if (!quantityExpectedInput || !quantityCountedInput || !quantityAdjustedInput) {
+    return; // Not a stocktaking form
+  }
+  
+  const expected = parseFloat(quantityExpectedInput.value) || 0;
+  const counted = parseFloat(quantityCountedInput.value) || 0;
+  
+  // Check if this is deficit or surplus by checking the form title or URL
+  const isDeficit = window.location.pathname.includes('deficit');
+  const adjusted = isDeficit ? (expected - counted) : (counted - expected);
+  
+  // Only set if adjusted is non-negative (validation will catch negative values)
+  if (adjusted >= 0) {
+    quantityAdjustedInput.value = adjusted.toFixed(6);
+  } else {
+    quantityAdjustedInput.value = '';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('[DOMContentLoaded] ===== DOMContentLoaded event fired =====');
   
   const formsetContainer = document.getElementById('lines-formset');
+  console.log('[DOMContentLoaded] formsetContainer:', formsetContainer);
   const totalFormsInput = document.querySelector('input[name$="-TOTAL_FORMS"]');
+  console.log('[DOMContentLoaded] totalFormsInput:', totalFormsInput);
   const addLineBtn = document.getElementById('add-line-btn');
+  console.log('[DOMContentLoaded] addLineBtn:', addLineBtn);
   const unitChoicesUrl = '{% url "inventory:item_allowed_units" %}';
   const warehouseChoicesUrl = '{% url "inventory:item_allowed_warehouses" %}';
   const temporaryReceiptDataUrl = '{% url "inventory:temporary_receipt_data" %}';
+  console.log('[DOMContentLoaded] URLs - unitChoicesUrl:', unitChoicesUrl, 'warehouseChoicesUrl:', warehouseChoicesUrl);
+  
+  // Initialize: Disable all unit and warehouse selects that don't have an item selected
+  /* eslint-disable */
+  {% if not document_is_locked %}
+  console.log('[DOMContentLoaded] Initializing unit and warehouse selects...');
+  document.querySelectorAll('.line-form').forEach(function(lineForm) {
+    const itemSelect = lineForm.querySelector('select[name*="-item"]');
+    const unitSelect = lineForm.querySelector('select[name*="-unit"]');
+    const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+    
+    if (itemSelect && unitSelect) {
+      if (!itemSelect.value || itemSelect.value === '') {
+        unitSelect.disabled = true;
+        const placeholder = unitSelect.querySelector('option[value=""]');
+        if (!placeholder || (placeholder && placeholder.textContent.indexOf('Select Item') === -1)) {
+          unitSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+        }
+      }
+    }
+    
+    if (itemSelect && warehouseSelect) {
+      if (!itemSelect.value || itemSelect.value === '') {
+        warehouseSelect.disabled = true;
+        const placeholder = warehouseSelect.querySelector('option[value=""]');
+        if (!placeholder || (placeholder && placeholder.textContent.indexOf('Select Item') === -1)) {
+          warehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+        }
+      } else {
+        // Item is already selected (edit mode), update warehouses
+        console.log('[DOMContentLoaded] Item already selected, updating warehouse choices for item:', itemSelect.value);
+        // Save current warehouse value before updating
+        const currentWarehouseValue = warehouseSelect.value || warehouseSelect.querySelector('option[selected]')?.value;
+        console.log('[DOMContentLoaded] Current warehouse value before update:', currentWarehouseValue);
+        // Store it in a data attribute so updateWarehouseChoices can use it
+        if (currentWarehouseValue) {
+          warehouseSelect.setAttribute('data-initial-value', currentWarehouseValue);
+        }
+        updateWarehouseChoices(itemSelect, warehouseSelect);
+      }
+    }
+  });
+  console.log('[DOMContentLoaded] Unit and warehouse selects initialized');
+  {% endif %}
+  /* eslint-enable */
   
   // Save selected serials to localStorage before form submission (for error recovery)
   const form = document.getElementById('receipt-form');
@@ -1542,13 +1754,44 @@ document.addEventListener('DOMContentLoaded', function() {
       const line0DestChoice = document.querySelector('select[name*="lines-0-destination_type_choice"]');
       const line0DestType = document.querySelector('select[name*="lines-0-destination_type"]');
       
+      // Check if this is a stocktaking form (has quantity_expected field)
+      const line0QuantityExpected = document.querySelector('input[name="lines-0-quantity_expected"]');
+      const line0QuantityCounted = document.querySelector('input[name="lines-0-quantity_counted"]');
+      const line0QuantityAdjusted = document.querySelector('input[name="lines-0-quantity_adjusted"]');
+      const isStocktakingForm = !!line0QuantityExpected;
       
       // Check for any empty required fields
       let missingFields = [];
       if (!line0Item || !line0Item.value) missingFields.push('Item');
       if (!line0Warehouse || !line0Warehouse.value) missingFields.push('Warehouse');
       if (!line0Unit || !line0Unit.value) missingFields.push('Unit');
-      if (!line0Quantity || !line0Quantity.value) missingFields.push('Quantity');
+      
+      if (isStocktakingForm) {
+        // For stocktaking forms, check quantity_expected, quantity_counted, and quantity_adjusted
+        if (!line0QuantityExpected || !line0QuantityExpected.value) missingFields.push('Quantity Expected');
+        if (!line0QuantityCounted || !line0QuantityCounted.value) missingFields.push('Quantity Counted');
+        // quantity_adjusted is auto-calculated, but we should ensure it has a value
+        if (line0QuantityAdjusted && (!line0QuantityAdjusted.value || line0QuantityAdjusted.value === '')) {
+          // Try to calculate it if expected and counted are available
+          if (line0QuantityExpected && line0QuantityExpected.value && line0QuantityCounted && line0QuantityCounted.value) {
+            const expected = parseFloat(line0QuantityExpected.value) || 0;
+            const counted = parseFloat(line0QuantityCounted.value) || 0;
+            // Check if this is deficit or surplus by checking the form title or URL
+            const isDeficit = window.location.pathname.includes('deficit');
+            const adjusted = isDeficit ? (expected - counted) : (counted - expected);
+            if (adjusted >= 0) {
+              line0QuantityAdjusted.value = adjusted;
+            } else {
+              missingFields.push('Quantity Adjusted (calculated value is negative)');
+            }
+          } else {
+            missingFields.push('Quantity Adjusted');
+          }
+        }
+      } else {
+        // For regular forms, check quantity
+        if (!line0Quantity || !line0Quantity.value) missingFields.push('Quantity');
+      }
       
       // Only check destination_type_choice for Consumption Issues (it has destination_type_choice field)
       // For Permanent/Consignment Issues, destination_type is optional
@@ -1885,30 +2128,381 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
+  function resetLineFormFields(lineForm, preserveItem) {
+    if (!lineForm) return;
+    lineForm.classList.remove('deleted');
+    lineForm.querySelectorAll('input, textarea').forEach(function(input) {
+      if (input.type === 'checkbox') {
+        input.checked = false;
+      } else if (input.type !== 'hidden') {
+        input.value = '';
+      } else if (input.name && input.name.endsWith('-id')) {
+        input.value = '';
+      }
+    });
+    lineForm.querySelectorAll('select').forEach(function(select) {
+      // Don't reset item select if preserveItem is true
+      if (preserveItem && select.name && select.name.includes('-item')) {
+        return;
+      }
+      select.selectedIndex = 0;
+    });
+  }
+  
+  function updateLineFormIndex(lineForm, index) {
+    if (!lineForm) return;
+    lineForm.setAttribute('data-form-index', index);
+    lineForm.querySelectorAll('[name]').forEach(function(el) {
+      if (el.name) {
+        el.name = el.name.replace(/lines-(\d+)-/g, `lines-${index}-`);
+      }
+    });
+    lineForm.querySelectorAll('[id]').forEach(function(el) {
+      if (el.id) {
+        el.id = el.id.replace(/lines-(\d+)-/g, `lines-${index}-`);
+      }
+    });
+    lineForm.querySelectorAll('label[for]').forEach(function(label) {
+      if (label.htmlFor) {
+        label.htmlFor = label.htmlFor.replace(/lines-(\d+)-/g, `lines-${index}-`);
+      }
+    });
+    const headerTitle = lineForm.querySelector('.line-header h4');
+    if (headerTitle) {
+      headerTitle.textContent = '{% trans "Line" %} ' + (index + 1);
+    }
+  }
+  
+  function setSelectValue(select, value, label) {
+    if (!select) return;
+    if (value === undefined || value === null || value === '') {
+      select.value = '';
+      return;
+    }
+    let option = Array.from(select.options).find(opt => opt.value == value);
+    if (!option) {
+      option = document.createElement('option');
+      option.value = value;
+      option.textContent = label || value;
+      select.appendChild(option);
+    }
+    select.value = value;
+  }
+  
+  function populateLineFormFields(lineForm, lineData) {
+    if (!lineForm || !lineData) return;
+    const itemSelect = lineForm.querySelector('select[name*="-item"]');
+    const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+    const unitSelect = lineForm.querySelector('select[name*="-unit"]');
+    const quantityInput = lineForm.querySelector('input[name*="-quantity"]');
+    const supplierSelect = lineForm.querySelector('select[name*="-supplier"]');
+    
+    // First, load item options if needed, then set the item
+    if (itemSelect && lineData.item_id) {
+      const itemLabel = lineData.item_name && lineData.item_code
+        ? `${lineData.item_name} (${lineData.item_code})`
+        : (lineData.item_name || lineData.item_code || lineData.item_id);
+      
+      // Set the item value (setSelectValue will add it to options if not exists)
+      setSelectValue(itemSelect, lineData.item_id, itemLabel);
+      
+      // Load units and warehouses
+      loadUnitsAndWarehousesForItem(lineForm, lineData);
+    } else {
+      // If no item, set warehouse and unit directly
+      if (warehouseSelect && lineData.warehouse_id) {
+        setSelectValue(warehouseSelect, lineData.warehouse_id, lineData.warehouse_name || lineData.warehouse_code || lineData.warehouse_id);
+      }
+      
+      if (unitSelect && (lineData.entered_unit || lineData.unit)) {
+        const unitValue = lineData.entered_unit || lineData.unit;
+        setSelectValue(unitSelect, unitValue, unitValue);
+      }
+    }
+    
+    if (quantityInput) {
+      quantityInput.value = lineData.entered_quantity || lineData.quantity || '';
+    }
+    
+    if (supplierSelect && lineData.supplier_id) {
+      setSelectValue(supplierSelect, lineData.supplier_id, lineData.supplier_name || lineData.supplier_code || lineData.supplier_id);
+    }
+  }
+  
+  function loadUnitsAndWarehousesForItem(lineForm, lineData) {
+    if (!lineForm || !lineData || !lineData.item_id) return;
+    
+    const itemSelect = lineForm.querySelector('select[name*="-item"]');
+    const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+    const unitSelect = lineForm.querySelector('select[name*="-unit"]');
+    
+    const promises = [];
+    
+    if (unitSelect) {
+      promises.push(
+        fetch(unitChoicesUrl + '?item_id=' + lineData.item_id)
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              console.error('Error fetching units:', data.error);
+              return;
+            }
+            unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
+            if (data.units && data.units.length > 0) {
+              data.units.forEach(function(unit) {
+                const option = document.createElement('option');
+                option.value = unit.value;
+                option.textContent = unit.label;
+                unitSelect.appendChild(option);
+              });
+            }
+            // Set the unit value after loading
+            const unitValue = lineData.entered_unit || lineData.unit;
+            if (unitValue) {
+              setSelectValue(unitSelect, unitValue, unitValue);
+            }
+          })
+          .catch(error => {
+            console.error('Error loading units:', error);
+          })
+      );
+    }
+    
+    if (warehouseSelect) {
+      promises.push(
+        fetch(warehouseChoicesUrl + '?item_id=' + lineData.item_id)
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              console.error('Error fetching warehouses:', data.error);
+              return;
+            }
+            warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
+            if (data.warehouses && data.warehouses.length > 0) {
+              data.warehouses.forEach(function(warehouse) {
+                const option = document.createElement('option');
+                option.value = warehouse.value;
+                option.textContent = warehouse.label;
+                warehouseSelect.appendChild(option);
+              });
+            }
+            // Set the warehouse value after loading
+            if (lineData.warehouse_id) {
+              setSelectValue(warehouseSelect, lineData.warehouse_id, lineData.warehouse_name || lineData.warehouse_code || lineData.warehouse_id);
+            }
+          })
+          .catch(error => {
+            console.error('Error loading warehouses:', error);
+          })
+      );
+    }
+    
+    // Wait for both to complete
+    Promise.all(promises).then(() => {
+      // Trigger change event after everything is loaded
+      if (itemSelect) {
+        const changeEvent = new Event('change', { bubbles: true });
+        itemSelect.dispatchEvent(changeEvent);
+      }
+    });
+  }
+  
+  function rebuildLineFormsFromTemporaryReceipt(linesData) {
+    if (!lineFormTemplate || !formsetContainer || !totalFormsInput) return;
+    if (!Array.isArray(linesData) || !linesData.length) return;
+    
+    formsetContainer.innerHTML = '';
+    
+    linesData.forEach(function(lineData, index) {
+      const newForm = lineFormTemplate.cloneNode(true);
+      resetLineFormFields(newForm);
+      updateLineFormIndex(newForm, index);
+      populateLineFormFields(newForm, lineData);
+      formsetContainer.appendChild(newForm);
+    });
+    
+    totalFormsInput.value = linesData.length;
+    initializeLineFormFilters();
+    attachItemChangeHandlersToAllLines();
+    removeSearchBoxesFromFilterSelects();
+    removeSearchBoxesFromItemSelects();
+  }
+  
+  function setupItemSelectHandlers(lineForm) {
+    console.log('[setupItemSelectHandlers] Called for lineForm:', lineForm);
+    if (!lineForm) {
+      console.log('[setupItemSelectHandlers] No lineForm provided');
+      return;
+    }
+    const itemSelect = lineForm.querySelector('select[name*="-item"]');
+    if (!itemSelect) {
+      console.log('[setupItemSelectHandlers] No itemSelect found');
+      return;
+    }
+    const unitSelect = lineForm.querySelector('select[name*="-unit"]');
+    const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+    
+    console.log('[setupItemSelectHandlers] Found selects:', {
+      itemSelect: itemSelect ? itemSelect.name : 'none',
+      unitSelect: unitSelect ? unitSelect.name : 'none',
+      warehouseSelect: warehouseSelect ? warehouseSelect.name : 'none',
+      itemValue: itemSelect.value
+    });
+    
+    // Check if handlers are already attached (to avoid duplicates)
+    // But allow re-attachment if the select element was replaced (e.g., by filterItemsForRow)
+    if (itemSelect.dataset.handlersAttached === 'true') {
+      console.log('[setupItemSelectHandlers] Handlers already attached, removing flag for re-attachment');
+      // Remove the flag and re-attach to ensure handlers work after DOM manipulation
+      delete itemSelect.dataset.handlersAttached;
+    }
+    
+    // Attach event handlers directly to itemSelect
+    // We'll re-attach after DOM manipulation if needed
+    if (unitSelect) {
+      // Always attach handler, even if item is not selected yet
+      // Create new handler
+      const unitChangeHandler = function(e) {
+        console.log('[setupItemSelectHandlers] Item changed event fired (direct), value:', this.value, 'event:', e);
+        // Get fresh reference to unitSelect in case DOM changed
+        const freshUnitSelect = lineForm.querySelector('select[name*="-unit"]');
+        if (freshUnitSelect) {
+          updateUnitChoices(this, freshUnitSelect);
+        } else {
+          console.error('[setupItemSelectHandlers] Could not find unit select after item change');
+        }
+      };
+      // Remove old handler if exists (by cloning the node to remove all listeners)
+      if (itemSelect.dataset.handlersAttached === 'true') {
+        // Clone node to remove all event listeners
+        const newItemSelect = itemSelect.cloneNode(true);
+        itemSelect.parentNode.replaceChild(newItemSelect, itemSelect);
+        // Update reference
+        const updatedItemSelect = lineForm.querySelector('select[name*="-item"]');
+        if (updatedItemSelect) {
+          updatedItemSelect.addEventListener('change', unitChangeHandler);
+          updatedItemSelect.dataset.handlersAttached = 'true';
+        }
+      } else {
+        itemSelect.addEventListener('change', unitChangeHandler);
+        itemSelect.dataset.handlersAttached = 'true';
+      }
+      console.log('[setupItemSelectHandlers] Unit change handler attached (direct) to:', itemSelect.name);
+      
+      // If item is already selected, update units immediately
+      if (itemSelect.value) {
+        console.log('[setupItemSelectHandlers] Item has value, updating unit choices immediately:', itemSelect.value);
+        updateUnitChoices(itemSelect, unitSelect);
+      } else {
+        // If no item selected, disable unit select
+        unitSelect.disabled = true;
+        const placeholder = unitSelect.querySelector('option[value=""]');
+        if (!placeholder || placeholder.textContent.indexOf('Select Item') === -1) {
+          unitSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+        }
+      }
+    }
+    
+    if (warehouseSelect) {
+      // Always attach handler, even if item is not selected yet
+      // Create new handler
+      const warehouseChangeHandler = function(e) {
+        console.log('[setupItemSelectHandlers] Item changed event fired (direct), value:', this.value, 'event:', e);
+        // Get fresh reference to warehouseSelect in case DOM changed
+        const freshWarehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+        if (freshWarehouseSelect) {
+          updateWarehouseChoices(this, freshWarehouseSelect);
+        } else {
+          console.error('[setupItemSelectHandlers] Could not find warehouse select after item change');
+        }
+      };
+      // Use the same itemSelect (already cloned above if needed)
+      const currentItemSelect = lineForm.querySelector('select[name*="-item"]');
+      if (currentItemSelect) {
+        currentItemSelect.addEventListener('change', warehouseChangeHandler);
+      }
+      console.log('[setupItemSelectHandlers] Warehouse change handler attached (direct) to:', itemSelect.name);
+      
+      // If item is already selected, update warehouses immediately
+      if (itemSelect.value) {
+        console.log('[setupItemSelectHandlers] Item has value, updating warehouse choices immediately:', itemSelect.value);
+        updateWarehouseChoices(itemSelect, warehouseSelect);
+      } else {
+        // If no item selected, disable warehouse select
+        warehouseSelect.disabled = true;
+        const placeholder = warehouseSelect.querySelector('option[value=""]');
+        if (!placeholder || placeholder.textContent.indexOf('Select Item') === -1) {
+          warehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+        }
+      }
+    }
+    
+    // Mark as attached
+    itemSelect.dataset.handlersAttached = 'true';
+    console.log('[setupItemSelectHandlers] Handlers attached successfully');
+  }
+  
+  function attachItemChangeHandlersToAllLines() {
+    console.log('[attachItemChangeHandlersToAllLines] Called');
+    const lineForms = document.querySelectorAll('.line-form');
+    console.log('[attachItemChangeHandlersToAllLines] Found', lineForms.length, 'line forms');
+    lineForms.forEach(function(lineForm, index) {
+      console.log('[attachItemChangeHandlersToAllLines] Setting up handlers for line form', index);
+      setupItemSelectHandlers(lineForm);
+    });
+    console.log('[attachItemChangeHandlersToAllLines] Completed');
+  }
+  
+  function getLineForms() {
+    if (!formsetContainer) return [];
+    return Array.from(formsetContainer.querySelectorAll('.line-form'));
+  }
+  
+  function ensureLineFormCount(count) {
+    if (!formsetContainer || !totalFormsInput || !addLineBtn) return [];
+    let forms = getLineForms();
+    while (forms.length < count) {
+      addLineBtn.click();
+      forms = getLineForms();
+    }
+    return forms;
+  }
   // Update unit choices when item changes
   function updateUnitChoices(itemSelect, unitSelect) {
+    
     const itemId = itemSelect.value;
     if (!itemId) {
-      unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
+      console.log('[updateUnitChoices] No itemId, clearing unit select');
+      unitSelect.disabled = true;
+      unitSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+      console.log('[updateUnitChoices] ===== END (no itemId) =====');
       return;
     }
     
+    // Enable unit select when item is selected
+    unitSelect.disabled = false;
+    
     // Show loading state
     unitSelect.disabled = true;
+    const currentValue = unitSelect.value;
     unitSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
     
     const url = unitChoicesUrl + '?item_id=' + itemId;
     
+    const fetchStartTime = Date.now();
     fetch(url)
       .then(response => {
+        const fetchDuration = Date.now() - fetchStartTime;
+        
         if (!response.ok) {
+          console.error('[updateUnitChoices] Response not OK, status:', response.status);
           throw new Error('Network response was not ok: ' + response.status);
         }
         return response.json();
       })
       .then(data => {
         if (data.error) {
-          console.error('Error fetching units:', data.error);
+          console.error('[updateUnitChoices] Error fetching units:', data.error);
           unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
           unitSelect.disabled = false;
           alert('{% trans "Error loading units" %}: ' + data.error);
@@ -1919,8 +2513,10 @@ document.addEventListener('DOMContentLoaded', function() {
         unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
         
         if (data.units && data.units.length > 0) {
+          console.log('[updateUnitChoices] Adding', data.units.length, 'units to select');
           let hasSelectedValue = false;
-          data.units.forEach(function(unit) {
+          data.units.forEach(function(unit, index) {
+            console.log(`[updateUnitChoices]   Unit ${index + 1}: value="${unit.value}", label="${unit.label}"`);
             const option = document.createElement('option');
             option.value = unit.value;
             option.textContent = unit.label;
@@ -1969,39 +2565,64 @@ document.addEventListener('DOMContentLoaded', function() {
         unitSelect.dispatchEvent(changeEvent);
       })
       .catch(error => {
-        console.error('Error:', error);
-        unitSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
-        unitSelect.disabled = false;
+        console.error('[updateUnitChoices] Error:', error.message);
+        unitSelect.disabled = true;
+        unitSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
         alert('{% trans "Error loading units. Please try again." %}: ' + error.message);
       });
   }
   
   // Update warehouse choices when item changes
   function updateWarehouseChoices(itemSelect, warehouseSelect) {
+    
     const itemId = itemSelect.value;
     if (!itemId) {
-      // If no item selected, show all warehouses (or clear)
-      warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
+      console.log('[updateWarehouseChoices] No itemId, clearing warehouse select');
+      // If no item selected, disable and clear
+      warehouseSelect.disabled = true;
+      warehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+      console.log('[updateWarehouseChoices] ===== END (no itemId) =====');
       return;
     }
     
+    // Enable warehouse select when item is selected
+    warehouseSelect.disabled = false;
+    
     // Show loading state
     warehouseSelect.disabled = true;
-    const currentValue = warehouseSelect.value;
+    
+    // Get current value from multiple sources
+    let currentValue = warehouseSelect.value;
+    if (!currentValue) {
+      // Try to find selected option
+      const selectedOption = warehouseSelect.querySelector('option[selected]');
+      if (selectedOption) {
+        currentValue = selectedOption.value;
+      }
+    }
+    // Also check if there's a value attribute on the select itself (from Django form)
+    if (!currentValue && warehouseSelect.hasAttribute('data-initial-value')) {
+      currentValue = warehouseSelect.getAttribute('data-initial-value');
+    }
+    
     warehouseSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
     
     const url = warehouseChoicesUrl + '?item_id=' + itemId;
     
+    const fetchStartTime = Date.now();
     fetch(url)
       .then(response => {
+        const fetchDuration = Date.now() - fetchStartTime;
+        
         if (!response.ok) {
+          console.error('[updateWarehouseChoices] Response not OK, status:', response.status);
           throw new Error('Network response was not ok: ' + response.status);
         }
         return response.json();
       })
       .then(data => {
         if (data.error) {
-          console.error('Error fetching warehouses:', data.error);
+          console.error('[updateWarehouseChoices] Error fetching warehouses:', data.error);
           warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
           warehouseSelect.disabled = false;
           alert('{% trans "Error loading warehouses" %}: ' + data.error);
@@ -2011,30 +2632,52 @@ document.addEventListener('DOMContentLoaded', function() {
         warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
         
         if (data.warehouses && data.warehouses.length > 0) {
-          data.warehouses.forEach(function(warehouse) {
+          data.warehouses.forEach(function(warehouse, index) {
             const option = document.createElement('option');
             option.value = warehouse.value;
             option.textContent = warehouse.label;
-            if (warehouse.value === currentValue) {
+            if (warehouse.value == currentValue || warehouse.value === currentValue) {
               option.selected = true;
             }
             warehouseSelect.appendChild(option);
           });
+          
+          // After adding all options, explicitly set the value if currentValue exists
+          if (currentValue) {
+            const matchingOption = Array.from(warehouseSelect.options).find(opt => opt.value == currentValue || opt.value === currentValue);
+            if (matchingOption) {
+              warehouseSelect.value = matchingOption.value;
+            } else {
+            }
+          } else {
+            // If no currentValue, check if there's a data-initial-value attribute
+            const initialValue = warehouseSelect.getAttribute('data-initial-value');
+            if (initialValue) {
+              const matchingOption = Array.from(warehouseSelect.options).find(opt => opt.value == initialValue || opt.value === initialValue);
+              if (matchingOption) {
+                warehouseSelect.value = matchingOption.value;
+              }
+            }
+          }
+        } else {
         }
         
         warehouseSelect.disabled = false;
       })
       .catch(error => {
-        console.error('Error loading warehouses:', error);
-        warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
-        warehouseSelect.disabled = false;
+        console.error('[updateWarehouseChoices] Error:', error.message);
+        console.error('[updateWarehouseChoices] Error stack:', error.stack);
+        warehouseSelect.disabled = true;
+        warehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
         alert('{% trans "Error loading warehouses. Please try again." %}: ' + error.message);
+        console.log('[updateWarehouseChoices] ===== END (error) =====');
       });
   }
   
   // Filter items for a specific row based on type, category, subcategory, and search
-  function filterItemsForRow(rowElement) {
-    if (!rowElement) return;
+  // Returns a Promise that resolves when items are loaded
+  function filterItemsForRow(rowElement, includeItemId) {
+    if (!rowElement) return Promise.resolve();
     
     const typeSelect = rowElement.querySelector('.filter-type-select');
     const categorySelect = rowElement.querySelector('.filter-category-select');
@@ -2042,12 +2685,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchInput = rowElement.querySelector('.filter-search-input');
     const itemSelect = rowElement.querySelector('select[name*="-item"]');
     
-    if (!itemSelect) return;
+    if (!itemSelect) return Promise.resolve();
     
     const typeId = typeSelect?.value || '';
     const categoryId = categorySelect?.value || '';
     const subcategoryId = subcategorySelect?.value || '';
-    const searchTerm = searchInput?.value?.trim() || '';
+    let searchTerm = searchInput?.value?.trim() || '';
+    
+    // Fix: If searchTerm is "None" (string), treat it as empty
+    if (searchTerm === 'None' || searchTerm === 'none') {
+      searchTerm = '';
+    }
     
     // Build API URL
     let apiUrl = '/inventory/api/filtered-items/';
@@ -2057,15 +2705,26 @@ document.addEventListener('DOMContentLoaded', function() {
     if (subcategoryId) params.append('subcategory_id', subcategoryId);
     if (searchTerm) params.append('search', searchTerm);
     
-    // If no filters and no search, load all items
-    // Otherwise, apply filters
+    // If item is already selected or provided as parameter, include it in the API call
+    const currentValue = includeItemId || itemSelect.value;
+    if (currentValue) {
+      params.append('include_item_id', currentValue);
+    }
+    
+    // Always add params to URL (even if empty, API will return all items)
     if (params.toString()) {
       apiUrl += '?' + params.toString();
     }
+    // If no params at all, still call API to get all items
     
     // Fetch filtered items (or all items if no filters)
-    fetch(apiUrl)
-      .then(response => response.json())
+    return fetch(apiUrl)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok: ' + response.status);
+        }
+        return response.json();
+      })
       .then(data => {
         if (data.items) {
           const itemMap = {};
@@ -2073,43 +2732,92 @@ document.addEventListener('DOMContentLoaded', function() {
             itemMap[item.value] = item;
           });
           
+          // Save current value and label BEFORE clearing
           const currentValue = itemSelect.value;
-          const placeholder = itemSelect.options[0];
+          let currentLabel = '';
+          if (currentValue) {
+            const currentOption = Array.from(itemSelect.options).find(opt => opt.value == currentValue);
+            if (currentOption) {
+              currentLabel = currentOption.textContent;
+            }
+          }
           
-          // Clear all options except placeholder
+          // Clear all options
           itemSelect.innerHTML = '';
-          if (placeholder && placeholder.value === '') {
-            itemSelect.appendChild(placeholder.cloneNode(true));
-          } else {
-            const emptyOption = document.createElement('option');
-            emptyOption.value = '';
-            emptyOption.textContent = '--- انتخاب کنید ---';
-            itemSelect.appendChild(emptyOption);
+          
+          // Add placeholder
+          const emptyOption = document.createElement('option');
+          emptyOption.value = '';
+          emptyOption.textContent = '--- انتخاب کنید ---';
+          itemSelect.appendChild(emptyOption);
+          
+          // If current value exists and is not in filtered list, add it first (preserve existing selection)
+          if (currentValue && !itemMap[currentValue]) {
+            const preservedOption = document.createElement('option');
+            preservedOption.value = currentValue;
+            preservedOption.textContent = currentLabel || currentValue;
+            preservedOption.selected = true;
+            itemSelect.appendChild(preservedOption);
           }
           
           // Add filtered items
           data.items.forEach(function(item) {
+            // Skip if this item is already added (preserved current value)
+            if (currentValue && item.value == currentValue) {
+              return;
+            }
             const option = document.createElement('option');
             option.value = item.value;
             option.textContent = item.label;
             itemSelect.appendChild(option);
           });
           
+          
           // Restore current value if it's in filtered list
           if (currentValue && itemMap[currentValue]) {
             itemSelect.value = currentValue;
-          } else if (currentValue) {
-            // Current value is not in filtered list, clear it
-            itemSelect.value = '';
-            const unitSelect = rowElement.querySelector('select[name*="-unit"]');
-            if (unitSelect) {
-              updateUnitChoices(itemSelect, unitSelect);
-            }
           }
+        } else {
+          // At least show placeholder
+          itemSelect.innerHTML = '<option value="">--- انتخاب کنید ---</option>';
+        }
+        
+        // Re-attach event handlers after replacing the select options
+        // This is necessary because innerHTML = '' removes event listeners
+        const lineForm = rowElement.closest('.line-form');
+        if (lineForm) {
+          // Use setTimeout to ensure DOM is fully updated before re-attaching handlers
+          setTimeout(function() {
+            setupItemSelectHandlers(lineForm);
+            
+            // Manually update units and warehouses if item is selected
+            const freshItemSelect = lineForm.querySelector('select[name*="-item"]');
+            if (freshItemSelect && freshItemSelect.value) {
+              const freshUnitSelect = lineForm.querySelector('select[name*="-unit"]');
+              const freshWarehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+              if (freshUnitSelect) {
+                updateUnitChoices(freshItemSelect, freshUnitSelect);
+              }
+              if (freshWarehouseSelect) {
+                updateWarehouseChoices(freshItemSelect, freshWarehouseSelect);
+              }
+              // Also dispatch change event for any other listeners
+              const changeEvent = new Event('change', { bubbles: true });
+              freshItemSelect.dispatchEvent(changeEvent);
+            } else {
+            }
+          }, 10); // Small delay to ensure DOM is updated
+        } else {
         }
       })
       .catch(error => {
-        console.error('Error filtering items:', error);
+        console.error('[filterItemsForRow] Error filtering items:', error);
+        console.error('[filterItemsForRow] Error details:', error.message, error.stack);
+        // Show placeholder on error
+        itemSelect.innerHTML = '<option value="">--- انتخاب کنید ---</option>';
+        alert('خطا در بارگذاری لیست کالاها: ' + error.message);
+        // Re-throw error so caller can handle it
+        throw error;
       });
   }
 
@@ -2195,7 +2903,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Initialize filters for all line forms
   function initializeLineFormFilters() {
-    document.querySelectorAll('.line-form').forEach(function(lineForm) {
+    // Don't initialize if document is locked (view mode)
+    /* eslint-disable */
+    {% if document_is_locked %}
+    return;
+    {% endif %}
+    /* eslint-enable */
+    
+    console.log('[initializeLineFormFilters] Starting initialization...');
+    const lineForms = document.querySelectorAll('.line-form');
+    console.log('[initializeLineFormFilters] Found', lineForms.length, 'line forms');
+    lineForms.forEach(function(lineForm, index) {
+      console.log('[initializeLineFormFilters] Processing line form', index);
       const typeSelect = lineForm.querySelector('.filter-type-select');
       const categorySelect = lineForm.querySelector('.filter-category-select');
       const subcategorySelect = lineForm.querySelector('.filter-subcategory-select');
@@ -2235,48 +2954,130 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       // Initialize filters - load all categories initially and filter items
-      if (typeSelect) {
-        loadCategoriesForRow(lineForm, typeSelect.value);
-      } else {
-        // If no type filter, just load all items
-        filterItemsForRow(lineForm);
+      // itemSelect is already defined above (line 2730), so we reuse it
+      const hasExistingItem = itemSelect && itemSelect.value && itemSelect.value !== '';
+      const hasOptions = itemSelect && itemSelect.options.length > 1; // More than just placeholder
+      
+      // Fix: Clear "None" value from search input if it exists
+      if (searchInput && searchInput.value === 'None') {
+        console.log('[initializeLineFormFilters] Line', index, '- Clearing "None" value from search input');
+        searchInput.value = '';
       }
+      
+      // If item is selected but options are not loaded (only placeholder), we need to load items
+      // to preserve the selection properly
+      if (hasExistingItem && !hasOptions) {
+        console.log('[initializeLineFormFilters] Line', index, '- Item selected but options not loaded, loading items');
+        // Item is selected but options are not loaded - load all items to preserve selection
+        if (typeSelect) {
+          loadCategoriesForRow(lineForm, typeSelect.value);
+        } else {
+          filterItemsForRow(lineForm);
+        }
+      } else if (!hasExistingItem) {
+        console.log('[initializeLineFormFilters] Line', index, '- No item selected, normal initialization');
+        // No item selected - normal initialization
+        if (typeSelect) {
+          loadCategoriesForRow(lineForm, typeSelect.value);
+        } else {
+          filterItemsForRow(lineForm);
+        }
+      } else {
+        console.log('[initializeLineFormFilters] Line', index, '- Item selected AND options loaded, skipping filter');
+        // Even if item is selected and options are loaded, we still need to update units and warehouses
+        // This will be done by attachItemChangeHandlersToAllLines which is called after this function
+      }
+      // If item is selected AND options are loaded, don't filter (preserve existing selection)
     });
+    console.log('[initializeLineFormFilters] Initialization completed');
   }
 
-  // Attach item change handlers for multi-line forms (inlinesets)
-  document.querySelectorAll('.line-form select[name*="-item"]').forEach(function(itemSelect) {
-    const lineForm = itemSelect.closest('.line-form');
-    const unitSelect = lineForm.querySelector('select[name*="-unit"]');
-    const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
-    
-    if (unitSelect) {
-      // Load units if item is already selected (for edit mode)
-      if (itemSelect.value) {
+  // Initialize filters for all existing line forms
+  // BUT: Don't initialize filters if document is locked (view mode)
+  /* eslint-disable */
+  {% if not document_is_locked %}
+  console.log('[Initialization] Starting initialization...');
+  initializeLineFormFilters();
+  console.log('[Initialization] Filters initialized, attaching item change handlers...');
+  attachItemChangeHandlersToAllLines();
+  
+  // Use event delegation on formsetContainer to handle item changes
+  // This ensures handlers work even if DOM is replaced
+  console.log('[Initialization] Checking formsetContainer...', formsetContainer);
+  if (formsetContainer) {
+    console.log('[Initialization] formsetContainer found, setting up event delegation for item changes...');
+    formsetContainer.addEventListener('change', function(e) {
+      console.log('[Event Delegation] Change event detected on:', e.target);
+      console.log('[Event Delegation] tagName:', e.target ? e.target.tagName : 'N/A', 'name:', e.target ? e.target.name : 'N/A');
+      const target = e.target;
+      if (target && target.tagName === 'SELECT' && target.name && target.name.includes('-item')) {
+        console.log('[Event Delegation] Item change detected on:', target.name, 'value:', target.value);
+        const lineForm = target.closest('.line-form');
+        if (lineForm) {
+          console.log('[Event Delegation] Found lineForm, updating units and warehouses...');
+          const unitSelect = lineForm.querySelector('select[name*="-unit"]');
+          const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+          if (unitSelect) {
+            console.log('[Event Delegation] Calling updateUnitChoices');
+            updateUnitChoices(target, unitSelect);
+          }
+          if (warehouseSelect) {
+            console.log('[Event Delegation] Calling updateWarehouseChoices');
+            updateWarehouseChoices(target, warehouseSelect);
+          }
+        } else {
+          console.error('[Event Delegation] Could not find lineForm for item select:', target.name);
+        }
+      } else {
+        console.log('[Event Delegation] Change event is not for item select. Target:', target);
+        console.log('[Event Delegation] tagName:', target ? target.tagName : 'N/A', 'name:', target ? target.name : 'N/A');
+      }
+    });
+    console.log('[Initialization] Event delegation set up successfully');
+  } else {
+    console.error('[Initialization] formsetContainer NOT FOUND! Event delegation cannot be set up.');
+  }
+  
+  // After attaching handlers, ensure units and warehouses are updated for any pre-selected items
+  // This is important for edit mode where items are already selected
+  console.log('[Initialization] Ensuring units and warehouses are updated for pre-selected items...');
+  document.querySelectorAll('.line-form').forEach(function(lineForm) {
+    const itemSelect = lineForm.querySelector('select[name*="-item"]');
+    if (itemSelect && itemSelect.value) {
+      console.log('[Initialization] Found pre-selected item:', itemSelect.value, 'in form:', itemSelect.name);
+      const unitSelect = lineForm.querySelector('select[name*="-unit"]');
+      const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+      if (unitSelect) {
+        console.log('[Initialization] Updating unit choices for pre-selected item');
         updateUnitChoices(itemSelect, unitSelect);
       }
-      
-      // Attach change handler for units
-      itemSelect.addEventListener('change', function() {
-        updateUnitChoices(itemSelect, unitSelect);
-      });
+      if (warehouseSelect) {
+        console.log('[Initialization] Updating warehouse choices for pre-selected item');
+        // Save current warehouse value before updating
+        const currentWarehouseValue = warehouseSelect.value || warehouseSelect.querySelector('option[selected]')?.value;
+        console.log('[Initialization] Current warehouse value before update:', currentWarehouseValue);
+        // Store it in a data attribute so updateWarehouseChoices can use it
+        if (currentWarehouseValue) {
+          warehouseSelect.setAttribute('data-initial-value', currentWarehouseValue);
+        }
+        updateWarehouseChoices(itemSelect, warehouseSelect);
+      }
     }
     
-    if (warehouseSelect) {
-      // Load warehouses if item is already selected (for edit mode)
-      if (itemSelect.value) {
-        updateWarehouseChoices(itemSelect, warehouseSelect);
+    // Also ensure setupItemSelectHandlers is called for all existing forms
+    if (itemSelect) {
+      const unitSelect = lineForm.querySelector('select[name*="-unit"]');
+      const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+      if (unitSelect || warehouseSelect) {
+        console.log('[Initialization] Setting up item select handlers for existing form');
+        setupItemSelectHandlers(lineForm);
       }
-      
-      // Attach change handler for warehouses
-      itemSelect.addEventListener('change', function() {
-        updateWarehouseChoices(itemSelect, warehouseSelect);
-      });
     }
   });
   
-  // Initialize filters for all existing line forms
-  initializeLineFormFilters();
+  console.log('[Initialization] Initialization completed');
+  {% endif %}
+  /* eslint-enable */
   
   // Attach item change handlers for single-line forms (like ReceiptTemporary)
   // Handle forms without lines_formset (single-line forms)
@@ -2321,7 +3122,35 @@ document.addEventListener('DOMContentLoaded', function() {
       const tempReceiptId = this.value;
       
       if (!tempReceiptId) {
-        return; // No temporary receipt selected
+        // Clear all lines if no temporary receipt selected
+        const forms = getLineForms();
+        forms.forEach(function(lineForm, index) {
+          if (index > 0) {
+            // Keep first form, remove others
+            const deleteCheckbox = lineForm.querySelector('input[type="checkbox"][name*="DELETE"]');
+            if (deleteCheckbox) {
+              deleteCheckbox.checked = true;
+              lineForm.classList.add('deleted');
+            }
+          } else {
+            // Reset first form
+            resetLineFormFields(lineForm);
+            const deleteCheckbox = lineForm.querySelector('input[type="checkbox"][name*="DELETE"]');
+            if (deleteCheckbox) {
+              deleteCheckbox.checked = false;
+              lineForm.classList.remove('deleted');
+            }
+          }
+        });
+        totalFormsInput.value = 1;
+        totalFormsInput.setAttribute('value', 1);
+        
+        // Clear header supplier
+        const headerSupplierField = document.querySelector('select[name="supplier"]');
+        if (headerSupplierField) {
+          headerSupplierField.value = '';
+        }
+        return;
       }
       
       
@@ -2331,173 +3160,133 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
           if (data.error) {
             console.error('Error fetching temporary receipt data:', data.error);
-            alert('خطا در بارگذاری اطلاعات رسید موقت: ' + data.error);
+            // Use message if available, otherwise use error
+            const errorMessage = data.message || data.error;
+            alert('خطا در بارگذاری اطلاعات رسید موقت: ' + errorMessage);
+            // Clear the selection
+            temporaryReceiptSelect.value = '';
             return;
           }
           
           
-          // Check if a line with this item already exists
-          const existingLine = formsetContainer.querySelector(`select[name*="-item"][value="${data.item_id}"]`);
-          if (existingLine) {
-            // If line exists, update it
-            const lineForm = existingLine.closest('.line-form');
-            if (lineForm) {
-              // Update existing line
-              const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
-              const quantityInput = lineForm.querySelector('input[name*="-quantity"]');
-              const unitSelect = lineForm.querySelector('select[name*="-unit"]');
-              const supplierSelect = lineForm.querySelector('select[name*="-supplier"]');
-              
-              if (warehouseSelect && data.warehouse_id) {
-                warehouseSelect.value = data.warehouse_id;
-                // Trigger warehouse change to update units if needed
-                if (warehouseSelect.dispatchEvent) {
-                  warehouseSelect.dispatchEvent(new Event('change'));
-                }
-              }
-              
-              if (quantityInput && data.entered_quantity) {
-                quantityInput.value = data.entered_quantity;
-              }
-              
-              if (unitSelect && data.entered_unit) {
-                // First, update units for the item
-                if (existingLine && typeof updateUnitChoices === 'function') {
-                  updateUnitChoices(existingLine, unitSelect);
-                  // Then set the unit after units are loaded
-                  setTimeout(() => {
-                    unitSelect.value = data.entered_unit;
-                  }, 300);
-                }
-              }
-              
-              if (supplierSelect && data.supplier_id) {
-                supplierSelect.value = data.supplier_id;
-              }
-              
-              return;
-            }
+          const headerSupplierField = document.querySelector('select[name="supplier"]');
+          if (headerSupplierField && data.supplier_id) {
+            setSelectValue(headerSupplierField, data.supplier_id, data.supplier_name || data.supplier_code || data.supplier_id);
           }
           
-          // Add new line with temporary receipt data
-          const totalForms = parseInt(totalFormsInput.value);
-          const newFormIndex = totalForms;
+          let linesData = Array.isArray(data.lines) && data.lines.length ? data.lines : [{
+            item_id: data.item_id,
+            item_code: data.item_code,
+            item_name: data.item_name,
+            warehouse_id: data.warehouse_id,
+            warehouse_code: data.warehouse_code,
+            warehouse_name: data.warehouse_name,
+            quantity: data.quantity,
+            entered_quantity: data.entered_quantity,
+            unit: data.unit,
+            entered_unit: data.entered_unit,
+          }];
           
-          // Clone the last form (or first if none exists)
-          const lastForm = formsetContainer.querySelector('.line-form:last-child');
-          if (!lastForm) {
-            console.error('No line form found to clone');
-            return;
-          }
+          linesData = linesData.map(function(line) {
+            return Object.assign({}, line, {
+              supplier_id: line.supplier_id || data.supplier_id || null,
+              supplier_code: line.supplier_code || data.supplier_code || null,
+              supplier_name: line.supplier_name || data.supplier_name || null,
+            });
+          });
           
-          const newForm = lastForm.cloneNode(true);
-          
-          // Update form indices
-          newForm.querySelectorAll('input, select, textarea').forEach(function(input) {
-            const name = input.name;
-            if (name) {
-              input.name = name.replace(/-(\d+)-/, '-' + newFormIndex + '-');
-              input.id = input.id ? input.id.replace(/-(\d+)-/, '-' + newFormIndex + '-') : '';
+          // Clear existing lines before adding new ones
+          const existingForms = getLineForms();
+          existingForms.forEach(function(lineForm, index) {
+            resetLineFormFields(lineForm, false);
+            const deleteCheckbox = lineForm.querySelector('input[type="checkbox"][name*="DELETE"]');
+            if (deleteCheckbox) {
+              deleteCheckbox.checked = false;
+              lineForm.classList.remove('deleted');
             }
           });
           
-          // Update line number
-          const lineHeader = newForm.querySelector('.line-header h4');
-          if (lineHeader) {
-            lineHeader.textContent = '{% trans "Line" %} ' + (newFormIndex + 1);
-          }
+          const forms = ensureLineFormCount(linesData.length || 1);
           
-          // Reset delete checkbox
-          const deleteCheckbox = newForm.querySelector('input[type="checkbox"][name*="DELETE"]');
-          if (deleteCheckbox) {
-            deleteCheckbox.checked = false;
-            newForm.classList.remove('deleted');
-          }
+          // First, update form indices to ensure correct formset indices
+          forms.forEach(function(lineForm, index) {
+            updateLineFormIndex(lineForm, index);
+          });
           
-          // Set values from temporary receipt
-          const itemSelect = newForm.querySelector('select[name*="-item"]');
-          const warehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
-          const quantityInput = newForm.querySelector('input[name*="-quantity"]');
-          const unitSelect = newForm.querySelector('select[name*="-unit"]');
-          const supplierSelect = newForm.querySelector('select[name*="-supplier"]');
-          
-          if (itemSelect && data.item_id) {
-            itemSelect.value = data.item_id;
-            
-            // Load units for the item
-            if (unitSelect && typeof updateUnitChoices === 'function') {
-              updateUnitChoices(itemSelect, unitSelect);
+          // Then, load items for all forms that need data
+          const loadPromises = forms.map(function(lineForm, index) {
+            if (index < linesData.length && linesData[index].item_id) {
+              const lineData = linesData[index];
+              const itemSelect = lineForm.querySelector('select[name*="-item"]');
               
-              // Set unit after units are loaded
-              setTimeout(() => {
-                if (data.entered_unit) {
-                  // Try to find the unit in the options
-                  const unitOption = Array.from(unitSelect.options).find(opt => opt.value === data.entered_unit);
-                  if (unitOption) {
-                    unitSelect.value = data.entered_unit;
-                  } else {
-                    // If unit not found, create a new option
-                    const option = document.createElement('option');
-                    option.value = data.entered_unit;
-                    option.textContent = data.entered_unit;
-                    unitSelect.appendChild(option);
-                    unitSelect.value = data.entered_unit;
+              if (itemSelect) {
+                // Load items for this row first (with include_item_id to preserve the item)
+                // filterItemsForRow now returns a Promise
+                return filterItemsForRow(lineForm, lineData.item_id).then(function() {
+                  // Wait a bit for the setTimeout in filterItemsForRow to complete
+                  return new Promise(function(resolve) {
+                    setTimeout(function() {
+                      // After items are loaded and DOM is updated, set the item value
+                      const itemLabel = lineData.item_name && lineData.item_code
+                        ? `${lineData.item_name} (${lineData.item_code})`
+                        : (lineData.item_name || lineData.item_code || lineData.item_id);
+                      setSelectValue(itemSelect, lineData.item_id, itemLabel);
+                      resolve();
+                    }, 50);
+                  });
+                }).catch(function(error) {
+                  // Return resolved promise even on error to continue with other rows
+                  return Promise.resolve();
+                });
+              }
+            }
+            return Promise.resolve();
+          });
+          
+          // After all items are loaded, populate forms
+          Promise.all(loadPromises).then(function() {
+            // Small delay to ensure all DOM updates are complete
+            setTimeout(function() {
+              forms.forEach(function(lineForm, index) {
+                const deleteCheckbox = lineForm.querySelector('input[type="checkbox"][name*="DELETE"]');
+                if (index < linesData.length) {
+                  const lineData = linesData[index];
+                  // Log only the data being passed to each row
+                  console.log(`[Row ${index + 1}] Item: ${lineData.item_name || lineData.item_code || lineData.item_id}, Quantity: ${lineData.quantity || lineData.entered_quantity}, Warehouse: ${lineData.warehouse_name || lineData.warehouse_code || lineData.warehouse_id}, Unit: ${lineData.unit || lineData.entered_unit}`);
+                  
+                  if (deleteCheckbox) {
+                    deleteCheckbox.checked = false;
+                    lineForm.classList.remove('deleted');
+                  }
+                  
+                  // Ensure item is set correctly before populating other fields
+                  const itemSelect = lineForm.querySelector('select[name*="-item"]');
+                  if (itemSelect && lineData.item_id) {
+                    const itemLabel = lineData.item_name && lineData.item_code
+                      ? `${lineData.item_name} (${lineData.item_code})`
+                      : (lineData.item_name || lineData.item_code || lineData.item_id);
+                    setSelectValue(itemSelect, lineData.item_id, itemLabel);
+                  }
+                  
+                  // Don't reset item select - it's already loaded by filterItemsForRow
+                  resetLineFormFields(lineForm, true);
+                  populateLineFormFields(lineForm, lineData);
+                } else {
+                  resetLineFormFields(lineForm, false);
+                  if (deleteCheckbox) {
+                    deleteCheckbox.checked = true;
+                    lineForm.classList.add('deleted');
                   }
                 }
-              }, 300);
-            }
+              });
             
-            // Load warehouses for the item
-            if (warehouseSelect && typeof updateWarehouseChoices === 'function') {
-              updateWarehouseChoices(itemSelect, warehouseSelect);
+              const formCount = getLineForms().length;
+              totalFormsInput.value = formCount;
+              totalFormsInput.setAttribute('value', formCount);
               
-              // Set warehouse after warehouses are loaded
-              setTimeout(() => {
-                if (data.warehouse_id) {
-                  warehouseSelect.value = data.warehouse_id;
-                }
-              }, 300);
-            }
-          }
-          
-          if (quantityInput && data.entered_quantity) {
-            quantityInput.value = data.entered_quantity;
-          }
-          
-          if (supplierSelect && data.supplier_id) {
-            supplierSelect.value = data.supplier_id;
-          }
-          
-          // Add to container
-          formsetContainer.appendChild(newForm);
-          
-          // Update total forms
-          totalFormsInput.value = totalForms + 1;
-          
-          // Re-attach event handlers for the new line
-          if (deleteCheckbox) {
-            deleteCheckbox.addEventListener('change', function() {
-              const lineForm = this.closest('.line-form');
-              if (this.checked) {
-                lineForm.classList.add('deleted');
-              } else {
-                lineForm.classList.remove('deleted');
-              }
-            });
-          }
-          
-          if (itemSelect && unitSelect) {
-            itemSelect.addEventListener('change', function() {
-              updateUnitChoices(itemSelect, unitSelect);
-            });
-          }
-          
-          if (itemSelect && warehouseSelect) {
-            itemSelect.addEventListener('change', function() {
-              updateWarehouseChoices(itemSelect, warehouseSelect);
-            });
-          }
-          
+              attachItemChangeHandlersToAllLines();
+            }, 100);
+          });
         })
         .catch(error => {
           console.error('Error fetching temporary receipt data:', error);
@@ -2565,6 +3354,41 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
       
+      // Setup item change handlers for new form
+      setupItemSelectHandlers(newForm);
+      
+      // Setup quantity_adjusted auto-calculation for stocktaking forms
+      const quantityExpectedInput = newForm.querySelector('input[name*="-quantity_expected"]');
+      const quantityCountedInput = newForm.querySelector('input[name*="-quantity_counted"]');
+      if (quantityExpectedInput) {
+        quantityExpectedInput.addEventListener('input', function() {
+          calculateQuantityAdjusted(newForm);
+        });
+        quantityExpectedInput.addEventListener('change', function() {
+          calculateQuantityAdjusted(newForm);
+        });
+      }
+      if (quantityCountedInput) {
+        quantityCountedInput.addEventListener('input', function() {
+          calculateQuantityAdjusted(newForm);
+        });
+        quantityCountedInput.addEventListener('change', function() {
+          calculateQuantityAdjusted(newForm);
+        });
+      }
+      
+      // Disable unit and warehouse selects for new form (no item selected yet)
+      const newFormUnitSelect = newForm.querySelector('select[name*="-unit"]');
+      const newFormWarehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
+      if (newFormUnitSelect) {
+        newFormUnitSelect.disabled = true;
+        newFormUnitSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+      }
+      if (newFormWarehouseSelect) {
+        newFormWarehouseSelect.disabled = true;
+        newFormWarehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+      }
+      
       // Setup filters for new form
       const typeSelect = newForm.querySelector('.filter-type-select');
       const categorySelect = newForm.querySelector('.filter-category-select');
@@ -2629,103 +3453,98 @@ document.addEventListener('DOMContentLoaded', function() {
           prevSibling.remove();
         }
       }
-      const newUnitSelect = newForm.querySelector('select[name*="-unit"]');
-      if (newItemSelect && newUnitSelect) {
+      // Note: setupItemSelectHandlers is called above, so we don't need to duplicate event handlers here
+      // But we still need to handle serial button visibility and work lines
+      const newWarehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
+      
+      if (newWarehouseSelect) {
+        newWarehouseSelect.addEventListener('change', function() {
+          // Update serial button visibility when warehouse changes
+          if (typeof updateSerialButtonVisibility === 'function') {
+            updateSerialButtonVisibility(newForm);
+          }
+          
+          // Update work lines if destination type is work_line
+          const choiceSelect = newForm.querySelector('select[id*="destination_type_choice"]');
+          const workLineField = newForm.querySelector('select[id*="destination_work_line"]');
+          if (choiceSelect && choiceSelect.value === 'work_line' && workLineField && typeof updateWorkLineChoices === 'function') {
+            updateWorkLineChoices(newWarehouseSelect, workLineField);
+          }
+        });
+      }
+      
+      // Add handler for serial button visibility when item changes (setupItemSelectHandlers doesn't handle this)
+      if (newItemSelect) {
+        newItemSelect.addEventListener('change', function() {
+          // Update serial button visibility when item changes
+          if (typeof updateSerialButtonVisibility === 'function') {
+            updateSerialButtonVisibility(newForm);
+          }
+        });
+      }
+      
+      // Attach serial selection button handler for new form
+      const newSelectSerialsBtn = newForm.querySelector('.select-serials-btn');
+      if (newSelectSerialsBtn && typeof openSerialModal === 'function') {
+        newSelectSerialsBtn.addEventListener('click', function() {
+          openSerialModal(newForm);
+        });
+      }
+      
+      // Handle destination type choice for new form
+      const newChoiceSelect = newForm.querySelector('select[id*="destination_type_choice"]');
+      if (newChoiceSelect) {
+        const newCompanyUnitField = newForm.querySelector('select[id*="destination_company_unit"]');
+        const newCompanyUnitFieldContainer = newCompanyUnitField ? newCompanyUnitField.closest('.destination-company-unit-field') : null;
+        const newWorkLineField = newForm.querySelector('select[id*="destination_work_line"]');
+        const newWorkLineFieldContainer = newWorkLineField ? newWorkLineField.closest('.destination-work-line-field') : null;
         const newWarehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
+        const newConsumptionTypeHidden = newForm.querySelector('input[name*="-consumption_type"]');
         
-        if (newItemSelect && newUnitSelect) {
-          newItemSelect.addEventListener('change', function() {
-            updateUnitChoices(newItemSelect, newUnitSelect);
-          });
+        function toggleFieldsForNewForm() {
+          const value = newChoiceSelect.value;
+          
+          // Update hidden consumption_type field
+          if (newConsumptionTypeHidden) {
+            newConsumptionTypeHidden.value = value;
+          }
+          
+          if (newCompanyUnitFieldContainer) {
+            newCompanyUnitFieldContainer.style.display = (value === 'company_unit') ? 'block' : 'none';
+            if (value !== 'company_unit' && newCompanyUnitField) {
+              newCompanyUnitField.value = '';
+            }
+          }
+          if (newWorkLineFieldContainer) {
+            newWorkLineFieldContainer.style.display = (value === 'work_line') ? 'block' : 'none';
+            if (value !== 'work_line' && newWorkLineField) {
+              newWorkLineField.value = '';
+            } else if (value === 'work_line' && newWarehouseSelect && newWorkLineField && typeof updateWorkLineChoices === 'function') {
+              // When work_line is selected, update work lines based on warehouse
+              updateWorkLineChoices(newWarehouseSelect, newWorkLineField);
+            }
+          }
         }
         
-        if (newItemSelect && newWarehouseSelect) {
-          newItemSelect.addEventListener('change', function() {
-            updateWarehouseChoices(newItemSelect, newWarehouseSelect);
-            // Update serial button visibility when item changes
-            if (typeof updateSerialButtonVisibility === 'function') {
-              updateSerialButtonVisibility(newForm);
-            }
-          });
-          
+        // Initial toggle
+        toggleFieldsForNewForm();
+        
+        // Add change handler
+        newChoiceSelect.addEventListener('change', toggleFieldsForNewForm);
+        
+        // Update work lines when warehouse changes (only if work_line is selected)
+        if (newWarehouseSelect && newWorkLineField) {
           newWarehouseSelect.addEventListener('change', function() {
-            // Update serial button visibility when warehouse changes
-            if (typeof updateSerialButtonVisibility === 'function') {
-              updateSerialButtonVisibility(newForm);
-            }
-            
-            // Update work lines if destination type is work_line
-            const choiceSelect = newForm.querySelector('select[id*="destination_type_choice"]');
-            const workLineField = newForm.querySelector('select[id*="destination_work_line"]');
-            if (choiceSelect && choiceSelect.value === 'work_line' && workLineField && typeof updateWorkLineChoices === 'function') {
-              updateWorkLineChoices(newWarehouseSelect, workLineField);
+            if (newChoiceSelect.value === 'work_line' && typeof updateWorkLineChoices === 'function') {
+              updateWorkLineChoices(newWarehouseSelect, newWorkLineField);
             }
           });
         }
-        
-        // Attach serial selection button handler for new form
-        const newSelectSerialsBtn = newForm.querySelector('.select-serials-btn');
-        if (newSelectSerialsBtn && typeof openSerialModal === 'function') {
-          newSelectSerialsBtn.addEventListener('click', function() {
-            openSerialModal(newForm);
-          });
-        }
-        
-        // Handle destination type choice for new form
-        const newChoiceSelect = newForm.querySelector('select[id*="destination_type_choice"]');
-        if (newChoiceSelect) {
-          const newCompanyUnitField = newForm.querySelector('select[id*="destination_company_unit"]');
-          const newCompanyUnitFieldContainer = newCompanyUnitField ? newCompanyUnitField.closest('.destination-company-unit-field') : null;
-          const newWorkLineField = newForm.querySelector('select[id*="destination_work_line"]');
-          const newWorkLineFieldContainer = newWorkLineField ? newWorkLineField.closest('.destination-work-line-field') : null;
-          const newWarehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
-          const newConsumptionTypeHidden = newForm.querySelector('input[name*="-consumption_type"]');
-          
-          function toggleFieldsForNewForm() {
-            const value = newChoiceSelect.value;
-            
-            // Update hidden consumption_type field
-            if (newConsumptionTypeHidden) {
-              newConsumptionTypeHidden.value = value;
-            }
-            
-            if (newCompanyUnitFieldContainer) {
-              newCompanyUnitFieldContainer.style.display = (value === 'company_unit') ? 'block' : 'none';
-              if (value !== 'company_unit' && newCompanyUnitField) {
-                newCompanyUnitField.value = '';
-              }
-            }
-            if (newWorkLineFieldContainer) {
-              newWorkLineFieldContainer.style.display = (value === 'work_line') ? 'block' : 'none';
-              if (value !== 'work_line' && newWorkLineField) {
-                newWorkLineField.value = '';
-              } else if (value === 'work_line' && newWarehouseSelect && newWorkLineField && typeof updateWorkLineChoices === 'function') {
-                // When work_line is selected, update work lines based on warehouse
-                updateWorkLineChoices(newWarehouseSelect, newWorkLineField);
-              }
-            }
-          }
-          
-          // Initial toggle
-          toggleFieldsForNewForm();
-          
-          // Add change handler
-          newChoiceSelect.addEventListener('change', toggleFieldsForNewForm);
-          
-          // Update work lines when warehouse changes (only if work_line is selected)
-          if (newWarehouseSelect && newWorkLineField) {
-            newWarehouseSelect.addEventListener('change', function() {
-              if (newChoiceSelect.value === 'work_line' && typeof updateWorkLineChoices === 'function') {
-                updateWorkLineChoices(newWarehouseSelect, newWorkLineField);
-              }
-            });
-          }
-        }
-        
-        // Initial check for serial button visibility
-        if (typeof updateSerialButtonVisibility === 'function') {
-          updateSerialButtonVisibility(newForm);
-        }
+      }
+      
+      // Initial check for serial button visibility
+      if (typeof updateSerialButtonVisibility === 'function') {
+        updateSerialButtonVisibility(newForm);
       }
       
       // Add search to new selects (exclude filter selects explicitly)
@@ -3106,6 +3925,35 @@ document.addEventListener('DOMContentLoaded', function() {
           updateWorkLineChoices(warehouseSelect, workLineField);
         }
       });
+    }
+  });
+  
+  // Attach event listeners for auto-calculation
+  document.querySelectorAll('.line-form').forEach(function(lineForm) {
+    const quantityExpectedInput = lineForm.querySelector('input[name*="-quantity_expected"]');
+    const quantityCountedInput = lineForm.querySelector('input[name*="-quantity_counted"]');
+    
+    if (quantityExpectedInput) {
+      quantityExpectedInput.addEventListener('input', function() {
+        calculateQuantityAdjusted(lineForm);
+      });
+      quantityExpectedInput.addEventListener('change', function() {
+        calculateQuantityAdjusted(lineForm);
+      });
+    }
+    
+    if (quantityCountedInput) {
+      quantityCountedInput.addEventListener('input', function() {
+        calculateQuantityAdjusted(lineForm);
+      });
+      quantityCountedInput.addEventListener('change', function() {
+        calculateQuantityAdjusted(lineForm);
+      });
+    }
+    
+    // Initial calculation if values are already present
+    if (quantityExpectedInput && quantityCountedInput) {
+      calculateQuantityAdjusted(lineForm);
     }
   });
   

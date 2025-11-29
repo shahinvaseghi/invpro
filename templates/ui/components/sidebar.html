@@ -44,27 +44,8 @@
       <span class="section-icon">▼</span>
     </button>
     <div class="section-content" id="inventory">
-      {% if user_feature_permissions|feature_allowed:'inventory.master.item_types' or user_feature_permissions|feature_allowed:'inventory.master.item_categories' or user_feature_permissions|feature_allowed:'inventory.master.item_subcategories' or user_feature_permissions|feature_allowed:'inventory.master.warehouses' %}
-        <div class="nav-group">
-          <button type="button" class="nav-group-header" data-submenu="inventory-master">
-            <span>{% trans "Master Data" %}</span>
-            <span class="nav-group-icon">▼</span>
-          </button>
-          <div class="nav-group-content" id="inventory-master">
-            {% if user_feature_permissions|feature_allowed:'inventory.master.item_types' %}
-              <a href="{% url 'inventory:item_types' %}" class="nav-link-sub">{% trans "Item Types" %}</a>
-            {% endif %}
-            {% if user_feature_permissions|feature_allowed:'inventory.master.item_categories' %}
-              <a href="{% url 'inventory:item_categories' %}" class="nav-link-sub">{% trans "Item Categories" %}</a>
-            {% endif %}
-            {% if user_feature_permissions|feature_allowed:'inventory.master.item_subcategories' %}
-              <a href="{% url 'inventory:item_subcategories' %}" class="nav-link-sub">{% trans "Item Subcategories" %}</a>
-            {% endif %}
-            {% if user_feature_permissions|feature_allowed:'inventory.master.warehouses' %}
-              <a href="{% url 'inventory:warehouses' %}" class="nav-link-sub">{% trans "Warehouses" %}</a>
-            {% endif %}
-          </div>
-        </div>
+      {% if user_feature_permissions|feature_allowed:'inventory.master.warehouses' %}
+        <a href="{% url 'inventory:warehouses' %}" class="nav-link">{% trans "Warehouses" %}</a>
       {% endif %}
 
       {% if user_feature_permissions|feature_allowed:'inventory.master.items' or user_feature_permissions|feature_allowed:'inventory.balance' %}
@@ -74,9 +55,6 @@
             <span class="nav-group-icon">▼</span>
           </button>
           <div class="nav-group-content" id="inventory-items">
-            {% if user_feature_permissions|feature_allowed:'inventory.master.items:create' %}
-              <a href="{% url 'inventory:item_create' %}" class="nav-link-sub">{% trans "Create Item" %}</a>
-            {% endif %}
             {% if user_feature_permissions|feature_allowed:'inventory.master.items' %}
               <a href="{% url 'inventory:items' %}" class="nav-link-sub">{% trans "Edit Items" %}</a>
             {% endif %}
@@ -242,13 +220,12 @@
         </div>
 
         <div class="nav-group">
-          <button type="button" class="nav-group-header" data-submenu="ticketing-management">
-            <span>{% trans "Ticket Management" %}</span>
+          <button type="button" class="nav-group-header" data-submenu="ticketing-templates">
+            <span>{% trans "Templates" %}</span>
             <span class="nav-group-icon">▼</span>
           </button>
-          <div class="nav-group-content" id="ticketing-management">
+          <div class="nav-group-content" id="ticketing-templates">
             <a href="{% url 'ticketing:templates' %}" class="nav-link-sub">{% trans "Templates" %}</a>
-            <a href="{% url 'ticketing:template_create' %}" class="nav-link-sub">{% trans "Create Template" %}</a>
             <a href="{% url 'ticketing:categories' %}" class="nav-link-sub">{% trans "Categories" %}</a>
             <a href="{% url 'ticketing:subcategories' %}" class="nav-link-sub">{% trans "Subcategories" %}</a>
           </div>
@@ -266,5 +243,212 @@
       </div>
     </div>
   {% endif %}
+
+  <!-- Accounting Section -->
+  <div class="sidebar-section" data-section="accounting">
+    <button type="button" class="section-header" data-target="accounting">
+      <span class="section-title">{% trans "Accounting" %}</span>
+      <span class="section-icon">▼</span>
+    </button>
+    <div class="section-content" id="accounting">
+      <a href="{% url 'accounting:dashboard' %}" class="nav-link">{% trans "Dashboard" %}</a>
+      
+      <div class="nav-group">
+        <button type="button" class="nav-group-header" data-submenu="accounting-general">
+          <span>{% trans "General" %}</span>
+          <span class="nav-group-icon">▼</span>
+        </button>
+        <div class="nav-group-content" id="accounting-general">
+          <a href="{% url 'accounting:general_ledger' %}" class="nav-link-sub">{% trans "General Ledger" %}</a>
+          <a href="{% url 'accounting:general_subsidiary' %}" class="nav-link-sub">{% trans "Subsidiary Ledgers" %}</a>
+          <a href="{% url 'accounting:general_detail' %}" class="nav-link-sub">{% trans "Detail Ledgers" %}</a>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <button type="button" class="nav-group-header" data-submenu="accounting-documents">
+          <span>{% trans "Accounting Documents" %}</span>
+          <span class="nav-group-icon">▼</span>
+        </button>
+        <div class="nav-group-content" id="accounting-documents">
+          <a href="{% url 'accounting:document_entry' %}" class="nav-link-sub">{% trans "Entry Document" %}</a>
+          <a href="{% url 'accounting:document_exit' %}" class="nav-link-sub">{% trans "Exit Document" %}</a>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <button type="button" class="nav-group-header" data-submenu="accounting-treasury">
+          <span>{% trans "Treasury" %}</span>
+          <span class="nav-group-icon">▼</span>
+        </button>
+        <div class="nav-group-content" id="accounting-treasury">
+          <a href="{% url 'accounting:treasury_expense' %}" class="nav-link-sub">{% trans "Expense Document" %}</a>
+          <a href="{% url 'accounting:treasury_income' %}" class="nav-link-sub">{% trans "Income Document" %}</a>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <button type="button" class="nav-group-header" data-submenu="accounting-payroll">
+          <span>{% trans "Payroll" %}</span>
+          <span class="nav-group-icon">▼</span>
+        </button>
+        <div class="nav-group-content" id="accounting-payroll">
+          <a href="{% url 'accounting:payroll_document' %}" class="nav-link-sub">{% trans "Payroll Document" %}</a>
+          <a href="{% url 'accounting:payroll_decrees' %}" class="nav-link-sub">{% trans "Decrees" %}</a>
+          <a href="{% url 'accounting:payroll_decree_groups' %}" class="nav-link-sub">{% trans "Decree Groups" %}</a>
+          <a href="{% url 'accounting:payroll_decree_subgroups' %}" class="nav-link-sub">{% trans "Decree Sub-Groups" %}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sales Section -->
+  <div class="sidebar-section" data-section="sales">
+    <button type="button" class="section-header" data-target="sales">
+      <span class="section-title">{% trans "Sales" %}</span>
+      <span class="section-icon">▼</span>
+    </button>
+    <div class="section-content" id="sales">
+      <a href="{% url 'sales:dashboard' %}" class="nav-link">{% trans "Dashboard" %}</a>
+      <a href="{% url 'sales:invoice_create' %}" class="nav-link">{% trans "Create Sales Invoice" %}</a>
+    </div>
+  </div>
+
+  <!-- HR Section -->
+  <div class="sidebar-section" data-section="hr">
+    <button type="button" class="section-header" data-target="hr">
+      <span class="section-title">{% trans "Human Resources" %}</span>
+      <span class="section-icon">▼</span>
+    </button>
+    <div class="section-content" id="hr">
+      <a href="{% url 'hr:dashboard' %}" class="nav-link">{% trans "Dashboard" %}</a>
+      
+      <div class="nav-group">
+        <button type="button" class="nav-group-header" data-submenu="hr-personnel">
+          <span>{% trans "Personnel" %}</span>
+          <span class="nav-group-icon">▼</span>
+        </button>
+        <div class="nav-group-content" id="hr-personnel">
+          <a href="{% url 'hr:personnel_create' %}" class="nav-link-sub">{% trans "Create Personnel" %}</a>
+          <a href="{% url 'hr:personnel_decree_assignment' %}" class="nav-link-sub">{% trans "Decree Assignment" %}</a>
+          <a href="{% url 'hr:personnel_form_create' %}" class="nav-link-sub">{% trans "Create Personnel Form" %}</a>
+          <a href="{% url 'hr:personnel_form_groups' %}" class="nav-link-sub">{% trans "Personnel Form Groups" %}</a>
+          <a href="{% url 'hr:personnel_form_subgroups' %}" class="nav-link-sub">{% trans "Personnel Form Sub-Groups" %}</a>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <button type="button" class="nav-group-header" data-submenu="hr-requests">
+          <span>{% trans "Requests" %}</span>
+          <span class="nav-group-icon">▼</span>
+        </button>
+        <div class="nav-group-content" id="hr-requests">
+          <a href="{% url 'hr:requests_leave' %}" class="nav-link-sub">{% trans "Leave Request" %}</a>
+          <a href="{% url 'hr:requests_sick_leave' %}" class="nav-link-sub">{% trans "Sick Leave Request" %}</a>
+          <a href="{% url 'hr:requests_loan' %}" class="nav-link-sub">{% trans "Loan Request" %}</a>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <button type="button" class="nav-group-header" data-submenu="hr-loans">
+          <span>{% trans "Loans" %}</span>
+          <span class="nav-group-icon">▼</span>
+        </button>
+        <div class="nav-group-content" id="hr-loans">
+          <a href="{% url 'hr:loans_management' %}" class="nav-link-sub">{% trans "Loan Management" %}</a>
+          <a href="{% url 'hr:loans_scheduling' %}" class="nav-link-sub">{% trans "Loan Scheduling" %}</a>
+          <a href="{% url 'hr:loans_savings_fund' %}" class="nav-link-sub">{% trans "Savings Fund" %}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Office Automation Section -->
+  <div class="sidebar-section" data-section="office_automation">
+    <button type="button" class="section-header" data-target="office_automation">
+      <span class="section-title">{% trans "Office Automation" %}</span>
+      <span class="section-icon">▼</span>
+    </button>
+    <div class="section-content" id="office_automation">
+      <a href="{% url 'office_automation:dashboard' %}" class="nav-link">{% trans "Dashboard" %}</a>
+      
+      <div class="nav-group">
+        <button type="button" class="nav-group-header" data-submenu="office-automation-inbox">
+          <span>{% trans "Inbox" %}</span>
+          <span class="nav-group-icon">▼</span>
+        </button>
+        <div class="nav-group-content" id="office-automation-inbox">
+          <a href="{% url 'office_automation:inbox_incoming' %}" class="nav-link-sub">{% trans "Incoming Letters" %}</a>
+          <a href="{% url 'office_automation:inbox_write' %}" class="nav-link-sub">{% trans "Write Letter" %}</a>
+          <a href="{% url 'office_automation:inbox_fill_form' %}" class="nav-link-sub">{% trans "Fill Form" %}</a>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <button type="button" class="nav-group-header" data-submenu="office-automation-processes">
+          <span>{% trans "Processes" %}</span>
+          <span class="nav-group-icon">▼</span>
+        </button>
+        <div class="nav-group-content" id="office-automation-processes">
+          <a href="{% url 'office_automation:processes_engine' %}" class="nav-link-sub">{% trans "Process Engine" %}</a>
+          <a href="{% url 'office_automation:processes_form_connection' %}" class="nav-link-sub">{% trans "Process-Form Connection" %}</a>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <button type="button" class="nav-group-header" data-submenu="office-automation-forms">
+          <span>{% trans "Forms" %}</span>
+          <span class="nav-group-icon">▼</span>
+        </button>
+        <div class="nav-group-content" id="office-automation-forms">
+          <a href="{% url 'office_automation:forms_builder' %}" class="nav-link-sub">{% trans "Form Builder" %}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transportation Section -->
+  <div class="sidebar-section" data-section="transportation">
+    <button type="button" class="section-header" data-target="transportation">
+      <span class="section-title">{% trans "Transportation" %}</span>
+      <span class="section-icon">▼</span>
+    </button>
+    <div class="section-content" id="transportation">
+      <a href="{% url 'transportation:dashboard' %}" class="nav-link">{% trans "Dashboard" %}</a>
+    </div>
+  </div>
+
+  <!-- Procurement Section -->
+  <div class="sidebar-section" data-section="procurement">
+    <button type="button" class="section-header" data-target="procurement">
+      <span class="section-title">{% trans "Procurement" %}</span>
+      <span class="section-icon">▼</span>
+    </button>
+    <div class="section-content" id="procurement">
+      <a href="{% url 'procurement:dashboard' %}" class="nav-link">{% trans "Dashboard" %}</a>
+      
+      <div class="nav-group">
+        <button type="button" class="nav-group-header" data-submenu="procurement-purchase">
+          <span>{% trans "Purchase" %}</span>
+          <span class="nav-group-icon">▼</span>
+        </button>
+        <div class="nav-group-content" id="procurement-purchase">
+          <a href="{% url 'procurement:purchases' %}" class="nav-link-sub">{% trans "Purchases" %}</a>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <button type="button" class="nav-group-header" data-submenu="procurement-buyers">
+          <span>{% trans "Buyers" %}</span>
+          <span class="nav-group-icon">▼</span>
+        </button>
+        <div class="nav-group-content" id="procurement-buyers">
+          <a href="{% url 'procurement:buyers' %}" class="nav-link-sub">{% trans "Buyers List" %}</a>
+          <a href="{% url 'procurement:buyer_create' %}" class="nav-link-sub">{% trans "Create Buyer" %}</a>
+          <a href="{% url 'procurement:buyer_assignment' %}" class="nav-link-sub">{% trans "Buyer Assignment" %}</a>
+        </div>
+      </div>
+    </div>
+  </div>
 </nav>
 

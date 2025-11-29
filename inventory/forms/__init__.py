@@ -138,13 +138,21 @@ __all__.extend([
 # Import stocktaking forms
 from inventory.forms.stocktaking import (
     StocktakingDeficitForm,
+    StocktakingDeficitLineForm,
+    StocktakingDeficitLineFormSet,
     StocktakingSurplusForm,
+    StocktakingSurplusLineForm,
+    StocktakingSurplusLineFormSet,
     StocktakingRecordForm,
 )
 
 __all__.extend([
     'StocktakingDeficitForm',
+    'StocktakingDeficitLineForm',
+    'StocktakingDeficitLineFormSet',
     'StocktakingSurplusForm',
+    'StocktakingSurplusLineForm',
+    'StocktakingSurplusLineFormSet',
     'StocktakingRecordForm',
 ])
 

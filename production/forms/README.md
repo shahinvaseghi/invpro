@@ -22,7 +22,7 @@
 - **Forms**: WorkLineForm
 - **توضیح**: Forms برای خطوط کاری
 
-### personnel.py
+### person.py
 - **Forms**: PersonForm
 - **توضیح**: Forms برای پرسنل
 

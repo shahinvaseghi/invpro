@@ -2,6 +2,16 @@
 
 The inventory module models master data, supplier relationships, transactions, and stock adjustments. This README documents each custom file and the classes/functions defined in it.
 
+**نکته مهم**: برای جزئیات کامل هر بخش، به فایل‌های README مربوطه مراجعه کنید:
+- **Models**: [`README_MODELS.md`](README_MODELS.md) - مستندات کامل برای 43 model class
+- **Views**: [`views/README.md`](views/README.md) - Overview کلی views و لینک به READMEهای جزئی‌تر
+- **Forms**: [`README_FORMS.md`](README_FORMS.md) - Overview کلی forms و لینک به READMEهای جزئی‌تر
+- **Utils**: [`utils/README.md`](utils/README.md) - توابع utility (codes.py, jalali.py)
+- **Services**: [`services/README.md`](services/README.md) - توابع service (serials.py)
+- **Template Tags**: [`templatetags/README.md`](templatetags/README.md) - Template tags (jalali_tags.py)
+- **Migrations**: [`migrations/README.md`](migrations/README.md) - خلاصه migrations
+- **Management Commands**: [`management/commands/README.md`](management/commands/README.md) - Management commands
+
 ## models.py
 
 Contains all inventory-related entities. Major groups:
@@ -32,8 +42,14 @@ Contains all inventory-related entities. Major groups:
 
 - **Requests & Receipts**
   - `PurchaseRequest`: captures multi-line item requests with priority, status workflow, and references. Approved purchase requests can be used to directly create receipts (Temporary, Permanent, or Consignment) through intermediate selection pages.
+    - `PurchaseRequestLine`: line items for purchase requests, storing item, quantity, unit, and request details.
   - `WarehouseRequest`: captures single-line internal material requests with priority, status workflow, and references. Approved warehouse requests can be used to directly create issues (Permanent, Consumption, or Consignment) through intermediate selection pages.
-  - `ReceiptTemporary`: intake staging record (awaiting QC); caches item/warehouse codes and supplier code, tracks QC approval.
+    - `WarehouseRequestLine`: line items for warehouse requests, storing item, quantity, unit, and request details.
+  - `ReceiptTemporary`: intake staging record (awaiting QC); caches item/warehouse codes and supplier code, tracks QC approval. Statuses include:
+    - `DRAFT`: تازه ایجاد شده و هنوز برای QC ارسال نشده.
+    - `AWAITING_INSPECTION`: پس از فشردن دکمه «ارسال به QC».
+    - `APPROVED`: پس از تأیید QC (سند قفل می‌شود و آماده‌ی تبدیل است).
+    - `CLOSED`: اسنادی که لغو یا توسط QC رد شده‌اند.
   - `ReceiptPermanent`: finalized receipt (optionally linked to temporary receipt and purchase request).
   - `ReceiptConsignment`: consignment handling with ownership status, conversion links, and optional temporary receipt reference.
 
@@ -46,11 +62,14 @@ Contains all inventory-related entities. Major groups:
       - **`IssueConsumptionLine`**: فیلد `consumption_type` می‌تواند واحد کاری (`company_unit`) یا خط کاری (`work_line`) باشد که از طریق `destination_type_choice` در فرم انتخاب می‌شود.
       - **`IssueConsignmentLine`**: فیلد `destination_type` به صورت اختیاری واحد کاری (`CompanyUnit`) را نگه می‌دارد.
     - `ReceiptPermanentLine`, `ReceiptConsignmentLine`: ردیف‌های رسید که شامل کالا، انبار، مقدار، واحد و اطلاعات قیمت‌گذاری هستند.
+    - `ReceiptTemporaryLine`: ردیف‌های رسید موقت که فقط اطلاعات کالا، انبار، مقدار و واحد را ذخیره می‌کنند. اطلاعات تأمین‌کننده در سطح سربرگ (`ReceiptTemporary`) نگه‌داری می‌شود و این مدل عمداً فیلد `supplier` ندارد؛ هر کدی که به داده‌های تأمین‌کننده نیاز دارد باید از خود سند موقت استفاده کند.
   - هر Line می‌تواند **چندین سریال** داشته باشد (از طریق `ManyToManyField` به `ItemSerial`). سریال‌ها در سطح Line مدیریت می‌شوند، نه در سطح سند.
   - برای هر Line که کالای آن `has_lot_tracking=1` دارد، یک دکمه «Assign Serials» یا «Manage Serials» در فرم سند نمایش داده می‌شود که کاربر را به صفحه اختصاصی مدیریت سریال آن Line می‌برد.
 
 - **Stocktaking**
   - `StocktakingDeficit`, `StocktakingSurplus`: adjustment documents capturing counted vs expected quantities, valuation, and posting info.
+    - `StocktakingDeficitLine`: line items for deficit documents, storing item, warehouse, expected quantity, counted quantity, and variance.
+    - `StocktakingSurplusLine`: line items for surplus documents, storing item, warehouse, expected quantity, counted quantity, and variance.
   - `StocktakingRecord`: final confirmation for a stocktaking session with references to variance documents.
 
 Each model enforces unique constraints tailored to multi-company setups and uses `save()` overrides to populate cached fields or generate codes.
@@ -70,6 +89,7 @@ Each model enforces unique constraints tailored to multi-company setups and uses
   - واحدهای انتخابی را با فهرست واحد اصلی و تبدیل‌های تعریف‌شده محدود می‌کنند و مقدار/قیمت را قبل از ذخیره به واحد اصلی کالا تبدیل می‌کنند.
   - در حالت ویرایش، سرآیند سند را به شکل فقط خواندنی نمایش می‌دهند.
   - برای هر ردیف که کالای آن `has_lot_tracking=1` دارد، دکمه «Manage Serials» نمایش داده می‌شود.
+  - **Auto-Fill از Temporary Receipt**: در `ReceiptPermanentCreateView`، هنگام انتخاب `temporary_receipt` در dropdown، JavaScript به‌صورت خودکار خطوط را از temporary receipt populate می‌کند. Validation در `ReceiptPermanentLineForm.clean_item()` برای کالاهای `requires_temporary_receipt=1` را skip می‌کند اگر temporary receipt انتخاب شده باشد. اگر formset validation خطا بدهد، document delete می‌شود و formset با POST data دوباره ساخته می‌شود تا خطاهای validation حفظ شوند.
 - `IssuePermanentCreateView`/`UpdateView`, `IssueConsumptionCreateView`/`UpdateView`, `IssueConsignmentCreateView`/`UpdateView`: صفحات اختصاصی برای ایجاد/ویرایش حواله‌ها با **پشتیبانی چند ردیف**. این ویوها:
   - از `LineFormsetMixin` استفاده می‌کنند تا فرم‌ست ردیف‌ها را مدیریت کنند.
   - امکان انتخاب واحد سازمانی مقصد (و برای حواله مصرف، خط تولید) را در سطح سند فراهم می‌کنند.
@@ -107,6 +127,15 @@ Each model enforces unique constraints tailored to multi-company setups and uses
 - `create_issue_from_warehouse_request.html`: صفحه واسط انتخاب مقدار برای ایجاد حواله از درخواست انبار.
 - `inventory/stocktaking_form.html`: قالب مشترک فرم‌های شمارش موجودی به همراه اسکریپت‌های پویا برای به‌روزرسانی واحد و انبار مجاز بر اساس انتخاب کالا.
 - `inventory/receipt_form.html`: قالب پایه برای فرم‌های رسید و حواله که شامل JavaScript برای به‌روزرسانی پویای dropdown های واحد و انبار بر اساس انتخاب کالا است. تابع `updateUnitChoices()` واحدها را به‌روزرسانی می‌کند و تابع `updateWarehouseChoices()` انبارهای مجاز را به‌روزرسانی می‌کند.
+
+  **ویژگی‌های JavaScript**:
+  - `filterItemsForRow()`: فیلتر کردن کالاها بر اساس type, category, subcategory و search term
+  - `setupItemSelectHandlers()`: تنظیم event handlers برای تغییرات کالا و به‌روزرسانی واحد/انبار
+  - `initializeLineFormFilters()`: مقداردهی اولیه فیلترها برای تمام خطوط فرم
+  - Event delegation برای تغییرات کالا در formset
+  - مدیریت صحیح مقدار "None" در search input (تبدیل به empty string)
+  - Re-attachment خودکار event handlers پس از DOM manipulation
+  - لاگ‌های جامع برای debugging در Console و ترمینال Django
 - `stocktaking_deficit.html`, `stocktaking_surplus.html`, `stocktaking_records.html`: صفحات لیست سندهای شمارش که اکنون دکمه «ایجاد» و لینک ویرایش/حذف/مشاهده به ویوهای جدید دارند و وضعیت قفل سند را نمایش می‌دهند. دکمه‌های حذف به صورت شرطی بر اساس دسترسی کاربر نمایش داده می‌شوند.
 - `*_confirm_delete.html`: تمپلیت‌های تأیید حذف برای تمام انواع اسناد (رسیدها، حواله‌ها، شمارش موجودی) که جزئیات سند را نمایش داده و از کاربر تأیید می‌گیرند.
 

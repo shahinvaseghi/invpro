@@ -410,7 +410,7 @@
 ### Other Modules
 
 #### ✅ `production/views/*.py`
-- **وضعیت**: ✅ کامل (9 فایل README جداگانه)
+- **وضعیت**: ✅ کامل (10 فایل README جداگانه)
 - **فایل‌های README موجود**:
   - ✅ `production/views/README_BOM.md` - کامل
   - ✅ `production/views/README_PROCESS.md` - کامل
@@ -421,6 +421,7 @@
   - ✅ `production/views/README_PERFORMANCE_RECORD.md` - کامل
   - ✅ `production/views/README_TRANSFER_TO_LINE.md` - کامل
   - ✅ `production/views/README_PLACEHOLDERS.md` - کامل
+  - ⏳ `production/views/README_API.md` - ایجاد شده (نیاز به تکمیل)
 - **فایل README کلی**: `production/views/README.md` (نیاز به بررسی و تکمیل)
 
 #### ✅ `production/forms/*.py`
@@ -458,7 +459,7 @@
 - **وضعیت**: ✅ کامل (موجود از قبل)
 
 #### ✅ `ticketing/views/*.py`
-- **وضعیت**: ✅ کامل (7 فایل README جداگانه)
+- **وضعیت**: ✅ کامل (8 فایل README جداگانه)
 - **فایل‌های README موجود**:
   - ✅ `ticketing/views/README_BASE.md` - کامل (موجود از قبل)
   - ✅ `ticketing/views/README_CATEGORIES.md` - کامل
@@ -467,6 +468,7 @@
   - ✅ `ticketing/views/README_TICKETS.md` - کامل
   - ✅ `ticketing/views/README_DEBUG.md` - کامل
   - ✅ `ticketing/views/README_PLACEHOLDERS.md` - کامل
+  - ⏳ `ticketing/views/README_ENTITY_REFERENCE.md` - ایجاد شده (نیاز به تکمیل)
 - **فایل README کلی**: `ticketing/views/README.md` (نیاز به بررسی و تکمیل)
 
 #### ✅ `ticketing/forms/*.py`
@@ -607,6 +609,11 @@
 - `SMTPServerUpdateView` - ویرایش SMTP server configuration (با password handling)
 - `SMTPServerDeleteView` - حذف SMTP server configuration
 
+#### ⏳ `shared/views/notifications.py`
+- **فایل README**: `shared/views/README_NOTIFICATIONS.md`
+- **وضعیت**: ⏳ ایجاد شده (نیاز به تکمیل)
+- **توضیحات**: فایل README ایجاد شده است اما نیاز به تکمیل دارد.
+
 #### ✅ `shared/forms/users.py`
 - **فایل README**: `shared/forms/README_USERS.md`
 - **وضعیت**: ✅ کامل
@@ -721,6 +728,11 @@
 - **فایل README**: `shared/utils/README_EMAIL.md`
 - **وضعیت**: ✅ کامل
 
+#### ⏳ `shared/utils/notifications.py`
+- **فایل README**: `shared/utils/README_NOTIFICATIONS.md`
+- **وضعیت**: ⏳ ایجاد شده (نیاز به تکمیل)
+- **توضیحات**: فایل README ایجاد شده است اما نیاز به تکمیل دارد.
+
 #### ✅ `ticketing/utils/codes.py`
 - **فایل README**: `ticketing/utils/README_CODES.md`
 - **وضعیت**: ✅ کامل
@@ -769,6 +781,16 @@
 - **فایل README**: `inventory/management/commands/README_CLEANUP_TEST_RECEIPTS.md`
 - **وضعیت**: ✅ کامل
 
+#### ⏳ `shared/management/commands/clear_all_data.py`
+- **فایل README**: `shared/management/commands/README_CLEAR_ALL_DATA.md`
+- **وضعیت**: ⏳ ایجاد شده (نیاز به تکمیل)
+- **توضیحات**: فایل README ایجاد شده است اما نیاز به تکمیل دارد.
+
+#### ⏳ `shared/management/commands/clear_edit_locks.py`
+- **فایل README**: `shared/management/commands/README_CLEAR_EDIT_LOCKS.md`
+- **وضعیت**: ⏳ ایجاد شده (نیاز به تکمیل)
+- **توضیحات**: فایل README ایجاد شده است اما نیاز به تکمیل دارد.
+
 ---
 
 ### Migrations
@@ -809,7 +831,33 @@
 - **Context Processors**: 2 فایل (`shared/context_processors.py`, `ui/context_processors.py`)
 - **Management Commands**: 1 فایل (`inventory/management/commands/cleanup_test_receipts.py`)
 - **Migrations**: 1 فایل README کلی (`MIGRATIONS_README.md`)
+- **Models**: 0 فایل (مستندسازی در README.md هر ماژول)
 - **جمع**: 74 فایل کامل
+
+### ⏳ نیازمند تکمیل (فایل‌های README ایجاد شده اما خالی)
+- **Views**: 3 فایل
+  - `production/views/README_API.md`
+  - `ticketing/views/README_ENTITY_REFERENCE.md`
+  - `shared/views/README_NOTIFICATIONS.md`
+- **Utils**: 1 فایل
+  - `shared/utils/README_NOTIFICATIONS.md`
+- **Management Commands**: 2 فایل
+  - `shared/management/commands/README_CLEAR_ALL_DATA.md`
+  - `shared/management/commands/README_CLEAR_EDIT_LOCKS.md`
+- **Models**: 12 فایل
+  - `inventory/README_MODELS.md`
+  - `production/README_MODELS.md`
+  - `shared/README_MODELS.md`
+  - `ticketing/README_MODELS.md`
+  - `qc/README_MODELS.md`
+  - `accounting/README_MODELS.md`
+  - `sales/README_MODELS.md`
+  - `hr/README_MODELS.md`
+  - `procurement/README_MODELS.md`
+  - `transportation/README_MODELS.md`
+  - `office_automation/README_MODELS.md`
+  - `ui/README_MODELS.md`
+- **جمع**: 18 فایل نیازمند تکمیل
 
 ### ❌ نیازمند مستندسازی
 
@@ -840,7 +888,7 @@
   - شامل: inventory, production, qc, ticketing, shared migrations
   - **نکته**: `ui/migrations` migration file ندارد (فقط `__init__.py`)
 
-**جمع کل**: ✅ تمام فایل‌ها مستندسازی شده‌اند (0 فایل باقی‌مانده)
+**جمع کل**: ✅ تمام فایل‌های اصلی README دارند (18 فایل نیازمند تکمیل محتوا)
 
 ---
 
@@ -991,9 +1039,9 @@
 
 ## آخرین به‌روزرسانی
 
-**تاریخ**: 26 نوامبر 2024
-**وضعیت**: ✅ تکمیل شده
-**پیشرفت**: 74 فایل کامل (Views: 36, Forms: 24, Utils: 5, Services: 1, Template Tags: 3, Context Processors: 2, Management Commands: 1, Migrations: 1, Other: 1)، 0 فایل ناقص، 0 فایل باقی‌مانده
+**تاریخ**: 28 نوامبر 2024
+**وضعیت**: ✅ تمام فایل‌های اصلی README دارند (18 فایل نیازمند تکمیل محتوا)
+**پیشرفت**: 74 فایل کامل + 18 فایل README خالی ایجاد شده (Views: 36 کامل + 3 خالی, Forms: 24, Utils: 6 کامل + 1 خالی, Services: 1, Template Tags: 3, Context Processors: 2, Management Commands: 1 کامل + 2 خالی, Migrations: 1, Models: 12 خالی)
 
 **فایل‌های تکمیل شده در این مرحله**:
 - ✅ Utilities: 5 فایل (codes.py, jalali.py, modules.py, email.py, codes.py)
@@ -1003,7 +1051,21 @@
 - ✅ Management Commands: 1 فایل (cleanup_test_receipts.py)
 - ✅ Migrations: 1 فایل README کلی (`MIGRATIONS_README.md` در root پروژه)
 
+**فایل‌های README خالی ایجاد شده (نیازمند تکمیل)**:
+- ⏳ Views: 3 فایل (`production/views/README_API.md`, `ticketing/views/README_ENTITY_REFERENCE.md`, `shared/views/README_NOTIFICATIONS.md`)
+- ⏳ Utils: 1 فایل (`shared/utils/README_NOTIFICATIONS.md`)
+- ⏳ Management Commands: 2 فایل (`shared/management/commands/README_CLEAR_ALL_DATA.md`, `shared/management/commands/README_CLEAR_EDIT_LOCKS.md`)
+- ⏳ Models: 12 فایل (README_MODELS.md برای تمام ماژول‌ها)
+
 **تغییرات اخیر**:
+- ✅ ایجاد 18 فایل README خالی برای فایل‌هایی که README نداشتند:
+  - Views: `production/views/README_API.md`, `ticketing/views/README_ENTITY_REFERENCE.md`, `shared/views/README_NOTIFICATIONS.md`
+  - Utils: `shared/utils/README_NOTIFICATIONS.md`
+  - Management Commands: `shared/management/commands/README_CLEAR_ALL_DATA.md`, `shared/management/commands/README_CLEAR_EDIT_LOCKS.md`
+  - Models: `inventory/README_MODELS.md`, `production/README_MODELS.md`, `shared/README_MODELS.md`, `ticketing/README_MODELS.md`, `qc/README_MODELS.md`, `accounting/README_MODELS.md`, `sales/README_MODELS.md`, `hr/README_MODELS.md`, `procurement/README_MODELS.md`, `transportation/README_MODELS.md`, `office_automation/README_MODELS.md`, `ui/README_MODELS.md`
+- ✅ به‌روزرسانی `DOCUMENTATION_STRUCTURE.md` - اضافه شدن فایل‌های README جدید
+- ✅ به‌روزرسانی `DOCUMENTATION_STATUS.md` - اضافه شدن فایل‌های جدید به لیست
+- ✅ به‌روزرسانی `README_VERIFICATION_LIST.md` - اضافه شدن فایل‌های جدید به جداول بررسی
 - ✅ به‌روزرسانی `DOCUMENTATION_STATUS.md` - لیست کامل فایل‌های باقی‌مانده و ساختار migrations (یک README کلی برای تمام migrations در root پروژه)
 - ✅ تکمیل `shared/forms/smtp_server.py` - README کامل با SMTPServerForm (TLS/SSL validation, password handling)
 - ✅ تکمیل `shared/forms/groups.py` - README کامل با GroupForm (GroupProfile integration, access levels M2M)

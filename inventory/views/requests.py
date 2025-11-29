@@ -20,6 +20,7 @@ import json
 
 from .base import InventoryBaseView, LineFormsetMixin
 from shared.mixins import FeaturePermissionRequiredMixin
+from shared.views.base import EditLockProtectedMixin
 from .. import models
 from .. import forms
 from ..models import Item, ItemUnit
@@ -123,6 +124,8 @@ class PurchaseRequestListView(InventoryBaseView, ListView):
     def get_queryset(self):
         """Filter and search purchase requests."""
         queryset = super().get_queryset()
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.requests.purchase', 'requested_by')
         queryset = queryset.select_related('requested_by', 'approver').prefetch_related('lines__item')
         # Order by newest first (by id descending, then by request_date)
         queryset = queryset.order_by('-id', '-request_date', 'request_code')
@@ -267,7 +270,7 @@ class PurchaseRequestCreateView(LineFormsetMixin, PurchaseRequestFormMixin, Crea
         ]
 
 
-class PurchaseRequestUpdateView(LineFormsetMixin, PurchaseRequestFormMixin, UpdateView):
+class PurchaseRequestUpdateView(EditLockProtectedMixin, LineFormsetMixin, PurchaseRequestFormMixin, UpdateView):
     """Update view for purchase requests."""
     model = models.PurchaseRequest
     form_class = forms.PurchaseRequestForm
@@ -475,6 +478,8 @@ class WarehouseRequestListView(InventoryBaseView, ListView):
     def get_queryset(self):
         """Filter and search warehouse requests."""
         queryset = super().get_queryset()
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.requests.warehouse', 'requester')
         queryset = queryset.select_related('item', 'warehouse', 'requester', 'approver')
         status = self.request.GET.get('status')
         priority = self.request.GET.get('priority')
@@ -617,7 +622,7 @@ class WarehouseRequestCreateView(LineFormsetMixin, WarehouseRequestFormMixin, Cr
         ]
 
 
-class WarehouseRequestUpdateView(LineFormsetMixin, WarehouseRequestFormMixin, UpdateView):
+class WarehouseRequestUpdateView(EditLockProtectedMixin, LineFormsetMixin, WarehouseRequestFormMixin, UpdateView):
     """Update view for warehouse requests."""
     model = models.WarehouseRequest
     form_class = forms.WarehouseRequestForm

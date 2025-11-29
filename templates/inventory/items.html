@@ -13,6 +13,22 @@
   <a href="{% url 'inventory:item_create' %}" class="btn btn-primary">
     + تعریف کالای جدید
   </a>
+  {% load access_tags %}
+  {% if user_feature_permissions|feature_allowed:'inventory.master.item_types' %}
+    <a href="{% url 'inventory:item_types' %}" class="btn btn-secondary">
+      {% trans "Item Types" %}
+    </a>
+  {% endif %}
+  {% if user_feature_permissions|feature_allowed:'inventory.master.item_categories' %}
+    <a href="{% url 'inventory:item_categories' %}" class="btn btn-secondary">
+      {% trans "Item Categories" %}
+    </a>
+  {% endif %}
+  {% if user_feature_permissions|feature_allowed:'inventory.master.item_subcategories' %}
+    <a href="{% url 'inventory:item_subcategories' %}" class="btn btn-secondary">
+      {% trans "Item Subcategories" %}
+    </a>
+  {% endif %}
   <a href="{% url 'inventory:item_excel_template' %}" class="btn btn-secondary">
     📥 دانلود اکسل نمونه
   </a>

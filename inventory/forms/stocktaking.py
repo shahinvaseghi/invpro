@@ -2,31 +2,33 @@
 Stocktaking forms for inventory module.
 
 This module contains forms for:
-- Stocktaking Deficit
-- Stocktaking Surplus
+- Stocktaking Deficit (with line items)
+- Stocktaking Surplus (with line items)
 - Stocktaking Record
 """
 from typing import Optional
 
 from django import forms
+from django.forms import inlineformset_factory
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from inventory.models import StocktakingDeficit, StocktakingSurplus, StocktakingRecord
+from inventory.models import (
+    StocktakingDeficit,
+    StocktakingDeficitLine,
+    StocktakingSurplus,
+    StocktakingSurplusLine,
+    StocktakingRecord,
+)
 from inventory.forms.base import (
     StocktakingBaseForm,
     generate_document_code,
+    BaseLineFormSet,
 )
 
 
 class StocktakingDeficitForm(StocktakingBaseForm):
-    """Create/update form for stocktaking deficit adjustments."""
-
-    unit = forms.ChoiceField(
-        label=_('Unit'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        required=True,
-    )
+    """Header-only form for stocktaking deficit documents with multi-line support."""
 
     class Meta:
         model = StocktakingDeficit
@@ -34,6 +36,76 @@ class StocktakingDeficitForm(StocktakingBaseForm):
             'document_code',
             'document_date',
             'stocktaking_session_id',
+        ]
+        widgets = {
+            'document_code': forms.HiddenInput(),
+            'document_date': forms.HiddenInput(),
+            'stocktaking_session_id': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+    def save(self, commit: bool = True):
+        """Save with auto-generated document code."""
+        instance = super().save(commit=False)
+        if not instance.document_code:
+            instance.document_code = generate_document_code(StocktakingDeficit, instance.company_id, "STD")
+        if not instance.document_date:
+            instance.document_date = timezone.now().date()
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
+
+
+class StocktakingDeficitLineForm(StocktakingBaseForm):
+    """Form for stocktaking deficit line items."""
+
+    unit = forms.ChoiceField(
+        label=_('Unit'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=True,
+    )
+
+    def full_clean(self):
+        """Override to update unit choices before validation."""
+        # Update unit choices if item and unit are in data
+        if self.data:
+            item_id = self.data.get(self.add_prefix('item'))
+            unit_value = self.data.get(self.add_prefix('unit'))
+            
+            if item_id and unit_value:
+                try:
+                    from inventory.models import Item
+                    item = Item.objects.get(pk=item_id, company_id=self.company_id)
+                    # Get allowed units
+                    allowed_units = self._get_item_allowed_units(item)
+                    allowed_codes = [row['value'] for row in allowed_units]
+                    
+                    # If unit is not in allowed units, add it to choices
+                    current_choices = list(self.fields['unit'].choices)
+                    unit_codes = [code for code, _ in current_choices if code]
+                    
+                    if unit_value not in unit_codes:
+                        from inventory.forms.base import UNIT_CHOICES
+                        label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                        label = label_map.get(unit_value, unit_value)
+                        self.fields['unit'].choices = current_choices + [(unit_value, label)]
+                except (Item.DoesNotExist, ValueError, TypeError):
+                    pass
+            elif unit_value:
+                # If no item but unit is provided, just add unit to choices
+                current_choices = list(self.fields['unit'].choices)
+                unit_codes = [code for code, _ in current_choices if code]
+                if unit_value not in unit_codes:
+                    from inventory.forms.base import UNIT_CHOICES
+                    label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                    label = label_map.get(unit_value, unit_value)
+                    self.fields['unit'].choices = current_choices + [(unit_value, label)]
+        
+        return super().full_clean()
+
+    class Meta:
+        model = StocktakingDeficitLine
+        fields = [
             'item',
             'warehouse',
             'unit',
@@ -48,7 +120,6 @@ class StocktakingDeficitForm(StocktakingBaseForm):
             'adjustment_metadata',
         ]
         widgets = {
-            'stocktaking_session_id': forms.NumberInput(attrs={'class': 'form-control'}),
             'quantity_expected': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'quantity_counted': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'quantity_adjusted': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
@@ -59,9 +130,50 @@ class StocktakingDeficitForm(StocktakingBaseForm):
             'investigation_reference': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
+    def clean_unit(self):
+        """Validate unit and ensure it's in choices."""
+        unit = self.cleaned_data.get('unit')
+        if not unit:
+            return unit
+        
+        # Always ensure unit is in choices to avoid validation error
+        # Detailed validation will be done in clean() method
+        current_choices = list(self.fields['unit'].choices)
+        unit_codes = [code for code, _ in current_choices if code]
+        if unit not in unit_codes:
+            from inventory.forms.base import UNIT_CHOICES
+            label_map = {value: str(label) for value, label in UNIT_CHOICES}
+            label = label_map.get(unit, unit)
+            self.fields['unit'].choices = current_choices + [(unit, label)]
+        
+        return unit
+
     def clean(self):
         """Validate quantity calculations."""
         cleaned_data = super().clean()
+        
+        # Ensure unit is in choices (do this after all fields are cleaned)
+        unit = cleaned_data.get('unit')
+        item = cleaned_data.get('item')
+        if unit and item:
+            try:
+                from inventory.models import Item
+                item_obj = Item.objects.get(pk=item, company_id=self.company_id)
+                allowed_units = self._get_item_allowed_units(item_obj)
+                allowed_codes = [row['value'] for row in allowed_units]
+                
+                # If unit is not in allowed units, add it to choices
+                if unit not in allowed_codes:
+                    current_choices = list(self.fields['unit'].choices)
+                    unit_codes = [code for code, _ in current_choices if code]
+                    if unit not in unit_codes:
+                        from inventory.forms.base import UNIT_CHOICES
+                        label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                        label = label_map.get(unit, unit)
+                        self.fields['unit'].choices = current_choices + [(unit, label)]
+            except (Item.DoesNotExist, ValueError, TypeError):
+                pass
+        
         expected = cleaned_data.get('quantity_expected')
         counted = cleaned_data.get('quantity_counted')
         if expected is not None and counted is not None:
@@ -77,29 +189,9 @@ class StocktakingDeficitForm(StocktakingBaseForm):
                 pass
         return cleaned_data
 
-    def save(self, commit: bool = True):
-        """Save with auto-generated document code."""
-        instance = super().save(commit=False)
-        if not instance.document_code:
-            instance.document_code = generate_document_code(StocktakingDeficit, instance.company_id, "STD")
-        if not instance.document_date:
-            instance.document_date = timezone.now().date()
-        instance.item_code = instance.item.item_code if instance.item_id else instance.item_code
-        instance.warehouse_code = instance.warehouse.public_code if instance.warehouse_id else instance.warehouse_code
-        if commit:
-            instance.save()
-            self.save_m2m()
-        return instance
-
 
 class StocktakingSurplusForm(StocktakingBaseForm):
-    """Create/update form for stocktaking surplus adjustments."""
-
-    unit = forms.ChoiceField(
-        label=_('Unit'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        required=True,
-    )
+    """Header-only form for stocktaking surplus documents with multi-line support."""
 
     class Meta:
         model = StocktakingSurplus
@@ -107,6 +199,83 @@ class StocktakingSurplusForm(StocktakingBaseForm):
             'document_code',
             'document_date',
             'stocktaking_session_id',
+        ]
+        widgets = {
+            'document_code': forms.HiddenInput(),
+            'document_date': forms.HiddenInput(),
+            'stocktaking_session_id': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+    def save(self, commit: bool = True):
+        """Save with auto-generated document code."""
+        instance = super().save(commit=False)
+        if not instance.document_code:
+            instance.document_code = generate_document_code(StocktakingSurplus, instance.company_id, "STS")
+        if not instance.document_date:
+            instance.document_date = timezone.now().date()
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
+
+
+class StocktakingSurplusLineForm(StocktakingBaseForm):
+    """Form for stocktaking surplus line items."""
+
+    unit = forms.ChoiceField(
+        label=_('Unit'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=True,
+    )
+    
+    def __init__(self, *args, **kwargs):
+        """Initialize form and customize labels."""
+        super().__init__(*args, **kwargs)
+        # Change label for quantity_adjusted to "مقدار افزایش یافته" for surplus
+        if 'quantity_adjusted' in self.fields:
+            self.fields['quantity_adjusted'].label = _('مقدار افزایش یافته')
+
+    def full_clean(self):
+        """Override to update unit choices before validation."""
+        # Update unit choices if item and unit are in data
+        if self.data:
+            item_id = self.data.get(self.add_prefix('item'))
+            unit_value = self.data.get(self.add_prefix('unit'))
+            
+            if item_id and unit_value:
+                try:
+                    from inventory.models import Item
+                    item = Item.objects.get(pk=item_id, company_id=self.company_id)
+                    # Get allowed units
+                    allowed_units = self._get_item_allowed_units(item)
+                    allowed_codes = [row['value'] for row in allowed_units]
+                    
+                    # If unit is not in allowed units, add it to choices
+                    current_choices = list(self.fields['unit'].choices)
+                    unit_codes = [code for code, _ in current_choices if code]
+                    
+                    if unit_value not in unit_codes:
+                        from inventory.forms.base import UNIT_CHOICES
+                        label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                        label = label_map.get(unit_value, unit_value)
+                        self.fields['unit'].choices = current_choices + [(unit_value, label)]
+                except (Item.DoesNotExist, ValueError, TypeError):
+                    pass
+            elif unit_value:
+                # If no item but unit is provided, just add unit to choices
+                current_choices = list(self.fields['unit'].choices)
+                unit_codes = [code for code, _ in current_choices if code]
+                if unit_value not in unit_codes:
+                    from inventory.forms.base import UNIT_CHOICES
+                    label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                    label = label_map.get(unit_value, unit_value)
+                    self.fields['unit'].choices = current_choices + [(unit_value, label)]
+        
+        return super().full_clean()
+
+    class Meta:
+        model = StocktakingSurplusLine
+        fields = [
             'item',
             'warehouse',
             'unit',
@@ -121,7 +290,6 @@ class StocktakingSurplusForm(StocktakingBaseForm):
             'adjustment_metadata',
         ]
         widgets = {
-            'stocktaking_session_id': forms.NumberInput(attrs={'class': 'form-control'}),
             'quantity_expected': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'quantity_counted': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'quantity_adjusted': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
@@ -132,9 +300,50 @@ class StocktakingSurplusForm(StocktakingBaseForm):
             'investigation_reference': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
+    def clean_unit(self):
+        """Validate unit and ensure it's in choices."""
+        unit = self.cleaned_data.get('unit')
+        if not unit:
+            return unit
+        
+        # Always ensure unit is in choices to avoid validation error
+        # Detailed validation will be done in clean() method
+        current_choices = list(self.fields['unit'].choices)
+        unit_codes = [code for code, _ in current_choices if code]
+        if unit not in unit_codes:
+            from inventory.forms.base import UNIT_CHOICES
+            label_map = {value: str(label) for value, label in UNIT_CHOICES}
+            label = label_map.get(unit, unit)
+            self.fields['unit'].choices = current_choices + [(unit, label)]
+        
+        return unit
+
     def clean(self):
         """Validate quantity calculations."""
         cleaned_data = super().clean()
+        
+        # Ensure unit is in choices (do this after all fields are cleaned)
+        unit = cleaned_data.get('unit')
+        item = cleaned_data.get('item')
+        if unit and item:
+            try:
+                from inventory.models import Item
+                item_obj = Item.objects.get(pk=item, company_id=self.company_id)
+                allowed_units = self._get_item_allowed_units(item_obj)
+                allowed_codes = [row['value'] for row in allowed_units]
+                
+                # If unit is not in allowed units, add it to choices
+                if unit not in allowed_codes:
+                    current_choices = list(self.fields['unit'].choices)
+                    unit_codes = [code for code, _ in current_choices if code]
+                    if unit not in unit_codes:
+                        from inventory.forms.base import UNIT_CHOICES
+                        label_map = {value: str(label) for value, label in UNIT_CHOICES}
+                        label = label_map.get(unit, unit)
+                        self.fields['unit'].choices = current_choices + [(unit, label)]
+            except (Item.DoesNotExist, ValueError, TypeError):
+                pass
+        
         expected = cleaned_data.get('quantity_expected')
         counted = cleaned_data.get('quantity_counted')
         if expected is not None and counted is not None:
@@ -149,20 +358,6 @@ class StocktakingSurplusForm(StocktakingBaseForm):
             except TypeError:
                 pass
         return cleaned_data
-
-    def save(self, commit: bool = True):
-        """Save with auto-generated document code."""
-        instance = super().save(commit=False)
-        if not instance.document_code:
-            instance.document_code = generate_document_code(StocktakingSurplus, instance.company_id, "STS")
-        if not instance.document_date:
-            instance.document_date = timezone.now().date()
-        instance.item_code = instance.item.item_code if instance.item_id else instance.item_code
-        instance.warehouse_code = instance.warehouse.public_code if instance.warehouse_id else instance.warehouse_code
-        if commit:
-            instance.save()
-            self.save_m2m()
-        return instance
 
 
 class StocktakingRecordForm(StocktakingBaseForm):
@@ -277,4 +472,28 @@ class StocktakingRecordForm(StocktakingBaseForm):
             instance.save()
             self.save_m2m()
         return instance
+
+
+# Create formsets
+StocktakingDeficitLineFormSet = inlineformset_factory(
+    StocktakingDeficit,
+    StocktakingDeficitLine,
+    form=StocktakingDeficitLineForm,
+    formset=BaseLineFormSet,
+    extra=1,
+    can_delete=True,
+    min_num=1,
+    validate_min=True,
+)
+
+StocktakingSurplusLineFormSet = inlineformset_factory(
+    StocktakingSurplus,
+    StocktakingSurplusLine,
+    form=StocktakingSurplusLineForm,
+    formset=BaseLineFormSet,
+    extra=1,
+    can_delete=True,
+    min_num=1,
+    validate_min=True,
+)
 

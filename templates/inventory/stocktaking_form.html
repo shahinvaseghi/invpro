@@ -45,7 +45,38 @@
                 {{ field.label }}
                 {% if field.field.required and not field.field.widget.attrs.readonly %}*{% endif %}
               </label>
-              {{ field }}
+              {% if field.name == 'item' %}
+                <div class="item-select-wrapper">
+                  {% if not document_is_locked %}
+                  <div class="item-filters">
+                    <select class="form-control filter-type-select" id="filter-type-select">
+                      <option value="">{% trans "Type" %}</option>
+                      {% for item_type in item_types %}
+                      <option value="{{ item_type.id }}">{{ item_type.name }}</option>
+                      {% endfor %}
+                    </select>
+                    <select class="form-control filter-category-select" id="filter-category-select">
+                      <option value="">{% trans "Category" %}</option>
+                      {% for category in item_categories %}
+                      <option value="{{ category.id }}">{{ category.name }}</option>
+                      {% endfor %}
+                    </select>
+                    <select class="form-control filter-subcategory-select" id="filter-subcategory-select">
+                      <option value="">{% trans "Subcategory" %}</option>
+                      {% for subcategory in item_subcategories %}
+                      <option value="{{ subcategory.id }}">{{ subcategory.name }}</option>
+                      {% endfor %}
+                    </select>
+                    <input type="text" class="form-control filter-search-input" id="filter-search-input"
+                          placeholder="{% trans 'Search by name or code...' %}"
+                          style="flex: 2; min-width: 150px;">
+                  </div>
+                  {% endif %}
+                  {{ field }}
+                </div>
+              {% else %}
+                {{ field }}
+              {% endif %}
               {% if field.errors %}
                 <span class="error">{{ field.errors.0 }}</span>
               {% endif %}
@@ -159,6 +190,41 @@
   outline: none;
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.item-select-wrapper {
+  width: 100%;
+}
+
+.item-filters {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.item-filters select,
+.item-filters input[type="text"] {
+  flex: 1;
+  min-width: 80px;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background-color: #f9fafb;
+  color: #6b7280;
+}
+
+.item-filters select:focus,
+.item-filters input[type="text"]:focus {
+  outline: none;
+  border-color: #2563eb;
+  background-color: #ffffff;
+}
+
+.item-filters input[type="text"] {
+  flex: 2;
+  min-width: 150px;
 }
 
 .entity-form textarea {
@@ -334,6 +400,119 @@ if (itemSelect) {
   });
   refreshUnitOptions();
   refreshWarehouseOptions();
+}
+
+// Item filter functionality
+const filterTypeSelect = document.getElementById("filter-type-select");
+const filterCategorySelect = document.getElementById("filter-category-select");
+const filterSubcategorySelect = document.getElementById("filter-subcategory-select");
+const filterSearchInput = document.getElementById("filter-search-input");
+
+function filterItems() {
+  if (!itemSelect) return;
+  
+  const typeId = filterTypeSelect ? filterTypeSelect.value : '';
+  const categoryId = filterCategorySelect ? filterCategorySelect.value : '';
+  const subcategoryId = filterSubcategorySelect ? filterSubcategorySelect.value : '';
+  let searchTerm = filterSearchInput ? filterSearchInput.value.trim() : '';
+  
+  // Convert "None" or "none" to empty string
+  if (searchTerm === 'None' || searchTerm === 'none') {
+    searchTerm = '';
+  }
+  
+  const currentValue = itemSelect.value;
+  
+  // Build API URL
+  /* eslint-disable */
+  const apiUrl = "{% url 'inventory:filtered_items' %}";
+  /* eslint-enable */
+  const params = new URLSearchParams();
+  if (typeId) params.append('type_id', typeId);
+  if (categoryId) params.append('category_id', categoryId);
+  if (subcategoryId) params.append('subcategory_id', subcategoryId);
+  if (searchTerm) params.append('search', searchTerm);
+  
+  const url = apiUrl + (params.toString() ? '?' + params.toString() : '');
+  
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      // Preserve current selection if it exists
+      const currentOption = currentValue ? Array.from(itemSelect.options).find(opt => opt.value == currentValue) : null;
+      const currentLabel = currentOption ? currentOption.textContent : '';
+      
+      itemSelect.innerHTML = '';
+      
+      // Add empty option
+      const emptyOption = document.createElement('option');
+      emptyOption.value = '';
+      emptyOption.textContent = '--- انتخاب کنید ---';
+      itemSelect.appendChild(emptyOption);
+      
+      // If current value exists and is not in filtered list, add it first (preserve existing selection)
+      const itemMap = {};
+      if (data.items && data.items.length > 0) {
+        data.items.forEach(item => {
+          itemMap[item.value] = item;
+        });
+      }
+      
+      if (currentValue && !itemMap[currentValue] && currentLabel) {
+        const preservedOption = document.createElement('option');
+        preservedOption.value = currentValue;
+        preservedOption.textContent = currentLabel;
+        preservedOption.selected = true;
+        itemSelect.appendChild(preservedOption);
+      }
+      
+      // Add filtered items
+      if (data.items && data.items.length > 0) {
+        data.items.forEach(item => {
+          // Skip if this item is already added (preserved current value)
+          if (currentValue && item.value == currentValue) {
+            return;
+          }
+          const option = document.createElement('option');
+          option.value = item.value;
+          option.textContent = item.label;
+          itemSelect.appendChild(option);
+        });
+      }
+      
+      // Restore previous selection if it still exists
+      if (currentValue && Array.from(itemSelect.options).find(opt => opt.value == currentValue)) {
+        itemSelect.value = currentValue;
+        // Trigger change event to update units and warehouses
+        itemSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    })
+    .catch(error => {
+      console.error('Error filtering items:', error);
+    });
+}
+
+// Attach event listeners
+if (filterTypeSelect) {
+  filterTypeSelect.addEventListener('change', filterItems);
+}
+if (filterCategorySelect) {
+  filterCategorySelect.addEventListener('change', filterItems);
+}
+if (filterSubcategorySelect) {
+  filterSubcategorySelect.addEventListener('change', filterItems);
+}
+if (filterSearchInput) {
+  let searchTimeout;
+  filterSearchInput.addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(filterItems, 300); // Debounce 300ms
+  });
+}
+
+// Initial filter on page load
+if (itemSelect && (filterTypeSelect || filterCategorySelect || filterSubcategorySelect || filterSearchInput)) {
+  filterItems();
 }
 </script>
 {% endblock %}

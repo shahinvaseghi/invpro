@@ -4,7 +4,13 @@ Base mixins and helper classes for shared views.
 from collections import defaultdict
 from typing import Optional, Any, Dict, Set
 from django.contrib.auth import get_user_model
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponseRedirect
+from django.contrib import messages
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+from django.utils import timezone as tz
+from datetime import timedelta
 from shared.forms import UserCompanyAccessFormSet
 
 User = get_user_model()
@@ -145,6 +151,13 @@ class AccessLevelPermissionMixin:
             'production': _('Production'),
             'inventory': _('Inventory'),
             'qc': _('Quality Control'),
+            'ticketing': _('Ticketing'),
+            'accounting': _('Accounting'),
+            'sales': _('Sales'),
+            'hr': _('Human Resources'),
+            'office_automation': _('Office Automation'),
+            'transportation': _('Transportation'),
+            'procurement': _('Procurement'),
         }
         
         for module_code, module_features in sorted(grouped_features.items()):
@@ -207,4 +220,130 @@ class AccessLevelPermissionMixin:
 
         # Remove stale permissions not present anymore
         self.object.permissions.exclude(resource_code__in=active_codes).delete()
+
+
+class EditLockProtectedMixin:
+    """
+    Mixin to prevent concurrent editing of records.
+    
+    This mixin checks if a record is being edited by another user when
+    opening the edit form (GET request). If so, it blocks access and shows
+    an error message.
+    
+    The edit lock is automatically set when opening the form and cleared
+    after saving or canceling.
+    
+    Timeout: 5 minutes (edit locks older than 5 minutes are considered stale)
+    """
+    edit_lock_timeout_minutes = 5
+    edit_lock_error_message = _('این رکورد در حال ویرایش توسط {user_name} است و نمی‌توانید همزمان آن را ویرایش کنید.')
+    edit_lock_redirect_url_name = None
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Check edit lock before allowing access to edit form."""
+        # Only check for GET requests (opening the form)
+        if request.method == 'GET':
+            obj = self.get_object()
+            
+            # Check if object has EditableModel mixin
+            if not hasattr(obj, 'editing_by'):
+                return super().dispatch(request, *args, **kwargs)
+            
+            # Refresh from DB to get latest state
+            obj.refresh_from_db()
+            
+            # Check for stale locks (older than timeout)
+            if obj.editing_by and obj.editing_started_at:
+                timeout_threshold = timezone.now() - timedelta(minutes=self.edit_lock_timeout_minutes)
+                if obj.editing_started_at < timeout_threshold:
+                    # Lock is stale, clear it
+                    obj.clear_edit_lock()
+                    obj.refresh_from_db()
+            
+            # Check if record is being edited by another user/session
+            # Only check if editing_by is still set (not cleared by timeout)
+            if obj.editing_by:
+                current_session_key = request.session.session_key or ''
+                # Check if it's being edited by someone else
+                if obj.is_being_edited_by(user=request.user, session_key=current_session_key):
+                    # Record is being edited by someone else
+                    editor_name = obj.editing_by.get_full_name() or obj.editing_by.username if obj.editing_by else _('کاربر ناشناس')
+                    messages.error(
+                        request,
+                        self.edit_lock_error_message.format(user_name=editor_name)
+                    )
+                    # Redirect to list or detail view
+                    redirect_url = self._get_edit_lock_redirect_url()
+                    return HttpResponseRedirect(redirect_url)
+            
+            # Set edit lock for current user
+            current_session_key = request.session.session_key or ''
+            obj.editing_by = request.user
+            obj.editing_started_at = timezone.now()
+            obj.editing_session_key = current_session_key
+            obj.save(update_fields=['editing_by', 'editing_started_at', 'editing_session_key'])
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        """Clear edit lock after successful save."""
+        result = super().form_valid(form)
+        self._clear_edit_lock()
+        return result
+    
+    def form_invalid(self, form):
+        """Keep edit lock on validation errors (user is still editing)."""
+        return super().form_invalid(form)
+    
+    def _clear_edit_lock(self):
+        """Clear the edit lock for the current object."""
+        if hasattr(self, 'object') and self.object and hasattr(self.object, 'clear_edit_lock'):
+            self.object.clear_edit_lock()
+    
+    def _get_edit_lock_redirect_url(self) -> str:
+        """Get redirect URL when edit lock is active."""
+        # Priority 1: Explicit redirect URL name
+        if self.edit_lock_redirect_url_name:
+            return reverse(self.edit_lock_redirect_url_name)
+        
+        # Priority 2: List URL name
+        if hasattr(self, 'list_url_name') and self.list_url_name:
+            return reverse(self.list_url_name)
+        
+        # Priority 3: Success URL (most common case - handles reverse_lazy)
+        if hasattr(self, 'success_url') and self.success_url:
+            if isinstance(self.success_url, str):
+                return self.success_url
+            elif hasattr(self.success_url, 'url'):
+                return self.success_url.url
+            else:
+                # Handle reverse_lazy: convert to string to resolve it
+                try:
+                    # reverse_lazy objects are resolved when converted to string
+                    return str(self.success_url)
+                except Exception:
+                    pass
+        
+        # Priority 4: Use get_success_url() method if available (handles reverse_lazy properly)
+        # Note: This might need self.object, so we try it after checking success_url directly
+        if hasattr(self, 'get_success_url'):
+            try:
+                # Make sure object is available
+                if not hasattr(self, 'object') or not self.object:
+                    obj = self.get_object()
+                    if obj:
+                        self.object = obj
+                return self.get_success_url()
+            except Exception:
+                pass
+        
+        # Priority 5: Object detail URL
+        if hasattr(self, 'object') and self.object and hasattr(self.object, 'get_absolute_url'):
+            try:
+                return self.object.get_absolute_url()
+            except Exception:
+                pass
+        
+        # Last resort: redirect to home
+        return '/'
 

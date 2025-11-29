@@ -16,6 +16,7 @@ from .. import models
 from ..forms.categories import TicketCategoryForm, TicketCategoryPermissionFormSet
 from .base import TicketingBaseView
 from shared.mixins import FeaturePermissionRequiredMixin
+from shared.views.base import EditLockProtectedMixin
 
 
 class TicketSubcategoryListView(FeaturePermissionRequiredMixin, TicketingBaseView, ListView):
@@ -153,7 +154,7 @@ class TicketSubcategoryCreateView(FeaturePermissionRequiredMixin, TicketingBaseV
         return response
 
 
-class TicketSubcategoryUpdateView(FeaturePermissionRequiredMixin, TicketingBaseView, UpdateView):
+class TicketSubcategoryUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, TicketingBaseView, UpdateView):
     """View for editing an existing ticket subcategory."""
 
     model = models.TicketCategory

@@ -143,13 +143,22 @@
 - `attrs`: attributes HTML
 
 **مقدار بازگشتی**:
-- `Dict`: context با `checked` attribute تنظیم شده
+- `Dict`: context با `checked` attribute و `value="1"` تنظیم شده
 
 **منطق**:
-1. مقدار را به int تبدیل می‌کند
-2. `value="1"` را در attrs تنظیم می‌کند
+1. مقدار را با `format_value()` فرمت می‌کند و به int تبدیل می‌کند
+2. **همیشه** `value="1"` را در attrs تنظیم می‌کند (نه "0")
 3. اگر مقدار `1` باشد، `checked` attribute را اضافه می‌کند
-4. context را از `super().get_context()` دریافت می‌کند و برمی‌گرداند
+4. اگر مقدار `0` باشد، `checked` attribute را حذف می‌کند
+5. context را از `super().get_context()` دریافت می‌کند
+6. `value="1"` را در widget context هم تنظیم می‌کند
+7. context را برمی‌گرداند
+
+**نکات مهم**:
+- **همیشه** `value="1"` در HTML تنظیم می‌شود (نه "0")
+- وضعیت checked/unchecked با attribute `checked` کنترل می‌شود
+- وقتی checkbox checked است، POST شامل `field_name="1"` می‌شود
+- وقتی checkbox unchecked است، فیلد در POST نیست
 
 ---
 

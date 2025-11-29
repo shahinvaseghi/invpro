@@ -530,6 +530,436 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.CANCEL,
         ],
     ),
+    # Accounting – Dashboard
+    "accounting.dashboard": FeaturePermission(
+        code="accounting.dashboard",
+        label=_("Accounting Dashboard"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+        ],
+    ),
+    # Accounting – General
+    "accounting.general.ledger": FeaturePermission(
+        code="accounting.general.ledger",
+        label=_("General Ledger"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "accounting.general.subsidiary": FeaturePermission(
+        code="accounting.general.subsidiary",
+        label=_("Subsidiary Ledgers"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "accounting.general.detail": FeaturePermission(
+        code="accounting.general.detail",
+        label=_("Detail Ledgers"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    # Accounting – Documents
+    "accounting.documents.entry": FeaturePermission(
+        code="accounting.documents.entry",
+        label=_("Entry Document"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.LOCK_OWN,
+            PermissionAction.LOCK_OTHER,
+            PermissionAction.UNLOCK_OWN,
+            PermissionAction.UNLOCK_OTHER,
+        ],
+    ),
+    "accounting.documents.exit": FeaturePermission(
+        code="accounting.documents.exit",
+        label=_("Exit Document"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.LOCK_OWN,
+            PermissionAction.LOCK_OTHER,
+            PermissionAction.UNLOCK_OWN,
+            PermissionAction.UNLOCK_OTHER,
+        ],
+    ),
+    # Accounting – Treasury
+    "accounting.treasury.expense": FeaturePermission(
+        code="accounting.treasury.expense",
+        label=_("Expense Document"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+        ],
+    ),
+    "accounting.treasury.income": FeaturePermission(
+        code="accounting.treasury.income",
+        label=_("Income Document"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+        ],
+    ),
+    # Accounting – Payroll
+    "accounting.payroll.document": FeaturePermission(
+        code="accounting.payroll.document",
+        label=_("Payroll Document"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+        ],
+    ),
+    "accounting.payroll.decrees": FeaturePermission(
+        code="accounting.payroll.decrees",
+        label=_("Decrees"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "accounting.payroll.decree_groups": FeaturePermission(
+        code="accounting.payroll.decree_groups",
+        label=_("Decree Groups"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "accounting.payroll.decree_subgroups": FeaturePermission(
+        code="accounting.payroll.decree_subgroups",
+        label=_("Decree Sub-Groups"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    # Sales
+    "sales.dashboard": FeaturePermission(
+        code="sales.dashboard",
+        label=_("Sales Dashboard"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+        ],
+    ),
+    "sales.invoice": FeaturePermission(
+        code="sales.invoice",
+        label=_("Sales Invoice"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+        ],
+    ),
+    # HR – Dashboard
+    "hr.dashboard": FeaturePermission(
+        code="hr.dashboard",
+        label=_("HR Dashboard"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+        ],
+    ),
+    # HR – Personnel
+    "hr.personnel": FeaturePermission(
+        code="hr.personnel",
+        label=_("Personnel"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "hr.personnel.decree": FeaturePermission(
+        code="hr.personnel.decree",
+        label=_("Personnel Decree Assignment"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_OTHER,
+        ],
+    ),
+    "hr.personnel.form": FeaturePermission(
+        code="hr.personnel.form",
+        label=_("Personnel Forms"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "hr.personnel.form_groups": FeaturePermission(
+        code="hr.personnel.form_groups",
+        label=_("Personnel Form Groups"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "hr.personnel.form_subgroups": FeaturePermission(
+        code="hr.personnel.form_subgroups",
+        label=_("Personnel Form Sub-Groups"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    # HR – Requests
+    "hr.requests.leave": FeaturePermission(
+        code="hr.requests.leave",
+        label=_("Leave Requests"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+        ],
+    ),
+    "hr.requests.sick_leave": FeaturePermission(
+        code="hr.requests.sick_leave",
+        label=_("Sick Leave Requests"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+        ],
+    ),
+    "hr.requests.loan": FeaturePermission(
+        code="hr.requests.loan",
+        label=_("Loan Requests"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+        ],
+    ),
+    # HR – Loans
+    "hr.loans.management": FeaturePermission(
+        code="hr.loans.management",
+        label=_("Loan Management"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+        ],
+    ),
+    "hr.loans.scheduling": FeaturePermission(
+        code="hr.loans.scheduling",
+        label=_("Loan Scheduling"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "hr.loans.savings_fund": FeaturePermission(
+        code="hr.loans.savings_fund",
+        label=_("Savings Fund"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    # Office Automation – Dashboard
+    "office_automation.dashboard": FeaturePermission(
+        code="office_automation.dashboard",
+        label=_("Office Automation Dashboard"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+        ],
+    ),
+    # Office Automation – Inbox
+    "office_automation.inbox.incoming": FeaturePermission(
+        code="office_automation.inbox.incoming",
+        label=_("Incoming Letters"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+        ],
+    ),
+    "office_automation.inbox.write": FeaturePermission(
+        code="office_automation.inbox.write",
+        label=_("Write Letter"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+        ],
+    ),
+    "office_automation.inbox.fill_form": FeaturePermission(
+        code="office_automation.inbox.fill_form",
+        label=_("Fill Form"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+        ],
+    ),
+    # Office Automation – Processes
+    "office_automation.processes.engine": FeaturePermission(
+        code="office_automation.processes.engine",
+        label=_("Process Engine"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "office_automation.processes.form_connection": FeaturePermission(
+        code="office_automation.processes.form_connection",
+        label=_("Process-Form Connection"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    # Office Automation – Forms
+    "office_automation.forms.builder": FeaturePermission(
+        code="office_automation.forms.builder",
+        label=_("Form Builder"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    # Transportation
+    "transportation.dashboard": FeaturePermission(
+        code="transportation.dashboard",
+        label=_("Transportation Dashboard"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+        ],
+    ),
+    # Procurement – Dashboard
+    "procurement.dashboard": FeaturePermission(
+        code="procurement.dashboard",
+        label=_("Procurement Dashboard"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+        ],
+    ),
+    # Procurement – Purchases
+    "procurement.purchases": FeaturePermission(
+        code="procurement.purchases",
+        label=_("Purchases"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+        ],
+    ),
+    # Procurement – Buyers
+    "procurement.buyers": FeaturePermission(
+        code="procurement.buyers",
+        label=_("Buyers"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
 }
 
 

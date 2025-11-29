@@ -14,6 +14,7 @@ from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 from django.views import View
 
 from shared.mixins import FeaturePermissionRequiredMixin
+from shared.views.base import EditLockProtectedMixin
 from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
 from inventory.utils.codes import generate_sequential_code
 from production.forms import (
@@ -241,7 +242,7 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
         return response
 
 
-class PerformanceRecordUpdateView(FeaturePermissionRequiredMixin, UpdateView):
+class PerformanceRecordUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
     """Update an existing performance record."""
     model = PerformanceRecord
     form_class = PerformanceRecordForm

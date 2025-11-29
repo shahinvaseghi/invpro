@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ detail_title|default:"Details" }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      {% for crumb in breadcrumbs %}
+        <span class="separator">/</span>
+        {% if crumb.url %}
+          <a href="{{ crumb.url }}">{{ crumb.label }}</a>
+        {% else %}
+          <span>{{ crumb.label }}</span>
+        {% endif %}
+      {% endfor %}
+      {% block breadcrumb_extra %}{% endblock %}
+    </nav>
+    
+    <h1 class="page-title">{{ detail_title|default:"Details" }}</h1>
+  </div>
+
+  <div class="form-container">
+    {% if info_banner %}
+    <div class="info-banner">
+      {% for item in info_banner %}
+        <div>
+          <strong>{{ item.label }}:</strong> 
+          {% if item.type == 'code' %}
+            <code>{{ item.value }}</code>
+          {% elif item.type == 'badge' %}
+            {% if item.value %}
+              <span class="badge badge-active">{{ item.true_label|default:"Active" }}</span>
+            {% else %}
+              <span class="badge badge-inactive">{{ item.false_label|default:"Inactive" }}</span>
+            {% endif %}
+          {% elif item.type == 'date' %}
+            {{ item.value|date:"Y-m-d" }}
+          {% else %}
+            {{ item.value|default:"-" }}
+          {% endif %}
+        </div>
+      {% endfor %}
+      {% block info_banner_extra %}{% endblock %}
+    </div>
+    {% endif %}
+
+    {% if alert_message %}
+    <div class="alert alert-{{ alert_type|default:'info' }}">
+      {{ alert_message }}
+    </div>
+    {% endif %}
+
+    {% block detail_sections %}
+    {% if detail_sections %}
+      {% for section in detail_sections %}
+        <div class="form-section">
+          <h3>{{ section.title }}</h3>
+          {% if section.type == 'fields' %}
+            <div class="form-row">
+              {% for field in section.fields %}
+                <div class="form-field">
+                  <label>{{ field.label }}</label>
+                  <div class="readonly-field">
+                    {% if field.type == 'code' %}
+                      <code>{{ field.value }}</code>
+                    {% elif field.type == 'badge' %}
+                      {% if field.value %}
+                        <span class="badge badge-active">{{ field.true_label|default:"Active" }}</span>
+                      {% else %}
+                        <span class="badge badge-inactive">{{ field.false_label|default:"Inactive" }}</span>
+                      {% endif %}
+                    {% elif field.type == 'link' and field.url %}
+                      <a href="{{ field.url }}">{{ field.value }}</a>
+                    {% else %}
+                      {{ field.value|default:"-" }}
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% elif section.type == 'table' %}
+            {% if section.data %}
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    {% for header in section.headers %}
+                      <th>{{ header }}</th>
+                    {% endfor %}
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in section.data %}
+                    <tr>
+                      {% for cell in row %}
+                        <td>{{ cell|default:"-" }}</td>
+                      {% endfor %}
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+              {% trans "No data available." %}
+            </div>
+            {% endif %}
+          {% elif section.type == 'custom' %}
+            {{ section.content|safe }}
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% endif %}
+    {% endblock %}
+
+    <div class="form-actions" style="margin-top: 2rem;">
+      {% if list_url %}
+        <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
+      {% endif %}
+      {% if edit_url and can_edit %}
+        <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+      {% endif %}
+      {% if delete_url and can_delete %}
+        <a href="{{ delete_url }}" class="btn btn-danger">{% trans "Delete" %}</a>
+      {% endif %}
+      {% block detail_actions_extra %}{% endblock %}
+    </div>
+  </div>
+</div>
+
+<style>
+.form-container {
+  max-width: 1000px;
+  margin: 2rem auto;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.info-banner {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #1f2937;
+  font-weight: 600;
+  flex-wrap: wrap;
+}
+
+.form-section {
+  margin-bottom: 2rem;
+}
+
+.form-section h3 {
+  margin-bottom: 1rem;
+  color: #1f2937;
+  font-size: 1.25rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.form-field label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.readonly-field {
+  padding: 0.5rem;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.data-table-container {
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.data-table th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.alert-info {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}
+
+.alert-warning {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.alert-danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+  padding-top: 2rem;
+  margin-top: 2rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.badge-active {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.badge-inactive {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+</style>
+{% endblock %}
+

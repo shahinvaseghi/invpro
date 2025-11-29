@@ -108,13 +108,20 @@
 - `str`: کد سند تولید شده
 
 **منطق**:
-1. تاریخ امروز را دریافت می‌کند
-2. `month_year` را به فرمت `YYYYMM` تولید می‌کند
-3. `base` را به فرمت `{prefix}-{month_year}` تولید می‌کند
-4. آخرین کد سند با این `base` را از database دریافت می‌کند
-5. sequence را از آخرین کد استخراج می‌کند (یا 0 اگر کدی وجود نداشته باشد)
+1. تاریخ امروز را از `timezone.now()` دریافت می‌کند
+2. `month_year` را به فرمت `YYYYMM` با `strftime("%Y%m")` تولید می‌کند
+3. `base` را به فرمت `{prefix}-{month_year}` تولید می‌کند (مثلاً `"PRM-202511"`)
+4. آخرین کد سند با این `base` را از database دریافت می‌کند:
+   - فیلتر: `company_id=company_id`, `document_code__startswith=base`
+   - مرتب‌سازی: `-document_code` (descending)
+   - دریافت: `values_list("document_code", flat=True).first()`
+5. sequence را از آخرین کد استخراج می‌کند:
+   - اگر `last_code` وجود دارد: `int(last_code.split("-")[-1])`
+   - در غیر این صورت: `0`
+   - اگر خطا در parsing رخ دهد (ValueError, IndexError): `0`
 6. sequence را 1 افزایش می‌دهد
-7. کد را به فرمت `{base}-{sequence:06d}` برمی‌گرداند
+7. کد را به فرمت `{base}-{sequence + 1:06d}` برمی‌گرداند (6 رقم با leading zeros)
+   - مثال: `"PRM-202511-000001"`, `"PRM-202511-000002"`
 
 **استفاده**:
 - در `ReceiptTemporary.save()` برای تولید `document_code`
@@ -156,27 +163,42 @@
 **مقدار بازگشتی**: ندارد
 
 **منطق**:
-1. `self.company_id` را از `company_id` یا `instance.company_id` تنظیم می‌کند
-2. متغیرهای instance را برای unit conversion تنظیم می‌کند
-3. `super().__init__()` را فراخوانی می‌کند
+1. `self.company_id` را از `company_id` یا `kwargs.get('instance').company_id` تنظیم می‌کند
+2. متغیرهای instance را برای unit conversion تنظیم می‌کند:
+   - `self._unit_factor = Decimal('1')`
+   - `self._entered_unit_value = None`
+   - `self._entered_quantity_value = None`
+   - `self._entered_unit_price_value = None`
+3. `super().__init__(*args, **kwargs)` را فراخوانی می‌کند
 4. فیلد `currency` را تنظیم می‌کند (اگر وجود دارد):
-   - widget را به `Select` تغییر می‌دهد
-   - choices را از `CURRENCY_CHOICES` تنظیم می‌کند
+   - widget را به `Select` با `attrs={'class': 'form-control'}` تغییر می‌دهد
+   - choices را از `CURRENCY_CHOICES` با یک empty choice در ابتدا تنظیم می‌کند
    - `required=False` می‌کند
 5. فیلد `document_date` را تنظیم می‌کند (اگر وجود دارد):
-   - widget را به `HiddenInput` تغییر می‌دهد
+   - widget را به `self.date_widget` (JalaliDateInput) تنظیم می‌کند
    - `required=False` می‌کند
-   - اگر instance جدید است، initial را به `timezone.now().date()` تنظیم می‌کند
+   - اگر instance جدید است (`not instance.pk`)، initial را به `timezone.now().date()` تنظیم می‌کند
+   - سپس widget را به `HiddenInput` تغییر می‌دهد
 6. فیلد `document_code` را تنظیم می‌کند (اگر وجود دارد):
    - widget را به `HiddenInput` تغییر می‌دهد
    - `required=False` می‌کند
 7. اگر `company_id` وجود دارد، `_filter_company_scoped_fields()` را فراخوانی می‌کند
-8. `_set_unit_choices()` را فراخوانی می‌کند
-9. اگر instance موجود است (edit mode):
-   - `entered_unit` را restore می‌کند
-   - `entered_quantity` را restore می‌کند
-   - `entered_unit_price` یا `unit_price_estimate` را restore می‌کند
-10. فیلدهای تاریخ (`expected_return_date`, `expected_receipt_date`, `conversion_date`) را تنظیم می‌کند
+8. `_set_unit_choices()` را فراخوانی می‌کند (باید قبل از restore initial values انجام شود)
+9. اگر instance موجود است و فرم bound نیست (`not self.is_bound and instance.pk`):
+   - **Restore `entered_unit`**:
+     - دریافت `entered_unit` یا `unit` از instance
+     - اگر unit در choices نیست، آن را اضافه می‌کند
+     - تنظیم `instance.unit = entered_unit` برای display
+     - تنظیم `self.initial['unit'] = entered_unit`
+   - **Restore `entered_quantity`**: `self.initial['quantity'] = instance.entered_quantity`
+   - **Restore `entered_unit_price`**: 
+     - `self.initial['unit_price'] = instance.entered_unit_price`
+     - یا `self.initial['unit_price_estimate'] = instance.entered_unit_price`
+10. فیلدهای تاریخ را تنظیم می‌کند:
+    - `expected_return_date`: widget = `self.date_widget`
+    - `expected_receipt_date`: widget = `self.date_widget`
+    - `conversion_date`: widget = `self.date_widget`
+11. دوباره `document_code` را به `HiddenInput` تنظیم می‌کند (برای اطمینان)
 
 ---
 
@@ -189,14 +211,35 @@
 **مقدار بازگشتی**: ندارد
 
 **منطق**:
-- برای هر فیلد که وجود دارد:
-  - `item`: فیلتر بر اساس `company_id` و `is_enabled=1`، label: `"{name} · {item_code}"`
-  - `warehouse`: فیلتر بر اساس `company_id` و `is_enabled=1`، label: `"{name} · {public_code}"`
-  - `supplier`: فیلتر بر اساس `company_id` و `is_enabled=1`، label: `"{name} · {public_code}"`
-  - `temporary_receipt`: فیلتر بر اساس `company_id`، label: `"{document_code} · {item.name}"`
-  - `purchase_request`: فیلتر بر اساس `company_id` و `status=APPROVED`، label: `"{request_code} · {item.name}"`
-  - `warehouse_request`: فیلتر بر اساس `company_id` و `request_status='approved'` و `is_locked=1`، label: `"{request_code} · {item.name}"`
-  - `conversion_receipt`: فیلتر بر اساس `company_id`، label: `"{document_code} · {item.name}"`
+برای هر فیلد که وجود دارد:
+1. **`item`**:
+   - فیلتر: `company_id=self.company_id`, `is_enabled=1`
+   - **مهم**: اگر instance موجود است و `item_id` دارد، item فعلی را هم شامل می‌کند (حتی اگر disabled باشد) با `Q(is_enabled=1) | Q(pk=instance.item_id)`
+   - label: `"{name} · {item_code}"`
+2. **`warehouse`**:
+   - فیلتر: `company_id=self.company_id`, `is_enabled=1`
+   - **مهم**: اگر instance موجود است و `warehouse_id` دارد، warehouse فعلی را هم شامل می‌کند (حتی اگر disabled باشد)
+   - label: `"{name} · {public_code}"`
+3. **`supplier`**:
+   - فیلتر: `company_id=self.company_id`, `is_enabled=1`
+   - **مهم**: اگر instance موجود است و `supplier_id` دارد، supplier فعلی را هم شامل می‌کند (حتی اگر disabled باشد)
+   - label: `"{name} · {public_code}"`
+4. **`temporary_receipt`**:
+   - فیلتر: `company_id=self.company_id`
+   - مرتب‌سازی: `-document_date`, `document_code`
+   - label: `"{document_code}"` (نه `"{document_code} · {item.name}"`)
+5. **`purchase_request`**:
+   - فیلتر: `company_id=self.company_id`, `status=APPROVED`
+   - مرتب‌سازی: `-request_date`, `request_code`
+   - label: `"{request_code}"` (نه `"{request_code} · {item.name}"`)
+6. **`warehouse_request`**:
+   - فیلتر: `company_id=self.company_id`, `request_status='approved'`, `is_locked=1`
+   - مرتب‌سازی: `-needed_by_date`, `request_code`
+   - label: `"{request_code}"` (نه `"{request_code} · {item.name}"`)
+7. **`conversion_receipt`**:
+   - فیلتر: `company_id=self.company_id`
+   - مرتب‌سازی: `-document_date`, `document_code`
+   - label: `"{document_code}"` (نه `"{document_code} · {item.name}"`)
 
 ---
 

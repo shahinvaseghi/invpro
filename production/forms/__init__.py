@@ -29,6 +29,14 @@ from production.forms.work_line import WorkLineForm
 # Import process forms
 from production.forms.process import ProcessForm
 
+# Import process operations forms
+from production.forms.process_operations import (
+    ProcessOperationForm,
+    ProcessOperationMaterialForm,
+    ProcessOperationFormSet,
+    ProcessOperationMaterialFormSet,
+)
+
 # Import product order forms
 from production.forms.product_order import ProductOrderForm
 
@@ -63,6 +71,11 @@ __all__ = [
     'WorkLineForm',
     # Process forms
     'ProcessForm',
+    # Process Operations forms
+    'ProcessOperationForm',
+    'ProcessOperationMaterialForm',
+    'ProcessOperationFormSet',
+    'ProcessOperationMaterialFormSet',
     # Product Order forms
     'ProductOrderForm',
     # Transfer to Line forms

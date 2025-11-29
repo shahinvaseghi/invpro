@@ -24,6 +24,8 @@ __all__ = [
     "MetadataModel",
     "SortableModel",
     "CompanyScopedModel",
+    "LockableModel",
+    "EditableModel",
     "User",
     "Company",
     "CompanyUnit",
@@ -34,6 +36,7 @@ __all__ = [
     "SMTPServer",
     "SectionRegistry",
     "ActionRegistry",
+    "Notification",
     "NUMERIC_CODE_VALIDATOR",
     "ENABLED_FLAG_CHOICES",
 ]
@@ -101,7 +104,69 @@ class SortableModel(models.Model):
         abstract = True
 
 
-class LockableModel(models.Model):
+class EditableModel(models.Model):
+    """
+    Mixin to track which user is currently editing a record.
+    Prevents concurrent editing by multiple users.
+    """
+    editing_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="%(app_label)s_%(class)s_editing",
+        null=True,
+        blank=True,
+        help_text=_("User currently editing this record"),
+    )
+    editing_started_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_("When editing session started"),
+    )
+    editing_session_key = models.CharField(
+        max_length=40,
+        blank=True,
+        help_text=_("Django session key of the editing user"),
+    )
+
+    class Meta:
+        abstract = True
+
+    def clear_edit_lock(self):
+        """Clear the edit lock for this record."""
+        self.editing_by = None
+        self.editing_started_at = None
+        self.editing_session_key = ''
+        self.save(update_fields=['editing_by', 'editing_started_at', 'editing_session_key'])
+
+    def is_being_edited_by(self, user=None, session_key=None):
+        """
+        Check if this record is being edited by someone else.
+        
+        Args:
+            user: User object to check if they are the editor
+            session_key: Session key to check if it matches
+            
+        Returns:
+            bool: True if record is being edited by someone else (not by the given user/session)
+        """
+        # If no editor, record is not being edited
+        if not self.editing_by:
+            return False
+        
+        # If user provided and matches the editor, record is not being edited by someone else
+        if user and self.editing_by_id == user.id:
+            return False
+        
+        # If session_key provided and matches, record is not being edited by someone else
+        # Only check session_key if it's not empty (empty session_key means new session)
+        if session_key and session_key.strip() and self.editing_session_key == session_key:
+            return False
+        
+        # Record is being edited by someone else
+        return True
+
+
+class LockableModel(EditableModel):
     is_locked = models.PositiveSmallIntegerField(default=0)
     locked_at = models.DateTimeField(null=True, blank=True)
     locked_by = models.ForeignKey(
@@ -146,7 +211,7 @@ class CompanyScopedModel(models.Model):
         super().save(*args, **kwargs)
 
 
-class User(AbstractUser, MetadataModel):
+class User(AbstractUser, MetadataModel, EditableModel):
     email = models.EmailField(_("email address"), unique=True)
     phone_number = models.CharField(max_length=30, blank=True)
     mobile_number = models.CharField(max_length=30, blank=True)
@@ -171,7 +236,7 @@ class User(AbstractUser, MetadataModel):
         return self.get_full_name() or self.username
 
 
-class Company(TimeStampedModel, ActivatableModel, MetadataModel):
+class Company(TimeStampedModel, ActivatableModel, MetadataModel, EditableModel):
     public_code = models.CharField(
         max_length=3,
         unique=True,
@@ -199,7 +264,7 @@ class Company(TimeStampedModel, ActivatableModel, MetadataModel):
         return self.display_name
 
 
-class CompanyUnit(CompanyScopedModel, TimeStampedModel, ActivatableModel, MetadataModel):
+class CompanyUnit(CompanyScopedModel, TimeStampedModel, ActivatableModel, MetadataModel, EditableModel):
     public_code = models.CharField(
         max_length=5,
         validators=[NUMERIC_CODE_VALIDATOR],
@@ -235,7 +300,7 @@ class CompanyUnit(CompanyScopedModel, TimeStampedModel, ActivatableModel, Metada
         return self.name
 
 
-class AccessLevel(TimeStampedModel, ActivatableModel, MetadataModel):
+class AccessLevel(TimeStampedModel, ActivatableModel, MetadataModel, EditableModel):
     code = models.CharField(max_length=30, unique=True, blank=True, editable=False)
     name = models.CharField(max_length=120)
     description = models.TextField(blank=True)
@@ -285,7 +350,7 @@ class AccessLevel(TimeStampedModel, ActivatableModel, MetadataModel):
         super().save(*args, **kwargs)
 
 
-class AccessLevelPermission(TimeStampedModel, MetadataModel):
+class AccessLevelPermission(TimeStampedModel, MetadataModel, EditableModel):
     access_level = models.ForeignKey(
         AccessLevel,
         on_delete=models.CASCADE,
@@ -314,7 +379,7 @@ class AccessLevelPermission(TimeStampedModel, MetadataModel):
         return f"{self.access_level.code} · {self.module_code}:{self.resource_code}"
 
 
-class GroupProfile(TimeStampedModel, ActivatableModel, MetadataModel):
+class GroupProfile(TimeStampedModel, ActivatableModel, MetadataModel, EditableModel):
     group = models.OneToOneField(
         Group,
         on_delete=models.CASCADE,
@@ -370,7 +435,7 @@ class UserCompanyAccess(TimeStampedModel, ActivatableModel, MetadataModel):
         return f"{self.user} @ {self.company}"
 
 
-class SMTPServer(TimeStampedModel, ActivatableModel, MetadataModel):
+class SMTPServer(TimeStampedModel, ActivatableModel, MetadataModel, EditableModel):
     """
     SMTP Server configuration for sending email notifications.
     Global configuration (not company-scoped).
@@ -646,4 +711,90 @@ class ActionRegistry(TimeStampedModel, ActivatableModel, MetadataModel, Sortable
 
     def __str__(self) -> str:
         return f"{self.section.section_code}:{self.action_name} - {self.action_label}"
+
+
+class Notification(TimeStampedModel):
+    """User notification model for storing notifications in database."""
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        verbose_name=_("User"),
+    )
+    company = models.ForeignKey(
+        "Company",
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        null=True,
+        blank=True,
+        verbose_name=_("Company"),
+    )
+    notification_type = models.CharField(
+        max_length=50,
+        verbose_name=_("Notification Type"),
+        help_text=_("Type of notification (e.g., 'approval_pending', 'approved')"),
+    )
+    notification_key = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name=_("Notification Key"),
+        help_text=_("Unique key for this notification (e.g., 'approval_pending_purchase_1')"),
+    )
+    message = models.TextField(
+        verbose_name=_("Message"),
+        help_text=_("Notification message text"),
+    )
+    url_name = models.CharField(
+        max_length=100,
+        verbose_name=_("URL Name"),
+        help_text=_("Django URL name to redirect to"),
+    )
+    count = models.PositiveIntegerField(
+        default=1,
+        verbose_name=_("Count"),
+        help_text=_("Number of items in this notification"),
+    )
+    is_read = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=0,
+        verbose_name=_("Is Read"),
+        help_text=_("Whether this notification has been read"),
+    )
+    read_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Read At"),
+        help_text=_("When this notification was read"),
+    )
+    
+    class Meta:
+        verbose_name = _("Notification")
+        verbose_name_plural = _("Notifications")
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["user", "is_read", "created_at"], name="notification_user_read_idx"),
+            models.Index(fields=["company", "is_read"], name="notification_company_read_idx"),
+            models.Index(fields=["notification_key"], name="notification_key_idx"),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.user.username} - {self.message} ({'Read' if self.is_read else 'Unread'})"
+    
+    def mark_as_read(self, user=None):
+        """Mark this notification as read."""
+        from django.utils import timezone
+        self.is_read = 1
+        self.read_at = timezone.now()
+        if user:
+            self.edited_by = user
+        self.save(update_fields=['is_read', 'read_at', 'edited_by', 'edited_at'])
+    
+    def mark_as_unread(self, user=None):
+        """Mark this notification as unread."""
+        self.is_read = 0
+        self.read_at = None
+        if user:
+            self.edited_by = user
+        self.save(update_fields=['is_read', 'read_at', 'edited_by', 'edited_at'])
 

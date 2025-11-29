@@ -9,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
+from shared.views.base import EditLockProtectedMixin
 from production.forms import WorkLineForm
 from production.models import WorkLine
 
@@ -83,7 +84,7 @@ class WorkLineCreateView(FeaturePermissionRequiredMixin, CreateView):
         return context
 
 
-class WorkLineUpdateView(FeaturePermissionRequiredMixin, UpdateView):
+class WorkLineUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
     """Update an existing work line."""
     model = WorkLine
     form_class = WorkLineForm

@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
+from shared.views.base import EditLockProtectedMixin
 from production.forms import BOMForm, BOMMaterialLineFormSet
 from production.models import BOM, BOMMaterial
 
@@ -236,7 +237,7 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
         return redirect(self.success_url)
 
 
-class BOMUpdateView(FeaturePermissionRequiredMixin, UpdateView):
+class BOMUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
     """Update an existing BOM."""
     model = BOM
     form_class = BOMForm

@@ -2,9 +2,12 @@
 
 **هدف**: Views برای مدیریت رسیدها (Receipts) در ماژول inventory
 
-این فایل شامل **27 کلاس view**:
+این فایل شامل **33 کلاس view**:
 - **2 Base Classes**: `DocumentDeleteViewBase`, `ReceiptFormMixin`
-- **15 Receipt Views**: 5 برای هر نوع (Temporary, Permanent, Consignment)
+- **18 Receipt Views**: 
+  - Temporary: List, Create, Detail, Update, Delete, Lock, Unlock, SendToQC (8 views)
+  - Permanent: List, Create, Detail, Update, Delete, Lock, Unlock (7 views)
+  - Consignment: List, Create, Detail, Update, Delete, Lock, Unlock (7 views)
 - **3 Create from Purchase Request Views**: برای هر نوع receipt
 - **6 Serial Assignment Views**: 2 base + 4 subclass
 
@@ -66,6 +69,16 @@
 - `list_url_name`: `''` (override در subclasses)
 - `lock_url_name`: `''` (override در subclasses)
 
+**JavaScript Features (receipt_form.html)**:
+- `filterItemsForRow()`: فیلتر کردن کالاها بر اساس type, category, subcategory و search term از طریق API `/inventory/api/filtered-items/`
+- `setupItemSelectHandlers()`: تنظیم event handlers برای تغییرات کالا و به‌روزرسانی خودکار واحد/انبار
+- `initializeLineFormFilters()`: مقداردهی اولیه فیلترها برای تمام خطوط فرم
+- Event delegation برای تغییرات کالا در formset (حتی پس از DOM manipulation)
+- مدیریت خودکار مقدار "None" در search input (تبدیل به empty string)
+- Re-attachment خودکار event handlers پس از DOM manipulation
+- لاگ‌های جامع برای debugging در Console و ترمینال Django
+- Disable کردن unit/warehouse selects تا زمانی که کالا انتخاب نشده باشد
+
 **متدها**:
 
 #### `get_form_kwargs() -> Dict[str, Any]`
@@ -79,6 +92,13 @@
 - `item_types`, `item_categories`, `item_subcategories`: برای فیلتر
 - `current_item_type`, `current_category`, `current_subcategory`, `current_item_search`: مقادیر فعلی فیلتر
 - `document_instance`, `document_status_display`, `document_is_locked`, `lock_url`
+
+**نکات مهم JavaScript**:
+- فیلترها و جستجو از طریق API endpoint `/inventory/api/filtered-items/` اعمال می‌شوند
+- API فقط کالاهای enabled (`is_enabled=1`) را برمی‌گرداند
+- Response شامل `total_count` برای نمایش تعداد کل کالاهای پیدا شده است
+- Event handlers به صورت خودکار پس از DOM manipulation (مثل repopulating item select) دوباره attach می‌شوند
+- مقدار "None" در search input به صورت خودکار به empty string تبدیل می‌شود
 
 #### `get_fieldsets() -> list`
 - باید در subclasses override شود
@@ -99,8 +119,79 @@
 - `paginate_by`: `50`
 
 **متدها**:
-- `get_queryset()`: `prefetch_related('lines__item', 'lines__warehouse')`, `select_related('created_by', 'converted_receipt')`
-- `get_context_data()`: اضافه کردن URLs و delete permissions
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch، فیلتر permissions و فیلترهای اضافی آماده می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده و بهینه شده
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند
+2. فیلتر بر اساس `company_id` از session
+3. فیلتر `is_enabled=1`
+4. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.receipts.temporary', 'created_by')`
+5. Prefetch related objects:
+   - `lines` با `Prefetch` که فقط enabled lines را شامل می‌شود (`is_enabled=1`)
+   - `select_related('item', 'warehouse')` برای هر line
+   - `select_related('created_by', 'converted_receipt')` برای receipt
+6. اعمال فیلترهای اضافی با `_apply_filters(queryset)`
+7. `distinct()` برای حذف duplicate ها
+
+**نکته**: از `Prefetch` با `to_attr='enabled_lines'` استفاده می‌کند تا فقط خطوط enabled در `enabled_lines` قرار گیرند.
+
+---
+
+#### `_apply_filters(self, queryset) -> QuerySet`
+
+**توضیح**: فیلترهای `status`, `converted`, و `search` را از querystring اعمال می‌کند.
+
+**پارامترهای ورودی**:
+- `queryset`: QuerySet برای فیلتر کردن
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده
+
+**منطق**:
+1. **Status filter**: از `request.GET.get('status')` - مقادیر: `draft`, `awaiting_qc`, `qc_passed`, `qc_failed`
+2. **Converted filter**: از `request.GET.get('converted')` - مقادیر: `'1'` (converted), `'0'` (not converted)
+3. **Search filter**: از `request.GET.get('search')` - جستجو در `document_code`, `lines__item__name`, `lines__item__item_code`
+
+---
+
+#### `_get_stats(self) -> Dict[str, int]`
+
+**توضیح**: آمار کلی برای کارت‌های بالای صفحه محاسبه می‌کند.
+
+**مقدار بازگشتی**:
+- `Dict[str, int]`: شامل `total`, `awaiting_qc`, `qc_passed`, `converted`
+
+**منطق**:
+1. base queryset را بر اساس `company_id` و `is_enabled=1` می‌سازد
+2. `total`: تعداد کل receipts
+3. `awaiting_qc`: receipts با status `AWAITING_INSPECTION`
+4. `qc_passed`: receipts با status `APPROVED`
+5. `converted`: receipts با `is_converted=1`
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template آماده می‌کند.
+
+**Context Variables اضافه شده**:
+- `create_url`: URL ایجاد receipt جدید
+- `detail_url_name`, `edit_url_name`, `delete_url_name`, `lock_url_name`, `unlock_url_name`: نام URL patterns
+- `create_label`: `_('Temporary Receipt')`
+- `show_qc`: `True` (نمایش دکمه QC)
+- `show_conversion`: `True` (نمایش دکمه تبدیل)
+- `permanent_receipt_url_name`: URL برای permanent receipt
+- `empty_heading`, `empty_text`: پیام‌های خالی
+- `can_delete_own`, `can_delete_other`: permissions برای حذف (از `add_delete_permissions_to_context`)
+- `can_unlock_own`, `can_unlock_other`: permissions برای unlock
+- `status_filter`, `converted_filter`, `search_query`: مقادیر فعلی فیلترها
+- `stats`: آمار از `_get_stats()`
 
 **URL**: `/inventory/receipts/temporary/`
 
@@ -121,15 +212,59 @@
 - `receipt_variant`: `'temporary'`
 
 **متدها**:
-- `form_valid()`: تنظیم `company_id`, `created_by`, `status = AWAITING_INSPECTION`، ذخیره formset
+- `form_valid()`: تنظیم `company_id`, `created_by` و ذخیره formset (status در حالت `DRAFT` باقی می‌ماند تا کاربر دستی به QC ارسال کند)
 - `get_fieldsets()`: `[(_('Document Info'), ['expected_receipt_date', 'supplier', 'source_document_type', 'source_document_code', 'qc_approval_notes'])]`
 
 **نکات مهم**:
-- Status به `AWAITING_INSPECTION` تنظیم می‌شود (برای QC)
+- سند بعد از ایجاد در وضعیت `DRAFT` باقی می‌ماند؛ کاربر باید از View «ارسال به QC» استفاده کند.
 - اگر formset invalid باشد، document حذف می‌شود
 - باید حداقل یک valid line وجود داشته باشد
 
 **URL**: `/inventory/receipts/temporary/create/`
+
+---
+
+### ReceiptTemporaryDetailView
+
+**Type**: `InventoryBaseView, DetailView`
+
+**Template**: `inventory/receipt_detail.html`
+
+**Attributes**:
+- `model`: `ReceiptTemporary`
+- `context_object_name`: `'receipt'`
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch و فیلتر permissions آماده می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده و بهینه شده
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند
+2. فیلتر بر اساس `company_id` از session
+3. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.receipts.temporary', 'created_by')`
+4. Prefetch related objects:
+   - `lines__item`, `lines__warehouse` برای lines
+   - `select_related('created_by', 'supplier')` برای receipt
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template آماده می‌کند.
+
+**Context Variables اضافه شده**:
+- `active_module`: `'inventory'`
+- `receipt_variant`: `'temporary'`
+- `list_url`: URL لیست receipts
+- `edit_url`: URL ویرایش receipt
+- `can_edit`: `bool` - آیا receipt قفل نشده است (`not object.is_locked`)
+
+**URL**: `/inventory/receipts/temporary/<pk>/`
 
 ---
 
@@ -185,6 +320,21 @@
 
 ---
 
+### ReceiptTemporaryUnlockView
+
+**Type**: `DocumentUnlockView`
+
+**Attributes**:
+- `model`: `ReceiptTemporary`
+- `success_url_name`: `'inventory:receipt_temporary'`
+- `success_message`: `_('رسید موقت از قفل خارج شد و قابل ویرایش است.')`
+- `feature_code`: `'inventory.receipts.temporary'`
+- `required_action`: `'unlock_own'` (از DocumentUnlockView)
+
+**URL**: `/inventory/receipts/temporary/<pk>/unlock/`
+
+---
+
 ### ReceiptTemporarySendToQCView
 
 **Type**: `FeaturePermissionRequiredMixin, InventoryBaseView, View`
@@ -197,11 +347,12 @@
 - `allow_own_scope`: `True`
 
 **متدها**:
-- `post()`: بررسی lock و conversion، تنظیم `status = AWAITING_INSPECTION`
+- `post()`: بررسی lock و conversion، فقط در حالت `DRAFT` مجاز است و سپس `status = AWAITING_INSPECTION`
 
 **نکات مهم**:
 - فقط اگر قفل نشده و convert نشده باشد
-- اگر قبلاً `AWAITING_INSPECTION` باشد، info message
+- اگر status برابر `AWAITING_INSPECTION` باشد، پیام اطلاع‌رسانی نمایش داده می‌شود
+- اگر status برابر `APPROVED` یا `CLOSED` باشد، ارسال مجدد مجاز نیست
 
 **URL**: `/inventory/receipts/temporary/<pk>/send-to-qc/`
 
@@ -214,7 +365,7 @@
 **متدها**:
 - `get_purchase_request()`: دریافت purchase request از URL
 - `get_context_data()`: دریافت selected lines از session، populate formset با initial data
-- `form_valid()`: ذخیره receipt، به‌روزرسانی `quantity_fulfilled` در purchase request lines، پاک کردن session
+- `form_valid()`: ذخیره receipt (status = `DRAFT`)، به‌روزرسانی `quantity_fulfilled` در purchase request lines، پاک کردن session
 
 **Session Key**: `purchase_request_{pk}_receipt_temporary_lines`
 
@@ -263,10 +414,88 @@
 - `receipt_variant`: `'permanent'`
 
 **متدها**:
-- `form_valid()`: تنظیم `company_id`, `created_by`، ذخیره formset
-- `get_fieldsets()`: `[(_('Document Info'), ['document_code', 'document_date', 'requires_temporary_receipt', 'temporary_receipt', 'purchase_request', 'warehouse_request'])]`
+
+#### `form_valid(self, form)`
+- **Logic**:
+  1. تنظیم `company_id` و `created_by` روی form instance
+  2. Save کردن document (header)
+  3. دریافت `temporary_receipt` از form.cleaned_data یا POST data
+  4. ساخت formset با instance (document save شده)
+  5. پاس دادن `temporary_receipt` به همه forms در formset (از طریق `_temp_receipt` attribute)
+  6. Set کردن `document` روی همه line instances برای دسترسی در `clean_item`
+  7. Validation formset:
+     - اگر validation خطا بدهد:
+       - Document را delete می‌کند
+       - `form.instance` را reset می‌کند (برای render درست در template)
+       - Formset را با `instance=None` و همان POST data دوباره می‌سازد (برای حفظ خطاهای validation)
+       - فرم را با خطاها render می‌کند
+     - اگر validation موفق باشد:
+       - بررسی می‌کند که حداقل یک خط معتبر وجود داشته باشد
+       - اگر خط معتبری نباشد، document را delete می‌کند و خطا نمایش می‌دهد
+       - در غیر این صورت، خطوط را ذخیره می‌کند
+
+#### `get_fieldsets() -> list`
+- Returns: `[(_('Document Info'), ['document_code', 'document_date', 'requires_temporary_receipt', 'temporary_receipt', 'purchase_request', 'warehouse_request'])]`
+
+**Auto-Fill از Temporary Receipt**:
+- هنگام انتخاب `temporary_receipt` در dropdown، JavaScript به‌صورت خودکار:
+  1. داده‌های رسید موقت را از API `temporary_receipt_data` دریافت می‌کند
+  2. خطوط موجود را reset می‌کند
+  3. برای هر خط از temporary receipt، یک فرم جدید ایجاد می‌کند
+  4. index های formset را به‌درستی تنظیم می‌کند (`updateLineFormIndex`)
+  5. item را set می‌کند و با استفاده از `Promise.all`، units و warehouses را به‌صورت موازی لود می‌کند
+  6. بعد از لود شدن options، warehouse و unit را set می‌کند
+  7. quantity و supplier را populate می‌کند
+- اگر temporary receipt انتخاب نشود، خطوط پاک می‌شوند
+- **Validation**: در `ReceiptPermanentLineForm.clean_item()`:
+  - اگر temporary receipt انتخاب شده باشد (از طریق `_temp_receipt` attribute یا `document.temporary_receipt_id` یا POST data)، validation برای کالاهای `requires_temporary_receipt=1` را skip می‌کند
+  - در غیر این صورت، اگر کالا نیاز به temporary receipt داشته باشد، خطای validation نمایش داده می‌شود
 
 **URL**: `/inventory/receipts/permanent/create/`
+
+---
+
+### ReceiptPermanentDetailView
+
+**Type**: `InventoryBaseView, DetailView`
+
+**Template**: `inventory/receipt_detail.html`
+
+**Attributes**:
+- `model`: `ReceiptPermanent`
+- `context_object_name`: `'receipt'`
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch و فیلتر permissions آماده می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده و بهینه شده
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند
+2. فیلتر بر اساس `company_id` از session
+3. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.receipts.permanent', 'created_by')`
+4. Prefetch related objects:
+   - `lines__item`, `lines__warehouse`, `lines__supplier` برای lines
+   - `select_related('created_by', 'temporary_receipt', 'purchase_request')` برای receipt
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template آماده می‌کند.
+
+**Context Variables اضافه شده**:
+- `active_module`: `'inventory'`
+- `receipt_variant`: `'permanent'`
+- `list_url`: URL لیست receipts
+- `edit_url`: URL ویرایش receipt
+- `can_edit`: `bool` - آیا receipt قفل نشده است (`not object.is_locked`)
+
+**URL**: `/inventory/receipts/permanent/<pk>/`
 
 ---
 
@@ -317,6 +546,21 @@
 - `after_lock()`: تولید سریال‌ها برای lines (اگر نیاز باشد)
 
 **URL**: `/inventory/receipts/permanent/<pk>/lock/`
+
+---
+
+### ReceiptPermanentUnlockView
+
+**Type**: `DocumentUnlockView`
+
+**Attributes**:
+- `model`: `ReceiptPermanent`
+- `success_url_name`: `'inventory:receipt_permanent'`
+- `success_message`: `_('رسید دائم از قفل خارج شد و قابل ویرایش است.')`
+- `feature_code`: `'inventory.receipts.permanent'`
+- `required_action`: `'unlock_own'` (از DocumentUnlockView)
+
+**URL**: `/inventory/receipts/permanent/<pk>/unlock/`
 
 ---
 
@@ -371,6 +615,50 @@
 
 ---
 
+### ReceiptConsignmentDetailView
+
+**Type**: `InventoryBaseView, DetailView`
+
+**Template**: `inventory/receipt_detail.html`
+
+**Attributes**:
+- `model`: `ReceiptConsignment`
+- `context_object_name`: `'receipt'`
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch و فیلتر permissions آماده می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده و بهینه شده
+
+**منطق**:
+1. ابتدا `super().get_queryset()` را فراخوانی می‌کند
+2. فیلتر بر اساس `company_id` از session
+3. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.receipts.consignment', 'created_by')`
+4. Prefetch related objects:
+   - `lines__item`, `lines__warehouse`, `lines__supplier` برای lines
+   - `select_related('created_by')` برای receipt
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template آماده می‌کند.
+
+**Context Variables اضافه شده**:
+- `active_module`: `'inventory'`
+- `receipt_variant`: `'consignment'`
+- `list_url`: URL لیست receipts
+- `edit_url`: URL ویرایش receipt
+- `can_edit`: `bool` - آیا receipt قفل نشده است (`not object.is_locked`)
+
+**URL**: `/inventory/receipts/consignment/<pk>/`
+
+---
+
 ### ReceiptConsignmentUpdateView
 
 **Type**: `LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView`
@@ -417,6 +705,21 @@
 - `success_message`: `_('رسید امانی قفل شد و دیگر قابل ویرایش نیست.')`
 
 **URL**: `/inventory/receipts/consignment/<pk>/lock/`
+
+---
+
+### ReceiptConsignmentUnlockView
+
+**Type**: `DocumentUnlockView`
+
+**Attributes**:
+- `model`: `ReceiptConsignment`
+- `success_url_name`: `'inventory:receipt_consignment'`
+- `success_message`: `_('رسید امانی از قفل خارج شد و قابل ویرایش است.')`
+- `feature_code`: `'inventory.receipts.consignment'`
+- `required_action`: `'unlock_own'` (از DocumentUnlockView)
+
+**URL**: `/inventory/receipts/consignment/<pk>/unlock/`
 
 ---
 

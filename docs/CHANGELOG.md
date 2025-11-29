@@ -9,6 +9,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Fixed
+- **Inventory Module - ReceiptTemporary Workflow**:
+  - Temporary receipts now remain in `DRAFT` until users explicitly send them to QC
+  - Added new `APPROVED` status used after QC approval and filtered throughout the UI
+  - `ReceiptTemporarySendToQCView` validates current status and prevents re-sending approved/closed receipts
+  - Permanent receipt form now lists only QC-approved (`APPROVED`) temporary receipts
+  - Updated documentation/tests to reflect the new workflow
+- **Inventory Module - ReceiptTemporaryLine Model**: Fixed `AttributeError` in `ReceiptTemporaryLine.save()` method
+  - Removed incorrect access to `supplier` field in `save()` method (field doesn't exist on `ReceiptTemporaryLine`)
+  - `supplier` field is only available on `ReceiptTemporary` header, not on lines
+  - Removed duplicate `__str__` method definition
+- **Inventory Module - Temporary Receipt Data API**: Fixed `get_temporary_receipt_data` API endpoint to work with multi-line temporary receipts
+  - Updated to use `ReceiptTemporaryLine` instead of removed header fields (`item_id`, `warehouse_id`, etc.)
+  - Returns first line data as main data (for backward compatibility)
+  - Returns all lines in `lines` array (for multi-line support)
+  - Added proper error handling when temporary receipt has no lines
+  - Improved error messages with Persian translations
 - **Ticketing Module - Field Options Loading**: Fixed issue where manual options for dropdown/radio/checkbox fields were not being loaded when editing templates
   - Fixed `field_config` JSON serialization in Django forms for existing instances
   - Added `json_filters` template tag library for proper dict-to-JSON conversion in templates

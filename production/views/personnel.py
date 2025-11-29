@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
+from shared.views.base import EditLockProtectedMixin
 from production.forms import PersonForm
 from production.models import Person
 
@@ -78,7 +79,7 @@ class PersonCreateView(FeaturePermissionRequiredMixin, CreateView):
         return context
 
 
-class PersonUpdateView(FeaturePermissionRequiredMixin, UpdateView):
+class PersonUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
     """Update an existing person."""
     model = Person
     form_class = PersonForm

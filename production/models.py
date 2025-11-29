@@ -10,6 +10,7 @@ from shared.models import (
     ActivatableModel,
     CompanyScopedModel,
     CompanyUnit,
+    EditableModel,
     ENABLED_FLAG_CHOICES,
     LockableModel,
     MetadataModel,
@@ -37,6 +38,7 @@ class ProductionBaseModel(
     TimeStampedModel,
     ActivatableModel,
     MetadataModel,
+    EditableModel,
 ):
     class Meta:
         abstract = True
@@ -53,6 +55,7 @@ class Person(
     ActivatableModel,
     SortableModel,
     MetadataModel,
+    EditableModel,
 ):
     public_code = models.CharField(
         max_length=8,
@@ -581,6 +584,138 @@ class ProcessStep(ProductionSortableModel):
             self.work_center_code = self.work_center.public_code
         if self.machine and not self.machine_code:
             self.machine_code = self.machine.public_code
+        super().save(*args, **kwargs)
+
+
+class ProcessOperation(ProductionBaseModel):
+    """
+    Production Operation - عملیات تولید
+    Each process can have multiple operations that define the production steps.
+    """
+    process = models.ForeignKey(
+        Process,
+        on_delete=models.CASCADE,
+        related_name="operations",
+        help_text=_("Production process this operation belongs to"),
+    )
+    name = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text=_("Name of the operation"),
+    )
+    description = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text=_("Description of the operation"),
+    )
+    sequence_order = models.PositiveSmallIntegerField(
+        default=1,
+        help_text=_("Execution order (can be same for parallel operations)"),
+    )
+    labor_minutes_per_unit = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        help_text=_("Labor minutes required per unit"),
+    )
+    machine_minutes_per_unit = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        default=Decimal("0"),
+        help_text=_("Machine minutes required per unit"),
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text=_("Additional notes for this operation"),
+    )
+
+    class Meta:
+        verbose_name = _("Process Operation")
+        verbose_name_plural = _("Process Operations")
+        ordering = ("company", "process", "sequence_order", "id")
+        indexes = [
+            models.Index(fields=["process", "sequence_order"]),
+        ]
+
+    def __str__(self) -> str:
+        name = self.name or f"Operation {self.sequence_order}"
+        return f"{self.process.process_code} · {name} · Seq: {self.sequence_order}"
+
+    def save(self, *args, **kwargs):
+        # Auto-assign company from process
+        if not self.company_id and self.process_id:
+            self.company_id = self.process.company_id
+        super().save(*args, **kwargs)
+
+
+class ProcessOperationMaterial(ProductionBaseModel):
+    """
+    Materials used in a production operation - مواد استفاده شده در عملیات
+    Links BOMMaterial to ProcessOperation with quantity used in that operation.
+    """
+    operation = models.ForeignKey(
+        ProcessOperation,
+        on_delete=models.CASCADE,
+        related_name="operation_materials",
+        help_text=_("Production operation"),
+    )
+    bom_material = models.ForeignKey(
+        "BOMMaterial",
+        on_delete=models.PROTECT,
+        related_name="operation_usages",
+        help_text=_("BOM material being used"),
+    )
+    material_item = models.ForeignKey(
+        "inventory.Item",
+        on_delete=models.PROTECT,
+        related_name="operation_materials",
+        help_text=_("Material item (cached from BOM material)"),
+    )
+    material_item_code = models.CharField(
+        max_length=16,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        help_text=_("Material item code (cached)"),
+    )
+    quantity_used = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        help_text=_("Quantity used in this operation"),
+    )
+    unit = models.CharField(
+        max_length=50,
+        help_text=_("Unit of measurement (cached from BOM material)"),
+    )
+
+    class Meta:
+        verbose_name = _("Process Operation Material")
+        verbose_name_plural = _("Process Operation Materials")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("operation", "bom_material"),
+                name="production_operation_material_unique",
+            ),
+        ]
+        ordering = ("operation", "id")
+
+    def __str__(self) -> str:
+        return f"{self.operation} · {self.material_item_code} · {self.quantity_used} {self.unit}"
+
+    def save(self, *args, **kwargs):
+        # Auto-assign company from operation
+        if not self.company_id and self.operation_id:
+            self.company_id = self.operation.company_id
+        
+        # Cache values from BOM material if not set
+        if self.bom_material_id:
+            if not self.material_item_id:
+                self.material_item = self.bom_material.material_item
+            if not self.material_item_code:
+                self.material_item_code = self.bom_material.material_item_code
+            if not self.unit:
+                self.unit = self.bom_material.unit
+        
         super().save(*args, **kwargs)
 
 

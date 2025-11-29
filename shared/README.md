@@ -2,6 +2,14 @@
 
 This app hosts common entities, mixins, and admin registration that every other module depends on. Below is a breakdown of each custom file and the objects it defines.
 
+**نکته مهم**: برای جزئیات کامل هر بخش، به فایل‌های README مربوطه مراجعه کنید:
+- **Models**: [`README_MODELS.md`](README_MODELS.md) - مستندات کامل برای 11 model class
+- **Views**: [`views/README.md`](views/README.md) - Overview کلی views
+- **Forms**: [`README_FORMS.md`](README_FORMS.md) - مستندات کامل forms (Company, User, Group, AccessLevel, CompanyUnit)
+- **Utils**: [`utils/README.md`](utils/README.md) - توابع utility (modules.py, permissions.py, email.py, notifications.py)
+- **Template Tags**: [`templatetags/README.md`](templatetags/README.md) - Template tags (access_tags.py, json_filters.py)
+- **Migrations**: [`migrations/README.md`](migrations/README.md) - خلاصه migrations
+
 ## models.py
 
 Defines the reusable abstractions and core shared tables.
@@ -21,6 +29,9 @@ Defines the reusable abstractions and core shared tables.
   - `UserCompanyAccess`: maps users to companies with the role they hold; enforces one record per user/company pair.
   - `SectionRegistry`: Central registry for all application sections/features. Each section has a unique 6-digit code (XXYYZZ format) and nickname. Used by the Entity Reference System for cross-module action execution.
   - `ActionRegistry`: Registry of actions available for each section. Actions define what can be done in a section (e.g., show, approve, delete). Used by the Entity Reference System for dynamic action execution.
+  - `GroupProfile`: extends Django's `Group` model with additional metadata and access level assignments.
+  - `SMTPServer`: SMTP server configuration for email notifications.
+  - `Notification`: user notifications for system events (approvals, requests, etc.) with read/unread status tracking.
 
 All models inherit the appropriate mixins to guarantee consistent auditing and isolation.
 

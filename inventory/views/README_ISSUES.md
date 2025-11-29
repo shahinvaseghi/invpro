@@ -40,16 +40,17 @@
 
 **Context Variables**:
 - `issues`: queryset حواله‌های دائم (paginated)
-- `create_url`: URL برای ایجاد حواله جدید
-- `edit_url_name`: نام URL pattern برای ویرایش
-- `delete_url_name`: نام URL pattern برای حذف
-- `lock_url_name`: نام URL pattern برای قفل کردن
+- `create_url`: `reverse_lazy('inventory:issue_permanent_create')`
+- `edit_url_name`: `'inventory:issue_permanent_edit'`
+- `delete_url_name`: `'inventory:issue_permanent_delete'`
+- `lock_url_name`: `'inventory:issue_permanent_lock'`
+- `detail_url_name`: `'inventory:issue_permanent_detail'` (از کد)
 - `create_label`: `_('Permanent Issue')`
 - `show_warehouse_request`: `True` (نمایش لینک درخواست انبار)
 - `warehouse_request_url_name`: `'inventory:warehouse_request_edit'`
 - `serial_url_name`: `None`
-- `can_delete_own`: `bool` - آیا کاربر می‌تواند حواله‌های خودش را حذف کند
-- `can_delete_all`: `bool` - آیا کاربر می‌تواند همه حواله‌ها را حذف کند
+- `can_delete_own`: `bool` - آیا کاربر می‌تواند حواله‌های خودش را حذف کند (از `add_delete_permissions_to_context()`)
+- `can_delete_all`: `bool` - آیا کاربر می‌تواند همه حواله‌ها را حذف کند (از `add_delete_permissions_to_context()`)
 - `active_module`: `'inventory'` (از `InventoryBaseView`)
 
 **متدها**:
@@ -65,9 +66,12 @@
 
 **منطق**:
 1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
-2. `select_related('created_by', 'department_unit', 'warehouse_request')` را اعمال می‌کند
-3. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
-4. queryset را برمی‌گرداند
+2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.issues.permanent', 'created_by')`
+3. `select_related('created_by', 'department_unit', 'warehouse_request')` را اعمال می‌کند
+4. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
+5. queryset را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
 
 ---
 
@@ -93,6 +97,64 @@
 - `can_delete_own`, `can_delete_all`: از `add_delete_permissions_to_context()` (از `DocumentDeleteViewBase`)
 
 **URL**: `/inventory/issues/permanent/`
+
+---
+
+### `IssuePermanentDetailView`
+
+**توضیح**: نمایش جزئیات حواله دائم (فقط خواندنی)
+
+**Type**: `InventoryBaseView, DetailView`
+
+**Template**: `inventory/issue_detail.html`
+
+**Attributes**:
+- `model`: `models.IssuePermanent`
+- `template_name`: `'inventory/issue_detail.html'`
+- `context_object_name`: `'issue'`
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch برای بهینه‌سازی query برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset با `select_related` و `prefetch_related`
+
+**منطق**:
+1. queryset را از `super().get_queryset()` دریافت می‌کند
+2. فیلتر بر اساس `company_id` از session (اگر موجود باشد)
+3. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.issues.permanent', 'created_by')`
+4. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
+5. `select_related('created_by', 'warehouse_request', 'department_unit')` را اعمال می‌کند
+6. queryset را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با تمام متغیرهای لازم
+
+**Context Variables اضافه شده**:
+- `issue`: instance حواله دائم
+- `active_module`: `'inventory'`
+- `issue_variant`: `'permanent'`
+- `list_url`: URL لیست حواله‌های دائم
+- `edit_url`: URL ویرایش حواله
+- `can_edit`: `bool` - آیا حواله قفل نشده است
+
+**URL**: `/inventory/issues/permanent/<pk>/`
 
 ---
 
@@ -380,9 +442,12 @@
 - `QuerySet`: queryset با `select_related('created_by')`
 
 **منطق**:
-1. queryset را از `super().get_queryset()` دریافت می‌کند
-2. `select_related('created_by')` را اعمال می‌کند
-3. queryset را برمی‌گرداند
+1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
+2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.issues.consumption', 'created_by')`
+3. `select_related('created_by')` را اعمال می‌کند
+4. queryset را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
 
 ---
 
@@ -401,11 +466,63 @@
 - `edit_url_name`: `'inventory:issue_consumption_edit'`
 - `delete_url_name`: `'inventory:issue_consumption_delete'`
 - `lock_url_name`: `'inventory:issue_consumption_lock'`
+- `detail_url_name`: `'inventory:issue_consumption_detail'`
 - `create_label`: `_('Consumption Issue')`
 - `serial_url_name`: `None`
-- `can_delete_own`, `can_delete_all`: از `add_delete_permissions_to_context()`
+- `can_delete_own`, `can_delete_other`: از `add_delete_permissions_to_context()`
 
 **URL**: `/inventory/issues/consumption/`
+
+---
+
+### `IssueConsumptionDetailView`
+
+**توضیح**: نمایش جزئیات حواله مصرف (فقط خواندنی)
+
+**Type**: `InventoryBaseView, DetailView`
+
+**Template**: `inventory/issue_detail.html`
+
+**Attributes**:
+- `model`: `models.IssueConsumption`
+- `template_name`: `'inventory/issue_detail.html'`
+- `context_object_name`: `'issue'`
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch برای بهینه‌سازی query برمی‌گرداند.
+
+**منطق**:
+1. queryset را از `super().get_queryset()` دریافت می‌کند
+2. فیلتر بر اساس `company_id` از session (اگر موجود باشد)
+3. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.issues.consumption', 'created_by')`
+4. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
+5. `select_related('created_by', 'department_unit')` را اعمال می‌کند
+6. queryset را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**Context Variables اضافه شده**:
+- `active_module`: `'inventory'`
+- `issue_variant`: `'consumption'`
+- `list_url`: URL لیست issues
+- `edit_url`: URL ویرایش issue
+- `can_edit`: `bool` - آیا issue قفل نشده است (`not object.is_locked`)
+- `active_module`: `'inventory'`
+- `issue_variant`: `'consumption'`
+- `list_url`: URL لیست حواله‌های مصرف
+- `edit_url`: URL ویرایش حواله
+- `can_edit`: `bool` - آیا حواله قفل نشده است
+
+**URL**: `/inventory/issues/consumption/<pk>/`
 
 ---
 
@@ -661,7 +778,12 @@
 - `QuerySet`: queryset با `select_related('created_by')`
 
 **منطق**:
-- مشابه `IssueConsumptionListView.get_queryset()`
+1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
+2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.issues.consignment', 'created_by')`
+3. `select_related('created_by')` را اعمال می‌کند
+4. queryset را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
 
 ---
 
@@ -679,6 +801,57 @@
 - مشابه `IssueConsumptionListView.get_context_data()` اما با URL های مربوط به consignment
 
 **URL**: `/inventory/issues/consignment/`
+
+---
+
+### `IssueConsignmentDetailView`
+
+**توضیح**: نمایش جزئیات حواله امانی (فقط خواندنی)
+
+**Type**: `InventoryBaseView, DetailView`
+
+**Template**: `inventory/issue_detail.html`
+
+**Attributes**:
+- `model`: `models.IssueConsignment`
+- `template_name`: `'inventory/issue_detail.html'`
+- `context_object_name`: `'issue'`
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch برای بهینه‌سازی query برمی‌گرداند.
+
+**منطق**:
+1. queryset را از `super().get_queryset()` دریافت می‌کند
+2. فیلتر بر اساس `company_id` از session (اگر موجود باشد)
+3. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.issues.consignment', 'created_by')`
+4. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
+5. `select_related('created_by', 'department_unit')` را اعمال می‌کند
+6. queryset را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**Context Variables اضافه شده**:
+- `active_module`: `'inventory'`
+- `issue_variant`: `'consignment'`
+- `list_url`: URL لیست issues
+- `edit_url`: URL ویرایش issue
+- `can_edit`: `bool` - آیا issue قفل نشده است (`not object.is_locked`)
+- `active_module`: `'inventory'`
+- `issue_variant`: `'consignment'`
+- `list_url`: URL لیست حواله‌های امانی
+- `edit_url`: URL ویرایش حواله
+- `can_edit`: `bool` - آیا حواله قفل نشده است
+
+**URL**: `/inventory/issues/consignment/<pk>/`
 
 ---
 

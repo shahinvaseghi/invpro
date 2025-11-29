@@ -3,14 +3,20 @@ Process CRUD views for production module.
 """
 from typing import Any, Dict, Optional
 from django.contrib import messages
+from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
-from production.forms import ProcessForm
-from production.models import Process
+from shared.views.base import EditLockProtectedMixin
+from production.forms import (
+    ProcessForm,
+    ProcessOperationFormSet,
+    ProcessOperationMaterialFormSet,
+)
+from production.models import Process, ProcessOperation, ProcessOperationMaterial
 
 
 class ProcessListView(FeaturePermissionRequiredMixin, ListView):
@@ -39,6 +45,33 @@ class ProcessListView(FeaturePermissionRequiredMixin, ListView):
             'approved_by',  # Now FK to User, not Person
         ).prefetch_related('work_lines')
         
+        # Try to prefetch operations if table exists
+        # This is a safety check in case migration hasn't been run yet
+        try:
+            from django.db import connection
+            
+            with connection.cursor() as cursor:
+                # Check if ProcessOperation table exists
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'production_processoperation'
+                    );
+                """)
+                table_exists = cursor.fetchone()[0]
+                
+            if table_exists:
+                queryset = queryset.prefetch_related(
+                    'operations',
+                    'operations__operation_materials',
+                    'operations__operation_materials__bom_material',
+                )
+        except Exception:
+            # If check fails (e.g., table doesn't exist), skip operations prefetch
+            # This allows the page to load even if migration hasn't been run
+            pass
+        
         return queryset.order_by('finished_item__name', 'revision', 'sort_order')
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
@@ -63,28 +96,137 @@ class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
         kwargs['company_id'] = self.request.session.get('active_company_id')
         return kwargs
     
+    @transaction.atomic
     def form_valid(self, form: ProcessForm) -> HttpResponseRedirect:
-        """Auto-set company, created_by, finished_item, save M2M relationships."""
-        form.instance.company_id = self.request.session.get('active_company_id')
+        """Auto-set company, created_by, finished_item, save M2M relationships and operations."""
+        active_company_id = self.request.session.get('active_company_id')
+        if not active_company_id:
+            messages.error(self.request, _('Please select a company first.'))
+            return self.form_invalid(form)
+        
+        form.instance.company_id = active_company_id
         form.instance.created_by = self.request.user
         # Set finished_item from BOM
-        if form.cleaned_data.get('bom'):
-            form.instance.finished_item = form.cleaned_data['bom'].finished_item
+        bom = form.cleaned_data.get('bom')
+        if bom:
+            form.instance.finished_item = bom.finished_item
+        
+        # Save process first
         response = super().form_valid(form)
+        
         # Save Many-to-Many relationships
         form.save_m2m()
+        
+        # Get BOM ID for operations
+        bom_id = bom.id if bom else None
+        
+        # Handle operations formset
+        operations_formset = ProcessOperationFormSet(
+            self.request.POST,
+            prefix='operations',
+            form_kwargs={'bom_id': bom_id},
+        )
+        
+        if operations_formset.is_valid():
+            # Save operations
+            operations = []
+            for operation_form in operations_formset:
+                if operation_form.cleaned_data and not operation_form.cleaned_data.get('DELETE', False):
+                    # Check if operation has required fields
+                    name = operation_form.cleaned_data.get('name')
+                    sequence_order = operation_form.cleaned_data.get('sequence_order')
+                    
+                    if name or sequence_order:
+                        operation = operation_form.save(commit=False)
+                        operation.process = self.object
+                        operation.company_id = active_company_id
+                        operation.created_by = self.request.user
+                        operation.save()
+                        operations.append(operation)
+            
+            # Now save materials for each operation
+            operation_index = 0
+            for operation_form in operations_formset:
+                if operation_form.cleaned_data and not operation_form.cleaned_data.get('DELETE', False):
+                    name = operation_form.cleaned_data.get('name')
+                    sequence_order = operation_form.cleaned_data.get('sequence_order')
+                    
+                    if (name or sequence_order) and operation_index < len(operations):
+                        operation = operations[operation_index]
+                        
+                        # Parse materials formset for this operation
+                        materials_formset = ProcessOperationMaterialFormSet(
+                            self.request.POST,
+                            instance=operation,
+                            prefix=f'materials-{operation_index}',
+                            form_kwargs={'bom_id': bom_id},
+                        )
+                        
+                        if materials_formset.is_valid():
+                            materials_formset.save()
+                        else:
+                            # Collect errors
+                            for mat_form in materials_formset:
+                                if mat_form.errors:
+                                    for field, errors in mat_form.errors.items():
+                                        for error in errors:
+                                            messages.error(self.request, f"❌ {_('Material')} {operation_index + 1}: {error}")
+                        
+                        operation_index += 1
+        else:
+            # Show operations formset errors
+            if operations_formset.non_form_errors():
+                for error in operations_formset.non_form_errors():
+                    messages.error(self.request, f"❌ {error}")
+            for i, op_form in enumerate(operations_formset):
+                if op_form.errors:
+                    for field, errors in op_form.errors.items():
+                        for error in errors:
+                            field_label = op_form.fields[field].label if field in op_form.fields else field
+                            messages.error(self.request, f"❌ {_('Operation')} {i + 1} - {field_label}: {error}")
+        
         messages.success(self.request, _('Process created successfully.'))
         return response
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and form title to context."""
+        """Add active module, form title, and operations formset to context."""
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'production'
         context['form_title'] = _('Create Process')
+        
+        # Get BOM ID from form if available
+        bom_id = None
+        if hasattr(context.get('form'), 'cleaned_data') and context['form'].cleaned_data:
+            bom = context['form'].cleaned_data.get('bom')
+            if bom:
+                bom_id = bom.id
+        elif self.request.POST:
+            bom_id_str = self.request.POST.get('bom')
+            if bom_id_str:
+                try:
+                    bom_id = int(bom_id_str)
+                except (ValueError, TypeError):
+                    pass
+        
+        # Create operations formset
+        if self.request.POST:
+            operations_formset = ProcessOperationFormSet(
+                self.request.POST,
+                prefix='operations',
+                form_kwargs={'bom_id': bom_id},
+            )
+        else:
+            operations_formset = ProcessOperationFormSet(
+                prefix='operations',
+                form_kwargs={'bom_id': bom_id},
+            )
+        
+        context['operations_formset'] = operations_formset
+        
         return context
 
 
-class ProcessUpdateView(FeaturePermissionRequiredMixin, UpdateView):
+class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
     """Update an existing process."""
     model = Process
     form_class = ProcessForm
@@ -106,23 +248,214 @@ class ProcessUpdateView(FeaturePermissionRequiredMixin, UpdateView):
             return Process.objects.none()
         return Process.objects.filter(company_id=active_company_id)
     
+    @transaction.atomic
     def form_valid(self, form: ProcessForm) -> HttpResponseRedirect:
-        """Auto-set edited_by, finished_item, save M2M relationships."""
+        """Auto-set edited_by, finished_item, save M2M relationships and operations."""
+        active_company_id = self.request.session.get('active_company_id')
+        if not active_company_id:
+            messages.error(self.request, _('Please select a company first.'))
+            return self.form_invalid(form)
+        
         form.instance.edited_by = self.request.user
         # Set finished_item from BOM if changed
-        if form.cleaned_data.get('bom'):
-            form.instance.finished_item = form.cleaned_data['bom'].finished_item
+        bom = form.cleaned_data.get('bom')
+        if bom:
+            form.instance.finished_item = bom.finished_item
+        
+        # Save process
         response = super().form_valid(form)
+        
         # Save Many-to-Many relationships
         form.save_m2m()
+        
+        # Get BOM ID for operations
+        bom_id = bom.id if bom else (self.object.bom_id if self.object else None)
+        
+        # Handle operations formset
+        operations_formset = ProcessOperationFormSet(
+            self.request.POST,
+            prefix='operations',
+            form_kwargs={'bom_id': bom_id},
+        )
+        
+        if operations_formset.is_valid():
+            # Delete existing operations that are not in formset
+            existing_operation_ids = set(
+                ProcessOperation.objects.filter(process=self.object).values_list('id', flat=True)
+            )
+            
+            # Save operations
+            operations = []
+            for operation_form in operations_formset:
+                if operation_form.cleaned_data and not operation_form.cleaned_data.get('DELETE', False):
+                    name = operation_form.cleaned_data.get('name')
+                    sequence_order = operation_form.cleaned_data.get('sequence_order')
+                    
+                    if name or sequence_order:
+                        # Check if this is an existing operation (by checking if we have an ID in form)
+                        operation_id = self.request.POST.get(f'{operation_form.prefix}-id')
+                        
+                        if operation_id:
+                            try:
+                                operation = ProcessOperation.objects.get(
+                                    id=int(operation_id),
+                                    process=self.object,
+                                )
+                                # Update existing
+                                for field in ['name', 'description', 'sequence_order', 
+                                            'labor_minutes_per_unit', 'machine_minutes_per_unit', 'notes']:
+                                    if field in operation_form.cleaned_data:
+                                        setattr(operation, field, operation_form.cleaned_data[field])
+                                operation.edited_by = self.request.user
+                                operation.save()
+                                operations.append(operation)
+                                existing_operation_ids.discard(operation.id)
+                            except (ProcessOperation.DoesNotExist, ValueError, TypeError):
+                                # Create new
+                                operation = operation_form.save(commit=False)
+                                operation.process = self.object
+                                operation.company_id = active_company_id
+                                operation.created_by = self.request.user
+                                operation.save()
+                                operations.append(operation)
+                        else:
+                            # Create new
+                            operation = operation_form.save(commit=False)
+                            operation.process = self.object
+                            operation.company_id = active_company_id
+                            operation.created_by = self.request.user
+                            operation.save()
+                            operations.append(operation)
+            
+            # Delete operations that were removed
+            if existing_operation_ids:
+                ProcessOperation.objects.filter(
+                    id__in=existing_operation_ids,
+                    process=self.object,
+                ).delete()
+            
+            # Now save materials for each operation
+            operation_index = 0
+            for operation_form in operations_formset:
+                if operation_form.cleaned_data and not operation_form.cleaned_data.get('DELETE', False):
+                    name = operation_form.cleaned_data.get('name')
+                    sequence_order = operation_form.cleaned_data.get('sequence_order')
+                    
+                    if (name or sequence_order) and operation_index < len(operations):
+                        operation = operations[operation_index]
+                        
+                        # Parse materials formset for this operation
+                        materials_formset = ProcessOperationMaterialFormSet(
+                            self.request.POST,
+                            instance=operation,
+                            prefix=f'materials-{operation_index}',
+                            form_kwargs={'bom_id': bom_id},
+                        )
+                        
+                        if materials_formset.is_valid():
+                            materials_formset.save()
+                        else:
+                            # Collect errors
+                            for mat_form in materials_formset:
+                                if mat_form.errors:
+                                    for field, errors in mat_form.errors.items():
+                                        for error in errors:
+                                            messages.error(self.request, f"❌ {_('Material')} {operation_index + 1}: {error}")
+                        
+                        operation_index += 1
+        else:
+            # Show operations formset errors
+            if operations_formset.non_form_errors():
+                for error in operations_formset.non_form_errors():
+                    messages.error(self.request, f"❌ {error}")
+            for i, op_form in enumerate(operations_formset):
+                if op_form.errors:
+                    for field, errors in op_form.errors.items():
+                        for error in errors:
+                            field_label = op_form.fields[field].label if field in op_form.fields else field
+                            messages.error(self.request, f"❌ {_('Operation')} {i + 1} - {field_label}: {error}")
+        
         messages.success(self.request, _('Process updated successfully.'))
         return response
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and form title to context."""
+        """Add active module, form title, and operations formset to context."""
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'production'
         context['form_title'] = _('Edit Process')
+        
+        # Get BOM ID from form or object
+        bom_id = None
+        if self.object and self.object.bom_id:
+            bom_id = self.object.bom_id
+        elif hasattr(context.get('form'), 'cleaned_data') and context['form'].cleaned_data:
+            bom = context['form'].cleaned_data.get('bom')
+            if bom:
+                bom_id = bom.id
+        elif self.request.POST:
+            bom_id_str = self.request.POST.get('bom')
+            if bom_id_str:
+                try:
+                    bom_id = int(bom_id_str)
+                except (ValueError, TypeError):
+                    pass
+        
+        # Create operations formset
+        if self.request.POST:
+            operations_formset = ProcessOperationFormSet(
+                self.request.POST,
+                prefix='operations',
+                form_kwargs={'bom_id': bom_id},
+            )
+        else:
+            # Load existing operations
+            existing_operations = ProcessOperation.objects.filter(
+                process=self.object,
+                is_enabled=1,
+            ).order_by('sequence_order', 'id')
+            
+            initial_data = []
+            for op in existing_operations:
+                initial_data.append({
+                    'name': op.name,
+                    'description': op.description,
+                    'sequence_order': op.sequence_order,
+                    'labor_minutes_per_unit': op.labor_minutes_per_unit,
+                    'machine_minutes_per_unit': op.machine_minutes_per_unit,
+                    'notes': op.notes,
+                })
+            
+            operations_formset = ProcessOperationFormSet(
+                prefix='operations',
+                form_kwargs={'bom_id': bom_id},
+                initial=initial_data,
+            )
+            
+            # Store existing operations and their materials for template
+            existing_operations_data = []
+            for op in existing_operations:
+                materials = ProcessOperationMaterial.objects.filter(
+                    operation=op,
+                    is_enabled=1,
+                ).select_related('bom_material', 'material_item').order_by('id')
+                
+                existing_operations_data.append({
+                    'operation': op,
+                    'materials': [
+                        {
+                            'id': mat.id,
+                            'bom_material_id': mat.bom_material_id,
+                            'quantity_used': str(mat.quantity_used),
+                            'unit': mat.unit,
+                        }
+                        for mat in materials
+                    ]
+                })
+            
+            context['existing_operations_data'] = existing_operations_data
+        
+        context['operations_formset'] = operations_formset
+        
         return context
 
 

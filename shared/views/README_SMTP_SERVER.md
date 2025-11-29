@@ -86,7 +86,7 @@
 
 #### `form_valid(self, form: SMTPServerForm) -> HttpResponseRedirect`
 
-**توضیح**: تنظیم خودکار `created_by` و `edited_by`.
+**توضیح**: تنظیم خودکار `created_by` و `edited_by` و ذخیره SMTP server.
 
 **پارامترهای ورودی**:
 - `form`: `SMTPServerForm` validated
@@ -99,6 +99,20 @@
 2. تنظیم `form.instance.edited_by = self.request.user`
 3. نمایش پیام موفقیت
 4. فراخوانی `super().form_valid(form)` برای ذخیره
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: اضافه کردن active module و form title به context.
+
+**Context Variables**:
+- `form`: `SMTPServerForm`
+- `active_module`: `'shared'`
+- `form_title`: `_('Create SMTP Server')`
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با form_title
 
 ---
 
@@ -190,16 +204,33 @@
 
 **متدها**:
 
-#### `get_context_data(**kwargs) -> Dict[str, Any]`
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
 
 **توضیح**: اضافه کردن active module به context.
 
 **Context Variables**:
-- `smtp_server`: SMTP server object (از `get_object()`)
+- `smtp_server`: SMTP server object (از `context_object_name`)
 - `active_module`: `'shared'`
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با active_module
+
+---
+
+#### `delete(self, request, *args, **kwargs) -> HttpResponseRedirect`
+
+**توضیح**: حذف SMTP server و نمایش پیام موفقیت.
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args, **kwargs`: آرگومان‌های اضافی
+
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect به success URL
+
+**منطق**:
+1. نمایش پیام موفقیت
+2. فراخوانی `super().delete()` برای حذف
 
 **URL**: `/shared/smtp-servers/<pk>/delete/`
 

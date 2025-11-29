@@ -106,9 +106,9 @@
    - تنظیم `qc_approved_by = request.user`
    - تنظیم `qc_approved_at = timezone.now()`
    - تنظیم `qc_approval_notes = approval_notes`
-   - تنظیم `status = AWAITING_INSPECTION` (ثابت می‌ماند)
+   - تنظیم `status = APPROVED`
    - تنظیم `is_locked = 1`
-   - ذخیره receipt
+   - ذخیره receipt با `update_fields`
 7. نمایش پیام موفقیت
 8. Redirect به `qc:temporary_receipts`
 

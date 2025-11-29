@@ -23,7 +23,13 @@ XX YY ZZ
 - `02` - Inventory
 - `03` - Production
 - `04` - Quality Control (QC)
-- `05` - Ticketing (future)
+- `05` - Ticketing
+- `06` - Accounting
+- `07` - Sales
+- `08` - Human Resources (HR)
+- `09` - Office Automation
+- `10` - Transportation
+- `11` - Procurement
 
 ---
 
@@ -130,6 +136,156 @@ XX YY ZZ
 
 ---
 
+### Module 05 - Ticketing
+
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `050000` | `tickets` | Tickets | Ticket management |
+| `050100` | `ticket_categories` | Ticket Categories | Ticket category management |
+| `050200` | `ticket_templates` | Ticket Templates | Ticket template management |
+| `050300` | `ticket_subcategories` | Ticket Subcategories | Ticket subcategory management |
+
+---
+
+### Module 06 - Accounting
+
+#### Dashboard (06 00 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `060000` | `accounting_dashboard` | Accounting Dashboard | Main dashboard for accounting module |
+
+#### General Section (06 01 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `060101` | `general_ledger` | General Ledger | General ledger documents |
+| `060102` | `subsidiary_ledger` | Subsidiary Ledgers | Subsidiary ledger management |
+| `060103` | `detail_ledger` | Detail Ledgers | Detail ledger management |
+
+#### Accounting Documents (06 02 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `060201` | `accounting_document_entry` | Entry Document | Accounting entry document |
+| `060202` | `accounting_document_exit` | Exit Document | Accounting exit document |
+
+#### Treasury (06 03 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `060301` | `treasury_expense` | Expense Document | Treasury expense document |
+| `060302` | `treasury_income` | Income Document | Treasury income document |
+
+#### Payroll (06 04 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `060401` | `payroll_document` | Payroll Document | Payroll document management |
+| `060402` | `payroll_decrees` | Decrees | Payroll decree management |
+| `060403` | `payroll_decree_groups` | Decree Groups | Payroll decree group management |
+| `060404` | `payroll_decree_subgroups` | Decree Subgroups | Payroll decree subgroup management |
+
+---
+
+### Module 07 - Sales
+
+#### Dashboard (07 00 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `070000` | `sales_dashboard` | Sales Dashboard | Main dashboard for sales module |
+
+#### Sales Invoice (07 01 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `070101` | `sales_invoice` | Sales Invoice | Create and manage sales invoices |
+
+---
+
+### Module 08 - Human Resources (HR)
+
+#### Dashboard (08 00 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `080000` | `hr_dashboard` | HR Dashboard | Main dashboard for HR module |
+
+#### Personnel Section (08 01 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `080101` | `personnel_create` | Create Personnel | Create new personnel record |
+| `080102` | `personnel_decree_assignment` | Decree Assignment | Assign decrees to personnel |
+| `080103` | `personnel_form_create` | Personnel Form | Create personnel form |
+| `080104` | `personnel_form_groups` | Form Groups | Personnel form group management |
+| `080105` | `personnel_form_subgroups` | Form Subgroups | Personnel form subgroup management |
+
+#### Requests Section (08 02 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `080201` | `leave_request` | Leave Request | Leave request management |
+| `080202` | `sick_leave_request` | Sick Leave Request | Sick leave request management |
+| `080203` | `loan_request` | Loan Request | Loan request management |
+
+#### Loans Section (08 03 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `080301` | `loan_management` | Loan Management | Loan management |
+| `080302` | `loan_scheduling` | Loan Scheduling | Loan scheduling management |
+| `080303` | `savings_fund` | Savings Fund | Savings fund management |
+
+---
+
+### Module 09 - Office Automation
+
+#### Dashboard (09 00 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `090000` | `office_automation_dashboard` | Office Automation Dashboard | Main dashboard for office automation module |
+
+#### Inbox Section (09 01 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `090101` | `incoming_letters` | Incoming Letters | Incoming letters management |
+| `090102` | `write_letter` | Write Letter | Write new letter |
+| `090103` | `fill_form` | Fill Form | Fill form management |
+
+#### Processes Section (09 02 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `090201` | `process_engine` | Process Engine | Process engine management |
+| `090202` | `process_form_connection` | Process-Form Connection | Process and form connection management |
+
+#### Forms Section (09 03 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `090301` | `form_builder` | Form Builder | Form builder tool |
+
+---
+
+### Module 10 - Transportation
+
+#### Dashboard (10 00 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `100000` | `transportation_dashboard` | Transportation Dashboard | Main dashboard for transportation module |
+
+---
+
+### Module 11 - Procurement
+
+#### Dashboard (11 00 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `110000` | `procurement_dashboard` | Procurement Dashboard | Main dashboard for procurement module |
+
+#### Purchase Section (11 01 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `110101` | `purchases` | Purchases | Purchase management |
+
+#### Buyers Section (11 02 XX)
+| Code | Nickname | Name | Description |
+|------|----------|------|-------------|
+| `110201` | `buyers` | Buyers | Buyer list management |
+| `110202` | `buyer_create` | Create Buyer | Create new buyer |
+| `110203` | `buyer_assignment` | Buyer Assignment | Assign buyers to purchases |
+
+---
+
 ## Action Syntax
 
 Actions are referenced using the following syntax:
@@ -160,18 +316,37 @@ Each section can define multiple actions. Actions are defined per section with t
 | `show` | `gp=<group_name>` | Show users from specific group |
 | `showown` | - | Show own user profile |
 | `add` | - | Add new user |
-| `edit` | `id=<user_id>` | Edit user |
-| `disable` | `id=<user_id>` | Disable user |
-| `enable` | `id=<user_id>` | Enable user |
+| `edit` | `id=<user_id>`, `code=<user_code>` (اختیاری) | Edit user - can use either id or code |
+| `delete` | `id=<user_id>`, `code=<user_code>` (اختیاری) | Delete user - can use either id or code |
+| `disable` | `id=<user_id>`, `code=<user_code>` (اختیاری) | Disable user - can use either id or code |
+| `enable` | `id=<user_id>`, `code=<user_code>` (اختیاری) | Enable user - can use either id or code |
+
+### Groups (010302 / groups)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show user groups |
+| `add` | - | Create new group |
+| `edit` | `id=<group_id>`, `code=<group_code>` (اختیاری) | Edit group - can use either id or code |
+| `delete` | `id=<group_id>`, `code=<group_code>` (اختیاری) | Delete group - can use either id or code |
+
+### Access Levels (010303 / access_levels)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show access levels |
+| `add` | - | Create new access level |
+| `edit` | `id=<access_level_id>`, `code=<access_level_code>` (اختیاری) | Edit access level - can use either id or code |
+| `delete` | `id=<access_level_id>`, `code=<access_level_code>` (اختیاری) | Delete access level - can use either id or code |
 
 ### Purchase Requests (020400 / purchase_requests)
 
 | Action | Parameters | Description |
 |--------|------------|-------------|
-| `show` | - | Show purchase requests |
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<pending\|approved\|rejected\|locked\|all>` | Show purchase requests with optional filters |
 | `add` | - | Create new purchase request |
-| `edit` | `id=<request_id>` | Edit purchase request |
-| `approve` | `id=<request_id>`, `code=<request_code>` | Approve purchase request |
+| `edit` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Edit purchase request - can use either id or code |
+| `approve` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Approve purchase request - can use either id or code |
 | `create_receipt_from` | `id=<request_id>`, `type=<temporary\|permanent\|consignment>` | Create receipt from approved purchase request |
 
 **Special Actions:**
@@ -181,10 +356,10 @@ Each section can define multiple actions. Actions are defined per section with t
 
 | Action | Parameters | Description |
 |--------|------------|-------------|
-| `show` | - | Show warehouse requests |
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<pending\|approved\|rejected\|locked\|all>` | Show warehouse requests with optional filters |
 | `add` | - | Create new warehouse request |
-| `edit` | `id=<request_id>` | Edit warehouse request |
-| `approve` | `id=<request_id>`, `code=<request_code>` | Approve warehouse request |
+| `edit` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Edit warehouse request - can use either id or code |
+| `approve` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Approve warehouse request - can use either id or code |
 | `create_issue_from` | `id=<request_id>`, `type=<permanent\|consumption\|consignment>` | Create issue from approved warehouse request |
 
 **Special Actions:**
@@ -196,32 +371,32 @@ Each section can define multiple actions. Actions are defined per section with t
 
 | Action | Parameters | Description |
 |--------|------------|-------------|
-| `show` | - | Show temporary receipts |
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `unlocked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `qc_status=<pending\|approved\|rejected\|not_sent>`, `qc_approved=<yes\|no\|all>`, `qc_rejected=<yes\|no\|all>`, `qc_pending=<yes\|no\|all>`, `status=<draft\|locked\|qc_pending\|qc_approved\|qc_rejected\|all>` | Show temporary receipts with optional filters |
 | `add` | - | Create new temporary receipt |
-| `edit` | `id=<receipt_id>` | Edit temporary receipt |
-| `delete` | `id=<receipt_id>` | Delete temporary receipt |
-| `lock` | `id=<receipt_id>` | Lock temporary receipt |
-| `send_to_qc` | `id=<receipt_id>` | Send temporary receipt to QC for inspection |
+| `edit` | `id=<receipt_id>`, `code=<receipt_code>` (اختیاری) | Edit temporary receipt - can use either id or code |
+| `delete` | `id=<receipt_id>`, `code=<receipt_code>` (اختیاری) | Delete temporary receipt - can use either id or code |
+| `lock` | `id=<receipt_id>`, `code=<receipt_code>` (اختیاری) | Lock temporary receipt - can use either id or code |
+| `send_to_qc` | `id=<receipt_id>`, `code=<receipt_code>` (اختیاری) | Send temporary receipt to QC for inspection - can use either id or code |
 
 #### Permanent Receipts (020602 / receipt_permanent)
 
 | Action | Parameters | Description |
 |--------|------------|-------------|
-| `show` | - | Show permanent receipts |
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `unlocked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show permanent receipts with optional filters |
 | `add` | - | Create new permanent receipt |
-| `edit` | `id=<receipt_id>` | Edit permanent receipt |
-| `delete` | `id=<receipt_id>` | Delete permanent receipt |
-| `lock` | `id=<receipt_id>` | Lock permanent receipt |
+| `edit` | `id=<receipt_id>`, `code=<receipt_code>` (اختیاری) | Edit permanent receipt - can use either id or code |
+| `delete` | `id=<receipt_id>`, `code=<receipt_code>` (اختیاری) | Delete permanent receipt - can use either id or code |
+| `lock` | `id=<receipt_id>`, `code=<receipt_code>` (اختیاری) | Lock permanent receipt - can use either id or code |
 
 #### Consignment Receipts (020603 / receipt_consignment)
 
 | Action | Parameters | Description |
 |--------|------------|-------------|
-| `show` | - | Show consignment receipts |
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `unlocked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show consignment receipts with optional filters |
 | `add` | - | Create new consignment receipt |
-| `edit` | `id=<receipt_id>` | Edit consignment receipt |
-| `delete` | `id=<receipt_id>` | Delete consignment receipt |
-| `lock` | `id=<receipt_id>` | Lock consignment receipt |
+| `edit` | `id=<receipt_id>`, `code=<receipt_code>` (اختیاری) | Edit consignment receipt - can use either id or code |
+| `delete` | `id=<receipt_id>`, `code=<receipt_code>` (اختیاری) | Delete consignment receipt - can use either id or code |
+| `lock` | `id=<receipt_id>`, `code=<receipt_code>` (اختیاری) | Lock consignment receipt - can use either id or code |
 
 ### Issues
 
@@ -229,40 +404,445 @@ Each section can define multiple actions. Actions are defined per section with t
 
 | Action | Parameters | Description |
 |--------|------------|-------------|
-| `show` | - | Show permanent issues |
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `unlocked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show permanent issues with optional filters |
 | `add` | - | Create new permanent issue |
-| `edit` | `id=<issue_id>` | Edit permanent issue |
-| `delete` | `id=<issue_id>` | Delete permanent issue |
-| `lock` | `id=<issue_id>` | Lock permanent issue |
+| `edit` | `id=<issue_id>`, `code=<issue_code>` (اختیاری) | Edit permanent issue - can use either id or code |
+| `delete` | `id=<issue_id>`, `code=<issue_code>` (اختیاری) | Delete permanent issue - can use either id or code |
+| `lock` | `id=<issue_id>`, `code=<issue_code>` (اختیاری) | Lock permanent issue - can use either id or code |
 
 #### Consumption Issues (020702 / issue_consumption)
 
 | Action | Parameters | Description |
 |--------|------------|-------------|
-| `show` | - | Show consumption issues |
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `unlocked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show consumption issues with optional filters |
 | `add` | - | Create new consumption issue |
-| `edit` | `id=<issue_id>` | Edit consumption issue |
-| `delete` | `id=<issue_id>` | Delete consumption issue |
-| `lock` | `id=<issue_id>` | Lock consumption issue |
+| `edit` | `id=<issue_id>`, `code=<issue_code>` (اختیاری) | Edit consumption issue - can use either id or code |
+| `delete` | `id=<issue_id>`, `code=<issue_code>` (اختیاری) | Delete consumption issue - can use either id or code |
+| `lock` | `id=<issue_id>`, `code=<issue_code>` (اختیاری) | Lock consumption issue - can use either id or code |
 
 #### Consignment Issues (020703 / issue_consignment)
 
 | Action | Parameters | Description |
 |--------|------------|-------------|
-| `show` | - | Show consignment issues |
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `unlocked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show consignment issues with optional filters |
 | `add` | - | Create new consignment issue |
-| `edit` | `id=<issue_id>` | Edit consignment issue |
-| `delete` | `id=<issue_id>` | Delete consignment issue |
-| `lock` | `id=<issue_id>` | Lock consignment issue |
+| `edit` | `id=<issue_id>`, `code=<issue_code>` (اختیاری) | Edit consignment issue - can use either id or code |
+| `delete` | `id=<issue_id>`, `code=<issue_code>` (اختیاری) | Delete consignment issue - can use either id or code |
+| `lock` | `id=<issue_id>`, `code=<issue_code>` (اختیاری) | Lock consignment issue - can use either id or code |
 
 ### Inspections (041000 / inspections)
 
 | Action | Parameters | Description |
 |--------|------------|-------------|
-| `show` | - | Show inspections |
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `unlocked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<pending\|approved\|rejected\|all>` | Show inspections with optional filters |
 | `showown` | - | Show own inspections |
-| `accept` | `code=<inspection_code>` | Accept inspection |
-| `reject` | `code=<inspection_code>` | Reject inspection |
+| `approve` | `id=<inspection_id>`, `code=<inspection_code>` | Approve inspection |
+| `reject` | `id=<inspection_id>`, `code=<inspection_code>` | Reject inspection |
+
+---
+
+### Ticketing
+
+#### Tickets (050000 / tickets)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show tickets |
+| `showown` | - | Show own tickets |
+| `create` | `template_id=<template_id>`, `category_id=<category_id>` | Create new ticket |
+| `respond` | `id=<ticket_id>`, `code=<ticket_code>` | Respond to ticket |
+| `close` | `id=<ticket_id>`, `code=<ticket_code>` | Close ticket |
+| `reopen` | `id=<ticket_id>`, `code=<ticket_code>` | Reopen closed ticket |
+
+#### Ticket Categories (050100 / ticket_categories)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show ticket categories |
+| `add` | - | Create new category |
+| `edit` | `id=<category_id>` | Edit category |
+| `delete` | `id=<category_id>` | Delete category |
+
+#### Ticket Templates (050200 / ticket_templates)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show ticket templates |
+| `add` | - | Create new template |
+| `edit` | `id=<template_id>` | Edit template |
+| `delete` | `id=<template_id>` | Delete template |
+
+#### Ticket Subcategories (050300 / ticket_subcategories)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show ticket subcategories |
+| `add` | - | Create new subcategory |
+| `edit` | `id=<subcategory_id>` | Edit subcategory |
+| `delete` | `id=<subcategory_id>` | Delete subcategory |
+
+---
+
+### Accounting
+
+#### Accounting Dashboard (060000 / accounting_dashboard)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show accounting dashboard |
+
+#### General Ledger (060101 / general_ledger)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show general ledger documents with optional filters |
+| `add` | - | Create new general ledger document |
+| `edit` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Edit general ledger document - can use either id or code |
+| `delete` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Delete general ledger document - can use either id or code |
+| `lock` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Lock general ledger document - can use either id or code |
+
+#### Subsidiary Ledger (060102 / subsidiary_ledger)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show subsidiary ledgers with optional filters |
+| `add` | - | Create new subsidiary ledger |
+| `edit` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Edit subsidiary ledger - can use either id or code |
+| `delete` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Delete subsidiary ledger - can use either id or code |
+| `lock` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Lock subsidiary ledger - can use either id or code |
+
+#### Detail Ledger (060103 / detail_ledger)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show detail ledgers with optional filters |
+| `add` | - | Create new detail ledger |
+| `edit` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Edit detail ledger - can use either id or code |
+| `delete` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Delete detail ledger - can use either id or code |
+| `lock` | `id=<ledger_id>`, `code=<ledger_code>` (اختیاری) | Lock detail ledger - can use either id or code |
+
+#### Accounting Document Entry (060201 / accounting_document_entry)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show entry documents with optional filters |
+| `add` | - | Create new entry document |
+| `edit` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Edit entry document - can use either id or code |
+| `delete` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Delete entry document - can use either id or code |
+| `lock` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Lock entry document - can use either id or code |
+
+#### Accounting Document Exit (060202 / accounting_document_exit)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show exit documents with optional filters |
+| `add` | - | Create new exit document |
+| `edit` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Edit exit document - can use either id or code |
+| `delete` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Delete exit document - can use either id or code |
+| `lock` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Lock exit document - can use either id or code |
+
+#### Treasury Expense (060301 / treasury_expense)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show expense documents with optional filters |
+| `add` | - | Create new expense document |
+| `edit` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Edit expense document - can use either id or code |
+| `delete` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Delete expense document - can use either id or code |
+| `lock` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Lock expense document - can use either id or code |
+
+#### Treasury Income (060302 / treasury_income)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show income documents with optional filters |
+| `add` | - | Create new income document |
+| `edit` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Edit income document - can use either id or code |
+| `delete` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Delete income document - can use either id or code |
+| `lock` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Lock income document - can use either id or code |
+
+#### Payroll Document (060401 / payroll_document)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show payroll documents with optional filters |
+| `add` | - | Create new payroll document |
+| `edit` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Edit payroll document - can use either id or code |
+| `delete` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Delete payroll document - can use either id or code |
+| `lock` | `id=<document_id>`, `code=<document_code>` (اختیاری) | Lock payroll document - can use either id or code |
+
+#### Payroll Decrees (060402 / payroll_decrees)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show payroll decrees |
+| `add` | - | Create new decree |
+| `edit` | `id=<decree_id>`, `code=<decree_code>` (اختیاری) | Edit decree - can use either id or code |
+| `delete` | `id=<decree_id>`, `code=<decree_code>` (اختیاری) | Delete decree - can use either id or code |
+
+#### Payroll Decree Groups (060403 / payroll_decree_groups)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show decree groups |
+| `add` | - | Create new decree group |
+| `edit` | `id=<group_id>`, `code=<group_code>` (اختیاری) | Edit decree group - can use either id or code |
+| `delete` | `id=<group_id>`, `code=<group_code>` (اختیاری) | Delete decree group - can use either id or code |
+
+#### Payroll Decree Subgroups (060404 / payroll_decree_subgroups)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show decree subgroups |
+| `add` | - | Create new decree subgroup |
+| `edit` | `id=<subgroup_id>`, `code=<subgroup_code>` (اختیاری) | Edit decree subgroup - can use either id or code |
+| `delete` | `id=<subgroup_id>`, `code=<subgroup_code>` (اختیاری) | Delete decree subgroup - can use either id or code |
+
+---
+
+### Sales
+
+#### Sales Dashboard (070000 / sales_dashboard)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show sales dashboard |
+
+#### Sales Invoice (070101 / sales_invoice)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show sales invoices with optional filters |
+| `create` | - | Create new sales invoice |
+| `edit` | `id=<invoice_id>`, `code=<invoice_code>` (اختیاری) | Edit sales invoice - can use either id or code |
+| `delete` | `id=<invoice_id>`, `code=<invoice_code>` (اختیاری) | Delete sales invoice - can use either id or code |
+| `lock` | `id=<invoice_id>`, `code=<invoice_code>` (اختیاری) | Lock sales invoice - can use either id or code |
+
+---
+
+### Human Resources (HR)
+
+#### HR Dashboard (080000 / hr_dashboard)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show HR dashboard |
+
+#### Create Personnel (080101 / personnel_create)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `create` | - | Create new personnel record |
+| `show` | - | Show personnel list |
+| `edit` | `id=<personnel_id>`, `code=<personnel_code>` (اختیاری) | Edit personnel - can use either id or code |
+| `delete` | `id=<personnel_id>`, `code=<personnel_code>` (اختیاری) | Delete personnel - can use either id or code |
+
+#### Decree Assignment (080102 / personnel_decree_assignment)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show decree assignments |
+| `assign` | `personnel_id=<personnel_id>`, `decree_id=<decree_id>` | Assign decree to personnel |
+| `edit` | `id=<assignment_id>` | Edit decree assignment |
+| `delete` | `id=<assignment_id>` | Delete decree assignment |
+
+#### Personnel Form (080103 / personnel_form_create)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show personnel forms |
+| `create` | - | Create new personnel form |
+| `edit` | `id=<form_id>`, `code=<form_code>` (اختیاری) | Edit personnel form - can use either id or code |
+| `delete` | `id=<form_id>`, `code=<form_code>` (اختیاری) | Delete personnel form - can use either id or code |
+
+#### Personnel Form Groups (080104 / personnel_form_groups)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show form groups |
+| `add` | - | Create new form group |
+| `edit` | `id=<group_id>`, `code=<group_code>` (اختیاری) | Edit form group - can use either id or code |
+| `delete` | `id=<group_id>`, `code=<group_code>` (اختیاری) | Delete form group - can use either id or code |
+
+#### Personnel Form Subgroups (080105 / personnel_form_subgroups)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show form subgroups |
+| `add` | - | Create new form subgroup |
+| `edit` | `id=<subgroup_id>`, `code=<subgroup_code>` (اختیاری) | Edit form subgroup - can use either id or code |
+| `delete` | `id=<subgroup_id>`, `code=<subgroup_code>` (اختیاری) | Delete form subgroup - can use either id or code |
+
+#### Leave Request (080201 / leave_request)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<pending\|approved\|rejected\|all>` | Show leave requests with optional filters |
+| `add` | - | Create new leave request |
+| `edit` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Edit leave request - can use either id or code |
+| `approve` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Approve leave request - can use either id or code |
+| `reject` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Reject leave request - can use either id or code |
+
+#### Sick Leave Request (080202 / sick_leave_request)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<pending\|approved\|rejected\|all>` | Show sick leave requests with optional filters |
+| `add` | - | Create new sick leave request |
+| `edit` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Edit sick leave request - can use either id or code |
+| `approve` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Approve sick leave request - can use either id or code |
+| `reject` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Reject sick leave request - can use either id or code |
+
+#### Loan Request (080203 / loan_request)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<pending\|approved\|rejected\|all>` | Show loan requests with optional filters |
+| `add` | - | Create new loan request |
+| `edit` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Edit loan request - can use either id or code |
+| `approve` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Approve loan request - can use either id or code |
+| `reject` | `id=<request_id>`, `code=<request_code>` (اختیاری) | Reject loan request - can use either id or code |
+
+#### Loan Management (080301 / loan_management)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show loan management |
+| `add` | - | Create new loan |
+| `edit` | `id=<loan_id>`, `code=<loan_code>` (اختیاری) | Edit loan - can use either id or code |
+| `delete` | `id=<loan_id>`, `code=<loan_code>` (اختیاری) | Delete loan - can use either id or code |
+
+#### Loan Scheduling (080302 / loan_scheduling)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show loan scheduling |
+| `schedule` | `loan_id=<loan_id>`, `schedule_date=<date>` | Schedule loan payment |
+
+#### Savings Fund (080303 / savings_fund)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show savings fund |
+| `add` | - | Create new savings fund record |
+| `edit` | `id=<record_id>`, `code=<record_code>` (اختیاری) | Edit savings fund record - can use either id or code |
+| `delete` | `id=<record_id>`, `code=<record_code>` (اختیاری) | Delete savings fund record - can use either id or code |
+
+---
+
+### Office Automation
+
+#### Office Automation Dashboard (090000 / office_automation_dashboard)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show office automation dashboard |
+
+#### Incoming Letters (090101 / incoming_letters)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|sent\|received\|all>` | Show incoming letters with optional filters |
+| `view` | `id=<letter_id>`, `code=<letter_code>` (اختیاری) | View incoming letter - can use either id or code |
+
+#### Write Letter (090102 / write_letter)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `create` | - | Write new letter |
+| `show` | `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|sent\|all>` | Show written letters with optional filters |
+| `edit` | `id=<letter_id>`, `code=<letter_code>` (اختیاری) | Edit letter - can use either id or code |
+| `send` | `id=<letter_id>`, `code=<letter_code>` (اختیاری) | Send letter - can use either id or code |
+
+#### Fill Form (090103 / fill_form)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `form_id=<form_id>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|submitted\|all>` | Show filled forms with optional filters |
+| `fill` | `form_id=<form_id>` | Fill form |
+| `edit` | `id=<filled_form_id>`, `code=<filled_form_code>` (اختیاری) | Edit filled form - can use either id or code |
+| `submit` | `id=<filled_form_id>`, `code=<filled_form_code>` (اختیاری) | Submit filled form - can use either id or code |
+
+#### Process Engine (090201 / process_engine)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show process engine |
+| `add` | - | Create new process |
+| `edit` | `id=<process_id>`, `code=<process_code>` (اختیاری) | Edit process - can use either id or code |
+| `delete` | `id=<process_id>`, `code=<process_code>` (اختیاری) | Delete process - can use either id or code |
+
+#### Process-Form Connection (090202 / process_form_connection)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show process-form connections |
+| `add` | - | Create new process-form connection |
+| `edit` | `id=<connection_id>` | Edit process-form connection |
+| `delete` | `id=<connection_id>` | Delete process-form connection |
+
+#### Form Builder (090301 / form_builder)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show form builder |
+| `create` | - | Create new form |
+| `edit` | `id=<form_id>`, `code=<form_code>` (اختیاری) | Edit form - can use either id or code |
+| `delete` | `id=<form_id>`, `code=<form_code>` (اختیاری) | Delete form - can use either id or code |
+
+---
+
+### Transportation
+
+#### Transportation Dashboard (100000 / transportation_dashboard)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show transportation dashboard |
+
+---
+
+### Procurement
+
+#### Procurement Dashboard (110000 / procurement_dashboard)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show procurement dashboard |
+
+#### Purchases (110101 / purchases)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | `approved=<yes\|no\|all>`, `rejected=<yes\|no\|all>`, `locked=<yes\|no\|all>`, `today=<yes\|no>`, `last_week=<yes\|no>`, `created_by_me=<yes\|no>`, `created=<today\|week\|month\|all>`, `status=<draft\|locked\|all>` | Show purchases with optional filters |
+| `add` | - | Create new purchase |
+| `edit` | `id=<purchase_id>`, `code=<purchase_code>` (اختیاری) | Edit purchase - can use either id or code |
+| `delete` | `id=<purchase_id>`, `code=<purchase_code>` (اختیاری) | Delete purchase - can use either id or code |
+| `lock` | `id=<purchase_id>`, `code=<purchase_code>` (اختیاری) | Lock purchase - can use either id or code |
+
+#### Buyers (110201 / buyers)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show buyers list |
+| `add` | - | Create new buyer |
+| `edit` | `id=<buyer_id>`, `code=<buyer_code>` (اختیاری) | Edit buyer - can use either id or code |
+| `delete` | `id=<buyer_id>`, `code=<buyer_code>` (اختیاری) | Delete buyer - can use either id or code |
+
+#### Create Buyer (110202 / buyer_create)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `create` | - | Create new buyer |
+
+#### Buyer Assignment (110203 / buyer_assignment)
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `show` | - | Show buyer assignments |
+| `assign` | `buyer_id=<buyer_id>`, `purchase_id=<purchase_id>` | Assign buyer to purchase |
+| `edit` | `id=<assignment_id>` | Edit buyer assignment |
+| `delete` | `id=<assignment_id>` | Delete buyer assignment |
 
 ---
 
@@ -273,12 +853,394 @@ Parameters can be:
 1. **Literal values**: `gp=superuser`
 2. **From ticket context**: `code={ticket.reference_code}`
 3. **From current context**: `user={current_user.id}`
+4. **From document context**: `code={document.code}`, `id={document.id}`, `created_by={document.created_by}`
+
+---
+
+## Document Context Parameters
+
+برای actions که در context یک سند اجرا می‌شوند (مثل approve، reject، lock، edit)، می‌توان از پارامترهای زیر استفاده کرد که از خود سند دریافت می‌شوند:
+
+### پارامترهای قابل استفاده در Document Context:
+
+| Parameter | Type | Description | Example |
+|-----------|------|-------------|---------|
+| `{document.id}` | integer | شناسه عددی سند | `id={document.id}` |
+| `{document.code}` | string | کد عمومی سند | `code={document.code}` |
+| `{document.created_by}` | integer | شناسه سازنده سند | `created_by={document.created_by}` |
+| `{document.status}` | string | وضعیت سند | `status={document.status}` |
+| `{document.company_id}` | integer | شناسه شرکت | `company_id={document.company_id}` |
+
+### استفاده از Document Context Parameters:
+
+این پارامترها زمانی استفاده می‌شوند که action در context یک سند خاص اجرا می‌شود. به عنوان مثال:
+
+```
+# در context یک ticket
+purchase_requests:edit:code={ticket.reference_code}
+receipt_temporary:approve:id={document.id}
+warehouse_requests:lock:code={document.code}
+```
+
+**نکته مهم**: این پارامترها باید در زمان اجرای action resolve شوند و به مقادیر واقعی تبدیل شوند.
+
+---
+
+## Complete Actions List by Section
+
+این بخش لیست کامل تمام actions تعریف شده برای هر section را نمایش می‌دهد. برای جزئیات کامل پارامترها، به بخش [Action Definitions](#action-definitions) مراجعه کنید.
+
+| Section | Section Code | Actions |
+|---------|--------------|---------|
+| **Users** | 010301 | `show`, `showown`, `add`, `edit`, `delete` |
+| **Groups** | 010302 | `show`, `add`, `edit`, `delete` |
+| **Access Levels** | 010303 | `show`, `add`, `edit`, `delete` |
+| **Purchase Requests** | 020400 | `show`, `add`, `edit`, `approve`, `create_receipt_from` |
+| **Warehouse Requests** | 020500 | `show`, `add`, `edit`, `approve`, `create_issue_from` |
+| **Receipts - Temporary** | 020601 | `show`, `add`, `edit`, `delete`, `lock`, `send_to_qc` |
+| **Receipts - Permanent** | 020602 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Receipts - Consignment** | 020603 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Issues - Permanent** | 020701 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Issues - Consumption** | 020702 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Issues - Consignment** | 020703 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Inspections** | 041000 | `show`, `showown`, `approve`, `reject` |
+| **Accounting Dashboard** | 060000 | `show` |
+| **General Ledger** | 060101 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Subsidiary Ledger** | 060102 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Detail Ledger** | 060103 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Accounting Document Entry** | 060201 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Accounting Document Exit** | 060202 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Treasury Expense** | 060301 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Treasury Income** | 060302 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Payroll Document** | 060401 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Payroll Decrees** | 060402 | `show`, `add`, `edit`, `delete` |
+| **Payroll Decree Groups** | 060403 | `show`, `add`, `edit`, `delete` |
+| **Payroll Decree Subgroups** | 060404 | `show`, `add`, `edit`, `delete` |
+| **Sales Dashboard** | 070000 | `show` |
+| **Sales Invoice** | 070101 | `show`, `create`, `edit`, `delete`, `lock` |
+| **HR Dashboard** | 080000 | `show` |
+| **Create Personnel** | 080101 | `create`, `show`, `edit`, `delete` |
+| **Decree Assignment** | 080102 | `show`, `assign`, `edit`, `delete` |
+| **Personnel Form** | 080103 | `show`, `create`, `edit`, `delete` |
+| **Personnel Form Groups** | 080104 | `show`, `add`, `edit`, `delete` |
+| **Personnel Form Subgroups** | 080105 | `show`, `add`, `edit`, `delete` |
+| **Leave Request** | 080201 | `show`, `add`, `edit`, `approve`, `reject` |
+| **Sick Leave Request** | 080202 | `show`, `add`, `edit`, `approve`, `reject` |
+| **Loan Request** | 080203 | `show`, `add`, `edit`, `approve`, `reject` |
+| **Loan Management** | 080301 | `show`, `add`, `edit`, `delete` |
+| **Loan Scheduling** | 080302 | `show`, `schedule` |
+| **Savings Fund** | 080303 | `show`, `add`, `edit`, `delete` |
+| **Office Automation Dashboard** | 090000 | `show` |
+| **Incoming Letters** | 090101 | `show`, `view` |
+| **Write Letter** | 090102 | `create`, `show`, `edit`, `send` |
+| **Fill Form** | 090103 | `show`, `fill`, `edit`, `submit` |
+| **Process Engine** | 090201 | `show`, `add`, `edit`, `delete` |
+| **Process-Form Connection** | 090202 | `show`, `add`, `edit`, `delete` |
+| **Form Builder** | 090301 | `show`, `create`, `edit`, `delete` |
+| **Transportation Dashboard** | 100000 | `show` |
+| **Procurement Dashboard** | 110000 | `show` |
+| **Purchases** | 110101 | `show`, `add`, `edit`, `delete`, `lock` |
+| **Buyers** | 110201 | `show`, `add`, `edit`, `delete` |
+| **Create Buyer** | 110202 | `create` |
+| **Buyer Assignment** | 110203 | `show`, `assign`, `edit`, `delete` |
+
+**نکات مهم:**
+- برای جزئیات کامل actions و پارامترهای آن‌ها، به بخش [Action Definitions](#action-definitions) مراجعه کنید
+- لیست کامل با جزئیات بیشتر در فایل `docs/ACTIONS_LIST.md` موجود است
+- برای actions `edit`, `delete`, `lock` و سایر actions که نیاز به شناسایی سند دارند، می‌توان از `id` یا `code` استفاده کرد (پارامتر `code` اختیاری است)
+
+---
+
+## Standard Filter Parameters for "show" Actions
+
+This section defines standard filter parameters that should be available for all "show" (list/view) actions across different sections. These parameters allow users to filter results based on common criteria.
+
+**Important**: 
+- ⚠️ **این پارامترها هنوز فقط در مستندات تعریف شده‌اند** و باید به `parameter_schema` در `ActionRegistry` اضافه شوند.
+- باید migration ایجاد شود تا این پارامترها به دیتابیس اضافه شوند.
+- وقتی این پارامترها در Entity Reference UI استفاده می‌شوند، به صورت خودکار به dropdown/checkbox تبدیل می‌شوند.
+
+### Common Filter Parameters (Available for All Sections)
+
+These parameters can be used with any section's `show` action:
+
+| Parameter | Type | Values | Description |
+|-----------|------|--------|-------------|
+| `approved` | enum | `yes`, `no`, `all` | Filter by approval status |
+| `rejected` | enum | `yes`, `no`, `all` | Filter by rejection status |
+| `locked` | enum | `yes`, `no`, `all` | Filter by lock status |
+| `unlocked` | enum | `yes`, `no`, `all` | Filter by unlock status (inverse of locked) |
+| `last_week` | enum | `yes`, `no` | Show items from the last 7 days |
+| `today` | enum | `yes`, `no` | Show items created today |
+| `created_by_me` | enum | `yes`, `no` | Show items created by current user |
+| `created` | enum | `today`, `week`, `month`, `all` | Filter by creation date range |
+
+**Note**: `approved` and `rejected` are mutually exclusive. `locked` and `unlocked` are mutually exclusive.
+
+### Section-Specific Filter Parameters
+
+#### Purchase Requests (020400 / purchase_requests)
+
+For `show` action, in addition to common parameters:
+
+| Parameter | Type | Values | Description |
+|-----------|------|--------|-------------|
+| `status` | enum | `pending`, `approved`, `rejected`, `locked`, `all` | Filter by request status |
+
+#### Warehouse Requests (020500 / warehouse_requests)
+
+For `show` action, in addition to common parameters:
+
+| Parameter | Type | Values | Description |
+|-----------|------|--------|-------------|
+| `status` | enum | `pending`, `approved`, `rejected`, `locked`, `all` | Filter by request status |
+
+#### Temporary Receipts (020601 / receipt_temporary)
+
+For `show` action, in addition to common parameters:
+
+| Parameter | Type | Values | Description |
+|-----------|------|--------|-------------|
+| `status` | enum | `draft`, `locked`, `qc_pending`, `qc_approved`, `qc_rejected`, `all` | Filter by receipt status |
+| `qc_status` | enum | `pending`, `approved`, `rejected`, `not_sent` | Filter by QC inspection status |
+| `qc_approved` | enum | `yes`, `no`, `all` | Show QC-approved receipts |
+| `qc_rejected` | enum | `yes`, `no`, `all` | Show QC-rejected receipts |
+| `qc_pending` | enum | `yes`, `no`, `all` | Show receipts pending QC inspection |
+
+**Special Parameters for Temporary Receipts:**
+- `qc_status`: Combined QC status filter
+  - `pending`: Sent to QC but not yet inspected
+  - `approved`: QC inspection approved
+  - `rejected`: QC inspection rejected
+  - `not_sent`: Not yet sent to QC
+- Individual QC filters (`qc_approved`, `qc_rejected`, `qc_pending`) can be used instead
+
+#### Permanent Receipts (020602 / receipt_permanent)
+
+For `show` action, in addition to common parameters:
+
+| Parameter | Type | Values | Description |
+|-----------|------|--------|-------------|
+| `status` | enum | `draft`, `locked`, `all` | Filter by receipt status |
+
+#### Consignment Receipts (020603 / receipt_consignment)
+
+For `show` action, in addition to common parameters:
+
+| Parameter | Type | Values | Description |
+|-----------|------|--------|-------------|
+| `status` | enum | `draft`, `locked`, `all` | Filter by receipt status |
+
+#### Permanent Issues (020701 / issue_permanent)
+
+For `show` action, in addition to common parameters:
+
+| Parameter | Type | Values | Description |
+|-----------|------|--------|-------------|
+| `status` | enum | `draft`, `locked`, `all` | Filter by issue status |
+
+#### Consumption Issues (020702 / issue_consumption)
+
+For `show` action, in addition to common parameters:
+
+| Parameter | Type | Values | Description |
+|-----------|------|--------|-------------|
+| `status` | enum | `draft`, `locked`, `all` | Filter by issue status |
+
+#### Consignment Issues (020703 / issue_consignment)
+
+For `show` action, in addition to common parameters:
+
+| Parameter | Type | Values | Description |
+|-----------|------|--------|-------------|
+| `status` | enum | `draft`, `locked`, `all` | Filter by issue status |
+
+#### Inspections (041000 / inspections)
+
+For `show` action, in addition to common parameters:
+
+| Parameter | Type | Values | Description |
+|-----------|------|--------|-------------|
+| `status` | enum | `pending`, `approved`, `rejected`, `all` | Filter by inspection status |
+
+#### BOM (Bill of Materials) (030300 / bom)
+
+For `show` action, in addition to common parameters:
+
+| Parameter | Type | Values | Description |
+|-----------|------|--------|-------------|
+| `approved` | enum | `yes`, `no`, `all` | Filter by approval status |
+| `rejected` | enum | `yes`, `no`, `all` | Filter by rejection status |
+| `locked` | enum | `yes`, `no`, `all` | Filter by lock status |
+| `today` | enum | `yes`, `no` | Show items created today |
+| `last_week` | enum | `yes`, `no` | Show items from the last 7 days |
+| `created_by_me` | enum | `yes`, `no` | Show items created by current user |
+| `created` | enum | `today`, `week`, `month`, `all` | Filter by creation date range |
+
+#### Product Orders (036000 / product_orders)
+
+For `show` action, in addition to common parameters:
+
+| Parameter | Type | Values | Description |
+|-----------|------|--------|-------------|
+| `approved` | enum | `yes`, `no`, `all` | Filter by approval status |
+| `rejected` | enum | `yes`, `no`, `all` | Filter by rejection status |
+| `locked` | enum | `yes`, `no`, `all` | Filter by lock status |
+| `today` | enum | `yes`, `no` | Show items created today |
+| `last_week` | enum | `yes`, `no` | Show items from the last 7 days |
+| `created_by_me` | enum | `yes`, `no` | Show items created by current user |
+| `created` | enum | `today`, `week`, `month`, `all` | Filter by creation date range |
+| `status` | enum | `draft`, `in_progress`, `completed`, `cancelled`, `all` | Filter by order status |
+
+### Parameter Schema Format for Filters
+
+When defining `parameter_schema` for `show` actions, use the following structure:
+
+```python
+parameter_schema = {
+    # Common filters
+    'approved': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Filter by approval status',
+        'enum': ['yes', 'no', 'all']
+    },
+    'rejected': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Filter by rejection status',
+        'enum': ['yes', 'no', 'all']
+    },
+    'locked': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Filter by lock status',
+        'enum': ['yes', 'no', 'all']
+    },
+    'today': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Show items created today',
+        'enum': ['yes', 'no']
+    },
+    'last_week': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Show items from the last 7 days',
+        'enum': ['yes', 'no']
+    },
+    'created_by_me': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Show items created by current user',
+        'enum': ['yes', 'no']
+    },
+    'created': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Filter by creation date range',
+        'enum': ['today', 'week', 'month', 'all']
+    },
+    # Section-specific filters (add as needed)
+    'qc_status': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Filter by QC inspection status',
+        'enum': ['pending', 'approved', 'rejected', 'not_sent']
+    },
+    # ... other section-specific parameters
+}
+```
+
+### Example: Complete Parameter Schema for Temporary Receipts
+
+```python
+parameter_schema = {
+    # Common filters
+    'approved': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Filter by approval status',
+        'enum': ['yes', 'no', 'all']
+    },
+    'locked': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Filter by lock status',
+        'enum': ['yes', 'no', 'all']
+    },
+    'today': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Show items created today',
+        'enum': ['yes', 'no']
+    },
+    'last_week': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Show items from the last 7 days',
+        'enum': ['yes', 'no']
+    },
+    'created_by_me': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Show items created by current user',
+        'enum': ['yes', 'no']
+    },
+    'created': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Filter by creation date range',
+        'enum': ['today', 'week', 'month', 'all']
+    },
+    # Temporary Receipts specific
+    'qc_status': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Filter by QC inspection status',
+        'enum': ['pending', 'approved', 'rejected', 'not_sent']
+    },
+    'qc_approved': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Show QC-approved receipts',
+        'enum': ['yes', 'no', 'all']
+    },
+    'qc_rejected': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Show QC-rejected receipts',
+        'enum': ['yes', 'no', 'all']
+    },
+    'qc_pending': {
+        'type': 'enum',
+        'required': False,
+        'description': 'Show receipts pending QC inspection',
+        'enum': ['yes', 'no', 'all']
+    }
+}
+```
+
+### Implementation Notes
+
+1. **Multiple Parameters**: All filter parameters are optional and can be combined. For example: `show:locked=yes,today=yes,created_by_me=yes`
+
+2. **Default Behavior**: If no filter parameters are provided, the action should return all visible items (respecting permissions and company scope).
+
+3. **Parameter Values**:
+   - Enum values should be displayed in the UI with friendly labels (e.g., "yes" → "بله", "no" → "خیر", "all" → "همه")
+   - Date filters should automatically apply the correct date range when selected
+
+4. **Performance**: When implementing filters in views, use database queries efficiently:
+   - Use indexed fields for filtering (e.g., `created_at`, `is_locked`, `is_enabled`)
+   - Combine multiple filters in a single query using Django ORM `filter()` chaining
+   - Consider pagination for large result sets
 
 ---
 
 ## Implementation Status
 
-- **Status**: ✅ **Implemented and Active**
+- **Status**: ⚠️ **Partially Implemented**
 - **Database Tables**: 
   - `invproj_section_registry`: Stores all section definitions (37 sections registered)
   - `invproj_action_registry`: Stores all action definitions (50 actions registered)
@@ -286,6 +1248,13 @@ Parameters can be:
 - **Permission Checking**: Integrated with feature permission system
 - **Parameter Validation**: JSON schema validation in `parameter_schema` field
 - **Error Handling**: Graceful error handling via handler functions and URL routing
+
+### ⚠️ Pending Tasks (وظایف باقی‌مانده):
+
+1. **Actions Missing**: Sections `groups` (010302) and `access_levels` (010303) are registered in `SectionRegistry` but **have no actions defined in migration**. Actions must be added to `ActionRegistry`.
+2. **Filter Parameters**: Standard filter parameters (approved, rejected, locked, today, last_week, created_by_me, created, etc.) are **documented but NOT YET added to database**. Needs migration to update `parameter_schema` for all `show` actions in `ActionRegistry`.
+3. **Code Parameter**: `code` parameter for `edit`, `delete`, `lock` actions is documented but **NOT YET added to database**. Needs migration to add `code` as optional parameter to all document actions.
+4. **Document Context Parameters**: Support for resolving `{document.*}` parameters needs implementation in the action execution handler.
 
 ---
 
@@ -420,3 +1389,365 @@ def populate_new_section(apps, schema_editor):
 - **Migration must run on deployment**: The data migration should always run during deployment to ensure registry is up-to-date
 - **Cross-module actions**: Actions like `create_receipt_from` and `create_issue_from` enable workflow automation between related modules
 - **Access Level configuration is MANDATORY**: After creating a new section, permissions MUST be configured in Access Levels (`/shared/access-levels/`). Without this configuration, users cannot access the new section, even if it appears in the sidebar. This is a critical step that must be completed for every new section.
+- **Parameter `code` for document actions**: For actions that require document identification (`edit`, `delete`, `lock`, `approve`, `reject`), both `id` (integer) and `code` (string) parameters should be available. The `code` parameter is optional but recommended as it's more user-friendly.
+
+---
+
+## UI Implementation Guide for Entity Reference Selection
+
+This section describes the standard UI pattern for implementing Entity Reference selection in forms throughout the application. This three-level cascading dropdown system allows users to select sections, actions, and configure parameters in a user-friendly way.
+
+### Overview
+
+The Entity Reference UI consists of three cascading levels:
+
+1. **Section Selection**: Choose a module/section from the application (e.g., "users", "inventory.items")
+2. **Action Selection**: Choose an action for the selected section (e.g., "show", "edit", "approve")
+3. **Parameters Configuration**: Configure parameters for the selected action (e.g., `gp=superuser`, `id=123`, `type=temporary`)
+
+### API Endpoints
+
+The following API endpoints are required for the Entity Reference UI:
+
+#### 1. Get All Sections
+- **URL**: `/ticketing/api/entity-reference/sections/` (or equivalent in your module)
+- **Method**: GET
+- **Authentication**: Required (login_required)
+- **Response**:
+  ```json
+  {
+    "sections": [
+      {
+        "code": "010301",
+        "nickname": "users",
+        "name": "کاربران",
+        "name_en": "Users"
+      },
+      ...
+    ]
+  }
+  ```
+
+**Implementation Location**: `ticketing/views/entity_reference.py::EntityReferenceSectionsView`
+
+#### 2. Get Actions for a Section
+- **URL**: `/ticketing/api/entity-reference/actions/?section_code=<section_code_or_nickname>`
+- **Method**: GET
+- **Authentication**: Required
+- **Query Parameters**:
+  - `section_code`: Section code (e.g., "010301") or nickname (e.g., "users")
+- **Response**:
+  ```json
+  {
+    "actions": [
+      {
+        "action_name": "show",
+        "action_label": "مشاهده",
+        "action_label_en": "View",
+        "parameter_schema": {
+          "gp": {
+            "type": "string",
+            "required": false,
+            "description": "Group name filter"
+          }
+        }
+      },
+      ...
+    ]
+  }
+  ```
+
+**Implementation Location**: `ticketing/views/entity_reference.py::EntityReferenceActionsView`
+
+#### 3. Get Parameter Values
+- **URL**: `/ticketing/api/entity-reference/parameter-values/?parameter_name=<name>&parameter_type=<type>&section_code=<code>&action_name=<action>`
+- **Method**: GET
+- **Authentication**: Required
+- **Query Parameters**:
+  - `parameter_name`: Name of the parameter (e.g., "gp", "type", "id")
+  - `parameter_type`: Type of parameter (e.g., "string", "integer", "enum")
+  - `parameter_enum`: JSON array of enum values (optional, if type is enum)
+  - `section_code`: Section code (optional, for context-specific values)
+  - `action_name`: Action name (optional, for context-specific values)
+- **Response**:
+  ```json
+  {
+    "values": [
+      {"value": "value1", "label": "Label 1"},
+      {"value": "value2", "label": "Label 2"},
+      ...
+    ]
+  }
+  ```
+
+**Implementation Location**: `ticketing/views/entity_reference.py::EntityReferenceParameterValuesView`
+
+### HTML Structure
+
+The UI consists of three dropdowns and a parameters container:
+
+```html
+<!-- Entity Reference Configuration -->
+<div class="entity-reference-panel" data-field-index="${index}" style="display: none;">
+  <!-- Level 1: Section Selection -->
+  <div class="form-field" style="margin-bottom: 1rem;">
+    <label>Section</label>
+    <select name="fields-${index}-entity_section" 
+            class="form-control entity-section-select" 
+            data-field-index="${index}">
+      <option value="">Select section...</option>
+      <!-- Options loaded via JavaScript -->
+    </select>
+  </div>
+  
+  <!-- Level 2: Action Selection -->
+  <div class="form-field" style="margin-bottom: 1rem;">
+    <label>Action</label>
+    <select name="fields-${index}-entity_action" 
+            class="form-control entity-action-select" 
+            data-field-index="${index}" 
+            disabled>
+      <option value="">Select action...</option>
+      <!-- Options loaded when section is selected -->
+    </select>
+  </div>
+  
+  <!-- Level 3: Parameters Configuration -->
+  <div class="entity-parameters-container" data-field-index="${index}">
+    <label>Parameters</label>
+    <div class="entity-parameters-list" data-field-index="${index}">
+      <!-- Parameters dynamically added when action is selected -->
+    </div>
+  </div>
+  
+  <!-- Hidden input for storing final entity reference string -->
+  <input type="hidden" 
+         name="fields-${index}-entity_reference" 
+         class="entity-reference-hidden" 
+         data-field-index="${index}"
+         value="" />
+</div>
+```
+
+### JavaScript Implementation
+
+The JavaScript implementation requires the following functions:
+
+#### 1. Load Sections
+```javascript
+function loadEntityReferenceSections(fieldIndex) {
+  const sectionSelect = document.querySelector(`select.entity-section-select[data-field-index="${fieldIndex}"]`);
+  if (!sectionSelect) return;
+  
+  fetch('/ticketing/api/entity-reference/sections/', {
+    method: 'GET',
+    headers: {
+      'X-CSRFToken': getCsrfToken(),
+      'Content-Type': 'application/json',
+    },
+    credentials: 'same-origin',
+  })
+    .then(response => response.json())
+    .then(data => {
+      data.sections.forEach(section => {
+        const option = document.createElement('option');
+        option.value = section.nickname; // Or section.code
+        option.textContent = section.name + ' (' + section.nickname + ')';
+        option.setAttribute('data-code', section.code);
+        sectionSelect.appendChild(option);
+      });
+    })
+    .catch(error => console.error('Error loading sections:', error));
+}
+```
+
+#### 2. Load Actions
+```javascript
+function loadEntityReferenceActions(fieldIndex, sectionIdentifier) {
+  const actionSelect = document.querySelector(`select.entity-action-select[data-field-index="${fieldIndex}"]`);
+  if (!actionSelect || !sectionIdentifier) return;
+  
+  actionSelect.innerHTML = '<option value="">Select action...</option>';
+  actionSelect.disabled = true;
+  
+  fetch(`/ticketing/api/entity-reference/actions/?section_code=${encodeURIComponent(sectionIdentifier)}`)
+    .then(response => response.json())
+    .then(data => {
+      data.actions.forEach(action => {
+        const option = document.createElement('option');
+        option.value = action.action_name;
+        option.textContent = action.action_label;
+        option.setAttribute('data-schema', JSON.stringify(action.parameter_schema));
+        actionSelect.appendChild(option);
+      });
+      actionSelect.disabled = false;
+    })
+    .catch(error => console.error('Error loading actions:', error));
+}
+```
+
+#### 3. Load Parameters
+```javascript
+function loadEntityReferenceParameters(fieldIndex, actionOption) {
+  const paramsContainer = document.querySelector(`.entity-parameters-list[data-field-index="${fieldIndex}"]`);
+  if (!paramsContainer || !actionOption) return;
+  
+  paramsContainer.innerHTML = '';
+  const parameterSchema = JSON.parse(actionOption.getAttribute('data-schema') || '{}');
+  
+  if (!parameterSchema || Object.keys(parameterSchema).length === 0) {
+    paramsContainer.innerHTML = '<p>No parameters required for this action</p>';
+    return;
+  }
+  
+  // Create input for each parameter
+  Object.keys(parameterSchema).forEach(paramName => {
+    const paramDef = parameterSchema[paramName];
+    // Create appropriate input based on paramDef.type and paramDef.enum
+    // See full implementation in ticketing templates
+  });
+}
+```
+
+#### 4. Update Entity Reference Value
+```javascript
+function updateEntityReferenceValue(fieldIndex) {
+  const sectionSelect = document.querySelector(`select.entity-section-select[data-field-index="${fieldIndex}"]`);
+  const actionSelect = document.querySelector(`select.entity-action-select[data-field-index="${fieldIndex}"]`);
+  const hiddenInput = document.querySelector(`input.entity-reference-hidden[data-field-index="${fieldIndex}"]`);
+  
+  if (!sectionSelect || !actionSelect || !hiddenInput) return;
+  
+  const sectionValue = sectionSelect.value;
+  const actionValue = actionSelect.value;
+  
+  if (!sectionValue || !actionValue) {
+    hiddenInput.value = '';
+    return;
+  }
+  
+  // Build entity reference string: section:action:params
+  let entityRef = sectionValue + ':' + actionValue;
+  
+  // Collect parameters
+  const params = [];
+  const paramInputs = document.querySelectorAll(`.entity-parameter-input[data-field-index="${fieldIndex}"]`);
+  paramInputs.forEach(input => {
+    if (input.value) {
+      const paramName = input.getAttribute('data-param-name');
+      params.push(paramName + '=' + input.value);
+    }
+  });
+  
+  if (params.length > 0) {
+    entityRef += ':' + params.join(',');
+  }
+  
+  hiddenInput.value = entityRef;
+}
+```
+
+### Event Listeners
+
+```javascript
+// Section selection change
+document.addEventListener('change', function(e) {
+  if (e.target.matches('.entity-section-select')) {
+    const fieldIndex = e.target.getAttribute('data-field-index');
+    loadEntityReferenceActions(fieldIndex, e.target.value);
+    updateEntityReferenceValue(fieldIndex);
+  }
+  
+  // Action selection change
+  if (e.target.matches('.entity-action-select')) {
+    const fieldIndex = e.target.getAttribute('data-field-index');
+    const selectedOption = e.target.options[e.target.selectedIndex];
+    loadEntityReferenceParameters(fieldIndex, selectedOption);
+    updateEntityReferenceValue(fieldIndex);
+  }
+  
+  // Parameter value change
+  if (e.target.matches('.entity-parameter-input')) {
+    const fieldIndex = e.target.getAttribute('data-field-index');
+    updateEntityReferenceValue(fieldIndex);
+  }
+});
+```
+
+### Integration Steps
+
+To implement Entity Reference UI in a new module:
+
+1. **Copy API Views**: Copy `ticketing/views/entity_reference.py` to your module's views directory
+2. **Add URLs**: Add the three API endpoints to your module's `urls.py`:
+   ```python
+   path('api/entity-reference/sections/', entity_reference.EntityReferenceSectionsView.as_view(), name='api_entity_reference_sections'),
+   path('api/entity-reference/actions/', entity_reference.EntityReferenceActionsView.as_view(), name='api_entity_reference_actions'),
+   path('api/entity-reference/parameter-values/', entity_reference.EntityReferenceParameterValuesView.as_view(), name='api_entity_reference_parameter_values'),
+   ```
+3. **Add HTML Structure**: Add the Entity Reference panel HTML to your template
+4. **Add JavaScript**: Copy the JavaScript functions from `ticketing/templates/template_form.html` to your template
+5. **Update URL References**: Update the API URLs in JavaScript to match your module's URLs
+
+### Parameter Schema Format
+
+When defining actions in `ActionRegistry`, use the following format for `parameter_schema`:
+
+```python
+parameter_schema = {
+    'param_name': {
+        'type': 'string' | 'integer' | 'number' | 'enum',
+        'required': True | False,
+        'description': 'Human-readable description',
+        'enum': ['value1', 'value2', ...]  # Required if type is 'enum'
+    },
+    ...
+}
+```
+
+**Example**:
+```python
+parameter_schema = {
+    'gp': {
+        'type': 'string',
+        'required': False,
+        'description': 'Group name filter'
+    },
+    'type': {
+        'type': 'enum',
+        'required': True,
+        'description': 'Document type',
+        'enum': ['temporary', 'permanent', 'consignment']
+    },
+    'id': {
+        'type': 'integer',
+        'required': True,
+        'description': 'Record ID'
+    }
+}
+```
+
+### Parameter Value Loading
+
+The `EntityReferenceParameterValuesView` handles special parameter types:
+
+- **Enum parameters**: Values are automatically generated from the enum array
+- **`gp` parameter**: Returns list of all user groups
+- **`type` parameter**: Returns context-specific types (e.g., receipt types, issue types) based on section code
+- **Custom parameters**: Can be extended to load values from specific models
+
+### Example: Complete Implementation
+
+See `ticketing/templates/ticketing/template_form.html` for a complete working example of the Entity Reference UI implementation, including:
+- HTML structure for Entity Reference panel
+- JavaScript functions for loading sections, actions, and parameters
+- Event listeners for cascading dropdowns
+- Integration with form submission
+- Loading existing entity reference values on edit
+
+### Notes
+
+- **Display Format**: Sections can be displayed using either `nickname` (e.g., "users") or `section_code` (e.g., "010301"), but not both. Choose one format consistently throughout your UI.
+- **Parameter Storage**: The final entity reference string is stored in format: `section:action:param1=value1,param2=value2`
+- **Lazy Loading**: Sections are loaded only when the Entity Reference panel becomes visible to improve initial page load performance
+- **Error Handling**: Always include error handling in fetch calls and display user-friendly error messages

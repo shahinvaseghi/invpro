@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load jalali_tags %}
+
+{% block title %}{% trans "Notifications" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <span>{% trans "Notifications" %}</span>
+    </nav>
+
+    <h1 class="page-title">{% trans "Notifications" %}</h1>
+  </div>
+
+  <div class="filter-panel">
+    <h3>{% trans "Filter" %}</h3>
+    <form method="get" class="filter-form">
+      <div class="filter-row">
+        <div class="filter-field">
+          <label for="read">{% trans "Status" %}</label>
+          <select id="read" name="read" onchange="this.form.submit()">
+            <option value="all" {% if read_filter == "all" %}selected{% endif %}>{% trans "All" %}</option>
+            <option value="unread" {% if read_filter == "unread" %}selected{% endif %}>{% trans "Unread" %} ({{ unread_count }})</option>
+            <option value="read" {% if read_filter == "read" %}selected{% endif %}>{% trans "Read" %} ({{ read_count }})</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <a href="{% url 'shared:notifications' %}" class="btn btn-secondary">{% trans "Clear" %}</a>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  {% if notifications %}
+  <div class="notification-stats" style="margin-bottom: 1rem; padding: 1rem; background: #f5f5f5; border-radius: 4px;">
+    <strong>{% trans "Total" %}:</strong> {{ notifications|length }} | 
+    <strong>{% trans "Unread" %}:</strong> {{ unread_count }} | 
+    <strong>{% trans "Read" %}:</strong> {{ read_count }}
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Message" %}</th>
+        <th>{% trans "Type" %}</th>
+        <th>{% trans "Count" %}</th>
+        <th>{% trans "Date" %}</th>
+        <th>{% trans "Status" %}</th>
+        <th>{% trans "Actions" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for notification in notifications %}
+      <tr class="{% if notification.is_read == 1 %}notification-read{% else %}notification-unread{% endif %}">
+        <td>{{ notification.message }}</td>
+        <td>
+          {% if notification.notification_type == 'approval_pending' %}
+            <span class="badge badge-warning">{% trans "Pending Approval" %}</span>
+          {% elif notification.notification_type == 'approved' %}
+            <span class="badge badge-success">{% trans "Approved" %}</span>
+          {% else %}
+            <span class="badge badge-info">{{ notification.notification_type }}</span>
+          {% endif %}
+        </td>
+        <td>{{ notification.count }}</td>
+        <td>{{ notification.created_at|jalali_date }}</td>
+        <td>
+          {% if notification.is_read == 1 %}
+            <span class="badge badge-secondary">{% trans "Read" %}</span>
+          {% else %}
+            <span class="badge badge-primary">{% trans "Unread" %}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if notification.is_read %}
+            <form method="post" action="{% url 'shared:mark_notification_unread' %}" style="display: inline;">
+              {% csrf_token %}
+              <input type="hidden" name="notification_id" value="{{ notification.id }}">
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="btn btn-sm btn-secondary">{% trans "Mark as Unread" %}</button>
+            </form>
+          {% else %}
+            <form method="post" action="{% url 'shared:mark_notification_read' %}" style="display: inline;">
+              {% csrf_token %}
+              <input type="hidden" name="notification_id" value="{{ notification.id }}">
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="btn btn-sm btn-primary">{% trans "Mark as Read" %}</button>
+            </form>
+          {% endif %}
+          <a href="{% url notification.url_name %}" class="btn btn-sm btn-secondary">{% trans "View" %}</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if is_paginated %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page=1&read={{ read_filter }}" class="btn btn-sm">{% trans "First" %}</a>
+      <a href="?page={{ page_obj.previous_page_number }}&read={{ read_filter }}" class="btn btn-sm">{% trans "Previous" %}</a>
+    {% endif %}
+    <span class="page-info">
+      {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+    </span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}&read={{ read_filter }}" class="btn btn-sm">{% trans "Next" %}</a>
+      <a href="?page={{ page_obj.paginator.num_pages }}&read={{ read_filter }}" class="btn btn-sm">{% trans "Last" %}</a>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🔔</div>
+    <div class="empty-text">{% trans "No notifications found" %}</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

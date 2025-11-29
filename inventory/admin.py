@@ -157,16 +157,16 @@ class IssueConsignmentAdmin(admin.ModelAdmin):
 
 @admin.register(models.StocktakingDeficit)
 class StocktakingDeficitAdmin(admin.ModelAdmin):
-    list_display = ("company", "document_code", "item", "quantity_adjusted", "is_locked")
+    list_display = ("company", "document_code", "document_date", "stocktaking_session_id", "is_locked")
     list_filter = ("company", "is_locked")
-    search_fields = ("document_code", "item__item_code", "warehouse__name")
+    search_fields = ("document_code",)
 
 
 @admin.register(models.StocktakingSurplus)
 class StocktakingSurplusAdmin(admin.ModelAdmin):
-    list_display = ("company", "document_code", "item", "quantity_adjusted", "is_locked")
+    list_display = ("company", "document_code", "document_date", "stocktaking_session_id", "is_locked")
     list_filter = ("company", "is_locked")
-    search_fields = ("document_code", "item__item_code", "warehouse__name")
+    search_fields = ("document_code",)
 
 
 @admin.register(models.StocktakingRecord)

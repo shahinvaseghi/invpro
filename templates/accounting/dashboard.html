@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Accounting" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="section-header">
+        <h1>{% trans "Accounting" %}</h1>
+        <p>{% trans "Financial management and accounting operations" %}</p>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <h2>{% trans "Accounting Module" %}</h2>
+            <p>{% trans "This module is under development. Financial management features will be available soon." %}</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

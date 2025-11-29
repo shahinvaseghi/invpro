@@ -106,6 +106,81 @@
 
 ---
 
+## Stocktaking Deficit Line Form
+
+### `StocktakingDeficitLineForm(StocktakingBaseForm)`
+
+**توضیح**: فرم برای ردیف‌های کسری انبارگردانی
+
+**Model**: `StocktakingDeficitLine`
+
+**Inheritance**: `StocktakingBaseForm`
+
+**Fields**: مشابه header form اما برای line items
+
+**متدها**:
+
+#### `full_clean(self) -> None`
+
+**توضیح**: unit choices را قبل از validation به‌روزرسانی می‌کند.
+
+**منطق**:
+1. اگر `self.data` وجود دارد:
+   - دریافت `item_id` و `unit_value` از data با `add_prefix()`
+   - اگر هر دو وجود دارند:
+     - دریافت `Item` از database
+     - دریافت allowed units با `_get_item_allowed_units()`
+     - اگر `unit_value` در choices نیست، آن را اضافه می‌کند (با label از `UNIT_CHOICES`)
+   - اگر فقط `unit_value` وجود دارد (بدون item):
+     - اگر `unit_value` در choices نیست، آن را اضافه می‌کند
+2. `super().full_clean()` را فراخوانی می‌کند
+
+**نکته**: این متد برای جلوگیری از validation error زمانی که unit در choices نیست استفاده می‌شود.
+
+---
+
+#### `clean_unit(self) -> str`
+
+**توضیح**: unit را validate می‌کند و اطمینان می‌دهد که در choices است.
+
+**منطق**:
+1. دریافت `unit` از `cleaned_data`
+2. اگر unit وجود ندارد، آن را برمی‌گرداند
+3. اگر unit در choices نیست:
+   - label را از `UNIT_CHOICES` دریافت می‌کند
+   - unit را به choices اضافه می‌کند
+4. unit را برمی‌گرداند
+
+**نکته**: Validation دقیق‌تر در `clean()` انجام می‌شود.
+
+---
+
+#### `clean(self) -> Dict[str, Any]`
+
+**توضیح**: محاسبات مقدار را validate می‌کند.
+
+**منطق**:
+1. `super().clean()` را فراخوانی می‌کند
+2. **Unit validation**:
+   - دریافت `unit` و `item` از `cleaned_data`
+   - اگر هر دو وجود دارند:
+     - دریافت allowed units با `_get_item_allowed_units()`
+     - اگر unit در allowed units نیست، آن را به choices اضافه می‌کند
+3. **Quantity calculation**:
+   - دریافت `quantity_expected` و `quantity_counted`
+   - اگر هر دو وجود دارند:
+     - `quantity_adjusted = quantity_expected - quantity_counted` را محاسبه می‌کند
+     - اگر `quantity_adjusted < 0`: خطا اضافه می‌کند
+     - `cleaned_data['quantity_adjusted']` را تنظیم می‌کند
+4. **Cost calculation**:
+   - دریافت `unit_cost` و `quantity_adjusted`
+   - اگر هر دو وجود دارند:
+     - `total_cost = quantity_adjusted * unit_cost` را محاسبه می‌کند
+     - `cleaned_data['total_cost']` را تنظیم می‌کند (با error handling)
+5. `cleaned_data` را برمی‌گرداند
+
+---
+
 ## Stocktaking Surplus Form
 
 ### `StocktakingSurplusForm(StocktakingBaseForm)`
@@ -167,6 +242,67 @@
 
 ---
 
+## Stocktaking Surplus Line Form
+
+### `StocktakingSurplusLineForm(StocktakingBaseForm)`
+
+**توضیح**: فرم برای ردیف‌های مازاد انبارگردانی
+
+**Model**: `StocktakingSurplusLine`
+
+**Inheritance**: `StocktakingBaseForm`
+
+**Fields**: مشابه `StocktakingDeficitLineForm` اما با label متفاوت برای `quantity_adjusted`
+
+**متدها**:
+
+#### `__init__(self, *args, **kwargs) -> None`
+
+**توضیح**: فرم را initialize می‌کند و label `quantity_adjusted` را تغییر می‌دهد.
+
+**منطق**:
+1. `super().__init__(*args, **kwargs)` را فراخوانی می‌کند
+2. اگر `quantity_adjusted` در fields وجود دارد:
+   - label را به `_('مقدار افزایش یافته')` تغییر می‌دهد (برای surplus)
+
+---
+
+#### `full_clean(self) -> None`
+
+**توضیح**: unit choices را قبل از validation به‌روزرسانی می‌کند.
+
+**منطق**: مشابه `StocktakingDeficitLineForm.full_clean()`
+
+---
+
+#### `clean_unit(self) -> str`
+
+**توضیح**: unit را validate می‌کند و اطمینان می‌دهد که در choices است.
+
+**منطق**: مشابه `StocktakingDeficitLineForm.clean_unit()`
+
+---
+
+#### `clean(self) -> Dict[str, Any]`
+
+**توضیح**: محاسبات مقدار را validate می‌کند.
+
+**منطق**:
+1. `super().clean()` را فراخوانی می‌کند
+2. **Unit validation**: مشابه `StocktakingDeficitLineForm.clean()`
+3. **Quantity calculation**:
+   - دریافت `quantity_expected` و `quantity_counted`
+   - اگر هر دو وجود دارند:
+     - `quantity_adjusted = quantity_counted - quantity_expected` را محاسبه می‌کند (**فرمول برعکس deficit**)
+     - اگر `quantity_adjusted < 0`: خطا اضافه می‌کند: "Counted quantity cannot be less than expected for a surplus document."
+     - `cleaned_data['quantity_adjusted']` را تنظیم می‌کند
+4. **Cost calculation**: مشابه `StocktakingDeficitLineForm.clean()`
+5. `cleaned_data` را برمی‌گرداند
+
+**نکته مهم**: فرمول `quantity_adjusted` برای surplus برعکس deficit است: `counted - expected` (نه `expected - counted`)
+
+---
+
 ## Stocktaking Record Form
 
 ### `StocktakingRecordForm(StocktakingBaseForm)`
@@ -213,19 +349,22 @@
 **مقدار بازگشتی**: ندارد
 
 **منطق**:
-1. `super().__init__(user=user, **kwargs)` را فراخوانی می‌کند
-2. اگر instance جدید است:
+1. `super().__init__(*args, user=user, **kwargs)` را فراخوانی می‌کند
+2. اگر instance جدید است و `approval_status` در fields وجود دارد:
    - `approval_status.initial = 'pending'` را تنظیم می‌کند
-3. فیلد `approved_at` را به `HiddenInput` تغییر می‌دهد
-4. اگر instance موجود است و `approval_status` وجود دارد:
-   - اگر `user` و `instance.approver_id` وجود دارند:
-     - اگر `user.id != instance.approver_id`:
-       - `approval_status.widget.attrs['disabled'] = 'disabled'` را تنظیم می‌کند
-       - `help_text` را تنظیم می‌کند: "فقط تأییدکننده انتخاب شده می‌تواند وضعیت را تغییر دهد"
-5. فیلدهای JSON را initialize می‌کند:
-   - `variance_document_ids`: `[]` (اگر وجود ندارد)
-   - `variance_document_codes`: `[]` (اگر وجود ندارد)
-   - `record_metadata`: `{}` (اگر وجود ندارد)
+3. فیلد `approved_at` را به `HiddenInput` تغییر می‌دهد و `required=False` می‌کند
+4. **Permission check برای approval_status**:
+   - اگر instance موجود است (`instance.pk`) و `approval_status` در fields وجود دارد:
+     - اگر `user` و `instance.approver_id` وجود دارند:
+       - اگر `user.id != instance.approver_id`:
+         - `approval_status.widget.attrs['disabled'] = 'disabled'` را تنظیم می‌کند
+         - `help_text` را تنظیم می‌کند: "فقط تأییدکننده انتخاب شده می‌تواند وضعیت را تغییر دهد"
+     - اگر `instance.approver_id` وجود ندارد:
+       - هر کسی می‌تواند status را تغییر دهد (disabled نمی‌شود)
+5. **Initialize JSON fields**:
+   - `variance_document_ids`: `initial = []` (اگر instance مقدار ندارد)
+   - `variance_document_codes`: `initial = []` (اگر instance مقدار ندارد)
+   - `record_metadata`: `initial = {}` (اگر instance مقدار ندارد)
 6. اگر instance جدید است:
    - `document_date.initial = timezone.now().date()` را تنظیم می‌کند
    - `inventory_snapshot_time.initial = timezone.now()` را تنظیم می‌کند
@@ -247,12 +386,13 @@
 
 **منطق**:
 1. `super().clean()` را فراخوانی می‌کند
-2. اگر instance موجود است و `approval_status` در `cleaned_data` وجود دارد:
-   - اگر `user` و `instance.approver_id` وجود دارند:
-     - اگر `user.id != instance.approver_id`:
-       - اگر `approval_status` تغییر کرده است:
-         - خطا اضافه می‌کند: "فقط تأییدکننده انتخاب شده می‌تواند وضعیت را تغییر دهد"
-         - `cleaned_data['approval_status']` را به مقدار قبلی بازمی‌گرداند
+2. **Server-side permission check**:
+   - اگر instance موجود است (`instance.pk`) و `approval_status` در `cleaned_data` وجود دارد:
+     - اگر `user` و `instance.approver_id` وجود دارند:
+       - اگر `user.id != instance.approver_id`:
+         - اگر `approval_status` تغییر کرده است (`instance.approval_status != cleaned_data['approval_status']`):
+           - خطا اضافه می‌کند: "فقط تأییدکننده انتخاب شده می‌تواند وضعیت را تغییر دهد"
+           - `cleaned_data['approval_status']` را به `instance.approval_status` (مقدار قبلی) بازمی‌گرداند
 3. `cleaned_data` را برمی‌گرداند
 
 **نکات مهم**:
@@ -273,25 +413,31 @@
 
 **منطق**:
 1. `super().save(commit=False)` را فراخوانی می‌کند
-2. اگر `document_code` وجود ندارد:
-   - `generate_document_code(StocktakingRecord, company_id, "STR")` را فراخوانی می‌کند
-   - `instance.document_code` را تنظیم می‌کند
-3. اگر `document_date` وجود ندارد:
-   - `instance.document_date = timezone.now().date()` را تنظیم می‌کند
-4. اگر `inventory_snapshot_time` وجود ندارد:
-   - `instance.inventory_snapshot_time = timezone.now()` را تنظیم می‌کند
-5. اگر `confirmed_by_id` وجود دارد:
-   - `instance.confirmed_by_code = instance.confirmed_by.username` را تنظیم می‌کند (cache)
-6. اگر `approver_id` وجود دارد:
-   - `instance.approver_notes = instance.approver_notes or ''` را تنظیم می‌کند
-7. اگر `approval_status == 'approved'` و `approved_at` وجود ندارد:
-   - `instance.approved_at = timezone.now()` را تنظیم می‌کند
-8. اگر `approval_status` در `('pending', 'rejected')` است:
-   - `instance.approved_at = None` را تنظیم می‌کند
-9. اگر `commit=True`:
+2. تولید `document_code`:
+   - اگر `document_code` وجود ندارد:
+     - `generate_document_code(StocktakingRecord, instance.company_id, "STR")` را فراخوانی می‌کند
+     - `instance.document_code` را تنظیم می‌کند
+3. تنظیم `document_date`:
+   - اگر `document_date` وجود ندارد:
+     - `instance.document_date = timezone.now().date()` را تنظیم می‌کند
+4. تنظیم `inventory_snapshot_time`:
+   - اگر `inventory_snapshot_time` وجود ندارد:
+     - `instance.inventory_snapshot_time = timezone.now()` را تنظیم می‌کند
+5. Cache `confirmed_by_code`:
+   - اگر `confirmed_by_id` وجود دارد:
+     - `instance.confirmed_by_code = instance.confirmed_by.username` را تنظیم می‌کند
+6. تنظیم `approver_notes`:
+   - اگر `approver_id` وجود دارد:
+     - `instance.approver_notes = instance.approver_notes or ''` را تنظیم می‌کند (برای جلوگیری از None)
+7. **Approval status handling**:
+   - اگر `approval_status == 'approved'` و `approved_at` وجود ندارد:
+     - `instance.approved_at = timezone.now()` را تنظیم می‌کند
+   - اگر `approval_status` در `('pending', 'rejected')` است:
+     - `instance.approved_at = None` را تنظیم می‌کند (پاک کردن approved_at)
+8. اگر `commit=True`:
    - `instance.save()` را فراخوانی می‌کند
    - `self.save_m2m()` را فراخوانی می‌کند
-10. instance را برمی‌گرداند
+9. instance را برمی‌گرداند
 
 **Document Code Format**: `STR-{YYYYMM}-{SEQUENCE}` (مثلاً `STR-202511-000001`)
 

@@ -68,10 +68,17 @@ INSTALLED_APPS = [
     'production',
     'qc',
     'ticketing',
+    'accounting',
+    'sales',
+    'hr',
+    'office_automation',
+    'transportation',
+    'procurement',
     'ui',
 ]
 
 MIDDLEWARE = [
+    'shared.middleware.EditLockCleanupMiddleware',  # Clean up stale edit locks
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

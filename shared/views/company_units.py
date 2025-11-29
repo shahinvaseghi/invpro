@@ -12,6 +12,7 @@ from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.models import CompanyUnit
 from shared.forms import CompanyUnitForm
+from shared.views.base import EditLockProtectedMixin
 
 
 class CompanyUnitListView(FeaturePermissionRequiredMixin, ListView):
@@ -93,7 +94,7 @@ class CompanyUnitCreateView(FeaturePermissionRequiredMixin, CreateView):
         return context
 
 
-class CompanyUnitUpdateView(FeaturePermissionRequiredMixin, UpdateView):
+class CompanyUnitUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
     """Update existing company unit."""
     model = CompanyUnit
     form_class = CompanyUnitForm

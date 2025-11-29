@@ -13,6 +13,7 @@ from typing import Optional, Dict, Any
 
 from django import forms
 from django.forms import inlineformset_factory
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
@@ -428,22 +429,80 @@ class IssueLineBaseForm(forms.ModelForm):
         
         if self.company_id:
             if 'item' in self.fields:
-                self.fields['item'].queryset = Item.objects.filter(
-                    company_id=self.company_id, is_enabled=1
-                ).order_by('name')
+                # For existing instances, include the current item even if disabled
+                queryset = Item.objects.filter(company_id=self.company_id, is_enabled=1)
+                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'item_id', None):
+                    # Include the current item even if it's disabled
+                    queryset = Item.objects.filter(
+                        company_id=self.company_id
+                    ).filter(
+                        Q(is_enabled=1) | Q(pk=self.instance.item_id)
+                    )
+                self.fields['item'].queryset = queryset.order_by('name')
                 self.fields['item'].label_from_instance = lambda obj: f"{obj.name} · {obj.item_code}"
             
             if 'warehouse' in self.fields:
-                self.fields['warehouse'].queryset = Warehouse.objects.filter(
-                    company_id=self.company_id, is_enabled=1
-                ).order_by('name')
-                self.fields['warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
+                # First, try to get item to set warehouse queryset based on allowed warehouses
+                item = None
+                if getattr(self.instance, 'item_id', None):
+                    try:
+                        item = Item.objects.filter(pk=self.instance.item_id, company_id=self.company_id).first()
+                    except Exception:
+                        pass
+                
+                if item:
+                    # Set warehouse queryset based on item's allowed warehouses
+                    self._set_warehouse_queryset(item=item)
+                else:
+                    # Fallback: For existing instances, include the current warehouse even if disabled
+                    queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
+                    if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
+                        # Include the current warehouse even if it's disabled
+                        queryset = Warehouse.objects.filter(
+                            company_id=self.company_id
+                        ).filter(
+                            Q(is_enabled=1) | Q(pk=self.instance.warehouse_id)
+                        )
+                    self.fields['warehouse'].queryset = queryset.order_by('name')
+                    self.fields['warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
         
         # Set unit choices - this must be done before restoring initial values
         self._set_unit_choices()
         
         # Restore entered values if editing
         if not self.is_bound and getattr(self.instance, 'pk', None):
+            # Get item first to set unit choices properly
+            # Use item_id to avoid RelatedObjectDoesNotExist if document is missing
+            item_id = getattr(self.instance, 'item_id', None)
+            item = None
+            if item_id:
+                # Check if document exists before accessing item (to avoid RelatedObjectDoesNotExist)
+                document_id = getattr(self.instance, 'document_id', None)
+                if document_id:
+                    try:
+                        # Try to get item directly by item_id to avoid accessing through instance
+                        item = Item.objects.filter(pk=item_id, company_id=self.company_id).first()
+                        if not item:
+                            # Fallback: try to access through instance
+                            item = getattr(self.instance, 'item', None)
+                    except Exception:
+                        pass
+                else:
+                    # Try to get item directly by item_id
+                    try:
+                        item = Item.objects.filter(pk=item_id, company_id=self.company_id).first()
+                    except Exception:
+                        pass
+            
+            if item and 'unit' in self.fields:
+                # Set unit choices based on item
+                self._set_unit_choices(item=item)
+            
+            # Set warehouse queryset based on item (for existing instances)
+            if item and 'warehouse' in self.fields:
+                self._set_warehouse_queryset(item=item)
+            
+            # Get unit value from entered_unit or unit (prioritize entered_unit for display)
             entry_unit = getattr(self.instance, 'entered_unit', '') or getattr(self.instance, 'unit', '')
             if 'unit' in self.fields and entry_unit:
                 # Ensure the unit is in choices, if not add it
@@ -452,6 +511,7 @@ class IssueLineBaseForm(forms.ModelForm):
                 if entry_unit not in unit_codes:
                     # Add current unit to choices if not present
                     self.fields['unit'].choices = unit_choices + [(entry_unit, entry_unit)]
+                
                 # Django ChoiceField uses instance.field for display when editing
                 # So we need to set instance.unit to the entered_unit for proper display
                 if hasattr(self.instance, 'unit'):
@@ -460,6 +520,7 @@ class IssueLineBaseForm(forms.ModelForm):
                         self.instance._original_unit = self.instance.unit
                     # Set unit to entered_unit for display purposes
                     self.instance.unit = entry_unit
+                
                 # Also set initial as backup
                 self.initial['unit'] = entry_unit
             
@@ -507,16 +568,48 @@ class IssueLineBaseForm(forms.ModelForm):
             allowed_ids = [int(option['value']) for option in self._get_item_allowed_warehouses(item)]
             if allowed_ids:
                 # Only show allowed warehouses
-                warehouse_field.queryset = Warehouse.objects.filter(pk__in=allowed_ids, is_enabled=1).order_by('name')
+                # For existing instances, include the current warehouse even if disabled
+                queryset = Warehouse.objects.filter(pk__in=allowed_ids, is_enabled=1)
+                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
+                    # Include the current warehouse even if it's disabled
+                    queryset = Warehouse.objects.filter(
+                        pk__in=allowed_ids
+                    ).filter(
+                        Q(is_enabled=1) | Q(pk=self.instance.warehouse_id)
+                    )
+                warehouse_field.queryset = queryset.order_by('name')
                 return
             else:
                 # No warehouses configured - show empty queryset (will show error in validation)
-                warehouse_field.queryset = Warehouse.objects.none()
+                # But include current warehouse if editing
+                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
+                    warehouse_field.queryset = Warehouse.objects.filter(pk=self.instance.warehouse_id)
+                else:
+                    warehouse_field.queryset = Warehouse.objects.none()
                 return
         
         # Fallback: show all warehouses in company if no item selected
+        # For existing instances, include the current warehouse even if disabled
+        queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
+        if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
+            # Include the current warehouse even if it's disabled
+            queryset = Warehouse.objects.filter(
+                company_id=self.company_id
+            ).filter(
+                Q(is_enabled=1) | Q(pk=self.instance.warehouse_id)
+            )
+        warehouse_field.queryset = queryset.order_by('name')
         if self.company_id:
-            warehouse_field.queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1).order_by('name')
+            # For existing instances, include the current warehouse even if disabled
+            queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
+            if getattr(self.instance, 'pk', None) and getattr(self.instance, 'warehouse_id', None):
+                # Include the current warehouse even if it's disabled
+                queryset = Warehouse.objects.filter(
+                    company_id=self.company_id
+                ).filter(
+                    Q(is_enabled=1) | Q(pk=self.instance.warehouse_id)
+                )
+            warehouse_field.queryset = queryset.order_by('name')
     
     def clean_warehouse(self) -> Optional[Warehouse]:
         """Validate warehouse against item's allowed warehouses."""
@@ -848,7 +941,6 @@ class IssuePermanentLineForm(IssueLineBaseForm):
             'item', 'warehouse', 'unit', 'quantity',
             'entered_unit', 'entered_quantity',
             'destination_type', 'destination_id', 'destination_code', 'reason_code',
-            'unit_price', 'currency', 'tax_amount', 'discount_amount', 'total_amount',
             'line_notes',
         ]
         widgets = {
@@ -860,10 +952,6 @@ class IssuePermanentLineForm(IssueLineBaseForm):
             'destination_id': forms.NumberInput(attrs={'class': 'form-control'}),
             'destination_code': forms.TextInput(attrs={'class': 'form-control'}),
             'reason_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'tax_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'discount_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'total_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
     
@@ -981,7 +1069,6 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
             'consumption_type', 'work_line',  # consumption_type is hidden, managed by destination_type_choice
             'reference_document_type', 'reference_document_id', 'reference_document_code',
             'production_transfer_id', 'production_transfer_code',
-            'unit_cost', 'total_cost', 'cost_center_code',
             'line_notes',
         ]
         widgets = {
@@ -997,9 +1084,6 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
             'reference_document_code': forms.TextInput(attrs={'class': 'form-control'}),
             'production_transfer_id': forms.NumberInput(attrs={'class': 'form-control'}),
             'production_transfer_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'unit_cost': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'total_cost': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'cost_center_code': forms.HiddenInput(),  # Hidden, used internally for company_unit storage
             'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
     
@@ -1066,18 +1150,9 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
                 self.initial['consumption_type'] = dest_type
             
             if dest_type == 'company_unit':
-                # Try to get company unit from cost_center_code (where we stored it)
-                if hasattr(self.instance, 'cost_center_code') and self.instance.cost_center_code:
-                    try:
-                        unit = CompanyUnit.objects.get(
-                            company_id=self.company_id,
-                            public_code=self.instance.cost_center_code
-                        )
-                        self.initial['destination_type_choice'] = 'company_unit'
-                        self.initial['destination_company_unit'] = unit.id
-                        # Show the company unit field container (JavaScript will handle display)
-                    except CompanyUnit.DoesNotExist:
-                        pass
+                # Note: company_unit destination is stored in consumption_type only
+                # We can't retrieve the specific company_unit without destination_id field
+                self.initial['destination_type_choice'] = 'company_unit'
             elif dest_type == 'work_line' and self.instance.work_line and WorkLine:
                 self.initial['destination_type_choice'] = 'work_line'
                 self.initial['destination_work_line'] = self.instance.work_line.id
@@ -1125,23 +1200,10 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
         # Set destination based on choice
         if dest_type_choice == 'company_unit' and dest_company_unit:
             instance.consumption_type = 'company_unit'
-            # For company_unit, we store the unit ID in a way we can retrieve it later
-            # Since IssueConsumptionLine doesn't have destination_id, we can store it in cost_center_code as temporary solution
-            # Or we need to check if model has these fields
             instance.work_line = None
-            # Store company unit code in cost_center_code for now (or we could add destination fields to model)
-            if hasattr(instance, 'cost_center_code'):
-                instance.cost_center_code = dest_company_unit.public_code
         elif dest_type_choice == 'work_line' and dest_work_line and WorkLine:
             instance.consumption_type = 'work_line'
             instance.work_line = dest_work_line
-            if hasattr(instance, 'cost_center_code') and instance.cost_center_code:
-                # Clear cost_center_code if it was used for company_unit
-                try:
-                    CompanyUnit.objects.get(public_code=instance.cost_center_code)
-                    instance.cost_center_code = ''
-                except CompanyUnit.DoesNotExist:
-                    pass
         else:
             # If no choice made, this should have been caught by validation
             # But if we reach here, it means validation didn't catch it

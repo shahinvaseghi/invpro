@@ -8,10 +8,6 @@
 - **Forms**: CompanyForm
 - **توضیح**: Forms برای شرکت‌ها
 
-### company_units.py
-- **Forms**: CompanyUnitForm
-- **توضیح**: Forms برای واحدهای سازمانی
-
 ### users.py
 - **Forms**: UserCreateForm, UserUpdateForm
 - **Formsets**: UserCompanyAccessFormSet

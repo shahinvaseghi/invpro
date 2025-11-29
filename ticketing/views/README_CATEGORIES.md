@@ -40,8 +40,47 @@
 - `required_action`: `'view_all'`
 
 **متدها**:
-- `get_queryset()`: فیلتر بر اساس company، search (name, name_en, public_code)، parent_filter (main/sub)
-- `get_context_data()`: اضافه کردن `page_title`, `search_term`, `parent_filter`
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با company filtering، search، و parent filtering برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده
+
+**منطق**:
+1. دریافت `company_id` از session
+2. فیلتر: `TicketCategory.objects.filter(company_id=company_id)`
+3. **Search filtering** (اگر `search` در query parameter وجود دارد):
+   - فیلتر با `Q(name__icontains=search) | Q(name_en__icontains=search) | Q(public_code__icontains=search)`
+4. **Parent filtering** (اگر `parent_filter` در query parameter وجود دارد):
+   - اگر `parent_filter == 'main'`: `queryset.filter(parent_category__isnull=True)` (فقط main categories)
+   - اگر `parent_filter == 'sub'`: `queryset.filter(parent_category__isnull=False)` (فقط subcategories)
+5. مرتب‌سازی: `order_by('sort_order', 'public_code', 'name')`
+6. queryset را برمی‌گرداند
+
+**Query Parameters**:
+- `search`: جستجو در name، name_en، public_code
+- `parent_filter`: `'main'` (بدون parent) یا `'sub'` (با parent)
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `page_title`, `search_term`, `parent_filter`
+
+**Context Variables اضافه شده**:
+- `page_title`: `_('Ticket Categories')`
+- `search_term`: مقدار `search` از query parameter
+- `parent_filter`: مقدار `parent_filter` از query parameter
 
 **Query Parameters**:
 - `search`: جستجو در name, name_en, public_code
@@ -72,9 +111,50 @@
 - `required_action`: `'create'`
 
 **متدها**:
-- `get_form_kwargs()`: اضافه کردن `request` به form
-- `get_context_data()`: اضافه کردن `permission_formset`
-- `form_valid()`: ذخیره category و permissions، تنظیم `company_id` برای permissions
+
+#### `get_form_kwargs(self) -> Dict[str, Any]`
+- اضافه کردن `request` به form (از طریق ایجاد form instance و تنظیم `form.request`)
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+- اضافه کردن `page_title = _('Create Category')`
+- ساخت `permission_formset`:
+  - اگر POST: از POST data
+  - اگر GET: empty formset
+  - تنظیم `request` روی تمام forms در formset
+
+#### `form_valid(self, form: TicketCategoryForm) -> HttpResponseRedirect`
+
+**توضیح**: Category و permissions را ذخیره می‌کند.
+
+**پارامترهای ورودی**:
+- `form`: فرم معتبر `TicketCategoryForm`
+
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect به `success_url`
+
+**منطق**:
+1. دریافت `company_id` از session
+2. اگر `company_id` وجود دارد:
+   - تنظیم `form.instance.company_id = company_id`
+3. ذخیره category: `response = super().form_valid(form)`
+4. **ساخت permission formset**:
+   - `TicketCategoryPermissionFormSet(self.request.POST, instance=self.object)`
+5. **تنظیم request روی تمام forms**:
+   - برای هر `perm_form` در `permission_formset.forms`:
+     - `perm_form.request = self.request`
+6. **Validate و save formset**:
+   - اگر `permission_formset.is_valid()`:
+     - `permission_formset.save()` (برای حذف deleted items)
+     - `permission_formset.save(commit=False)` (برای دریافت instances)
+     - برای هر `permission`:
+       - تنظیم `permission.company_id = company_id`
+       - اگر `permission.category` موجود است:
+         - تنظیم `permission.category_code = permission.category.public_code`
+       - `permission.save()`
+   - اگر formset invalid باشد:
+     - بازگشت `form_invalid(form)`
+7. نمایش پیام موفقیت: "Category created successfully."
+8. بازگشت `response`
 
 **URL**: `/ticketing/categories/create/`
 
@@ -101,10 +181,51 @@
 - `required_action`: `'edit_own'`
 
 **متدها**:
-- `get_form_kwargs()`: اضافه کردن `request` به form
-- `get_queryset()`: فیلتر بر اساس company
-- `get_context_data()`: اضافه کردن `permission_formset`
-- `form_valid()`: ذخیره category و permissions
+
+#### `get_form_kwargs(self) -> Dict[str, Any]`
+- اضافه کردن `request` به form (از طریق ایجاد form instance و تنظیم `form.request`)
+
+#### `get_queryset(self) -> QuerySet`
+- فیلتر بر اساس `active_company_id` از session
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+- اضافه کردن `page_title = _('Edit Category')`
+- ساخت `permission_formset`:
+  - اگر POST: از POST data
+  - اگر GET: از instance
+  - تنظیم `request` روی تمام forms در formset
+
+#### `form_valid(self, form: TicketCategoryForm) -> HttpResponseRedirect`
+
+**توضیح**: Category و permissions را ذخیره می‌کند.
+
+**پارامترهای ورودی**:
+- `form`: فرم معتبر `TicketCategoryForm`
+
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect به `success_url`
+
+**منطق**:
+1. ذخیره category: `response = super().form_valid(form)`
+2. **ساخت permission formset**:
+   - `TicketCategoryPermissionFormSet(self.request.POST, instance=self.object)`
+3. **تنظیم request روی تمام forms**:
+   - برای هر `perm_form` در `permission_formset.forms`:
+     - `perm_form.request = self.request`
+4. **Validate و save formset**:
+   - اگر `permission_formset.is_valid()`:
+     - دریافت `company_id` از session
+     - `permission_formset.save(commit=False)` (برای دریافت instances)
+     - برای هر `permission`:
+       - تنظیم `permission.company_id = company_id`
+       - اگر `permission.category` موجود است:
+         - تنظیم `permission.category_code = permission.category.public_code`
+       - `permission.save()`
+     - `permission_formset.save()` (برای حذف deleted items)
+   - اگر formset invalid باشد:
+     - بازگشت `form_invalid(form)`
+5. نمایش پیام موفقیت: "Category updated successfully."
+6. بازگشت `response`
 
 **URL**: `/ticketing/categories/<pk>/edit/`
 
@@ -126,9 +247,52 @@
 - `required_action`: `'delete_own'`
 
 **متدها**:
-- `get_queryset()`: فیلتر بر اساس company
-- `delete()`: نمایش پیام موفقیت و حذف
-- `get_context_data()`: اضافه کردن `page_title`
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با company filtering برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس company
+
+**منطق**:
+1. دریافت `company_id` از session
+2. فیلتر: `TicketCategory.objects.filter(company_id=company_id)`
+3. queryset را برمی‌گرداند
+
+---
+
+#### `delete(self, request, *args, **kwargs) -> HttpResponseRedirect`
+
+**توضیح**: TicketCategory را حذف می‌کند و پیام موفقیت نمایش می‌دهد.
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
+
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect به `success_url`
+
+**منطق**:
+1. نمایش پیام موفقیت: "Category deleted successfully."
+2. فراخوانی `super().delete(request, *args, **kwargs)` (که TicketCategory را حذف می‌کند و redirect می‌کند)
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `page_title`
+
+**Context Variables اضافه شده**:
+- `page_title`: `_('Delete Category')`
 
 **URL**: `/ticketing/categories/<pk>/delete/`
 

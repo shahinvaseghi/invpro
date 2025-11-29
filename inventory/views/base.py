@@ -16,6 +16,9 @@ from django.shortcuts import get_object_or_404
 from .. import models
 from .. import forms
 from ..services import serials as serial_service
+import logging
+
+logger = logging.getLogger('inventory.views.base')
 
 
 class InventoryBaseView(LoginRequiredMixin):
@@ -26,7 +29,7 @@ class InventoryBaseView(LoginRequiredMixin):
         """Filter queryset by active company."""
         queryset = super().get_queryset()
         company_id = self.request.session.get('active_company_id')
-        if company_id and hasattr(queryset.model, 'company'):
+        if company_id and (hasattr(queryset.model, 'company') or hasattr(queryset.model, 'company_id')):
             queryset = queryset.filter(company_id=company_id)
         return queryset
     
@@ -50,6 +53,43 @@ class InventoryBaseView(LoginRequiredMixin):
         )
         context['user'] = self.request.user  # Make user available in template
         return context
+    
+    def filter_queryset_by_permissions(self, queryset, feature_code: str, owner_field: str = 'created_by'):
+        """
+        Filter queryset based on user permissions.
+        
+        Args:
+            queryset: The queryset to filter
+            feature_code: Feature code for permission checking (e.g., 'inventory.receipts.temporary')
+            owner_field: Field name that contains the owner/creator (default: 'created_by')
+        
+        Returns:
+            Filtered queryset
+        """
+        # Superuser can see all records
+        if self.request.user.is_superuser:
+            return queryset
+        
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        company_id = self.request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(self.request.user, company_id)
+        
+        # Check view scope
+        can_view_all = has_feature_permission(permissions, feature_code, 'view_all', allow_own_scope=False)
+        can_view_own = has_feature_permission(permissions, feature_code, 'view_own', allow_own_scope=True)
+        
+        # If user can view all, return queryset as is
+        if can_view_all:
+            return queryset
+        
+        # If user can only view own records, filter by owner
+        if can_view_own:
+            # Check if model has the owner field
+            if hasattr(queryset.model, owner_field):
+                return queryset.filter(**{owner_field: self.request.user})
+        
+        # If user has no view permission, return empty queryset
+        return queryset.none()
 
 
 class DocumentLockProtectedMixin:
@@ -59,9 +99,11 @@ class DocumentLockProtectedMixin:
     lock_error_message = _('سند قفل شده و قابل ویرایش یا حذف نیست.')
     owner_field: str = 'created_by'
     owner_error_message = _('فقط ایجاد کننده می‌تواند این سند را ویرایش کند.')
-    protected_methods = ('get', 'post', 'put', 'patch', 'delete')
+    # Only protect modification methods, not GET (viewing)
+    protected_methods = ('post', 'put', 'patch', 'delete')
 
     def dispatch(self, request, *args, **kwargs):
+        # Only block modification methods (POST, PUT, PATCH, DELETE), not GET
         if request.method.lower() in self.protected_methods:
             obj = self.get_object()
             self.object = obj
@@ -138,6 +180,96 @@ class DocumentLockView(LoginRequiredMixin, View):
         return HttpResponseRedirect(reverse(self.success_url_name))
 
 
+class DocumentUnlockView(LoginRequiredMixin, View):
+    """Generic view to unlock inventory documents."""
+
+    model = None
+    success_url_name: str = ''
+    success_message = _('سند با موفقیت از قفل خارج شد و قابل ویرایش است.')
+    already_unlocked_message = _('این سند قبلاً از قفل خارج شده است.')
+    lock_field: str = 'is_locked'
+    feature_code: str = ''
+    required_action: str = 'unlock_own'
+
+    def after_unlock(self, obj, request) -> None:
+        """Hook for subclasses to perform extra actions after unlocking."""
+        return None
+
+    def before_unlock(self, obj, request) -> bool:
+        """Hook executed before unlocking. Return False to cancel unlock."""
+        return True
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check permissions before allowing unlock."""
+        # Superuser bypass
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        
+        if not self.feature_code:
+            messages.error(request, _('پیکربندی باز کردن قفل سند نامعتبر است.'))
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+        
+        obj = get_object_or_404(
+            self.model,
+            pk=kwargs.get('pk'),
+            company_id=request.session.get('active_company_id')
+        )
+        
+        # Check permissions
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        from django.core.exceptions import PermissionDenied
+        
+        company_id = request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(request.user, company_id)
+        
+        # Check if user is owner and has UNLOCK_OWN permission
+        is_owner = obj.created_by == request.user if obj.created_by else False
+        can_unlock_own = has_feature_permission(permissions, self.feature_code, 'unlock_own', allow_own_scope=True)
+        can_unlock_other = has_feature_permission(permissions, self.feature_code, 'unlock_other', allow_own_scope=False)
+        
+        if is_owner and not can_unlock_own:
+            raise PermissionDenied(_('شما اجازه باز کردن قفل اسناد خود را ندارید.'))
+        elif not is_owner and not can_unlock_other:
+            raise PermissionDenied(_('شما اجازه باز کردن قفل اسناد سایر کاربران را ندارید.'))
+        
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        if self.model is None or not self.success_url_name:
+            messages.error(request, _('پیکربندی باز کردن قفل سند نامعتبر است.'))
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+
+        queryset = self.model.objects.all()
+        company_id = request.session.get('active_company_id')
+        if company_id and hasattr(self.model, 'company_id'):
+            queryset = queryset.filter(company_id=company_id)
+
+        obj = get_object_or_404(queryset, pk=kwargs.get('pk'))
+
+        if not getattr(obj, self.lock_field, 0):
+            messages.info(request, self.already_unlocked_message)
+        else:
+            if not self.before_unlock(obj, request):
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse(self.success_url_name)))
+
+            update_fields = {self.lock_field}
+            setattr(obj, self.lock_field, 0)
+            if hasattr(obj, 'locked_at'):
+                obj.locked_at = None
+                update_fields.add('locked_at')
+            if hasattr(obj, 'locked_by_id'):
+                obj.locked_by = None
+                update_fields.add('locked_by')
+            if hasattr(obj, 'edited_by_id'):
+                obj.edited_by = request.user
+                update_fields.add('edited_by')
+            obj.save(update_fields=list(update_fields))
+            self.after_unlock(obj, request)
+            messages.success(request, self.success_message)
+
+        return HttpResponseRedirect(reverse(self.success_url_name))
+
+
 class LineFormsetMixin:
     """Mixin to handle line formset creation and saving for multi-line documents."""
     
@@ -146,18 +278,28 @@ class LineFormsetMixin:
     
     def build_line_formset(self, data=None, instance=None, company_id: Optional[int] = None, request=None):
         """Build line formset for the document."""
+        logger.info("=" * 80)
+        logger.info("LineFormsetMixin.build_line_formset() called")
+        logger.info(f"data is None: {data is None}")
+        logger.info(f"instance: {instance}")
+        logger.info(f"company_id: {company_id}")
         if instance is None:
             instance = getattr(self, "object", None)
+            logger.info(f"Instance from self.object: {instance}")
         if company_id is None:
             if instance and instance.company_id:
                 company_id = instance.company_id
             else:
                 company_id = self.request.session.get('active_company_id')
+        logger.info(f"Final company_id: {company_id}")
         if request is None:
             request = getattr(self, 'request', None)
         
         if self.formset_class is None:
             raise ValueError("formset_class must be set in view class")
+        
+        logger.info(f"Formset class: {self.formset_class}")
+        logger.info(f"Formset prefix: {self.formset_prefix}")
         
         kwargs: Dict[str, Any] = {
             'instance': instance,
@@ -167,7 +309,14 @@ class LineFormsetMixin:
         }
         if data is not None:
             kwargs['data'] = data
-        return self.formset_class(**kwargs)
+            logger.info(f"Data provided, keys: {list(data.keys())[:10]}...")
+        logger.info(f"Formset kwargs: instance={instance}, prefix={self.formset_prefix}, company_id={company_id}")
+        formset = self.formset_class(**kwargs)
+        logger.info(f"Formset created, forms count: {len(formset.forms)}")
+        for i, form in enumerate(formset.forms):
+            if form.instance.pk:
+                logger.info(f"  Form {i}: instance pk={form.instance.pk}, item_id={getattr(form.instance, 'item_id', None)}, item={form.instance.item if hasattr(form.instance, 'item') and form.instance.item else 'None'}")
+        return formset
     
     def get_line_formset(self, data=None):
         """Get line formset for current request."""
@@ -175,12 +324,21 @@ class LineFormsetMixin:
     
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
         """Add line formset to context."""
+        logger.info("=" * 80)
+        logger.info("LineFormsetMixin.get_context_data() called")
+        logger.info(f"Request method: {self.request.method}")
         context = super().get_context_data(**kwargs)
+        logger.info(f"Context keys before formset: {list(context.keys())}")
         if 'lines_formset' not in context:
             if self.request.method == 'POST':
+                logger.info("Building formset with POST data")
                 context['lines_formset'] = self.get_line_formset(data=self.request.POST)
             else:
+                logger.info("Building formset without data (GET request)")
                 context['lines_formset'] = self.get_line_formset()
+            logger.info(f"Formset added to context, forms count: {len(context['lines_formset'].forms)}")
+        else:
+            logger.info("Formset already in context")
         return context
     
     def form_invalid(self, form):

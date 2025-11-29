@@ -20,6 +20,21 @@
 {% endblock %}
 
 {% block inventory_content %}
+{% if messages %}
+  {% for message in messages %}
+    {% if message.tags == 'success' %}
+      {% if 'Access level' not in message|safe %}
+        <div class="alert alert-{{ message.tags }}" style="margin-bottom: 1rem; padding: 1rem; border-radius: 4px; background-color: #efe; border: 1px solid #cfc; color: #0c0;">
+          {{ message }}
+        </div>
+      {% endif %}
+    {% else %}
+      <div class="alert alert-{{ message.tags }}" style="margin-bottom: 1rem; padding: 1rem; border-radius: 4px; {% if message.tags == 'error' %}background-color: #fee; border: 1px solid #fcc; color: #c00;{% elif message.tags == 'warning' %}background-color: #ffe; border: 1px solid #ffc; color: #cc0;{% else %}background-color: #eef; border: 1px solid #ccf; color: #00c;{% endif %}">
+        {{ message }}
+      </div>
+    {% endif %}
+  {% endfor %}
+{% endif %}
 <!-- Filter Panel -->
 <div class="filter-panel">
   <h3>{% trans "Filter" %}</h3>

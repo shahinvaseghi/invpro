@@ -91,7 +91,13 @@
         <td><span class="badge badge-info">{% trans "Baseline" %}</span></td>
         <td>
           {% if baseline.stocktaking_record_code %}
-            <code>{{ baseline.stocktaking_record_code }}</code>
+            {% if baseline.stocktaking_record_id %}
+              <a href="{% url 'inventory:stocktaking_record_edit' baseline.stocktaking_record_id %}" class="document-link">
+                <code>{{ baseline.stocktaking_record_code }}</code>
+              </a>
+            {% else %}
+              <code>{{ baseline.stocktaking_record_code }}</code>
+            {% endif %}
           {% else %}
             —
           {% endif %}
@@ -115,23 +121,31 @@
         </td>
         <td>
           {% if transaction.document_type == 'permanent_receipt' %}
-            <a href="{% url 'inventory:receipt_permanent_edit' transaction.document_id %}" class="document-link">
+            <a href="{% url 'inventory:receipt_permanent_detail' transaction.document_id %}" class="document-link">
               <code>{{ transaction.document_code }}</code>
             </a>
           {% elif transaction.document_type == 'consignment_receipt' %}
-            <a href="{% url 'inventory:receipt_consignment_edit' transaction.document_id %}" class="document-link">
+            <a href="{% url 'inventory:receipt_consignment_detail' transaction.document_id %}" class="document-link">
               <code>{{ transaction.document_code }}</code>
             </a>
           {% elif transaction.document_type == 'permanent_issue' %}
-            <a href="{% url 'inventory:issue_permanent_edit' transaction.document_id %}" class="document-link">
+            <a href="{% url 'inventory:issue_permanent_detail' transaction.document_id %}" class="document-link">
               <code>{{ transaction.document_code }}</code>
             </a>
           {% elif transaction.document_type == 'consumption_issue' %}
-            <a href="{% url 'inventory:issue_consumption_edit' transaction.document_id %}" class="document-link">
+            <a href="{% url 'inventory:issue_consumption_detail' transaction.document_id %}" class="document-link">
               <code>{{ transaction.document_code }}</code>
             </a>
           {% elif transaction.document_type == 'consignment_issue' %}
-            <a href="{% url 'inventory:issue_consignment_edit' transaction.document_id %}" class="document-link">
+            <a href="{% url 'inventory:issue_consignment_detail' transaction.document_id %}" class="document-link">
+              <code>{{ transaction.document_code }}</code>
+            </a>
+          {% elif transaction.document_type == 'stocktaking_surplus' %}
+            <a href="{% url 'inventory:stocktaking_surplus_edit' transaction.document_id %}" class="document-link">
+              <code>{{ transaction.document_code }}</code>
+            </a>
+          {% elif transaction.document_type == 'stocktaking_deficit' %}
+            <a href="{% url 'inventory:stocktaking_deficit_edit' transaction.document_id %}" class="document-link">
               <code>{{ transaction.document_code }}</code>
             </a>
           {% else %}

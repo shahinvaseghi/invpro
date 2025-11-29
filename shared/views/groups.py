@@ -10,6 +10,7 @@ from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.forms import GroupForm
+from shared.views.base import EditLockProtectedMixin
 
 
 class GroupListView(FeaturePermissionRequiredMixin, ListView):
@@ -65,7 +66,7 @@ class GroupCreateView(FeaturePermissionRequiredMixin, CreateView):
         return response
 
 
-class GroupUpdateView(FeaturePermissionRequiredMixin, UpdateView):
+class GroupUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
     """Update an existing group."""
     model = Group
     form_class = GroupForm

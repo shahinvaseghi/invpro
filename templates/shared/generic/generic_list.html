@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load generic_tags %}
+
+{% block title %}{{ page_title|default:"List" }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      {% for crumb in breadcrumbs %}
+        <span class="separator">/</span>
+        {% if crumb.url %}
+          <a href="{{ crumb.url }}">{{ crumb.label }}</a>
+        {% else %}
+          <span>{{ crumb.label }}</span>
+        {% endif %}
+      {% endfor %}
+      {% block breadcrumb_extra %}{% endblock %}
+    </nav>
+    
+    <h1 class="page-title">{{ page_title|default:"List" }}</h1>
+    
+    {% block page_actions %}
+    <div class="page-actions">
+      {% if create_url %}
+        <a href="{{ create_url }}" class="btn btn-primary">
+          + {{ create_button_text|default:"Create New" }}
+        </a>
+      {% endif %}
+      {% if print_enabled %}
+        <button class="btn btn-secondary" onclick="window.print()">{% trans "Print" %}</button>
+      {% endif %}
+      {% block extra_actions %}{% endblock %}
+    </div>
+    {% endblock %}
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}" style="margin-bottom: 1rem; padding: 1rem; border-radius: 4px; {% if message.tags == 'error' %}background-color: #fee; border: 1px solid #fcc; color: #c00;{% elif message.tags == 'success' %}background-color: #efe; border: 1px solid #cfc; color: #0c0;{% elif message.tags == 'warning' %}background-color: #ffe; border: 1px solid #ffc; color: #cc0;{% else %}background-color: #eef; border: 1px solid #ccf; color: #00c;{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if show_filters %}
+  <div class="filter-panel">
+    <h3>{% trans "Filter & Search" %}</h3>
+    <form method="get" action="" class="filter-form">
+      {% block filter_fields %}
+      <div class="form-group">
+        <label for="search">{% trans "Search" %}</label>
+        <input type="text" name="search" id="search" 
+               placeholder="{{ search_placeholder|default:'Search by code or name' }}" 
+               value="{{ request.GET.search }}"
+               class="form-control">
+      </div>
+      {% endblock %}
+
+      {% if status_filter %}
+      <div class="form-group">
+        <label for="status">{% trans "Status" %}</label>
+        <select name="status" id="status" class="form-control">
+          <option value="">-- {% trans "All" %} --</option>
+          <option value="1" {% if request.GET.status == '1' %}selected{% endif %}>{% trans "Active" %}</option>
+          <option value="0" {% if request.GET.status == '0' %}selected{% endif %}>{% trans "Inactive" %}</option>
+        </select>
+      </div>
+      {% endif %}
+
+      <div class="form-group" style="align-self: flex-end;">
+        <button type="submit" class="btn btn-primary" style="width: 100%;">{% trans "Apply Filter" %}</button>
+      </div>
+      
+      {% if clear_filter_url %}
+      <div class="form-group" style="align-self: flex-end;">
+        <a href="{{ clear_filter_url }}" class="btn btn-secondary" style="width: 100%;">{% trans "Clear Filter" %}</a>
+      </div>
+      {% endif %}
+    </form>
+  </div>
+  {% endif %}
+
+  {% block before_table %}{% endblock %}
+
+  {% if object_list %}
+  <div class="data-table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          {% block table_headers %}
+          {% for header in table_headers %}
+            <th>{{ header.label }}</th>
+          {% endfor %}
+          {% if show_actions %}
+            <th>{% trans "Actions" %}</th>
+          {% endif %}
+          {% endblock %}
+        </tr>
+      </thead>
+      <tbody>
+        {% block table_rows %}
+        {% for object in object_list %}
+        <tr>
+          {% for header in table_headers %}
+            <td>
+              {% if header.field %}
+                {% with value=object|getattr:header.field %}
+                  {% if header.type == 'code' %}
+                    <code>{{ value }}</code>
+                  {% elif header.type == 'badge' %}
+                    {% if value %}
+                      <span class="badge badge-active">{{ header.true_label|default:"Active" }}</span>
+                    {% else %}
+                      <span class="badge badge-inactive">{{ header.false_label|default:"Inactive" }}</span>
+                    {% endif %}
+                  {% elif header.type == 'link' and header.url_field %}
+                    <a href="{% url header.url_name object|getattr:header.url_field %}">{{ value }}</a>
+                  {% else %}
+                    {{ value|default:"-" }}
+                  {% endif %}
+                {% endwith %}
+              {% else %}
+                {{ header.custom_content|default:"-" }}
+              {% endif %}
+            </td>
+          {% endfor %}
+          {% if show_actions %}
+            <td>
+              {% block action_buttons %}
+              {% if edit_url_name %}
+                <a href="{% url edit_url_name object.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+                  {% trans "Edit" %}
+                </a>
+              {% endif %}
+              {% if delete_url_name %}
+                <a href="{% url delete_url_name object.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+                  {% trans "Delete" %}
+                </a>
+              {% endif %}
+              {% endblock %}
+            </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+        {% endblock %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if is_paginated %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">&laquo; {% trans "First" %}</a>
+      <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{% trans "Previous" %}</a>
+    {% endif %}
+
+    <span class="current">
+      {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{% trans "Next" %}</a>
+      <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{% trans "Last" %} &raquo;</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon">{{ empty_state_icon|default:"📋" }}</div>
+    <h3>{{ empty_state_title|default:"No items found" }}</h3>
+    <p>{{ empty_state_message|default:"Start by adding your first item." }}</p>
+    {% if create_url %}
+      <a href="{{ create_url }}" class="btn btn-primary">
+        + {{ create_button_text|default:"Create New" }}
+      </a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% block after_table %}{% endblock %}
+</div>
+
+<style>
+.alert {
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.alert-success {
+  background-color: #d1fae5;
+  border-color: #10b981;
+  color: #065f46;
+}
+
+.alert-error,
+.alert-danger {
+  background-color: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+.alert-info {
+  background-color: #dbeafe;
+  border-color: #3b82f6;
+  color: #1e40af;
+}
+
+.alert-warning {
+  background-color: #fef3c7;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+</style>
+{% endblock %}
+

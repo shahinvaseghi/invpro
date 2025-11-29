@@ -1,0 +1,153 @@
+{% extends "inventory/base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "View Issue" %}{% endblock %}
+
+{% block inventory_content %}
+<div class="form-container">
+  <div class="info-banner">
+    <div><strong>{% trans "Document Code" %}:</strong> {{ issue.document_code }}</div>
+    <div><strong>{% trans "Document Date" %}:</strong> {{ issue.document_date|jalali_date }}</div>
+    <div class="lock-status">
+      <strong>{% trans "Lock Status" %}:</strong>
+      {% if issue.is_locked %}
+        <span class="badge badge-locked">{% trans "Locked" %}</span>
+      {% else %}
+        <span class="badge badge-unlocked">{% trans "Editable" %}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if issue.is_locked %}
+  <div class="alert alert-info">
+    {% trans "This document is locked and can no longer be edited or deleted." %}
+  </div>
+  {% endif %}
+
+  <div class="form-section">
+    <h3>{% trans "Document Information" %}</h3>
+    <div class="form-row">
+      {% if issue.department_unit %}
+      <div class="form-field">
+        <label>{% trans "Organizational Unit" %}</label>
+        <div class="readonly-field">{{ issue.department_unit.name }} ({{ issue.department_unit.public_code }})</div>
+      </div>
+      {% endif %}
+      {% if issue.warehouse_request %}
+      <div class="form-field">
+        <label>{% trans "Warehouse Request" %}</label>
+        <div class="readonly-field">{{ issue.warehouse_request.request_code }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h3>{% trans "Document Lines" %}</h3>
+    {% if issue.lines.all %}
+    <div class="data-table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{% trans "Item" %}</th>
+            <th>{% trans "Warehouse" %}</th>
+            <th>{% trans "Unit" %}</th>
+            <th>{% trans "Quantity" %}</th>
+            {% if issue_variant == 'permanent' %}
+            <th>{% trans "Destination" %}</th>
+            {% endif %}
+            {% if issue_variant == 'consumption' %}
+            <th>{% trans "Consumption Type" %}</th>
+            <th>{% trans "Work Line" %}</th>
+            {% endif %}
+            {% if issue_variant == 'consignment' %}
+            <th>{% trans "Destination" %}</th>
+            <th>{% trans "Consignment Receipt" %}</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for line in issue.lines.all %}
+          <tr>
+            <td>
+              <strong>{{ line.item.name }}</strong>
+              <br>
+              <small class="text-muted">{{ line.item.item_code }}</small>
+            </td>
+            <td>{{ line.warehouse.name }} ({{ line.warehouse.warehouse_code }})</td>
+            <td>{{ line.unit }}</td>
+            <td style="text-align: right;">{{ line.quantity|floatformat:2 }}</td>
+            {% if issue_variant == 'permanent' %}
+            <td>
+              {% if line.destination_code %}
+                {{ line.destination_code }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            {% endif %}
+            {% if issue_variant == 'consumption' %}
+            <td>
+              {% if line.consumption_type %}
+                {{ line.consumption_type }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              {% if line.work_line %}
+                {{ line.work_line.name }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            {% endif %}
+            {% if issue_variant == 'consignment' %}
+            <td>
+              {% if line.destination_code %}
+                {{ line.destination_code }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              {% if line.consignment_receipt %}
+                {{ line.consignment_receipt.document_code }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+      {% trans "No lines found for this document." %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="form-actions" style="margin-top: 2rem;">
+    <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
+    {% if can_edit %}
+    <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.readonly-field {
+  padding: 0.5rem;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+}
+</style>
+{% endblock %}
+

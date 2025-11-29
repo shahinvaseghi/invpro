@@ -37,8 +37,43 @@
 - `feature_code`: `'production.machines'`
 
 **متدها**:
-- `get_queryset()`: فیلتر بر اساس company و `is_enabled=1`، `select_related('work_center')` (با try-except)، مرتب بر اساس `public_code`
-- `get_context_data()`: اضافه کردن `active_module`
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با company filtering، is_enabled filtering، و optional select_related برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده با optimizations
+
+**منطق**:
+1. دریافت `active_company_id` از session
+2. اگر `active_company_id` وجود ندارد، `Machine.objects.none()` برمی‌گرداند
+3. فیلتر: `Machine.objects.filter(company_id=active_company_id, is_enabled=1)`
+4. **Optional select_related**:
+   - تلاش برای `select_related('work_center')` (با try-except برای جلوگیری از خطا در صورت عدم وجود field)
+   - اگر خطا رخ دهد، skip می‌کند
+5. مرتب‌سازی: `order_by('public_code')`
+6. queryset را برمی‌گرداند
+
+**نکات مهم**:
+- `select_related('work_center')` با try-except برای جلوگیری از خطا در صورت عدم وجود field
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `active_module`
+
+**Context Variables اضافه شده**:
+- `active_module`: `'production'`
 
 **URL**: `/production/machines/`
 
@@ -63,9 +98,58 @@
 - `required_action`: `'create'`
 
 **متدها**:
-- `get_form_kwargs()`: اضافه کردن `company_id` به form
-- `form_valid()`: تنظیم `company_id`, `created_by`، نمایش پیام موفقیت
-- `get_context_data()`: اضافه کردن `active_module` و `form_title`
+
+#### `get_form_kwargs(self) -> Dict[str, Any]`
+
+**توضیح**: `company_id` را به form پاس می‌دهد.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: kwargs با `company_id` اضافه شده
+
+**منطق**:
+1. kwargs را از `super().get_form_kwargs()` دریافت می‌کند
+2. `company_id` را از `request.session.get('active_company_id')` اضافه می‌کند
+3. kwargs را برمی‌گرداند
+
+---
+
+#### `form_valid(self, form: MachineForm) -> HttpResponseRedirect`
+
+**توضیح**: Machine را ذخیره می‌کند و پیام موفقیت نمایش می‌دهد.
+
+**پارامترهای ورودی**:
+- `form`: فرم معتبر `MachineForm`
+
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect به `success_url`
+
+**منطق**:
+1. دریافت `active_company_id` از session
+2. اگر `active_company_id` وجود ندارد:
+   - خطا: "Please select a company first."
+   - `form_invalid()` برمی‌گرداند
+3. تنظیم `form.instance.company_id = active_company_id`
+4. تنظیم `form.instance.created_by = request.user`
+5. نمایش پیام موفقیت: "Machine created successfully."
+6. فراخوانی `super().form_valid(form)` (ذخیره و redirect)
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `active_module` و `form_title`
+
+**Context Variables اضافه شده**:
+- `active_module`: `'production'`
+- `form_title`: `_('Create Machine')`
 
 **URL**: `/production/machines/create/`
 
@@ -90,10 +174,70 @@
 - `required_action`: `'edit_own'`
 
 **متدها**:
-- `get_form_kwargs()`: اضافه کردن `company_id` از `object.company_id`
-- `get_queryset()`: فیلتر بر اساس company
-- `form_valid()`: تنظیم `edited_by`، نمایش پیام موفقیت
-- `get_context_data()`: اضافه کردن `active_module` و `form_title`
+
+#### `get_form_kwargs(self) -> Dict[str, Any]`
+
+**توضیح**: `company_id` را به form پاس می‌دهد.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: kwargs با `company_id` از `object.company_id`
+
+**منطق**:
+1. kwargs را از `super().get_form_kwargs()` دریافت می‌کند
+2. `company_id` را از `self.object.company_id` اضافه می‌کند
+3. kwargs را برمی‌گرداند
+
+---
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با company filtering برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس company
+
+**منطق**:
+1. دریافت `active_company_id` از session
+2. اگر `active_company_id` وجود ندارد، `Machine.objects.none()` برمی‌گرداند
+3. فیلتر: `Machine.objects.filter(company_id=active_company_id)`
+4. queryset را برمی‌گرداند
+
+---
+
+#### `form_valid(self, form: MachineForm) -> HttpResponseRedirect`
+
+**توضیح**: Machine را ذخیره می‌کند و پیام موفقیت نمایش می‌دهد.
+
+**پارامترهای ورودی**:
+- `form`: فرم معتبر `MachineForm`
+
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect به `success_url`
+
+**منطق**:
+1. تنظیم `form.instance.edited_by = request.user`
+2. نمایش پیام موفقیت: "Machine updated successfully."
+3. فراخوانی `super().form_valid(form)` (ذخیره و redirect)
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `active_module` و `form_title`
+
+**Context Variables اضافه شده**:
+- `active_module`: `'production'`
+- `form_title`: `_('Edit Machine')`
 
 **URL**: `/production/machines/<pk>/edit/`
 
@@ -115,9 +259,53 @@
 - `required_action`: `'delete_own'`
 
 **متدها**:
-- `get_queryset()`: فیلتر بر اساس company
-- `delete()`: نمایش پیام موفقیت و حذف
-- `get_context_data()`: اضافه کردن `active_module`
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با company filtering برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس company
+
+**منطق**:
+1. دریافت `active_company_id` از session
+2. اگر `active_company_id` وجود ندارد، `Machine.objects.none()` برمی‌گرداند
+3. فیلتر: `Machine.objects.filter(company_id=active_company_id)`
+4. queryset را برمی‌گرداند
+
+---
+
+#### `delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect`
+
+**توضیح**: Machine را حذف می‌کند و پیام موفقیت نمایش می‌دهد.
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
+
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect به `success_url`
+
+**منطق**:
+1. نمایش پیام موفقیت: "Machine deleted successfully."
+2. فراخوانی `super().delete(request, *args, **kwargs)` (که Machine را حذف می‌کند و redirect می‌کند)
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `active_module`
+
+**Context Variables اضافه شده**:
+- `active_module`: `'production'`
 
 **URL**: `/production/machines/<pk>/delete/`
 

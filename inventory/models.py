@@ -888,6 +888,7 @@ class ReceiptTemporary(InventoryDocumentBase):
         DRAFT = 0, _("Draft")
         AWAITING_INSPECTION = 1, _("Awaiting inspection")
         CLOSED = 2, _("Closed/Cancelled")
+        APPROVED = 3, _("QC Approved")
 
     document_code = models.CharField(max_length=20, unique=True)
     document_date = models.DateField(default=timezone.now)
@@ -1328,35 +1329,6 @@ class IssuePermanentLine(IssueLineBase):
     destination_id = models.BigIntegerField(null=True, blank=True)
     destination_code = models.CharField(max_length=30, blank=True)
     reason_code = models.CharField(max_length=30, blank=True)
-    unit_price = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, blank=True)
-    tax_amount = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    discount_amount = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    total_amount = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
     serials = models.ManyToManyField(
         "inventory.ItemSerial",
         related_name="issue_permanent_lines",
@@ -1390,21 +1362,6 @@ class IssueConsumptionLine(IssueLineBase):
     reference_document_code = models.CharField(max_length=30, blank=True)
     production_transfer_id = models.BigIntegerField(null=True, blank=True)
     production_transfer_code = models.CharField(max_length=30, blank=True)
-    unit_cost = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    total_cost = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    cost_center_code = models.CharField(max_length=30, blank=True)
     work_line = models.ForeignKey(
         "production.WorkLine",
         on_delete=models.SET_NULL,
@@ -1517,18 +1474,6 @@ class ReceiptLineBase(InventoryBaseModel, SortableModel):
         blank=True,
         validators=[POSITIVE_DECIMAL],
     )
-    entered_unit_price = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        null=True,
-        blank=True,
-        validators=[POSITIVE_DECIMAL],
-    )
-    entered_price_unit = models.CharField(
-        max_length=30,
-        blank=True,
-        help_text=_("Unit for entered_unit_price (e.g., BOX, CARTON). If empty, same as entered_unit."),
-    )
     line_notes = models.TextField(blank=True)
     
     class Meta:
@@ -1559,35 +1504,6 @@ class ReceiptPermanentLine(ReceiptLineBase):
         blank=True,
     )
     supplier_code = models.CharField(max_length=6, validators=[NUMERIC_CODE_VALIDATOR], blank=True)
-    unit_price = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, blank=True)
-    tax_amount = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    discount_amount = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    total_amount = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
     serials = models.ManyToManyField(
         "inventory.ItemSerial",
         related_name="receipt_permanent_lines",
@@ -1627,14 +1543,6 @@ class ReceiptConsignmentLine(ReceiptLineBase):
         related_name="consignment_receipt_lines",
     )
     supplier_code = models.CharField(max_length=6, validators=[NUMERIC_CODE_VALIDATOR])
-    unit_price_estimate = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, blank=True)
     serials = models.ManyToManyField(
         "inventory.ItemSerial",
         related_name="receipt_consignment_lines",
@@ -1660,6 +1568,28 @@ class ReceiptTemporaryLine(ReceiptLineBase):
         related_name="lines",
     )
     expected_receipt_date = models.DateField(null=True, blank=True)
+    # QC approval fields
+    is_qc_approved = models.PositiveSmallIntegerField(default=0, help_text=_("Whether this line is approved by QC"))
+    qc_approved_quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        validators=[POSITIVE_DECIMAL],
+        help_text=_("Quantity approved by QC (can be less than original quantity)")
+    )
+    qc_approval_notes = models.TextField(blank=True, help_text=_("QC approval notes for this line"))
+    # QC rejection fields
+    is_qc_rejected = models.PositiveSmallIntegerField(default=0, help_text=_("Whether this line is rejected by QC"))
+    qc_rejected_quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        validators=[POSITIVE_DECIMAL],
+        help_text=_("Quantity rejected by QC")
+    )
+    qc_rejection_reason = models.TextField(blank=True, help_text=_("QC rejection reason for this line"))
     
     class Meta:
         verbose_name = _("Temporary Receipt Line")
@@ -1673,14 +1603,69 @@ class ReceiptTemporaryLine(ReceiptLineBase):
     def __str__(self) -> str:
         return f"{self.document.document_code} - {self.item.name}"
     
-    def __str__(self) -> str:
-        return f"{self.document.document_code} - {self.item.name}"
+    @property
+    def quantity_available_for_approval(self):
+        """Calculate remaining quantity available for QC approval."""
+        if self.is_qc_approved and self.qc_approved_quantity:
+            # If already approved, return the difference
+            return self.quantity - self.qc_approved_quantity
+        return self.quantity
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        if self.supplier and not self.supplier_code:
-            self.supplier_code = self.supplier.public_code
-            super().save(*args, **kwargs)
+        # ReceiptTemporaryLine doesn't have supplier field (supplier is on ReceiptTemporary header)
+        # So we don't need to set supplier_code here
+
+
+class QCRejectionDetail(models.Model):
+    """Detailed rejection reasons for a rejected temporary receipt line."""
+    
+    line = models.ForeignKey(
+        "ReceiptTemporaryLine",
+        on_delete=models.CASCADE,
+        related_name="rejection_details",
+        verbose_name=_("Receipt Line"),
+    )
+    company = models.ForeignKey(
+        "shared.Company",
+        on_delete=models.CASCADE,
+        related_name="qc_rejection_details",
+        verbose_name=_("Company"),
+    )
+    quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        verbose_name=_("Rejected Quantity"),
+        help_text=_("Quantity rejected for this specific reason"),
+    )
+    reason = models.TextField(
+        verbose_name=_("Rejection Reason"),
+        help_text=_("Detailed reason for rejecting this quantity"),
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_("Created At"),
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="qc_rejection_details_created",
+        verbose_name=_("Created By"),
+    )
+    
+    class Meta:
+        verbose_name = _("QC Rejection Detail")
+        verbose_name_plural = _("QC Rejection Details")
+        ordering = ("id",)
+        indexes = [
+            models.Index(fields=("company", "line"), name="qc_rej_detail_line_idx"),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.line.item.name} - {self.quantity} - {self.reason[:50]}"
 
 
 # ============================================================================
@@ -1797,6 +1782,7 @@ class IssueConsignment(InventoryDocumentBase):
 
 
 class StocktakingDeficit(InventoryDocumentBase):
+    """Header-only model for stocktaking deficit documents with multi-line support."""
     document_code = models.CharField(_("Document Code"), max_length=20, unique=True)
     document_date = models.DateField(_("Document Date"), default=timezone.now)
     stocktaking_session_id = models.BigIntegerField(
@@ -1804,57 +1790,8 @@ class StocktakingDeficit(InventoryDocumentBase):
         null=True,
         blank=True,
     )
-    item = models.ForeignKey(
-        Item,
-        on_delete=models.PROTECT,
-        related_name="stocktaking_deficits",
-    )
-    item_code = models.CharField(_("Item Code"), max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
-    warehouse = models.ForeignKey(
-        Warehouse,
-        on_delete=models.PROTECT,
-        related_name="stocktaking_deficits",
-    )
-    warehouse_code = models.CharField(_("Warehouse Code"), max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
-    unit = models.CharField(_("Unit"), max_length=30)
-    quantity_expected = models.DecimalField(
-        _("Quantity Expected"),
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-    )
-    quantity_counted = models.DecimalField(
-        _("Quantity Counted"),
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-    )
-    quantity_adjusted = models.DecimalField(
-        _("Quantity Adjusted"),
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-    )
-    valuation_method = models.CharField(_("Valuation Method"), max_length=30, blank=True)
-    unit_cost = models.DecimalField(
-        _("Unit Cost"),
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    total_cost = models.DecimalField(
-        _("Total Cost"),
-        max_digits=18,
-        decimal_places=6,
-        validators=[POSITIVE_DECIMAL],
-        null=True,
-        blank=True,
-    )
-    reason_code = models.CharField(_("Reason Code"), max_length=30, blank=True)
-    investigation_reference = models.CharField(_("Investigation Reference"), max_length=30, blank=True)
-    adjustment_metadata = models.JSONField(default=dict, blank=True)
+    # Header-level fields only - item/warehouse/unit/quantity moved to StocktakingDeficitLine
+    document_metadata = models.JSONField(default=dict, blank=True)
 
     class Meta:
         verbose_name = _("Stocktaking Deficit")
@@ -1864,15 +1801,9 @@ class StocktakingDeficit(InventoryDocumentBase):
     def __str__(self) -> str:
         return self.document_code
 
-    def save(self, *args, **kwargs):
-        if not self.item_code:
-            self.item_code = self.item.item_code
-        if not self.warehouse_code:
-            self.warehouse_code = self.warehouse.public_code
-        super().save(*args, **kwargs)
-
 
 class StocktakingSurplus(InventoryDocumentBase):
+    """Header-only model for stocktaking surplus documents with multi-line support."""
     document_code = models.CharField(_("Document Code"), max_length=20, unique=True)
     document_date = models.DateField(_("Document Date"), default=timezone.now)
     stocktaking_session_id = models.BigIntegerField(
@@ -1880,16 +1811,36 @@ class StocktakingSurplus(InventoryDocumentBase):
         null=True,
         blank=True,
     )
+    # Header-level fields only - item/warehouse/unit/quantity moved to StocktakingSurplusLine
+    document_metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        verbose_name = _("Stocktaking Surplus")
+        verbose_name_plural = _("Stocktaking Surpluses")
+        ordering = ("-document_date", "document_code")
+
+    def __str__(self) -> str:
+        return self.document_code
+
+
+class StocktakingDeficitLine(InventoryBaseModel, SortableModel):
+    """Line item for stocktaking deficit documents."""
+    
+    document = models.ForeignKey(
+        "StocktakingDeficit",
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
     item = models.ForeignKey(
         Item,
         on_delete=models.PROTECT,
-        related_name="stocktaking_surpluses",
+        related_name="stocktaking_deficit_lines",
     )
     item_code = models.CharField(_("Item Code"), max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
     warehouse = models.ForeignKey(
         Warehouse,
         on_delete=models.PROTECT,
-        related_name="stocktaking_surpluses",
+        related_name="stocktaking_deficit_lines",
     )
     warehouse_code = models.CharField(_("Warehouse Code"), max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
     unit = models.CharField(_("Unit"), max_length=30)
@@ -1931,19 +1882,103 @@ class StocktakingSurplus(InventoryDocumentBase):
     reason_code = models.CharField(_("Reason Code"), max_length=30, blank=True)
     investigation_reference = models.CharField(_("Investigation Reference"), max_length=30, blank=True)
     adjustment_metadata = models.JSONField(default=dict, blank=True)
-
+    
     class Meta:
-        verbose_name = _("Stocktaking Surplus")
-        verbose_name_plural = _("Stocktaking Surpluses")
-        ordering = ("-document_date", "document_code")
-
+        verbose_name = _("Stocktaking Deficit Line")
+        verbose_name_plural = _("Stocktaking Deficit Lines")
+        ordering = ("sort_order", "id")
+        indexes = [
+            models.Index(fields=("company", "document"), name="inv_std_line_doc_idx"),
+            models.Index(fields=("company", "item"), name="inv_std_line_item_idx"),
+        ]
+    
     def __str__(self) -> str:
-        return self.document_code
-
+        return f"{self.document.document_code} - {self.item.name}"
+    
     def save(self, *args, **kwargs):
-        if not self.item_code:
+        if self.item and not self.item_code:
             self.item_code = self.item.item_code
-        if not self.warehouse_code:
+        if self.warehouse and not self.warehouse_code:
+            self.warehouse_code = self.warehouse.public_code
+        super().save(*args, **kwargs)
+
+
+class StocktakingSurplusLine(InventoryBaseModel, SortableModel):
+    """Line item for stocktaking surplus documents."""
+    
+    document = models.ForeignKey(
+        "StocktakingSurplus",
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    item = models.ForeignKey(
+        Item,
+        on_delete=models.PROTECT,
+        related_name="stocktaking_surplus_lines",
+    )
+    item_code = models.CharField(_("Item Code"), max_length=16, validators=[NUMERIC_CODE_VALIDATOR])
+    warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.PROTECT,
+        related_name="stocktaking_surplus_lines",
+    )
+    warehouse_code = models.CharField(_("Warehouse Code"), max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
+    unit = models.CharField(_("Unit"), max_length=30)
+    quantity_expected = models.DecimalField(
+        _("Quantity Expected"),
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+    )
+    quantity_counted = models.DecimalField(
+        _("Quantity Counted"),
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+    )
+    quantity_adjusted = models.DecimalField(
+        _("Quantity Adjusted"),
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+    )
+    valuation_method = models.CharField(_("Valuation Method"), max_length=30, blank=True)
+    unit_cost = models.DecimalField(
+        _("Unit Cost"),
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        null=True,
+        blank=True,
+    )
+    total_cost = models.DecimalField(
+        _("Total Cost"),
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        null=True,
+        blank=True,
+    )
+    reason_code = models.CharField(_("Reason Code"), max_length=30, blank=True)
+    investigation_reference = models.CharField(_("Investigation Reference"), max_length=30, blank=True)
+    adjustment_metadata = models.JSONField(default=dict, blank=True)
+    
+    class Meta:
+        verbose_name = _("Stocktaking Surplus Line")
+        verbose_name_plural = _("Stocktaking Surplus Lines")
+        ordering = ("sort_order", "id")
+        indexes = [
+            models.Index(fields=("company", "document"), name="inv_sts_line_doc_idx"),
+            models.Index(fields=("company", "item"), name="inv_sts_line_item_idx"),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.document.document_code} - {self.item.name}"
+    
+    def save(self, *args, **kwargs):
+        if self.item and not self.item_code:
+            self.item_code = self.item.item_code
+        if self.warehouse and not self.warehouse_code:
             self.warehouse_code = self.warehouse.public_code
         super().save(*args, **kwargs)
 
