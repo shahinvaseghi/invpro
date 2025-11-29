@@ -250,7 +250,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `shared/views/README_AUTH.md` | `shared/views/auth.py` | ✅ Updated | به‌روزرسانی شد - mark_notification_unread اضافه شد، مستندات mark_notification_read اصلاح شد |
 | `shared/views/README_SMTP_SERVER.md` | `shared/views/smtp_server.py` | ✅ Updated | به‌روزرسانی شد - جزئیات form_valid و delete تکمیل شد |
 | `shared/views/README_BASE.md` | `shared/views/base.py` | ✅ Updated | به‌روزرسانی شد - متدهای واقعی اضافه شد، متدهای نادرست حذف شد |
-| `shared/views/README_NOTIFICATIONS.md` | `shared/views/notifications.py` | ⏳ Pending | 2025-11-28 03:55:30 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `shared/views/README_NOTIFICATIONS.md` | `shared/views/notifications.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-29 19:10:19 | ✅ README newer | مستندات کامل برای `NotificationListView`: `get_queryset()` (با user filtering، company filtering از session، read status filtering از GET parameter)، `get_context_data()` (با read_filter، unread_count، read_count) |
 
 ### Forms
 | README File | Source File | Status | Notes |
