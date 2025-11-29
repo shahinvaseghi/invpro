@@ -34,7 +34,22 @@
 - `paginate_by`: `50`
 
 **متدها**:
-- `get_context_data()`: اضافه کردن `page_title`
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `page_title`
+
+**Context Variables اضافه شده**:
+- `page_title`: `_('Tickets')`
+
+**نکات مهم**:
+- از `FeaturePermissionRequiredMixin` استفاده نمی‌کند (فقط `TicketingBaseView`)
 
 **نکات مهم**:
 - از `FeaturePermissionRequiredMixin` استفاده نمی‌کند (فقط `TicketingBaseView`)
@@ -69,27 +84,57 @@
 - `available_templates`: لیست templates قابل دسترس برای user (اگر template انتخاب نشده باشد)
 
 **منطق**:
-1. بررسی `template_id` از GET parameter:
-   - اگر `template_id` وجود داشته باشد:
-     - دریافت template از database
-     - بررسی permission:
-       - Superuser: همیشه دسترسی دارد
-       - سایر users: بررسی `template.permissions` (user یا group-based)
-     - اگر permission دارد:
-       - دریافت fields از template (فقط enabled ones)
-       - پردازش fields برای extract کردن options:
-         - برای dropdown/radio/checkbox/multi_select:
-           - اول از `field_config.options` (manual options)
-           - سپس از `TicketTemplateFieldOption` model
-       - ساخت `fields_with_options` list
+1. اضافه کردن `page_title = _('Create Ticket')`
+2. بررسی `template_id` از GET parameter:
+   - اگر `template_id` موجود است:
+     - **دریافت template**:
+       - `get_object_or_404(TicketTemplate, pk=template_id, company_id=active_company_id, is_enabled=1)`
+       - اگر template پیدا نشود: exception و error message
+     - **بررسی permission**:
+       - اگر `user.is_superuser`: `has_permission = True`
+       - در غیر این صورت:
+         - دریافت permissions: `template.permissions.filter(is_enabled=1, can_create=1)`
+         - برای هر permission:
+           - اگر `perm.user_id == user.id`: `has_permission = True` و break
+           - اگر `perm.group_id` و `user.groups.filter(id=perm.group_id).exists()`: `has_permission = True` و break
+     - **اگر permission دارد**:
+       - دریافت fields: `template.fields.filter(is_enabled=1).prefetch_related('options').order_by('field_order')`
+       - **پردازش fields برای extract کردن options**:
+         - برای هر field:
+           - اگر `field_type` در `['dropdown', 'radio', 'checkbox', 'multi_select']`:
+             - **Debug logging**: Log field_name، field_type، field_config، options_source
+             - **Manual options** (اولویت اول):
+               - اگر `field_config.get('options_source') == 'manual'` و `field_config.get('options')`:
+                 - برای هر option در `field_config['options']`:
+                   - اگر `isinstance(opt, dict)` و `'value'` و `'label'` موجود است:
+                     - اضافه کردن به `field_data['options']` با `value`, `label`, `is_default`
+                 - **Debug logging**: Log manual options count
+             - **Fallback: options بدون options_source**:
+               - اگر `field_config.get('options')` (بدون options_source):
+                 - برای هر option: اضافه کردن به `field_data['options']`
+             - **Fallback: TicketTemplateFieldOption model**:
+               - اگر options در field_config نیست:
+                 - برای هر `opt` در `field.options.all()`:
+                   - اگر `opt.is_enabled == 1`:
+                     - اضافه کردن به `field_data['options']` با `option_value`, `option_label`, `is_default`
+                 - **Debug logging**: Log options from model
+             - **Debug logging**: Log final options count
+           - اضافه کردن `field_data` به `fields_with_options`
        - اضافه کردن `selected_template` و `template_fields` به context
-     - اگر permission ندارد:
-       - نمایش error message
+     - **اگر permission ندارد**:
+       - خطا: "You don't have permission to create tickets with this template."
        - `selected_template = None`
-   - اگر `template_id` وجود نداشته باشد:
-     - دریافت تمام enabled templates برای company
-     - فیلتر کردن بر اساس user permissions
-     - اضافه کردن `available_templates` به context
+   - اگر `template_id` موجود نیست:
+     - `selected_template = None`
+     - **دریافت available templates**:
+       - دریافت `company_id` از session
+       - اگر `company_id` موجود است:
+         - دریافت تمام enabled templates: `TicketTemplate.objects.filter(company_id=company_id, is_enabled=1).order_by('sort_order', 'name')`
+         - **فیلتر کردن بر اساس user permissions**:
+           - برای هر template:
+             - بررسی permission (مشابه بالا)
+             - اگر permission دارد: اضافه به `available_templates`
+         - اضافه کردن `available_templates` به context
 
 **Permission Checking Logic**:
 - بررسی `template.permissions.filter(is_enabled=1, can_create=1)`
@@ -112,7 +157,7 @@
 
 #### `form_valid(self, form) -> HttpResponseRedirect`
 
-**توضیح**: ذخیره ticket با تنظیم `reported_by` و `company_id`.
+**توضیح**: Ticket را ذخیره می‌کند با تنظیم `reported_by` و `company_id`.
 
 **پارامترهای ورودی**:
 - `form`: فرم معتبر
@@ -121,10 +166,12 @@
 - `HttpResponseRedirect`: redirect به success URL
 
 **منطق**:
-1. تنظیم `company_id` از session
-2. تنظیم `reported_by = request.user`
-3. نمایش پیام موفقیت
-4. فراخوانی `super().form_valid(form)`
+1. دریافت `company_id` از session
+2. اگر `company_id` موجود است:
+   - تنظیم `form.instance.company_id = company_id`
+3. تنظیم `form.instance.reported_by = request.user`
+4. نمایش پیام موفقیت: "Ticket created successfully."
+5. فراخوانی `super().form_valid(form)` (ذخیره و redirect)
 
 ---
 
@@ -162,17 +209,23 @@
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
 
-**توضیح**: اضافه کردن context برای template.
+**توضیح**: context variables را برای template اضافه می‌کند.
 
-**Context Variables**:
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `page_title`
+
+**Context Variables اضافه شده**:
 - `page_title`: `_('Edit Ticket')`
-- `object`: Ticket instance
+- `object`: Ticket instance (از UpdateView)
 
 ---
 
 #### `form_valid(self, form) -> HttpResponseRedirect`
 
-**توضیح**: ذخیره ticket و نمایش پیام موفقیت.
+**توضیح**: Ticket را ذخیره می‌کند و پیام موفقیت نمایش می‌دهد.
 
 **پارامترهای ورودی**:
 - `form`: فرم معتبر
@@ -181,8 +234,8 @@
 - `HttpResponseRedirect`: redirect به success URL
 
 **منطق**:
-1. نمایش پیام موفقیت
-2. فراخوانی `super().form_valid(form)`
+1. نمایش پیام موفقیت: "Ticket updated successfully."
+2. فراخوانی `super().form_valid(form)` (ذخیره و redirect)
 
 ---
 
