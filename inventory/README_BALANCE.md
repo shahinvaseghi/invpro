@@ -32,21 +32,29 @@ Current Balance = Baseline (from last stocktaking)
 **Returns**:
 ```python
 {
-    'baseline_date': date or None,          # Date of last stocktaking
-    'baseline_quantity': Decimal,            # Quantity from stocktaking
+    'baseline_date': date or None,          # date(1900, 1, 1) if stocktaking found, None otherwise
+    'baseline_quantity': Decimal('0'),      # Always 0 (all movements calculated after baseline)
     'stocktaking_record_id': int or None,   # Reference to stocktaking record
-    'stocktaking_record_code': str or None   # Human-readable code
+    'stocktaking_record_code': str or None, # Human-readable code
+    'stocktaking_record_date': date or None # Actual stocktaking record date (for reference)
 }
 ```
 
 **Logic**:
-1. First, try to find the most recent approved and locked `StocktakingRecord` before `as_of_date`
-   - If found: Returns `baseline_date=date(1900, 1, 1)` (start from beginning to include all movements), `baseline_quantity=0`, and includes `stocktaking_record_id` and `stocktaking_record_code` for reference
-   - The actual stocktaking record date is stored in `stocktaking_record_date` for reference
-2. If no `StocktakingRecord` found, check for earliest deficit/surplus documents before `as_of_date`
-   - If found: Uses the earliest deficit/surplus document date as `baseline_date`, `baseline_quantity=0`
-   - Deficit/surplus documents will be included as movements after this baseline
-3. If no stocktaking documents at all: Returns `baseline_date=None`, `baseline_quantity=0`
+1. اگر `as_of_date` None باشد: `as_of_date = timezone.now().date()`
+2. جستجوی آخرین `StocktakingRecord`:
+   - Query: `StocktakingRecord.objects.filter(company_id=company_id, document_date__lte=as_of_date, approval_status='approved', is_locked=1, is_enabled=1).order_by('-document_date', '-id').first()`
+   - اگر پیدا شد:
+     - `baseline_date = date(1900, 1, 1)` (شروع از ابتدا برای شامل کردن تمام movements)
+     - `baseline_quantity = Decimal('0')` (همیشه 0 - تمام movements بعد از baseline محاسبه می‌شوند)
+     - `stocktaking_record_id = latest_record.id`
+     - `stocktaking_record_code = latest_record.document_code`
+     - `stocktaking_record_date = latest_record.document_date` (تاریخ واقعی stocktaking برای reference)
+   - اگر پیدا نشد:
+     - `baseline_date = None`
+     - `baseline_quantity = Decimal('0')`
+     - `stocktaking_record_id = None`
+     - **نکته**: Deficit/surplus documents فقط اگر StocktakingRecord وجود داشته باشد به عنوان movements محاسبه می‌شوند
 
 **Important**: The baseline quantity is always `0` because all movements (including deficit/surplus) are calculated as movements after the baseline date. This ensures a complete audit trail.
 
@@ -93,12 +101,38 @@ baseline = get_last_stocktaking_baseline(
 - `IssueConsignmentLine` where `document__is_enabled=1` and `document_date` in range
 - `StocktakingDeficitLine` where `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
 
+**منطق**:
+1. اگر `as_of_date` None باشد: `as_of_date = timezone.now().date()`
+2. **Date handling برای as_of_date**:
+   - اگر `isinstance(as_of_date, date)` نیست:
+     - اگر string باشد: `date.fromisoformat(as_of_date)`
+     - در غیر این صورت: `timezone.now().date()`
+     - اگر exception رخ دهد: `timezone.now().date()`
+3. **Date handling برای baseline_date**:
+   - اگر `baseline_date` None باشد: `baseline_date = date(1900, 1, 1)`
+   - اگر `isinstance(baseline_date, date)` نیست:
+     - اگر string باشد: `date.fromisoformat(baseline_date)`
+     - در غیر این صورت: `date(1900, 1, 1)`
+     - اگر exception رخ دهد: `date(1900, 1, 1)`
+4. **محاسبه Receipts** (positive movements):
+   - `ReceiptPermanentLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_enabled=1).aggregate(total=Sum('quantity'))`
+   - `ReceiptConsignmentLine`: مشابه بالا
+   - `StocktakingSurplusLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_locked=1, document__is_enabled=1).aggregate(total=Sum('quantity_adjusted'))`
+   - `receipts_total = (receipts_perm['total'] or Decimal('0')) + (receipts_consignment['total'] or Decimal('0')) + (surplus['total'] or Decimal('0'))`
+5. **محاسبه Issues** (negative movements):
+   - `IssuePermanentLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_enabled=1).aggregate(total=Sum('quantity'))`
+   - `IssueConsumptionLine`: مشابه بالا
+   - `IssueConsignmentLine`: مشابه بالا
+   - `StocktakingDeficitLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_locked=1, document__is_enabled=1).aggregate(total=Sum('quantity_adjusted'))`
+   - `issues_total = (issues_permanent['total'] or Decimal('0')) + (issues_consumption['total'] or Decimal('0')) + (issues_consignment['total'] or Decimal('0')) + (deficit['total'] or Decimal('0'))`
+6. بازگشت: `{'receipts_total': Decimal, 'issues_total': Decimal, 'surplus_total': Decimal, 'deficit_total': Decimal}`
+
 **Important Notes**:
-- Receipts and Issues: Only enabled documents are included (`is_enabled=1`)
-- Stocktaking (Deficit/Surplus): Both `is_locked=1` AND `is_enabled=1` are required
+- Receipts and Issues: Only enabled documents are included (`document__is_enabled=1`)
+- Stocktaking (Deficit/Surplus): Both `document__is_locked=1` AND `document__is_enabled=1` are required
 - Consignment receipts/issues ARE included (they affect inventory balance)
 - Temporary receipts are excluded (not included in the queries)
-- Date handling: Automatically converts string dates to date objects, defaults to `date(1900, 1, 1)` if `baseline_date` is None
+- Date range: `document__document_date__gte=baseline_date` AND `document__document_date__lte=as_of_date`
 
 **Example**:
 ```python
@@ -195,29 +229,40 @@ balance = calculate_item_balance(
 ```
 (Each dict is same format as `calculate_item_balance()`)
 
-**Logic**:
-1. Find all items with activity in the warehouse:
-   - Items with warehouse assignment (`ItemWarehouse` where `warehouse_id` matches and `is_enabled=1`), OR
-   - Items with actual transactions:
-     * `ReceiptPermanentLine` (enabled documents only)
-     * `ReceiptConsignmentLine` (enabled documents only)
-     * `IssuePermanentLine` (enabled documents only)
-     * `IssueConsumptionLine` (enabled documents only)
-     * `IssueConsignmentLine` (enabled documents only)
-     * `StocktakingSurplusLine` (enabled documents only)
-     * `StocktakingDeficitLine` (enabled documents only)
-2. **Important**: Items with actual transactions are included even if disabled (`is_enabled=0`)
-   - This ensures complete audit trail visibility
-   - Items with only warehouse assignment still require `is_enabled=1`
-3. Apply optional type/category filters (`item_type_id`, `item_category_id`)
-4. Calculate balance for each item using `calculate_item_balance()`
-5. **Filtering**: Only includes items where:
-   - `current_balance != 0`, OR
-   - `receipts_total > 0`, OR
-   - `issues_total > 0`
-   - This excludes items with zero balance and no activity
-6. Error handling: If calculation fails for an item, logs error and continues with other items
-7. Return list of balances
+**منطق**:
+1. اگر `as_of_date` None باشد: `as_of_date = timezone.now().date()`
+2. **یافتن items با activity در warehouse**:
+   - **Items با warehouse assignment**: `Item.objects.filter(company_id=company_id, is_enabled=1, warehouses__warehouse_id=warehouse_id, warehouses__is_enabled=1).values_list('id', flat=True)`
+   - **Items با actual transactions** (فقط enabled documents و `document_date__lte=as_of_date`):
+     * `ReceiptPermanentLine`: `filter(company_id, warehouse_id, document__is_enabled=1, document__document_date__lte=as_of_date).values_list('item_id', flat=True).distinct()`
+     * `ReceiptConsignmentLine`: مشابه بالا
+     * `IssuePermanentLine`: مشابه بالا
+     * `IssueConsumptionLine`: مشابه بالا
+     * `IssueConsignmentLine`: مشابه بالا
+     * `StocktakingSurplusLine`: مشابه بالا (فقط `document__is_enabled=1`)
+     * `StocktakingDeficitLine`: مشابه بالا (فقط `document__is_enabled=1`)
+3. **ترکیب item IDs**:
+   - `all_item_ids = set(items_with_assignment) | set(items_with_receipts) | set(items_with_consignment_receipts) | set(items_with_issues) | set(items_with_consumption) | set(items_with_consignment_issues) | set(items_with_surplus) | set(items_with_deficit)`
+   - `items_with_transactions = set(items_with_receipts) | set(items_with_consignment_receipts) | set(items_with_issues) | set(items_with_consumption) | set(items_with_consignment_issues) | set(items_with_surplus) | set(items_with_deficit)`
+4. **ساخت query**:
+   - `items_query = Item.objects.filter(id__in=all_item_ids, company_id=company_id).filter(Q(id__in=items_with_transactions) | Q(is_enabled=1))`
+   - **نکته مهم**: Items با actual transactions حتی اگر disabled باشند (`is_enabled=0`) شامل می‌شوند (برای audit trail)
+   - Items با فقط warehouse assignment نیاز به `is_enabled=1` دارند
+5. **اعمال optional filters**:
+   - اگر `item_type_id` موجود باشد: `items_query = items_query.filter(type_id=item_type_id)`
+   - اگر `item_category_id` موجود باشد: `items_query = items_query.filter(category_id=item_category_id)`
+6. **محاسبه balance برای هر item**:
+   - برای هر item در `items_query`:
+     - فراخوانی `calculate_item_balance(company_id, warehouse_id, item.id, as_of_date)`
+     - **فیلتر کردن**: فقط items با:
+       * `current_balance != 0`، یا
+       * `receipts_total > 0`، یا
+       * `issues_total > 0`
+     - اضافه کردن به `balances` list
+     - **Error handling**: اگر exception رخ دهد:
+       * Log error با `print()` و `traceback.format_exc()`
+       * ادامه با item بعدی (`continue`)
+7. بازگشت `balances` list
 
 **Performance**:
 - Runs one query per item (N+1 pattern)
