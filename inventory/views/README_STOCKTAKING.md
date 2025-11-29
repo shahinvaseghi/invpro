@@ -121,12 +121,36 @@
 - `context_object_name`: `'records'`
 - `paginate_by`: `50`
 
-**Context Variables**:
-- `create_url`: URL برای ایجاد
-- `edit_url_name`: نام URL برای ویرایش
-- `delete_url_name`: نام URL برای حذف
-- `lock_url_name`: نام URL برای lock
-- Delete permissions (از `add_delete_permissions_to_context`)
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch و فیلتر permissions آماده می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده و بهینه شده
+
+**منطق**:
+1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
+2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.deficit', 'created_by')`
+3. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
+4. `select_related('created_by')` را اعمال می‌کند
+5. queryset را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**Context Variables اضافه شده**:
+- `create_url`: `reverse_lazy('inventory:stocktaking_deficit_create')`
+- `edit_url_name`: `'inventory:stocktaking_deficit_edit'`
+- `delete_url_name`: `'inventory:stocktaking_deficit_delete'`
+- `lock_url_name`: `'inventory:stocktaking_deficit_lock'`
+- `can_delete_own`, `can_delete_other`: از `add_delete_permissions_to_context()`
 
 **URL**: `/inventory/stocktaking/deficit/`
 
@@ -167,11 +191,13 @@
 
 ### StocktakingDeficitUpdateView
 
-**Type**: `DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView`
+**Type**: `EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView`
 
 **Template**: `inventory/stocktaking_form.html`
 
 **Form**: `StocktakingDeficitForm`
+
+**Formset**: `StocktakingDeficitLineFormSet`
 
 **Success URL**: `inventory:stocktaking_deficit`
 
@@ -185,8 +211,32 @@
 - `lock_url_name`: `'inventory:stocktaking_deficit_lock'`
 
 **متدها**:
-- `form_valid()`: تنظیم `edited_by`، اگر `created_by` وجود ندارد تنظیم می‌کند، نمایش پیام موفقیت
-- `get_fieldsets()`: مشابه CreateView
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch و فیلتر permissions آماده می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده و بهینه شده
+
+**منطق**:
+1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
+2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.deficit', 'created_by')`
+3. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
+4. `select_related('created_by')` را اعمال می‌کند
+5. queryset را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
+
+#### `form_valid(self, form) -> HttpResponseRedirect`
+
+**توضیح**: تنظیم `edited_by`، اگر `created_by` وجود ندارد تنظیم می‌کند، نمایش پیام موفقیت.
+
+#### `get_fieldsets(self) -> list`
+
+**توضیح**: مشابه CreateView - fieldsets configuration را برمی‌گرداند.
 
 **نکات مهم**:
 - از `DocumentLockProtectedMixin` استفاده می‌کند (قفل شده قابل ویرایش نیست)
@@ -245,7 +295,36 @@
 - `context_object_name`: `'records'`
 - `paginate_by`: `50`
 
-**Context Variables**: مشابه `StocktakingDeficitListView`
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch و فیلتر permissions آماده می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده و بهینه شده
+
+**منطق**:
+1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
+2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.surplus', 'created_by')`
+3. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
+4. `select_related('created_by')` را اعمال می‌کند
+5. queryset را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**Context Variables اضافه شده**:
+- `create_url`: `reverse_lazy('inventory:stocktaking_surplus_create')`
+- `edit_url_name`: `'inventory:stocktaking_surplus_edit'`
+- `delete_url_name`: `'inventory:stocktaking_surplus_delete'`
+- `lock_url_name`: `'inventory:stocktaking_surplus_lock'`
+- `can_delete_own`, `can_delete_other`: از `add_delete_permissions_to_context()`
 
 **URL**: `/inventory/stocktaking/surplus/`
 
@@ -280,11 +359,13 @@
 
 ### StocktakingSurplusUpdateView
 
-**Type**: `DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView`
+**Type**: `EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView`
 
 **Template**: `inventory/stocktaking_form.html`
 
 **Form**: `StocktakingSurplusForm`
+
+**Formset**: `StocktakingSurplusLineFormSet`
 
 **Success URL**: `inventory:stocktaking_surplus`
 
@@ -297,7 +378,33 @@
 - `list_url_name`: `'inventory:stocktaking_surplus'`
 - `lock_url_name`: `'inventory:stocktaking_surplus_lock'`
 
-**متدها**: مشابه `StocktakingDeficitUpdateView`
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch و فیلتر permissions آماده می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده و بهینه شده
+
+**منطق**:
+1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
+2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.surplus', 'created_by')`
+3. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
+4. `select_related('created_by')` را اعمال می‌کند
+5. queryset را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
+
+#### `form_valid(self, form) -> HttpResponseRedirect`
+
+**توضیح**: تنظیم `edited_by`، اگر `created_by` وجود ندارد تنظیم می‌کند، نمایش پیام موفقیت.
+
+#### `get_fieldsets(self) -> list`
+
+**توضیح**: مشابه CreateView - fieldsets configuration را برمی‌گرداند.
 
 **URL**: `/inventory/stocktaking/surplus/<pk>/edit/`
 
@@ -353,7 +460,34 @@
 - `context_object_name`: `'records'`
 - `paginate_by`: `50`
 
-**Context Variables**: مشابه `StocktakingDeficitListView`
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با فیلتر permissions آماده می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده
+
+**منطق**:
+1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
+2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.records', 'created_by')`
+3. queryset را برمی‌گرداند
+
+**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**Context Variables اضافه شده**:
+- `create_url`: `reverse_lazy('inventory:stocktaking_record_create')`
+- `edit_url_name`: `'inventory:stocktaking_record_edit'`
+- `delete_url_name`: `'inventory:stocktaking_record_delete'`
+- `lock_url_name`: `'inventory:stocktaking_record_lock'`
+- `can_delete_own`, `can_delete_other`: از `add_delete_permissions_to_context()`
 
 **URL**: `/inventory/stocktaking/records/`
 
