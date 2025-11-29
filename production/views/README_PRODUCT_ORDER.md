@@ -42,8 +42,38 @@
 - `required_action`: `'view_own'`
 
 **متدها**:
-- `get_queryset()`: فیلتر بر اساس company، `select_related('finished_item', 'bom', 'process', 'approved_by')`، مرتب بر اساس `-order_date`, `order_code`
-- `get_context_data()`: اضافه کردن `active_module`
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با company filtering، select_related، و ordering برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده با optimizations
+
+**منطق**:
+1. دریافت `active_company_id` از session
+2. اگر `active_company_id` وجود ندارد، `ProductOrder.objects.none()` برمی‌گرداند
+3. فیلتر: `ProductOrder.objects.filter(company_id=active_company_id)`
+4. **select_related**: `'finished_item'`, `'bom'`, `'process'`, `'approved_by'`
+5. مرتب‌سازی: `order_by('-order_date', 'order_code')` (جدیدترین اول)
+6. queryset را برمی‌گرداند
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `active_module`
+
+**Context Variables اضافه شده**:
+- `active_module`: `'production'`
 
 **URL**: `/production/product-orders/`
 
@@ -217,7 +247,19 @@
 - اضافه کردن `company_id` از `object.company_id` به form
 
 #### `get_queryset(self) -> QuerySet`
-- فیلتر بر اساس `active_company_id`
+
+**توضیح**: queryset را با company filtering برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس company
+
+**منطق**:
+1. دریافت `active_company_id` از session
+2. اگر `active_company_id` وجود ندارد، `ProductOrder.objects.none()` برمی‌گرداند
+3. فیلتر: `ProductOrder.objects.filter(company_id=active_company_id)`
+4. queryset را برمی‌گرداند
 
 #### `form_valid(self, form: ProductOrderForm) -> HttpResponseRedirect`
 - مشابه `ProductOrderCreateView.form_valid()` اما:
@@ -226,8 +268,32 @@
   - استفاده از `self.object.company_id` به جای `active_company_id` از session
   - پیام موفقیت: "Product order updated and transfer request created successfully." یا "Product order updated successfully."
 
-#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
-- مشابه `ProductOrderCreateView.get_context_data()` اما با `form_title = _('Edit Product Order')`
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `active_module`, `form_title`, و `extra_items_formset`
+
+**منطق**:
+1. context را از `super().get_context_data()` دریافت می‌کند
+2. اضافه کردن `active_module = 'production'`
+3. اضافه کردن `form_title = _('Edit Product Order')`
+4. بررسی permission برای `create_transfer_from_order`:
+   - اگر `self.object` و `self.object.company_id` موجود است:
+     - بررسی permission با `has_feature_permission()` برای action `'create_transfer_from_order'`
+     - اگر permission دارد یا user superuser است:
+       - ساخت `TransferToLineItemFormSet`:
+         - اگر POST: از POST data
+         - اگر GET: empty formset
+         - استفاده از temporary `TransferToLine` instance
+         - `form_kwargs={'company_id': self.object.company_id}`
+         - prefix: `'extra_items'`
+       - اضافه کردن `extra_items_formset` به context
+5. بازگشت context
 
 #### `_create_transfer_request(self, order, approved_by, company_id) -> TransferToLine`
 - مشابه `ProductOrderCreateView._create_transfer_request()`
@@ -252,9 +318,53 @@
 - `required_action`: `'delete_own'`
 
 **متدها**:
-- `get_queryset()`: فیلتر بر اساس company
-- `delete()`: نمایش پیام موفقیت و حذف
-- `get_context_data()`: اضافه کردن `active_module`
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با company filtering برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس company
+
+**منطق**:
+1. دریافت `active_company_id` از session
+2. اگر `active_company_id` وجود ندارد، `ProductOrder.objects.none()` برمی‌گرداند
+3. فیلتر: `ProductOrder.objects.filter(company_id=active_company_id)`
+4. queryset را برمی‌گرداند
+
+---
+
+#### `delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect`
+
+**توضیح**: Product Order را حذف می‌کند و پیام موفقیت نمایش می‌دهد.
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
+
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect به `success_url`
+
+**منطق**:
+1. نمایش پیام موفقیت: "Product order deleted successfully."
+2. فراخوانی `super().delete(request, *args, **kwargs)` (که Product Order را حذف می‌کند و redirect می‌کند)
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `active_module`
+
+**Context Variables اضافه شده**:
+- `active_module`: `'production'`
 
 **URL**: `/production/product-orders/<pk>/delete/`
 
