@@ -267,7 +267,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `shared/utils/README_PERMISSIONS.md` | `shared/utils/permissions.py` | ✅ Updated | 2025-11-13 16:06:41 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `shared/utils/README_MODULES.md` | `shared/utils/modules.py` | ✅ Updated | 2025-11-22 16:22:00 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `shared/utils/README_EMAIL.md` | `shared/utils/email.py` | ✅ Updated | 2025-11-22 20:47:51 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `shared/utils/README_NOTIFICATIONS.md` | `shared/utils/notifications.py` | ⏳ Pending | 2025-11-28 03:55:30 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `shared/utils/README_NOTIFICATIONS.md` | `shared/utils/notifications.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-29 19:11:57 | ✅ README newer | مستندات کامل برای 4 function: `get_or_create_notification()` (با get_or_create و update logic)، `get_unread_notifications()` (با company filtering)، `get_unread_notification_count()` (با Sum aggregation)، `get_recent_notifications()` (با limit و is_read field) |
 
 ### Template Tags
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
