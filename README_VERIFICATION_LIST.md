@@ -220,7 +220,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `ticketing/views/README_TICKETS.md` | `ticketing/views/tickets.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 18:47:21 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_context_data()` (با permission checking، options extraction از field_config و model، و debug logging)، `form_valid()` (با reported_by و company_id)، و `get_initial()` اضافه شد |
 | `ticketing/views/README_DEBUG.md` | `ticketing/views/debug.py` | ✅ Updated | 2025-11-25 13:24:42 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `ticketing/views/README_PLACEHOLDERS.md` | `ticketing/views/placeholders.py` | ✅ Updated | 2025-11-25 00:11:08 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `ticketing/views/README_ENTITY_REFERENCE.md` | `ticketing/views/entity_reference.py` | ⏳ Pending | 2025-11-27 00:44:07 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `ticketing/views/README_ENTITY_REFERENCE.md` | `ticketing/views/entity_reference.py` | ✅ Updated | 2025-11-27 00:44:07 | 2025-11-29 18:53:24 | ✅ README newer | مستندات کامل برای 3 API endpoint: `EntityReferenceSectionsView` (لیست sections)، `EntityReferenceActionsView` (لیست actions برای section)، `EntityReferenceParameterValuesView` (مقادیر ممکن برای parameter types مختلف: enum، group، user، company، company_unit) |
 
 ### Forms
 | README File | Source File | Status | Notes |
