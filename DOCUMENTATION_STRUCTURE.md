@@ -58,7 +58,8 @@ invproj/
 │   │   ├── 📄 README_PERSONNEL.md
 │   │   ├── 📄 README_TRANSFER_TO_LINE.md
 │   │   ├── 📄 README_PERFORMANCE_RECORD.md
-│   │   └── 📄 README_PLACEHOLDERS.md
+│   │   ├── 📄 README_PLACEHOLDERS.md
+│   │   └── 📄 README_API.md
 │   │
 │   └── 📁 forms/
 │       ├── 📄 README_BOM.md
@@ -82,7 +83,8 @@ invproj/
 │   │   ├── 📄 README_TEMPLATES.md
 │   │   ├── 📄 README_TICKETS.md
 │   │   ├── 📄 README_DEBUG.md
-│   │   └── 📄 README_PLACEHOLDERS.md
+│   │   ├── 📄 README_PLACEHOLDERS.md
+│   │   └── 📄 README_ENTITY_REFERENCE.md
 │   │
 │   ├── 📁 forms/
 │   │   ├── 📄 README_BASE.md
@@ -102,7 +104,8 @@ invproj/
 │   │   ├── 📄 README_COMPANY_UNITS.md
 │   │   ├── 📄 README_AUTH.md
 │   │   ├── 📄 README_SMTP_SERVER.md
-│   │   └── 📄 README_BASE.md
+│   │   ├── 📄 README_BASE.md
+│   │   └── 📄 README_NOTIFICATIONS.md
 │   │
 │   ├── 📁 forms/
 │   │   ├── 📄 README_USERS.md
@@ -114,35 +117,48 @@ invproj/
 │   ├── 📁 utils/
 │   │   ├── 📄 README_PERMISSIONS.md
 │   │   ├── 📄 README_MODULES.md
-│   │   └── 📄 README_EMAIL.md
+│   │   ├── 📄 README_EMAIL.md
+│   │   └── 📄 README_NOTIFICATIONS.md
 │   │
 │   ├── 📁 templatetags/
 │   │   ├── 📄 README_ACCESS_TAGS.md
 │   │   └── 📄 README_JSON_FILTERS.md
 │   │
+│   ├── 📁 management/
+│   │   └── 📁 commands/
+│   │       ├── 📄 README_CLEAR_ALL_DATA.md
+│   │       └── 📄 README_CLEAR_EDIT_LOCKS.md
+│   │
 │   └── 📄 README_CONTEXT_PROCESSORS.md
 │
 ├── 📁 accounting/
+│   ├── 📄 README_MODELS.md
 │   └── 📄 README_VIEWS.md
 │
 ├── 📁 sales/
+│   ├── 📄 README_MODELS.md
 │   └── 📄 README_VIEWS.md
 │
 ├── 📁 hr/
+│   ├── 📄 README_MODELS.md
 │   └── 📄 README_VIEWS.md
 │
 ├── 📁 office_automation/
+│   ├── 📄 README_MODELS.md
 │   └── 📄 README_VIEWS.md
 │
 ├── 📁 transportation/
+│   ├── 📄 README_MODELS.md
 │   └── 📄 README_VIEWS.md
 │
 ├── 📁 procurement/
+│   ├── 📄 README_MODELS.md
 │   └── 📄 README_VIEWS.md
 │
 └── 📁 ui/
     ├── 📄 README.md
-    └── 📄 README_CONTEXT_PROCESSORS.md
+    ├── 📄 README_CONTEXT_PROCESSORS.md
+    └── 📄 README_MODELS.md
 ```
 
 ---
@@ -242,6 +258,12 @@ invproj/
 **`inventory/management/commands/README_CLEANUP_TEST_RECEIPTS.md`**
 مستندسازی management command برای حذف یا نمایش test receipts. شامل `--show` flag و safe deletion.
 
+**`shared/management/commands/README_CLEAR_ALL_DATA.md`**
+مستندسازی management command برای حذف تمام داده‌ها به جز Users, Groups, Companies, Access Levels, Company Units, و User Company Access.
+
+**`shared/management/commands/README_CLEAR_EDIT_LOCKS.md`**
+مستندسازی management command برای پاک کردن edit locks قدیمی (stale locks). شامل `--all` flag و `--timeout` option.
+
 ---
 
 ### Production Module
@@ -274,6 +296,9 @@ invproj/
 
 **`production/views/README_PLACEHOLDERS.md`**
 مستندسازی placeholder views که در حال حاضر خالی هستند و برای آینده طراحی شده‌اند.
+
+**`production/views/README_API.md`**
+مستندسازی API endpoints برای production module. شامل function-based views برای دریافت داده‌های BOM materials.
 
 #### Forms
 
@@ -337,6 +362,9 @@ invproj/
 **`ticketing/views/README_PLACEHOLDERS.md`**
 مستندسازی placeholder views که در حال حاضر خالی هستند و برای آینده طراحی شده‌اند.
 
+**`ticketing/views/README_ENTITY_REFERENCE.md`**
+مستندسازی API views برای Entity Reference System. شامل views برای sections, actions, و parameter values.
+
 #### Forms
 
 **`ticketing/forms/README_BASE.md`**
@@ -386,6 +414,9 @@ invproj/
 **`shared/views/README_BASE.md`**
 مستندسازی base classes و mixins برای shared views. شامل common functionality و permission checks.
 
+**`shared/views/README_NOTIFICATIONS.md`**
+مستندسازی views برای مدیریت notifications. شامل NotificationListView با read/unread filtering.
+
 #### Forms
 
 **`shared/forms/README_USERS.md`**
@@ -414,6 +445,9 @@ invproj/
 **`shared/utils/README_EMAIL.md`**
 مستندسازی توابع برای ارسال ایمیل: get_active_smtp_server, send_email_notification, send_notification_email. شامل SMTP configuration، HTML email support، و error handling.
 
+**`shared/utils/README_NOTIFICATIONS.md`**
+مستندسازی helper functions برای مدیریت notifications. شامل get_or_create_notification و سایر توابع utility.
+
 #### Template Tags
 
 **`shared/templatetags/README_ACCESS_TAGS.md`**
@@ -427,6 +461,14 @@ invproj/
 **`shared/README_CONTEXT_PROCESSORS.md`**
 مستندسازی active_company context processor که active_company, user_companies, user_feature_permissions, notifications را به context اضافه می‌کند. شامل session management و email notifications.
 
+#### Management Commands
+
+**`shared/management/commands/README_CLEAR_ALL_DATA.md`**
+مستندسازی management command برای حذف تمام داده‌ها به جز Users, Groups, Companies, Access Levels, Company Units, و User Company Access.
+
+**`shared/management/commands/README_CLEAR_EDIT_LOCKS.md`**
+مستندسازی management command برای پاک کردن edit locks قدیمی (stale locks). شامل `--all` flag و `--timeout` option.
+
 ---
 
 ### UI Module
@@ -436,6 +478,46 @@ invproj/
 
 **`ui/README_CONTEXT_PROCESSORS.md`**
 مستندسازی active_module context processor که active_module را از query string می‌گیرد. شامل navigation highlighting و future enhancements.
+
+---
+
+### Models
+
+**`inventory/README_MODELS.md`**
+مستندسازی تمام models در ماژول inventory. شامل mixins, master data, item definitions, supplier relations, receipts, issues, requests, stocktaking, و serial tracking.
+
+**`production/README_MODELS.md`**
+مستندسازی تمام models در ماژول production. شامل mixins, core resources, personnel management, BOM, process definitions, production orders, و material transfer.
+
+**`shared/README_MODELS.md`**
+مستندسازی تمام models در ماژول shared. شامل mixins (TimeStampedModel, ActivatableModel, MetadataModel, SortableModel, CompanyScopedModel), User, Company, CompanyUnit, AccessLevel, Group, Notification, و سایر entities مشترک.
+
+**`ticketing/README_MODELS.md`**
+مستندسازی تمام models در ماژول ticketing. شامل mixins, TicketCategory, TicketSubcategory, TicketTemplate, Ticket, و سایر entities مربوط به ticketing.
+
+**`qc/README_MODELS.md`**
+مستندسازی تمام models در ماژول QC. شامل QCBaseModel و ReceiptInspection.
+
+**`accounting/README_MODELS.md`**
+مستندسازی تمام models در ماژول accounting.
+
+**`sales/README_MODELS.md`**
+مستندسازی تمام models در ماژول sales.
+
+**`hr/README_MODELS.md`**
+مستندسازی تمام models در ماژول HR.
+
+**`procurement/README_MODELS.md`**
+مستندسازی تمام models در ماژول procurement.
+
+**`transportation/README_MODELS.md`**
+مستندسازی تمام models در ماژول transportation.
+
+**`office_automation/README_MODELS.md`**
+مستندسازی تمام models در ماژول office automation.
+
+**`ui/README_MODELS.md`**
+مستندسازی تمام models در ماژول UI.
 
 ---
 
@@ -495,16 +577,17 @@ invproj/
 
 ## 📊 آمار کلی
 
-- **جمع کل فایل‌های README**: 120 فایل
+- **جمع کل فایل‌های README**: 138 فایل
 - **Root/Docs**: 3 فایل (README.md, DOCUMENTATION_STRUCTURE.md, DOCUMENTATION_STATUS.md, docs/README.md, docs/ENTITY_REFERENCE_SYSTEM.md, docs/MIGRATIONS_README.md)
 - **Module Main**: 13 فایل (README.md برای هر ماژول + README_FORMS.md, README_BALANCE.md, README_BOM.md)
-- **Views**: 42 فایل
+- **Views**: 45 فایل
 - **Forms**: 24 فایل
-- **Utils**: 6 فایل
+- **Utils**: 7 فایل
 - **Services**: 1 فایل
 - **Template Tags**: 3 فایل
 - **Context Processors**: 2 فایل
-- **Management Commands**: 1 فایل
+- **Management Commands**: 3 فایل
+- **Models**: 12 فایل
 - **Migrations**: 5 فایل README (هر ماژول)
 - **Templates**: 1 فایل (templates/inventory/README.md)
 - **Other**: 19 فایل (README.md در پوشه‌های مختلف)

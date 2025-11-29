@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ dashboard_title|default:"Dashboard" }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<section class="page-section dashboard-section">
+  <header class="dashboard-header">
+    <h1>{{ dashboard_title|default:"Dashboard" }}</h1>
+    {% if dashboard_subtitle %}
+    <p class="dashboard-subtitle">{{ dashboard_subtitle }}</p>
+    {% endif %}
+  </header>
+
+  <div class="dashboard-grid">
+    {% block dashboard_cards %}
+    {% if dashboard_cards %}
+      {% for card in dashboard_cards %}
+        <div class="dashboard-card card-{{ card.color|default:'blue' }}">
+          {% if card.icon %}
+          <div class="card-icon-bg">{{ card.icon }}</div>
+          {% endif %}
+          <div class="card-content">
+            {% if card.type == 'info' %}
+              <div class="user-info-name">{{ card.title|default:"" }}</div>
+              <div class="user-info-company">{{ card.subtitle|default:"" }}</div>
+              {% if card.show_datetime %}
+              <div class="user-info-date" id="current-date-time"></div>
+              {% endif %}
+            {% else %}
+              <div class="stat-value">{{ card.value|default:0 }}</div>
+              <div class="stat-label">{{ card.label|default:"" }}</div>
+              {% if card.link_url %}
+                {% if card.link_items %}
+                <div class="card-link-dropdown">
+                  <button type="button" class="card-link" id="dropdown-btn-{{ forloop.counter }}">{{ card.link_text|default:"More info" }} →</button>
+                  <div class="card-link-menu" id="dropdown-menu-{{ forloop.counter }}">
+                    {% for item in card.link_items %}
+                      <a href="{{ item.url }}" class="card-link-item">{{ item.label }}{% if item.count %} ({{ item.count }}){% endif %}</a>
+                    {% endfor %}
+                  </div>
+                </div>
+                {% else %}
+                <a href="{{ card.link_url }}" class="card-link">{{ card.link_text|default:"More info" }} →</a>
+                {% endif %}
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+    {% endblock %}
+  </div>
+</section>
+
+<style>
+.dashboard-section {
+  padding: 2rem;
+}
+
+.dashboard-header {
+  margin-bottom: 2rem;
+}
+
+.dashboard-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-subtitle {
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.dashboard-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.card-icon-bg {
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  font-size: 6rem;
+  opacity: 0.1;
+  z-index: 0;
+}
+
+.card-content {
+  position: relative;
+  z-index: 1;
+}
+
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  font-size: 1rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+}
+
+.user-info-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.user-info-company {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.user-info-date {
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+.card-link {
+  background: none;
+  border: none;
+  color: var(--color-primary, #0046FF);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 0;
+  font-family: inherit;
+}
+
+.card-link:hover {
+  color: var(--color-secondary, #73C8D2);
+}
+
+.card-link-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.card-link-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+  z-index: 1000;
+  padding: 8px 0;
+  margin-bottom: 8px;
+  min-width: 200px;
+}
+
+[dir="rtl"] .card-link-menu {
+  left: auto;
+  right: 0;
+}
+
+.card-link-dropdown:hover .card-link-menu,
+.card-link-dropdown.active .card-link-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.card-link-item {
+  display: block;
+  padding: 10px 20px;
+  color: var(--color-text, #1f2937);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: all 0.15s ease;
+  border-left: 3px solid transparent;
+}
+
+[dir="rtl"] .card-link-item {
+  border-left: none;
+  border-right: 3px solid transparent;
+}
+
+.card-link-item:hover {
+  background-color: var(--color-light, #f3f4f6);
+  color: var(--color-primary, #0046FF);
+  border-left-color: var(--color-primary, #0046FF);
+}
+
+[dir="rtl"] .card-link-item:hover {
+  border-left: none;
+  border-right-color: var(--color-primary, #0046FF);
+}
+
+.card-blue {
+  border-top: 4px solid #3b82f6;
+}
+
+.card-green {
+  border-top: 4px solid #10b981;
+}
+
+.card-orange {
+  border-top: 4px solid #f59e0b;
+}
+
+.card-red {
+  border-top: 4px solid #ef4444;
+}
+
+.card-purple {
+  border-top: 4px solid #8b5cf6;
+}
+
+.card-info {
+  border-top: 4px solid #6b7280;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Update date and time if needed
+  {% if show_datetime %}
+  function updateDateTime() {
+    const now = new Date();
+    const dateTimeEl = document.getElementById('current-date-time');
+    if (dateTimeEl) {
+      const options = { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        weekday: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      };
+      try {
+        const dateTimeStr = now.toLocaleString('fa-IR', options);
+        dateTimeEl.textContent = dateTimeStr;
+      } catch (e) {
+        const dateStr = now.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric',
+          weekday: 'long'
+        });
+        const timeStr = now.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          second: '2-digit'
+        });
+        dateTimeEl.textContent = dateStr + ' - ' + timeStr;
+      }
+    }
+  }
+  
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+  {% endif %}
+  
+  // Card link dropdowns
+  document.querySelectorAll('.card-link-dropdown').forEach(function(dropdown) {
+    const btn = dropdown.querySelector('.card-link');
+    const menu = dropdown.querySelector('.card-link-menu');
+    
+    if (btn && menu) {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const isActive = dropdown.classList.contains('active');
+        
+        // Close other dropdowns
+        document.querySelectorAll('.card-link-dropdown').forEach(function(d) {
+          d.classList.remove('active');
+        });
+        
+        // Toggle current dropdown
+        if (!isActive) {
+          dropdown.classList.add('active');
+        }
+      });
+    }
+  });
+  
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.card-link-dropdown')) {
+      document.querySelectorAll('.card-link-dropdown').forEach(function(dropdown) {
+        dropdown.classList.remove('active');
+      });
+    }
+  });
+});
+</script>
+{% endblock %}
+

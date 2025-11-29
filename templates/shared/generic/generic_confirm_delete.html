@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ delete_title|default:"Delete" }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      {% for crumb in breadcrumbs %}
+        <span class="separator">/</span>
+        {% if crumb.url %}
+          <a href="{{ crumb.url }}">{{ crumb.label }}</a>
+        {% else %}
+          <span>{{ crumb.label }}</span>
+        {% endif %}
+      {% endfor %}
+      {% block breadcrumb_extra %}{% endblock %}
+    </nav>
+    
+    <h1 class="page-title">{{ delete_title|default:"Delete" }}</h1>
+  </div>
+
+  <div class="form-container">
+    <div class="delete-warning">
+      <h2 style="color: #dc2626; margin-bottom: 1rem;">{% trans "Are you sure?" %}</h2>
+      <p style="margin-bottom: 1.5rem;">{{ confirmation_message|default:"Do you really want to delete this item?" }}</p>
+      
+      {% if object_details %}
+      <div class="delete-details">
+        {% for detail in object_details %}
+          <p>
+            <strong>{{ detail.label }}:</strong> 
+            {% if detail.type == 'code' %}
+              <code>{{ detail.value }}</code>
+            {% elif detail.type == 'badge' %}
+              {% if detail.value %}
+                <span class="badge badge-active">{{ detail.true_label|default:"Active" }}</span>
+              {% else %}
+                <span class="badge badge-inactive">{{ detail.false_label|default:"Inactive" }}</span>
+              {% endif %}
+            {% else %}
+              {{ detail.value|default:"-" }}
+            {% endif %}
+          </p>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="delete-details">
+        {% if object.public_code %}
+        <p><strong>{% trans "Code" %}:</strong> <code>{{ object.public_code }}</code></p>
+        {% endif %}
+        {% if object.name %}
+        <p><strong>{% trans "Name" %}:</strong> {{ object.name }}</p>
+        {% endif %}
+        {% block delete_details_extra %}{% endblock %}
+      </div>
+      {% endif %}
+      
+      {% if warning_message %}
+      <p class="warning-text">{{ warning_message }}</p>
+      {% else %}
+      <p class="warning-text">{% trans "This action cannot be undone." %}</p>
+      {% endif %}
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      {% block delete_form_extra %}{% endblock %}
+      <div class="form-actions">
+        <button type="submit" class="btn btn-danger">{% trans "Yes, Delete" %}</button>
+        <a href="{{ cancel_url|default:request.META.HTTP_REFERER|default:'/' }}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+.form-container {
+  max-width: 600px;
+  margin: 2rem auto;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.delete-warning {
+  text-align: center;
+  padding: 2rem;
+}
+
+.delete-warning h2 {
+  color: #dc2626;
+  margin-bottom: 1rem;
+}
+
+.delete-details {
+  background: #f3f4f6;
+  padding: 1.5rem;
+  border-radius: 4px;
+  margin: 1.5rem 0;
+  text-align: left;
+}
+
+.delete-details p {
+  margin: 0.5rem 0;
+}
+
+.warning-text {
+  color: #991b1b;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  padding-top: 1rem;
+}
+
+.btn-danger {
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.btn-danger:hover {
+  background-color: #b91c1c;
+}
+
+.btn-secondary {
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.btn-secondary:hover {
+  background-color: #4b5563;
+}
+</style>
+{% endblock %}
+

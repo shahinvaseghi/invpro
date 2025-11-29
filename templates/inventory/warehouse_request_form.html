@@ -553,7 +553,8 @@
 </style>
 
 <script>
-const unitPlaceholder = "{% trans '--- Select ---'|escapejs %}";
+console.log('[SCRIPT] Warehouse request form script loaded');
+const unitPlaceholder = "--- Select ---";
 
 // Handle unit options for lines formset
 function refreshLineUnitOptions(itemSelect, unitSelect) {
@@ -617,7 +618,7 @@ function refreshLineWarehouseOptions(itemSelect, warehouseSelect) {
           
           const placeholderOption = document.createElement("option");
           placeholderOption.value = "";
-          placeholderOption.textContent = "{% trans '--- Select ---'|escapejs %}";
+          placeholderOption.textContent = "--- Select ---";
           warehouseSelect.appendChild(placeholderOption);
           
           data.warehouses.forEach(function(option) {
@@ -640,14 +641,18 @@ function refreshLineWarehouseOptions(itemSelect, warehouseSelect) {
     warehouseSelect.innerHTML = "";
     const placeholderOption = document.createElement("option");
     placeholderOption.value = "";
-    placeholderOption.textContent = "{% trans '--- Select ---'|escapejs %}";
+    placeholderOption.textContent = "--- Select ---";
     warehouseSelect.appendChild(placeholderOption);
   }
 }
 
 // Filter items for a specific row based on type, category, subcategory, and search
 function filterItemsForRow(rowElement) {
-  if (!rowElement) return;
+  console.log('[filterItemsForRow] Called for row');
+  if (!rowElement) {
+    console.warn('[filterItemsForRow] No rowElement provided');
+    return;
+  }
   
   const typeSelect = rowElement.querySelector('.filter-type-select');
   const categorySelect = rowElement.querySelector('.filter-category-select');
@@ -655,12 +660,35 @@ function filterItemsForRow(rowElement) {
   const searchInput = rowElement.querySelector('.filter-search-input');
   const itemSelect = rowElement.querySelector('select[name*="-item"]');
   
-  if (!itemSelect) return;
+  console.log('[filterItemsForRow] Found itemSelect:', itemSelect ? 'YES' : 'NO');
+  if (!itemSelect) {
+    console.warn('[filterItemsForRow] No itemSelect found in row');
+    return;
+  }
   
-  const typeId = typeSelect?.value || '';
-  const categoryId = categorySelect?.value || '';
-  const subcategoryId = subcategorySelect?.value || '';
-  const searchTerm = searchInput?.value?.trim() || '';
+  const typeId = typeSelect ? (typeSelect.value || '') : '';
+  const categoryId = categorySelect ? (categorySelect.value || '') : '';
+  const subcategoryId = subcategorySelect ? (subcategorySelect.value || '') : '';
+  
+  // Get search term - try multiple ways to ensure we get the value
+  let searchTerm = '';
+  if (searchInput) {
+    searchTerm = searchInput.value || '';
+    if (typeof searchTerm === 'string') {
+      searchTerm = searchTerm.trim();
+    } else {
+      searchTerm = '';
+    }
+  }
+  
+  // Fix: If searchTerm is "None" (string), treat it as empty
+  if (searchTerm === 'None' || searchTerm === 'none' || searchTerm === 'null') {
+    searchTerm = '';
+  }
+  
+  console.log('[filterItemsForRow] Filters - typeId:', typeId, 'categoryId:', categoryId, 'subcategoryId:', subcategoryId, 'searchTerm:', searchTerm);
+  console.log('[filterItemsForRow] searchInput found:', searchInput ? 'YES' : 'NO');
+  console.log('[filterItemsForRow] searchInput.value:', searchInput ? (searchInput.value || 'EMPTY') : 'N/A');
   
   // Build API URL
   let apiUrl = '/inventory/api/filtered-items/';
@@ -668,19 +696,36 @@ function filterItemsForRow(rowElement) {
   if (typeId) params.append('type_id', typeId);
   if (categoryId) params.append('category_id', categoryId);
   if (subcategoryId) params.append('subcategory_id', subcategoryId);
-  if (searchTerm) params.append('search', searchTerm);
+  if (searchTerm) {
+    params.append('search', searchTerm);
+    console.log('[filterItemsForRow] Adding search term to params:', searchTerm);
+  }
   
-  // If no filters and no search, load all items
-  // Otherwise, apply filters
+  // Always add params to URL (even if empty, API will return all items)
   if (params.toString()) {
     apiUrl += '?' + params.toString();
   }
+  // If no params at all, still call API to get all items
   
   // Fetch filtered items (or all items if no filters)
+  console.log('[filterItemsForRow] Fetching items from:', apiUrl);
+  console.log('[filterItemsForRow] Search term being sent:', searchTerm);
   fetch(apiUrl)
-    .then(response => response.json())
+    .then(response => {
+      console.log('[filterItemsForRow] Response status:', response.status);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
     .then(data => {
+      console.log('[filterItemsForRow] Received data:', data);
+      if (data.error) {
+        console.error('[filterItemsForRow] API error:', data.error);
+        return;
+      }
       if (data.items) {
+        console.log('[filterItemsForRow] Found', data.items.length, 'items');
         const itemMap = {};
         data.items.forEach(function(item) {
           itemMap[item.value] = item;
@@ -732,9 +777,13 @@ function filterItemsForRow(rowElement) {
           }
         }
       }
+      } else {
+        console.warn('[filterItemsForRow] No items in response:', data);
+      }
     })
     .catch(error => {
-      console.error('Error filtering items:', error);
+      console.error('[filterItemsForRow] Error filtering items:', error);
+      console.error('[filterItemsForRow] Error details:', error.message, error.stack);
     });
 }
 
@@ -747,9 +796,9 @@ function loadCategoriesForRow(rowElement, typeId) {
   
   if (!categorySelect) return;
   
-  categorySelect.innerHTML = '<option value="">{% trans "All Categories" %}</option>';
+  categorySelect.innerHTML = '<option value="">All Categories</option>';
   if (subcategorySelect) {
-    subcategorySelect.innerHTML = '<option value="">{% trans "All Subcategories" %}</option>';
+    subcategorySelect.innerHTML = '<option value="">All Subcategories</option>';
   }
   
   if (!typeId) {
@@ -794,7 +843,7 @@ function loadSubcategoriesForRow(rowElement, categoryId) {
   const subcategorySelect = rowElement.querySelector('.filter-subcategory-select');
   if (!subcategorySelect) return;
   
-  subcategorySelect.innerHTML = '<option value="">{% trans "All Subcategories" %}</option>';
+  subcategorySelect.innerHTML = '<option value="">All Subcategories</option>';
   
   if (!categoryId) {
     // Filter items after clearing subcategory
@@ -861,14 +910,42 @@ function initializeLineForms() {
     
     // Setup search input with debounce
     const searchInput = lineRow.querySelector('.filter-search-input');
-    let searchTimeout;
+    console.log('[initializeLineForms] Looking for search input in row', index, 'found:', searchInput);
     if (searchInput) {
-      searchInput.addEventListener('input', function() {
+      // Remove any existing listeners by cloning (clean slate)
+      const oldValue = searchInput.value;
+      const newSearchInput = searchInput.cloneNode(true);
+      newSearchInput.value = oldValue;
+      searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+      
+      // Use a closure to maintain timeout per input
+      let searchTimeout;
+      newSearchInput.addEventListener('input', function(e) {
+        const searchValue = e.target.value;
+        console.log('[initializeLineForms] Search input changed to:', searchValue, 'for row', index);
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(function() {
+          console.log('[initializeLineForms] Calling filterItemsForRow after debounce for row', index);
+          // Make sure we get the latest value
+          const currentSearchValue = newSearchInput.value.trim();
+          console.log('[initializeLineForms] Current search value when calling filterItemsForRow:', currentSearchValue);
           filterItemsForRow(lineRow);
         }, 300); // Debounce 300ms
       });
+      
+      // Also trigger on keyup for immediate feedback
+      newSearchInput.addEventListener('keyup', function(e) {
+        // Trigger on Enter key for immediate search
+        if (e.key === 'Enter') {
+          clearTimeout(searchTimeout);
+          console.log('[initializeLineForms] Enter pressed, filtering immediately for row', index);
+          filterItemsForRow(lineRow);
+        }
+      });
+      
+      console.log('[initializeLineForms] Search input listener attached for row', index);
+    } else {
+      console.warn('[initializeLineForms] No search input found for row', index);
     }
     
     // Setup item select
@@ -896,19 +973,81 @@ function initializeLineForms() {
       }
     }
     
-    // Initialize filters - load all categories initially and filter items
-    if (typeSelect) {
-      loadCategoriesForRow(lineRow, typeSelect.value);
-    } else {
-      // If no type filter, just load all items
+    // Initialize filters - always load items via API to ensure fresh data
+    console.log('[initializeLineForms] Initializing row', index);
+    console.log('[initializeLineForms] itemSelect:', itemSelect);
+    console.log('[initializeLineForms] itemSelect name:', itemSelect ? itemSelect.getAttribute('name') : 'N/A');
+    console.log('[initializeLineForms] itemSelect options count:', itemSelect ? itemSelect.options.length : 'N/A');
+    
+    if (itemSelect) {
+      // Always call filterItemsForRow to load items from API
+      // This ensures we have the latest items and proper filtering
+      console.log('[initializeLineForms] Calling filterItemsForRow to load items');
       filterItemsForRow(lineRow);
+    } else {
+      console.warn('[initializeLineForms] No itemSelect found for row', index);
+    }
+    
+    // Setup type filter listener if exists
+    if (typeSelect) {
+      // Also load categories for initial state
+      loadCategoriesForRow(lineRow, typeSelect.value);
     }
   });
 }
 
 // Handle add line button
 document.addEventListener('DOMContentLoaded', function() {
-  initializeLineForms();
+  console.log('[SCRIPT] DOMContentLoaded event fired');
+  console.log('[DOMContentLoaded] Initializing warehouse request form');
+  
+  // Use event delegation for search inputs - this always works
+  const formsetContainer = document.getElementById('lines-formset');
+  if (formsetContainer) {
+    console.log('[DOMContentLoaded] Setting up event delegation for search inputs');
+    let searchTimeouts = {}; // Store timeouts by input element
+    
+    formsetContainer.addEventListener('input', function(e) {
+      if (e.target.classList.contains('filter-search-input')) {
+        const searchInput = e.target;
+        const rowElement = searchInput.closest('.line-row');
+        const searchValue = searchInput.value;
+        
+        console.log('[EVENT DELEGATION] Search input event fired, value:', searchValue);
+        console.log('[EVENT DELEGATION] Row element found:', rowElement ? 'YES' : 'NO');
+        
+        // Clear previous timeout for this input
+        if (searchTimeouts[searchInput]) {
+          clearTimeout(searchTimeouts[searchInput]);
+        }
+        
+        // Set new timeout
+        searchTimeouts[searchInput] = setTimeout(function() {
+          console.log('[EVENT DELEGATION] Calling filterItemsForRow after debounce');
+          filterItemsForRow(rowElement);
+        }, 300);
+      }
+    });
+    
+    // Also handle Enter key
+    formsetContainer.addEventListener('keyup', function(e) {
+      if (e.target.classList.contains('filter-search-input') && e.key === 'Enter') {
+        const searchInput = e.target;
+        const rowElement = searchInput.closest('.line-row');
+        
+        console.log('[EVENT DELEGATION] Enter pressed, filtering immediately');
+        if (searchTimeouts[searchInput]) {
+          clearTimeout(searchTimeouts[searchInput]);
+        }
+        filterItemsForRow(rowElement);
+      }
+    });
+  }
+  
+  // Small delay to ensure formset is fully rendered
+  setTimeout(function() {
+    initializeLineForms();
+  }, 100);
   
   const addLineBtn = document.getElementById('add-line-btn');
   const formsetContainer = document.getElementById('lines-formset');
@@ -986,14 +1125,35 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Setup search input for new row
       const searchInput = newRow.querySelector('.filter-search-input');
-      let searchTimeout;
       if (searchInput) {
-        searchInput.addEventListener('input', function() {
+        // Use a closure to maintain timeout per input
+        let searchTimeout;
+        searchInput.addEventListener('input', function(e) {
+          const searchValue = e.target.value;
+          console.log('[addLine] Search input changed to:', searchValue);
           clearTimeout(searchTimeout);
           searchTimeout = setTimeout(function() {
+            console.log('[addLine] Calling filterItemsForRow after debounce');
+            // Make sure we get the latest value
+            const currentSearchValue = searchInput.value.trim();
+            console.log('[addLine] Current search value when calling filterItemsForRow:', currentSearchValue);
             filterItemsForRow(newRow);
           }, 300); // Debounce 300ms
         });
+        
+        // Also trigger on keyup for immediate feedback
+        searchInput.addEventListener('keyup', function(e) {
+          // Trigger on Enter key for immediate search
+          if (e.key === 'Enter') {
+            clearTimeout(searchTimeout);
+            console.log('[addLine] Enter pressed, filtering immediately');
+            filterItemsForRow(newRow);
+          }
+        });
+        
+        console.log('[addLine] Search input listener attached for new row');
+      } else {
+        console.warn('[addLine] No search input found for new row');
       }
       
       if (itemSelect) {
@@ -1009,12 +1169,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
       
-      // Initialize filters for new row
+      // Initialize filters for new row - always load all items first
+      filterItemsForRow(newRow);
+      
+      // Setup type filter listener if exists
       if (typeSelect) {
+        // Also load categories for initial state
         loadCategoriesForRow(newRow, typeSelect.value);
-      } else {
-        // If no type filter, just load all items
-        filterItemsForRow(newRow);
       }
       
       // Reinitialize all line forms to update row numbers

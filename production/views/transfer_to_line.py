@@ -15,6 +15,7 @@ from django.views import View
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.views.base import EditLockProtectedMixin
 from inventory.utils.codes import generate_sequential_code
+from inventory.forms.base import generate_document_code
 from production.forms import TransferToLineForm, TransferToLineItemFormSet
 from production.models import TransferToLine, TransferToLineItem, ProductOrder
 
@@ -334,15 +335,69 @@ class TransferToLineApproveView(FeaturePermissionRequiredMixin, View):
         if transfer.status == TransferToLine.Status.REJECTED:
             return JsonResponse({'error': _('This transfer request is already rejected.')}, status=400)
         
-        # Approve and lock
+        # Approve and lock, then create consumption issue
         with transaction.atomic():
             transfer.status = TransferToLine.Status.APPROVED
             transfer.is_locked = 1
             transfer.locked_at = timezone.now()
             transfer.locked_by = request.user
             transfer.save()
+            
+            # Create consumption issue document
+            try:
+                from inventory.models import IssueConsumption, IssueConsumptionLine
+                
+                # Create IssueConsumption header
+                consumption_issue = IssueConsumption.objects.create(
+                    company_id=active_company_id,
+                    document_code=generate_document_code(IssueConsumption, active_company_id, "ISU"),
+                    document_date=transfer.transfer_date,
+                    created_by=request.user,
+                    edited_by=request.user,
+                )
+                
+                # Create IssueConsumptionLine for each TransferToLineItem
+                transfer_items = transfer.items.filter(is_enabled=1).order_by('id')
+                for idx, transfer_item in enumerate(transfer_items, start=1):
+                    # Note: destination_work_center is a WorkCenter, not WorkLine
+                    # WorkLine is optional and can be set manually later if needed
+                    work_line = None
+                    work_line_code = ''
+                    
+                    IssueConsumptionLine.objects.create(
+                        company_id=active_company_id,
+                        document=consumption_issue,
+                        item=transfer_item.material_item,
+                        item_code=transfer_item.material_item_code,
+                        warehouse=transfer_item.source_warehouse,
+                        warehouse_code=transfer_item.source_warehouse_code,
+                        unit=transfer_item.unit,
+                        quantity=transfer_item.quantity_required,  # Use quantity_required
+                        consumption_type='production_transfer',
+                        production_transfer_id=transfer.id,
+                        production_transfer_code=transfer.transfer_code,
+                        work_line=work_line,
+                        work_line_code=work_line_code,
+                        sort_order=idx,
+                        is_enabled=1,
+                    )
+                
+                messages.success(
+                    request,
+                    _('Transfer request approved and consumption issue %(code)s created successfully.')
+                    % {'code': consumption_issue.document_code}
+                )
+            except Exception as e:
+                # Log error but don't fail the approval
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f'Error creating consumption issue for transfer {transfer.transfer_code}: {e}')
+                messages.warning(
+                    request,
+                    _('Transfer request approved, but failed to create consumption issue: %(error)s')
+                    % {'error': str(e)}
+                )
         
-        messages.success(request, _('Transfer request approved and locked successfully.'))
         return JsonResponse({'success': True, 'message': _('Transfer request approved successfully.')})
 
 
