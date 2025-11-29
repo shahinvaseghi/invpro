@@ -2,6 +2,16 @@
 
 The inventory module models master data, supplier relationships, transactions, and stock adjustments. This README documents each custom file and the classes/functions defined in it.
 
+**نکته مهم**: برای جزئیات کامل هر بخش، به فایل‌های README مربوطه مراجعه کنید:
+- **Models**: [`README_MODELS.md`](README_MODELS.md) - مستندات کامل برای 43 model class
+- **Views**: [`views/README.md`](views/README.md) - Overview کلی views و لینک به READMEهای جزئی‌تر
+- **Forms**: [`README_FORMS.md`](README_FORMS.md) - Overview کلی forms و لینک به READMEهای جزئی‌تر
+- **Utils**: [`utils/README.md`](utils/README.md) - توابع utility (codes.py, jalali.py)
+- **Services**: [`services/README.md`](services/README.md) - توابع service (serials.py)
+- **Template Tags**: [`templatetags/README.md`](templatetags/README.md) - Template tags (jalali_tags.py)
+- **Migrations**: [`migrations/README.md`](migrations/README.md) - خلاصه migrations
+- **Management Commands**: [`management/commands/README.md`](management/commands/README.md) - Management commands
+
 ## models.py
 
 Contains all inventory-related entities. Major groups:
