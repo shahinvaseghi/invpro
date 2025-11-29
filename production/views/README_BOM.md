@@ -392,7 +392,8 @@
 - `HttpResponseRedirect`: redirect به `success_url`
 
 **منطق**:
-1. پیام موفقیت را نمایش می‌دهد
+1. نمایش پیام موفقیت: "BOM deleted successfully."
+2. فراخوانی `super().delete(request, *args, **kwargs)` (که BOM را حذف می‌کند و redirect می‌کند)
 2. `super().delete()` را فراخوانی می‌کند
 
 ---
