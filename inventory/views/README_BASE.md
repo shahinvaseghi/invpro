@@ -229,74 +229,44 @@
 
 **توضیح**: بررسی permissions قبل از unlock
 
-**Logic**:
-- **Superuser bypass**: اگر کاربر superuser باشد، اجازه داده می‌شود
-- بررسی `unlock_own` برای اسناد خود کاربر
-- بررسی `unlock_other` برای اسناد سایر کاربران
-- اگر permission نداشته باشد، `PermissionDenied` می‌دهد
-
-#### `post(self, request, *args, **kwargs) -> HttpResponseRedirect`
-
-**توضیح**: Unlock کردن سند
-
-**Logic**:
-- بررسی اینکه سند قبلاً unlock نشده باشد
-- تنظیم `is_locked = 0`
-- پاک کردن `locked_at` و `locked_by` (اگر وجود داشته باشند)
-- ذخیره سند
-- نمایش پیام موفقیت
-- Redirect به `success_url_name`
-
-**نکته**: این view از `shared.utils.permissions` برای بررسی دسترسی‌ها استفاده می‌کند.
-
----
-
-## DocumentUnlockView
-
-### `DocumentUnlockView(LoginRequiredMixin, View)`
-
-**توضیح**: View عمومی برای unlock کردن سندهای inventory با permission checking
-
-**Inheritance**: `LoginRequiredMixin, View`
-
-**Attributes**:
-- `model`: `None` (باید در subclass تنظیم شود)
-- `success_url_name`: `''` (باید در subclass تنظیم شود)
-- `success_message`: `_('سند با موفقیت از قفل خارج شد و قابل ویرایش است.')`
-- `already_unlocked_message`: `_('این سند قبلاً از قفل خارج شده است.')`
-- `lock_field`: `'is_locked'`
-- `feature_code`: `''` (باید در subclass تنظیم شود)
-- `required_action`: `'unlock_own'` (action برای permission checking)
-
-**متدها**:
-
-#### `dispatch(self, request, *args, **kwargs) -> HttpResponse`
-
-**توضیح**: بررسی permissions قبل از unlock
-
 **منطق**:
-- **Superuser bypass**: اگر کاربر superuser باشد، اجازه داده می‌شود
-- بررسی `unlock_own` برای اسناد خود کاربر
-- بررسی `unlock_other` برای اسناد سایر کاربران
-- اگر permission نداشته باشد، `PermissionDenied` می‌دهد
+1. **Superuser bypass**: اگر کاربر superuser باشد، اجازه داده می‌شود
+2. بررسی `feature_code`: اگر تنظیم نشده باشد، خطا برمی‌گرداند
+3. دریافت object از database (با فیلتر `company_id`)
+4. بررسی permissions:
+   - بررسی `is_owner`: آیا `obj.created_by == request.user`
+   - بررسی `can_unlock_own`: آیا user دارای `unlock_own` permission است
+   - بررسی `can_unlock_other`: آیا user دارای `unlock_other` permission است
+5. اگر owner است و `can_unlock_own` ندارد: `PermissionDenied`
+6. اگر owner نیست و `can_unlock_other` ندارد: `PermissionDenied`
+7. در غیر این صورت، `super().dispatch()` را فراخوانی می‌کند
 
 #### `post(self, request, *args, **kwargs) -> HttpResponseRedirect`
 
 **توضیح**: Unlock کردن سند
 
 **منطق**:
-1. بررسی `model` و `success_url_name`
-2. دریافت object
-3. بررسی `is_locked` (اگر unlock شده باشد، پیام info)
-4. فراخوانی `before_unlock()` (اگر `False` برگرداند، لغو)
-5. تنظیم `is_locked = 0`, `locked_at = None`, `locked_by = None`
-6. فراخوانی `after_unlock()`
-7. نمایش پیام موفقیت
-8. Redirect به `success_url_name`
+1. بررسی `model` و `success_url_name` (اگر تنظیم نشده باشد، خطا)
+2. دریافت queryset و فیلتر بر اساس `company_id`
+3. دریافت object از queryset
+4. بررسی `is_locked`:
+   - اگر `is_locked = 0` باشد، پیام info نمایش می‌دهد
+   - در غیر این صورت، ادامه می‌دهد
+5. فراخوانی `before_unlock()` (اگر `False` برگرداند، redirect و لغو)
+6. تنظیم `is_locked = 0`
+7. اگر `locked_at` وجود داشته باشد، `locked_at = None`
+8. اگر `locked_by_id` وجود داشته باشد، `locked_by = None`
+9. اگر `edited_by_id` وجود داشته باشد، `edited_by = request.user`
+10. ذخیره با `update_fields`
+11. فراخوانی `after_unlock()`
+12. نمایش پیام موفقیت
+13. Redirect به `success_url_name`
 
 **Hooks**:
 - `before_unlock(obj, request) -> bool`: Hook که قبل از unlock اجرا می‌شود. اگر `False` برگرداند، unlock لغو می‌شود.
 - `after_unlock(obj, request) -> None`: Hook برای subclasses برای انجام actions اضافی بعد از unlock.
+
+**نکته**: این view از `shared.utils.permissions` برای بررسی دسترسی‌ها استفاده می‌کند و `PermissionDenied` exception می‌دهد اگر permission نداشته باشد.
 
 ---
 
@@ -380,17 +350,29 @@
 
 **منطق**:
 1. برای هر form در formset:
-   - بررسی `cleaned_data` (اگر وجود ندارد، skip)
-   - بررسی `DELETE` (اگر True باشد، حذف)
-   - بررسی `item` (اگر وجود ندارد، skip)
-   - بررسی errors (اگر وجود دارد، skip)
-   - ذخیره instance
-   - ذخیره M2M relationships (serials)
-   - Handle selected serials از hidden input (برای new issue lines)
+   - بررسی `cleaned_data`: اگر وجود ندارد یا خالی باشد، skip (فقط forms validated)
+   - بررسی `DELETE`: اگر `True` باشد و instance دارای pk باشد، `instance.delete()` و skip
+   - بررسی `item`: اگر وجود ندارد، skip (empty forms)
+   - بررسی `errors`: اگر form دارای error باشد، skip (validation errors)
+   - ذخیره instance:
+     - `form.save(commit=False)` برای دریافت instance
+     - تنظیم `instance.company = self.object.company`
+     - تنظیم `instance.document = self.object`
+     - تنظیم `instance.company_id = self.object.company_id` (اگر وجود نداشته باشد)
+     - `instance.save()`
+   - ذخیره M2M relationships: `form.save_m2m()` (برای serials)
+   - Handle selected serials از hidden input (برای new issue lines):
+     - دریافت `selected_serials` از POST data با prefix
+     - Parse کردن comma-separated serial IDs
+     - فیلتر serials: `company_id`, `item`, `current_warehouse`, `current_status IN (AVAILABLE, RESERVED)`
+     - Assign serials به line: `instance.serials.set(available_serials)`
+     - Reserve serials: `sync_issue_line_serials(instance, [], user=request.user)`
 
 **نکات مهم**:
-- Serial assignment برای issue lines
-- Serial reservation با `sync_issue_line_serials()`
+- فقط forms با `cleaned_data` و بدون error ذخیره می‌شوند
+- Serial assignment فقط برای issue lines که `has_lot_tracking = 1` دارند
+- Serial reservation با `sync_issue_line_serials()` برای تغییر status از AVAILABLE/RESERVED به RESERVED
+- Serial IDs از hidden input با format `{prefix}-selected_serials` خوانده می‌شوند
 
 ---
 
