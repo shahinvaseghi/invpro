@@ -423,12 +423,12 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `inventory/templatetags/README.md` | `inventory/templatetags/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و تمام template tags (jalali_tags) را مستندسازی کرده |
 | `inventory/migrations/README.md` | `inventory/migrations/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و خلاصه migrations را مستندسازی کرده |
 | `inventory/management/commands/README.md` | `inventory/management/commands/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و cleanup_test_receipts command را مستندسازی کرده |
-| `production/README.md` | `production/` module | ⏳ Pending | - | - | - | - |
-| `production/README_BOM.md` | `production/` BOM related | ⏳ Pending | - | - | - | - |
-| `production/README_FORMS.md` | `production/forms/` | ⏳ Pending | - | - | - | - |
-| `production/views/README.md` | `production/views/` | ⏳ Pending | - | - | - | - |
-| `production/forms/README.md` | `production/forms/` | ⏳ Pending | - | - | - | - |
-| `production/migrations/README.md` | `production/migrations/` | ⏳ Pending | - | - | - | - |
+| `production/README.md` | `production/` module | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | به‌روزرسانی شد - لینک به فایل‌های README جزئی‌تر اضافه شد |
+| `production/README_BOM.md` | `production/` BOM related | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و مستندات کامل BOM را دارد |
+| `production/README_FORMS.md` | `production/forms/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و تمام forms را مستندسازی کرده |
+| `production/views/README.md` | `production/views/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و overview کلی views را دارد |
+| `production/forms/README.md` | `production/forms/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است |
+| `production/migrations/README.md` | `production/migrations/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است |
 | `qc/README.md` | `qc/` module | ⏳ Pending | - | - | - | - |
 | `qc/views/README.md` | `qc/views/` | ⏳ Pending | - | - | - | - |
 | `qc/views/README_BASE.md` | `qc/views/base.py` | ⏳ Pending | 2025-11-21 19:59:04 | 2025-11-26 15:57:29 | ✅ README newer | - |
