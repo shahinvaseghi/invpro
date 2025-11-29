@@ -402,7 +402,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `accounting/README_MODELS.md` | `accounting/models.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-29 22:49:28 | ✅ README newer | فایل models.py در حال حاضر خالی است - README تکمیل شد با توضیح اینکه models در آینده اضافه خواهند شد |
 | `sales/README_MODELS.md` | `sales/models.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-29 22:50:45 | ✅ README newer | فایل models.py در حال حاضر خالی است - README تکمیل شد با توضیح اینکه models در آینده اضافه خواهند شد |
 | `hr/README_MODELS.md` | `hr/models.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-29 22:51:38 | ✅ README newer | فایل models.py در حال حاضر خالی است - README تکمیل شد با توضیح اینکه models در آینده اضافه خواهند شد |
-| `procurement/README_MODELS.md` | `procurement/models.py` | ⏳ Pending | 2025-11-28 03:06:47 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `procurement/README_MODELS.md` | `procurement/models.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-29 22:52:30 | ✅ README newer | فایل models.py در حال حاضر خالی است - README تکمیل شد با توضیح اینکه models در آینده اضافه خواهند شد |
 | `transportation/README_MODELS.md` | `transportation/models.py` | ⏳ Pending | 2025-11-28 03:06:47 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
 | `office_automation/README_MODELS.md` | `office_automation/models.py` | ⏳ Pending | 2025-11-28 03:06:47 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
 | `ui/README_MODELS.md` | `ui/models.py` | ⏳ Pending | 2025-11-13 14:59:22 | N/A | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
