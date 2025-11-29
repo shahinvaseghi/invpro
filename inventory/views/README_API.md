@@ -121,6 +121,7 @@
 - `category_id` (optional): فیلتر بر اساس دسته‌بندی
 - `subcategory_id` (optional): فیلتر بر اساس زیردسته‌بندی
 - `search` (optional): جستجو در name, item_code, full_item_code
+- `include_item_id` (optional): شامل کردن یک item خاص حتی اگر با فیلترها match نکند (برای formset initial)
 
 **Response**:
 ```json
@@ -140,11 +141,25 @@
 ```
 
 **منطق**:
-- فیلتر بر اساس type, category, subcategory (optional)
-- جستجو در name, item_code, full_item_code (optional)
+1. دریافت `company_id` از session
+2. شروع با تمام enabled items در company (`is_enabled=1`)
+3. `select_related('type', 'category', 'subcategory')` برای بهینه‌سازی
+4. **Permission Filtering**:
+   - اگر user superuser باشد: بدون فیلتر (می‌تواند همه را ببیند)
+   - اگر `view_all` permission داشته باشد: بدون فیلتر
+   - اگر فقط `view_own` permission داشته باشد: فیلتر `created_by=request.user`
+   - اگر هیچ permission نداشته باشد: empty queryset
+5. **include_item_id**: اگر `include_item_id` داده شود و item در queryset نباشد، با `union` اضافه می‌شود (برای formset initial)
+6. فیلتر بر اساس type, category, subcategory (optional)
+7. جستجو در name, item_code, full_item_code با `Q` (optional)
+8. مرتب‌سازی بر اساس `name`
+9. ساخت response با `value`, `label`, `type_id`, `category_id`, `subcategory_id`
+10. `total_count`: تعداد کل کالاهای پیدا شده (برای debugging)
+
+**نکات مهم**:
 - می‌تواند بدون فیلترها فقط search کند
 - فقط کالاهای enabled (`is_enabled=1`) را برمی‌گرداند
-- `total_count`: تعداد کل کالاهای پیدا شده (برای debugging)
+- `include_item_id` برای مواردی که item در formset initial است اما با فیلترها match نمی‌کند (مثلاً از purchase request)
 
 **Logging**:
 - لاگ‌های `get_filtered_items: Found X items` و `get_filtered_items: Returning X items` در ترمینال نمایش داده می‌شوند
@@ -278,16 +293,24 @@
 ```
 
 **منطق**:
-- دریافت داده‌های receipt موقت برای auto-filling permanent receipt
-- اقلام و انبارها از `ReceiptTemporaryLine` خوانده می‌شوند؛ اطلاعات تأمین‌کننده همیشه از خود `ReceiptTemporary` گرفته می‌شود (چون خطوط فیلد supplier ندارند)
-- داده‌های اولین خط به عنوان داده اصلی برگردانده می‌شود (برای backward compatibility)
-- همه خطوط در آرایه `lines` برگردانده می‌شوند (برای پشتیبانی از چندخطی)
-- اگر رسید موقت هیچ خطی نداشته باشد، خطا برمی‌گرداند
+1. دریافت `temporary_receipt_id` از query parameters
+2. دریافت `company_id` از session
+3. دریافت `ReceiptTemporary` از database
+4. **فیلتر خطوط QC-approved**:
+   - فقط خطوط با `is_enabled=1`, `is_qc_approved=1`, `qc_approved_quantity__isnull=False`
+   - اگر هیچ خط QC-approved وجود نداشته باشد، خطا برمی‌گرداند
+5. دریافت supplier از header (نه از lines)
+6. ساخت response:
+   - داده‌های اولین خط به عنوان داده اصلی (برای backward compatibility)
+   - همه خطوط در آرایه `lines` (برای پشتیبانی از چندخطی)
+   - استفاده از `qc_approved_quantity` به جای `quantity` اصلی
+   - supplier برای همه خطوط یکسان (از header)
 
 **نکات مهم**:
-- رسید موقت باید حداقل یک خط داشته باشد
+- فقط خطوط QC-approved برگردانده می‌شوند
+- اگر هیچ خط QC-approved وجود نداشته باشد، خطا با پیام فارسی برمی‌گرداند
 - تأمین‌کننده فقط در سطح هدر نگه‌داری می‌شود و برای هر خط همان مقدار تکرار می‌شود
-- برای رسیدهای موقت قدیمی که خط ندارند، خطا برمی‌گرداند
+- استفاده از `qc_approved_quantity` به جای `quantity` اصلی (مهم برای QC workflow)
 
 **استفاده در Frontend**:
 - این API توسط JavaScript در فرم ایجاد رسید دائم استفاده می‌شود
@@ -330,9 +353,16 @@
 ```
 
 **منطق**:
-- بررسی `has_lot_tracking` برای item
-- دریافت سریال‌های AVAILABLE (نه RESERVED)
-- فیلتر بر اساس company, item, warehouse, status
+1. دریافت `item_id` و `warehouse_id` از query parameters
+2. دریافت `company_id` از session
+3. دریافت `Item` از database (با `is_enabled=1`)
+4. بررسی `has_lot_tracking`: اگر `!= 1` باشد، empty list برمی‌گرداند
+5. دریافت `Warehouse` از database (با `is_enabled=1`)
+6. دریافت سریال‌های AVAILABLE:
+   - فیلتر: `company_id`, `item`, `current_warehouse`, `current_status=AVAILABLE`
+   - **نکته**: فقط AVAILABLE (نه RESERVED) - سریال‌های RESERVED برای issues دیگر نمایش داده نمی‌شوند
+7. مرتب‌سازی بر اساس `serial_code`
+8. ساخت response با `value` (pk), `label` (serial_code), `status`
 
 **URL**: `/inventory/api/item-serials/`
 
