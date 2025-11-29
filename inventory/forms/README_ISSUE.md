@@ -30,18 +30,42 @@
 
 #### `__init__(self, *args, company_id: Optional[int] = None, **kwargs)`
 - **Parameters**: `company_id` برای فیلتر کردن querysets
-- **Logic**: فیلتر کردن `department_unit` بر اساس `company_id`
+- **Logic**:
+  1. تنظیم `self.company_id` از parameter یا instance
+  2. تنظیم `document_code` و `document_date` به hidden و not required
+  3. تنظیم initial value برای `document_date` به امروز (اگر instance جدید باشد)
+  4. فیلتر کردن `department_unit` queryset:
+     - فقط واحدهای با `company_id` مطابق و `is_enabled=1`
+     - مرتب‌سازی: `name`
+     - تنظیم `label_from_instance` برای نمایش `public_code · name`
 
 #### `clean_document_code(self) -> str`
 - **Returns**: کد سند (خالی اگر باید auto-generate شود)
+- **Logic**: اگر خالی باشد، در `save()` تولید می‌شود
 
 #### `clean_document_date(self)`
 - **Returns**: تاریخ سند (امروز به صورت پیش‌فرض)
+- **Logic**: اگر خالی باشد، تاریخ امروز را برمی‌گرداند
+
+#### `clean(self) -> Dict[str, Any]`
+- **Returns**: `cleaned_data` اعتبارسنجی شده
+- **Logic**:
+  1. فراخوانی `super().clean()`
+  2. تنظیم `document_code` به خالی اگر وجود نداشته باشد
+  3. تنظیم `document_date` به امروز اگر وجود نداشته باشد
 
 #### `save(self, commit: bool = True)`
+- **Returns**: instance ذخیره شده
 - **Logic**:
-  - تولید `document_code` با prefix "ISP" اگر خالی باشد
-  - تنظیم `department_unit_code` از `department_unit.public_code`
+  1. ذخیره instance با `super().save(commit=False)`
+  2. تنظیم `company_id` از `self.company_id` اگر تنظیم نشده باشد
+  3. تولید `document_code` با prefix "ISP" اگر خالی باشد (با `generate_document_code()`)
+  4. تنظیم `document_date` به امروز اگر خالی باشد
+  5. تنظیم `department_unit` و `department_unit_code`:
+     - اگر `department_unit` انتخاب شده باشد: `department_unit_code = department_unit.public_code`
+     - در غیر این صورت: `department_unit = None`, `department_unit_code = ''`
+  6. اگر `commit=True`: ذخیره instance
+  7. بازگشت instance
 
 ---
 
@@ -59,8 +83,36 @@
 
 **متدها**:
 
+#### `__init__(self, *args, company_id: Optional[int] = None, **kwargs)`
+- **Parameters**: `company_id` برای تنظیم `self.company_id`
+- **Logic**:
+  1. تنظیم `self.company_id` از parameter یا instance
+  2. تنظیم `document_code` و `document_date` به not required
+  3. تنظیم initial value برای `document_date` به امروز (اگر instance جدید باشد)
+
+#### `clean_document_date(self)`
+- **Returns**: تاریخ سند (امروز به صورت پیش‌فرض)
+- **Logic**: اگر خالی باشد، تاریخ امروز را برمی‌گرداند
+
+#### `clean_document_code(self) -> str`
+- **Returns**: کد سند (خالی اگر باید auto-generate شود)
+- **Logic**: اگر خالی باشد، در `save()` تولید می‌شود
+
+#### `clean(self) -> Dict[str, Any]`
+- **Returns**: `cleaned_data` اعتبارسنجی شده
+- **Logic**:
+  1. فراخوانی `super().clean()`
+  2. تنظیم `document_code` به خالی اگر وجود نداشته باشد
+  3. تنظیم `document_date` به امروز اگر وجود نداشته باشد
+
 #### `save(self, commit: bool = True)`
-- **Logic**: تولید `document_code` با prefix "ISU" اگر خالی باشد
+- **Returns**: instance ذخیره شده
+- **Logic**:
+  1. ذخیره instance با `super().save(commit=False)`
+  2. تولید `document_code` با prefix "ISU" اگر خالی باشد (با `generate_document_code()`)
+  3. تنظیم `document_date` به امروز اگر خالی باشد
+  4. اگر `commit=True`: ذخیره instance
+  5. بازگشت instance
 
 ---
 
@@ -79,10 +131,43 @@
 
 **متدها**:
 
-#### `save(self, commit: bool = True)`
+#### `__init__(self, *args, company_id: Optional[int] = None, **kwargs)`
+- **Parameters**: `company_id` برای فیلتر کردن querysets
 - **Logic**:
-  - تولید `document_code` با prefix "ICN" اگر خالی باشد
-  - تنظیم `department_unit_code` از `department_unit.public_code`
+  1. تنظیم `self.company_id` از parameter یا instance
+  2. تنظیم `document_code` و `document_date` به not required
+  3. تنظیم initial value برای `document_date` به امروز (اگر instance جدید باشد)
+  4. فیلتر کردن `department_unit` queryset:
+     - فقط واحدهای با `company_id` مطابق و `is_enabled=1`
+     - مرتب‌سازی: `name`
+     - تنظیم `label_from_instance` برای نمایش `public_code · name`
+
+#### `clean_document_date(self)`
+- **Returns**: تاریخ سند (امروز به صورت پیش‌فرض)
+- **Logic**: اگر خالی باشد، تاریخ امروز را برمی‌گرداند
+
+#### `clean_document_code(self) -> str`
+- **Returns**: کد سند (خالی اگر باید auto-generate شود)
+- **Logic**: اگر خالی باشد، در `save()` تولید می‌شود
+
+#### `clean(self) -> Dict[str, Any]`
+- **Returns**: `cleaned_data` اعتبارسنجی شده
+- **Logic**:
+  1. فراخوانی `super().clean()`
+  2. تنظیم `document_code` به خالی اگر وجود نداشته باشد
+  3. تنظیم `document_date` به امروز اگر وجود نداشته باشد
+
+#### `save(self, commit: bool = True)`
+- **Returns**: instance ذخیره شده
+- **Logic**:
+  1. ذخیره instance با `super().save(commit=False)`
+  2. تولید `document_code` با prefix "ICN" اگر خالی باشد (با `generate_document_code()`)
+  3. تنظیم `document_date` به امروز اگر خالی باشد
+  4. تنظیم `department_unit` و `department_unit_code`:
+     - اگر `department_unit` انتخاب شده باشد: `department_unit_code = department_unit.public_code`
+     - در غیر این صورت: `department_unit = None`, `department_unit_code = ''`
+  5. اگر `commit=True`: ذخیره instance
+  6. بازگشت instance
 
 ---
 
