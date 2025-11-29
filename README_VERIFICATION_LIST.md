@@ -421,8 +421,8 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `inventory/utils/README.md` | `inventory/utils/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و تمام توابع utility را مستندسازی کرده (codes.py و jalali.py) |
 | `inventory/services/README.md` | `inventory/services/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و تمام توابع serial management را مستندسازی کرده (single-line و line-based) |
 | `inventory/templatetags/README.md` | `inventory/templatetags/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و تمام template tags (jalali_tags) را مستندسازی کرده |
-| `inventory/migrations/README.md` | `inventory/migrations/` | ⏳ Pending | - | - | - | - |
-| `inventory/management/commands/README.md` | `inventory/management/commands/` | ⏳ Pending | - | - | - | - |
+| `inventory/migrations/README.md` | `inventory/migrations/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و خلاصه migrations را مستندسازی کرده |
+| `inventory/management/commands/README.md` | `inventory/management/commands/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و cleanup_test_receipts command را مستندسازی کرده |
 | `production/README.md` | `production/` module | ⏳ Pending | - | - | - | - |
 | `production/README_BOM.md` | `production/` BOM related | ⏳ Pending | - | - | - | - |
 | `production/README_FORMS.md` | `production/forms/` | ⏳ Pending | - | - | - | - |
