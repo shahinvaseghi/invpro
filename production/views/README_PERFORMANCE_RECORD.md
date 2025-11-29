@@ -47,8 +47,45 @@
 - `required_action`: `'view_own'`
 
 **متدها**:
-- `get_queryset()`: فیلتر بر اساس company، `select_related('order', 'order__bom', 'order__finished_item', 'order__process', 'transfer', 'approved_by')`، `prefetch_related('materials', 'persons', 'machines')`، مرتب بر اساس `-performance_date`, `performance_code`. اگر user permission `view_all` نداشته باشد، فقط records خودش را نمایش می‌دهد.
-- `get_context_data()`: اضافه کردن `active_module`
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با company filtering، select_related، prefetch_related، و permission-based filtering برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده با optimizations و permission filtering
+
+**منطق**:
+1. دریافت `active_company_id` از session
+2. اگر `active_company_id` وجود ندارد، `PerformanceRecord.objects.none()` برمی‌گرداند
+3. فیلتر: `PerformanceRecord.objects.filter(company_id=active_company_id)`
+4. **select_related**: `'order'`, `'order__bom'`, `'order__finished_item'`, `'order__process'`, `'transfer'`, `'approved_by'`
+5. **prefetch_related**: `'materials'`, `'persons'`, `'machines'`
+6. مرتب‌سازی: `order_by('-performance_date', 'performance_code')` (جدیدترین اول)
+7. **Permission-based filtering**:
+   - بررسی permission `view_all` با `has_feature_permission()`
+   - اگر permission ندارد: فیلتر `queryset.filter(created_by=request.user)` (فقط records خودش)
+8. queryset را برمی‌گرداند
+
+**نکات مهم**:
+- اگر user permission `view_all` نداشته باشد، فقط records خودش را می‌بیند
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `active_module`
+
+**Context Variables اضافه شده**:
+- `active_module`: `'production'`
 
 **URL**: `/production/performance-records/`
 
@@ -76,12 +113,53 @@
 
 **متدها**:
 
-#### `get_form_kwargs() -> Dict[str, Any]`
-- اضافه کردن `company_id` به form
+#### `get_form_kwargs(self) -> Dict[str, Any]`
 
-#### `get_context_data(**kwargs) -> Dict[str, Any]`
-- اضافه کردن 3 formsets: `material_formset`, `person_formset`, `machine_formset`
-- `process_id` برای person و machine formsets از order تنظیم می‌شود
+**توضیح**: `company_id` را به form پاس می‌دهد.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: kwargs با `company_id` اضافه شده
+
+**منطق**:
+1. kwargs را از `super().get_form_kwargs()` دریافت می‌کند
+2. `company_id` را از `request.session.get('active_company_id')` اضافه می‌کند
+3. kwargs را برمی‌گرداند
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند (با 3 formsets).
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `form_title`, `active_module`, و 3 formsets
+
+**منطق**:
+1. context را از `super().get_context_data()` دریافت می‌کند
+2. اضافه کردن `form_title = _('Create Performance Record')`
+3. اضافه کردن `active_module = 'production'`
+4. دریافت `instance` (در CreateView، `self.object` ممکن است None باشد)
+5. دریافت `active_company_id` از session
+6. **ساخت 3 formsets**:
+   - اگر `request.POST`: از POST data
+   - در غیر این صورت: empty formsets
+   - `material_formset`: `form_kwargs={'company_id': active_company_id}`, prefix='materials'
+   - `person_formset`: `form_kwargs={'company_id': active_company_id, 'process_id': None}`, prefix='persons' (process_id از order تنظیم می‌شود)
+   - `machine_formset`: `form_kwargs={'company_id': active_company_id, 'process_id': None}`, prefix='machines' (process_id از order تنظیم می‌شود)
+7. اضافه کردن formsets به context
+8. context را برمی‌گرداند
+
+**Context Variables اضافه شده**:
+- `form_title`: `_('Create Performance Record')`
+- `active_module`: `'production'`
+- `material_formset`: `PerformanceRecordMaterialFormSet`
+- `person_formset`: `PerformanceRecordPersonFormSet`
+- `machine_formset`: `PerformanceRecordMachineFormSet`
 
 #### `form_valid(form: PerformanceRecordForm) -> HttpResponseRedirect`
 **منطق**:
@@ -128,15 +206,69 @@
 
 **متدها**:
 
-#### `get_queryset() -> QuerySet`
-- فیلتر بر اساس company
-- اگر user permission `edit_other` نداشته باشد، فقط records خودش را نمایش می‌دهد
+#### `get_queryset(self) -> QuerySet`
 
-#### `get_form_kwargs() -> Dict[str, Any]`
-- اضافه کردن `company_id` به form
+**توضیح**: queryset را با company filtering و permission-based filtering برمی‌گرداند.
 
-#### `get_context_data(**kwargs) -> Dict[str, Any]`
-- اضافه کردن 3 formsets با `process_id` از order
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده با permission filtering
+
+**منطق**:
+1. دریافت `active_company_id` از session
+2. اگر `active_company_id` وجود ندارد، `PerformanceRecord.objects.none()` برمی‌گرداند
+3. فیلتر: `PerformanceRecord.objects.filter(company_id=active_company_id)`
+4. **Permission-based filtering**:
+   - بررسی permission `edit_other` با `has_feature_permission()`
+   - اگر permission ندارد: فیلتر `queryset.filter(created_by=request.user)` (فقط records خودش)
+5. queryset را برمی‌گرداند
+
+**نکات مهم**:
+- اگر user permission `edit_other` نداشته باشد، فقط records خودش را می‌بیند
+
+---
+
+#### `get_form_kwargs(self) -> Dict[str, Any]`
+
+**توضیح**: `company_id` را به form پاس می‌دهد.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: kwargs با `company_id` از session
+
+**منطق**:
+1. kwargs را از `super().get_form_kwargs()` دریافت می‌کند
+2. `company_id` را از `request.session.get('active_company_id')` اضافه می‌کند
+3. kwargs را برمی‌گرداند
+
+---
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای template اضافه می‌کند (با 3 formsets).
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `form_title`, `active_module`, و 3 formsets
+
+**منطق**:
+1. context را از `super().get_context_data()` دریافت می‌کند
+2. اضافه کردن `form_title = _('Edit Performance Record')`
+3. اضافه کردن `active_module = 'production'`
+4. دریافت `active_company_id` از session
+5. دریافت `process_id` از `self.object.order.process_id` (اگر موجود باشد)
+6. **ساخت 3 formsets**:
+   - اگر `request.POST`: از POST data
+   - در غیر این صورت: از instance
+   - `material_formset`: `form_kwargs={'company_id': active_company_id}`, prefix='materials'
+   - `person_formset`: `form_kwargs={'company_id': active_company_id, 'process_id': process_id}`, prefix='persons'
+   - `machine_formset`: `form_kwargs={'company_id': active_company_id, 'process_id': process_id}`, prefix='machines'
+7. اضافه کردن formsets به context
+8. context را برمی‌گرداند
 
 #### `form_valid(form: PerformanceRecordForm) -> HttpResponseRedirect`
 **منطق**:
