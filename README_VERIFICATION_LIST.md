@@ -417,7 +417,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `inventory/README_BALANCE.md` | `inventory/inventory_balance.py` | ✅ Updated | 2025-11-28 18:54:08 | 2025-11-29 19:04:53 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_last_stocktaking_baseline()` (با stocktaking_record_date)، `calculate_movements_after_baseline()` (با date handling برای as_of_date و baseline_date)، و `calculate_warehouse_balances()` (با منطق کامل یافتن items از warehouse assignment و transactions، ترکیب با set، فیلتر Q، و error handling) |
 | `inventory/README_BALANCE_MODULE.md` | `inventory/inventory_balance.py` | ✅ Updated | 2025-11-28 18:54:08 | 2025-11-29 19:06:21 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_last_stocktaking_baseline()` (با stocktaking_record_date)، `calculate_movements_after_baseline()` (با date handling)، و `calculate_warehouse_balances()` (با منطق کامل یافتن items و فیلتر کردن) |
 | `inventory/README_FORMS.md` | `inventory/forms/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | به‌روزرسانی شد - لینک به فایل‌های README جزئی‌تر اضافه شد |
-| `inventory/views/README.md` | `inventory/views/` | ⏳ Pending | - | - | - | - |
+| `inventory/views/README.md` | `inventory/views/` | ✅ Updated | - | 2025-11-29 23:00:00 | ✅ N/A | بررسی شد - فایل به‌روز است و به تمام فایل‌های README جزئی‌تر اشاره می‌کند |
 | `inventory/utils/README.md` | `inventory/utils/` | ⏳ Pending | - | - | - | - |
 | `inventory/services/README.md` | `inventory/services/` | ⏳ Pending | - | - | - | - |
 | `inventory/templatetags/README.md` | `inventory/templatetags/` | ⏳ Pending | - | - | - | - |
