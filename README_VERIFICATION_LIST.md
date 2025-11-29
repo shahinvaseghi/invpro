@@ -220,7 +220,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `ticketing/views/README_TICKETS.md` | `ticketing/views/tickets.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 18:47:21 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_context_data()` (با permission checking، options extraction از field_config و model، و debug logging)، `form_valid()` (با reported_by و company_id)، و `get_initial()` اضافه شد |
 | `ticketing/views/README_DEBUG.md` | `ticketing/views/debug.py` | ✅ Updated | 2025-11-25 13:24:42 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `ticketing/views/README_PLACEHOLDERS.md` | `ticketing/views/placeholders.py` | ✅ Updated | 2025-11-25 00:11:08 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `ticketing/views/README_ENTITY_REFERENCE.md` | `ticketing/views/entity_reference.py` | ✅ Updated | 2025-11-27 00:44:07 | 2025-11-29 18:58:00 | ✅ README newer | مستندات کامل برای 3 API endpoint: `EntityReferenceSectionsView` (لیست sections)، `EntityReferenceActionsView` (لیست actions برای section با code/nickname lookup)، `EntityReferenceParameterValuesView` (مقادیر ممکن: enum از parameter_enum JSON، gp از AuthGroup، type از hardcoded values بر اساس section_code) |
+| `ticketing/views/README_ENTITY_REFERENCE.md` | `ticketing/views/entity_reference.py` | ✅ Updated | 2025-11-27 00:44:07 | 2025-11-29 18:56:18 | ✅ README newer | مستندات کامل برای 3 API endpoint: `EntityReferenceSectionsView` (لیست sections)، `EntityReferenceActionsView` (لیست actions برای section با code/nickname lookup)، `EntityReferenceParameterValuesView` (مقادیر ممکن: enum از parameter_enum JSON، gp از AuthGroup، type از hardcoded values بر اساس section_code) |
 
 ### Forms
 | README File | Source File | Status | Notes |
@@ -278,7 +278,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 ### Context Processors
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `shared/README_CONTEXT_PROCESSORS.md` | `shared/context_processors.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-26 21:30:04 | ⚠️ Source newer | بررسی شد - مستندات کامل است (نیاز به بررسی مجدد) |
+| `shared/README_CONTEXT_PROCESSORS.md` | `shared/context_processors.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-29 18:58:16 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `active_company()`: انتخاب active_company (از session، default_company، یا اولین company)، دریافت user_companies با select_related، دریافت user_feature_permissions، و منطق کامل notifications (3 نوع approval pending: purchase، warehouse، stocktaking؛ 2 نوع approved: purchase، warehouse با 7 روز اخیر؛ email sending با sent_email_notifications tracking) |
 
 ---
 
