@@ -433,7 +433,7 @@ def get_temporary_receipt_data(request: HttpRequest) -> JsonResponse:
             is_enabled=1,
             is_qc_approved=1,
             qc_approved_quantity__isnull=False
-        )
+        ).select_related('item', 'warehouse', 'supplier')
         
         if not approved_lines.exists():
             # Log for debugging
@@ -451,11 +451,12 @@ def get_temporary_receipt_data(request: HttpRequest) -> JsonResponse:
         # And include all approved lines in a 'lines' array
         first_line = approved_lines.first()
         
-        # Supplier info is stored on the temporary receipt header
-        supplier = temp_receipt.supplier
-        supplier_id = supplier.pk if supplier else None
-        supplier_code = supplier.public_code if supplier else None
-        supplier_name = supplier.name if supplier else None
+        # Supplier info is stored at line level (each line can have its own supplier)
+        # For backward compatibility, use first line's supplier for main data
+        first_line_supplier = first_line.supplier
+        supplier_id = first_line_supplier.pk if first_line_supplier else None
+        supplier_code = first_line_supplier.public_code if first_line_supplier else None
+        supplier_name = first_line_supplier.name if first_line_supplier else None
 
         # Return temporary receipt data for auto-filling
         # Use QC-approved quantities instead of original quantities
@@ -487,9 +488,9 @@ def get_temporary_receipt_data(request: HttpRequest) -> JsonResponse:
                     'entered_quantity': str(line.qc_approved_quantity),  # Use approved quantity
                     'unit': line.unit,
                     'entered_unit': line.entered_unit if line.entered_unit else line.unit,
-                    'supplier_id': supplier_id,
-                    'supplier_code': supplier_code,
-                    'supplier_name': supplier_name,
+                    'supplier_id': line.supplier.pk if line.supplier else None,
+                    'supplier_code': line.supplier.public_code if line.supplier else None,
+                    'supplier_name': line.supplier.name if line.supplier else None,
                 }
                 for line in approved_lines
             ],

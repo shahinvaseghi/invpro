@@ -448,6 +448,14 @@ class WarehouseRequestFormMixin(InventoryBaseView):
         """Add form context including fieldsets and unit/warehouse options."""
         context = super().get_context_data(**kwargs)
         context['form_title'] = self.form_title
+        
+        # Add breadcrumbs for generic_form.html
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Warehouse Requests'), 'url': reverse_lazy('inventory:warehouse_requests')},
+        ]
+        context['cancel_url'] = reverse_lazy('inventory:warehouse_requests')
+        
         form = context.get('form')
         raw_fieldsets = self.get_fieldsets()
         render_fieldsets = []

@@ -299,17 +299,17 @@
 4. **فیلتر خطوط QC-approved**:
    - فقط خطوط با `is_enabled=1`, `is_qc_approved=1`, `qc_approved_quantity__isnull=False`
    - اگر هیچ خط QC-approved وجود نداشته باشد، خطا برمی‌گرداند
-5. دریافت supplier از header (نه از lines)
+5. دریافت supplier از هر خط (هر خط می‌تواند supplier مستقل داشته باشد)
 6. ساخت response:
    - داده‌های اولین خط به عنوان داده اصلی (برای backward compatibility)
    - همه خطوط در آرایه `lines` (برای پشتیبانی از چندخطی)
    - استفاده از `qc_approved_quantity` به جای `quantity` اصلی
-   - supplier برای همه خطوط یکسان (از header)
+   - supplier برای هر خط از همان خط خوانده می‌شود (line-level supplier)
 
 **نکات مهم**:
 - فقط خطوط QC-approved برگردانده می‌شوند
 - اگر هیچ خط QC-approved وجود نداشته باشد، خطا با پیام فارسی برمی‌گرداند
-- تأمین‌کننده فقط در سطح هدر نگه‌داری می‌شود و برای هر خط همان مقدار تکرار می‌شود
+- تأمین‌کننده در سطح خط نگه‌داری می‌شود (هر خط می‌تواند supplier مستقل داشته باشد)
 - استفاده از `qc_approved_quantity` به جای `quantity` اصلی (مهم برای QC workflow)
 
 **استفاده در Frontend**:

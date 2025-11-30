@@ -51,7 +51,6 @@ class ReceiptTemporaryForm(forms.ModelForm):
             'document_code',
             'document_date',
             'expected_receipt_date',
-            'supplier',
             'source_document_type',
             'source_document_code',
             'status',
@@ -70,7 +69,6 @@ class ReceiptTemporaryForm(forms.ModelForm):
             'document_code': _('Document Code'),
             'document_date': _('Document Date'),
             'expected_receipt_date': _('Expected Conversion Date'),
-            'supplier': _('Supplier'),
             'source_document_type': _('Source Document Type'),
             'source_document_code': _('Source Document Code'),
             'status': _('Status'),
@@ -105,11 +103,7 @@ class ReceiptTemporaryForm(forms.ModelForm):
     def _filter_company_scoped_fields(self) -> None:
         """Filter querysets based on active company."""
         from inventory.forms.base import ReceiptBaseForm
-        if 'supplier' in self.fields:
-            from inventory.models import Supplier
-            self.fields['supplier'].queryset = Supplier.objects.filter(company_id=self.company_id, is_enabled=1)
-            self.fields['supplier'].label_from_instance = lambda obj: f"{obj.name} · {obj.public_code}"
-            self.fields['supplier'].empty_label = _("--- انتخاب کنید ---")
+        # Supplier field moved to ReceiptTemporaryLine (line-level supplier)
 
     def clean_document_code(self) -> str:
         """Auto-generate document_code if not provided."""
@@ -137,11 +131,7 @@ class ReceiptTemporaryForm(forms.ModelForm):
         if not cleaned_data.get('document_date'):
             cleaned_data['document_date'] = timezone.now().date()
         
-        if self.company_id:
-            if cleaned_data.get('supplier'):
-                supplier = cleaned_data.get('supplier')
-                if supplier.company_id != self.company_id:
-                    self.add_error('supplier', _('Selected supplier belongs to a different company.'))
+        # Supplier field moved to ReceiptTemporaryLine (line-level supplier)
         return cleaned_data
 
     def save(self, commit: bool = True):
@@ -1048,6 +1038,7 @@ class ReceiptTemporaryLineForm(ReceiptLineBaseForm):
             'item', 'warehouse', 'unit', 'quantity',
             'entered_unit', 'entered_quantity',
             'expected_receipt_date',
+            'supplier',
             'line_notes',
         ]
         widgets = {

@@ -234,7 +234,7 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
         queryset = queryset.prefetch_related(
             Prefetch(
                 'lines',
-                queryset=models.ReceiptTemporaryLine.objects.filter(is_enabled=1).select_related('item', 'warehouse'),
+                queryset=models.ReceiptTemporaryLine.objects.filter(is_enabled=1).select_related('item', 'warehouse', 'supplier'),
                 to_attr='enabled_lines'
             )
         ).select_related('created_by', 'converted_receipt')
@@ -394,7 +394,7 @@ class ReceiptTemporaryCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
-            (_('Document Info'), ['expected_receipt_date', 'supplier', 'source_document_type', 'source_document_code', 'qc_approval_notes']),
+            (_('Document Info'), ['expected_receipt_date', 'source_document_type', 'source_document_code', 'qc_approval_notes']),
         ]
 
 
@@ -415,8 +415,9 @@ class ReceiptTemporaryDetailView(InventoryBaseView, DetailView):
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.temporary', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
-            'lines__warehouse'
-        ).select_related('created_by', 'supplier')
+            'lines__warehouse',
+            'lines__supplier'
+        ).select_related('created_by')
         return queryset
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
@@ -517,11 +518,11 @@ class ReceiptTemporaryUpdateView(EditLockProtectedMixin, LineFormsetMixin, Docum
         queryset = super().get_queryset()
         # Filter by user permissions (own vs all)
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.temporary', 'created_by')
-        # ReceiptTemporaryLine doesn't have supplier field (supplier is on ReceiptTemporary header)
         queryset = queryset.prefetch_related(
             'lines__item',
-            'lines__warehouse'
-        ).select_related('created_by', 'supplier')
+            'lines__warehouse',
+            'lines__supplier'
+        ).select_related('created_by')
         logger.info(f"Queryset count: {queryset.count()}")
         return queryset
     
@@ -572,7 +573,7 @@ class ReceiptTemporaryUpdateView(EditLockProtectedMixin, LineFormsetMixin, Docum
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
-            (_('Document Info'), ['expected_receipt_date', 'supplier', 'source_document_type', 'source_document_code', 'qc_approval_notes']),
+            (_('Document Info'), ['expected_receipt_date', 'source_document_type', 'source_document_code', 'qc_approval_notes']),
         ]
 
 

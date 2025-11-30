@@ -308,7 +308,15 @@
 
 **Fields**:
 - `document` (ForeignKey → ReceiptTemporary)
-- و فیلدهای دیگر...
+- `expected_receipt_date` (DateField, null=True, blank=True): تاریخ مورد انتظار تبدیل
+- `supplier` (ForeignKey → Supplier, null=True, blank=True): تأمین‌کننده برای این ردیف (هر ردیف می‌تواند تأمین‌کننده مستقل داشته باشد)
+- `supplier_code` (CharField, blank=True): کد تأمین‌کننده (cache شده)
+- فیلدهای QC approval (`is_qc_approved`, `qc_approved_quantity`, `qc_approval_notes`)
+- فیلدهای QC rejection (`is_qc_rejected`, `qc_rejected_quantity`, `qc_rejection_reason`)
+- و فیلدهای دیگر از `ReceiptLineBase` (item, warehouse, quantity, unit, etc.)
+
+**Methods**:
+- `save()`: به صورت خودکار `supplier_code` را از `supplier.public_code` تنظیم می‌کند
 
 ---
 

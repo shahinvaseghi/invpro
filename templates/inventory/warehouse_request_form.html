@@ -1,406 +1,281 @@
-{% extends "inventory/base.html" %}
+{% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
 {% load static %}
 
-{% block page_title %}{{ form_title }}{% endblock %}
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{{ form_title }}</span>
+{% endblock %}
 
-{% block inventory_content %}
-<div class="form-container">
-  <form method="post" class="entity-form">
-    {% csrf_token %}
-    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
-    
-    {% if form.non_field_errors %}
-      <div class="alert alert-error" style="margin-bottom: 20px; padding: 15px; background-color: #fee; border: 1px solid #fcc; border-radius: 6px; color: #c33;">
-        {{ form.non_field_errors }}
-      </div>
-    {% endif %}
-
-    {% for section_title, section_fields in fieldsets %}
-      <div class="form-section">
-        <h3>{{ section_title }}</h3>
-        <div class="form-row">
-          {% for field in section_fields %}
-            <div class="form-field">
-              <label for="{{ field.id_for_label }}">
-                {{ field.label }}
-                {% if field.field.required and not field.field.widget.attrs.readonly %}*{% endif %}
-              </label>
-              {{ field }}
-              {% if field.errors %}
-                <span class="error">{{ field.errors.0 }}</span>
-              {% endif %}
-              {% if field.help_text %}
-                <small class="form-text">{{ field.help_text }}</small>
-              {% endif %}
-            </div>
-          {% endfor %}
+{% block form_sections %}
+{% for section_title, section_fields in fieldsets %}
+  <div class="form-section">
+    <h3>{{ section_title }}</h3>
+    <div class="form-row">
+      {% for field in section_fields %}
+        <div class="form-field">
+          <label for="{{ field.id_for_label }}">
+            {{ field.label }}
+            {% if field.field.required and not field.field.widget.attrs.readonly %}*{% endif %}
+          </label>
+          {{ field }}
+          {% if field.errors %}
+            <span class="error">{{ field.errors.0 }}</span>
+          {% endif %}
+          {% if field.help_text %}
+            <small class="form-text">{{ field.help_text }}</small>
+          {% endif %}
         </div>
-      </div>
-    {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+{% endfor %}
 
-    {% for field in form.visible_fields %}
-      {% if field.name not in used_fields %}
-      <div class="form-section">
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ field.id_for_label }}">
-              {{ field.label }}
-              {% if field.field.required and not field.field.widget.attrs.readonly %}*{% endif %}
-            </label>
-            {{ field }}
-            {% if field.errors %}
-              <span class="error">{{ field.errors.0 }}</span>
-            {% endif %}
-            {% if field.help_text %}
-              <small class="form-text">{{ field.help_text }}</small>
+{% for field in form.visible_fields %}
+  {% if field.name not in used_fields %}
+  <div class="form-section">
+    <div class="form-row">
+      <div class="form-field">
+        <label for="{{ field.id_for_label }}">
+          {{ field.label }}
+          {% if field.field.required and not field.field.widget.attrs.readonly %}*{% endif %}
+        </label>
+        {{ field }}
+        {% if field.errors %}
+          <span class="error">{{ field.errors.0 }}</span>
+        {% endif %}
+        {% if field.help_text %}
+          <small class="form-text">{{ field.help_text }}</small>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+{% endfor %}
+{% endblock %}
+
+{% block form_extra %}
+{% if lines_formset %}
+<div class="form-section">
+  <div>
+    <h3 style="margin: 0;">{% trans "Request Lines" %}</h3>
+    <p class="form-text" style="margin: 0.5rem 0 0 0;">
+      {% trans "Add one or more items to this warehouse request. Each line represents a single item with its quantity and warehouse." %}
+    </p>
+  </div>
+  
+  {% if lines_formset.non_form_errors %}
+    <div class="alert alert-danger">
+      {% for error in lines_formset.non_form_errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {{ lines_formset.management_form }}
+  {% for hidden in lines_formset.hidden_fields %}{{ hidden }}{% endfor %}
+
+  <div class="lines-formset-wrapper">
+    <div class="lines-formset" id="lines-formset" data-can-delete="{% if lines_formset.can_delete %}true{% else %}false{% endif %}">
+    <div class="lines-table-header">
+      <div class="line-cell line-number">#</div>
+      <div class="line-cell line-item">{% trans "Item" %} *</div>
+      <div class="line-cell line-unit">{% trans "Unit" %} *</div>
+      <div class="line-cell line-quantity">{% trans "Quantity" %} *</div>
+      <div class="line-cell line-warehouse">{% trans "Warehouse" %} *</div>
+      <div class="line-cell line-notes">{% trans "Notes" %}</div>
+      {% if lines_formset.can_delete %}
+      <div class="line-cell line-delete-header">{% trans "Delete" %}</div>
+      {% endif %}
+    </div>
+    {% for line_form in lines_formset %}
+      {% if not form.instance.pk %}
+        {# Create mode: only show first empty form (extra=1) #}
+        {% if forloop.counter0 < 1 %}
+      <div class="line-row" data-form-index="{{ forloop.counter0 }}">
+        {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
+        
+        <div class="line-cell line-number">{{ forloop.counter }}</div>
+        
+        <div class="line-cell line-item">
+          <div class="item-select-wrapper">
+            <div class="item-filters">
+              <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
+                <option value="">{% trans "Type" %}</option>
+                {% for item_type in item_types %}
+                <option value="{{ item_type.id }}" {% if current_item_type == item_type.id|stringformat:"s" %}selected{% endif %}>{{ item_type.name }}</option>
+                {% endfor %}
+              </select>
+              <select class="form-control filter-category-select" data-form-index="{{ forloop.counter0 }}">
+                <option value="">{% trans "Category" %}</option>
+                {% for category in item_categories %}
+                <option value="{{ category.id }}" {% if current_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                {% endfor %}
+              </select>
+              <select class="form-control filter-subcategory-select" data-form-index="{{ forloop.counter0 }}">
+                <option value="">{% trans "Subcategory" %}</option>
+                {% for subcategory in item_subcategories %}
+                <option value="{{ subcategory.id }}" {% if current_subcategory == subcategory.id|stringformat:"s" %}selected{% endif %}>{{ subcategory.name }}</option>
+                {% endfor %}
+              </select>
+              <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}" 
+                     placeholder="{% trans 'Search by name or code...' %}" 
+                     value="{{ current_item_search }}"
+                     style="flex: 2; min-width: 150px;">
+            </div>
+            {{ line_form.item }}
+            {% if line_form.item.errors %}
+              <span class="error">{{ line_form.item.errors.0 }}</span>
             {% endif %}
           </div>
         </div>
+
+        <div class="line-cell line-unit">
+          {{ line_form.unit }}
+          {% if line_form.unit.errors %}
+            <span class="error">{{ line_form.unit.errors.0 }}</span>
+          {% endif %}
+        </div>
+
+        <div class="line-cell line-quantity">
+          {{ line_form.quantity_requested }}
+          {% if line_form.quantity_requested.errors %}
+            <span class="error">{{ line_form.quantity_requested.errors.0 }}</span>
+          {% endif %}
+        </div>
+
+        <div class="line-cell line-warehouse">
+          {{ line_form.warehouse }}
+          {% if line_form.warehouse.errors %}
+            <span class="error">{{ line_form.warehouse.errors.0 }}</span>
+          {% endif %}
+        </div>
+
+        <div class="line-cell line-notes">
+          {{ line_form.line_notes }}
+          {% if line_form.line_notes.errors %}
+            <span class="error">{{ line_form.line_notes.errors.0 }}</span>
+          {% endif %}
+        </div>
+
+        {% if lines_formset.can_delete %}
+        <div class="line-cell line-delete">
+          {{ line_form.DELETE }}
+        </div>
+        {% endif %}
+        
+        {% if line_form.non_field_errors %}
+          <div class="error full-width">{{ line_form.non_field_errors|join:", " }}</div>
+        {% endif %}
+      </div>
+        {% endif %}
+      {% else %}
+        {# Edit mode: show all existing lines #}
+      <div class="line-row" data-form-index="{{ forloop.counter0 }}">
+        {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
+        
+        <div class="line-cell line-number">{{ forloop.counter }}</div>
+        
+        <div class="line-cell line-item">
+          <div class="item-select-wrapper">
+            <div class="item-filters">
+              <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
+                <option value="">{% trans "Type" %}</option>
+                {% for item_type in item_types %}
+                <option value="{{ item_type.id }}" {% if current_item_type == item_type.id|stringformat:"s" %}selected{% endif %}>{{ item_type.name }}</option>
+                {% endfor %}
+              </select>
+              <select class="form-control filter-category-select" data-form-index="{{ forloop.counter0 }}">
+                <option value="">{% trans "Category" %}</option>
+                {% for category in item_categories %}
+                <option value="{{ category.id }}" {% if current_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                {% endfor %}
+              </select>
+              <select class="form-control filter-subcategory-select" data-form-index="{{ forloop.counter0 }}">
+                <option value="">{% trans "Subcategory" %}</option>
+                {% for subcategory in item_subcategories %}
+                <option value="{{ subcategory.id }}" {% if current_subcategory == subcategory.id|stringformat:"s" %}selected{% endif %}>{{ subcategory.name }}</option>
+                {% endfor %}
+              </select>
+              <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}" 
+                     placeholder="{% trans 'Search by name or code...' %}" 
+                     value="{{ current_item_search }}"
+                     style="flex: 2; min-width: 150px;">
+            </div>
+            {{ line_form.item }}
+            {% if line_form.item.errors %}
+              <span class="error">{{ line_form.item.errors.0 }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="line-cell line-unit">
+          {{ line_form.unit }}
+          {% if line_form.unit.errors %}
+            <span class="error">{{ line_form.unit.errors.0 }}</span>
+          {% endif %}
+        </div>
+
+        <div class="line-cell line-quantity">
+          {{ line_form.quantity_requested }}
+          {% if line_form.quantity_requested.errors %}
+            <span class="error">{{ line_form.quantity_requested.errors.0 }}</span>
+          {% endif %}
+        </div>
+
+        <div class="line-cell line-warehouse">
+          {{ line_form.warehouse }}
+          {% if line_form.warehouse.errors %}
+            <span class="error">{{ line_form.warehouse.errors.0 }}</span>
+          {% endif %}
+        </div>
+
+        <div class="line-cell line-notes">
+          {{ line_form.line_notes }}
+          {% if line_form.line_notes.errors %}
+            <span class="error">{{ line_form.line_notes.errors.0 }}</span>
+          {% endif %}
+        </div>
+
+        {% if lines_formset.can_delete %}
+        <div class="line-cell line-delete">
+          {{ line_form.DELETE }}
+        </div>
+        {% endif %}
+        
+        {% if line_form.non_field_errors %}
+          <div class="error full-width">{{ line_form.non_field_errors|join:", " }}</div>
+        {% endif %}
       </div>
       {% endif %}
     {% endfor %}
-
-    {% if lines_formset %}
-    <div class="form-section">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <div>
-          <h3 style="margin: 0;">{% trans "Request Lines" %}</h3>
-          <p class="form-text" style="margin: 0.5rem 0 0 0;">
-            {% trans "Add one or more items to this warehouse request. Each line represents a single item with its quantity and warehouse." %}
-          </p>
-        </div>
-        <button type="button" id="add-line-btn" class="btn btn-success" style="padding: 0.5rem 1rem;">
-          <span style="font-size: 1.2rem; margin-right: 0.25rem;">+</span> {% trans "Add Line" %}
-        </button>
-      </div>
-      
-      {% if lines_formset.non_form_errors %}
-        <div class="alert alert-danger">
-          {% for error in lines_formset.non_form_errors %}
-            <div>{{ error }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
-      {{ lines_formset.management_form }}
-      {% for hidden in lines_formset.hidden_fields %}{{ hidden }}{% endfor %}
-
-      <div class="lines-formset" id="lines-formset">
-        <div class="lines-table-header">
-          <div class="line-cell line-number">#</div>
-          <div class="line-cell line-item">{% trans "Item" %} *</div>
-          <div class="line-cell line-unit">{% trans "Unit" %} *</div>
-          <div class="line-cell line-quantity">{% trans "Quantity" %} *</div>
-          <div class="line-cell line-warehouse">{% trans "Warehouse" %} *</div>
-          <div class="line-cell line-notes">{% trans "Notes" %}</div>
-          {% if lines_formset.can_delete %}
-          <div class="line-cell line-delete-header">{% trans "Delete" %}</div>
-          {% endif %}
-        </div>
-        {% for line_form in lines_formset %}
-          {% if not form.instance.pk %}
-            {# Create mode: only show first empty form (extra=1) #}
-            {% if forloop.counter0 < 1 %}
-          <div class="line-row" data-form-index="{{ forloop.counter0 }}">
-            {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
-            
-            <div class="line-cell line-number">{{ forloop.counter }}</div>
-            
-            <div class="line-cell line-item">
-              <div class="item-select-wrapper">
-                <div class="item-filters">
-                  <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
-                    <option value="">{% trans "Type" %}</option>
-                    {% for item_type in item_types %}
-                    <option value="{{ item_type.id }}" {% if current_item_type == item_type.id|stringformat:"s" %}selected{% endif %}>{{ item_type.name }}</option>
-                    {% endfor %}
-                  </select>
-                  <select class="form-control filter-category-select" data-form-index="{{ forloop.counter0 }}">
-                    <option value="">{% trans "Category" %}</option>
-                    {% for category in item_categories %}
-                    <option value="{{ category.id }}" {% if current_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
-                    {% endfor %}
-                  </select>
-                  <select class="form-control filter-subcategory-select" data-form-index="{{ forloop.counter0 }}">
-                    <option value="">{% trans "Subcategory" %}</option>
-                    {% for subcategory in item_subcategories %}
-                    <option value="{{ subcategory.id }}" {% if current_subcategory == subcategory.id|stringformat:"s" %}selected{% endif %}>{{ subcategory.name }}</option>
-                    {% endfor %}
-                  </select>
-                  <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}" 
-                         placeholder="{% trans 'Search by name or code...' %}" 
-                         value="{{ current_item_search }}"
-                         style="flex: 2; min-width: 150px;">
-                </div>
-                {{ line_form.item }}
-                {% if line_form.item.errors %}
-                  <span class="error">{{ line_form.item.errors.0 }}</span>
-                {% endif %}
-              </div>
-            </div>
-
-            <div class="line-cell line-unit">
-              {{ line_form.unit }}
-              {% if line_form.unit.errors %}
-                <span class="error">{{ line_form.unit.errors.0 }}</span>
-              {% endif %}
-            </div>
-
-            <div class="line-cell line-quantity">
-              {{ line_form.quantity_requested }}
-              {% if line_form.quantity_requested.errors %}
-                <span class="error">{{ line_form.quantity_requested.errors.0 }}</span>
-              {% endif %}
-            </div>
-
-            <div class="line-cell line-warehouse">
-              {{ line_form.warehouse }}
-              {% if line_form.warehouse.errors %}
-                <span class="error">{{ line_form.warehouse.errors.0 }}</span>
-              {% endif %}
-            </div>
-
-            <div class="line-cell line-notes">
-              {{ line_form.line_notes }}
-              {% if line_form.line_notes.errors %}
-                <span class="error">{{ line_form.line_notes.errors.0 }}</span>
-              {% endif %}
-            </div>
-
-            {% if lines_formset.can_delete %}
-            <div class="line-cell line-delete">
-              {{ line_form.DELETE }}
-            </div>
-            {% endif %}
-            
-            {% if line_form.non_field_errors %}
-              <div class="error full-width">{{ line_form.non_field_errors|join:", " }}</div>
-            {% endif %}
-          </div>
-            {% endif %}
-          {% else %}
-            {# Edit mode: show all existing lines #}
-          <div class="line-row" data-form-index="{{ forloop.counter0 }}">
-            {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
-            
-            <div class="line-cell line-number">{{ forloop.counter }}</div>
-            
-            <div class="line-cell line-item">
-              <div class="item-select-wrapper">
-                <div class="item-filters">
-                  <select class="form-control filter-type-select" data-form-index="{{ forloop.counter0 }}">
-                    <option value="">{% trans "Type" %}</option>
-                    {% for item_type in item_types %}
-                    <option value="{{ item_type.id }}" {% if current_item_type == item_type.id|stringformat:"s" %}selected{% endif %}>{{ item_type.name }}</option>
-                    {% endfor %}
-                  </select>
-                  <select class="form-control filter-category-select" data-form-index="{{ forloop.counter0 }}">
-                    <option value="">{% trans "Category" %}</option>
-                    {% for category in item_categories %}
-                    <option value="{{ category.id }}" {% if current_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
-                    {% endfor %}
-                  </select>
-                  <select class="form-control filter-subcategory-select" data-form-index="{{ forloop.counter0 }}">
-                    <option value="">{% trans "Subcategory" %}</option>
-                    {% for subcategory in item_subcategories %}
-                    <option value="{{ subcategory.id }}" {% if current_subcategory == subcategory.id|stringformat:"s" %}selected{% endif %}>{{ subcategory.name }}</option>
-                    {% endfor %}
-                  </select>
-                  <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}" 
-                         placeholder="{% trans 'Search by name or code...' %}" 
-                         value="{{ current_item_search }}"
-                         style="flex: 2; min-width: 150px;">
-                </div>
-                {{ line_form.item }}
-                {% if line_form.item.errors %}
-                  <span class="error">{{ line_form.item.errors.0 }}</span>
-                {% endif %}
-              </div>
-            </div>
-
-            <div class="line-cell line-unit">
-              {{ line_form.unit }}
-              {% if line_form.unit.errors %}
-                <span class="error">{{ line_form.unit.errors.0 }}</span>
-              {% endif %}
-            </div>
-
-            <div class="line-cell line-quantity">
-              {{ line_form.quantity_requested }}
-              {% if line_form.quantity_requested.errors %}
-                <span class="error">{{ line_form.quantity_requested.errors.0 }}</span>
-              {% endif %}
-            </div>
-
-            <div class="line-cell line-warehouse">
-              {{ line_form.warehouse }}
-              {% if line_form.warehouse.errors %}
-                <span class="error">{{ line_form.warehouse.errors.0 }}</span>
-              {% endif %}
-            </div>
-
-            <div class="line-cell line-notes">
-              {{ line_form.line_notes }}
-              {% if line_form.line_notes.errors %}
-                <span class="error">{{ line_form.line_notes.errors.0 }}</span>
-              {% endif %}
-            </div>
-
-            {% if lines_formset.can_delete %}
-            <div class="line-cell line-delete">
-              {{ line_form.DELETE }}
-            </div>
-            {% endif %}
-            
-            {% if line_form.non_field_errors %}
-              <div class="error full-width">{{ line_form.non_field_errors|join:", " }}</div>
-            {% endif %}
-          </div>
-          {% endif %}
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-    <div class="form-actions">
-      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-      <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Cancel" %}</a>
-    </div>
-  </form>
+  </div>
 </div>
+  
+  <button type="button" id="add-line-btn" class="btn btn-success" style="margin-top: 1rem; padding: 0.5rem 1rem;">
+    <span style="font-size: 1.2rem; margin-right: 0.25rem;">+</span> {% trans "Add Line" %}
+  </button>
+{% endif %}
+{% endblock %}
 
+{% block extra_styles %}
 <style>
-.form-container {
-  max-width: 1200px;
-  margin: 2rem auto;
-  background: #ffffff;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
-}
-
-.entity-form .form-section {
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.entity-form .form-section:last-of-type {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.entity-form .form-section h3 {
-  font-size: 1.15rem;
-  font-weight: 600;
-  margin-bottom: 1.25rem;
-  color: #111827;
-}
-
-.entity-form .form-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.5rem;
-}
-
-.entity-form .form-field {
-  display: flex;
-  flex-direction: column;
-}
-
-.entity-form label {
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: #1f2937;
-}
-
-.entity-form .form-control,
-.entity-form select,
-.entity-form textarea,
-.entity-form input[type="text"],
-.entity-form input[type="number"],
-.entity-form input[type="date"] {
+.lines-formset-wrapper {
+  margin-top: 1rem;
+  overflow-x: auto;
+  overflow-y: visible;
   width: 100%;
-  padding: 0.55rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 1rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.entity-form .form-control:focus,
-.entity-form select:focus,
-.entity-form textarea:focus,
-.entity-form input[type="text"]:focus,
-.entity-form input[type="number"]:focus,
-.entity-form input[type="date"]:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.entity-form textarea {
-  min-height: 100px;
-  resize: vertical;
-}
-
-.entity-form .error {
-  margin-top: 0.35rem;
-  color: #dc2626;
-  font-size: 0.875rem;
-}
-
-.entity-form .form-text {
-  margin-top: 0.4rem;
-  color: #6b7280;
-  font-size: 0.875rem;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  padding-top: 1rem;
-}
-
-.alert {
-  padding: 0.9rem 1.1rem;
-  border-radius: 6px;
-  margin-bottom: 1.5rem;
-}
-
-.alert-success {
-  background-color: #dcfce7;
-  color: #166534;
-  border: 1px solid #bbf7d0;
-}
-
-.alert-error {
-  background-color: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-
-.alert-info {
-  background-color: #e0f2fe;
-  color: #0c4a6e;
-  border: 1px solid #bae6fd;
 }
 
 .lines-formset {
-  margin-top: 1rem;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  overflow: hidden;
+  min-width: 1200px;
+  width: max-content;
 }
 
 .lines-table-header {
   display: grid;
-  {% if lines_formset.can_delete %}
   grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr 2fr 80px;
-  {% else %}
-  grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr 2fr;
-  {% endif %}
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   background-color: #f3f4f6;
@@ -412,17 +287,21 @@
 
 .line-row {
   display: grid;
-  {% if lines_formset.can_delete %}
   grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr 2fr 80px;
-  {% else %}
-  grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr 2fr;
-  {% endif %}
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid #e5e7eb;
   align-items: start;
   transition: background-color 0.2s;
 }
+
+/* Override for formsets without DELETE */
+.lines-formset[data-can-delete="false"] .lines-table-header,
+.lines-formset[data-can-delete="false"] .line-row {
+  grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr 2fr;
+}
+
+
 
 .line-row:last-child {
   border-bottom: none;
@@ -551,17 +430,20 @@
   background-color: #059669;
 }
 </style>
+{% endblock %}
 
+{% block form_scripts %}
 <script>
-console.log('[SCRIPT] Warehouse request form script loaded');
-const unitPlaceholder = "--- Select ---";
+console.log('[SCRIPT] Warehouse Request Form Script - Version: 2025-01-12-02');
+const unitPlaceholder = "--- {% trans 'Select' %} ---";
+const warehousePlaceholder = "--- {% trans 'Select' %} ---";
+const itemSelectPlaceholder = "--- {% trans 'Select' %} ---";
 
 // Handle unit options for lines formset
 function refreshLineUnitOptions(itemSelect, unitSelect) {
   if (!itemSelect || !unitSelect) return;
   const selectedItem = itemSelect.value || "";
   
-  // Fetch units from API
   if (selectedItem) {
     fetch(`/inventory/api/item-allowed-units/?item_id=${selectedItem}`)
       .then(response => response.json())
@@ -582,7 +464,6 @@ function refreshLineUnitOptions(itemSelect, unitSelect) {
             unitSelect.appendChild(optionEl);
           });
           
-          // Try to keep current value if it's still valid
           if (currentValue && data.units.some(opt => opt.value === currentValue)) {
             unitSelect.value = currentValue;
           } else if (data.default_unit) {
@@ -607,7 +488,6 @@ function refreshLineWarehouseOptions(itemSelect, warehouseSelect) {
   if (!itemSelect || !warehouseSelect) return;
   const selectedItem = itemSelect.value || "";
   
-  // Fetch warehouses from API
   if (selectedItem) {
     fetch(`/inventory/api/item-allowed-warehouses/?item_id=${selectedItem}`)
       .then(response => response.json())
@@ -618,7 +498,7 @@ function refreshLineWarehouseOptions(itemSelect, warehouseSelect) {
           
           const placeholderOption = document.createElement("option");
           placeholderOption.value = "";
-          placeholderOption.textContent = "--- Select ---";
+          placeholderOption.textContent = warehousePlaceholder;
           warehouseSelect.appendChild(placeholderOption);
           
           data.warehouses.forEach(function(option) {
@@ -628,7 +508,6 @@ function refreshLineWarehouseOptions(itemSelect, warehouseSelect) {
             warehouseSelect.appendChild(optionEl);
           });
           
-          // Try to keep current value if it's still valid
           if (currentValue && data.warehouses.some(opt => opt.value === currentValue)) {
             warehouseSelect.value = currentValue;
           }
@@ -641,18 +520,14 @@ function refreshLineWarehouseOptions(itemSelect, warehouseSelect) {
     warehouseSelect.innerHTML = "";
     const placeholderOption = document.createElement("option");
     placeholderOption.value = "";
-    placeholderOption.textContent = "--- Select ---";
+    placeholderOption.textContent = warehousePlaceholder;
     warehouseSelect.appendChild(placeholderOption);
   }
 }
 
-// Filter items for a specific row based on type, category, subcategory, and search
+// Filter items for a specific row
 function filterItemsForRow(rowElement) {
-  console.log('[filterItemsForRow] Called for row');
-  if (!rowElement) {
-    console.warn('[filterItemsForRow] No rowElement provided');
-    return;
-  }
+  if (!rowElement) return;
   
   const typeSelect = rowElement.querySelector('.filter-type-select');
   const categorySelect = rowElement.querySelector('.filter-category-select');
@@ -660,92 +535,49 @@ function filterItemsForRow(rowElement) {
   const searchInput = rowElement.querySelector('.filter-search-input');
   const itemSelect = rowElement.querySelector('select[name*="-item"]');
   
-  console.log('[filterItemsForRow] Found itemSelect:', itemSelect ? 'YES' : 'NO');
-  if (!itemSelect) {
-    console.warn('[filterItemsForRow] No itemSelect found in row');
-    return;
-  }
+  if (!itemSelect) return;
   
   const typeId = typeSelect ? (typeSelect.value || '') : '';
   const categoryId = categorySelect ? (categorySelect.value || '') : '';
   const subcategoryId = subcategorySelect ? (subcategorySelect.value || '') : '';
+  let searchTerm = searchInput ? (searchInput.value || '').trim() : '';
   
-  // Get search term - try multiple ways to ensure we get the value
-  let searchTerm = '';
-  if (searchInput) {
-    searchTerm = searchInput.value || '';
-    if (typeof searchTerm === 'string') {
-      searchTerm = searchTerm.trim();
-    } else {
-      searchTerm = '';
-    }
-  }
-  
-  // Fix: If searchTerm is "None" (string), treat it as empty
   if (searchTerm === 'None' || searchTerm === 'none' || searchTerm === 'null') {
     searchTerm = '';
   }
   
-  console.log('[filterItemsForRow] Filters - typeId:', typeId, 'categoryId:', categoryId, 'subcategoryId:', subcategoryId, 'searchTerm:', searchTerm);
-  console.log('[filterItemsForRow] searchInput found:', searchInput ? 'YES' : 'NO');
-  console.log('[filterItemsForRow] searchInput.value:', searchInput ? (searchInput.value || 'EMPTY') : 'N/A');
-  
-  // Build API URL
   let apiUrl = '/inventory/api/filtered-items/';
   const params = new URLSearchParams();
   if (typeId) params.append('type_id', typeId);
   if (categoryId) params.append('category_id', categoryId);
   if (subcategoryId) params.append('subcategory_id', subcategoryId);
-  if (searchTerm) {
-    params.append('search', searchTerm);
-    console.log('[filterItemsForRow] Adding search term to params:', searchTerm);
-  }
+  if (searchTerm) params.append('search', searchTerm);
   
-  // Always add params to URL (even if empty, API will return all items)
   if (params.toString()) {
     apiUrl += '?' + params.toString();
   }
-  // If no params at all, still call API to get all items
   
-  // Fetch filtered items (or all items if no filters)
-  console.log('[filterItemsForRow] Fetching items from:', apiUrl);
-  console.log('[filterItemsForRow] Search term being sent:', searchTerm);
   fetch(apiUrl)
-    .then(response => {
-      console.log('[filterItemsForRow] Response status:', response.status);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
-      console.log('[filterItemsForRow] Received data:', data);
       if (data.error) {
         console.error('[filterItemsForRow] API error:', data.error);
         return;
       }
       if (data.items) {
-        console.log('[filterItemsForRow] Found', data.items.length, 'items');
         const itemMap = {};
         data.items.forEach(function(item) {
           itemMap[item.value] = item;
         });
         
         const currentValue = itemSelect.value;
-        const placeholder = itemSelect.options[0];
         
-        // Clear all options except placeholder
         itemSelect.innerHTML = '';
-        if (placeholder && placeholder.value === '') {
-          itemSelect.appendChild(placeholder.cloneNode(true));
-        } else {
-          const emptyOption = document.createElement('option');
-          emptyOption.value = '';
-          emptyOption.textContent = '--- انتخاب کنید ---';
-          itemSelect.appendChild(emptyOption);
-        }
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = itemSelectPlaceholder;
+        itemSelect.appendChild(emptyOption);
         
-        // Add filtered items
         data.items.forEach(function(item) {
           const option = document.createElement('option');
           option.value = item.value;
@@ -753,41 +585,28 @@ function filterItemsForRow(rowElement) {
           itemSelect.appendChild(option);
         });
         
-        // Restore current value if it's in filtered list
         if (currentValue && itemMap[currentValue]) {
           itemSelect.value = currentValue;
-          const unitSelect = rowElement.querySelector('select[name*="-unit"]');
-          const warehouseSelect = rowElement.querySelector('select[name*="-warehouse"]');
-          if (unitSelect) {
-            refreshLineUnitOptions(itemSelect, unitSelect);
-          }
-          if (warehouseSelect) {
-            refreshLineWarehouseOptions(itemSelect, warehouseSelect);
-          }
+          itemSelect.dispatchEvent(new Event('change', { bubbles: true }));
         } else if (currentValue) {
-          // Current value is not in filtered list, clear it
           itemSelect.value = '';
           const unitSelect = rowElement.querySelector('select[name*="-unit"]');
           const warehouseSelect = rowElement.querySelector('select[name*="-warehouse"]');
           if (unitSelect) {
-            refreshLineUnitOptions(itemSelect, unitSelect);
+            unitSelect.innerHTML = `<option value="">${unitPlaceholder}</option>`;
           }
           if (warehouseSelect) {
-            refreshLineWarehouseOptions(itemSelect, warehouseSelect);
+            warehouseSelect.innerHTML = `<option value="">${warehousePlaceholder}</option>`;
           }
         }
       }
-      } else {
-        console.warn('[filterItemsForRow] No items in response:', data);
-      }
     })
     .catch(error => {
-      console.error('[filterItemsForRow] Error filtering items:', error);
-      console.error('[filterItemsForRow] Error details:', error.message, error.stack);
+      console.error('[filterItemsForRow] Error:', error);
     });
 }
 
-// Load categories for a specific row based on type
+// Load categories for a specific row
 function loadCategoriesForRow(rowElement, typeId) {
   if (!rowElement) return;
   
@@ -796,31 +615,14 @@ function loadCategoriesForRow(rowElement, typeId) {
   
   if (!categorySelect) return;
   
-  categorySelect.innerHTML = '<option value="">All Categories</option>';
+  categorySelect.innerHTML = '<option value="">{% trans "All Categories" %}</option>';
   if (subcategorySelect) {
-    subcategorySelect.innerHTML = '<option value="">All Subcategories</option>';
+    subcategorySelect.innerHTML = '<option value="">{% trans "All Subcategories" %}</option>';
   }
   
-  if (!typeId) {
-    // Load all categories
-    fetch('/inventory/api/filtered-categories/')
-      .then(response => response.json())
-      .then(data => {
-        if (data.categories) {
-          data.categories.forEach(function(cat) {
-            const option = document.createElement("option");
-            option.value = cat.value;
-            option.textContent = cat.label;
-            categorySelect.appendChild(option);
-          });
-        }
-        // Filter items after loading categories
-        filterItemsForRow(rowElement);
-      });
-    return;
-  }
+  const url = typeId ? `/inventory/api/filtered-categories/?type_id=${typeId}` : '/inventory/api/filtered-categories/';
   
-  fetch(`/inventory/api/filtered-categories/?type_id=${typeId}`)
+  fetch(url)
     .then(response => response.json())
     .then(data => {
       if (data.categories) {
@@ -831,22 +633,20 @@ function loadCategoriesForRow(rowElement, typeId) {
           categorySelect.appendChild(option);
         });
       }
-      // Filter items after loading categories
       filterItemsForRow(rowElement);
     });
 }
 
-// Load subcategories for a specific row based on category
+// Load subcategories for a specific row
 function loadSubcategoriesForRow(rowElement, categoryId) {
   if (!rowElement) return;
   
   const subcategorySelect = rowElement.querySelector('.filter-subcategory-select');
   if (!subcategorySelect) return;
   
-  subcategorySelect.innerHTML = '<option value="">All Subcategories</option>';
+  subcategorySelect.innerHTML = '<option value="">{% trans "All Subcategories" %}</option>';
   
   if (!categoryId) {
-    // Filter items after clearing subcategory
     filterItemsForRow(rowElement);
     return;
   }
@@ -862,24 +662,21 @@ function loadSubcategoriesForRow(rowElement, categoryId) {
           subcategorySelect.appendChild(option);
         });
       }
-      // Filter items after loading subcategories
       filterItemsForRow(rowElement);
     });
 }
 
-// Initialize unit options for all line forms
+// Initialize line forms
 function initializeLineForms() {
   const formsetContainer = document.getElementById('lines-formset');
   if (!formsetContainer) return;
   
   formsetContainer.querySelectorAll('.line-row').forEach(function(lineRow, index) {
-    // Update row number
     const lineNumber = lineRow.querySelector('.line-number');
     if (lineNumber) {
       lineNumber.textContent = index + 1;
     }
     
-    // Setup filter listeners for this row
     const typeSelect = lineRow.querySelector('.filter-type-select');
     const categorySelect = lineRow.querySelector('.filter-category-select');
     const subcategorySelect = lineRow.querySelector('.filter-subcategory-select');
@@ -887,170 +684,130 @@ function initializeLineForms() {
     const unitSelect = lineRow.querySelector('select[name*="-unit"]');
     const warehouseSelect = lineRow.querySelector('select[name*="-warehouse"]');
     
-    // Setup type filter
     if (typeSelect) {
       typeSelect.addEventListener('change', function() {
         loadCategoriesForRow(lineRow, this.value);
       });
     }
     
-    // Setup category filter
     if (categorySelect) {
       categorySelect.addEventListener('change', function() {
         loadSubcategoriesForRow(lineRow, this.value);
       });
     }
     
-    // Setup subcategory filter
     if (subcategorySelect) {
       subcategorySelect.addEventListener('change', function() {
         filterItemsForRow(lineRow);
       });
     }
     
-    // Setup search input with debounce
-    const searchInput = lineRow.querySelector('.filter-search-input');
-    console.log('[initializeLineForms] Looking for search input in row', index, 'found:', searchInput);
-    if (searchInput) {
-      // Remove any existing listeners by cloning (clean slate)
-      const oldValue = searchInput.value;
-      const newSearchInput = searchInput.cloneNode(true);
-      newSearchInput.value = oldValue;
-      searchInput.parentNode.replaceChild(newSearchInput, searchInput);
-      
-      // Use a closure to maintain timeout per input
-      let searchTimeout;
-      newSearchInput.addEventListener('input', function(e) {
-        const searchValue = e.target.value;
-        console.log('[initializeLineForms] Search input changed to:', searchValue, 'for row', index);
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(function() {
-          console.log('[initializeLineForms] Calling filterItemsForRow after debounce for row', index);
-          // Make sure we get the latest value
-          const currentSearchValue = newSearchInput.value.trim();
-          console.log('[initializeLineForms] Current search value when calling filterItemsForRow:', currentSearchValue);
-          filterItemsForRow(lineRow);
-        }, 300); // Debounce 300ms
-      });
-      
-      // Also trigger on keyup for immediate feedback
-      newSearchInput.addEventListener('keyup', function(e) {
-        // Trigger on Enter key for immediate search
-        if (e.key === 'Enter') {
-          clearTimeout(searchTimeout);
-          console.log('[initializeLineForms] Enter pressed, filtering immediately for row', index);
-          filterItemsForRow(lineRow);
-        }
-      });
-      
-      console.log('[initializeLineForms] Search input listener attached for row', index);
-    } else {
-      console.warn('[initializeLineForms] No search input found for row', index);
+    if (itemSelect && itemSelect.value) {
+      if (unitSelect) refreshLineUnitOptions(itemSelect, unitSelect);
+      if (warehouseSelect) refreshLineWarehouseOptions(itemSelect, warehouseSelect);
     }
     
-    // Setup item select
     if (itemSelect) {
-      if (unitSelect) {
-        itemSelect.addEventListener("change", function() {
-          refreshLineUnitOptions(itemSelect, unitSelect);
-        });
-        
-        // Initialize units if item is already selected
-        if (itemSelect.value) {
-          refreshLineUnitOptions(itemSelect, unitSelect);
-        }
-      }
-      
-      if (warehouseSelect) {
-        itemSelect.addEventListener("change", function() {
-          refreshLineWarehouseOptions(itemSelect, warehouseSelect);
-        });
-        
-        // Initialize warehouses if item is already selected
-        if (itemSelect.value) {
-          refreshLineWarehouseOptions(itemSelect, warehouseSelect);
-        }
-      }
-    }
-    
-    // Initialize filters - always load items via API to ensure fresh data
-    console.log('[initializeLineForms] Initializing row', index);
-    console.log('[initializeLineForms] itemSelect:', itemSelect);
-    console.log('[initializeLineForms] itemSelect name:', itemSelect ? itemSelect.getAttribute('name') : 'N/A');
-    console.log('[initializeLineForms] itemSelect options count:', itemSelect ? itemSelect.options.length : 'N/A');
-    
-    if (itemSelect) {
-      // Always call filterItemsForRow to load items from API
-      // This ensures we have the latest items and proper filtering
-      console.log('[initializeLineForms] Calling filterItemsForRow to load items');
       filterItemsForRow(lineRow);
-    } else {
-      console.warn('[initializeLineForms] No itemSelect found for row', index);
     }
     
-    // Setup type filter listener if exists
     if (typeSelect) {
-      // Also load categories for initial state
       loadCategoriesForRow(lineRow, typeSelect.value);
     }
   });
 }
 
-// Handle add line button
+// Main initialization
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('[SCRIPT] DOMContentLoaded event fired');
-  console.log('[DOMContentLoaded] Initializing warehouse request form');
+  console.log('[SCRIPT] Warehouse Request Form Script - Version: 2025-01-12-02');
   
-  // Use event delegation for search inputs - this always works
-  const formsetContainer = document.getElementById('lines-formset');
-  if (formsetContainer) {
-    console.log('[DOMContentLoaded] Setting up event delegation for search inputs');
-    let searchTimeouts = {}; // Store timeouts by input element
-    
-    formsetContainer.addEventListener('input', function(e) {
-      if (e.target.classList.contains('filter-search-input')) {
-        const searchInput = e.target;
-        const rowElement = searchInput.closest('.line-row');
-        const searchValue = searchInput.value;
-        
-        console.log('[EVENT DELEGATION] Search input event fired, value:', searchValue);
-        console.log('[EVENT DELEGATION] Row element found:', rowElement ? 'YES' : 'NO');
-        
-        // Clear previous timeout for this input
-        if (searchTimeouts[searchInput]) {
-          clearTimeout(searchTimeouts[searchInput]);
-        }
-        
-        // Set new timeout
-        searchTimeouts[searchInput] = setTimeout(function() {
-          console.log('[EVENT DELEGATION] Calling filterItemsForRow after debounce');
-          filterItemsForRow(rowElement);
-        }, 300);
-      }
-    });
-    
-    // Also handle Enter key
-    formsetContainer.addEventListener('keyup', function(e) {
-      if (e.target.classList.contains('filter-search-input') && e.key === 'Enter') {
-        const searchInput = e.target;
-        const rowElement = searchInput.closest('.line-row');
-        
-        console.log('[EVENT DELEGATION] Enter pressed, filtering immediately');
-        if (searchTimeouts[searchInput]) {
-          clearTimeout(searchTimeouts[searchInput]);
-        }
-        filterItemsForRow(rowElement);
-      }
-    });
+  let formsetContainer = document.getElementById('lines-formset');
+  if (!formsetContainer) return;
+  
+  // Set grid-template-columns based on can_delete attribute
+  const canDelete = formsetContainer.getAttribute('data-can-delete') === 'true';
+  const gridColumns = canDelete 
+    ? '50px 3fr 1.5fr 1.5fr 2fr 2fr 80px'
+    : '50px 3fr 1.5fr 1.5fr 2fr 2fr';
+  
+  // Apply grid columns immediately to ensure layout is correct
+  const header = formsetContainer.querySelector('.lines-table-header');
+  if (header) {
+    header.style.gridTemplateColumns = gridColumns;
   }
   
-  // Small delay to ensure formset is fully rendered
+  const rows = formsetContainer.querySelectorAll('.line-row');
+  rows.forEach(function(row) {
+    row.style.gridTemplateColumns = gridColumns;
+  });
+  
+  let searchTimeouts = {};
+  
+  // Event delegation for search inputs
+  formsetContainer.addEventListener('input', function(e) {
+    if (e.target.classList.contains('filter-search-input')) {
+      const searchInput = e.target;
+      const rowElement = searchInput.closest('.line-row');
+      
+      if (searchTimeouts[searchInput]) {
+        clearTimeout(searchTimeouts[searchInput]);
+      }
+      
+      searchTimeouts[searchInput] = setTimeout(function() {
+        filterItemsForRow(rowElement);
+      }, 300);
+    }
+  });
+  
+  formsetContainer.addEventListener('keyup', function(e) {
+    if (e.target.classList.contains('filter-search-input') && e.key === 'Enter') {
+      const searchInput = e.target;
+      const rowElement = searchInput.closest('.line-row');
+      
+      if (searchTimeouts[searchInput]) {
+        clearTimeout(searchTimeouts[searchInput]);
+      }
+      filterItemsForRow(rowElement);
+    }
+  });
+  
+  // Event delegation for item select changes
+  formsetContainer.addEventListener('change', function(e) {
+    const itemSelect = e.target;
+    const itemSelectName = itemSelect ? itemSelect.getAttribute('name') : '';
+    const isItemSelect = itemSelect && itemSelect.tagName === 'SELECT' && 
+                        itemSelectName && 
+                        (itemSelectName.includes('-item') || itemSelectName.endsWith('-item'));
+    
+    if (isItemSelect) {
+      const rowElement = itemSelect.closest('.line-row');
+      const selectedItemId = itemSelect.value;
+      
+      if (rowElement) {
+        const unitSelect = rowElement.querySelector('select[name*="-unit"]');
+        const warehouseSelect = rowElement.querySelector('select[name*="-warehouse"]');
+        
+        if (selectedItemId) {
+          if (unitSelect) refreshLineUnitOptions(itemSelect, unitSelect);
+          if (warehouseSelect) refreshLineWarehouseOptions(itemSelect, warehouseSelect);
+        } else {
+          if (unitSelect) {
+            unitSelect.innerHTML = `<option value="">${unitPlaceholder}</option>`;
+          }
+          if (warehouseSelect) {
+            warehouseSelect.innerHTML = `<option value="">${warehousePlaceholder}</option>`;
+          }
+        }
+      }
+    }
+  });
+  
   setTimeout(function() {
     initializeLineForms();
   }, 100);
   
+  // Handle add line button
   const addLineBtn = document.getElementById('add-line-btn');
-  const formsetContainer = document.getElementById('lines-formset');
   const totalFormsInput = document.querySelector('input[name="lines-TOTAL_FORMS"]');
   
   if (addLineBtn && formsetContainer && totalFormsInput) {
@@ -1062,7 +819,6 @@ document.addEventListener('DOMContentLoaded', function() {
       const newRow = lastRow.cloneNode(true);
       const newIndex = totalForms;
       
-      // Update form indices
       newRow.querySelectorAll('input, select, textarea').forEach(function(input) {
         const name = input.getAttribute('name');
         const id = input.getAttribute('id');
@@ -1074,37 +830,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
       
-      // Clear values
       newRow.querySelectorAll('input[type="text"], input[type="number"], select, textarea').forEach(function(input) {
         if (input.type !== 'checkbox' && input.type !== 'hidden') {
           input.value = '';
         }
       });
       
-      // Update data-form-index
       newRow.setAttribute('data-form-index', newIndex);
       
-      // Remove DELETE checkbox if present
       const deleteCheckbox = newRow.querySelector('input[name*="-DELETE"]');
       if (deleteCheckbox) {
         deleteCheckbox.checked = false;
       }
       
-      // Remove deleted class if present
       newRow.classList.remove('deleted');
       
       formsetContainer.appendChild(newRow);
       totalFormsInput.value = totalForms + 1;
       
-      // Setup filters for new row
+      // Set grid-template-columns for new row
+      newRow.style.gridTemplateColumns = gridColumns;
+      
       const typeSelect = newRow.querySelector('.filter-type-select');
       const categorySelect = newRow.querySelector('.filter-category-select');
       const subcategorySelect = newRow.querySelector('.filter-subcategory-select');
-      const itemSelect = newRow.querySelector('select[name*="-item"]');
-      const unitSelect = newRow.querySelector('select[name*="-unit"]');
-      const warehouseSelect = newRow.querySelector('select[name*="-warehouse"]');
       
-      // Setup filter listeners for new row
       if (typeSelect) {
         typeSelect.addEventListener('change', function() {
           loadCategoriesForRow(newRow, this.value);
@@ -1123,98 +873,37 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
       
-      // Setup search input for new row
-      const searchInput = newRow.querySelector('.filter-search-input');
-      if (searchInput) {
-        // Use a closure to maintain timeout per input
-        let searchTimeout;
-        searchInput.addEventListener('input', function(e) {
-          const searchValue = e.target.value;
-          console.log('[addLine] Search input changed to:', searchValue);
-          clearTimeout(searchTimeout);
-          searchTimeout = setTimeout(function() {
-            console.log('[addLine] Calling filterItemsForRow after debounce');
-            // Make sure we get the latest value
-            const currentSearchValue = searchInput.value.trim();
-            console.log('[addLine] Current search value when calling filterItemsForRow:', currentSearchValue);
-            filterItemsForRow(newRow);
-          }, 300); // Debounce 300ms
-        });
-        
-        // Also trigger on keyup for immediate feedback
-        searchInput.addEventListener('keyup', function(e) {
-          // Trigger on Enter key for immediate search
-          if (e.key === 'Enter') {
-            clearTimeout(searchTimeout);
-            console.log('[addLine] Enter pressed, filtering immediately');
-            filterItemsForRow(newRow);
-          }
-        });
-        
-        console.log('[addLine] Search input listener attached for new row');
-      } else {
-        console.warn('[addLine] No search input found for new row');
-      }
-      
-      if (itemSelect) {
-        if (unitSelect) {
-          itemSelect.addEventListener("change", function() {
-            refreshLineUnitOptions(itemSelect, unitSelect);
-          });
-        }
-        if (warehouseSelect) {
-          itemSelect.addEventListener("change", function() {
-            refreshLineWarehouseOptions(itemSelect, warehouseSelect);
-          });
-        }
-      }
-      
-      // Initialize filters for new row - always load all items first
       filterItemsForRow(newRow);
       
-      // Setup type filter listener if exists
       if (typeSelect) {
-        // Also load categories for initial state
         loadCategoriesForRow(newRow, typeSelect.value);
       }
       
-      // Reinitialize all line forms to update row numbers
       initializeLineForms();
     });
   }
   
   // Handle delete checkboxes
-  if (formsetContainer) {
-    formsetContainer.addEventListener('change', function(e) {
-      if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
-        const lineRow = e.target.closest('.line-row');
-        if (lineRow) {
-          if (e.target.checked) {
-            lineRow.classList.add('deleted');
-          } else {
-            lineRow.classList.remove('deleted');
-          }
-          // Reinitialize to update row numbers
-          initializeLineForms();
+  formsetContainer.addEventListener('change', function(e) {
+    if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
+      const lineRow = e.target.closest('.line-row');
+      if (lineRow) {
+        if (e.target.checked) {
+          lineRow.classList.add('deleted');
+        } else {
+          lineRow.classList.remove('deleted');
         }
+        initializeLineForms();
       }
-    });
-  }
+    }
+  });
 });
-</script>
 
-<!-- Jalali DatePicker Library -->
-<link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">
-<script src="{% static 'js/jalali-datepicker/jalali-datepicker.min.js' %}"></script>
-
-<script>
-// Initialize Jalali DatePicker for date inputs
+// Jalali DatePicker initialization
 document.addEventListener('DOMContentLoaded', function() {
-  // Find all Jalali date inputs
   var jalaliInputs = document.querySelectorAll('input.jalali-date-input, input[data-jalali="true"]');
   
   jalaliInputs.forEach(function(input) {
-    // Ensure data attributes are set
     if (!input.hasAttribute('data-jdp')) {
       input.setAttribute('data-jdp', '');
     }
@@ -1223,7 +912,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   
-  // Start watching for Jalali DatePicker initialization
   if (typeof jalaliDatepicker !== 'undefined') {
     jalaliDatepicker.startWatch({
       date: true,
@@ -1248,4 +936,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 </script>
+
+<link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">
+<script src="{% static 'js/jalali-datepicker/jalali-datepicker.min.js' %}"></script>
 {% endblock %}

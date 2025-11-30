@@ -38,13 +38,6 @@
 {% endblock %}
 
 {% block form_sections %}
-{% if object and object.pk and object.is_locked == 1 %}
-<div class="alert alert-info" style="background: #dbeafe; color: #1e40af; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; border: 1px solid #93c5fd;">
-  {% trans "This performance record is locked and can no longer be edited." %}
-</div>
-{% endif %}
-
-{% block form_sections %}
 <div class="form-section">
   <h2>{% trans "Performance Information" %}</h2>
   

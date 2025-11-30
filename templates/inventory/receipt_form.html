@@ -93,18 +93,11 @@
 
     {% if lines_formset %}
     <div class="form-section">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <div>
-          <h3 style="margin: 0;">{% trans "Document Lines" %}</h3>
-          <p class="form-text" style="margin: 0.5rem 0 0 0;">
-            {% trans "Add one or more items to this document. Each line represents a single item with its quantity and other details." %}
-          </p>
-        </div>
-        {% if not document_is_locked %}
-        <button type="button" id="add-line-btn" class="btn btn-success" style="padding: 0.5rem 1rem;">
-          <span style="font-size: 1.2rem; margin-right: 0.25rem;">+</span> {% trans "Add Line" %}
-        </button>
-        {% endif %}
+      <div>
+        <h3 style="margin: 0;">{% trans "Document Lines" %}</h3>
+        <p class="form-text" style="margin: 0.5rem 0 0 0;">
+          {% trans "Add one or more items to this document. Each line represents a single item with its quantity and other details." %}
+        </p>
       </div>
       {% if lines_formset.non_form_errors %}
         <div class="alert alert-danger">
@@ -1085,6 +1078,12 @@
           {% endif %}
         {% endfor %}
       </div>
+      
+      {% if not document_is_locked %}
+      <button type="button" id="add-line-btn" class="btn btn-success" style="margin-top: 1rem; padding: 0.5rem 1rem;">
+        <span style="font-size: 1.2rem; margin-right: 0.25rem;">+</span> {% trans "Add Line" %}
+      </button>
+      {% endif %}
     </div>
     {% endif %}
 

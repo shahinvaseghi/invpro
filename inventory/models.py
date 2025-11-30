@@ -1568,6 +1568,14 @@ class ReceiptTemporaryLine(ReceiptLineBase):
         related_name="lines",
     )
     expected_receipt_date = models.DateField(null=True, blank=True)
+    supplier = models.ForeignKey(
+        Supplier,
+        on_delete=models.SET_NULL,
+        related_name="temporary_receipt_lines",
+        null=True,
+        blank=True,
+    )
+    supplier_code = models.CharField(max_length=6, validators=[NUMERIC_CODE_VALIDATOR], blank=True)
     # QC approval fields
     is_qc_approved = models.PositiveSmallIntegerField(default=0, help_text=_("Whether this line is approved by QC"))
     qc_approved_quantity = models.DecimalField(
@@ -1613,8 +1621,9 @@ class ReceiptTemporaryLine(ReceiptLineBase):
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # ReceiptTemporaryLine doesn't have supplier field (supplier is on ReceiptTemporary header)
-        # So we don't need to set supplier_code here
+        if self.supplier and not self.supplier_code:
+            self.supplier_code = self.supplier.public_code
+            super().save(*args, **kwargs)
 
 
 class QCRejectionDetail(models.Model):
