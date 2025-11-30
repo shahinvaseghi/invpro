@@ -1,78 +1,59 @@
-{% extends "inventory/base.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n %}
 
-{% block page_title %}تأمین‌کنندگان{% endblock %}
-
-{% block breadcrumb_extra %}
-<span class="separator">/</span>
-<span>تأمین‌کنندگان</span>
+{% block table_headers %}
+<th>{% trans "Code" %}</th>
+<th>{% trans "Name" %}</th>
+<th>{% trans "Contact Info" %}</th>
+<th>{% trans "City" %}</th>
+<th>{% trans "Status" %}</th>
+{% if show_actions %}
+  <th>{% trans "Actions" %}</th>
+{% endif %}
 {% endblock %}
 
-{% block page_actions %}
-<div class="page-actions">
-  <a href="{% url 'inventory:supplier_create' %}" class="btn btn-primary">
-    + ایجاد تأمین‌کننده
-  </a>
-</div>
+{% block table_rows %}
+{% for supplier in object_list %}
+<tr>
+  <td><code>{{ supplier.public_code }}</code></td>
+  <td><strong>{{ supplier.name }}</strong></td>
+  <td>
+    {% if supplier.phone_number %}
+      <div>{% trans "Phone" %}: {{ supplier.phone_number }}</div>
+    {% endif %}
+    {% if supplier.mobile_number %}
+      <div>{% trans "Mobile" %}: {{ supplier.mobile_number }}</div>
+    {% endif %}
+    {% if supplier.email %}
+      <div>{% trans "Email" %}: {{ supplier.email }}</div>
+    {% endif %}
+  </td>
+  <td>{{ supplier.city|default:"-" }}</td>
+  <td>
+    {% if supplier.is_enabled %}
+      <span class="badge badge-active">{% trans "Active" %}</span>
+    {% else %}
+      <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+    {% endif %}
+  </td>
+  {% if show_actions %}
+  <td>
+    {% if edit_url_name %}
+      <a href="{% url edit_url_name supplier.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+        {% trans "Edit" %}
+      </a>
+    {% endif %}
+    {% if delete_url_name %}
+      <a href="{% url delete_url_name supplier.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+        {% trans "Delete" %}
+      </a>
+    {% endif %}
+  </td>
+  {% endif %}
+</tr>
+{% endfor %}
 {% endblock %}
 
-{% block inventory_content %}
-<div class="data-table-container">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>کد</th>
-        <th>نام</th>
-        <th>اطلاعات تماس</th>
-        <th>شهر</th>
-        <th>وضعیت</th>
-        <th>عملیات</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% if suppliers %}
-        {% for supplier in suppliers %}
-        <tr>
-          <td><code>{{ supplier.public_code }}</code></td>
-          <td><strong>{{ supplier.name }}</strong></td>
-          <td>
-            {{ supplier.phone_number|default:"—" }}
-            {% if supplier.mobile_number %}<br>{{ supplier.mobile_number }}{% endif %}
-          </td>
-          <td>{{ supplier.city|default:"—" }}</td>
-          <td>
-            {% if supplier.is_enabled %}
-              <span class="badge badge-active">فعال</span>
-            {% else %}
-              <span class="badge badge-inactive">غیرفعال</span>
-            {% endif %}
-          </td>
-          <td>
-            <a href="{% url 'inventory:supplier_edit' supplier.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
-              ویرایش
-            </a>
-            <a href="{% url 'inventory:supplier_delete' supplier.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;">
-              حذف
-            </a>
-          </td>
-        </tr>
-        {% endfor %}
-      {% else %}
-        <tr>
-          <td colspan="6">
-            <div class="empty-state">
-              <div class="empty-state-icon">🏢</div>
-              <h3>هیچ تأمین‌کننده‌ای ثبت نشده است</h3>
-              <p>برای شروع، اولین تأمین‌کننده را ایجاد کنید.</p>
-              <a href="{% url 'inventory:supplier_create' %}" class="btn btn-primary">
-                + ایجاد تأمین‌کننده
-              </a>
-            </div>
-          </td>
-        </tr>
-      {% endif %}
-    </tbody>
-  </table>
-</div>
-{% endblock %}
-
+{% block empty_state_title %}{% trans "No Suppliers Found" %}{% endblock %}
+{% block empty_state_message %}{% trans "Start by creating your first supplier." %}{% endblock %}
+{% block empty_state_icon %}🏢{% endblock %}

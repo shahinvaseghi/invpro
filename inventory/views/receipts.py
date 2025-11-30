@@ -215,7 +215,7 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
     """List view for temporary receipts."""
     model = models.ReceiptTemporary
     template_name = 'inventory/receipt_temporary.html'
-    context_object_name = 'receipts'
+    context_object_name = 'object_list'
     paginate_by = 50
 
     def get_queryset(self):
@@ -242,22 +242,39 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
         return queryset.distinct()
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for template."""
+        """Add context for generic list template."""
         context = super().get_context_data(**kwargs)
+        
+        # Generic list context
+        context['page_title'] = _('Temporary Receipts')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Receipts'), 'url': None},
+        ]
         context['create_url'] = reverse_lazy('inventory:receipt_temporary_create')
+        context['create_button_text'] = _('Create Temporary Receipt')
+        context['create_label'] = _('Temporary Receipt')
+        context['show_filters'] = True
+        context['print_enabled'] = True
+        context['show_actions'] = True
+        
+        # Receipt-specific context
         context['detail_url_name'] = 'inventory:receipt_temporary_detail'
         context['edit_url_name'] = 'inventory:receipt_temporary_edit'
         context['delete_url_name'] = 'inventory:receipt_temporary_delete'
         context['lock_url_name'] = 'inventory:receipt_temporary_lock'
         context['unlock_url_name'] = 'inventory:receipt_temporary_unlock'
-        context['create_label'] = _('Temporary Receipt')
         context['show_qc'] = True
         context['show_conversion'] = True
         context['permanent_receipt_url_name'] = 'inventory:receipt_permanent_edit'
         context['empty_heading'] = _('No Temporary Receipts Found')
         context['empty_text'] = _('Start by creating your first temporary receipt.')
+        context['empty_state_title'] = _('No Temporary Receipts Found')
+        context['empty_state_message'] = _('Start by creating your first temporary receipt.')
+        context['empty_state_icon'] = '📥'
+        
+        # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.receipts.temporary')
-        # Add unlock permissions
         from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
         company_id = self.request.session.get('active_company_id')
         permissions = get_user_feature_permissions(self.request.user, company_id)
@@ -267,10 +284,18 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
         context['can_unlock_other'] = self.request.user.is_superuser or has_feature_permission(
             permissions, 'inventory.receipts.temporary', 'unlock_other', allow_own_scope=False
         )
+        
+        # Filters
         context['status_filter'] = self.request.GET.get('status', '')
         context['converted_filter'] = self.request.GET.get('converted', '')
         context['search_query'] = self.request.GET.get('search', '').strip()
+        
+        # Stats
         context['stats'] = self._get_stats()
+        
+        # User for permission checks in template
+        context['user'] = self.request.user
+        
         return context
 
     def _apply_filters(self, queryset):
@@ -554,12 +579,31 @@ class ReceiptTemporaryUpdateView(EditLockProtectedMixin, LineFormsetMixin, Docum
 class ReceiptTemporaryDeleteView(DocumentDeleteViewBase):
     """Delete view for temporary receipts."""
     model = models.ReceiptTemporary
-    template_name = 'inventory/receipt_temporary_confirm_delete.html'
+    template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:receipt_temporary')
     feature_code = 'inventory.receipts.temporary'
     required_action = 'delete_own'
     allow_own_scope = True
     success_message = _('رسید موقت با موفقیت حذف شد.')
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic delete template."""
+        context = super().get_context_data(**kwargs)
+        context['delete_title'] = _('Delete Temporary Receipt')
+        context['confirmation_message'] = _('Do you really want to delete this temporary receipt?')
+        context['object_details'] = [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+        context['cancel_url'] = reverse_lazy('inventory:receipt_temporary')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Receipts'), 'url': None},
+            {'label': _('Temporary Receipts'), 'url': reverse_lazy('inventory:receipt_temporary')},
+            {'label': _('Delete'), 'url': None},
+        ]
+        return context
 
 
 class ReceiptTemporaryLockView(DocumentLockView):
@@ -634,7 +678,7 @@ class ReceiptPermanentListView(InventoryBaseView, ListView):
     """List view for permanent receipts."""
     model = models.ReceiptPermanent
     template_name = 'inventory/receipt_permanent.html'
-    context_object_name = 'receipts'
+    context_object_name = 'object_list'
     paginate_by = 50
 
     def get_queryset(self):
@@ -654,21 +698,40 @@ class ReceiptPermanentListView(InventoryBaseView, ListView):
         return queryset
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for template."""
+        """Add context for generic list template."""
         context = super().get_context_data(**kwargs)
+        
+        # Generic list context
+        context['page_title'] = _('Permanent Receipts')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Receipts'), 'url': None},
+        ]
         context['create_url'] = reverse_lazy('inventory:receipt_permanent_create')
+        context['create_button_text'] = _('Create Permanent Receipt')
+        context['create_label'] = _('Permanent Receipt')
+        context['show_filters'] = True
+        context['print_enabled'] = True
+        context['show_actions'] = True
+        
+        # Receipt-specific context
         context['detail_url_name'] = 'inventory:receipt_permanent_detail'
         context['edit_url_name'] = 'inventory:receipt_permanent_edit'
         context['delete_url_name'] = 'inventory:receipt_permanent_delete'
         context['lock_url_name'] = 'inventory:receipt_permanent_lock'
         context['unlock_url_name'] = 'inventory:receipt_permanent_unlock'
-        context['create_label'] = _('Permanent Receipt')
         context['show_qc'] = False
         context['show_conversion'] = False
         context['show_temporary_receipt'] = True
         context['show_purchase_request'] = True
+        context['empty_heading'] = _('No Permanent Receipts Found')
+        context['empty_text'] = _('Start by creating your first permanent receipt.')
+        context['empty_state_title'] = _('No Permanent Receipts Found')
+        context['empty_state_message'] = _('Start by creating your first permanent receipt.')
+        context['empty_state_icon'] = '📥'
+        
+        # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.receipts.permanent')
-        # Add unlock permissions
         from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
         company_id = self.request.session.get('active_company_id')
         permissions = get_user_feature_permissions(self.request.user, company_id)
@@ -678,13 +741,17 @@ class ReceiptPermanentListView(InventoryBaseView, ListView):
         context['can_unlock_other'] = self.request.user.is_superuser or has_feature_permission(
             permissions, 'inventory.receipts.permanent', 'unlock_other', allow_own_scope=False
         )
-        context['empty_heading'] = _('No Permanent Receipts Found')
-        context['empty_text'] = _('Start by creating your first permanent receipt.')
-        # serial_url_name removed - serials are managed per line in edit view
+        
+        # URLs for related documents
         context['temporary_receipt_url_name'] = 'inventory:receipt_temporary_edit'
         context['purchase_request_url_name'] = 'inventory:purchase_request_edit'
         
-        self.add_delete_permissions_to_context(context, 'inventory.receipts.permanent')
+        # Filters
+        context['search_query'] = self.request.GET.get('search', '').strip()
+        
+        # User for permission checks in template
+        context['user'] = self.request.user
+        
         return context
 
 
@@ -842,12 +909,31 @@ class ReceiptPermanentUpdateView(EditLockProtectedMixin, LineFormsetMixin, Docum
 class ReceiptPermanentDeleteView(DocumentDeleteViewBase):
     """Delete view for permanent receipts."""
     model = models.ReceiptPermanent
-    template_name = 'inventory/receipt_permanent_confirm_delete.html'
+    template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:receipt_permanent')
     feature_code = 'inventory.receipts.permanent'
     required_action = 'delete_own'
     allow_own_scope = True
     success_message = _('رسید دائم با موفقیت حذف شد.')
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic delete template."""
+        context = super().get_context_data(**kwargs)
+        context['delete_title'] = _('Delete Permanent Receipt')
+        context['confirmation_message'] = _('Do you really want to delete this permanent receipt?')
+        context['object_details'] = [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+        context['cancel_url'] = reverse_lazy('inventory:receipt_permanent')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Receipts'), 'url': None},
+            {'label': _('Permanent Receipts'), 'url': reverse_lazy('inventory:receipt_permanent')},
+            {'label': _('Delete'), 'url': None},
+        ]
+        return context
 
 
 class ReceiptPermanentLockView(DocumentLockView):
@@ -874,7 +960,7 @@ class ReceiptConsignmentListView(InventoryBaseView, ListView):
     """List view for consignment receipts."""
     model = models.ReceiptConsignment
     template_name = 'inventory/receipt_consignment.html'
-    context_object_name = 'receipts'
+    context_object_name = 'object_list'
     paginate_by = 50
 
     def get_queryset(self):
@@ -894,22 +980,38 @@ class ReceiptConsignmentListView(InventoryBaseView, ListView):
         return queryset
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for template."""
+        """Add context for generic list template."""
         context = super().get_context_data(**kwargs)
+        
+        # Generic list context
+        context['page_title'] = _('Consignment Receipts')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Receipts'), 'url': None},
+        ]
         context['create_url'] = reverse_lazy('inventory:receipt_consignment_create')
+        context['create_button_text'] = _('Create Consignment Receipt')
+        context['create_label'] = _('Consignment Receipt')
+        context['show_filters'] = True
+        context['print_enabled'] = True
+        context['show_actions'] = True
+        
+        # Receipt-specific context
         context['detail_url_name'] = 'inventory:receipt_consignment_detail'
         context['edit_url_name'] = 'inventory:receipt_consignment_edit'
         context['delete_url_name'] = 'inventory:receipt_consignment_delete'
         context['lock_url_name'] = 'inventory:receipt_consignment_lock'
         context['unlock_url_name'] = 'inventory:receipt_consignment_unlock'
-        context['create_label'] = _('Consignment Receipt')
         context['show_qc'] = False
         context['show_conversion'] = False
         context['empty_heading'] = _('No Consignment Receipts Found')
         context['empty_text'] = _('Start by creating your first consignment receipt.')
-        # serial_url_name removed - serials are managed per line in edit view
+        context['empty_state_title'] = _('No Consignment Receipts Found')
+        context['empty_state_message'] = _('Start by creating your first consignment receipt.')
+        context['empty_state_icon'] = '📥'
+        
+        # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.receipts.consignment')
-        # Add unlock permissions
         from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
         company_id = self.request.session.get('active_company_id')
         permissions = get_user_feature_permissions(self.request.user, company_id)
@@ -919,9 +1021,17 @@ class ReceiptConsignmentListView(InventoryBaseView, ListView):
         context['can_unlock_other'] = self.request.user.is_superuser or has_feature_permission(
             permissions, 'inventory.receipts.consignment', 'unlock_other', allow_own_scope=False
         )
+        
+        # URLs for related documents (not used in template but kept for consistency)
         context['temporary_receipt_url_name'] = 'inventory:receipt_temporary_edit'
         context['purchase_request_url_name'] = 'inventory:purchase_request_edit'
-        self.add_delete_permissions_to_context(context, 'inventory.receipts.consignment')
+        
+        # Filters
+        context['search_query'] = self.request.GET.get('search', '').strip()
+        
+        # User for permission checks in template
+        context['user'] = self.request.user
+        
         return context
 
 
@@ -1784,12 +1894,31 @@ class ReceiptConsignmentUpdateView(EditLockProtectedMixin, LineFormsetMixin, Doc
 class ReceiptConsignmentDeleteView(DocumentDeleteViewBase):
     """Delete view for consignment receipts."""
     model = models.ReceiptConsignment
-    template_name = 'inventory/receipt_consignment_confirm_delete.html'
+    template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:receipt_consignment')
     feature_code = 'inventory.receipts.consignment'
     required_action = 'delete_own'
     allow_own_scope = True
     success_message = _('رسید امانی با موفقیت حذف شد.')
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic delete template."""
+        context = super().get_context_data(**kwargs)
+        context['delete_title'] = _('Delete Consignment Receipt')
+        context['confirmation_message'] = _('Do you really want to delete this consignment receipt?')
+        context['object_details'] = [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+        context['cancel_url'] = reverse_lazy('inventory:receipt_consignment')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Receipts'), 'url': None},
+            {'label': _('Consignment Receipts'), 'url': reverse_lazy('inventory:receipt_consignment')},
+            {'label': _('Delete'), 'url': None},
+        ]
+        return context
 
 
 class ReceiptConsignmentLockView(DocumentLockView):

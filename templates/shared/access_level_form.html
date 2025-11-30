@@ -121,8 +121,15 @@
 
 {% block form_scripts %}
 <style>
+  /* Ensure form container uses full width for wide tables */
+  .form-container {
+    max-width: 100%;
+    padding: 2rem;
+  }
+  
   .module-accordions {
     margin-top: 20px;
+    width: 100%;
   }
   
   .module-accordion {
@@ -130,6 +137,7 @@
     border: 1px solid #ddd;
     border-radius: 5px;
     overflow: hidden;
+    width: 100%;
   }
   
   .module-accordion-header {
@@ -161,14 +169,49 @@
   .module-accordion-content {
     padding: 0;
     background-color: #fff;
+    width: 100%;
+    overflow-x: auto;
   }
   
   .module-accordion-content table {
     margin: 0;
+    width: 100%;
+    min-width: 1000px;
+  }
+  
+  .permissions-table {
+    width: 100%;
+  }
+  
+  .permissions-table th,
+  .permissions-table td {
+    padding: 0.75rem;
+    text-align: right;
+  }
+  
+  .permissions-table th:nth-child(1),
+  .permissions-table td:nth-child(1) {
+    min-width: 250px;
+  }
+  
+  .permissions-table th:nth-child(2),
+  .permissions-table td:nth-child(2) {
+    min-width: 150px;
+  }
+  
+  .permissions-table th:nth-child(3),
+  .permissions-table td:nth-child(3) {
+    min-width: 300px;
+  }
+  
+  .permissions-table th:nth-child(4),
+  .permissions-table td:nth-child(4) {
+    min-width: 200px;
   }
   
   .view-scope-select {
     min-width: 120px;
+    width: 100%;
   }
   
   .checkbox-grid {
@@ -182,6 +225,7 @@
     align-items: center;
     gap: 5px;
     font-weight: normal;
+    white-space: nowrap;
   }
 
   .muted-text {

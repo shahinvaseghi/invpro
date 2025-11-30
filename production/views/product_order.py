@@ -24,7 +24,7 @@ class ProductOrderListView(FeaturePermissionRequiredMixin, ListView):
     """List all product orders for the active company."""
     model = ProductOrder
     template_name = 'production/product_orders.html'
-    context_object_name = 'product_orders'
+    context_object_name = 'object_list'
     paginate_by = 50
     feature_code = 'production.product_orders'
     required_action = 'view_own'

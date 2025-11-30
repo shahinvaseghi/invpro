@@ -1,73 +1,51 @@
-{% extends "inventory/item_types.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n %}
 
-{% block page_title %}دسته‌بندی کالاها{% endblock %}
-
-{% block breadcrumb_extra %}
-<span class="separator">/</span>
-<span>اطلاعات پایه</span>
-<span class="separator">/</span>
-<span>دسته‌بندی کالاها</span>
+{% block table_headers %}
+<th>{% trans "Code" %}</th>
+<th>{% trans "Name" %} (FA)</th>
+<th>{% trans "Name" %} (EN)</th>
+<th>{% trans "Item Type" %}</th>
+<th>Sort Order</th>
+<th>{% trans "Status" %}</th>
+{% if show_actions %}
+  <th>{% trans "Actions" %}</th>
+{% endif %}
 {% endblock %}
 
-{% block page_actions %}
-<div class="page-actions">
-  <a href="{% url 'inventory:itemcategory_create' %}" class="btn btn-primary">
-    + ایجاد دسته‌بندی کالا
-  </a>
-</div>
+{% block table_rows %}
+{% for category in object_list %}
+<tr>
+  <td><code>{{ category.public_code }}</code></td>
+  <td><strong>{{ category.name }}</strong></td>
+  <td>{{ category.name_en|default:"-" }}</td>
+  <td>{{ category.item_type.name|default:"-" }}</td>
+  <td style="text-align: center;">{{ category.sort_order }}</td>
+  <td>
+    {% if category.is_enabled %}
+      <span class="badge badge-active">{% trans "Active" %}</span>
+    {% else %}
+      <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+    {% endif %}
+  </td>
+  {% if show_actions %}
+  <td>
+    {% if edit_url_name %}
+      <a href="{% url edit_url_name category.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+        {% trans "Edit" %}
+      </a>
+    {% endif %}
+    {% if delete_url_name %}
+      <a href="{% url delete_url_name category.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+        {% trans "Delete" %}
+      </a>
+    {% endif %}
+  </td>
+  {% endif %}
+</tr>
+{% endfor %}
 {% endblock %}
 
-{% block inventory_content %}
-<div class="data-table-container">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>کد</th>
-        <th>نام (فارسی)</th>
-        <th>نام (English)</th>
-        <th>ترتیب نمایش</th>
-        <th>وضعیت</th>
-        <th>عملیات</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% if item_categories %}
-        {% for category in item_categories %}
-        <tr>
-          <td><code>{{ category.public_code }}</code></td>
-          <td><strong>{{ category.name }}</strong></td>
-          <td>{{ category.name_en }}</td>
-          <td style="text-align: center;">{{ category.sort_order }}</td>
-          <td>
-            {% if category.is_enabled %}
-              <span class="badge badge-active">فعال</span>
-            {% else %}
-              <span class="badge badge-inactive">غیرفعال</span>
-            {% endif %}
-          </td>
-          <td>
-            <a href="{% url 'inventory:itemcategory_edit' category.pk %}" class="btn btn-sm">ویرایش</a>
-            <a href="{% url 'inventory:itemcategory_delete' category.pk %}" class="btn btn-sm btn-danger">حذف</a>
-          </td>
-        </tr>
-        {% endfor %}
-      {% else %}
-        <tr>
-          <td colspan="6">
-            <div class="empty-state">
-              <div class="empty-state-icon">🗂️</div>
-              <h3>هیچ دسته‌بندی‌ای ثبت نشده است</h3>
-              <p>برای شروع، اولین دسته‌بندی کالا را ایجاد کنید.</p>
-              <a href="{% url 'inventory:itemcategory_create' %}" class="btn btn-primary">
-                + ایجاد دسته‌بندی کالا
-              </a>
-            </div>
-          </td>
-        </tr>
-      {% endif %}
-    </tbody>
-  </table>
-</div>
-{% endblock %}
-
+{% block empty_state_title %}{% trans "No Item Categories Found" %}{% endblock %}
+{% block empty_state_message %}{% trans "Start by creating your first item category." %}{% endblock %}
+{% block empty_state_icon %}📦{% endblock %}

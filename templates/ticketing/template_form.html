@@ -477,7 +477,8 @@
 {% block form_extra %}
 <style>
 .form-container {
-  max-width: 1400px;
+  max-width: 100%;
+  width: 100%;
   margin: 2rem auto;
   background: white;
   padding: 2rem;
@@ -574,7 +575,14 @@
   border-top: 1px solid #e5e7eb;
 }
 
+.fields-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
 .formset-table {
+  width: 100%;
+  min-width: 1200px;
   width: 100%;
   margin-top: 1rem;
   font-size: 0.9rem;

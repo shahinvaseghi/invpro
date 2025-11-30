@@ -111,11 +111,15 @@
 
 **Type**: `InventoryBaseView, ListView`
 
-**Template**: `inventory/receipt_temporary.html`
+**Template**: `inventory/receipt_temporary.html` (extends `shared/generic/generic_list.html`)
+
+**Generic Templates**:
+- **List Template**: `inventory/receipt_temporary.html` extends `shared/generic/generic_list.html`
+  - Overrides: `breadcrumb_extra`, `page_actions`, `before_table` (stats cards), `filter_fields`, `table_headers`, `table_rows`, `empty_state_title`, `empty_state_message`, `empty_state_icon`
 
 **Attributes**:
 - `model`: `ReceiptTemporary`
-- `context_object_name`: `'receipts'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 
 **متدها**:
@@ -178,20 +182,42 @@
 
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
-**توضیح**: context variables را برای template آماده می‌کند.
+**توضیح**: context variables را برای generic list template آماده می‌کند.
 
-**Context Variables اضافه شده**:
+**Context Variables برای Generic Template**:
+- `page_title`: `_('Temporary Receipts')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
 - `create_url`: URL ایجاد receipt جدید
-- `detail_url_name`, `edit_url_name`, `delete_url_name`, `lock_url_name`, `unlock_url_name`: نام URL patterns
+- `create_button_text`: `_('Create Temporary Receipt')`
+- `show_filters`: `True`
+- `print_enabled`: `True`
+- `show_actions`: `True`
+
+**Context Variables برای Receipt-Specific Features**:
 - `create_label`: `_('Temporary Receipt')`
-- `show_qc`: `True` (نمایش دکمه QC)
-- `show_conversion`: `True` (نمایش دکمه تبدیل)
-- `permanent_receipt_url_name`: URL برای permanent receipt
+- `detail_url_name`: `'inventory:receipt_temporary_detail'`
+- `edit_url_name`: `'inventory:receipt_temporary_edit'`
+- `delete_url_name`: `'inventory:receipt_temporary_delete'`
+- `lock_url_name`: `'inventory:receipt_temporary_lock'`
+- `unlock_url_name`: `'inventory:receipt_temporary_unlock'`
+- `show_qc`: `True` (نمایش ستون QC Status)
+- `show_conversion`: `True` (نمایش ستون Converted)
+- `permanent_receipt_url_name`: `'inventory:receipt_permanent_edit'` (برای لینک permanent receipt)
 - `empty_heading`, `empty_text`: پیام‌های خالی
+- `empty_state_title`, `empty_state_message`, `empty_state_icon`: برای generic empty state
+
+**Context Variables برای Permissions**:
 - `can_delete_own`, `can_delete_other`: permissions برای حذف (از `add_delete_permissions_to_context`)
 - `can_unlock_own`, `can_unlock_other`: permissions برای unlock
-- `status_filter`, `converted_filter`, `search_query`: مقادیر فعلی فیلترها
-- `stats`: آمار از `_get_stats()`
+
+**Context Variables برای Filters**:
+- `status_filter`: مقدار فعلی فیلتر status (`draft`, `awaiting_qc`, `qc_passed`, `qc_failed`)
+- `converted_filter`: مقدار فعلی فیلتر conversion (`'0'` یا `'1'`)
+- `search_query`: مقدار فعلی جستجو
+
+**Context Variables دیگر**:
+- `stats`: آمار از `_get_stats()` (برای stats cards)
+- `user`: کاربر فعلی (برای permission checks در template)
 
 **URL**: `/inventory/receipts/temporary/`
 
@@ -293,7 +319,10 @@
 
 **Type**: `DocumentDeleteViewBase`
 
-**Template**: `inventory/receipt_temporary_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
+
+**Generic Templates**:
+- **Delete Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `inventory:receipt_temporary`
 
@@ -302,6 +331,19 @@
 - `required_action`: `'delete_own'`
 - `allow_own_scope`: `True`
 - `success_message`: `_('رسید موقت با موفقیت حذف شد.')`
+
+**متدها**:
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic delete template آماده می‌کند.
+
+**Context Variables برای Generic Template**:
+- `delete_title`: `_('Delete Temporary Receipt')`
+- `confirmation_message`: `_('Do you really want to delete this temporary receipt?')`
+- `object_details`: لیست جزئیات receipt (Document Code, Document Date, Created By)
+- `cancel_url`: `reverse_lazy('inventory:receipt_temporary')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
 
 **URL**: `/inventory/receipts/temporary/<pk>/delete/`
 
@@ -384,16 +426,71 @@
 
 **Type**: `InventoryBaseView, ListView`
 
-**Template**: `inventory/receipt_permanent.html`
+**Template**: `inventory/receipt_permanent.html` (extends `shared/generic/generic_list.html`)
+
+**Generic Templates**:
+- **List Template**: `inventory/receipt_permanent.html` extends `shared/generic/generic_list.html`
+  - Overrides: `breadcrumb_extra`, `page_actions`, `filter_fields`, `table_headers`, `table_rows`, `empty_state_title`, `empty_state_message`, `empty_state_icon`
 
 **Attributes**:
 - `model`: `ReceiptPermanent`
-- `context_object_name`: `'receipts'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 
 **متدها**:
-- `get_queryset()`: `prefetch_related('lines__item', 'lines__warehouse', 'lines__supplier')`, `select_related('created_by', 'temporary_receipt', 'purchase_request')`
-- `get_context_data()`: اضافه کردن URLs و delete permissions
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch و فیلتر permissions آماده می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده و بهینه شده
+
+**منطق**:
+1. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.receipts.permanent', 'created_by')`
+2. Prefetch related objects:
+   - `lines` با `Prefetch` که فقط enabled lines را شامل می‌شود (`is_enabled=1`)
+   - `select_related('item', 'warehouse', 'supplier')` برای هر line
+   - `select_related('created_by', 'temporary_receipt', 'purchase_request')` برای receipt
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic list template آماده می‌کند.
+
+**Context Variables برای Generic Template**:
+- `page_title`: `_('Permanent Receipts')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `create_url`: URL ایجاد receipt جدید
+- `create_button_text`: `_('Create Permanent Receipt')`
+- `show_filters`: `True`
+- `print_enabled`: `True`
+- `show_actions`: `True`
+
+**Context Variables برای Receipt-Specific Features**:
+- `create_label`: `_('Permanent Receipt')`
+- `detail_url_name`: `'inventory:receipt_permanent_detail'`
+- `edit_url_name`: `'inventory:receipt_permanent_edit'`
+- `delete_url_name`: `'inventory:receipt_permanent_delete'`
+- `lock_url_name`: `'inventory:receipt_permanent_lock'`
+- `unlock_url_name`: `'inventory:receipt_permanent_unlock'`
+- `show_qc`: `False` (ستون QC Status نمایش داده نمی‌شود)
+- `show_conversion`: `False` (ستون Converted نمایش داده نمی‌شود)
+- `show_temporary_receipt`: `True` (ستون Temporary Receipt نمایش داده می‌شود)
+- `show_purchase_request`: `True` (ستون Purchase Request نمایش داده می‌شود)
+- `empty_heading`, `empty_text`: پیام‌های خالی
+- `empty_state_title`, `empty_state_message`, `empty_state_icon`: برای generic empty state
+
+**Context Variables برای Permissions**:
+- `can_delete_own`, `can_delete_other`: permissions برای حذف (از `add_delete_permissions_to_context`)
+- `can_unlock_own`, `can_unlock_other`: permissions برای unlock
+
+**Context Variables دیگر**:
+- `temporary_receipt_url_name`: `'inventory:receipt_temporary_edit'` (برای لینک temporary receipt)
+- `purchase_request_url_name`: `'inventory:purchase_request_edit'` (برای لینک purchase request)
+- `search_query`: مقدار فعلی جستجو
+- `user`: کاربر فعلی (برای permission checks در template)
 
 **URL**: `/inventory/receipts/permanent/`
 
@@ -519,7 +616,10 @@
 
 **Type**: `DocumentDeleteViewBase`
 
-**Template**: `inventory/receipt_permanent_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
+
+**Generic Templates**:
+- **Delete Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `inventory:receipt_permanent`
 
@@ -528,6 +628,19 @@
 - `required_action`: `'delete_own'`
 - `allow_own_scope`: `True`
 - `success_message`: `_('رسید دائم با موفقیت حذف شد.')`
+
+**متدها**:
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic delete template آماده می‌کند.
+
+**Context Variables برای Generic Template**:
+- `delete_title`: `_('Delete Permanent Receipt')`
+- `confirmation_message`: `_('Do you really want to delete this permanent receipt?')`
+- `object_details`: لیست جزئیات receipt (Document Code, Document Date, Created By)
+- `cancel_url`: `reverse_lazy('inventory:receipt_permanent')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
 
 **URL**: `/inventory/receipts/permanent/<pk>/delete/`
 
@@ -582,14 +695,66 @@
 
 **Type**: `InventoryBaseView, ListView`
 
-**Template**: `inventory/receipt_consignment.html`
+**Template**: `inventory/receipt_consignment.html` (extends `shared/generic/generic_list.html`)
+
+**Generic Templates**:
+- **List Template**: `inventory/receipt_consignment.html` extends `shared/generic/generic_list.html`
+  - Overrides: `breadcrumb_extra`, `page_actions`, `filter_fields`, `table_headers`, `table_rows`, `empty_state_title`, `empty_state_message`, `empty_state_icon`
 
 **Attributes**:
 - `model`: `ReceiptConsignment`
-- `context_object_name`: `'receipts'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 
-**متدها**: مشابه `ReceiptPermanentListView`
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با prefetch و فیلتر permissions آماده می‌کند.
+
+**منطق**:
+1. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.receipts.consignment', 'created_by')`
+2. Prefetch related objects:
+   - `lines` با `Prefetch` که فقط enabled lines را شامل می‌شود (`is_enabled=1`)
+   - `select_related('item', 'warehouse', 'supplier')` برای هر line
+   - `select_related('created_by')` برای receipt
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic list template آماده می‌کند.
+
+**Context Variables برای Generic Template**:
+- `page_title`: `_('Consignment Receipts')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `create_url`: URL ایجاد receipt جدید
+- `create_button_text`: `_('Create Consignment Receipt')`
+- `show_filters`: `True`
+- `print_enabled`: `True`
+- `show_actions`: `True`
+
+**Context Variables برای Receipt-Specific Features**:
+- `create_label`: `_('Consignment Receipt')`
+- `detail_url_name`: `'inventory:receipt_consignment_detail'`
+- `edit_url_name`: `'inventory:receipt_consignment_edit'`
+- `delete_url_name`: `'inventory:receipt_consignment_delete'`
+- `lock_url_name`: `'inventory:receipt_consignment_lock'`
+- `unlock_url_name`: `'inventory:receipt_consignment_unlock'`
+- `show_qc`: `False`
+- `show_conversion`: `False`
+- `empty_heading`, `empty_text`: پیام‌های خالی
+- `empty_state_title`, `empty_state_message`, `empty_state_icon`: برای generic empty state
+
+**Context Variables برای Permissions**:
+- `can_delete_own`, `can_delete_other`: permissions برای حذف (از `add_delete_permissions_to_context`)
+- `can_unlock_own`, `can_unlock_other`: permissions برای unlock
+
+**Context Variables دیگر**:
+- `temporary_receipt_url_name`: `'inventory:receipt_temporary_edit'`
+- `purchase_request_url_name`: `'inventory:purchase_request_edit'`
+- `search_query`: مقدار فعلی جستجو
+- `user`: کاربر فعلی (برای permission checks در template)
 
 **URL**: `/inventory/receipts/consignment/`
 
@@ -681,7 +846,10 @@
 
 **Type**: `DocumentDeleteViewBase`
 
-**Template**: `inventory/receipt_consignment_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
+
+**Generic Templates**:
+- **Delete Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `inventory:receipt_consignment`
 
@@ -690,6 +858,19 @@
 - `required_action`: `'delete_own'`
 - `allow_own_scope`: `True`
 - `success_message`: `_('رسید امانی با موفقیت حذف شد.')`
+
+**متدها**:
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic delete template آماده می‌کند.
+
+**Context Variables برای Generic Template**:
+- `delete_title`: `_('Delete Consignment Receipt')`
+- `confirmation_message`: `_('Do you really want to delete this consignment receipt?')`
+- `object_details`: لیست جزئیات receipt (Document Code, Document Date, Created By)
+- `cancel_url`: `reverse_lazy('inventory:receipt_consignment')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
 
 **URL**: `/inventory/receipts/consignment/<pk>/delete/`
 

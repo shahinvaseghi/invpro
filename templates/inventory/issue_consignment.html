@@ -1,7 +1,5 @@
-{% extends "inventory/issue_permanent.html" %}
-{% load i18n %}
-
-{% block page_title %}{% trans "Consignment Issues" %}{% endblock %}
+{% extends "shared/generic/generic_list.html" %}
+{% load i18n jalali_tags %}
 
 {% block breadcrumb_extra %}
 <span class="separator">/</span>
@@ -12,12 +10,223 @@
 
 {% block page_actions %}
 <div class="page-actions">
-  <a href="{{ create_url|default:'#' }}" class="btn btn-primary">
-    + {% trans "Create" %} {{ create_label|default:_("Consignment Issue") }}
-  </a>
-  <button onclick="window.print()" class="btn btn-secondary">
-    {% trans "Print" %}
-  </button>
+  {% if create_url %}
+    <a href="{{ create_url }}" class="btn btn-primary">
+      + {% trans "Create" %} {{ create_label|default:_("Issue") }}
+    </a>
+  {% endif %}
+  {% if print_enabled %}
+    <button onclick="window.print()" class="btn btn-secondary">
+      {% trans "Print" %}
+    </button>
+  {% endif %}
 </div>
 {% endblock %}
 
+{% block before_table %}
+<style>
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .stat-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+  }
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+  }
+  .action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .badge-locked {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background-color: #dc2626;
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .muted {
+    color: #6b7280;
+    font-size: 0.75rem;
+    display: block;
+  }
+</style>
+{% if stats %}
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">{% trans "Total" %}</div>
+    <div class="stat-value">{{ stats.total }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Posted</div>
+    <div class="stat-value" style="color: #10b981;">{{ stats.posted }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">{% trans "Draft" %}</div>
+    <div class="stat-value" style="color: #6b7280;">{{ stats.draft }}</div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block filter_fields %}
+<div class="form-group">
+  <label for="posted">Posted {% trans "Status" %}</label>
+  <select name="posted" id="posted" class="form-control">
+    <option value="">-- {% trans "All" %} --</option>
+    <option value="1" {% if request.GET.posted == '1' %}selected{% endif %}>Posted</option>
+    <option value="0" {% if request.GET.posted == '0' %}selected{% endif %}>Not Posted</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label for="search">{% trans "Search" %}</label>
+  <input type="text" name="search" id="search" 
+         placeholder="{% trans 'Document code or item' %}" 
+         value="{{ search_query }}"
+         class="form-control">
+</div>
+{% endblock %}
+
+{% block table_headers %}
+<th>{% trans "Document Code" %}</th>
+<th>{% trans "Document Date" %}</th>
+<th>{% trans "Created By" %}</th>
+<th>{% trans "Items" %}</th>
+<th>{% trans "Quantity" %}</th>
+<th>{% trans "Warehouses" %}</th>
+<th>{% trans "Suppliers" %}</th>
+<th>{% trans "Organizational Unit" %}</th>
+<th>Posted</th>
+<th>{% trans "Actions" %}</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for issue in object_list %}
+<tr>
+  <td><code>{{ issue.document_code }}</code></td>
+  <td>{{ issue.document_date|jalali_date }}</td>
+  <td>
+    {% if issue.created_by %}
+      {{ issue.created_by.get_full_name|default:issue.created_by.username }}
+    {% else %}
+      <span style="color: #6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if issue.lines.all %}
+      {% for line in issue.lines.all|slice:":3" %}
+        <div style="margin-bottom: 4px;">
+          <strong>{{ line.item.name }}</strong><br>
+          <small style="color: #6b7280;"><code>{{ line.item.item_code }}</code></small>
+        </div>
+      {% endfor %}
+      {% if issue.lines.count > 3 %}
+        <small class="muted">+ {{ issue.lines.count|add:"-3" }} {% trans "more" %}</small>
+      {% endif %}
+    {% else %}
+      <span style="color: #6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td style="text-align: right;">
+    {% if issue.lines.all %}
+      {% for line in issue.lines.all|slice:":3" %}
+        <div style="margin-bottom: 4px;">
+          {{ line.entered_quantity|default:line.quantity|floatformat:2 }} {{ line.entered_unit|default:line.unit }}
+        </div>
+      {% endfor %}
+    {% else %}
+      <span style="color: #6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if issue.lines.all %}
+      {% for line in issue.lines.all|slice:":3" %}
+        <div style="margin-bottom: 4px;">{{ line.warehouse.name }}</div>
+      {% endfor %}
+    {% else %}
+      <span style="color: #6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if issue.lines.all %}
+      {% for line in issue.lines.all|slice:":3" %}
+        <div style="margin-bottom: 4px;">
+          {% if line.supplier %}{{ line.supplier.name }}{% else %}—{% endif %}
+        </div>
+      {% endfor %}
+    {% else %}
+      <span style="color: #6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td>{% if issue.department_unit %}{{ issue.department_unit.name }}{% else %}—{% endif %}</td>
+  <td>
+    {% if issue.is_locked %}
+      <span class="badge badge-active">✓ Posted</span>
+    {% else %}
+      <span class="badge badge-draft">{% trans "Draft" %}</span>
+    {% endif %}
+  </td>
+  <td>
+    <div class="action-buttons">
+      {% if issue.is_locked %}
+        <a href="{% url detail_url_name issue.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+          {% trans "View" %}
+        </a>
+        <span class="badge badge-locked" style="margin-top:4px;">{% trans "Locked" %}</span>
+      {% else %}
+        <a href="{% url edit_url_name issue.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+          {% trans "Edit" %}
+        </a>
+        {% if delete_url_name %}
+          {% if issue.created_by == user %}
+            {% if can_delete_own %}
+              <a href="{% url delete_url_name issue.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this issue?" %}');">
+                {% trans "Delete" %}
+              </a>
+            {% endif %}
+          {% else %}
+            {% if can_delete_other %}
+              <a href="{% url delete_url_name issue.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this issue?" %}');">
+                {% trans "Delete" %}
+              </a>
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if lock_url_name %}
+        <form method="post" action="{% url lock_url_name issue.pk %}" class="inline-lock-form" style="display:inline-flex; margin-left:0.5rem;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;">
+            {% trans "Lock" %}
+          </button>
+        </form>
+        {% endif %}
+      {% endif %}
+    </div>
+  </td>
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block empty_state_title %}{{ empty_heading|default:_("No Issues Found") }}{% endblock %}
+{% block empty_state_message %}{{ empty_text|default:_("Start by creating your first issue document.") }}{% endblock %}
+{% block empty_state_icon %}📤{% endblock %}

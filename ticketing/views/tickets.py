@@ -91,14 +91,8 @@ class TicketCreateView(TicketingBaseView, CreateView):
                         if field.field_type in ['dropdown', 'radio', 'checkbox', 'multi_select']:
                             field_config = field.field_config or {}
                             
-                            print(f"🔵 [TICKET_CREATE] Field: {field.field_name} ({field.field_type})")
-                            print(f"🔵 [TICKET_CREATE] Field config: {field_config}")
-                            print(f"🔵 [TICKET_CREATE] Options source: {field_config.get('options_source')}")
-                            print(f"🔵 [TICKET_CREATE] Has options: {bool(field_config.get('options'))}")
-                            
                             # Check if manual options exist
                             if field_config.get('options_source') == 'manual' and field_config.get('options'):
-                                print(f"🔵 [TICKET_CREATE] Loading manual options, count: {len(field_config['options'])}")
                                 # Options from field_config
                                 for opt in field_config['options']:
                                     if isinstance(opt, dict) and 'value' in opt and 'label' in opt:
@@ -107,9 +101,7 @@ class TicketCreateView(TicketingBaseView, CreateView):
                                             'label': opt['label'],
                                             'is_default': opt.get('is_default', False)
                                         })
-                                        print(f"🔵 [TICKET_CREATE]   Added option: {opt.get('value')} = {opt.get('label')}")
                             elif field_config.get('options'):
-                                print(f"🔵 [TICKET_CREATE] Loading options without options_source, count: {len(field_config['options'])}")
                                 # Fallback: options without options_source
                                 for opt in field_config['options']:
                                     if isinstance(opt, dict) and 'value' in opt and 'label' in opt:
@@ -118,9 +110,7 @@ class TicketCreateView(TicketingBaseView, CreateView):
                                             'label': opt['label'],
                                             'is_default': opt.get('is_default', False)
                                         })
-                                        print(f"🔵 [TICKET_CREATE]   Added option: {opt.get('value')} = {opt.get('label')}")
                             else:
-                                print(f"🔵 [TICKET_CREATE] No options in field_config, checking TicketTemplateFieldOption model")
                                 # Fallback: use TicketTemplateFieldOption model
                                 for opt in field.options.all():
                                     if opt.is_enabled == 1:
@@ -129,9 +119,6 @@ class TicketCreateView(TicketingBaseView, CreateView):
                                             'label': opt.option_label,
                                             'is_default': opt.is_default == 1
                                         })
-                                        print(f"🔵 [TICKET_CREATE]   Added option from model: {opt.option_value} = {opt.option_label}")
-                            
-                            print(f"🔵 [TICKET_CREATE] Final options count for {field.field_name}: {len(field_data['options'])}")
                         
                         fields_with_options.append(field_data)
                     

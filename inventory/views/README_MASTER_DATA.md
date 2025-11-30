@@ -21,16 +21,27 @@
 
 **Type**: `InventoryBaseView, ListView`
 
-**Template**: `inventory/item_types.html`
+**Template**: `inventory/item_types.html` (extends `shared/generic/generic_list.html`)
 
 **Attributes**:
 - `model`: `models.ItemType`
 - `template_name`: `'inventory/item_types.html'`
-- `context_object_name`: `'item_types'`
+- `context_object_name`: `'object_list'` (برای consistency با generic template)
 - `paginate_by`: `50`
 
 **Context Variables**:
-- `item_types`: queryset انواع کالا (paginated)
+- `object_list`: queryset انواع کالا (paginated)
+- `page_title`: `_('Item Types')`
+- `breadcrumbs`: لیست breadcrumb items
+- `create_url`: URL برای ایجاد Item Type جدید
+- `create_button_text`: `_('Create Item Type')`
+- `table_headers`: [] (overridden in template)
+- `show_actions`: `True`
+- `edit_url_name`: `'inventory:itemtype_edit'`
+- `delete_url_name`: `'inventory:itemtype_delete'`
+- `empty_state_title`: `_('No Item Types Found')`
+- `empty_state_message`: `_('Start by creating your first item type.')`
+- `empty_state_icon`: `'🏷️'`
 - `active_module`: `'inventory'` (از `InventoryBaseView`)
 
 **متدها**:
@@ -48,6 +59,12 @@
 3. نتیجه فیلتر شده را برمی‌گرداند
 
 **نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic list template اضافه می‌کند.
+
+**Context Variables اضافه شده**: تمام متغیرهای ذکر شده در بالا
 
 **URL**: `/inventory/item-types/`
 
@@ -93,16 +110,18 @@
 
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
-**توضیح**: `form_title` را به context اضافه می‌کند.
+**توضیح**: context variables را برای generic form template اضافه می‌کند.
 
 **پارامترهای ورودی**:
 - `**kwargs`: متغیرهای context اضافی
 
 **مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `form_title = _('Create Item Type')` اضافه شده
+- `Dict[str, Any]`: context با متغیرهای لازم برای generic template
 
 **Context Variables اضافه شده**:
 - `form_title`: `_('Create Item Type')`
+- `breadcrumbs`: لیست breadcrumb items (Inventory > Master Data > Item Types > Create)
+- `cancel_url`: URL برای لغو (redirect به list)
 - `form`: instance فرم `ItemTypeForm`
 - `active_module`: `'inventory'` (از `InventoryBaseView`)
 
@@ -165,16 +184,18 @@
 
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
-**توضیح**: `form_title` را به context اضافه می‌کند.
+**توضیح**: context variables را برای generic form template اضافه می‌کند.
 
 **پارامترهای ورودی**:
 - `**kwargs`: متغیرهای context اضافی
 
 **مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `form_title = _('Edit Item Type')` اضافه شده
+- `Dict[str, Any]`: context با متغیرهای لازم برای generic template
 
 **Context Variables اضافه شده**:
 - `form_title`: `_('Edit Item Type')`
+- `breadcrumbs`: لیست breadcrumb items (Inventory > Master Data > Item Types > Edit)
+- `cancel_url`: URL برای لغو (redirect به list)
 - `form`: instance فرم `ItemTypeForm`
 - `object`: instance نوع کالا برای ویرایش
 - `active_module`: `'inventory'` (از `InventoryBaseView`)
@@ -189,29 +210,49 @@
 
 **Type**: `InventoryBaseView, DeleteView`
 
-**Template**: `inventory/itemtype_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `inventory:item_types`
 
 **Attributes**:
 - `model`: `models.ItemType`
-- `template_name`: `'inventory/itemtype_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('inventory:item_types')`
 
 **متدها**:
 
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس permissions
+
+#### `delete(self, request, *args, **kwargs) -> HttpResponseRedirect`
+
+**توضیح**: حذف را با مدیریت ProtectedError انجام می‌دهد.
+
+**منطق**:
+1. سعی می‌کند object را حذف کند
+2. اگر موفق شد، پیام موفقیت نمایش می‌دهد
+3. اگر ProtectedError رخ دهد، پیام خطای فارسی با جزئیات نمایش می‌دهد
+
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
-**توضیح**: `model_verbose_name` را به context اضافه می‌کند تا در template استفاده شود.
+**توضیح**: context variables را برای generic delete template اضافه می‌کند.
 
 **پارامترهای ورودی**:
 - `**kwargs`: متغیرهای context اضافی
 
 **مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `model_verbose_name = _('نوع کالا')` اضافه شده
+- `Dict[str, Any]`: context با متغیرهای لازم برای generic template
 
 **Context Variables اضافه شده**:
-- `model_verbose_name`: `_('نوع کالا')` - برای نمایش در template
+- `delete_title`: `_('Delete Item Type')`
+- `confirmation_message`: `_('Are you sure you want to delete this item type?')`
+- `object_details`: لیست جزئیات object (Code, Name, Name EN)
+- `cancel_url`: URL برای لغو (redirect به list)
+- `breadcrumbs`: لیست breadcrumb items (Inventory > Master Data > Item Types > Delete)
 - `object`: instance نوع کالا برای حذف
 - `active_module`: `'inventory'` (از `InventoryBaseView`)
 
@@ -248,33 +289,51 @@
 
 **Type**: `InventoryBaseView, ListView`
 
-**Template**: `inventory/item_categories.html`
+**Template**: `inventory/item_categories.html` (extends `shared/generic/generic_list.html`)
 
 **Attributes**:
 - `model`: `models.ItemCategory`
 - `template_name`: `'inventory/item_categories.html'`
-- `context_object_name`: `'item_categories'`
+- `context_object_name`: `'object_list'` (برای consistency با generic template)
 - `paginate_by`: `50`
 
 **Context Variables**:
-- `item_categories`: queryset دسته‌های کالا (paginated)
+- `object_list`: queryset دسته‌های کالا (paginated)
+- `page_title`: `_('Item Categories')`
+- `breadcrumbs`: لیست breadcrumb items
+- `create_url`: URL برای ایجاد Item Category جدید
+- `create_button_text`: `_('Create Item Category')`
+- `table_headers`: [] (overridden in template)
+- `show_actions`: `True`
+- `edit_url_name`: `'inventory:itemcategory_edit'`
+- `delete_url_name`: `'inventory:itemcategory_delete'`
+- `empty_state_title`: `_('No Item Categories Found')`
+- `empty_state_message`: `_('Start by creating your first item category.')`
+- `empty_state_icon`: `'📦'`
 - `active_module`: `'inventory'` (از `InventoryBaseView`)
 
 **متدها**:
 
 #### `get_queryset(self) -> QuerySet`
 
-**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند و `item_type` را select_related می‌کند.
 
 **مقدار بازگشتی**:
-- `QuerySet`: queryset فیلتر شده بر اساس permissions
+- `QuerySet`: queryset فیلتر شده بر اساس permissions با select_related('item_type')
 
 **منطق**:
 1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
 2. سپس `self.filter_queryset_by_permissions()` را با feature code `'inventory.master.item_categories'` و owner field `'created_by'` فراخوانی می‌کند
-3. نتیجه فیلتر شده را برمی‌گرداند
+3. `select_related('item_type')` برای بهینه‌سازی query
+4. نتیجه فیلتر شده را برمی‌گرداند
 
 **نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic list template اضافه می‌کند.
+
+**Context Variables اضافه شده**: تمام متغیرهای ذکر شده در بالا
 
 **URL**: `/inventory/item-categories/`
 
@@ -318,11 +377,20 @@
 
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
+**توضیح**: context variables را برای generic form template اضافه می‌کند.
+
 **پارامترهای ورودی**:
 - `**kwargs`: متغیرهای context اضافی
 
 **مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `form_title = _('Create Item Category')` اضافه شده
+- `Dict[str, Any]`: context با متغیرهای لازم برای generic template
+
+**Context Variables اضافه شده**:
+- `form_title`: `_('Create Item Category')`
+- `breadcrumbs`: لیست breadcrumb items (Inventory > Master Data > Item Categories > Create)
+- `cancel_url`: URL برای لغو (redirect به list)
+- `form`: instance فرم `ItemCategoryForm`
+- `active_module`: `'inventory'` (از `InventoryBaseView`)
 
 **URL**: `/inventory/item-categories/create/`
 
@@ -397,40 +465,31 @@
 
 **Type**: `InventoryBaseView, DeleteView`
 
-**Template**: `inventory/itemcategory_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `inventory:item_categories`
 
 **Attributes**:
 - `model`: `models.ItemCategory`
-- `template_name`: `'inventory/itemcategory_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('inventory:item_categories')`
 
 **متدها**:
 
-#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+#### `get_queryset(self) -> QuerySet`
 
-**توضیح**: `model_verbose_name` را به context اضافه می‌کند تا در template استفاده شود.
-
-**پارامترهای ورودی**:
-- `**kwargs`: متغیرهای context اضافی
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند و `item_type` را select_related می‌کند.
 
 **مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `model_verbose_name = _('دسته‌بندی کالا')` اضافه شده
+- `QuerySet`: queryset فیلتر شده بر اساس permissions با select_related('item_type')
 
-**Context Variables اضافه شده**:
-- `model_verbose_name`: `_('دسته‌بندی کالا')` - برای نمایش در template
-- `object`: instance دسته کالا برای حذف
-- `active_module`: `'inventory'` (از `InventoryBaseView`)
-
----
-
-#### `form_valid(self, form) -> HttpResponseRedirect`
+#### `delete(self, request, *args, **kwargs) -> HttpResponseRedirect`
 
 **توضیح**: حذف را با مدیریت `ProtectedError` انجام می‌دهد.
 
 **پارامترهای ورودی**:
-- `form`: فرم معتبر `DeleteView` form
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
 
 **مقدار بازگشتی**:
 - `HttpResponseRedirect`: redirect به `success_url`
@@ -440,9 +499,25 @@
 2. در صورت موفقیت، پیام موفقیت را نمایش می‌دهد و redirect می‌کند
 3. در صورت `ProtectedError` (وقتی که object در جای دیگری استفاده شده):
    - مدل‌های محافظت شده را شناسایی می‌کند
-   - نام‌های مدل را به فارسی تبدیل می‌کند
-   - پیام خطای کاربرپسند نمایش می‌دهد: "نمی‌توان این دسته‌بندی کالا را حذف کرد چون در ساختار {models} استفاده شده است."
+   - پیام خطای کاربرپسند نمایش می‌دهد: "Cannot delete this item category because it is used in {models}."
    - به صفحه لیست redirect می‌کند
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic delete template اضافه می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با متغیرهای لازم برای generic template
+
+**Context Variables اضافه شده**:
+- `delete_title`: `_('Delete Item Category')`
+- `confirmation_message`: `_('Are you sure you want to delete this item category?')`
+- `object_details`: لیست جزئیات object (Code, Name, Name EN, Item Type)
+- `cancel_url`: URL برای لغو (redirect به list)
+- `breadcrumbs`: لیست breadcrumb items (Inventory > Master Data > Item Categories > Delete)
 
 **URL**: `/inventory/item-categories/<pk>/delete/`
 
@@ -603,45 +678,42 @@
 
 **توضیح**: حذف زیردسته کالا
 
-**Type**: `InventoryBaseView, DeleteView`
+**Type**: `DocumentDeleteViewBase`
 
-**Template**: `inventory/itemsubcategory_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
+
+**Generic Templates**:
+- **Delete Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `inventory:item_subcategories`
 
 **Attributes**:
 - `model`: `models.ItemSubcategory`
-- `template_name`: `'inventory/itemsubcategory_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('inventory:item_subcategories')`
+- `feature_code`: `'inventory.master_data.item_subcategory'`
+- `required_action`: `'delete_own'`
+- `allow_own_scope`: `True`
+- `success_message`: `_('زیردسته کالا با موفقیت حذف شد.')`
 
 **متدها**:
 
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
-**توضیح**: `model_verbose_name` را به context اضافه می‌کند تا در template استفاده شود.
+**توضیح**: context variables را برای generic delete template آماده می‌کند.
 
-**پارامترهای ورودی**:
-- `**kwargs`: متغیرهای context اضافی
-
-**مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `model_verbose_name = _('زیر دسته‌بندی کالا')` اضافه شده
-
-**Context Variables اضافه شده**:
-- `model_verbose_name`: `_('زیر دسته‌بندی کالا')` - برای نمایش در template
-- `object`: instance زیردسته کالا برای حذف
-- `active_module`: `'inventory'` (از `InventoryBaseView`)
+**Context Variables برای Generic Template**:
+- `delete_title`: `_('Delete Item Subcategory')`
+- `confirmation_message`: `_('Do you really want to delete this item subcategory?')`
+- `object_details`: لیست جزئیات subcategory (Name, Category, Item Type)
+- `cancel_url`: `reverse_lazy('inventory:item_subcategories')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
 
 ---
 
-#### `form_valid(self, form) -> HttpResponseRedirect`
+#### `delete(self, request, *args, **kwargs) -> HttpResponseRedirect`
 
 **توضیح**: حذف را با مدیریت `ProtectedError` انجام می‌دهد.
-
-**پارامترهای ورودی**:
-- `form`: فرم معتبر `DeleteView` form
-
-**مقدار بازگشتی**:
-- `HttpResponseRedirect`: redirect به `success_url`
 
 **منطق**:
 1. سعی می‌کند object را حذف کند
@@ -664,19 +736,38 @@
 
 **Type**: `InventoryBaseView, ListView`
 
-**Template**: `inventory/items.html`
+**Template**: `inventory/items.html` (extends `shared/generic/generic_list.html`)
+
+**Generic Templates**:
+- **List Template**: `inventory/items.html` extends `shared/generic/generic_list.html`
+  - Overrides: `page_title`, `breadcrumb_extra`, `page_actions`, `filter_fields`, `table_headers`, `table_rows`, `empty_state_title`, `empty_state_message`, `empty_state_icon`
 
 **Attributes**:
 - `model`: `models.Item`
 - `template_name`: `'inventory/items.html'`
-- `context_object_name`: `'items'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 
-**Context Variables**:
-- `items`: queryset کالاها (paginated)
+**Context Variables برای Generic Template**:
+- `object_list`: queryset کالاها (paginated)
+- `page_title`: `_('Items')`
+- `breadcrumbs`: لیست breadcrumb items
+- `create_url`: URL برای ایجاد Item جدید
+- `create_button_text`: `_('Create Item')`
+- `show_filters`: `True`
+- `show_actions`: `True`
+- `edit_url_name`: `'inventory:item_edit'`
+- `delete_url_name`: `'inventory:item_delete'`
+- `empty_state_title`: `_('No Items Found')`
+- `empty_state_message`: `_('Start by creating your first item.')`
+- `empty_state_icon`: `'📦'`
+
+**Context Variables برای Item-Specific Features**:
 - `item_types`: لیست انواع کالا برای فیلتر dropdown
 - `item_categories`: لیست دسته‌های کالا برای فیلتر dropdown
-- `active_module`: `'inventory'` (از `InventoryBaseView`)
+- `status_filter`: مقدار فعلی فیلتر status
+- `user_feature_permissions`: permissions کاربر برای conditional rendering
+- `extra_filter_fields`: فیلدهای اضافی فیلتر (Item Type, Category)
 
 **متدها**:
 
@@ -708,17 +799,18 @@
 
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
-**توضیح**: فیلترهای context را برای template اضافه می‌کند.
+**توضیح**: context variables را برای generic list template آماده می‌کند.
 
 **پارامترهای ورودی**:
 - `**kwargs`: متغیرهای context اضافی
 
 **مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `item_types` و `item_categories` اضافه شده
+- `Dict[str, Any]`: context با تمام متغیرهای لازم برای generic template
 
-**Context Variables اضافه شده**:
+**Context Variables اضافه شده**: تمام متغیرهای ذکر شده در بالا (Generic Template و Item-Specific Features)، شامل:
 - `item_types`: queryset انواع کالا (فیلتر شده بر اساس company و `is_enabled=1`، مرتب شده بر اساس `name`)
 - `item_categories`: queryset دسته‌های کالا (فیلتر شده بر اساس company و `is_enabled=1`، مرتب شده بر اساس `name`)
+- `user_feature_permissions`: از `get_user_feature_permissions(request.user, company_id)` برای conditional rendering
 
 **URL**: `/inventory/items/`
 
@@ -806,7 +898,7 @@
 
 **Type**: `ItemUnitFormsetMixin, InventoryBaseView, CreateView`
 
-**Template**: `inventory/item_form.html`
+**Template**: `inventory/item_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `ItemForm`
 
@@ -823,7 +915,9 @@
 **Context Variables**:
 - `form`: instance فرم `ItemForm`
 - `units_formset`: instance formset `ItemUnitFormSet` (از `ItemUnitFormsetMixin`)
-- `form_title`: `_('تعریف کالای جدید')`
+- `form_title`: `_('Create New Item')`
+- `breadcrumbs`: لیست breadcrumb items (Inventory > Master Data > Items > Create)
+- `cancel_url`: URL برای لغو (redirect به list)
 - `active_module`: `'inventory'` (از `InventoryBaseView`)
 
 **متدها**:
@@ -836,6 +930,12 @@
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: kwargs با `company_id` اضافه شده
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic form template اضافه می‌کند و unit formset را build می‌کند.
+
+**Context Variables اضافه شده**: تمام متغیرهای ذکر شده در بالا، شامل `units_formset`
 
 **منطق**:
 1. kwargs را از `super().get_form_kwargs()` دریافت می‌کند
@@ -902,9 +1002,9 @@
 
 **توضیح**: ویرایش کالا با unit formset
 
-**Type**: `ItemUnitFormsetMixin, InventoryBaseView, UpdateView`
+**Type**: `EditLockProtectedMixin, ItemUnitFormsetMixin, InventoryBaseView, UpdateView`
 
-**Template**: `inventory/item_form.html`
+**Template**: `inventory/item_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `ItemForm`
 
@@ -921,7 +1021,9 @@
 **Context Variables**:
 - `form`: instance فرم `ItemForm`
 - `units_formset`: instance formset `ItemUnitFormSet`
-- `form_title`: `_('ویرایش کالا')`
+- `form_title`: `_('Edit Item')`
+- `breadcrumbs`: لیست breadcrumb items (Inventory > Master Data > Items > Edit)
+- `cancel_url`: URL برای لغو (redirect به list)
 - `object`: instance کالا برای ویرایش
 - `active_module`: `'inventory'` (از `InventoryBaseView`)
 
@@ -933,6 +1035,12 @@
 
 **مقدار بازگشتی**:
 - `QuerySet`: queryset فیلتر شده بر اساس permissions
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic form template اضافه می‌کند و unit formset را build می‌کند.
+
+**Context Variables اضافه شده**: تمام متغیرهای ذکر شده در بالا، شامل `units_formset`
 
 **منطق**:
 1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
@@ -1011,43 +1119,40 @@
 
 **Type**: `InventoryBaseView, DeleteView`
 
-**Template**: `inventory/item_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `inventory:items`
 
 **Attributes**:
 - `model`: `models.Item`
-- `template_name`: `'inventory/item_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('inventory:items')`
 
 **Context Variables**:
+- `delete_title`: `_('Delete Item')`
+- `confirmation_message`: `_('Are you sure you want to delete this item?')`
+- `object_details`: لیست جزئیات object (Item Code, Name, Name EN, Type, Category)
+- `cancel_url`: URL برای لغو (redirect به list)
+- `breadcrumbs`: لیست breadcrumb items (Inventory > Master Data > Items > Delete)
 - `object`: instance کالا برای حذف
-- `model_verbose_name`: نام verbose مدل (`Item._meta.verbose_name`)
 - `active_module`: `'inventory'` (از `InventoryBaseView`)
 
 **متدها**:
 
-#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+#### `get_queryset(self) -> QuerySet`
 
-**توضیح**: `model_verbose_name` را به context اضافه می‌کند.
-
-**پارامترهای ورودی**:
-- `**kwargs`: متغیرهای context اضافی
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند و `type`, `category`, `subcategory` را select_related می‌کند.
 
 **مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `model_verbose_name` اضافه شده
+- `QuerySet`: queryset فیلتر شده بر اساس permissions با select_related
 
-**Context Variables اضافه شده**:
-- `model_verbose_name`: `self.model._meta.verbose_name`
-
----
-
-#### `form_valid(self, form) -> HttpResponseRedirect`
+#### `delete(self, request, *args, **kwargs) -> HttpResponseRedirect`
 
 **توضیح**: حذف را با handling خطای ProtectedError انجام می‌دهد.
 
 **پارامترهای ورودی**:
-- `form`: فرم (در DeleteView استفاده نمی‌شود اما signature لازم است)
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
 
 **مقدار بازگشتی**:
 - `HttpResponseRedirect`: redirect به `success_url`
@@ -1056,14 +1161,26 @@
 1. اطلاعات کالا را log می‌کند
 2. سعی می‌کند کالا را حذف کند
 3. اگر موفق شد:
-   - پیام موفقیت را نمایش می‌دهد
+   - پیام موفقیت را نمایش می‌دهد: "Item deleted successfully."
    - redirect می‌کند
 4. اگر `ProtectedError` رخ داد:
    - خطا را log می‌کند
    - نام مدل‌های protected را استخراج می‌کند
-   - پیام خطای user-friendly می‌سازد (فارسی)
+   - پیام خطای user-friendly می‌سازد: "Cannot delete this item because it is used in {models}."
    - پیام خطا را نمایش می‌دهد
    - redirect می‌کند
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic delete template اضافه می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با متغیرهای لازم برای generic template
+
+**Context Variables اضافه شده**: تمام متغیرهای ذکر شده در بالا
 
 **Error Handling**:
 - `ProtectedError`: اگر کالا در استفاده باشد (مثلاً در رسیدها یا حواله‌ها)، خطا catch می‌شود و پیام مناسب نمایش داده می‌شود
@@ -1080,16 +1197,27 @@
 
 **Type**: `InventoryBaseView, ListView`
 
-**Template**: `inventory/warehouses.html`
+**Template**: `inventory/warehouses.html` (extends `shared/generic/generic_list.html`)
 
 **Attributes**:
 - `model`: `models.Warehouse`
 - `template_name`: `'inventory/warehouses.html'`
-- `context_object_name`: `'warehouses'`
+- `context_object_name`: `'object_list'` (برای consistency با generic template)
 - `paginate_by`: `50`
 
 **Context Variables**:
-- `warehouses`: queryset انبارها (paginated)
+- `object_list`: queryset انبارها (paginated)
+- `page_title`: `_('Warehouses')`
+- `breadcrumbs`: لیست breadcrumb items
+- `create_url`: URL برای ایجاد Warehouse جدید
+- `create_button_text`: `_('Create Warehouse')`
+- `table_headers`: [] (overridden in template)
+- `show_actions`: `True`
+- `edit_url_name`: `'inventory:warehouse_edit'`
+- `delete_url_name`: `'inventory:warehouse_delete'`
+- `empty_state_title`: `_('No Warehouses Found')`
+- `empty_state_message`: `_('Start by creating your first warehouse.')`
+- `empty_state_icon`: `'🏬'`
 - `active_module`: `'inventory'` (از `InventoryBaseView`)
 
 **متدها**:
@@ -1107,6 +1235,12 @@
 3. نتیجه فیلتر شده را برمی‌گرداند
 
 **نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic list template اضافه می‌کند.
+
+**Context Variables اضافه شده**: تمام متغیرهای ذکر شده در بالا
 
 **URL**: `/inventory/warehouses/`
 
@@ -1229,35 +1363,51 @@
 
 **Type**: `InventoryBaseView, DeleteView`
 
-**Template**: `inventory/warehouse_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
+
+**Generic Templates**:
+- **Delete Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `inventory:warehouses`
 
 **Attributes**:
 - `model`: `models.Warehouse`
-- `template_name`: `'inventory/warehouse_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('inventory:warehouses')`
 
-**Context Variables**:
-- `object`: instance انبار برای حذف
-- `model_verbose_name`: نام verbose مدل
+**Context Variables برای Generic Template**:
+- `delete_title`: `_('Delete Warehouse')`
+- `confirmation_message`: `_('Are you sure you want to delete this warehouse?')`
+- `object_details`: لیست جزئیات warehouse (Code, Name, Name EN)
+- `cancel_url`: URL برای لغو (redirect به list)
+- `breadcrumbs`: لیست breadcrumb items
 
 **متدها**:
 
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
+**توضیح**: context variables را برای generic delete template آماده می‌کند.
+
 **پارامترهای ورودی**:
 - `**kwargs`: متغیرهای context اضافی
 
 **مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `model_verbose_name` اضافه شده
+- `Dict[str, Any]`: context با متغیرهای لازم برای generic template
+
+**Context Variables برای Generic Template**:
+- `delete_title`: `_('Delete Warehouse')`
+- `confirmation_message`: `_('Are you sure you want to delete this warehouse?')`
+- `object_details`: لیست جزئیات warehouse (Code, Name, Name EN)
+- `cancel_url`: URL برای لغو (redirect به list)
+- `breadcrumbs`: لیست breadcrumb items
 
 ---
 
-#### `form_valid(self, form) -> HttpResponseRedirect`
+#### `delete(self, request, *args, **kwargs) -> HttpResponseRedirect`
 
 **پارامترهای ورودی**:
-- `form`: فرم
+- `request`: درخواست HTTP
+- `*args, **kwargs`: آرگومان‌های اضافی
 
 **مقدار بازگشتی**:
 - `HttpResponseRedirect`: redirect به `success_url`
@@ -1276,7 +1426,7 @@
    - redirect می‌کند
 
 **Error Handling**:
-- `ProtectedError`: اگر انبار در استفاده باشد (مثلاً در رسیدها یا حواله‌ها)، خطا catch می‌شود
+- `ProtectedError`: اگر انبار در استفاده باشد (مثلاً در رسیدها یا حواله‌ها)، خطا catch می‌شود و پیام مناسب نمایش داده می‌شود
 
 **URL**: `/inventory/warehouses/<pk>/delete/`
 
@@ -1290,17 +1440,30 @@
 
 **Type**: `InventoryBaseView, ListView`
 
-**Template**: `inventory/supplier_categories.html`
+**Template**: `inventory/supplier_categories.html` (extends `shared/generic/generic_list.html`)
+
+**Generic Templates**:
+- **List Template**: `inventory/supplier_categories.html` extends `shared/generic/generic_list.html`
+  - Overrides: `page_title`, `breadcrumb_extra`, `page_actions`, `table_headers`, `table_rows`, `empty_state_title`, `empty_state_message`, `empty_state_icon`
 
 **Attributes**:
 - `model`: `models.SupplierCategory`
 - `template_name`: `'inventory/supplier_categories.html'`
-- `context_object_name`: `'supplier_categories'`
+- `context_object_name`: `'object_list'` (برای consistency با generic template)
 - `paginate_by`: `50`
 
-**Context Variables**:
-- `supplier_categories`: queryset دسته‌های تامین‌کنندگان (paginated)
-- `active_module`: `'inventory'` (از `InventoryBaseView`)
+**Context Variables برای Generic Template**:
+- `object_list`: queryset دسته‌های تامین‌کنندگان (paginated)
+- `page_title`: `_('Supplier Categories')`
+- `breadcrumbs`: لیست breadcrumb items
+- `create_url`: URL برای ایجاد Supplier Category جدید
+- `create_button_text`: `_('Create Supplier Category')`
+- `show_actions`: `True`
+- `edit_url_name`: `'inventory:suppliercategory_edit'`
+- `delete_url_name`: `'inventory:suppliercategory_delete'`
+- `empty_state_title`: `_('No Supplier Categories Found')`
+- `empty_state_message`: `_('Start by creating your first supplier category.')`
+- `empty_state_icon`: `'🏷️'`
 
 **متدها**:
 
@@ -1317,6 +1480,14 @@
 3. نتیجه فیلتر شده را برمی‌گرداند
 
 **نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic list template اضافه می‌کند.
+
+**Context Variables اضافه شده**: تمام متغیرهای ذکر شده در بالا (Generic Template)
 
 **URL**: `/inventory/supplier-categories/`
 
@@ -1495,16 +1666,30 @@
 
 **Type**: `InventoryBaseView, DeleteView`
 
-**Template**: `inventory/suppliercategory_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
+
+**Generic Templates**:
+- **Delete Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `inventory:supplier_categories`
 
 **Attributes**:
 - `model`: `models.SupplierCategory`
-- `template_name`: `'inventory/suppliercategory_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('inventory:supplier_categories')`
 
 **متدها**:
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic delete template آماده می‌کند.
+
+**Context Variables برای Generic Template**:
+- `delete_title`: `_('Delete Supplier Category')`
+- `confirmation_message`: `_('Are you sure you want to delete this supplier category?')`
+- `object_details`: لیست جزئیات supplier category (Supplier, Category, Is Primary)
+- `cancel_url`: URL برای لغو (redirect به list)
+- `breadcrumbs`: لیست breadcrumb items
 
 #### `delete(self, request, *args, **kwargs) -> HttpResponseRedirect`
 
@@ -1531,17 +1716,30 @@
 
 **Type**: `InventoryBaseView, ListView`
 
-**Template**: `inventory/suppliers.html`
+**Template**: `inventory/suppliers.html` (extends `shared/generic/generic_list.html`)
+
+**Generic Templates**:
+- **List Template**: `inventory/suppliers.html` extends `shared/generic/generic_list.html`
+  - Overrides: `page_title`, `breadcrumb_extra`, `page_actions`, `table_headers`, `table_rows`, `empty_state_title`, `empty_state_message`, `empty_state_icon`
 
 **Attributes**:
 - `model`: `models.Supplier`
 - `template_name`: `'inventory/suppliers.html'`
-- `context_object_name`: `'suppliers'`
+- `context_object_name`: `'object_list'` (برای consistency با generic template)
 - `paginate_by`: `50`
 
-**Context Variables**:
-- `suppliers`: queryset تامین‌کنندگان (paginated)
-- `active_module`: `'inventory'` (از `InventoryBaseView`)
+**Context Variables برای Generic Template**:
+- `object_list`: queryset تامین‌کنندگان (paginated)
+- `page_title`: `_('Suppliers')`
+- `breadcrumbs`: لیست breadcrumb items
+- `create_url`: URL برای ایجاد Supplier جدید
+- `create_button_text`: `_('Create Supplier')`
+- `show_actions`: `True`
+- `edit_url_name`: `'inventory:supplier_edit'`
+- `delete_url_name`: `'inventory:supplier_delete'`
+- `empty_state_title`: `_('No Suppliers Found')`
+- `empty_state_message`: `_('Start by creating your first supplier.')`
+- `empty_state_icon`: `'🏢'`
 
 **متدها**:
 
@@ -1558,6 +1756,14 @@
 3. نتیجه فیلتر شده را برمی‌گرداند
 
 **نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic list template اضافه می‌کند.
+
+**Context Variables اضافه شده**: تمام متغیرهای ذکر شده در بالا (Generic Template)
 
 **URL**: `/inventory/suppliers/`
 
@@ -1680,35 +1886,44 @@
 
 **Type**: `InventoryBaseView, DeleteView`
 
-**Template**: `inventory/supplier_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
+
+**Generic Templates**:
+- **Delete Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `inventory:suppliers`
 
 **Attributes**:
 - `model`: `models.Supplier`
-- `template_name`: `'inventory/supplier_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('inventory:suppliers')`
-
-**Context Variables**:
-- `object`: instance تامین‌کننده برای حذف
-- `model_verbose_name`: نام verbose مدل
 
 **متدها**:
 
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
+**توضیح**: context variables را برای generic delete template آماده می‌کند.
+
 **پارامترهای ورودی**:
 - `**kwargs`: متغیرهای context اضافی
 
 **مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `model_verbose_name` اضافه شده
+- `Dict[str, Any]`: context با متغیرهای لازم برای generic template
+
+**Context Variables برای Generic Template**:
+- `delete_title`: `_('Delete Supplier')`
+- `confirmation_message`: `_('Are you sure you want to delete this supplier?')`
+- `object_details`: لیست جزئیات supplier (Code, Name, City)
+- `cancel_url`: URL برای لغو (redirect به list)
+- `breadcrumbs`: لیست breadcrumb items
 
 ---
 
-#### `form_valid(self, form) -> HttpResponseRedirect`
+#### `delete(self, request, *args, **kwargs) -> HttpResponseRedirect`
 
 **پارامترهای ورودی**:
-- `form`: فرم
+- `request`: درخواست HTTP
+- `*args, **kwargs`: آرگومان‌های اضافی
 
 **مقدار بازگشتی**:
 - `HttpResponseRedirect`: redirect به `success_url`
@@ -1727,9 +1942,219 @@
    - redirect می‌کند
 
 **Error Handling**:
-- `ProtectedError`: اگر تامین‌کننده در استفاده باشد (مثلاً در رسیدهای امانی)، خطا catch می‌شود
+- `ProtectedError`: اگر تامین‌کننده در استفاده باشد (مثلاً در رسیدهای امانی)، خطا catch می‌شود و پیام مناسب نمایش داده می‌شود
 
 **URL**: `/inventory/suppliers/<pk>/delete/`
+
+---
+
+## Generic Templates
+
+تمام template های Item Types به generic templates منتقل شده‌اند:
+
+### Item Types List
+- **Template**: `inventory/item_types.html` extends `shared/generic/generic_list.html`
+- **Blocks Overridden**: 
+  - `table_headers`: Code, Name (FA), Name (EN), Sort Order, Status
+  - `table_rows`: نمایش item types با تمام فیلدها
+  - `empty_state_title`, `empty_state_message`, `empty_state_icon`: override برای empty state
+- **Context Variables**: تمام متغیرهای لازم در `get_context_data` تنظیم شده‌اند
+
+### Item Types Form
+- **Template**: `inventory/itemtype_form.html` extends `shared/generic/generic_form.html`
+- **Blocks Overridden**: 
+  - `breadcrumb_extra`: مسیر breadcrumb اختصاصی
+  - `before_form`: Info banner برای نمایش code (در edit mode)
+  - `form_sections`: فیلدهای form
+- **Context Variables**: 
+  - `form_title`: "Create Item Type" یا "Edit Item Type"
+  - `breadcrumbs`: لیست breadcrumb items
+  - `cancel_url`: URL برای لغو
+
+### Item Types Delete
+- **Template**: `shared/generic/generic_confirm_delete.html`
+- **Context Variables**:
+  - `delete_title`: عنوان حذف
+  - `confirmation_message`: پیام تایید
+  - `object_details`: جزئیات item type (Code, Name, Name EN)
+  - `cancel_url`: URL برای لغو
+  - `breadcrumbs`: مسیر breadcrumb
+
+### Item Categories List
+- **Template**: `inventory/item_categories.html` extends `shared/generic/generic_list.html`
+- **Blocks Overridden**: 
+  - `table_headers`: Code, Name (FA), Name (EN), Item Type, Sort Order, Status
+  - `table_rows`: نمایش item categories با تمام فیلدها
+  - `empty_state_title`, `empty_state_message`, `empty_state_icon`: override برای empty state
+- **Context Variables**: تمام متغیرهای لازم در `get_context_data` تنظیم شده‌اند
+
+### Item Categories Form
+- **Template**: `inventory/itemcategory_form.html` extends `shared/generic/generic_form.html`
+- **Blocks Overridden**: 
+  - `breadcrumb_extra`: مسیر breadcrumb اختصاصی
+  - `before_form`: Info banner برای نمایش code (در edit mode)
+  - `form_sections`: فیلدهای form
+- **Context Variables**: 
+  - `form_title`: "Create Item Category" یا "Edit Item Category"
+  - `breadcrumbs`: لیست breadcrumb items
+  - `cancel_url`: URL برای لغو
+
+### Item Categories Delete
+- **Template**: `shared/generic/generic_confirm_delete.html`
+- **Context Variables**:
+  - `delete_title`: عنوان حذف
+  - `confirmation_message`: پیام تایید
+  - `object_details`: جزئیات item category (Code, Name, Name EN, Item Type)
+  - `cancel_url`: URL برای لغو
+  - `breadcrumbs`: مسیر breadcrumb
+
+### Item Subcategories List
+- **Template**: `inventory/item_subcategories.html` extends `shared/generic/generic_list.html`
+- **Blocks Overridden**: 
+  - `table_headers`: Code, Name (FA), Name (EN), Item Type, Category, Sort Order, Status
+  - `table_rows`: نمایش item subcategories با تمام فیلدها
+  - `empty_state_title`, `empty_state_message`, `empty_state_icon`: override برای empty state
+- **Context Variables**: تمام متغیرهای لازم در `get_context_data` تنظیم شده‌اند
+
+### Item Subcategories Form
+- **Template**: `inventory/itemsubcategory_form.html` extends `shared/generic/generic_form.html`
+- **Blocks Overridden**: 
+  - `breadcrumb_extra`: مسیر breadcrumb اختصاصی
+  - `before_form`: Info banner برای نمایش code (در edit mode)
+  - `form_sections`: فیلدهای form
+- **Context Variables**: 
+  - `form_title`: "Create Item Subcategory" یا "Edit Item Subcategory"
+  - `breadcrumbs`: لیست breadcrumb items
+  - `cancel_url`: URL برای لغو
+
+### Item Subcategories Delete
+- **Template**: `shared/generic/generic_confirm_delete.html`
+- **Context Variables**:
+  - `delete_title`: عنوان حذف
+  - `confirmation_message`: پیام تایید
+  - `object_details`: جزئیات item subcategory (Code, Name, Name EN, Item Type, Category)
+  - `cancel_url`: URL برای لغو
+  - `breadcrumbs`: مسیر breadcrumb
+
+### Warehouses List
+- **Template**: `inventory/warehouses.html` extends `shared/generic/generic_list.html`
+- **Blocks Overridden**: 
+  - `table_headers`: Code, Name (FA), Name (EN), Sort Order, Status
+  - `table_rows`: نمایش warehouses با تمام فیلدها
+  - `empty_state_title`, `empty_state_message`, `empty_state_icon`: override برای empty state
+- **Context Variables**: تمام متغیرهای لازم در `get_context_data` تنظیم شده‌اند
+
+### Warehouses Form
+- **Template**: `inventory/warehouse_form.html` extends `shared/generic/generic_form.html`
+- **Blocks Overridden**: 
+  - `breadcrumb_extra`: مسیر breadcrumb اختصاصی
+  - `before_form`: Info banner برای نمایش code (در edit mode)
+  - `form_sections`: فیلدهای form
+- **Context Variables**: 
+  - `form_title`: "Create Warehouse" یا "Edit Warehouse"
+  - `breadcrumbs`: لیست breadcrumb items
+  - `cancel_url`: URL برای لغو
+
+### Warehouses Delete
+- **Template**: `shared/generic/generic_confirm_delete.html`
+- **Context Variables**:
+  - `delete_title`: عنوان حذف
+  - `confirmation_message`: پیام تایید
+  - `object_details`: جزئیات warehouse (Code, Name, Name EN)
+  - `cancel_url`: URL برای لغو
+  - `breadcrumbs`: مسیر breadcrumb
+
+### Suppliers List
+- **Template**: `inventory/suppliers.html` extends `shared/generic/generic_list.html`
+- **Blocks Overridden**: 
+  - `table_headers`: Code, Name, Contact Info, City, Status
+  - `table_rows`: نمایش suppliers با تمام فیلدها
+  - `empty_state_title`, `empty_state_message`, `empty_state_icon`: override برای empty state
+- **Context Variables**: تمام متغیرهای لازم در `get_context_data` تنظیم شده‌اند
+
+### Suppliers Form
+- **Template**: `inventory/supplier_form.html` extends `shared/generic/generic_form.html`
+- **Blocks Overridden**: 
+  - `breadcrumb_extra`: مسیر breadcrumb اختصاصی
+  - `before_form`: Info banner برای نمایش code (در edit mode)
+  - `form_sections`: فیلدهای form
+- **Context Variables**: 
+  - `form_title`: "Create Supplier" یا "Edit Supplier"
+  - `breadcrumbs`: لیست breadcrumb items
+  - `cancel_url`: URL برای لغو
+
+### Suppliers Delete
+- **Template**: `shared/generic/generic_confirm_delete.html`
+- **Context Variables**:
+  - `delete_title`: عنوان حذف
+  - `confirmation_message`: پیام تایید
+  - `object_details`: جزئیات supplier (Code, Name, City)
+  - `cancel_url`: URL برای لغو
+  - `breadcrumbs`: مسیر breadcrumb
+
+### Supplier Categories List
+- **Template**: `inventory/supplier_categories.html` extends `shared/generic/generic_list.html`
+- **Blocks Overridden**: 
+  - `table_headers`: Supplier, Category, Is Primary?, Notes
+  - `table_rows`: نمایش supplier categories با تمام فیلدها
+  - `empty_state_title`, `empty_state_message`, `empty_state_icon`: override برای empty state
+- **Context Variables**: تمام متغیرهای لازم در `get_context_data` تنظیم شده‌اند
+
+### Supplier Categories Form
+- **Template**: `inventory/suppliercategory_form.html` extends `shared/generic/generic_form.html`
+- **Blocks Overridden**: 
+  - `breadcrumb_extra`: مسیر breadcrumb اختصاصی
+  - `form_sections`: فیلدهای form (شامل subcategories و items که باید sync شوند)
+- **Context Variables**: 
+  - `form_title`: "Create Supplier Category" یا "Edit Supplier Category"
+  - `breadcrumbs`: لیست breadcrumb items
+  - `cancel_url`: URL برای لغو
+
+### Supplier Categories Delete
+- **Template**: `shared/generic/generic_confirm_delete.html`
+- **Context Variables**:
+  - `delete_title`: عنوان حذف
+  - `confirmation_message`: پیام تایید
+  - `object_details`: جزئیات supplier category (Supplier, Category, Is Primary)
+  - `cancel_url`: URL برای لغو
+  - `breadcrumbs`: مسیر breadcrumb
+
+### Items List
+- **Template**: `inventory/items.html` extends `shared/generic/generic_list.html`
+- **Blocks Overridden**: 
+  - `page_actions`: شامل Excel template download, Excel import button, Print button, و links به Item Types/Categories/Subcategories
+  - `filter_fields`: Search, Item Type, Category filters
+  - `table_headers`: Item Code, Item Name, Type, Category, Batch Number, Lot Tracking, Status
+  - `table_rows`: نمایش items با تمام فیلدها
+  - `empty_state_title`, `empty_state_message`, `empty_state_icon`: override برای empty state
+- **Context Variables**: تمام متغیرهای لازم در `get_context_data` تنظیم شده‌اند، شامل `user_feature_permissions` برای conditional rendering
+- **Special Features**: Excel import form, conditional action buttons based on feature permissions
+
+### Items Form
+- **Template**: `inventory/item_form.html` extends `shared/generic/generic_form.html`
+- **Blocks Overridden**: 
+  - `breadcrumb_extra`: مسیر breadcrumb اختصاصی
+  - `form_sections`: فیلدهای form (شامل allowed_warehouses checkbox grid)
+  - `form_extra`: Unit conversions formset
+  - `extra_styles`: CSS برای checkbox grid و unit formset
+  - `form_scripts`: JavaScript برای formset management و cascading dropdowns (Type -> Category -> Subcategory)
+- **Context Variables**: 
+  - `form_title`: "Create New Item" یا "Edit Item"
+  - `breadcrumbs`: لیست breadcrumb items
+  - `cancel_url`: URL برای لغو
+  - `units_formset`: instance از ItemUnitFormSet برای مدیریت واحدهای تبدیل
+- **Complexity**: شامل formset برای unit conversions و cascading dropdowns
+
+### Items Delete
+- **Template**: `shared/generic/generic_confirm_delete.html`
+- **Context Variables**:
+  - `delete_title`: عنوان حذف
+  - `confirmation_message`: پیام تایید
+  - `object_details`: جزئیات item (Item Code, Name, Name EN, Type, Category)
+  - `cancel_url`: URL برای لغو
+  - `breadcrumbs`: مسیر breadcrumb
+
+**نکته**: تمام Master Data templates (Item Types, Item Categories, Item Subcategories, Items, Warehouses, Suppliers, Supplier Categories) به generic templates منتقل شده‌اند و از context variables استاندارد استفاده می‌کنند.
 
 ---
 

@@ -21,7 +21,7 @@ class TemporaryReceiptQCListView(FeaturePermissionRequiredMixin, QCBaseView, Lis
     """List view for temporary receipts awaiting QC inspection."""
     model = inventory_models.ReceiptTemporary
     template_name = 'qc/temporary_receipts.html'
-    context_object_name = 'receipts'
+    context_object_name = 'object_list'
     paginate_by = 50
     feature_code = 'qc.inspections'
     required_action = 'view'
@@ -47,9 +47,22 @@ class TemporaryReceiptQCListView(FeaturePermissionRequiredMixin, QCBaseView, Lis
         return queryset
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add page title and stats to context."""
+        """Add context for generic list template."""
+        from django.urls import reverse_lazy
+        
         context = super().get_context_data(**kwargs)
         context['page_title'] = _('Temporary Receipts - QC Inspection')
+        context['breadcrumbs'] = [
+            {'label': _('QC'), 'url': None},
+            {'label': _('Temporary Receipts'), 'url': None},
+        ]
+        context['table_headers'] = []  # Overridden in template
+        context['show_actions'] = True
+        context['empty_state_title'] = _('No Receipts')
+        context['empty_state_message'] = _('There are no temporary receipts.')
+        context['empty_state_icon'] = '📋'
+        context['print_enabled'] = True
+        context['show_filters'] = False  # No filters for now
         
         # Calculate stats
         queryset = self.get_queryset()
@@ -60,8 +73,8 @@ class TemporaryReceiptQCListView(FeaturePermissionRequiredMixin, QCBaseView, Lis
         }
         
         # Prefetch rejected lines count for each receipt to show management button
-        receipts = context.get('receipts', [])
-        for receipt in receipts:
+        object_list = context.get('object_list', [])
+        for receipt in object_list:
             # Count rejected lines and add as attribute (without underscore for template access)
             receipt.rejected_lines_count = receipt.lines.filter(is_enabled=1, is_qc_rejected=1).count()
         

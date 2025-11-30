@@ -23,7 +23,7 @@ class ProcessListView(FeaturePermissionRequiredMixin, ListView):
     """List all processes for the active company."""
     model = Process
     template_name = 'production/processes.html'
-    context_object_name = 'processes'
+    context_object_name = 'object_list'
     paginate_by = 50
     feature_code = 'production.processes'
     required_action = 'view_own'

@@ -33,12 +33,12 @@ class IssuePermanentListView(InventoryBaseView, ListView):
     """List view for permanent issues."""
     model = models.IssuePermanent
     template_name = 'inventory/issue_permanent.html'
-    context_object_name = 'issues'
+    context_object_name = 'object_list'
     paginate_by = 50
     ordering = ['-id']  # Show newest documents first
 
     def get_queryset(self):
-        """Prefetch related objects for efficient display."""
+        """Prefetch related objects for efficient display and apply filters."""
         queryset = super().get_queryset()
         # Filter by user permissions (own vs all)
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.permanent', 'created_by')
@@ -46,21 +46,81 @@ class IssuePermanentListView(InventoryBaseView, ListView):
             'lines__item',
             'lines__warehouse',
         )
+        
+        # Apply filters
+        posted_param = self.request.GET.get('posted')
+        if posted_param == '1':
+            queryset = queryset.filter(is_locked=1)
+        elif posted_param == '0':
+            queryset = queryset.filter(is_locked=0)
+        
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(document_code__icontains=search_query) |
+                Q(lines__item__name__icontains=search_query) |
+                Q(lines__item__item_code__icontains=search_query)
+            ).distinct()
+        
         return queryset
 
+    def _get_stats(self) -> Dict[str, int]:
+        """Return aggregate stats for summary cards."""
+        stats = {
+            'total': 0,
+            'posted': 0,
+            'draft': 0,
+        }
+        company_id = self.request.session.get('active_company_id')
+        if not company_id:
+            return stats
+        base_qs = models.IssuePermanent.objects.filter(company_id=company_id)
+        stats['total'] = base_qs.count()
+        stats['posted'] = base_qs.filter(is_locked=1).count()
+        stats['draft'] = base_qs.filter(is_locked=0).count()
+        return stats
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for template."""
+        """Add context for generic list template."""
         context = super().get_context_data(**kwargs)
+        
+        # Generic list context
+        context['page_title'] = _('Permanent Issues')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': None},
+        ]
         context['create_url'] = reverse_lazy('inventory:issue_permanent_create')
+        context['create_button_text'] = _('Create Permanent Issue')
+        context['create_label'] = _('Permanent Issue')
+        context['show_filters'] = True
+        context['print_enabled'] = True
+        context['show_actions'] = True
+        
+        # Issue-specific context
         context['edit_url_name'] = 'inventory:issue_permanent_edit'
         context['delete_url_name'] = 'inventory:issue_permanent_delete'
         context['lock_url_name'] = 'inventory:issue_permanent_lock'
         context['detail_url_name'] = 'inventory:issue_permanent_detail'
-        context['create_label'] = _('Permanent Issue')
         context['show_warehouse_request'] = True
         context['warehouse_request_url_name'] = 'inventory:warehouse_request_edit'
-        context['serial_url_name'] = None
+        context['empty_state_title'] = _('No Issues Found')
+        context['empty_state_message'] = _('Start by creating your first issue document.')
+        context['empty_state_icon'] = '📤'
+        
+        # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.issues.permanent')
+        
+        # Filters
+        context['search_query'] = self.request.GET.get('search', '').strip()
+        
+        # Stats
+        context['stats'] = self._get_stats()
+        
+        # User for permission checks in template
+        context['user'] = self.request.user
+        
         return context
 
 
@@ -225,12 +285,31 @@ class IssuePermanentUpdateView(EditLockProtectedMixin, LineFormsetMixin, Documen
 class IssuePermanentDeleteView(DocumentDeleteViewBase):
     """Delete view for permanent issues."""
     model = models.IssuePermanent
-    template_name = 'inventory/issue_permanent_confirm_delete.html'
+    template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:issue_permanent')
     feature_code = 'inventory.issues.permanent'
     required_action = 'delete_own'
     allow_own_scope = True
     success_message = _('حواله دائم با موفقیت حذف شد.')
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic delete template."""
+        context = super().get_context_data(**kwargs)
+        context['delete_title'] = _('Delete Permanent Issue')
+        context['confirmation_message'] = _('Do you really want to delete this permanent issue?')
+        context['object_details'] = [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+        context['cancel_url'] = reverse_lazy('inventory:issue_permanent')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': None},
+            {'label': _('Permanent Issues'), 'url': reverse_lazy('inventory:issue_permanent')},
+            {'label': _('Delete'), 'url': None},
+        ]
+        return context
 
 
 class IssuePermanentLockView(DocumentLockView):
@@ -288,29 +367,92 @@ class IssueConsumptionListView(InventoryBaseView, ListView):
     """List view for consumption issues."""
     model = models.IssueConsumption
     template_name = 'inventory/issue_consumption.html'
-    context_object_name = 'issues'
+    context_object_name = 'object_list'
     paginate_by = 50
     ordering = ['-id']  # Show newest documents first
 
     def get_queryset(self):
-        """Prefetch related objects for efficient display."""
+        """Prefetch related objects for efficient display and apply filters."""
         queryset = super().get_queryset()
         # Filter by user permissions (own vs all)
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.consumption', 'created_by')
-        queryset = queryset.select_related('created_by')
+        queryset = queryset.select_related('created_by', 'department_unit').prefetch_related(
+            'lines__item',
+            'lines__warehouse',
+        )
+        
+        # Apply filters
+        posted_param = self.request.GET.get('posted')
+        if posted_param == '1':
+            queryset = queryset.filter(is_locked=1)
+        elif posted_param == '0':
+            queryset = queryset.filter(is_locked=0)
+        
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(document_code__icontains=search_query) |
+                Q(lines__item__name__icontains=search_query) |
+                Q(lines__item__item_code__icontains=search_query)
+            ).distinct()
+        
         return queryset
 
+    def _get_stats(self) -> Dict[str, int]:
+        """Return aggregate stats for summary cards."""
+        stats = {
+            'total': 0,
+            'posted': 0,
+            'draft': 0,
+        }
+        company_id = self.request.session.get('active_company_id')
+        if not company_id:
+            return stats
+        base_qs = models.IssueConsumption.objects.filter(company_id=company_id)
+        stats['total'] = base_qs.count()
+        stats['posted'] = base_qs.filter(is_locked=1).count()
+        stats['draft'] = base_qs.filter(is_locked=0).count()
+        return stats
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for template."""
+        """Add context for generic list template."""
         context = super().get_context_data(**kwargs)
+        
+        # Generic list context
+        context['page_title'] = _('Consumption Issues')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': None},
+        ]
         context['create_url'] = reverse_lazy('inventory:issue_consumption_create')
+        context['create_button_text'] = _('Create Consumption Issue')
+        context['create_label'] = _('Consumption Issue')
+        context['show_filters'] = True
+        context['print_enabled'] = True
+        context['show_actions'] = True
+        
+        # Issue-specific context
         context['edit_url_name'] = 'inventory:issue_consumption_edit'
         context['delete_url_name'] = 'inventory:issue_consumption_delete'
         context['lock_url_name'] = 'inventory:issue_consumption_lock'
         context['detail_url_name'] = 'inventory:issue_consumption_detail'
-        context['create_label'] = _('Consumption Issue')
-        context['serial_url_name'] = None
+        context['empty_state_title'] = _('No Issues Found')
+        context['empty_state_message'] = _('Start by creating your first issue document.')
+        context['empty_state_icon'] = '📤'
+        
+        # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.issues.consumption')
+        
+        # Filters
+        context['search_query'] = self.request.GET.get('search', '').strip()
+        
+        # Stats
+        context['stats'] = self._get_stats()
+        
+        # User for permission checks in template
+        context['user'] = self.request.user
+        
         return context
 
 
@@ -500,12 +642,31 @@ class IssueConsumptionUpdateView(EditLockProtectedMixin, LineFormsetMixin, Docum
 class IssueConsumptionDeleteView(DocumentDeleteViewBase):
     """Delete view for consumption issues."""
     model = models.IssueConsumption
-    template_name = 'inventory/issue_consumption_confirm_delete.html'
+    template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:issue_consumption')
     feature_code = 'inventory.issues.consumption'
     required_action = 'delete_own'
     allow_own_scope = True
     success_message = _('حواله مصرفی با موفقیت حذف شد.')
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic delete template."""
+        context = super().get_context_data(**kwargs)
+        context['delete_title'] = _('Delete Consumption Issue')
+        context['confirmation_message'] = _('Do you really want to delete this consumption issue?')
+        context['object_details'] = [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+        context['cancel_url'] = reverse_lazy('inventory:issue_consumption')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': None},
+            {'label': _('Consumption Issues'), 'url': reverse_lazy('inventory:issue_consumption')},
+            {'label': _('Delete'), 'url': None},
+        ]
+        return context
 
 
 class IssueConsumptionLockView(DocumentLockView):
@@ -563,29 +724,93 @@ class IssueConsignmentListView(InventoryBaseView, ListView):
     """List view for consignment issues."""
     model = models.IssueConsignment
     template_name = 'inventory/issue_consignment.html'
-    context_object_name = 'issues'
+    context_object_name = 'object_list'
     paginate_by = 50
     ordering = ['-id']  # Show newest documents first
 
     def get_queryset(self):
-        """Prefetch related objects for efficient display."""
+        """Prefetch related objects for efficient display and apply filters."""
         queryset = super().get_queryset()
         # Filter by user permissions (own vs all)
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.consignment', 'created_by')
-        queryset = queryset.select_related('created_by')
+        queryset = queryset.select_related('created_by', 'department_unit').prefetch_related(
+            'lines__item',
+            'lines__warehouse',
+            'lines__supplier',
+        )
+        
+        # Apply filters
+        posted_param = self.request.GET.get('posted')
+        if posted_param == '1':
+            queryset = queryset.filter(is_locked=1)
+        elif posted_param == '0':
+            queryset = queryset.filter(is_locked=0)
+        
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(document_code__icontains=search_query) |
+                Q(lines__item__name__icontains=search_query) |
+                Q(lines__item__item_code__icontains=search_query)
+            ).distinct()
+        
         return queryset
 
+    def _get_stats(self) -> Dict[str, int]:
+        """Return aggregate stats for summary cards."""
+        stats = {
+            'total': 0,
+            'posted': 0,
+            'draft': 0,
+        }
+        company_id = self.request.session.get('active_company_id')
+        if not company_id:
+            return stats
+        base_qs = models.IssueConsignment.objects.filter(company_id=company_id)
+        stats['total'] = base_qs.count()
+        stats['posted'] = base_qs.filter(is_locked=1).count()
+        stats['draft'] = base_qs.filter(is_locked=0).count()
+        return stats
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for template."""
+        """Add context for generic list template."""
         context = super().get_context_data(**kwargs)
+        
+        # Generic list context
+        context['page_title'] = _('Consignment Issues')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': None},
+        ]
         context['create_url'] = reverse_lazy('inventory:issue_consignment_create')
+        context['create_button_text'] = _('Create Consignment Issue')
+        context['create_label'] = _('Consignment Issue')
+        context['show_filters'] = True
+        context['print_enabled'] = True
+        context['show_actions'] = True
+        
+        # Issue-specific context
         context['edit_url_name'] = 'inventory:issue_consignment_edit'
         context['delete_url_name'] = 'inventory:issue_consignment_delete'
         context['lock_url_name'] = 'inventory:issue_consignment_lock'
         context['detail_url_name'] = 'inventory:issue_consignment_detail'
-        context['create_label'] = _('Consignment Issue')
-        context['serial_url_name'] = None
+        context['empty_state_title'] = _('No Issues Found')
+        context['empty_state_message'] = _('Start by creating your first issue document.')
+        context['empty_state_icon'] = '📤'
+        
+        # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.issues.consignment')
+        
+        # Filters
+        context['search_query'] = self.request.GET.get('search', '').strip()
+        
+        # Stats
+        context['stats'] = self._get_stats()
+        
+        # User for permission checks in template
+        context['user'] = self.request.user
+        
         return context
 
 
@@ -716,12 +941,31 @@ class IssueConsignmentUpdateView(EditLockProtectedMixin, LineFormsetMixin, Docum
 class IssueConsignmentDeleteView(DocumentDeleteViewBase):
     """Delete view for consignment issues."""
     model = models.IssueConsignment
-    template_name = 'inventory/issue_consignment_confirm_delete.html'
+    template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:issue_consignment')
     feature_code = 'inventory.issues.consignment'
     required_action = 'delete_own'
     allow_own_scope = True
     success_message = _('حواله امانی با موفقیت حذف شد.')
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic delete template."""
+        context = super().get_context_data(**kwargs)
+        context['delete_title'] = _('Delete Consignment Issue')
+        context['confirmation_message'] = _('Do you really want to delete this consignment issue?')
+        context['object_details'] = [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+        context['cancel_url'] = reverse_lazy('inventory:issue_consignment')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': None},
+            {'label': _('Consignment Issues'), 'url': reverse_lazy('inventory:issue_consignment')},
+            {'label': _('Delete'), 'url': None},
+        ]
+        return context
 
 
 class IssueConsignmentLockView(DocumentLockView):

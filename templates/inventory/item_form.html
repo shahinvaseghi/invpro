@@ -1,133 +1,130 @@
-{% extends "inventory/base.html" %}
+{% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
 
-{% block page_title %}{{ form_title }}{% endblock %}
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Items" %}</span>
+<span class="separator">/</span>
+<span>{{ form_title }}</span>
+{% endblock %}
 
-{% block inventory_content %}
-<div class="form-container">
-  <form method="post" class="entity-form" id="item-form" onsubmit="return handleFormSubmit(event)">
-    {% csrf_token %}
-    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
-
-    <div class="form-section">
-      {% if form.allowed_warehouses %}
-      <div class="form-field full-width">
-        <label>{{ form.allowed_warehouses.label }}{% if form.allowed_warehouses.field.required %}*{% endif %}</label>
-        <div class="checkbox-grid">
-          {% for checkbox in form.allowed_warehouses %}
-            <label class="checkbox-item">
-              {{ checkbox.tag }}
-              <span>{{ checkbox.choice_label }}</span>
-            </label>
-          {% endfor %}
-        </div>
-        {% if form.allowed_warehouses.errors %}
-          <span class="error">{{ form.allowed_warehouses.errors.0 }}</span>
-        {% endif %}
-        {% if form.allowed_warehouses.help_text %}
-          <small class="form-text">{{ form.allowed_warehouses.help_text }}</small>
-        {% endif %}
-      </div>
-      {% endif %}
-
-      {% for field in form.visible_fields %}
-        {% if field.name != 'allowed_warehouses' %}
-        <div class="form-field">
-          <label for="{{ field.id_for_label }}">
-            {{ field.label }}
-            {% if field.field.required %}*{% endif %}
-          </label>
-          {{ field }}
-          {% if field.errors %}
-            <span class="error">{{ field.errors.0 }}</span>
-          {% endif %}
-          {% if field.help_text %}
-            <small class="form-text">{{ field.help_text }}</small>
-          {% endif %}
-        </div>
-        {% endif %}
+{% block form_sections %}
+<div class="form-section">
+  {% if form.allowed_warehouses %}
+  <div class="form-field full-width">
+    <label>{{ form.allowed_warehouses.label }}{% if form.allowed_warehouses.field.required %}*{% endif %}</label>
+    <div class="checkbox-grid">
+      {% for checkbox in form.allowed_warehouses %}
+        <label class="checkbox-item">
+          {{ checkbox.tag }}
+          <span>{{ checkbox.choice_label }}</span>
+        </label>
       {% endfor %}
     </div>
+    {% if form.allowed_warehouses.errors %}
+      <span class="error">{{ form.allowed_warehouses.errors.0 }}</span>
+    {% endif %}
+    {% if form.allowed_warehouses.help_text %}
+      <small class="form-text">{{ form.allowed_warehouses.help_text }}</small>
+    {% endif %}
+  </div>
+  {% endif %}
 
-    <div class="form-section">
-      <h3 style="margin-top: 2rem;">واحدهای ثانویه (اختیاری)</h3>
-      <p class="form-text">
-        در صورت نیاز می‌توانید تبدیل واحد تعریف کنید (مثلاً ۲ متر = ۲۰ کیلوگرم).
-      </p>
-      {{ units_formset.management_form }}
-      {% for hidden in units_formset.hidden_fields %}{{ hidden }}{% endfor %}
+  {% for field in form.visible_fields %}
+    {% if field.name != 'allowed_warehouses' %}
+    <div class="form-field">
+      <label for="{{ field.id_for_label }}">
+        {{ field.label }}
+        {% if field.field.required %}*{% endif %}
+      </label>
+      {{ field }}
+      {% if field.errors %}
+        <span class="error">{{ field.errors.0 }}</span>
+      {% endif %}
+      {% if field.help_text %}
+        <small class="form-text">{{ field.help_text }}</small>
+      {% endif %}
+    </div>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endblock %}
 
-      <div class="unit-formset" id="unit-formset">
-        {% for unit_form in units_formset %}
-          <div class="unit-form">
-            {% for hidden in unit_form.hidden_fields %}{{ hidden }}{% endfor %}
-            <div class="unit-row">
-              <div class="unit-field">
-                <label>{{ unit_form.from_quantity.label }}</label>
-                {{ unit_form.from_quantity }}
-                {% if unit_form.from_quantity.errors %}
-                  <span class="error">{{ unit_form.from_quantity.errors.0 }}</span>
-                {% endif %}
-              </div>
-              <div class="unit-field">
-                <label>{{ unit_form.from_unit.label }}</label>
-                {{ unit_form.from_unit }}
-                {% if unit_form.from_unit.errors %}
-                  <span class="error">{{ unit_form.from_unit.errors.0 }}</span>
-                {% endif %}
-              </div>
-              <div class="unit-field">
-                <label>{{ unit_form.to_quantity.label }}</label>
-                {{ unit_form.to_quantity }}
-                {% if unit_form.to_quantity.errors %}
-                  <span class="error">{{ unit_form.to_quantity.errors.0 }}</span>
-                {% endif %}
-              </div>
-              <div class="unit-field">
-                <label>{{ unit_form.to_unit.label }}</label>
-                {{ unit_form.to_unit }}
-                {% if unit_form.to_unit.errors %}
-                  <span class="error">{{ unit_form.to_unit.errors.0 }}</span>
-                {% endif %}
-              </div>
-              <div class="unit-field">
-                <label>{{ unit_form.description.label }}</label>
-                {{ unit_form.description }}
-              </div>
-              <div class="unit-field">
-                <label>{{ unit_form.notes.label }}</label>
-                {{ unit_form.notes }}
-              </div>
-              {% if units_formset.can_delete %}
-              <div class="unit-field unit-delete">
-                <label>{{ unit_form.DELETE.label }}</label>
-                {{ unit_form.DELETE }}
-              </div>
-              {% endif %}
-            </div>
-            {% if unit_form.non_field_errors %}
-              <div class="error">{{ unit_form.non_field_errors|join:", " }}</div>
+{% block form_extra %}
+<div class="form-section">
+  <h3 style="margin-top: 2rem;">{% trans "Unit Conversions (Optional)" %}</h3>
+  <p class="form-text">
+    {% trans "You can define unit conversions if needed (e.g., 2 meters = 20 kilograms)." %}
+  </p>
+  {{ units_formset.management_form }}
+  {% for hidden in units_formset.hidden_fields %}{{ hidden }}{% endfor %}
+
+  <div class="unit-formset" id="unit-formset">
+    {% for unit_form in units_formset %}
+      <div class="unit-form">
+        {% for hidden in unit_form.hidden_fields %}{{ hidden }}{% endfor %}
+        <div class="unit-row">
+          <div class="unit-field">
+            <label>{{ unit_form.from_quantity.label }}</label>
+            {{ unit_form.from_quantity }}
+            {% if unit_form.from_quantity.errors %}
+              <span class="error">{{ unit_form.from_quantity.errors.0 }}</span>
             {% endif %}
           </div>
-        {% endfor %}
+          <div class="unit-field">
+            <label>{{ unit_form.from_unit.label }}</label>
+            {{ unit_form.from_unit }}
+            {% if unit_form.from_unit.errors %}
+              <span class="error">{{ unit_form.from_unit.errors.0 }}</span>
+            {% endif %}
+          </div>
+          <div class="unit-field">
+            <label>{{ unit_form.to_quantity.label }}</label>
+            {{ unit_form.to_quantity }}
+            {% if unit_form.to_quantity.errors %}
+              <span class="error">{{ unit_form.to_quantity.errors.0 }}</span>
+            {% endif %}
+          </div>
+          <div class="unit-field">
+            <label>{{ unit_form.to_unit.label }}</label>
+            {{ unit_form.to_unit }}
+            {% if unit_form.to_unit.errors %}
+              <span class="error">{{ unit_form.to_unit.errors.0 }}</span>
+            {% endif %}
+          </div>
+          <div class="unit-field">
+            <label>{{ unit_form.description.label }}</label>
+            {{ unit_form.description }}
+          </div>
+          <div class="unit-field">
+            <label>{{ unit_form.notes.label }}</label>
+            {{ unit_form.notes }}
+          </div>
+          {% if units_formset.can_delete %}
+          <div class="unit-field unit-delete">
+            <label>{{ unit_form.DELETE.label }}</label>
+            {{ unit_form.DELETE }}
+          </div>
+          {% endif %}
+        </div>
+        {% if unit_form.non_field_errors %}
+          <div class="error">{{ unit_form.non_field_errors|join:", " }}</div>
+        {% endif %}
       </div>
-      <button type="button" id="add-unit-row" class="btn btn-secondary" style="margin-top: 1rem;">
-        + {% trans "Add Unit Conversion" %}
-      </button>
-      
-      <!-- Empty form template for cloning -->
-      <div id="empty-unit-form" style="display: none;">
-        {{ units_formset.empty_form }}
-      </div>
-    </div>
-
-    <div class="form-actions">
-      <button type="submit" class="btn btn-primary">ذخیره</button>
-      <a href="{% url 'inventory:items' %}" class="btn btn-secondary">لغو</a>
-    </div>
-  </form>
+    {% endfor %}
+  </div>
+  <button type="button" id="add-unit-row" class="btn btn-secondary" style="margin-top: 1rem;">
+    + {% trans "Add Unit Conversion" %}
+  </button>
+  
+  <!-- Empty form template for cloning -->
+  <div id="empty-unit-form" style="display: none;">
+    {{ units_formset.empty_form }}
+  </div>
 </div>
+{% endblock %}
 
+{% block extra_styles %}
 <style>
 .unit-formset {
   display: flex;
@@ -194,7 +191,9 @@
   cursor: pointer;
 }
 </style>
+{% endblock %}
 
+{% block form_scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   // Unit formset handling
@@ -255,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function loadSubcategories(categoryId, typeId, selectedSubcategoryId = null) {
     if (!subcategorySelect) return;
     
-    subcategorySelect.innerHTML = '<option value="">--- انتخاب کنید ---</option>';
+    subcategorySelect.innerHTML = '<option value="">--- {% trans "Please select" %} ---</option>';
     subcategorySelect.disabled = true;
     
     if (!categoryId) {
@@ -273,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
           return;
         }
         
-        subcategorySelect.innerHTML = '<option value="">--- انتخاب کنید ---</option>';
+        subcategorySelect.innerHTML = '<option value="">--- {% trans "Please select" %} ---</option>';
         if (data.subcategories && data.subcategories.length > 0) {
           data.subcategories.forEach(sub => {
             const option = document.createElement('option');
@@ -318,17 +317,5 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSubcategories(categoryId, typeId, subcategoryId);
   }
 });
-
-function handleFormSubmit(event) {
-  const form = event.target;
-  
-  // Check form validation
-  if (!form.checkValidity()) {
-    form.reportValidity();
-    return false;
-  }
-  
-  return true;
-}
 </script>
 {% endblock %}

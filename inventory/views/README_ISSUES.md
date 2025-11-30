@@ -29,12 +29,16 @@
 
 **Type**: `InventoryBaseView, ListView`
 
-**Template**: `inventory/issue_permanent.html`
+**Template**: `inventory/issue_permanent.html` (extends `shared/generic/generic_list.html`)
+
+**Generic Templates**:
+- **List Template**: `inventory/issue_permanent.html` extends `shared/generic/generic_list.html`
+  - Overrides: `breadcrumb_extra`, `page_actions`, `before_table` (stats cards), `filter_fields`, `table_headers`, `table_rows`, `empty_state_title`, `empty_state_message`, `empty_state_icon`
 
 **Attributes**:
 - `model`: `models.IssuePermanent`
 - `template_name`: `'inventory/issue_permanent.html'`
-- `context_object_name`: `'issues'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 - `ordering`: `['-id']` (جدیدترین اول)
 
@@ -57,27 +61,44 @@
 
 #### `get_queryset(self) -> QuerySet`
 
-**توضیح**: queryset را با prefetch برای بهینه‌سازی query برمی‌گرداند.
+**توضیح**: queryset را با prefetch برای بهینه‌سازی query و فیلترها برمی‌گرداند.
 
 **پارامترهای ورودی**: ندارد
 
 **مقدار بازگشتی**:
-- `QuerySet`: queryset با `select_related` و `prefetch_related`
+- `QuerySet`: queryset با `select_related` و `prefetch_related` و فیلترها
 
 **منطق**:
 1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
 2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.issues.permanent', 'created_by')`
 3. `select_related('created_by', 'department_unit', 'warehouse_request')` را اعمال می‌کند
 4. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
-5. queryset را برمی‌گرداند
+5. **فیلتر Posted Status**: اگر `posted=1` باشد، فقط issues با `is_locked=1`، اگر `posted=0` باشد، فقط issues با `is_locked=0`
+6. **فیلتر Search**: جستجو در `document_code`, `lines__item__name`, `lines__item__item_code`
+7. queryset را برمی‌گرداند
 
 **نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
 
 ---
 
+#### `_get_stats(self) -> Dict[str, int]`
+
+**توضیح**: آمار کلی برای کارت‌های بالای صفحه محاسبه می‌کند.
+
+**مقدار بازگشتی**:
+- `Dict[str, int]`: شامل `total`, `posted`, `draft`
+
+**منطق**:
+1. base queryset را بر اساس `company_id` می‌سازد
+2. `total`: تعداد کل issues
+3. `posted`: issues با `is_locked=1`
+4. `draft`: issues با `is_locked=0`
+
+---
+
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
 
-**توضیح**: context variables را برای template اضافه می‌کند.
+**توضیح**: context variables را برای generic list template آماده می‌کند.
 
 **پارامترهای ورودی**:
 - `**kwargs`: متغیرهای context اضافی
@@ -85,16 +106,34 @@
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با تمام متغیرهای لازم
 
-**Context Variables اضافه شده**:
+**Context Variables برای Generic Template**:
+- `page_title`: `_('Permanent Issues')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
 - `create_url`: `reverse_lazy('inventory:issue_permanent_create')`
+- `create_button_text`: `_('Create Permanent Issue')`
+- `show_filters`: `True`
+- `print_enabled`: `True`
+- `show_actions`: `True`
+
+**Context Variables برای Issue-Specific Features**:
+- `create_label`: `_('Permanent Issue')`
 - `edit_url_name`: `'inventory:issue_permanent_edit'`
 - `delete_url_name`: `'inventory:issue_permanent_delete'`
 - `lock_url_name`: `'inventory:issue_permanent_lock'`
-- `create_label`: `_('Permanent Issue')`
+- `detail_url_name`: `'inventory:issue_permanent_detail'`
 - `show_warehouse_request`: `True`
 - `warehouse_request_url_name`: `'inventory:warehouse_request_edit'`
-- `serial_url_name`: `None`
-- `can_delete_own`, `can_delete_all`: از `add_delete_permissions_to_context()` (از `DocumentDeleteViewBase`)
+- `empty_state_title`: `_('No Issues Found')`
+- `empty_state_message`: `_('Start by creating your first issue document.')`
+- `empty_state_icon`: `'📤'`
+
+**Context Variables برای Permissions**:
+- `can_delete_own`, `can_delete_other`: از `add_delete_permissions_to_context()` (از `DocumentDeleteViewBase`)
+
+**Context Variables دیگر**:
+- `stats`: آمار از `_get_stats()` (برای stats cards)
+- `search_query`: مقدار فعلی جستجو
+- `user`: کاربر فعلی (برای permission checks در template)
 
 **URL**: `/inventory/issues/permanent/`
 
@@ -321,13 +360,16 @@
 
 **Type**: `DocumentDeleteViewBase`
 
-**Template**: `inventory/issue_permanent_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
+
+**Generic Templates**:
+- **Delete Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `inventory:issue_permanent`
 
 **Attributes**:
 - `model`: `models.IssuePermanent`
-- `template_name`: `'inventory/issue_permanent_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('inventory:issue_permanent')`
 - `feature_code`: `'inventory.issues.permanent'`
 - `required_action`: `'delete_own'`
@@ -335,7 +377,19 @@
 - `success_message`: `_('حواله دائم با موفقیت حذف شد.')`
 
 **متدها**:
-- از متدهای `DocumentDeleteViewBase` استفاده می‌کند که شامل permission checking و error handling است
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic delete template آماده می‌کند.
+
+**Context Variables برای Generic Template**:
+- `delete_title`: `_('Delete Permanent Issue')`
+- `confirmation_message`: `_('Do you really want to delete this permanent issue?')`
+- `object_details`: لیست جزئیات issue (Document Code, Document Date, Created By)
+- `cancel_url`: `reverse_lazy('inventory:issue_permanent')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+
+**نکته**: از متدهای `DocumentDeleteViewBase` استفاده می‌کند که شامل permission checking و error handling است
 
 **URL**: `/inventory/issues/permanent/<pk>/delete/`
 
@@ -410,66 +464,77 @@
 
 **Type**: `InventoryBaseView, ListView`
 
-**Template**: `inventory/issue_consumption.html`
+**Template**: `inventory/issue_consumption.html` (extends `shared/generic/generic_list.html`)
+
+**Generic Templates**:
+- **List Template**: `inventory/issue_consumption.html` extends `shared/generic/generic_list.html`
+  - Overrides: `breadcrumb_extra`, `page_actions`, `before_table` (stats cards), `filter_fields`, `table_headers`, `table_rows`, `empty_state_title`, `empty_state_message`, `empty_state_icon`
 
 **Attributes**:
 - `model`: `models.IssueConsumption`
 - `template_name`: `'inventory/issue_consumption.html'`
-- `context_object_name`: `'issues'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 - `ordering`: `['-id']` (جدیدترین اول)
-
-**Context Variables**:
-- `issues`: queryset حواله‌های مصرف (paginated)
-- `create_url`: URL برای ایجاد حواله جدید
-- `edit_url_name`: نام URL pattern برای ویرایش
-- `delete_url_name`: نام URL pattern برای حذف
-- `lock_url_name`: نام URL pattern برای قفل کردن
-- `create_label`: `_('Consumption Issue')`
-- `serial_url_name`: `None`
-- `can_delete_own`, `can_delete_all`: از `add_delete_permissions_to_context()`
-- `active_module`: `'inventory'` (از `InventoryBaseView`)
 
 **متدها**:
 
 #### `get_queryset(self) -> QuerySet`
 
-**توضیح**: queryset را با prefetch برای بهینه‌سازی query برمی‌گرداند.
-
-**پارامترهای ورودی**: ندارد
-
-**مقدار بازگشتی**:
-- `QuerySet`: queryset با `select_related('created_by')`
+**توضیح**: queryset را با prefetch برای بهینه‌سازی query و فیلترها برمی‌گرداند.
 
 **منطق**:
 1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
 2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.issues.consumption', 'created_by')`
-3. `select_related('created_by')` را اعمال می‌کند
-4. queryset را برمی‌گرداند
-
-**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+3. `select_related('created_by', 'department_unit')` را اعمال می‌کند
+4. `prefetch_related('lines__item', 'lines__warehouse')` را اعمال می‌کند
+5. **فیلتر Posted Status**: اگر `posted=1` باشد، فقط issues با `is_locked=1`، اگر `posted=0` باشد، فقط issues با `is_locked=0`
+6. **فیلتر Search**: جستجو در `document_code`, `lines__item__name`, `lines__item__item_code`
+7. queryset را برمی‌گرداند
 
 ---
 
-#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+#### `_get_stats(self) -> Dict[str, int]`
 
-**توضیح**: context variables را برای template اضافه می‌کند.
-
-**پارامترهای ورودی**:
-- `**kwargs`: متغیرهای context اضافی
+**توضیح**: آمار کلی برای کارت‌های بالای صفحه محاسبه می‌کند.
 
 **مقدار بازگشتی**:
-- `Dict[str, Any]`: context با تمام متغیرهای لازم
+- `Dict[str, int]`: شامل `total`, `posted`, `draft`
 
-**Context Variables اضافه شده**:
+**منطق**: مشابه `IssuePermanentListView._get_stats()`
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic list template آماده می‌کند.
+
+**Context Variables برای Generic Template**:
+- `page_title`: `_('Consumption Issues')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
 - `create_url`: `reverse_lazy('inventory:issue_consumption_create')`
+- `create_button_text`: `_('Create Consumption Issue')`
+- `show_filters`: `True`
+- `print_enabled`: `True`
+- `show_actions`: `True`
+
+**Context Variables برای Issue-Specific Features**:
+- `create_label`: `_('Consumption Issue')`
 - `edit_url_name`: `'inventory:issue_consumption_edit'`
 - `delete_url_name`: `'inventory:issue_consumption_delete'`
 - `lock_url_name`: `'inventory:issue_consumption_lock'`
 - `detail_url_name`: `'inventory:issue_consumption_detail'`
-- `create_label`: `_('Consumption Issue')`
-- `serial_url_name`: `None`
+- `empty_state_title`: `_('No Issues Found')`
+- `empty_state_message`: `_('Start by creating your first issue document.')`
+- `empty_state_icon`: `'📤'`
+
+**Context Variables برای Permissions**:
 - `can_delete_own`, `can_delete_other`: از `add_delete_permissions_to_context()`
+
+**Context Variables دیگر**:
+- `stats`: آمار از `_get_stats()` (برای stats cards)
+- `search_query`: مقدار فعلی جستجو
+- `user`: کاربر فعلی (برای permission checks در template)
 
 **URL**: `/inventory/issues/consumption/`
 
@@ -679,18 +744,34 @@
 
 **Type**: `DocumentDeleteViewBase`
 
-**Template**: `inventory/issue_consumption_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
+
+**Generic Templates**:
+- **Delete Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `inventory:issue_consumption`
 
 **Attributes**:
 - `model`: `models.IssueConsumption`
-- `template_name`: `'inventory/issue_consumption_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('inventory:issue_consumption')`
 - `feature_code`: `'inventory.issues.consumption'`
 - `required_action`: `'delete_own'`
 - `allow_own_scope`: `True`
 - `success_message`: `_('حواله مصرفی با موفقیت حذف شد.')`
+
+**متدها**:
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic delete template آماده می‌کند.
+
+**Context Variables برای Generic Template**:
+- `delete_title`: `_('Delete Consumption Issue')`
+- `confirmation_message`: `_('Do you really want to delete this consumption issue?')`
+- `object_details`: لیست جزئیات issue (Document Code, Document Date, Created By)
+- `cancel_url`: `reverse_lazy('inventory:issue_consumption')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
 
 **URL**: `/inventory/issues/consumption/<pk>/delete/`
 
@@ -754,51 +835,77 @@
 
 **Type**: `InventoryBaseView, ListView`
 
-**Template**: `inventory/issue_consignment.html`
+**Template**: `inventory/issue_consignment.html` (extends `shared/generic/generic_list.html`)
+
+**Generic Templates**:
+- **List Template**: `inventory/issue_consignment.html` extends `shared/generic/generic_list.html`
+  - Overrides: `breadcrumb_extra`, `page_actions`, `before_table` (stats cards), `filter_fields`, `table_headers`, `table_rows`, `empty_state_title`, `empty_state_message`, `empty_state_icon`
 
 **Attributes**:
 - `model`: `models.IssueConsignment`
 - `template_name`: `'inventory/issue_consignment.html'`
-- `context_object_name`: `'issues'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 - `ordering`: `['-id']` (جدیدترین اول)
-
-**Context Variables**:
-- مشابه `IssueConsumptionListView`
 
 **متدها**:
 
 #### `get_queryset(self) -> QuerySet`
 
-**توضیح**: queryset را با prefetch برای بهینه‌سازی query برمی‌گرداند.
-
-**پارامترهای ورودی**: ندارد
-
-**مقدار بازگشتی**:
-- `QuerySet`: queryset با `select_related('created_by')`
+**توضیح**: queryset را با prefetch برای بهینه‌سازی query و فیلترها برمی‌گرداند.
 
 **منطق**:
 1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
 2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.issues.consignment', 'created_by')`
-3. `select_related('created_by')` را اعمال می‌کند
-4. queryset را برمی‌گرداند
-
-**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+3. `select_related('created_by', 'department_unit')` را اعمال می‌کند
+4. `prefetch_related('lines__item', 'lines__warehouse', 'lines__supplier')` را اعمال می‌کند
+5. **فیلتر Posted Status**: اگر `posted=1` باشد، فقط issues با `is_locked=1`، اگر `posted=0` باشد، فقط issues با `is_locked=0`
+6. **فیلتر Search**: جستجو در `document_code`, `lines__item__name`, `lines__item__item_code`
+7. queryset را برمی‌گرداند
 
 ---
 
-#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+#### `_get_stats(self) -> Dict[str, int]`
 
-**توضیح**: context variables را برای template اضافه می‌کند.
-
-**پارامترهای ورودی**:
-- `**kwargs`: متغیرهای context اضافی
+**توضیح**: آمار کلی برای کارت‌های بالای صفحه محاسبه می‌کند.
 
 **مقدار بازگشتی**:
-- `Dict[str, Any]`: context با تمام متغیرهای لازم
+- `Dict[str, int]`: شامل `total`, `posted`, `draft`
 
-**Context Variables اضافه شده**:
-- مشابه `IssueConsumptionListView.get_context_data()` اما با URL های مربوط به consignment
+**منطق**: مشابه `IssuePermanentListView._get_stats()`
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic list template آماده می‌کند.
+
+**Context Variables برای Generic Template**:
+- `page_title`: `_('Consignment Issues')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `create_url`: `reverse_lazy('inventory:issue_consignment_create')`
+- `create_button_text`: `_('Create Consignment Issue')`
+- `show_filters`: `True`
+- `print_enabled`: `True`
+- `show_actions`: `True`
+
+**Context Variables برای Issue-Specific Features**:
+- `create_label`: `_('Consignment Issue')`
+- `edit_url_name`: `'inventory:issue_consignment_edit'`
+- `delete_url_name`: `'inventory:issue_consignment_delete'`
+- `lock_url_name`: `'inventory:issue_consignment_lock'`
+- `detail_url_name`: `'inventory:issue_consignment_detail'`
+- `empty_state_title`: `_('No Issues Found')`
+- `empty_state_message`: `_('Start by creating your first issue document.')`
+- `empty_state_icon`: `'📤'`
+
+**Context Variables برای Permissions**:
+- `can_delete_own`, `can_delete_other`: از `add_delete_permissions_to_context()`
+
+**Context Variables دیگر**:
+- `stats`: آمار از `_get_stats()` (برای stats cards)
+- `search_query`: مقدار فعلی جستجو
+- `user`: کاربر فعلی (برای permission checks در template)
 
 **URL**: `/inventory/issues/consignment/`
 
@@ -951,18 +1058,34 @@
 
 **Type**: `DocumentDeleteViewBase`
 
-**Template**: `inventory/issue_consignment_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
+
+**Generic Templates**:
+- **Delete Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `inventory:issue_consignment`
 
 **Attributes**:
 - `model`: `models.IssueConsignment`
-- `template_name`: `'inventory/issue_consignment_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('inventory:issue_consignment')`
 - `feature_code`: `'inventory.issues.consignment'`
 - `required_action`: `'delete_own'`
 - `allow_own_scope`: `True`
 - `success_message`: `_('حواله امانی با موفقیت حذف شد.')`
+
+**متدها**:
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic delete template آماده می‌کند.
+
+**Context Variables برای Generic Template**:
+- `delete_title`: `_('Delete Consignment Issue')`
+- `confirmation_message`: `_('Do you really want to delete this consignment issue?')`
+- `object_details`: لیست جزئیات issue (Document Code, Document Date, Created By)
+- `cancel_url`: `reverse_lazy('inventory:issue_consignment')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
 
 **URL**: `/inventory/issues/consignment/<pk>/delete/`
 

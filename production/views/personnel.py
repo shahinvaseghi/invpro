@@ -22,7 +22,7 @@ class PersonnelListView(FeaturePermissionRequiredMixin, ListView):
     """
     model = Person
     template_name = 'production/personnel.html'
-    context_object_name = 'personnel'
+    context_object_name = 'object_list'
     paginate_by = 50
     feature_code = 'production.personnel'
     

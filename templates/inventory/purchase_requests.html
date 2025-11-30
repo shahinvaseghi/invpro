@@ -1,7 +1,5 @@
-{% extends "inventory/base.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n jalali_tags %}
-
-{% block page_title %}{% trans "Purchase Requests" %}{% endblock %}
 
 {% block breadcrumb_extra %}
 <span class="separator">/</span>
@@ -10,222 +8,212 @@
 
 {% block page_actions %}
 <div class="page-actions">
-  <a href="{{ create_url }}" class="btn btn-primary">
-    + {% trans "Create" %} {% trans "Purchase Requests" %}
-  </a>
-  <button onclick="window.print()" class="btn btn-secondary">
-    {% trans "Print" %}
-  </button>
+  {% if create_url %}
+    <a href="{{ create_url }}" class="btn btn-primary">
+      + {% trans "Create" %} {% trans "Purchase Requests" %}
+    </a>
+  {% endif %}
+  {% if print_enabled %}
+    <button onclick="window.print()" class="btn btn-secondary">
+      {% trans "Print" %}
+    </button>
+  {% endif %}
 </div>
 {% endblock %}
 
-{% block inventory_content %}
-<!-- Stats Summary -->
+{% block before_table %}
+<style>
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .stat-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+  }
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+  }
+  .action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .muted {
+    color: #6b7280;
+    font-size: 0.75rem;
+    display: block;
+  }
+</style>
+{% if stats %}
 <div class="stats-grid">
   <div class="stat-card">
     <div class="stat-label">{% trans "Total" %}</div>
-    <div class="stat-value">{{ total_count }}</div>
+    <div class="stat-value">{{ stats.total }}</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">{% trans "Pending Approval" %}</div>
-    <div class="stat-value" style="color: #f59e0b;">{{ draft_count }}</div>
+    <div class="stat-value" style="color: #f59e0b;">{{ stats.draft }}</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">{% trans "Approved" %}</div>
-    <div class="stat-value" style="color: #10b981;">{{ approved_count }}</div>
+    <div class="stat-value" style="color: #10b981;">{{ stats.approved }}</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">{% trans "Fulfilled" %}</div>
-    <div class="stat-value" style="color: #3b82f6;">{{ fulfilled_count }}</div>
+    <div class="stat-value" style="color: #3b82f6;">{{ stats.fulfilled }}</div>
   </div>
-</div>
-
-<!-- Filter Panel -->
-<div class="filter-panel">
-  <h3>{% trans "Filter" %}</h3>
-  <form method="get" action="" class="filter-form">
-    <div class="form-group">
-      <label for="status">{% trans "Status" %}</label>
-      <select name="status" id="status" class="form-control">
-        <option value="" {% if not status_filter %}selected{% endif %}>-- {% trans "All" %} --</option>
-        <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>{% trans "Draft" %}</option>
-        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>{% trans "Approved" %}</option>
-        <option value="ordered" {% if status_filter == 'ordered' %}selected{% endif %}>{% trans "Ordered" %}</option>
-        <option value="fulfilled" {% if status_filter == 'fulfilled' %}selected{% endif %}>{% trans "Fulfilled" %}</option>
-        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>{% trans "Cancelled" %}</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label for="priority">{% trans "Priority" %}</label>
-      <select name="priority" id="priority" class="form-control">
-        <option value="" {% if not priority_filter %}selected{% endif %}>-- {% trans "All" %} --</option>
-        <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>{% trans "Low" %}</option>
-        <option value="normal" {% if priority_filter == 'normal' %}selected{% endif %}>{% trans "Normal" %}</option>
-        <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>{% trans "High" %}</option>
-        <option value="urgent" {% if priority_filter == 'urgent' %}selected{% endif %}>{% trans "Urgent" %}</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label for="search">{% trans "Search" %}</label>
-      <input type="text" name="search" id="search" 
-             placeholder="{% trans 'Request code or item' %}" 
-             value="{{ search_term }}"
-             class="form-control">
-    </div>
-
-    <div class="form-group" style="align-self: flex-end;">
-      <button type="submit" class="btn btn-primary" style="width: 100%;">
-        {% trans "Filter" %}
-      </button>
-    </div>
-  </form>
-</div>
-
-<!-- Purchase Requests Table -->
-<div class="data-table-container">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>{% trans "Request Code" %}</th>
-        <th>{% trans "Request Date" %}</th>
-        <th>{% trans "Item" %}</th>
-        <th>{% trans "Quantity" %}</th>
-        <th>{% trans "Requester" %}</th>
-        <th>{% trans "Approver" %}</th>
-        <th>{% trans "Needed By" %}</th>
-        <th>{% trans "Priority" %}</th>
-        <th>{% trans "Status" %}</th>
-        <th>{% trans "Actions" %}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% if purchase_requests %}
-        {% for pr in purchase_requests %}
-        <tr>
-          <td><code>{{ pr.request_code }}</code></td>
-          <td>{{ pr.request_date|jalali_date }}</td>
-          <td>
-            {% if pr.lines.exists %}
-              <strong>{% trans "Multiple Items" %}</strong><br>
-              <small style="color: #6b7280;">{{ pr.lines.count }} {% trans "line(s)" %}</small>
-            {% else %}
-              <strong>{{ pr.item.name }}</strong><br>
-              <small style="color: #6b7280;"><code>{{ pr.item_code }}</code></small>
-            {% endif %}
-          </td>
-          <td style="text-align: right;">
-            {% if pr.lines.exists %}
-              {{ pr.total_quantity_requested|floatformat:2 }}
-            {% else %}
-              {{ pr.total_quantity_requested|floatformat:2 }}
-            {% endif %}
-          </td>
-          <td>
-            {% if pr.requested_by %}
-              {{ pr.requested_by.first_name }} {{ pr.requested_by.last_name }}
-            {% else %}
-              <span style="color: #6b7280;">—</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if pr.approver %}
-              {{ pr.approver.first_name }} {{ pr.approver.last_name }}
-            {% else %}
-              <span style="color: #6b7280;">—</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if pr.needed_by_date %}
-              {{ pr.needed_by_date|jalali_date }}
-            {% else %}
-              <span style="color: #6b7280;">—</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if pr.priority == 'urgent' %}
-              <span class="badge badge-rejected">{{ pr.get_priority_display }}</span>
-            {% elif pr.priority == 'high' %}
-              <span class="badge" style="background-color: #fbbf24; color: #78350f;">{{ pr.get_priority_display }}</span>
-            {% elif pr.priority == 'low' %}
-              <span class="badge badge-inactive">{{ pr.get_priority_display }}</span>
-            {% else %}
-              <span class="badge badge-draft">{{ pr.get_priority_display }}</span>
-            {% endif %}
-          </td>
-          <td>
-            <span class="badge
-              {% if pr.status == 'draft' %}badge-draft{% elif pr.status == 'approved' %}badge-approved
-              {% elif pr.status == 'fulfilled' %}badge-active{% elif pr.status == 'cancelled' %}badge-inactive{% else %}badge-pending{% endif %}">
-              {{ pr.get_status_display }}
-            </span>
-          </td>
-          <td>
-            <div class="action-buttons" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              {% if pr.can_current_user_edit %}
-                <a href="{% url edit_url_name pr.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
-                  {% trans "Edit" %}
-                </a>
-              {% endif %}
-              {% if pr.can_current_user_approve %}
-                <form method="post" action="{% url approve_url_name pr.pk %}" class="inline-lock-form" style="margin: 0;">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
-                    {% trans "Approve" %}
-                  </button>
-                </form>
-              {% endif %}
-              {% if pr.status == 'approved' %}
-                <a href="{% url 'inventory:purchase_request_create_temporary_receipt' pr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #10b981; color: white; text-decoration: none; border-radius: 4px;">
-                  {% trans "Temporary Receipt" %}
-                </a>
-                <a href="{% url 'inventory:purchase_request_create_permanent_receipt' pr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 4px;">
-                  {% trans "Permanent Receipt" %}
-                </a>
-                <a href="{% url 'inventory:purchase_request_create_consignment_receipt' pr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #8b5cf6; color: white; text-decoration: none; border-radius: 4px;">
-                  {% trans "Consignment Receipt" %}
-                </a>
-              {% endif %}
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      {% else %}
-        <tr>
-          <td colspan="9">
-            <div class="empty-state">
-              <div class="empty-state-icon">🛒</div>
-              <h3>{% trans "No Purchase Requests Found" %}</h3>
-              <p>{% trans "Start by creating your first purchase request." %}</p>
-              <a href="{{ create_url }}" class="btn btn-primary">
-                + {% trans "Create" %} {% trans "Purchase Requests" %}
-              </a>
-            </div>
-          </td>
-        </tr>
-      {% endif %}
-    </tbody>
-  </table>
-</div>
-
-<!-- Pagination -->
-{% if is_paginated %}
-<div class="pagination">
-  {% if page_obj.has_previous %}
-    <a href="?page=1">&laquo; {% trans "First" %}</a>
-    <a href="?page={{ page_obj.previous_page_number }}">{% trans "Previous" %}</a>
-  {% endif %}
-
-  <span class="current">
-    {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
-  </span>
-
-  {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}">{% trans "Next" %}</a>
-    <a href="?page={{ page_obj.paginator.num_pages }}">{% trans "Last" %} &raquo;</a>
-  {% endif %}
 </div>
 {% endif %}
 {% endblock %}
 
+{% block filter_fields %}
+<div class="form-group">
+  <label for="status">{% trans "Status" %}</label>
+  <select name="status" id="status" class="form-control">
+    <option value="" {% if not status_filter %}selected{% endif %}>-- {% trans "All" %} --</option>
+    <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>{% trans "Draft" %}</option>
+    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>{% trans "Approved" %}</option>
+    <option value="ordered" {% if status_filter == 'ordered' %}selected{% endif %}>{% trans "Ordered" %}</option>
+    <option value="fulfilled" {% if status_filter == 'fulfilled' %}selected{% endif %}>{% trans "Fulfilled" %}</option>
+    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>{% trans "Cancelled" %}</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label for="priority">{% trans "Priority" %}</label>
+  <select name="priority" id="priority" class="form-control">
+    <option value="" {% if not priority_filter %}selected{% endif %}>-- {% trans "All" %} --</option>
+    <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>{% trans "Low" %}</option>
+    <option value="normal" {% if priority_filter == 'normal' %}selected{% endif %}>{% trans "Normal" %}</option>
+    <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>{% trans "High" %}</option>
+    <option value="urgent" {% if priority_filter == 'urgent' %}selected{% endif %}>{% trans "Urgent" %}</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label for="search">{% trans "Search" %}</label>
+  <input type="text" name="search" id="search" 
+         placeholder="{% trans 'Request code or item' %}" 
+         value="{{ search_query }}"
+         class="form-control">
+</div>
+{% endblock %}
+
+{% block table_headers %}
+<th>{% trans "Request Code" %}</th>
+<th>{% trans "Request Date" %}</th>
+<th>{% trans "Item" %}</th>
+<th>{% trans "Quantity" %}</th>
+<th>{% trans "Requester" %}</th>
+<th>{% trans "Approver" %}</th>
+<th>{% trans "Needed By" %}</th>
+<th>{% trans "Priority" %}</th>
+<th>{% trans "Status" %}</th>
+<th>{% trans "Actions" %}</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for pr in object_list %}
+<tr>
+  <td><code>{{ pr.request_code }}</code></td>
+  <td>{{ pr.request_date|jalali_date }}</td>
+  <td>
+    {% if pr.lines.exists %}
+      <strong>{% trans "Multiple Items" %}</strong><br>
+      <small class="muted">{{ pr.lines.count }} {% trans "line(s)" %}</small>
+    {% else %}
+      <strong>{{ pr.item.name }}</strong><br>
+      <small class="muted"><code>{{ pr.item_code }}</code></small>
+    {% endif %}
+  </td>
+  <td style="text-align: right;">
+    {{ pr.total_quantity_requested|floatformat:2 }}
+  </td>
+  <td>
+    {% if pr.requested_by %}
+      {{ pr.requested_by.get_full_name|default:pr.requested_by.username }}
+    {% else %}
+      <span style="color: #6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if pr.approver %}
+      {{ pr.approver.get_full_name|default:pr.approver.username }}
+    {% else %}
+      <span style="color: #6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if pr.needed_by_date %}
+      {{ pr.needed_by_date|jalali_date }}
+    {% else %}
+      <span style="color: #6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if pr.priority == 'urgent' %}
+      <span class="badge badge-rejected">{{ pr.get_priority_display }}</span>
+    {% elif pr.priority == 'high' %}
+      <span class="badge" style="background-color: #fbbf24; color: #78350f;">{{ pr.get_priority_display }}</span>
+    {% elif pr.priority == 'low' %}
+      <span class="badge badge-inactive">{{ pr.get_priority_display }}</span>
+    {% else %}
+      <span class="badge badge-draft">{{ pr.get_priority_display }}</span>
+    {% endif %}
+  </td>
+  <td>
+    <span class="badge
+      {% if pr.status == 'draft' %}badge-draft{% elif pr.status == 'approved' %}badge-approved
+      {% elif pr.status == 'fulfilled' %}badge-active{% elif pr.status == 'cancelled' %}badge-inactive{% else %}badge-pending{% endif %}">
+      {{ pr.get_status_display }}
+    </span>
+  </td>
+  <td>
+    <div class="action-buttons">
+      {% if pr.can_current_user_edit %}
+        <a href="{% url edit_url_name pr.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+          {% trans "Edit" %}
+        </a>
+      {% endif %}
+      {% if pr.can_current_user_approve %}
+        <form method="post" action="{% url approve_url_name pr.pk %}" class="inline-lock-form" style="display:inline-flex; margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+            {% trans "Approve" %}
+          </button>
+        </form>
+      {% endif %}
+      {% if pr.status == 'approved' %}
+        <a href="{% url 'inventory:purchase_request_create_temporary_receipt' pr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #10b981; color: white; text-decoration: none; border-radius: 4px;">
+          {% trans "Temporary Receipt" %}
+        </a>
+        <a href="{% url 'inventory:purchase_request_create_permanent_receipt' pr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 4px;">
+          {% trans "Permanent Receipt" %}
+        </a>
+        <a href="{% url 'inventory:purchase_request_create_consignment_receipt' pr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #8b5cf6; color: white; text-decoration: none; border-radius: 4px;">
+          {% trans "Consignment Receipt" %}
+        </a>
+      {% endif %}
+    </div>
+  </td>
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block empty_state_title %}{{ empty_heading|default:_("No Purchase Requests Found") }}{% endblock %}
+{% block empty_state_message %}{{ empty_text|default:_("Start by creating your first purchase request.") }}{% endblock %}
+{% block empty_state_icon %}🛒{% endblock %}

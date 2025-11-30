@@ -118,7 +118,7 @@ class PurchaseRequestListView(InventoryBaseView, ListView):
     """List view for purchase requests."""
     model = models.PurchaseRequest
     template_name = 'inventory/purchase_requests.html'
-    context_object_name = 'purchase_requests'
+    context_object_name = 'object_list'
     paginate_by = 50
 
     def get_queryset(self):
@@ -141,30 +141,66 @@ class PurchaseRequestListView(InventoryBaseView, ListView):
             if value:
                 queryset = queryset.filter(
                     Q(request_code__icontains=value)
-                    | Q(item__name__icontains=value)
-                    | Q(item_code__icontains=value)
-                )
+                    | Q(lines__item__name__icontains=value)
+                    | Q(lines__item__item_code__icontains=value)
+                ).distinct()
         return queryset
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add statistics and filter context."""
-        context = super().get_context_data(**kwargs)
+    def _get_stats(self) -> Dict[str, int]:
+        """Return aggregate stats for summary cards."""
+        stats = {
+            'total': 0,
+            'draft': 0,
+            'approved': 0,
+            'fulfilled': 0,
+        }
         company_id: Optional[int] = self.request.session.get('active_company_id')
+        if not company_id:
+            return stats
         stats_queryset = models.PurchaseRequest.objects.filter(company_id=company_id)
-        context['total_count'] = stats_queryset.count()
-        context['draft_count'] = stats_queryset.filter(status=models.PurchaseRequest.Status.DRAFT).count()
-        context['approved_count'] = stats_queryset.filter(status=models.PurchaseRequest.Status.APPROVED).count()
-        context['ordered_count'] = stats_queryset.filter(status=models.PurchaseRequest.Status.ORDERED).count()
-        context['fulfilled_count'] = stats_queryset.filter(status=models.PurchaseRequest.Status.FULFILLED).count()
+        stats['total'] = stats_queryset.count()
+        stats['draft'] = stats_queryset.filter(status=models.PurchaseRequest.Status.DRAFT).count()
+        stats['approved'] = stats_queryset.filter(status=models.PurchaseRequest.Status.APPROVED).count()
+        stats['fulfilled'] = stats_queryset.filter(status=models.PurchaseRequest.Status.FULFILLED).count()
+        return stats
+
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic list template."""
+        context = super().get_context_data(**kwargs)
+        
+        # Generic list context
+        context['page_title'] = _('Purchase Requests')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+        ]
         context['create_url'] = reverse_lazy('inventory:purchase_request_create')
+        context['create_button_text'] = _('Create Purchase Request')
+        context['show_filters'] = True
+        context['print_enabled'] = True
+        context['show_actions'] = True
+        
+        # Purchase Request-specific context
         context['edit_url_name'] = 'inventory:purchase_request_edit'
         context['approve_url_name'] = 'inventory:purchase_request_approve'
+        context['empty_state_title'] = _('No Purchase Requests Found')
+        context['empty_state_message'] = _('Start by creating your first purchase request.')
+        context['empty_state_icon'] = '🛒'
+        
+        # Filters
         context['status_filter'] = self.request.GET.get('status', '')
         context['priority_filter'] = self.request.GET.get('priority', '')
-        context['search_term'] = self.request.GET.get('search', '')
+        context['search_query'] = self.request.GET.get('search', '')
+        
+        # Stats
+        context['stats'] = self._get_stats()
+        
+        # Permissions and approver logic
+        company_id: Optional[int] = self.request.session.get('active_company_id')
         approver_queryset = forms.get_purchase_request_approvers(company_id)
         approver_ids: Set[int] = set(approver_queryset.values_list('id', flat=True))
-        for pr in context['purchase_requests']:
+        
+        # Add permissions to each purchase request
+        for pr in context['object_list']:
             pr.can_current_user_edit = (
                 pr.status == models.PurchaseRequest.Status.DRAFT
                 and pr.requested_by_id == self.request.user.id
@@ -175,6 +211,7 @@ class PurchaseRequestListView(InventoryBaseView, ListView):
                 and pr.approver_id == self.request.user.id
             )
         context['approver_user_ids'] = list(approver_ids)
+        
         return context
 
 
@@ -472,7 +509,7 @@ class WarehouseRequestListView(InventoryBaseView, ListView):
     """List view for warehouse requests."""
     model = models.WarehouseRequest
     template_name = 'inventory/warehouse_requests.html'
-    context_object_name = 'requests'
+    context_object_name = 'object_list'
     paginate_by = 50
 
     def get_queryset(self):
@@ -480,7 +517,7 @@ class WarehouseRequestListView(InventoryBaseView, ListView):
         queryset = super().get_queryset()
         # Filter by user permissions (own vs all)
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.requests.warehouse', 'requester')
-        queryset = queryset.select_related('item', 'warehouse', 'requester', 'approver')
+        queryset = queryset.select_related('item', 'warehouse', 'requester', 'approver').prefetch_related('lines__item', 'lines__warehouse')
         status = self.request.GET.get('status')
         priority = self.request.GET.get('priority')
         search = self.request.GET.get('search')
@@ -493,29 +530,66 @@ class WarehouseRequestListView(InventoryBaseView, ListView):
             if value:
                 queryset = queryset.filter(
                     Q(request_code__icontains=value)
-                    | Q(item__name__icontains=value)
-                    | Q(item_code__icontains=value)
-                )
+                    | Q(lines__item__name__icontains=value)
+                    | Q(lines__item__item_code__icontains=value)
+                ).distinct()
         return queryset
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add statistics and filter context."""
-        context = super().get_context_data(**kwargs)
+    def _get_stats(self) -> Dict[str, int]:
+        """Return aggregate stats for summary cards."""
+        stats = {
+            'total': 0,
+            'draft': 0,
+            'approved': 0,
+            'issued': 0,
+        }
         company_id: Optional[int] = self.request.session.get('active_company_id')
+        if not company_id:
+            return stats
         stats_queryset = models.WarehouseRequest.objects.filter(company_id=company_id)
-        context['total_count'] = stats_queryset.count()
-        context['draft_count'] = stats_queryset.filter(request_status='draft').count()
-        context['approved_count'] = stats_queryset.filter(request_status='approved').count()
-        context['issued_count'] = stats_queryset.filter(request_status='issued').count()
+        stats['total'] = stats_queryset.count()
+        stats['draft'] = stats_queryset.filter(request_status='draft').count()
+        stats['approved'] = stats_queryset.filter(request_status='approved').count()
+        stats['issued'] = stats_queryset.filter(request_status='issued').count()
+        return stats
+
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic list template."""
+        context = super().get_context_data(**kwargs)
+        
+        # Generic list context
+        context['page_title'] = _('Warehouse Requests')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+        ]
         context['create_url'] = reverse_lazy('inventory:warehouse_request_create')
+        context['create_button_text'] = _('Create Warehouse Request')
+        context['show_filters'] = True
+        context['print_enabled'] = True
+        context['show_actions'] = True
+        
+        # Warehouse Request-specific context
         context['edit_url_name'] = 'inventory:warehouse_request_edit'
         context['approve_url_name'] = 'inventory:warehouse_request_approve'
+        context['empty_state_title'] = _('No Requests Found')
+        context['empty_state_message'] = _('Start by creating your first warehouse request.')
+        context['empty_state_icon'] = '📋'
+        
+        # Filters
         context['status_filter'] = self.request.GET.get('status', '')
         context['priority_filter'] = self.request.GET.get('priority', '')
-        context['search_term'] = self.request.GET.get('search', '')
+        context['search_query'] = self.request.GET.get('search', '')
+        
+        # Stats
+        context['stats'] = self._get_stats()
+        
+        # Permissions and approver logic
+        company_id: Optional[int] = self.request.session.get('active_company_id')
         approver_queryset = forms.get_feature_approvers("inventory.requests.warehouse", company_id)
         approver_ids: Set[int] = set(approver_queryset.values_list('id', flat=True))
-        for wr in context['requests']:
+        
+        # Add permissions to each warehouse request
+        for wr in context['object_list']:
             wr.can_current_user_edit = (
                 wr.request_status == 'draft'
                 and wr.requester_id == self.request.user.id
@@ -526,6 +600,7 @@ class WarehouseRequestListView(InventoryBaseView, ListView):
                 and wr.approver_id == self.request.user.id
             )
         context['approver_user_ids'] = list(approver_ids)
+        
         return context
 
 

@@ -18,7 +18,7 @@ class WorkLineListView(FeaturePermissionRequiredMixin, ListView):
     """List all work lines for the active company."""
     model = WorkLine
     template_name = 'production/work_lines.html'
-    context_object_name = 'work_lines'
+    context_object_name = 'object_list'
     paginate_by = 50
     feature_code = 'production.work_lines'
     required_action = 'view_own'

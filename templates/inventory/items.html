@@ -1,19 +1,19 @@
-{% extends "inventory/base.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n %}
-
-{% block page_title %}کالاها{% endblock %}
+{% load access_tags %}
 
 {% block breadcrumb_extra %}
 <span class="separator">/</span>
-<span>کالاها</span>
+<span>{% trans "Items" %}</span>
 {% endblock %}
 
 {% block page_actions %}
 <div class="page-actions">
-  <a href="{% url 'inventory:item_create' %}" class="btn btn-primary">
-    + تعریف کالای جدید
-  </a>
-  {% load access_tags %}
+  {% if create_url %}
+    <a href="{{ create_url }}" class="btn btn-primary">
+      + {{ create_button_text|default:"Create New" }}
+    </a>
+  {% endif %}
   {% if user_feature_permissions|feature_allowed:'inventory.master.item_types' %}
     <a href="{% url 'inventory:item_types' %}" class="btn btn-secondary">
       {% trans "Item Types" %}
@@ -30,204 +30,132 @@
     </a>
   {% endif %}
   <a href="{% url 'inventory:item_excel_template' %}" class="btn btn-secondary">
-    📥 دانلود اکسل نمونه
+    📥 {% trans "Download Excel Template" %}
   </a>
   <button type="button" onclick="document.getElementById('excel-import-form').style.display='block'" class="btn btn-secondary">
-    📤 وارد کردن گروهی کالا با اکسل
+    📤 {% trans "Import Items from Excel" %}
   </button>
-  <button onclick="window.print()" class="btn btn-secondary">
-    چاپ
-  </button>
+  {% if print_enabled %}
+    <button onclick="window.print()" class="btn btn-secondary">
+      {% trans "Print" %}
+    </button>
+  {% endif %}
 </div>
 
 <!-- Excel Import Form (hidden by default) -->
 <div id="excel-import-form" style="display: none; margin-top: 1rem; padding: 1.5rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;">
-  <h3 style="margin-bottom: 1rem;">وارد کردن گروهی کالا با اکسل</h3>
+  <h3 style="margin-bottom: 1rem;">{% trans "Import Items from Excel" %}</h3>
   <form method="post" action="{% url 'inventory:item_excel_import' %}" enctype="multipart/form-data">
     {% csrf_token %}
     <div style="display: flex; gap: 1rem; align-items: flex-end;">
       <div style="flex: 1;">
-        <label for="excel_file" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">انتخاب فایل Excel:</label>
+        <label for="excel_file" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">{% trans "Select Excel File" %}:</label>
         <input type="file" name="excel_file" id="excel_file" accept=".xlsx,.xls" required style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
       </div>
-      <button type="submit" class="btn btn-primary">آپلود و وارد کردن</button>
-      <button type="button" onclick="document.getElementById('excel-import-form').style.display='none'" class="btn btn-secondary">لغو</button>
+      <button type="submit" class="btn btn-primary">{% trans "Upload and Import" %}</button>
+      <button type="button" onclick="document.getElementById('excel-import-form').style.display='none'" class="btn btn-secondary">{% trans "Cancel" %}</button>
     </div>
     <p style="margin-top: 0.5rem; color: #6b7280; font-size: 0.875rem;">
-      لطفاً فایل Excel را مطابق با نمونه دانلود شده پر کنید.
+      {% trans "Please fill the Excel file according to the downloaded template." %}
     </p>
   </form>
 </div>
 {% endblock %}
 
-{% block inventory_content %}
-<!-- Filter Panel -->
-<div class="filter-panel">
-  <h3>فیلتر و جستجو</h3>
-  <form method="get" action="" class="filter-form">
-    <div class="form-group">
-      <label for="search">جستجو</label>
-      <input type="text" name="search" id="search" 
-             placeholder="جستجو بر اساس کد یا نام" 
-             value="{{ request.GET.search }}"
-             class="form-control">
-    </div>
-
-    <div class="form-group">
-      <label for="type">نوع کالا</label>
-      <select name="type" id="type" class="form-control">
-        <option value="">-- همه انواع --</option>
-        {% for item_type in item_types %}
-        <option value="{{ item_type.id }}" {% if request.GET.type == item_type.id|stringformat:"s" %}selected{% endif %}>{{ item_type.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label for="category">دسته‌بندی کالا</label>
-      <select name="category" id="category" class="form-control">
-        <option value="">-- همه دسته‌ها --</option>
-        {% for category in item_categories %}
-        <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label for="status">وضعیت</label>
-      <select name="status" id="status" class="form-control">
-        <option value="" {% if not request.GET.status %}selected{% endif %}>-- همه --</option>
-        <option value="1" {% if request.GET.status == '1' %}selected{% endif %}>فعال</option>
-        <option value="0" {% if request.GET.status == '0' %}selected{% endif %}>غیرفعال</option>
-      </select>
-    </div>
-
-    <div class="form-group" style="align-self: flex-end;">
-      <button type="submit" class="btn btn-primary" style="width: 100%;">اعمال فیلتر</button>
-    </div>
-  </form>
+{% block filter_fields %}
+<div class="form-group">
+  <label for="search">{% trans "Search" %}</label>
+  <input type="text" name="search" id="search" 
+         placeholder="{% trans "Search by code or name" %}" 
+         value="{{ request.GET.search }}"
+         class="form-control">
 </div>
 
-<!-- Items Table -->
-<div class="data-table-container">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>کد کالا</th>
-        <th>نام کالا</th>
-        <th>نوع</th>
-        <th>دسته‌بندی</th>
-        <th>شماره بچ</th>
-        <th>رهگیری</th>
-        <th>وضعیت</th>
-        <th>عملیات</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% if items %}
-        {% for item in items %}
-        <tr>
-          <td><code>{{ item.item_code }}</code></td>
-          <td><strong>{{ item.name }}</strong><br><small style="color: #6b7280;">{{ item.name_en }}</small></td>
-          <td>{{ item.type.name }}</td>
-          <td>{{ item.category.name }}</td>
-          <td><code>{{ item.batch_number }}</code></td>
-          <td>
-            {% if item.has_lot_tracking %}
-              <span class="badge badge-active">رهگیری می‌شود</span>
-            {% else %}
-              <span class="badge badge-inactive">بدون رهگیری</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if item.is_enabled %}
-              <span class="badge badge-active">فعال</span>
-            {% else %}
-              <span class="badge badge-inactive">غیرفعال</span>
-            {% endif %}
-          </td>
-          <td>
-            <a href="{% url 'inventory:item_edit' item.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
-              ویرایش
-            </a>
-            <a href="{% url 'inventory:item_delete' item.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
-              حذف
-            </a>
-          </td>
-        </tr>
-        {% endfor %}
-      {% else %}
-        <tr>
-          <td colspan="8">
-            <div class="empty-state">
-              <div class="empty-state-icon">📦</div>
-              <h3>هیچ کالایی ثبت نشده است</h3>
-              <p>برای شروع، یک کالای جدید تعریف کنید.</p>
-              <a href="{% url 'inventory:item_create' %}" class="btn btn-primary">
-                + تعریف کالای جدید
-              </a>
-            </div>
-          </td>
-        </tr>
-      {% endif %}
-    </tbody>
-  </table>
+<div class="form-group">
+  <label for="type">{% trans "Item Type" %}</label>
+  <select name="type" id="type" class="form-control">
+    <option value="">-- {% trans "All Types" %} --</option>
+    {% for item_type in item_types %}
+    <option value="{{ item_type.id }}" {% if request.GET.type == item_type.id|stringformat:"s" %}selected{% endif %}>{{ item_type.name }}</option>
+    {% endfor %}
+  </select>
 </div>
 
-<!-- Pagination -->
-{% if is_paginated %}
-<div class="pagination">
-  {% if page_obj.has_previous %}
-    <a href="?page=1">&laquo; {% trans "First" %}</a>
-    <a href="?page={{ page_obj.previous_page_number }}">{% trans "Previous" %}</a>
-  {% endif %}
+<div class="form-group">
+  <label for="category">{% trans "Category" %}</label>
+  <select name="category" id="category" class="form-control">
+    <option value="">-- {% trans "All Categories" %} --</option>
+    {% for category in item_categories %}
+    <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+    {% endfor %}
+  </select>
+</div>
 
-  <span class="current">
-    {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
-  </span>
-
-  {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}">{% trans "Next" %}</a>
-    <a href="?page={{ page_obj.paginator.num_pages }}">{% trans "Last" %} &raquo;</a>
-  {% endif %}
+{% if status_filter %}
+<div class="form-group">
+  <label for="status">{% trans "Status" %}</label>
+  <select name="status" id="status" class="form-control">
+    <option value="">-- {% trans "All" %} --</option>
+    <option value="1" {% if request.GET.status == '1' %}selected{% endif %}>{% trans "Active" %}</option>
+    <option value="0" {% if request.GET.status == '0' %}selected{% endif %}>{% trans "Inactive" %}</option>
+  </select>
 </div>
 {% endif %}
-
-<style>
-.alert {
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-  border: 1px solid;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.alert-success {
-  background-color: #d1fae5;
-  border-color: #10b981;
-  color: #065f46;
-}
-
-.alert-error,
-.alert-danger {
-  background-color: #fee2e2;
-  border-color: #ef4444;
-  color: #991b1b;
-}
-
-.alert-info {
-  background-color: #dbeafe;
-  border-color: #3b82f6;
-  color: #1e40af;
-}
-
-.alert-warning {
-  background-color: #fef3c7;
-  border-color: #f59e0b;
-  color: #92400e;
-}
-</style>
 {% endblock %}
 
+{% block table_headers %}
+<th>{% trans "Item Code" %}</th>
+<th>{% trans "Item Name" %}</th>
+<th>{% trans "Type" %}</th>
+<th>{% trans "Category" %}</th>
+<th>{% trans "Batch Number" %}</th>
+<th>{% trans "Lot Tracking" %}</th>
+<th>{% trans "Status" %}</th>
+{% if show_actions %}
+  <th>{% trans "Actions" %}</th>
+{% endif %}
+{% endblock %}
+
+{% block table_rows %}
+{% for item in object_list %}
+<tr>
+  <td><code>{{ item.item_code }}</code></td>
+  <td><strong>{{ item.name }}</strong>{% if item.name_en %}<br><small style="color: #6b7280;">{{ item.name_en }}</small>{% endif %}</td>
+  <td>{{ item.type.name }}</td>
+  <td>{{ item.category.name }}</td>
+  <td><code>{{ item.batch_number|default:"-" }}</code></td>
+  <td>
+    {% if item.has_lot_tracking %}
+      <span class="badge badge-active">{% trans "Tracked" %}</span>
+    {% else %}
+      <span class="badge badge-inactive">{% trans "Not Tracked" %}</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if item.is_enabled %}
+      <span class="badge badge-active">{% trans "Active" %}</span>
+    {% else %}
+      <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+    {% endif %}
+  </td>
+  {% if show_actions %}
+  <td>
+    {% if edit_url_name %}
+      <a href="{% url edit_url_name item.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+        {% trans "Edit" %}
+      </a>
+    {% endif %}
+    {% if delete_url_name %}
+      <a href="{% url delete_url_name item.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+        {% trans "Delete" %}
+      </a>
+    {% endif %}
+  </td>
+  {% endif %}
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block empty_state_title %}{% trans "No Items Found" %}{% endblock %}
+{% block empty_state_message %}{% trans "Start by creating your first item." %}{% endblock %}
+{% block empty_state_icon %}📦{% endblock %}

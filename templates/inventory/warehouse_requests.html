@@ -1,7 +1,5 @@
-{% extends "inventory/base.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n jalali_tags %}
-
-{% block page_title %}{% trans "Warehouse Requests" %}{% endblock %}
 
 {% block breadcrumb_extra %}
 <span class="separator">/</span>
@@ -10,225 +8,230 @@
 
 {% block page_actions %}
 <div class="page-actions">
-  <a href="{{ create_url }}" class="btn btn-primary">
-    + {% trans "Create" %} {% trans "Warehouse Requests" %}
-  </a>
-  <button onclick="window.print()" class="btn btn-secondary">
-    {% trans "Print" %}
-  </button>
+  {% if create_url %}
+    <a href="{{ create_url }}" class="btn btn-primary">
+      + {% trans "Create" %} {% trans "Warehouse Requests" %}
+    </a>
+  {% endif %}
+  {% if print_enabled %}
+    <button onclick="window.print()" class="btn btn-secondary">
+      {% trans "Print" %}
+    </button>
+  {% endif %}
 </div>
 {% endblock %}
 
-{% block inventory_content %}
-<!-- Stats Summary -->
+{% block before_table %}
+<style>
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .stat-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+  }
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+  }
+  .action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .muted {
+    color: #6b7280;
+    font-size: 0.75rem;
+    display: block;
+  }
+</style>
+{% if stats %}
 <div class="stats-grid">
   <div class="stat-card">
     <div class="stat-label">{% trans "Total" %}</div>
-    <div class="stat-value">{{ total_count }}</div>
+    <div class="stat-value">{{ stats.total }}</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">{% trans "Pending Approval" %}</div>
-    <div class="stat-value" style="color: #f59e0b;">{{ draft_count }}</div>
+    <div class="stat-value" style="color: #f59e0b;">{{ stats.draft }}</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">{% trans "Approved" %}</div>
-    <div class="stat-value" style="color: #10b981;">{{ approved_count }}</div>
+    <div class="stat-value" style="color: #10b981;">{{ stats.approved }}</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">{% trans "Issued" %}</div>
-    <div class="stat-value" style="color: #3b82f6;">{{ issued_count }}</div>
+    <div class="stat-value" style="color: #3b82f6;">{{ stats.issued }}</div>
   </div>
-</div>
-
-<!-- Filter Panel -->
-<div class="filter-panel">
-  <h3>{% trans "Filter" %}</h3>
-  <form method="get" action="" class="filter-form">
-    <div class="form-group">
-      <label for="status">{% trans "Status" %}</label>
-      <select name="status" id="status" class="form-control">
-        <option value="" {% if not status_filter %}selected{% endif %}>-- {% trans "All" %} --</option>
-        <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>{% trans "Draft" %}</option>
-        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>{% trans "Approved" %}</option>
-        <option value="issued" {% if status_filter == 'issued' %}selected{% endif %}>{% trans "Issued" %}</option>
-        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>{% trans "Rejected" %}</option>
-        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>{% trans "Cancelled" %}</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label for="priority">{% trans "Priority" %}</label>
-      <select name="priority" id="priority" class="form-control">
-        <option value="" {% if not priority_filter %}selected{% endif %}>-- {% trans "All" %} --</option>
-        <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>{% trans "Low" %}</option>
-        <option value="normal" {% if priority_filter == 'normal' %}selected{% endif %}>{% trans "Normal" %}</option>
-        <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>{% trans "High" %}</option>
-        <option value="urgent" {% if priority_filter == 'urgent' %}selected{% endif %}>{% trans "Urgent" %}</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label for="search">{% trans "Search" %}</label>
-      <input type="text" name="search" id="search" 
-             placeholder="{% trans 'Request code or item' %}" 
-             value="{{ search_term }}"
-             class="form-control">
-    </div>
-
-    <div class="form-group" style="align-self: flex-end;">
-      <button type="submit" class="btn btn-primary" style="width: 100%;">
-        {% trans "Filter" %}
-      </button>
-    </div>
-  </form>
-</div>
-
-<!-- Requests Table -->
-<div class="data-table-container">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>{% trans "Request Code" %}</th>
-        <th>{% trans "Request Date" %}</th>
-        <th>{% trans "Item" %}</th>
-        <th>{% trans "Quantity" %}</th>
-        <th>{% trans "Warehouse" %}</th>
-        <th>{% trans "Requester" %}</th>
-        <th>{% trans "Approver" %}</th>
-        <th>{% trans "Needed By" %}</th>
-        <th>{% trans "Priority" %}</th>
-        <th>{% trans "Status" %}</th>
-        <th>{% trans "Actions" %}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% if requests %}
-        {% for wr in requests %}
-        <tr>
-          <td><code>{{ wr.request_code }}</code></td>
-          <td>{{ wr.request_date|jalali_date }}</td>
-          <td>
-            <strong>{{ wr.item.name }}</strong><br>
-            <small style="color: #6b7280;"><code>{{ wr.item_code }}</code></small>
-          </td>
-          <td style="text-align: right;">{{ wr.quantity_requested|floatformat:2 }} {{ wr.unit }}</td>
-          <td>
-            {% if wr.warehouse %}
-              {{ wr.warehouse.public_code }} · {{ wr.warehouse.name }}
-            {% else %}
-              <span style="color:#6b7280;">—</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if wr.requester %}
-              {{ wr.requester.first_name }} {{ wr.requester.last_name }}
-            {% else %}
-              <span style="color:#6b7280;">—</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if wr.approver %}
-              {{ wr.approver.first_name }} {{ wr.approver.last_name }}
-            {% else %}
-              <span style="color:#6b7280;">—</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if wr.needed_by_date %}
-              {{ wr.needed_by_date|jalali_date }}
-            {% else %}
-              <span style="color:#6b7280;">—</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if wr.priority == 'urgent' %}
-              <span class="badge badge-rejected">{% trans "Urgent" %}</span>
-            {% elif wr.priority == 'high' %}
-              <span class="badge" style="background-color: #fbbf24; color: #78350f;">{% trans "High" %}</span>
-            {% elif wr.priority == 'low' %}
-              <span class="badge badge-inactive">{% trans "Low" %}</span>
-            {% else %}
-              <span class="badge badge-draft">{% trans "Normal" %}</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if wr.request_status == 'draft' %}
-              <span class="badge badge-draft">{% trans "Draft" %}</span>
-            {% elif wr.request_status == 'approved' %}
-              <span class="badge badge-approved">{% trans "Approved" %}</span>
-            {% elif wr.request_status == 'issued' %}
-              <span class="badge badge-active">{% trans "Issued" %}</span>
-            {% elif wr.request_status == 'rejected' %}
-              <span class="badge badge-rejected">{% trans "Rejected" %}</span>
-            {% else %}
-              <span class="badge badge-inactive">{% trans "Cancelled" %}</span>
-            {% endif %}
-          </td>
-          <td>
-            <div class="action-buttons">
-              {% if wr.can_current_user_edit %}
-                <a href="{% url edit_url_name wr.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
-                  {% trans "Edit" %}
-                </a>
-              {% endif %}
-              {% if wr.can_current_user_approve %}
-                <form method="post" action="{% url approve_url_name wr.pk %}" class="inline-lock-form">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
-                    {% trans "Approve" %}
-                  </button>
-                </form>
-              {% endif %}
-              {% if wr.request_status == 'approved' %}
-                <a href="{% url 'inventory:warehouse_request_create_permanent_issue' wr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 4px;">
-                  {% trans "Permanent Issue" %}
-                </a>
-                <a href="{% url 'inventory:warehouse_request_create_consumption_issue' wr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #10b981; color: white; text-decoration: none; border-radius: 4px;">
-                  {% trans "Consumption Issue" %}
-                </a>
-                <a href="{% url 'inventory:warehouse_request_create_consignment_issue' wr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #8b5cf6; color: white; text-decoration: none; border-radius: 4px;">
-                  {% trans "Consignment Issue" %}
-                </a>
-              {% endif %}
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      {% else %}
-        <tr>
-          <td colspan="11">
-            <div class="empty-state">
-              <div class="empty-state-icon">📋</div>
-              <h3>{% trans "No Requests Found" %}</h3>
-              <p>{% trans "Start by creating your first warehouse request." %}</p>
-              <a href="{{ create_url }}" class="btn btn-primary">
-                + {% trans "Create" %} {% trans "Warehouse Requests" %}
-              </a>
-            </div>
-          </td>
-        </tr>
-      {% endif %}
-    </tbody>
-  </table>
-</div>
-
-<!-- Pagination -->
-{% if is_paginated %}
-<div class="pagination">
-  {% if page_obj.has_previous %}
-    <a href="?page=1">&laquo; {% trans "First" %}</a>
-    <a href="?page={{ page_obj.previous_page_number }}">{% trans "Previous" %}</a>
-  {% endif %}
-
-  <span class="current">
-    {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
-  </span>
-
-  {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}">{% trans "Next" %}</a>
-    <a href="?page={{ page_obj.paginator.num_pages }}">{% trans "Last" %} &raquo;</a>
-  {% endif %}
 </div>
 {% endif %}
 {% endblock %}
 
+{% block filter_fields %}
+<div class="form-group">
+  <label for="status">{% trans "Status" %}</label>
+  <select name="status" id="status" class="form-control">
+    <option value="" {% if not status_filter %}selected{% endif %}>-- {% trans "All" %} --</option>
+    <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>{% trans "Draft" %}</option>
+    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>{% trans "Approved" %}</option>
+    <option value="issued" {% if status_filter == 'issued' %}selected{% endif %}>{% trans "Issued" %}</option>
+    <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>{% trans "Rejected" %}</option>
+    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>{% trans "Cancelled" %}</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label for="priority">{% trans "Priority" %}</label>
+  <select name="priority" id="priority" class="form-control">
+    <option value="" {% if not priority_filter %}selected{% endif %}>-- {% trans "All" %} --</option>
+    <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>{% trans "Low" %}</option>
+    <option value="normal" {% if priority_filter == 'normal' %}selected{% endif %}>{% trans "Normal" %}</option>
+    <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>{% trans "High" %}</option>
+    <option value="urgent" {% if priority_filter == 'urgent' %}selected{% endif %}>{% trans "Urgent" %}</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label for="search">{% trans "Search" %}</label>
+  <input type="text" name="search" id="search" 
+         placeholder="{% trans 'Request code or item' %}" 
+         value="{{ search_query }}"
+         class="form-control">
+</div>
+{% endblock %}
+
+{% block table_headers %}
+<th>{% trans "Request Code" %}</th>
+<th>{% trans "Request Date" %}</th>
+<th>{% trans "Item" %}</th>
+<th>{% trans "Quantity" %}</th>
+<th>{% trans "Warehouse" %}</th>
+<th>{% trans "Requester" %}</th>
+<th>{% trans "Approver" %}</th>
+<th>{% trans "Needed By" %}</th>
+<th>{% trans "Priority" %}</th>
+<th>{% trans "Status" %}</th>
+<th>{% trans "Actions" %}</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for wr in object_list %}
+<tr>
+  <td><code>{{ wr.request_code }}</code></td>
+  <td>{{ wr.request_date|jalali_date }}</td>
+  <td>
+    {% if wr.lines.exists %}
+      <strong>{% trans "Multiple Items" %}</strong><br>
+      <small class="muted">{{ wr.lines.count }} {% trans "line(s)" %}</small>
+    {% else %}
+      <strong>{{ wr.item.name }}</strong><br>
+      <small class="muted"><code>{{ wr.item_code }}</code></small>
+    {% endif %}
+  </td>
+  <td style="text-align: right;">
+    {% if wr.lines.exists %}
+      {{ wr.total_quantity_requested|floatformat:2 }}
+    {% else %}
+      {{ wr.quantity_requested|floatformat:2 }} {{ wr.unit }}
+    {% endif %}
+  </td>
+  <td>
+    {% if wr.warehouse %}
+      {{ wr.warehouse.public_code }} · {{ wr.warehouse.name }}
+    {% else %}
+      <span style="color:#6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if wr.requester %}
+      {{ wr.requester.get_full_name|default:wr.requester.username }}
+    {% else %}
+      <span style="color:#6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if wr.approver %}
+      {{ wr.approver.get_full_name|default:wr.approver.username }}
+    {% else %}
+      <span style="color:#6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if wr.needed_by_date %}
+      {{ wr.needed_by_date|jalali_date }}
+    {% else %}
+      <span style="color:#6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if wr.priority == 'urgent' %}
+      <span class="badge badge-rejected">{% trans "Urgent" %}</span>
+    {% elif wr.priority == 'high' %}
+      <span class="badge" style="background-color: #fbbf24; color: #78350f;">{% trans "High" %}</span>
+    {% elif wr.priority == 'low' %}
+      <span class="badge badge-inactive">{% trans "Low" %}</span>
+    {% else %}
+      <span class="badge badge-draft">{% trans "Normal" %}</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if wr.request_status == 'draft' %}
+      <span class="badge badge-draft">{% trans "Draft" %}</span>
+    {% elif wr.request_status == 'approved' %}
+      <span class="badge badge-approved">{% trans "Approved" %}</span>
+    {% elif wr.request_status == 'issued' %}
+      <span class="badge badge-active">{% trans "Issued" %}</span>
+    {% elif wr.request_status == 'rejected' %}
+      <span class="badge badge-rejected">{% trans "Rejected" %}</span>
+    {% else %}
+      <span class="badge badge-inactive">{% trans "Cancelled" %}</span>
+    {% endif %}
+  </td>
+  <td>
+    <div class="action-buttons">
+      {% if wr.can_current_user_edit %}
+        <a href="{% url edit_url_name wr.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+          {% trans "Edit" %}
+        </a>
+      {% endif %}
+      {% if wr.can_current_user_approve %}
+        <form method="post" action="{% url approve_url_name wr.pk %}" class="inline-lock-form" style="display:inline-flex; margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+            {% trans "Approve" %}
+          </button>
+        </form>
+      {% endif %}
+      {% if wr.request_status == 'approved' %}
+        <a href="{% url 'inventory:warehouse_request_create_permanent_issue' wr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 4px;">
+          {% trans "Permanent Issue" %}
+        </a>
+        <a href="{% url 'inventory:warehouse_request_create_consumption_issue' wr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #10b981; color: white; text-decoration: none; border-radius: 4px;">
+          {% trans "Consumption Issue" %}
+        </a>
+        <a href="{% url 'inventory:warehouse_request_create_consignment_issue' wr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #8b5cf6; color: white; text-decoration: none; border-radius: 4px;">
+          {% trans "Consignment Issue" %}
+        </a>
+      {% endif %}
+    </div>
+  </td>
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block empty_state_title %}{{ empty_heading|default:_("No Requests Found") }}{% endblock %}
+{% block empty_state_message %}{{ empty_text|default:_("Start by creating your first warehouse request.") }}{% endblock %}
+{% block empty_state_icon %}📋{% endblock %}

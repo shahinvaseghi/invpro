@@ -370,15 +370,25 @@
 - Templates: List, Form, Delete ✅
 - **فایل چک‌لیست:** `docs/TEMPLATE_MIGRATION_CHECKLIST_TICKETING.md`
 
-### 🔄 ماژول Production - 2 از 19 template (11%)
-- BOM: List ✅, Delete ✅, Form (باقی مانده)
-- Machine, Performance Record, Person, Process, Product Order, Transfer to Line, Work Line (باقی مانده)
+### ✅ ماژول Production - 23 از 23 template (100%)
+- BOM: List ✅, Form ✅, Delete ✅
+- Machine: List ✅, Form ✅, Delete ✅
+- Performance Record: List ✅, Form ✅, Delete ✅
+- Personnel: List ✅, Form ✅, Delete ✅
+- Process: List ✅, Form ✅, Delete ✅
+- Product Order: List ✅, Form ✅, Delete ✅
+- Transfer to Line: List ✅, Form ✅, Delete ✅
+- Work Line: List ✅, Form ✅, Delete ✅
 - **فایل چک‌لیست:** `docs/TEMPLATE_MIGRATION_CHECKLIST_PRODUCTION.md`
 
 ### ❌ ماژول‌های دیگر - منتقل نشده
-- Inventory
+- Inventory (حدود 96+ template)
 - Procurement
 - Accounting
 - HR
+- QC
+- Sales
+- Office Automation
+- Transportation
 - و سایر ماژول‌ها
 

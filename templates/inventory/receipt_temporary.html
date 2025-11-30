@@ -1,7 +1,5 @@
-{% extends "inventory/base.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n jalali_tags %}
-
-{% block page_title %}{% trans "Temporary Receipts" %}{% endblock %}
 
 {% block breadcrumb_extra %}
 <span class="separator">/</span>
@@ -12,17 +10,67 @@
 
 {% block page_actions %}
 <div class="page-actions">
-  <a href="{{ create_url|default:'#' }}" class="btn btn-primary">
-    + {% trans "Create" %} {{ create_label|default:_("Receipt") }}
-  </a>
-  <button onclick="window.print()" class="btn btn-secondary">
-    {% trans "Print" %}
-  </button>
+  {% if create_url %}
+    <a href="{{ create_url }}" class="btn btn-primary">
+      + {% trans "Create" %} {{ create_label|default:_("Receipt") }}
+    </a>
+  {% endif %}
+  {% if print_enabled %}
+    <button onclick="window.print()" class="btn btn-secondary">
+      {% trans "Print" %}
+    </button>
+  {% endif %}
 </div>
 {% endblock %}
 
-{% block inventory_content %}
+{% block before_table %}
 <!-- Stats Summary -->
+<style>
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .stat-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+  }
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+  }
+  .action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .badge-locked {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background-color: #dc2626;
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .muted {
+    color: #6b7280;
+    font-size: 0.75rem;
+    display: block;
+  }
+</style>
 <div class="stats-grid">
   <div class="stat-card">
     <div class="stat-label">{% trans "Total" %}</div>
@@ -41,345 +89,270 @@
     <div class="stat-value" style="color: #3b82f6;">{{ stats.converted }}</div>
   </div>
 </div>
-
-<!-- Filter Panel -->
-<div class="filter-panel">
-  <h3>{% trans "Filter" %}</h3>
-  <form method="get" action="" class="filter-form">
-    <div class="form-group">
-      <label for="status">QC {% trans "Status" %}</label>
-      <select name="status" id="status" class="form-control">
-        <option value="">-- {% trans "All" %} --</option>
-        <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>{% trans "Draft" %}</option>
-        <option value="awaiting_qc" {% if status_filter == 'awaiting_qc' %}selected{% endif %}>{% trans "Awaiting QC" %}</option>
-        <option value="qc_passed" {% if status_filter == 'qc_passed' %}selected{% endif %}>{% trans "QC Passed" %}</option>
-        <option value="qc_failed" {% if status_filter == 'qc_failed' %}selected{% endif %}>{% trans "QC Rejected" %}</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label for="converted">Conversion {% trans "Status" %}</label>
-      <select name="converted" id="converted" class="form-control">
-        <option value="">-- {% trans "All" %} --</option>
-        <option value="0" {% if converted_filter == '0' %}selected{% endif %}>{% trans "Not Converted" %}</option>
-        <option value="1" {% if converted_filter == '1' %}selected{% endif %}>{% trans "Converted" %}</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label for="search">{% trans "Search" %}</label>
-      <input type="text" name="search" id="search" 
-             placeholder="{% trans 'Document code or item' %}" 
-             value="{{ search_query }}"
-             class="form-control">
-    </div>
-
-    <div class="form-group" style="align-self: flex-end;">
-      <button type="submit" class="btn btn-primary" style="width: 100%;">
-        {% trans "Filter" %}
-      </button>
-    </div>
-  </form>
-</div>
-
-<!-- Receipts Table -->
-<div class="data-table-container">
-  <style>
-    .action-buttons {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-    .badge-locked {
-      display: inline-flex;
-      align-items: center;
-      padding: 2px 8px;
-      border-radius: 999px;
-      background-color: #dc2626;
-      color: #ffffff;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    .muted {
-      color: #6b7280;
-      font-size: 0.75rem;
-      display: block;
-    }
-  </style>
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>{% trans "Document Code" %}</th>
-        <th>{% trans "Document Date" %}</th>
-        <th>{% trans "Created By" %}</th>
-        <th>{% trans "Items" %}</th>
-        <th>{% trans "Quantity" %}</th>
-        <th>{% trans "Warehouses" %}</th>
-        <th>{% trans "Suppliers" %}</th>
-        {% if show_qc %}
-        <th>QC {% trans "Status" %}</th>
-        {% endif %}
-        {% if show_conversion %}
-        <th>{% trans "Converted" %}</th>
-        {% endif %}
-        {% if show_temporary_receipt %}
-        <th>{% trans "Temporary Receipt" %}</th>
-        {% endif %}
-        {% if show_purchase_request %}
-        <th>{% trans "Purchase Request" %}</th>
-        {% endif %}
-        <th>{% trans "Actions" %}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% if receipts %}
-        {% for receipt in receipts %}
-        <tr>
-          <td><code>{{ receipt.document_code }}</code></td>
-          <td>{{ receipt.document_date|jalali_date }}</td>
-          <td>
-            {% if receipt.created_by %}
-              {{ receipt.created_by.get_full_name|default:receipt.created_by.username }}
-            {% else %}
-              <span style="color: #6b7280;">—</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if receipt.enabled_lines %}
-              {# Temporary receipt - multiple lines #}
-              {% for line in receipt.enabled_lines|slice:":3" %}
-                <strong>{{ line.item.name }}</strong><br>
-                <small style="color: #6b7280;"><code>{{ line.item.item_code }}</code></small>{% if not forloop.last %}<br><br>{% endif %}
-              {% endfor %}
-              {% if receipt.enabled_lines|length > 3 %}
-                <small class="muted">+ {{ receipt.enabled_lines|length|add:"-3" }} {% trans "more" %}</small>
-              {% endif %}
-            {% else %}
-              —
-            {% endif %}
-          </td>
-          <td style="text-align: right;">
-            {% if receipt.enabled_lines %}
-              {# Temporary receipt - multiple lines #}
-              {% for line in receipt.enabled_lines|slice:":3" %}
-                {% if line.entered_quantity %}
-                  {{ line.entered_quantity|floatformat:2 }}
-                  {% if line.entered_unit %}
-                    {{ line.entered_unit }}
-                  {% else %}
-                    {{ line.unit }}
-                  {% endif %}
-                  {% if line.entered_quantity != line.quantity or line.entered_unit and line.entered_unit != line.unit %}
-                    <small class="muted">({{ line.quantity|floatformat:2 }} {{ line.unit }})</small>
-                  {% endif %}
-                {% else %}
-                  {{ line.quantity|floatformat:2 }} {{ line.unit }}
-                {% endif %}{% if not forloop.last %}<br>{% endif %}
-              {% endfor %}
-              {% if receipt.enabled_lines|length > 3 %}
-                <small class="muted">+ {{ receipt.enabled_lines|length|add:"-3" }} {% trans "more" %}</small>
-              {% endif %}
-            {% else %}
-              —
-            {% endif %}
-          </td>
-          <td>
-            {% if receipt.enabled_lines %}
-              {# Temporary receipt - multiple lines #}
-              {% for line in receipt.enabled_lines|slice:":3" %}
-                {{ line.warehouse.name }}{% if not forloop.last %}<br>{% endif %}
-              {% endfor %}
-              {% if receipt.enabled_lines|length > 3 %}
-                <small class="muted">+ {{ receipt.enabled_lines|length|add:"-3" }} {% trans "more" %}</small>
-              {% endif %}
-            {% else %}
-              —
-            {% endif %}
-          </td>
-          <td>
-            {% if receipt.supplier %}
-              {# Header-level supplier #}
-              {{ receipt.supplier.name }}
-            {% elif receipt.enabled_lines %}
-              {# Line-level suppliers #}
-              {% for line in receipt.enabled_lines|slice:":3" %}
-                {% if line.supplier %}{{ line.supplier.name }}{% else %}—{% endif %}{% if not forloop.last %}<br>{% endif %}
-              {% endfor %}
-              {% if receipt.enabled_lines|length > 3 %}
-                <small class="muted">+ {{ receipt.enabled_lines|length|add:"-3" }} {% trans "more" %}</small>
-              {% endif %}
-            {% else %}
-              —
-            {% endif %}
-          </td>
-          {% if show_qc %}
-          <td>
-            {% if receipt.status == 1 %}
-              <span class="badge badge-pending">{% trans "Awaiting QC" %}</span>
-            {% elif receipt.status == 2 %}
-              <span class="badge badge-inactive">{% trans "Closed" %}</span>
-            {% elif receipt.status == 3 %}
-              <span class="badge badge-active">{% trans "QC Approved" %}</span>
-            {% else %}
-              <span class="badge badge-draft">{% trans "Draft" %}</span>
-            {% endif %}
-          </td>
-          {% endif %}
-          {% if show_conversion %}
-          <td>
-            {% if receipt.is_converted and receipt.converted_receipt %}
-              <a href="{% url permanent_receipt_url_name receipt.converted_receipt.pk %}" class="badge badge-active" style="text-decoration: none;">
-                ✓ {{ receipt.converted_receipt.document_code }}
-              </a>
-            {% elif receipt.is_converted %}
-              <span class="badge badge-active">✓ {% trans "Yes" %}</span>
-            {% else %}
-              <span class="badge badge-inactive">{% trans "No" %}</span>
-            {% endif %}
-          </td>
-          {% endif %}
-          {% if show_temporary_receipt %}
-          <td>
-            {% if receipt.temporary_receipt %}
-              <a href="{% url temporary_receipt_url_name receipt.temporary_receipt.pk %}" class="badge badge-info" style="text-decoration: none;">
-                {{ receipt.temporary_receipt.document_code }}
-              </a>
-            {% else %}
-              <span style="color: #6b7280;">—</span>
-            {% endif %}
-          </td>
-          {% endif %}
-          {% if show_purchase_request %}
-          <td>
-            {% if receipt.purchase_request %}
-              <a href="{% url purchase_request_url_name receipt.purchase_request.pk %}" class="badge badge-info" style="text-decoration: none;">
-                {{ receipt.purchase_request.request_code }}
-              </a>
-            {% else %}
-              <span style="color: #6b7280;">—</span>
-            {% endif %}
-          </td>
-          {% endif %}
-          <td>
-            <div class="action-buttons">
-              {% if receipt.is_locked %}
-                <a href="{% url detail_url_name receipt.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
-                  {% trans "View" %}
-                </a>
-                <span class="badge badge-locked" style="margin-top:4px;">{% trans "Locked" %}</span>
-                {% if receipt.created_by == user %}
-                  {% if can_unlock_own %}
-                    <form method="post" action="{% url unlock_url_name receipt.pk %}" style="display: inline; margin: 0;">
-                      {% csrf_token %}
-                      <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to unlock this receipt?" %}');">
-                        {% trans "Unlock" %}
-                      </button>
-                    </form>
-                  {% endif %}
-                {% else %}
-                  {% if can_unlock_other %}
-                    <form method="post" action="{% url unlock_url_name receipt.pk %}" style="display: inline; margin: 0;">
-                      {% csrf_token %}
-                      <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to unlock this receipt?" %}');">
-                        {% trans "Unlock" %}
-                      </button>
-                    </form>
-                  {% endif %}
-                {% endif %}
-                {% if serial_url_name and receipt.enabled_lines %}
-                  {% with first_line=receipt.enabled_lines|first %}
-                    {% if first_line.item.has_lot_tracking == 1 %}
-                      <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
-                        {% trans "View Serials" %}
-                      </a>
-                    {% endif %}
-                  {% endwith %}
-                {% endif %}
-              {% else %}
-                <a href="{% url edit_url_name receipt.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
-                  {% trans "Edit" %}
-                </a>
-                {% if receipt.status == 0 %}
-                  <form method="post" action="{% url 'inventory:receipt_temporary_send_to_qc' receipt.pk %}" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans 'Are you sure you want to send this receipt to QC inspection?' %}');">
-                      {% trans "Send to QC" %}
-                    </button>
-                  </form>
-                {% endif %}
-                {% if serial_url_name and receipt.enabled_lines %}
-                  {% with first_line=receipt.enabled_lines|first %}
-                    {% if first_line.item.has_lot_tracking == 1 %}
-                      <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
-                        {% trans "Manage Serials" %}
-                      </a>
-                    {% endif %}
-                  {% endwith %}
-                {% endif %}
-                {% if delete_url_name %}
-                  {% if receipt.created_by == user %}
-                    {% if can_delete_own %}
-                      <a href="{% url delete_url_name receipt.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this receipt?" %}');">
-                        {% trans "Delete" %}
-                      </a>
-                    {% endif %}
-                  {% else %}
-                    {% if can_delete_other %}
-                      <a href="{% url delete_url_name receipt.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this receipt?" %}');">
-                        {% trans "Delete" %}
-                      </a>
-                    {% endif %}
-                  {% endif %}
-                {% endif %}
-                {% if lock_url_name %}
-                <form method="post" action="{% url lock_url_name receipt.pk %}" class="inline-lock-form" style="display:inline-flex; margin-left:0.5rem;">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;">
-                    {% trans "Lock" %}
-                  </button>
-                </form>
-                {% endif %}
-              {% endif %}
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      {% else %}
-        <tr>
-          <td colspan="{% if show_qc and show_conversion and show_temporary_receipt and show_purchase_request %}12{% elif show_qc and show_conversion and show_temporary_receipt %}11{% elif show_qc and show_conversion and show_purchase_request %}11{% elif show_qc and show_temporary_receipt and show_purchase_request %}11{% elif show_conversion and show_temporary_receipt and show_purchase_request %}11{% elif show_qc and show_conversion %}10{% elif show_qc and show_temporary_receipt %}10{% elif show_qc and show_purchase_request %}10{% elif show_conversion and show_temporary_receipt %}10{% elif show_conversion and show_purchase_request %}10{% elif show_temporary_receipt and show_purchase_request %}10{% elif show_qc or show_conversion or show_temporary_receipt or show_purchase_request %}9{% else %}8{% endif %}">
-            <div class="empty-state">
-              <div class="empty-state-icon">📥</div>
-              <h3>{{ empty_heading|default:_("No records found.") }}</h3>
-              <p>{{ empty_text|default:_("Start by creating a new record.") }}</p>
-                <a href="{{ create_url|default:'#' }}" class="btn btn-primary">
-                + {% trans "Create" %} {{ create_label|default:_("Receipt") }}
-              </a>
-            </div>
-          </td>
-        </tr>
-      {% endif %}
-    </tbody>
-  </table>
-</div>
-
-<!-- Pagination -->
-{% if is_paginated %}
-<div class="pagination">
-  {% if page_obj.has_previous %}
-    <a href="?page=1">&laquo; {% trans "First" %}</a>
-    <a href="?page={{ page_obj.previous_page_number }}">{% trans "Previous" %}</a>
-  {% endif %}
-
-  <span class="current">
-    {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
-  </span>
-
-  {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}">{% trans "Next" %}</a>
-    <a href="?page={{ page_obj.paginator.num_pages }}">{% trans "Last" %} &raquo;</a>
-  {% endif %}
-</div>
-{% endif %}
 {% endblock %}
 
+{% block filter_fields %}
+<div class="form-group">
+  <label for="status">QC {% trans "Status" %}</label>
+  <select name="status" id="status" class="form-control">
+    <option value="">-- {% trans "All" %} --</option>
+    <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>{% trans "Draft" %}</option>
+    <option value="awaiting_qc" {% if status_filter == 'awaiting_qc' %}selected{% endif %}>{% trans "Awaiting QC" %}</option>
+    <option value="qc_passed" {% if status_filter == 'qc_passed' %}selected{% endif %}>{% trans "QC Passed" %}</option>
+    <option value="qc_failed" {% if status_filter == 'qc_failed' %}selected{% endif %}>{% trans "QC Rejected" %}</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label for="converted">Conversion {% trans "Status" %}</label>
+  <select name="converted" id="converted" class="form-control">
+    <option value="">-- {% trans "All" %} --</option>
+    <option value="0" {% if converted_filter == '0' %}selected{% endif %}>{% trans "Not Converted" %}</option>
+    <option value="1" {% if converted_filter == '1' %}selected{% endif %}>{% trans "Converted" %}</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label for="search">{% trans "Search" %}</label>
+  <input type="text" name="search" id="search" 
+         placeholder="{% trans 'Document code or item' %}" 
+         value="{{ search_query }}"
+         class="form-control">
+</div>
+{% endblock %}
+
+{% block table_headers %}
+<th>{% trans "Document Code" %}</th>
+<th>{% trans "Document Date" %}</th>
+<th>{% trans "Created By" %}</th>
+<th>{% trans "Items" %}</th>
+<th>{% trans "Quantity" %}</th>
+<th>{% trans "Warehouses" %}</th>
+<th>{% trans "Suppliers" %}</th>
+{% if show_qc %}
+<th>QC {% trans "Status" %}</th>
+{% endif %}
+{% if show_conversion %}
+<th>{% trans "Converted" %}</th>
+{% endif %}
+{% if show_temporary_receipt %}
+<th>{% trans "Temporary Receipt" %}</th>
+{% endif %}
+{% if show_purchase_request %}
+<th>{% trans "Purchase Request" %}</th>
+{% endif %}
+<th>{% trans "Actions" %}</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for receipt in object_list %}
+<tr>
+  <td><code>{{ receipt.document_code }}</code></td>
+  <td>{{ receipt.document_date|jalali_date }}</td>
+  <td>
+    {% if receipt.created_by %}
+      {{ receipt.created_by.get_full_name|default:receipt.created_by.username }}
+    {% else %}
+      <span style="color: #6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if receipt.enabled_lines %}
+      {% for line in receipt.enabled_lines|slice:":3" %}
+        <strong>{{ line.item.name }}</strong><br>
+        <small style="color: #6b7280;"><code>{{ line.item.item_code }}</code></small>{% if not forloop.last %}<br><br>{% endif %}
+      {% endfor %}
+      {% if receipt.enabled_lines|length > 3 %}
+        <small class="muted">+ {{ receipt.enabled_lines|length|add:"-3" }} {% trans "more" %}</small>
+      {% endif %}
+    {% else %}
+      —
+    {% endif %}
+  </td>
+  <td style="text-align: right;">
+    {% if receipt.enabled_lines %}
+      {% for line in receipt.enabled_lines|slice:":3" %}
+        {% if line.entered_quantity %}
+          {{ line.entered_quantity|floatformat:2 }}
+          {% if line.entered_unit %}
+            {{ line.entered_unit }}
+          {% else %}
+            {{ line.unit }}
+          {% endif %}
+          {% if line.entered_quantity != line.quantity or line.entered_unit and line.entered_unit != line.unit %}
+            <small class="muted">({{ line.quantity|floatformat:2 }} {{ line.unit }})</small>
+          {% endif %}
+        {% else %}
+          {{ line.quantity|floatformat:2 }} {{ line.unit }}
+        {% endif %}{% if not forloop.last %}<br>{% endif %}
+      {% endfor %}
+      {% if receipt.enabled_lines|length > 3 %}
+        <small class="muted">+ {{ receipt.enabled_lines|length|add:"-3" }} {% trans "more" %}</small>
+      {% endif %}
+    {% else %}
+      —
+    {% endif %}
+  </td>
+  <td>
+    {% if receipt.enabled_lines %}
+      {% for line in receipt.enabled_lines|slice:":3" %}
+        {{ line.warehouse.name }}{% if not forloop.last %}<br>{% endif %}
+      {% endfor %}
+      {% if receipt.enabled_lines|length > 3 %}
+        <small class="muted">+ {{ receipt.enabled_lines|length|add:"-3" }} {% trans "more" %}</small>
+      {% endif %}
+    {% else %}
+      —
+    {% endif %}
+  </td>
+  <td>
+    {% if receipt.supplier %}
+      {{ receipt.supplier.name }}
+    {% elif receipt.enabled_lines %}
+      {% for line in receipt.enabled_lines|slice:":3" %}
+        {% if line.supplier %}{{ line.supplier.name }}{% else %}—{% endif %}{% if not forloop.last %}<br>{% endif %}
+      {% endfor %}
+      {% if receipt.enabled_lines|length > 3 %}
+        <small class="muted">+ {{ receipt.enabled_lines|length|add:"-3" }} {% trans "more" %}</small>
+      {% endif %}
+    {% else %}
+      —
+    {% endif %}
+  </td>
+  {% if show_qc %}
+  <td>
+    {% if receipt.status == 1 %}
+      <span class="badge badge-pending">{% trans "Awaiting QC" %}</span>
+    {% elif receipt.status == 2 %}
+      <span class="badge badge-inactive">{% trans "Closed" %}</span>
+    {% elif receipt.status == 3 %}
+      <span class="badge badge-active">{% trans "QC Approved" %}</span>
+    {% else %}
+      <span class="badge badge-draft">{% trans "Draft" %}</span>
+    {% endif %}
+  </td>
+  {% endif %}
+  {% if show_conversion %}
+  <td>
+    {% if receipt.is_converted and receipt.converted_receipt %}
+      <a href="{% url permanent_receipt_url_name receipt.converted_receipt.pk %}" class="badge badge-active" style="text-decoration: none;">
+        ✓ {{ receipt.converted_receipt.document_code }}
+      </a>
+    {% elif receipt.is_converted %}
+      <span class="badge badge-active">✓ {% trans "Yes" %}</span>
+    {% else %}
+      <span class="badge badge-inactive">{% trans "No" %}</span>
+    {% endif %}
+  </td>
+  {% endif %}
+  {% if show_temporary_receipt %}
+  <td>
+    {% if receipt.temporary_receipt %}
+      <a href="{% url temporary_receipt_url_name receipt.temporary_receipt.pk %}" class="badge badge-info" style="text-decoration: none;">
+        {{ receipt.temporary_receipt.document_code }}
+      </a>
+    {% else %}
+      <span style="color: #6b7280;">—</span>
+    {% endif %}
+  </td>
+  {% endif %}
+  {% if show_purchase_request %}
+  <td>
+    {% if receipt.purchase_request %}
+      <a href="{% url purchase_request_url_name receipt.purchase_request.pk %}" class="badge badge-info" style="text-decoration: none;">
+        {{ receipt.purchase_request.request_code }}
+      </a>
+    {% else %}
+      <span style="color: #6b7280;">—</span>
+    {% endif %}
+  </td>
+  {% endif %}
+  <td>
+    <div class="action-buttons">
+      {% if receipt.is_locked %}
+        <a href="{% url detail_url_name receipt.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+          {% trans "View" %}
+        </a>
+        <span class="badge badge-locked" style="margin-top:4px;">{% trans "Locked" %}</span>
+        {% if receipt.created_by == user %}
+          {% if can_unlock_own %}
+            <form method="post" action="{% url unlock_url_name receipt.pk %}" style="display: inline; margin: 0;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to unlock this receipt?" %}');">
+                {% trans "Unlock" %}
+              </button>
+            </form>
+          {% endif %}
+        {% else %}
+          {% if can_unlock_other %}
+            <form method="post" action="{% url unlock_url_name receipt.pk %}" style="display: inline; margin: 0;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to unlock this receipt?" %}');">
+                {% trans "Unlock" %}
+              </button>
+            </form>
+          {% endif %}
+        {% endif %}
+        {% if serial_url_name and receipt.enabled_lines %}
+          {% with first_line=receipt.enabled_lines|first %}
+            {% if first_line.item.has_lot_tracking == 1 %}
+              <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
+                {% trans "View Serials" %}
+              </a>
+            {% endif %}
+          {% endwith %}
+        {% endif %}
+      {% else %}
+        <a href="{% url edit_url_name receipt.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+          {% trans "Edit" %}
+        </a>
+        {% if receipt.status == 0 %}
+          <form method="post" action="{% url 'inventory:receipt_temporary_send_to_qc' receipt.pk %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans 'Are you sure you want to send this receipt to QC inspection?' %}');">
+              {% trans "Send to QC" %}
+            </button>
+          </form>
+        {% endif %}
+        {% if serial_url_name and receipt.enabled_lines %}
+          {% with first_line=receipt.enabled_lines|first %}
+            {% if first_line.item.has_lot_tracking == 1 %}
+              <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
+                {% trans "Manage Serials" %}
+              </a>
+            {% endif %}
+          {% endwith %}
+        {% endif %}
+        {% if delete_url_name %}
+          {% if receipt.created_by == user %}
+            {% if can_delete_own %}
+              <a href="{% url delete_url_name receipt.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this receipt?" %}');">
+                {% trans "Delete" %}
+              </a>
+            {% endif %}
+          {% else %}
+            {% if can_delete_other %}
+              <a href="{% url delete_url_name receipt.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this receipt?" %}');">
+                {% trans "Delete" %}
+              </a>
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if lock_url_name %}
+        <form method="post" action="{% url lock_url_name receipt.pk %}" class="inline-lock-form" style="display:inline-flex; margin-left:0.5rem;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;">
+            {% trans "Lock" %}
+          </button>
+        </form>
+        {% endif %}
+      {% endif %}
+    </div>
+  </td>
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block empty_state_title %}{{ empty_heading|default:_("No records found.") }}{% endblock %}
+{% block empty_state_message %}{{ empty_text|default:_("Start by creating a new record.") }}{% endblock %}
+{% block empty_state_icon %}📥{% endblock %}

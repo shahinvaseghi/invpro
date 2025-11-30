@@ -119,7 +119,7 @@ class StocktakingDeficitListView(InventoryBaseView, ListView):
     """List view for stocktaking deficit records."""
     model = models.StocktakingDeficit
     template_name = 'inventory/stocktaking_deficit.html'
-    context_object_name = 'records'
+    context_object_name = 'object_list'
     paginate_by = 50
 
     def get_queryset(self):
@@ -134,13 +134,33 @@ class StocktakingDeficitListView(InventoryBaseView, ListView):
         return queryset
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for template."""
+        """Add context for generic list template."""
         context = super().get_context_data(**kwargs)
+        
+        # Generic list context
+        context['page_title'] = _('Deficit Records')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Stocktaking'), 'url': None},
+        ]
         context['create_url'] = reverse_lazy('inventory:stocktaking_deficit_create')
+        context['create_button_text'] = _('Create Deficit Record')
+        context['show_actions'] = True
+        
+        # Stocktaking Deficit-specific context
         context['edit_url_name'] = 'inventory:stocktaking_deficit_edit'
         context['delete_url_name'] = 'inventory:stocktaking_deficit_delete'
         context['lock_url_name'] = 'inventory:stocktaking_deficit_lock'
+        context['empty_state_title'] = _('No Deficit Records Found')
+        context['empty_state_message'] = _('Deficit records are created during stocktaking when counted quantity is less than expected.')
+        context['empty_state_icon'] = '📉'
+        
+        # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.stocktaking.deficit')
+        
+        # User for permission checks in template
+        context['user'] = self.request.user
+        
         return context
 
 
@@ -235,12 +255,31 @@ class StocktakingDeficitUpdateView(EditLockProtectedMixin, LineFormsetMixin, Doc
 class StocktakingDeficitDeleteView(DocumentDeleteViewBase):
     """Delete view for stocktaking deficit records."""
     model = models.StocktakingDeficit
-    template_name = 'inventory/stocktaking_deficit_confirm_delete.html'
+    template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:stocktaking_deficit')
     feature_code = 'inventory.stocktaking.deficit'
     required_action = 'delete_own'
     allow_own_scope = True
     success_message = _('سند کسری موجودی با موفقیت حذف شد.')
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic delete template."""
+        context = super().get_context_data(**kwargs)
+        context['delete_title'] = _('Delete Deficit Record')
+        context['confirmation_message'] = _('Do you really want to delete this deficit record?')
+        context['object_details'] = [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+        context['cancel_url'] = reverse_lazy('inventory:stocktaking_deficit')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Stocktaking'), 'url': None},
+            {'label': _('Deficit Records'), 'url': reverse_lazy('inventory:stocktaking_deficit')},
+            {'label': _('Delete'), 'url': None},
+        ]
+        return context
 
 
 class StocktakingDeficitLockView(DocumentLockView):
@@ -258,7 +297,7 @@ class StocktakingSurplusListView(InventoryBaseView, ListView):
     """List view for stocktaking surplus records."""
     model = models.StocktakingSurplus
     template_name = 'inventory/stocktaking_surplus.html'
-    context_object_name = 'records'
+    context_object_name = 'object_list'
     paginate_by = 50
 
     def get_queryset(self):
@@ -273,13 +312,33 @@ class StocktakingSurplusListView(InventoryBaseView, ListView):
         return queryset
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for template."""
+        """Add context for generic list template."""
         context = super().get_context_data(**kwargs)
+        
+        # Generic list context
+        context['page_title'] = _('Surplus Records')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Stocktaking'), 'url': None},
+        ]
         context['create_url'] = reverse_lazy('inventory:stocktaking_surplus_create')
+        context['create_button_text'] = _('Create Surplus Record')
+        context['show_actions'] = True
+        
+        # Stocktaking Surplus-specific context
         context['edit_url_name'] = 'inventory:stocktaking_surplus_edit'
         context['delete_url_name'] = 'inventory:stocktaking_surplus_delete'
         context['lock_url_name'] = 'inventory:stocktaking_surplus_lock'
+        context['empty_state_title'] = _('No Surplus Records Found')
+        context['empty_state_message'] = _('Surplus records are created during stocktaking when counted quantity is more than expected.')
+        context['empty_state_icon'] = '📈'
+        
+        # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.stocktaking.surplus')
+        
+        # User for permission checks in template
+        context['user'] = self.request.user
+        
         return context
 
 
@@ -374,12 +433,31 @@ class StocktakingSurplusUpdateView(EditLockProtectedMixin, LineFormsetMixin, Doc
 class StocktakingSurplusDeleteView(DocumentDeleteViewBase):
     """Delete view for stocktaking surplus records."""
     model = models.StocktakingSurplus
-    template_name = 'inventory/stocktaking_surplus_confirm_delete.html'
+    template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:stocktaking_surplus')
     feature_code = 'inventory.stocktaking.surplus'
     required_action = 'delete_own'
     allow_own_scope = True
     success_message = _('سند مازاد موجودی با موفقیت حذف شد.')
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic delete template."""
+        context = super().get_context_data(**kwargs)
+        context['delete_title'] = _('Delete Surplus Record')
+        context['confirmation_message'] = _('Do you really want to delete this surplus record?')
+        context['object_details'] = [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+        context['cancel_url'] = reverse_lazy('inventory:stocktaking_surplus')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Stocktaking'), 'url': None},
+            {'label': _('Surplus Records'), 'url': reverse_lazy('inventory:stocktaking_surplus')},
+            {'label': _('Delete'), 'url': None},
+        ]
+        return context
 
 
 class StocktakingSurplusLockView(DocumentLockView):
@@ -397,7 +475,7 @@ class StocktakingRecordListView(InventoryBaseView, ListView):
     """List view for stocktaking records."""
     model = models.StocktakingRecord
     template_name = 'inventory/stocktaking_records.html'
-    context_object_name = 'records'
+    context_object_name = 'object_list'
     paginate_by = 50
 
     def get_queryset(self):
@@ -405,16 +483,37 @@ class StocktakingRecordListView(InventoryBaseView, ListView):
         queryset = super().get_queryset()
         # Filter by user permissions (own vs all)
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.records', 'created_by')
+        queryset = queryset.select_related('confirmed_by', 'created_by')
         return queryset
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for template."""
+        """Add context for generic list template."""
         context = super().get_context_data(**kwargs)
+        
+        # Generic list context
+        context['page_title'] = _('Stocktaking Records')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Stocktaking'), 'url': None},
+        ]
         context['create_url'] = reverse_lazy('inventory:stocktaking_record_create')
+        context['create_button_text'] = _('Create Stocktaking Record')
+        context['show_actions'] = True
+        
+        # Stocktaking Record-specific context
         context['edit_url_name'] = 'inventory:stocktaking_record_edit'
         context['delete_url_name'] = 'inventory:stocktaking_record_delete'
         context['lock_url_name'] = 'inventory:stocktaking_record_lock'
+        context['empty_state_title'] = _('No Stocktaking Records Found')
+        context['empty_state_message'] = _('Stocktaking records confirm the accuracy of inventory counts.')
+        context['empty_state_icon'] = '📋'
+        
+        # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.stocktaking.records')
+        
+        # User for permission checks in template
+        context['user'] = self.request.user
+        
         return context
 
 
@@ -484,12 +583,32 @@ class StocktakingRecordUpdateView(EditLockProtectedMixin, DocumentLockProtectedM
 class StocktakingRecordDeleteView(DocumentDeleteViewBase):
     """Delete view for stocktaking records."""
     model = models.StocktakingRecord
-    template_name = 'inventory/stocktaking_record_confirm_delete.html'
+    template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:stocktaking_records')
     feature_code = 'inventory.stocktaking.records'
     required_action = 'delete_own'
     allow_own_scope = True
     success_message = _('سند شمارش موجودی با موفقیت حذف شد.')
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic delete template."""
+        context = super().get_context_data(**kwargs)
+        context['delete_title'] = _('Delete Stocktaking Record')
+        context['confirmation_message'] = _('Do you really want to delete this stocktaking record?')
+        context['object_details'] = [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Session ID'), 'value': str(self.object.stocktaking_session_id) if self.object.stocktaking_session_id else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+        context['cancel_url'] = reverse_lazy('inventory:stocktaking_records')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Stocktaking'), 'url': None},
+            {'label': _('Stocktaking Records'), 'url': reverse_lazy('inventory:stocktaking_records')},
+            {'label': _('Delete'), 'url': None},
+        ]
+        return context
 
 
 class StocktakingRecordLockView(DocumentLockView):
