@@ -28,12 +28,12 @@
 
 **Type**: `FeaturePermissionRequiredMixin, ListView`
 
-**Template**: `shared/smtp_server_list.html`
+**Template**: `shared/smtp_server_list.html` (extends `shared/generic/generic_list.html`)
 
 **Attributes**:
 - `model`: `SMTPServer`
 - `template_name`: `'shared/smtp_server_list.html'`
-- `context_object_name`: `'smtp_servers'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 - `feature_code`: `'shared.smtp_servers'`
 - `required_action`: `'view_own'`
@@ -58,8 +58,16 @@
 **توضیح**: اضافه کردن active module به context.
 
 **Context Variables**:
-- `smtp_servers`: queryset SMTP servers (paginated)
+- `object_list`: queryset SMTP servers (paginated، از `page_obj.object_list`)
 - `active_module`: `'shared'`
+- `page_title`: `_('SMTP Servers')`
+- `breadcrumbs`: لیست breadcrumbs
+- `create_url`: URL برای ایجاد SMTP server جدید
+- `show_filters`: `False` (no filters)
+- `show_actions`: `True`
+- `edit_url_name`: `'shared:smtp_server_edit'`
+- `delete_url_name`: `'shared:smtp_server_delete'`
+- `empty_state_title`, `empty_state_message`, `empty_state_icon`: برای empty state
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با active_module
@@ -72,7 +80,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, CreateView`
 
-**Template**: `shared/smtp_server_form.html`
+**Template**: `shared/smtp_server_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `SMTPServerForm`
 
@@ -110,6 +118,8 @@
 - `form`: `SMTPServerForm`
 - `active_module`: `'shared'`
 - `form_title`: `_('Create SMTP Server')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `cancel_url`: URL برای cancel (back to SMTP servers list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با form_title
@@ -124,6 +134,8 @@
 - `form`: `SMTPServerForm`
 - `active_module`: `'shared'`
 - `form_title`: `_('Create SMTP Server')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `cancel_url`: URL برای cancel (back to SMTP servers list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با form_title
@@ -136,7 +148,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, UpdateView`
 
-**Template**: `shared/smtp_server_form.html`
+**Template**: `shared/smtp_server_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `SMTPServerForm`
 
@@ -178,9 +190,11 @@
 
 **Context Variables**:
 - `form`: `SMTPServerForm`
-- `smtp_server`: SMTP server object (از `get_object()`)
+- `object`: SMTP server object (از `get_object()`)
 - `active_module`: `'shared'`
 - `form_title`: `_('Edit SMTP Server')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `cancel_url`: URL برای cancel (back to SMTP servers list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با form_title
@@ -193,7 +207,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, DeleteView`
 
-**Template**: `shared/smtp_server_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `shared:smtp_servers`
 
@@ -209,8 +223,13 @@
 **توضیح**: اضافه کردن active module به context.
 
 **Context Variables**:
-- `smtp_server`: SMTP server object (از `context_object_name`)
+- `object`: SMTP server object (از `get_object()`)
 - `active_module`: `'shared'`
+- `delete_title`: `_('Delete SMTP Server')`
+- `confirmation_message`: پیام تایید حذف با server name
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `object_details`: لیست جزئیات SMTP server برای نمایش (name, host, port, from_email)
+- `cancel_url`: URL برای cancel (back to SMTP servers list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با active_module
@@ -293,4 +312,31 @@ path('smtp-servers/<int:pk>/delete/', SMTPServerDeleteView.as_view(), name='smtp
 
 ### Shared Utils
 - SMTP servers در `shared.utils.email` برای ارسال email استفاده می‌شوند
+
+---
+
+## Migration to Generic Templates
+
+این views در migration به template های generic منتقل شده‌اند:
+
+### List Template
+- **Template**: `shared/smtp_server_list.html` (extends `shared/generic/generic_list.html`)
+- **Changes**: 
+  - `context_object_name` از `'smtp_servers'` به `'object_list'` تغییر یافت
+  - Context variables برای generic template اضافه شد
+  - `show_filters` = `False` (no filters for SMTP servers)
+
+### Form Template
+- **Template**: `shared/smtp_server_form.html` (extends `shared/generic/generic_form.html`)
+- **Changes**:
+  - Template از `base.html` به `generic_form.html` منتقل شد
+  - Blocks override شده: `form_sections`, `form_actions_extra`
+  - Context variables اضافه شد: `breadcrumbs`, `cancel_url`, `form_title`
+
+### Delete Template
+- **Template**: `shared/generic/generic_confirm_delete.html` (مستقیم استفاده می‌شود)
+- **Changes**:
+  - Template اختصاصی حذف شد
+  - `context_object_name` حذف شد (از default `object` استفاده می‌کند)
+  - `get_context_data` به‌روزرسانی شد تا context variables مناسب را ارسال کند
 

@@ -48,9 +48,22 @@ class ProductOrderListView(FeaturePermissionRequiredMixin, ListView):
         return queryset
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module to context."""
+        """Add context for generic list template."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
+        context['page_title'] = _('Product Orders')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Product Orders'), 'url': None},
+        ]
+        context['create_url'] = reverse_lazy('production:product_order_create')
+        context['create_button_text'] = _('Create Product Order +')
+        context['table_headers'] = []  # Overridden in template
+        context['show_actions'] = True
+        context['edit_url_name'] = 'production:product_order_edit'
+        context['delete_url_name'] = 'production:product_order_delete'
+        context['empty_state_title'] = _('No Product Orders Found')
+        context['empty_state_message'] = _('Create your first product order to get started.')
+        context['empty_state_icon'] = '📋'
         return context
 
 
@@ -253,12 +266,20 @@ class ProductOrderCreateView(FeaturePermissionRequiredMixin, CreateView):
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add active module and form title to context."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
         context['form_title'] = _('Create Product Order')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Product Orders'), 'url': reverse_lazy('production:product_orders')},
+            {'label': _('Create'), 'url': None},
+        ]
+        context['cancel_url'] = reverse_lazy('production:product_orders')
+        context['form_id'] = 'product-order-form'
         
         # Add formset for extra items (only if user has permission)
         from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
         active_company_id = self.request.session.get('active_company_id')
+        if active_company_id:
+            context['user_feature_permissions'] = get_user_feature_permissions(self.request.user, active_company_id)
         if active_company_id:
             permissions = get_user_feature_permissions(self.request.user, active_company_id)
             has_permission = has_feature_permission(
@@ -475,12 +496,19 @@ class ProductOrderUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMi
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add active module and form title to context."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
         context['form_title'] = _('Edit Product Order')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Product Orders'), 'url': reverse_lazy('production:product_orders')},
+            {'label': _('Edit'), 'url': None},
+        ]
+        context['cancel_url'] = reverse_lazy('production:product_orders')
+        context['form_id'] = 'product-order-form'
         
         # Add formset for extra items (only if user has permission)
         from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
         if self.object and self.object.company_id:
+            context['user_feature_permissions'] = get_user_feature_permissions(self.request.user, self.object.company_id)
             permissions = get_user_feature_permissions(self.request.user, self.object.company_id)
             has_permission = has_feature_permission(
                 permissions,
@@ -512,7 +540,7 @@ class ProductOrderDeleteView(FeaturePermissionRequiredMixin, DeleteView):
     """Delete a product order."""
     model = ProductOrder
     success_url = reverse_lazy('production:product_orders')
-    template_name = 'production/product_order_confirm_delete.html'
+    template_name = 'shared/generic/generic_confirm_delete.html'
     feature_code = 'production.product_orders'
     required_action = 'delete_own'
     
@@ -521,7 +549,7 @@ class ProductOrderDeleteView(FeaturePermissionRequiredMixin, DeleteView):
         active_company_id: Optional[int] = self.request.session.get('active_company_id')
         if not active_company_id:
             return ProductOrder.objects.none()
-        return ProductOrder.objects.filter(company_id=active_company_id)
+        return ProductOrder.objects.filter(company_id=active_company_id).select_related('bom', 'finished_item')
     
     def delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect:
         """Delete product order and show success message."""
@@ -529,8 +557,32 @@ class ProductOrderDeleteView(FeaturePermissionRequiredMixin, DeleteView):
         return super().delete(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module to context."""
+        """Add context for generic delete template."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
+        context['delete_title'] = _('Delete Product Order')
+        context['confirmation_message'] = _('Are you sure you want to delete this product order?')
+        
+        object_details = [
+            {'label': _('Order Code'), 'value': self.object.order_code},
+        ]
+        
+        if self.object.bom:
+            object_details.append({'label': _('BOM'), 'value': self.object.bom.bom_code})
+        
+        if self.object.finished_item:
+            object_details.append({'label': _('Finished Item'), 'value': f"{self.object.finished_item.item_code} - {self.object.finished_item.name}"})
+        
+        object_details.extend([
+            {'label': _('Quantity'), 'value': f"{self.object.quantity_planned} {self.object.unit}"},
+            {'label': _('Status'), 'value': self.object.get_status_display()},
+        ])
+        
+        context['object_details'] = object_details
+        context['cancel_url'] = reverse_lazy('production:product_orders')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Product Orders'), 'url': reverse_lazy('production:product_orders')},
+            {'label': _('Delete'), 'url': None},
+        ]
         return context
 

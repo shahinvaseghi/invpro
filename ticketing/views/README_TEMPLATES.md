@@ -29,12 +29,12 @@
 
 **Type**: `FeaturePermissionRequiredMixin, TicketingBaseView, ListView`
 
-**Template**: `ticketing/templates_list.html`
+**Template**: `ticketing/templates_list.html` (extends `shared/generic/generic_list.html`)
 
 **Attributes**:
 - `model`: `TicketTemplate`
 - `template_name`: `'ticketing/templates_list.html'`
-- `context_object_name`: `'templates'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 - `feature_code`: `'ticketing.management.templates'`
 - `required_action`: `'view_all'`
@@ -52,11 +52,7 @@
 
 **منطق**:
 1. دریافت `company_id` از session
-2. **Debug logging** (print statements):
-   - Log company_id، user، session keys
-   - Log تمام templates در database
-   - Log templates برای company
-3. **Company filtering**:
+2. **Company filtering**:
    - اگر `company_id` موجود است:
      - فیلتر: `TicketTemplate.objects.filter(company_id=company_id)`
    - در غیر این صورت:
@@ -66,15 +62,11 @@
 5. **Category filtering** (اگر `category` در query parameter وجود دارد):
    - فیلتر: `queryset.filter(category_id=category_id)`
 6. مرتب‌سازی: `order_by('sort_order', 'template_code', 'name')`
-7. **Debug logging**: Log final queryset count
-8. queryset را برمی‌گرداند
+7. queryset را برمی‌گرداند
 
 **Query Parameters**:
 - `search`: جستجو در name، template_code، description
 - `category`: فیلتر بر اساس category ID
-
-**نکات مهم**:
-- شامل debug print statements برای troubleshooting است
 
 ---
 
@@ -90,11 +82,12 @@
 
 **منطق**:
 1. context را از `super().get_context_data()` دریافت می‌کند
-2. اضافه کردن `page_title = _('Ticket Templates')`
-3. **Debug logging** (print statements):
-   - Log context keys
-   - Log templates در context (type، count، details)
-   - Log pagination info
+2. اگر `page_obj` در context وجود دارد: `context['object_list'] = context['page_obj'].object_list`
+3. اضافه کردن context variables برای generic template:
+   - `page_title`, `breadcrumbs`, `create_url`, `create_button_text`
+   - `show_filters`, `search_placeholder`, `clear_filter_url`
+   - `show_actions`, `edit_url_name`, `delete_url_name`
+   - `empty_state_title`, `empty_state_message`, `empty_state_icon`
 4. **دریافت categories برای filter dropdown**:
    - دریافت `company_id` از session
    - اگر `company_id` موجود است:
@@ -107,12 +100,12 @@
 
 **Context Variables اضافه شده**:
 - `page_title`: `_('Ticket Templates')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `create_url`, `create_button_text`: برای دکمه ایجاد
+- `show_filters`: `True` برای نمایش فیلترها
 - `categories`: QuerySet از categories (برای filter dropdown)
-- `search_term`: مقدار `search` از query parameter
-- `selected_category`: مقدار `category` از query parameter
-
-**نکات مهم**:
-- شامل debug print statements برای troubleshooting است
+- `show_actions`, `edit_url_name`, `delete_url_name`: برای دکمه‌های action
+- `empty_state_*`: پیام‌های empty state
 
 **Query Parameters**:
 - `search`: جستجو در name, template_code, description
@@ -126,7 +119,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, TicketingBaseView, CreateView`
 
-**Template**: `ticketing/template_form.html`
+**Template**: `ticketing/template_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `TicketTemplateForm`
 
@@ -215,13 +208,8 @@
 1. دریافت `company_id` از session
 2. اگر `company_id` موجود است:
    - تنظیم `form.instance.company_id = company_id`
-3. **Debug logging** (print statements):
-   - Log company_id، user، template name/code، is_enabled
-4. ذخیره template: `response = super().form_valid(form)`
-5. **Debug logging** (print statements):
-   - Log template ID، template_code، company_id بعد از save
-   - Verify template در database
-6. **ذخیره field formset**:
+3. ذخیره template: `response = super().form_valid(form)`
+4. **ذخیره field formset**:
    - `TicketTemplateFieldFormSet(self.request.POST, instance=self.object)`
    - اگر valid:
      - `field_formset.save(commit=False)` (برای دریافت instances)
@@ -275,7 +263,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, TicketingBaseView, UpdateView`
 
-**Template**: `ticketing/template_form.html`
+**Template**: `ticketing/template_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `TicketTemplateForm`
 
@@ -327,7 +315,7 @@
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
 
-**توضیح**: context variables را برای template اضافه می‌کند (با 3 formsets و debug logging).
+**توضیح**: context variables را برای template اضافه می‌کند (با 3 formsets).
 
 **پارامترهای ورودی**:
 - `**kwargs`: متغیرهای context اضافی
@@ -344,10 +332,7 @@
    - `field_formset`: `TicketTemplateFieldFormSet`
    - `permission_formset`: `TicketTemplatePermissionFormSet`
    - `event_formset`: `TicketTemplateEventFormSet`
-4. **Debug logging** (فقط در GET mode):
-   - Log template ID
-   - برای هر field: Log field_key، field_type، field_config (type و value)
-   - اگر field_config dict است: Log as JSON string
+4. اضافه کردن `form_title`, `breadcrumbs`, `cancel_url` برای generic template
 5. اضافه کردن formsets به context
 6. **دریافت categories و priorities**:
    - دریافت `company_id` از session
@@ -358,15 +343,14 @@
 7. context را برمی‌گرداند
 
 **Context Variables اضافه شده**:
-- `page_title`: `_('Edit Template')`
+- `form_title`: `_('Edit Template')`
+- `breadcrumbs`: لیست breadcrumbs
+- `cancel_url`: URL برای cancel
 - `field_formset`: `TicketTemplateFieldFormSet`
 - `permission_formset`: `TicketTemplatePermissionFormSet`
 - `event_formset`: `TicketTemplateEventFormSet`
 - `categories`: QuerySet از categories
 - `priorities`: QuerySet از priorities
-
-**نکات مهم**:
-- شامل debug print statements برای troubleshooting field_config است
 
 ---
 
@@ -387,20 +371,15 @@
 2. دریافت `company_id` از session
 3. **ذخیره field formset**:
    - `TicketTemplateFieldFormSet(self.request.POST, instance=self.object)`
-   - **Debug logging**: Log field_config values از POST data
    - اگر valid:
      - `field_formset.save(commit=False)` (برای دریافت instances)
-     - برای هر `field` (با index):
-       - **Debug logging**: Log field_key، field_type، field_config (before save)
+     - برای هر `field`:
        - تنظیم `field.company_id = company_id`
        - اگر `field.template` موجود است:
          - تنظیم `field.template_code = field.template.template_code`
        - `field.save()`
-       - **Debug logging**: Log field_config (after save)
      - `field_formset.save()` (برای حذف deleted items)
-   - اگر invalid:
-     - **Debug logging**: Log errors
-     - بازگشت `form_invalid(form)`
+   - اگر invalid: بازگشت `form_invalid(form)`
 4. **ذخیره permission formset**:
    - `TicketTemplatePermissionFormSet(self.request.POST, instance=self.object)`
    - اگر valid:
@@ -430,10 +409,6 @@
 - تمام عملیات در یک `@transaction.atomic` انجام می‌شود
 - اگر هر formset invalid باشد، کل transaction rollback می‌شود
 - `template_code` برای fields، permissions، events به صورت خودکار تنظیم می‌شود
-- شامل debug print statements برای troubleshooting field_config است
-
-**نکات مهم**:
-- Debug logging برای `field_config` در edit mode
 - از `@transaction.atomic` استفاده می‌کند
 
 **URL**: `/ticketing/templates/<pk>/edit/`
@@ -444,7 +419,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, TicketingBaseView, DeleteView`
 
-**Template**: `ticketing/template_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `ticketing:templates`
 
@@ -501,7 +476,12 @@
 - `Dict[str, Any]`: context با `page_title`
 
 **Context Variables اضافه شده**:
-- `page_title`: `_('Delete Template')`
+- `delete_title`: `_('Delete Template')`
+- `confirmation_message`: پیام تأیید حذف
+- `object_details`: جزئیات template برای نمایش
+- `warning_message`: هشدار در مورد حذف fields, permissions, events
+- `cancel_url`: URL برای cancel
+- `breadcrumbs`: لیست breadcrumbs
 
 **URL**: `/ticketing/templates/<pk>/delete/`
 
@@ -512,7 +492,7 @@
 1. **Multi-formset Management**: 3 formsets مدیریت می‌شوند (fields, permissions, events)
 2. **Template Code**: `template_code` برای fields, permissions, events به صورت خودکار تنظیم می‌شود
 3. **Transaction Management**: از `@transaction.atomic` استفاده می‌شود
-4. **Debug Logging**: در UpdateView برای `field_config` debug logging وجود دارد
+4. **Generic Templates**: تمام templates به generic templates منتقل شده‌اند
 
 ---
 

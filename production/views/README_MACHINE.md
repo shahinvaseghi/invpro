@@ -27,12 +27,12 @@
 
 **Type**: `FeaturePermissionRequiredMixin, ListView`
 
-**Template**: `production/machines.html`
+**Template**: `production/machines.html` (extends `shared/generic/generic_list.html`)
 
 **Attributes**:
 - `model`: `Machine`
 - `template_name`: `'production/machines.html'`
-- `context_object_name`: `'machines'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 - `feature_code`: `'production.machines'`
 
@@ -83,7 +83,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, CreateView`
 
-**Template**: `production/machine_form.html`
+**Template**: `production/machine_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `MachineForm`
 
@@ -148,8 +148,9 @@
 - `Dict[str, Any]`: context با `active_module` و `form_title`
 
 **Context Variables اضافه شده**:
-- `active_module`: `'production'`
 - `form_title`: `_('Create Machine')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `cancel_url`: URL برای cancel button
 
 **URL**: `/production/machines/create/`
 
@@ -159,7 +160,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, UpdateView`
 
-**Template**: `production/machine_form.html`
+**Template**: `production/machine_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `MachineForm`
 
@@ -236,8 +237,9 @@
 - `Dict[str, Any]`: context با `active_module` و `form_title`
 
 **Context Variables اضافه شده**:
-- `active_module`: `'production'`
 - `form_title`: `_('Edit Machine')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `cancel_url`: URL برای cancel button
 
 **URL**: `/production/machines/<pk>/edit/`
 
@@ -247,13 +249,13 @@
 
 **Type**: `FeaturePermissionRequiredMixin, DeleteView`
 
-**Template**: `production/machine_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `production:machines`
 
 **Attributes**:
 - `model`: `Machine`
-- `template_name`: `'production/machine_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('production:machines')`
 - `feature_code`: `'production.machines'`
 - `required_action`: `'delete_own'`
@@ -296,16 +298,20 @@
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
 
-**توضیح**: context variables را برای template اضافه می‌کند.
+**توضیح**: context variables را برای generic delete template اضافه می‌کند.
 
 **پارامترهای ورودی**:
 - `**kwargs`: متغیرهای context اضافی
 
 **مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `active_module`
+- `Dict[str, Any]`: context با تمام متغیرهای لازم برای generic template
 
 **Context Variables اضافه شده**:
-- `active_module`: `'production'`
+- `delete_title`: `_('Delete Machine')`
+- `confirmation_message`: پیام تأیید حذف
+- `object_details`: لیست جزئیات machine برای نمایش (code, name, type, work_center)
+- `cancel_url`: URL برای cancel
+- `breadcrumbs`: لیست breadcrumbs
 
 **URL**: `/production/machines/<pk>/delete/`
 
@@ -316,4 +322,8 @@
 1. **Company Filtering**: تمام queryset ها بر اساس `active_company_id` فیلتر می‌شوند
 2. **Permission Checking**: تمام views از `FeaturePermissionRequiredMixin` استفاده می‌کنند
 3. **Optional select_related**: `select_related('work_center')` با try-except برای جلوگیری از خطا
+4. **Generic Templates**: تمام templates به generic templates منتقل شده‌اند:
+   - Machine List از `shared/generic/generic_list.html` extends می‌کند
+   - Machine Form از `shared/generic/generic_form.html` extends می‌کند
+   - Machine Delete از `shared/generic/generic_confirm_delete.html` استفاده می‌کند
 

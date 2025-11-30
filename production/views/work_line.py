@@ -45,9 +45,22 @@ class WorkLineListView(FeaturePermissionRequiredMixin, ListView):
         return queryset.order_by('warehouse__name', 'sort_order', 'public_code')
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module to context."""
+        """Add context for generic list template."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
+        context['page_title'] = _('Work Lines')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Work Lines'), 'url': None},
+        ]
+        context['create_url'] = reverse_lazy('production:work_line_create')
+        context['create_button_text'] = _('+ Create Work Line')
+        context['table_headers'] = []  # Overridden in template
+        context['show_actions'] = True
+        context['edit_url_name'] = 'production:work_line_edit'
+        context['delete_url_name'] = 'production:work_line_delete'
+        context['empty_state_title'] = _('No Work Lines Found')
+        context['empty_state_message'] = _('Start by creating your first work line.')
+        context['empty_state_icon'] = '🏭'
         return context
 
 
@@ -77,10 +90,16 @@ class WorkLineCreateView(FeaturePermissionRequiredMixin, CreateView):
         return response
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and form title to context."""
+        """Add form title and context for generic template."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
         context['form_title'] = _('Create Work Line')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Work Lines'), 'url': reverse_lazy('production:work_lines')},
+            {'label': _('Create'), 'url': None},
+        ]
+        context['cancel_url'] = reverse_lazy('production:work_lines')
+        context['form_id'] = 'work-line-form'
         return context
 
 
@@ -116,17 +135,23 @@ class WorkLineUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin,
         return response
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and form title to context."""
+        """Add form title and context for generic template."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
         context['form_title'] = _('Edit Work Line')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Work Lines'), 'url': reverse_lazy('production:work_lines')},
+            {'label': _('Edit'), 'url': None},
+        ]
+        context['cancel_url'] = reverse_lazy('production:work_lines')
+        context['form_id'] = 'work-line-form'
         return context
 
 
 class WorkLineDeleteView(FeaturePermissionRequiredMixin, DeleteView):
     """Delete a work line."""
     model = WorkLine
-    template_name = 'production/work_line_confirm_delete.html'
+    template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('production:work_lines')
     feature_code = 'production.work_lines'
     required_action = 'delete_own'
@@ -136,7 +161,10 @@ class WorkLineDeleteView(FeaturePermissionRequiredMixin, DeleteView):
         active_company_id: Optional[int] = self.request.session.get('active_company_id')
         if not active_company_id:
             return WorkLine.objects.none()
-        return WorkLine.objects.filter(company_id=active_company_id)
+        try:
+            return WorkLine.objects.filter(company_id=active_company_id).select_related('warehouse')
+        except Exception:
+            return WorkLine.objects.filter(company_id=active_company_id)
     
     def delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect:
         """Delete work line and show success message."""
@@ -144,8 +172,25 @@ class WorkLineDeleteView(FeaturePermissionRequiredMixin, DeleteView):
         return super().delete(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module to context."""
+        """Add context for generic delete template."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
+        context['delete_title'] = _('Delete Work Line')
+        context['confirmation_message'] = _('Are you sure you want to delete this work line? This action cannot be undone.')
+        
+        object_details = [
+            {'label': _('Code'), 'value': self.object.public_code},
+            {'label': _('Name'), 'value': self.object.name},
+        ]
+        
+        if hasattr(self.object, 'warehouse') and self.object.warehouse:
+            object_details.append({'label': _('Warehouse'), 'value': self.object.warehouse.name})
+        
+        context['object_details'] = object_details
+        context['cancel_url'] = reverse_lazy('production:work_lines')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Work Lines'), 'url': reverse_lazy('production:work_lines')},
+            {'label': _('Delete'), 'url': None},
+        ]
         return context
 

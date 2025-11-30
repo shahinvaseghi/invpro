@@ -29,12 +29,12 @@
 
 **Type**: `FeaturePermissionRequiredMixin, TicketingBaseView, ListView`
 
-**Template**: `ticketing/categories_list.html`
+**Template**: `ticketing/categories_list.html` (extends `shared/generic/generic_list.html`)
 
 **Attributes**:
 - `model`: `TicketCategory`
 - `template_name`: `'ticketing/categories_list.html'`
-- `context_object_name`: `'categories'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 - `feature_code`: `'ticketing.management.categories'`
 - `required_action`: `'view_all'`
@@ -79,8 +79,17 @@
 
 **Context Variables اضافه شده**:
 - `page_title`: `_('Ticket Categories')`
-- `search_term`: مقدار `search` از query parameter
-- `parent_filter`: مقدار `parent_filter` از query parameter
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `create_url`: URL برای ایجاد category جدید
+- `create_button_text`: متن دکمه ایجاد
+- `show_filters`: `True` برای نمایش فیلترها
+- `parent_filter_value`: مقدار `parent_filter` از query parameter
+- `search_placeholder`: placeholder برای فیلد جستجو
+- `clear_filter_url`: URL برای پاک کردن فیلترها
+- `show_actions`: `True` برای نمایش دکمه‌های action
+- `edit_url_name`: نام URL برای ویرایش
+- `delete_url_name`: نام URL برای حذف
+- `empty_state_title`, `empty_state_message`, `empty_state_icon`: پیام‌های empty state
 
 **Query Parameters**:
 - `search`: جستجو در name, name_en, public_code
@@ -105,7 +114,7 @@
 **Attributes**:
 - `model`: `TicketCategory`
 - `form_class`: `TicketCategoryForm`
-- `template_name`: `'ticketing/category_form.html'`
+- `template_name`: `'ticketing/category_form.html'` (extends `shared/generic/generic_form.html`)
 - `success_url`: `reverse_lazy('ticketing:categories')`
 - `feature_code`: `'ticketing.management.categories'`
 - `required_action`: `'create'`
@@ -175,7 +184,7 @@
 **Attributes**:
 - `model`: `TicketCategory`
 - `form_class`: `TicketCategoryForm`
-- `template_name`: `'ticketing/category_form.html'`
+- `template_name`: `'ticketing/category_form.html'` (extends `shared/generic/generic_form.html`)
 - `success_url`: `reverse_lazy('ticketing:categories')`
 - `feature_code`: `'ticketing.management.categories'`
 - `required_action`: `'edit_own'`
@@ -235,13 +244,13 @@
 
 **Type**: `FeaturePermissionRequiredMixin, TicketingBaseView, DeleteView`
 
-**Template**: `ticketing/category_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `ticketing:categories`
 
 **Attributes**:
 - `model`: `TicketCategory`
-- `template_name`: `'ticketing/category_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('ticketing:categories')`
 - `feature_code`: `'ticketing.management.categories'`
 - `required_action`: `'delete_own'`
@@ -292,7 +301,12 @@
 - `Dict[str, Any]`: context با `page_title`
 
 **Context Variables اضافه شده**:
-- `page_title`: `_('Delete Category')`
+- `delete_title`: `_('Delete Category')`
+- `confirmation_message`: پیام تأیید حذف
+- `object_details`: جزئیات category برای نمایش (name, code, description)
+- `warning_message`: هشدار در مورد subcategories (اگر وجود داشته باشند)
+- `cancel_url`: URL برای cancel
+- `breadcrumbs`: لیست breadcrumbs
 
 **URL**: `/ticketing/categories/<pk>/delete/`
 

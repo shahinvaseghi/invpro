@@ -258,13 +258,13 @@
 
 **Type**: `FeaturePermissionRequiredMixin, DeleteView`
 
-**Template**: `production/work_line_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `production:work_lines`
 
 **Attributes**:
 - `model`: `WorkLine`
-- `template_name`: `'production/work_line_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('production:work_lines')`
 - `feature_code`: `'production.work_lines'`
 - `required_action`: `'delete_own'`
@@ -319,6 +319,46 @@
 - `active_module`: `'production'`
 
 **URL**: `/production/work-lines/<pk>/delete/`
+
+---
+
+## Generic Templates
+
+تمام templates به generic templates منتقل شده‌اند:
+
+### Work Line List
+- **Template**: `production/work_lines.html` extends `shared/generic/generic_list.html`
+- **Blocks Overridden**: 
+  - `table_headers`: Code, Name, Warehouse, Personnel, Machines, Status
+  - `table_rows`: نمایش work lines با Code, Name, Warehouse, Personnel (limited to 3), Machines (limited to 3), Status, Actions
+  - `empty_state_title`, `empty_state_message`, `empty_state_icon`: override برای empty state
+- **Context Variables**:
+  - `page_title`: "Work Lines"
+  - `breadcrumbs`: Production > Work Lines
+  - `create_url`: URL برای ایجاد Work Line جدید
+  - `table_headers`: [] (overridden in template)
+  - `show_actions`: True
+  - `edit_url_name`: 'production:work_line_edit'
+  - `delete_url_name`: 'production:work_line_delete'
+  - `empty_state_title`: "No Work Lines Found"
+  - `empty_state_message`: "Start by creating your first work line."
+  - `empty_state_icon`: "🏭"
+
+### Work Line Form
+- **Template**: `production/work_line_form.html` extends `shared/generic/generic_form.html`
+- **Blocks Overridden**: 
+  - `breadcrumb_extra`: مسیر breadcrumb
+  - `before_form`: Info banner برای نمایش code
+  - `form_sections`: فیلدهای form (warehouse, name, description, notes, sort_order, is_enabled, personnel, machines)
+
+### Work Line Delete
+- **Template**: `shared/generic/generic_confirm_delete.html`
+- **Context Variables**:
+  - `delete_title`: عنوان حذف
+  - `confirmation_message`: پیام تایید
+  - `object_details`: جزئیات خط کاری (code, name, warehouse)
+  - `cancel_url`: URL برای لغو
+  - `breadcrumbs`: مسیر breadcrumb
 
 ---
 

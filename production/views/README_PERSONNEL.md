@@ -244,13 +244,13 @@
 
 **Type**: `FeaturePermissionRequiredMixin, DeleteView`
 
-**Template**: `production/person_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `production:personnel`
 
 **Attributes**:
 - `model`: `Person`
-- `template_name`: `'production/person_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('production:personnel')`
 - `feature_code`: `'production.personnel'`
 - `required_action`: `'delete_own'`
@@ -305,6 +305,50 @@
 - `active_module`: `'production'`
 
 **URL**: `/production/personnel/<pk>/delete/`
+
+---
+
+## Generic Templates
+
+تمام templates به generic templates منتقل شده‌اند:
+
+### Personnel List
+- **Template**: `production/personnel.html` extends `shared/generic/generic_list.html`
+- **Blocks Overridden**: 
+  - `page_actions`: اضافه کردن Print button
+  - `filter_fields`: Search field
+  - `table_rows`: نمایش personnel با Code, Name, National ID, Company Units, Status, Actions
+- **Context Variables**:
+  - `page_title`: "Personnel"
+  - `breadcrumbs`: Production > Personnel
+  - `create_url`: URL برای ایجاد Person جدید
+  - `search_placeholder`: "Search by code, name, or national ID..."
+  - `status_filter`: True (enable status dropdown)
+  - `table_headers`: لیست هدرهای جدول
+  - `show_actions`: True
+  - `edit_url_name`: 'production:person_edit'
+  - `delete_url_name`: 'production:person_delete'
+  - `empty_state_title`: "No Personnel Found"
+  - `empty_state_message`: "Create your first person to get started."
+  - `empty_state_icon`: "👤"
+  - `print_enabled`: True
+
+### Person Form
+- **Template**: `production/person_form.html` extends `shared/generic/generic_form.html`
+- **Blocks Overridden**: 
+  - `breadcrumb_extra`: مسیر breadcrumb
+  - `form_sections`: فیلدهای form (organizational units, basic info, contact info)
+  - `extra_styles`: CSS برای checkbox list
+  - `form_scripts`: JavaScript برای sync username با personnel code
+
+### Person Delete
+- **Template**: `shared/generic/generic_confirm_delete.html`
+- **Context Variables**:
+  - `delete_title`: عنوان حذف
+  - `confirmation_message`: پیام تایید
+  - `object_details`: جزئیات شخص (code, name, company units)
+  - `cancel_url`: URL برای لغو
+  - `breadcrumbs`: مسیر breadcrumb
 
 ---
 

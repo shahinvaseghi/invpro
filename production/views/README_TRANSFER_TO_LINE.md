@@ -33,7 +33,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, ListView`
 
-**Template**: `production/transfer_to_line_list.html`
+**Template**: `production/transfer_to_line_list.html` (extends `shared/generic/generic_list.html`)
 
 **Attributes**:
 - `model`: `TransferToLine`
@@ -307,13 +307,13 @@
 
 **Type**: `FeaturePermissionRequiredMixin, DeleteView`
 
-**Template**: `production/transfer_to_line_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `production:transfer_requests`
 
 **Attributes**:
 - `model`: `TransferToLine`
-- `template_name`: `'production/transfer_to_line_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('production:transfer_requests')`
 - `feature_code`: `'production.transfer_requests'`
 - `required_action`: `'delete_own'`
@@ -504,6 +504,50 @@
 
 ### 5. Code Generation
 - `transfer_code` به صورت خودکار با prefix `'TR'` تولید می‌شود
+
+---
+
+## Generic Templates
+
+تمام templates به generic templates منتقل شده‌اند:
+
+### Transfer to Line List
+- **Template**: `production/transfer_to_line_list.html` extends `shared/generic/generic_list.html`
+- **Blocks Overridden**: 
+  - `page_title`: عنوان صفحه
+  - `breadcrumb_extra`: مسیر breadcrumb
+  - `page_actions`: دکمه Create
+  - `table_headers`: هدرهای جدول
+  - `table_rows`: ردیف‌های جدول با status badges و action buttons
+  - `pagination`: صفحه‌بندی
+  - `extra_scripts`: JavaScript برای approve/reject functions
+
+### Transfer to Line Delete
+- **Template**: `shared/generic/generic_confirm_delete.html`
+- **Context Variables**:
+  - `delete_title`: عنوان حذف
+  - `confirmation_message`: پیام تایید
+  - `object_details`: جزئیات transfer (Transfer Code, Product Order, Transfer Date, Status, Total Items)
+  - `cancel_url`: URL برای لغو
+  - `breadcrumbs`: مسیر breadcrumb
+
+### Transfer to Line Form
+- **Template**: `shared/generic/generic_form.html` (extended by `production/transfer_to_line_form.html`)
+- **Blocks Overridden**:
+  - `breadcrumb_extra`: اضافه کردن مسیر Production و Transfer to Line Requests
+  - `before_form`: نمایش info banner برای transfer_code، transfer_date، status، و lock status
+  - `form_sections`: فیلدهای اصلی فرم (order, transfer_date, approved_by, notes)
+  - `form_extra`: بخش BOM Items (read-only table) و Extra Request Items (formset با cascading filters)
+  - `extra_styles`: CSS برای table-responsive و formset table
+  - `form_scripts`: JavaScript برای Jalali DatePicker، formset management، و cascading filters (Type → Category → Subcategory → Item → Unit)
+- **Context Variables**:
+  - `form_title`: عنوان فرم ("Create Transfer Request" یا "Edit Transfer Request")
+  - `breadcrumbs`: مسیر breadcrumb
+  - `cancel_url`: URL برای لغو
+  - `form_id`: 'transfer-form'
+  - `formset`: TransferToLineItemFormSet برای extra items
+  - `bom_items`: لیست BOM items (read-only) - فقط در edit mode
+  - `is_locked`: وضعیت قفل بودن transfer
 
 ---
 

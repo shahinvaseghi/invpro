@@ -362,13 +362,13 @@
 
 **Type**: `FeaturePermissionRequiredMixin, DeleteView`
 
-**Template**: `production/process_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `production:processes`
 
 **Attributes**:
 - `model`: `Process`
-- `template_name`: `'production/process_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('production:processes')`
 - `feature_code`: `'production.processes'`
 - `required_action`: `'delete_own'`
@@ -423,6 +423,61 @@
 - `active_module`: `'production'`
 
 **URL**: `/production/processes/<pk>/delete/`
+
+---
+
+## Generic Templates
+
+تمام templates به generic templates منتقل شده‌اند:
+
+### Process List
+- **Template**: `production/processes.html` extends `shared/generic/generic_list.html`
+- **Blocks Overridden**: 
+  - `table_headers`: Expand button, Code, Finished Item, BOM, Revision, Operations, Work Lines, Status
+  - `table_rows`: نمایش processes با expandable rows برای operations details
+  - `after_table`: CSS و JavaScript برای toggle operations
+  - `empty_state_title`, `empty_state_message`, `empty_state_icon`: override برای empty state
+- **Context Variables**:
+  - `page_title`: "Processes"
+  - `breadcrumbs`: Production > Processes
+  - `create_url`: URL برای ایجاد Process جدید
+  - `table_headers`: [] (overridden in template)
+  - `show_actions`: True
+  - `edit_url_name`: 'production:process_edit'
+  - `delete_url_name`: 'production:process_delete'
+  - `empty_state_title`: "No Processes Found"
+  - `empty_state_message`: "Start by creating your first process."
+  - `empty_state_icon`: "⚙️"
+- **Features**:
+  - Expandable rows برای نمایش operations details
+  - نمایش operations count و materials used برای هر operation
+  - JavaScript function `toggleOperations()` برای show/hide operations
+
+### Process Delete
+- **Template**: `shared/generic/generic_confirm_delete.html`
+- **Context Variables**:
+  - `delete_title`: عنوان حذف
+  - `confirmation_message`: پیام تایید
+  - `object_details`: جزئیات فرآیند (Code, Finished Item, BOM, Revision, Work Lines)
+  - `cancel_url`: URL برای لغو
+  - `breadcrumbs`: مسیر breadcrumb
+
+### Process Form
+- **Template**: `shared/generic/generic_form.html` (extended by `production/process_form.html`)
+- **Blocks Overridden**:
+  - `breadcrumb_extra`: اضافه کردن مسیر Production و Processes
+  - `before_form`: نمایش info banner برای process_code و finished_item
+  - `form_sections`: فیلدهای اصلی فرم (BOM, work_lines, revision, is_primary, approved_by, description, notes, sort_order, is_enabled)
+  - `form_extra`: بخش Operations با nested materials formset
+  - `extra_styles`: CSS برای operations و materials tables
+  - `form_scripts`: JavaScript پیچیده برای مدیریت operations و materials formsets، load کردن BOM materials، و dynamic formset management
+- **Context Variables**:
+  - `form_title`: عنوان فرم ("Create Process" یا "Edit Process")
+  - `breadcrumbs`: مسیر breadcrumb
+  - `cancel_url`: URL برای لغو
+  - `form_id`: 'process-form'
+  - `operations_formset`: ProcessOperationFormSet برای operations
+  - `existing_operations_data`: داده‌های موجود operations برای edit mode
 
 ---
 

@@ -1,146 +1,111 @@
-{% extends "ticketing/base.html" %}
+{% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
 
-{% block title %}{{ page_title }} - {{ block.super }}{% endblock %}
-
-{% block breadcrumb_extra %}
-<span class="separator">/</span>
-<span>{% trans "Ticket Management" %}</span>
-<span class="separator">/</span>
-<a href="{% url 'ticketing:categories' %}">{% trans "Categories" %}</a>
-<span class="separator">/</span>
-<span>{{ page_title }}</span>
-{% endblock %}
-
-{% block ticketing_content %}
-<div class="form-container">
-  <form method="post" class="entity-form">
-    {% csrf_token %}
-    
-    {% if form.non_field_errors %}
-      <div class="alert alert-error">
-        {{ form.non_field_errors }}
-      </div>
-    {% endif %}
-
-    <div class="form-section">
-      <h2>{% trans "Category Information" %}</h2>
-      {% for field in form %}
-        <div class="form-field">
-          <label for="{{ field.id_for_label }}">
-            {{ field.label }}
-            {% if field.field.required %}*{% endif %}
-          </label>
-          {{ field }}
-          {% if field.errors %}
-            <span class="error">{{ field.errors.0 }}</span>
-          {% endif %}
-          {% if field.help_text %}
-            <small class="form-text">{{ field.help_text }}</small>
-          {% endif %}
-        </div>
-      {% endfor %}
-    </div>
-
-    <div class="form-section">
-      <header class="section-header">
-        <h2>{% trans "Permissions" %}</h2>
-        <p>{% trans "Define which users or groups can create, respond to, or close tickets in this category." %}</p>
-      </header>
-
-      {{ permission_formset.management_form }}
-      {% if permission_formset.non_form_errors %}
-        <div class="alert alert-error">
-          {{ permission_formset.non_form_errors }}
-        </div>
+{% block form_sections %}
+<div class="form-section">
+  <h2>{% trans "Category Information" %}</h2>
+  {% for field in form %}
+    <div class="form-field">
+      <label for="{{ field.id_for_label }}">
+        {{ field.label }}
+        {% if field.field.required %}*{% endif %}
+      </label>
+      {{ field }}
+      {% if field.errors %}
+        <span class="error">{{ field.errors.0 }}</span>
       {% endif %}
-
-      <table class="data-table formset-table">
-        <thead>
-          <tr>
-            <th>{% trans "User" %}</th>
-            <th>{% trans "Group" %}</th>
-            <th>{% trans "Can Create" %}</th>
-            <th>{% trans "Can Respond" %}</th>
-            <th>{% trans "Can Close" %}</th>
-            <th>{% trans "Status" %}</th>
-            <th>{% trans "Delete" %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for perm_form in permission_formset %}
-            <tr>
-              {% for hidden in perm_form.hidden_fields %}{{ hidden }}{% endfor %}
-              <td>
-                {{ perm_form.user }}
-                {% for error in perm_form.user.errors %}
-                  <div class="field-error">{{ error }}</div>
-                {% endfor %}
-              </td>
-              <td>
-                {{ perm_form.group }}
-                {% for error in perm_form.group.errors %}
-                  <div class="field-error">{{ error }}</div>
-                {% endfor %}
-              </td>
-              <td style="text-align: center;">
-                {{ perm_form.can_create }}
-                {% for error in perm_form.can_create.errors %}
-                  <div class="field-error">{{ error }}</div>
-                {% endfor %}
-              </td>
-              <td style="text-align: center;">
-                {{ perm_form.can_respond }}
-                {% for error in perm_form.can_respond.errors %}
-                  <div class="field-error">{{ error }}</div>
-                {% endfor %}
-              </td>
-              <td style="text-align: center;">
-                {{ perm_form.can_close }}
-                {% for error in perm_form.can_close.errors %}
-                  <div class="field-error">{{ error }}</div>
-                {% endfor %}
-              </td>
-              <td>
-                {{ perm_form.is_enabled }}
-                {% for error in perm_form.is_enabled.errors %}
-                  <div class="field-error">{{ error }}</div>
-                {% endfor %}
-              </td>
-              <td>
-                {% if perm_form.instance.pk %}
-                  {{ perm_form.DELETE }}
-                  <label for="{{ perm_form.DELETE.id_for_label }}" style="margin-left: 5px;">{% trans "Delete" %}</label>
-                {% else %}
-                  <span class="muted-text">–</span>
-                {% endif %}
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <p class="muted-text">
-        {% trans "Add more entries by filling the blank row and saving; a fresh row will appear after each save." %}
-      </p>
+      {% if field.help_text %}
+        <small class="form-text">{{ field.help_text }}</small>
+      {% endif %}
     </div>
-
-    <div class="form-actions">
-      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-      <a href="{% url 'ticketing:categories' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
-    </div>
-  </form>
+  {% endfor %}
 </div>
 
-<style>
-.form-container {
-  max-width: 1200px;
-  margin: 2rem auto;
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
+<div class="form-section">
+  <header class="section-header">
+    <h2>{% trans "Permissions" %}</h2>
+    <p>{% trans "Define which users or groups can create, respond to, or close tickets in this category." %}</p>
+  </header>
 
+  {{ permission_formset.management_form }}
+  {% if permission_formset.non_form_errors %}
+    <div class="alert alert-error">
+      {{ permission_formset.non_form_errors }}
+    </div>
+  {% endif %}
+
+  <table class="data-table formset-table">
+    <thead>
+      <tr>
+        <th>{% trans "User" %}</th>
+        <th>{% trans "Group" %}</th>
+        <th>{% trans "Can Create" %}</th>
+        <th>{% trans "Can Respond" %}</th>
+        <th>{% trans "Can Close" %}</th>
+        <th>{% trans "Status" %}</th>
+        <th>{% trans "Delete" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for perm_form in permission_formset %}
+        <tr>
+          {% for hidden in perm_form.hidden_fields %}{{ hidden }}{% endfor %}
+          <td>
+            {{ perm_form.user }}
+            {% for error in perm_form.user.errors %}
+              <div class="field-error">{{ error }}</div>
+            {% endfor %}
+          </td>
+          <td>
+            {{ perm_form.group }}
+            {% for error in perm_form.group.errors %}
+              <div class="field-error">{{ error }}</div>
+            {% endfor %}
+          </td>
+          <td style="text-align: center;">
+            {{ perm_form.can_create }}
+            {% for error in perm_form.can_create.errors %}
+              <div class="field-error">{{ error }}</div>
+            {% endfor %}
+          </td>
+          <td style="text-align: center;">
+            {{ perm_form.can_respond }}
+            {% for error in perm_form.can_respond.errors %}
+              <div class="field-error">{{ error }}</div>
+            {% endfor %}
+          </td>
+          <td style="text-align: center;">
+            {{ perm_form.can_close }}
+            {% for error in perm_form.can_close.errors %}
+              <div class="field-error">{{ error }}</div>
+            {% endfor %}
+          </td>
+          <td>
+            {{ perm_form.is_enabled }}
+            {% for error in perm_form.is_enabled.errors %}
+              <div class="field-error">{{ error }}</div>
+            {% endfor %}
+          </td>
+          <td>
+            {% if perm_form.instance.pk %}
+              {{ perm_form.DELETE }}
+              <label for="{{ perm_form.DELETE.id_for_label }}" style="margin-left: 5px;">{% trans "Delete" %}</label>
+            {% else %}
+              <span class="muted-text">–</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted-text">
+    {% trans "Add more entries by filling the blank row and saving; a fresh row will appear after each save." %}
+  </p>
+</div>
+{% endblock %}
+
+{% block form_extra %}
+<style>
 .form-section {
   margin-bottom: 2rem;
   padding-bottom: 2rem;
@@ -219,15 +184,6 @@
   font-size: 0.875rem;
 }
 
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-start;
-  padding-top: 2rem;
-  margin-top: 2rem;
-  border-top: 1px solid #e5e7eb;
-}
-
 .formset-table {
   width: 100%;
   margin-top: 1rem;
@@ -281,4 +237,3 @@
 }
 </style>
 {% endblock %}
-

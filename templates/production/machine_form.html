@@ -1,257 +1,164 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
 
-{% block title %}{{ form_title }} - {{ block.super }}{% endblock %}
-
-{% block content %}
-<div class="inventory-module">
-  <div class="module-header">
-    <nav class="breadcrumb">
-      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
-      <span>/</span>
-      <a href="{% url 'production:machines' %}">{% trans "Machines" %}</a>
-      <span>/</span>
-      <span>{{ form_title }}</span>
-    </nav>
-    
-    <h1 class="page-title">{{ form_title }}</h1>
+{% block form_sections %}
+<div class="form-section">
+  <h2>{% trans "Basic Information" %}</h2>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.is_enabled.id_for_label }}">{{ form.is_enabled.label }}</label>
+      {{ form.is_enabled }}
+      {% if form.is_enabled.errors %}
+        <span class="error">{{ form.is_enabled.errors.0 }}</span>
+      {% endif %}
+    </div>
   </div>
 
-  <div class="form-container">
-    {% if messages %}
-      {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">
-        {{ message }}
-      </div>
-      {% endfor %}
-    {% endif %}
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.name.id_for_label }}">{{ form.name.label }} *</label>
+      {{ form.name }}
+      {% if form.name.errors %}
+        <span class="error">{{ form.name.errors.0 }}</span>
+      {% endif %}
+    </div>
 
-    <form method="post" class="entity-form">
-      {% csrf_token %}
+    <div class="form-field">
+      <label for="{{ form.name_en.id_for_label }}">{{ form.name_en.label }}</label>
+      {{ form.name_en }}
+      {% if form.name_en.errors %}
+        <span class="error">{{ form.name_en.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
 
-      <div class="form-section">
-        <h3>{% trans "Basic Information" %}</h3>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.is_enabled.id_for_label }}">{{ form.is_enabled.label }}</label>
-            {{ form.is_enabled }}
-          </div>
-        </div>
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.machine_type.id_for_label }}">{{ form.machine_type.label }} *</label>
+      {{ form.machine_type }}
+      {% if form.machine_type.errors %}
+        <span class="error">{{ form.machine_type.errors.0 }}</span>
+      {% endif %}
+    </div>
 
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.name.id_for_label }}">{{ form.name.label }} *</label>
-            {{ form.name }}
-            {% if form.name.errors %}
-              <span class="error">{{ form.name.errors.0 }}</span>
-            {% endif %}
-          </div>
+    <div class="form-field">
+      <label for="{{ form.work_center.id_for_label }}">{{ form.work_center.label }}</label>
+      {{ form.work_center }}
+      {% if form.work_center.errors %}
+        <span class="error">{{ form.work_center.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
 
-          <div class="form-field">
-            <label for="{{ form.name_en.id_for_label }}">{{ form.name_en.label }}</label>
-            {{ form.name_en }}
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.machine_type.id_for_label }}">{{ form.machine_type.label }} *</label>
-            {{ form.machine_type }}
-            {% if form.machine_type.errors %}
-              <span class="error">{{ form.machine_type.errors.0 }}</span>
-            {% endif %}
-          </div>
-
-          <div class="form-field">
-            <label for="{{ form.work_center.id_for_label }}">{{ form.work_center.label }}</label>
-            {{ form.work_center }}
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.status.id_for_label }}">{{ form.status.label }} *</label>
-            {{ form.status }}
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <h3>{% trans "Manufacturer Information" %}</h3>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.manufacturer.id_for_label }}">{{ form.manufacturer.label }}</label>
-            {{ form.manufacturer }}
-          </div>
-
-          <div class="form-field">
-            <label for="{{ form.model_number.id_for_label }}">{{ form.model_number.label }}</label>
-            {{ form.model_number }}
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.serial_number.id_for_label }}">{{ form.serial_number.label }}</label>
-            {{ form.serial_number }}
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <h3>{% trans "Dates" %}</h3>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.purchase_date.id_for_label }}">{{ form.purchase_date.label }}</label>
-            {{ form.purchase_date }}
-          </div>
-
-          <div class="form-field">
-            <label for="{{ form.installation_date.id_for_label }}">{{ form.installation_date.label }}</label>
-            {{ form.installation_date }}
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <h3>{% trans "Maintenance" %}</h3>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.last_maintenance_date.id_for_label }}">{{ form.last_maintenance_date.label }}</label>
-            {{ form.last_maintenance_date }}
-          </div>
-
-          <div class="form-field">
-            <label for="{{ form.next_maintenance_date.id_for_label }}">{{ form.next_maintenance_date.label }}</label>
-            {{ form.next_maintenance_date }}
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <h3>{% trans "Additional Information" %}</h3>
-        
-        <div class="form-row">
-          <div class="form-field full-width">
-            <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
-            {{ form.description }}
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-field full-width">
-            <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
-            {{ form.notes }}
-          </div>
-        </div>
-      </div>
-
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-        <a href="{% url 'production:machines' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
-      </div>
-    </form>
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.status.id_for_label }}">{{ form.status.label }} *</label>
+      {{ form.status }}
+      {% if form.status.errors %}
+        <span class="error">{{ form.status.errors.0 }}</span>
+      {% endif %}
+    </div>
   </div>
 </div>
 
-<style>
-.form-container {
-  max-width: 1000px;
-  margin: 2rem auto;
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
+<div class="form-section">
+  <h2>{% trans "Manufacturer Information" %}</h2>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.manufacturer.id_for_label }}">{{ form.manufacturer.label }}</label>
+      {{ form.manufacturer }}
+      {% if form.manufacturer.errors %}
+        <span class="error">{{ form.manufacturer.errors.0 }}</span>
+      {% endif %}
+    </div>
 
-.entity-form .form-section {
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid #e5e7eb;
-}
+    <div class="form-field">
+      <label for="{{ form.model_number.id_for_label }}">{{ form.model_number.label }}</label>
+      {{ form.model_number }}
+      {% if form.model_number.errors %}
+        <span class="error">{{ form.model_number.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
 
-.entity-form .form-section:last-of-type {
-  border-bottom: none;
-}
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.serial_number.id_for_label }}">{{ form.serial_number.label }}</label>
+      {{ form.serial_number }}
+      {% if form.serial_number.errors %}
+        <span class="error">{{ form.serial_number.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
 
-.entity-form .form-section h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: #1f2937;
-}
+<div class="form-section">
+  <h2>{% trans "Dates" %}</h2>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.purchase_date.id_for_label }}">{{ form.purchase_date.label }}</label>
+      {{ form.purchase_date }}
+      {% if form.purchase_date.errors %}
+        <span class="error">{{ form.purchase_date.errors.0 }}</span>
+      {% endif %}
+    </div>
 
-.entity-form .form-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
+    <div class="form-field">
+      <label for="{{ form.installation_date.id_for_label }}">{{ form.installation_date.label }}</label>
+      {{ form.installation_date }}
+      {% if form.installation_date.errors %}
+        <span class="error">{{ form.installation_date.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
 
-.entity-form .form-field.full-width {
-  grid-column: 1 / -1;
-}
+<div class="form-section">
+  <h2>{% trans "Maintenance" %}</h2>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.last_maintenance_date.id_for_label }}">{{ form.last_maintenance_date.label }}</label>
+      {{ form.last_maintenance_date }}
+      {% if form.last_maintenance_date.errors %}
+        <span class="error">{{ form.last_maintenance_date.errors.0 }}</span>
+      {% endif %}
+    </div>
 
-.entity-form label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: #374151;
-}
+    <div class="form-field">
+      <label for="{{ form.next_maintenance_date.id_for_label }}">{{ form.next_maintenance_date.label }}</label>
+      {{ form.next_maintenance_date }}
+      {% if form.next_maintenance_date.errors %}
+        <span class="error">{{ form.next_maintenance_date.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
 
-.entity-form .form-control {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 1rem;
-}
+<div class="form-section">
+  <h2>{% trans "Additional Information" %}</h2>
+  
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+      {{ form.description }}
+      {% if form.description.errors %}
+        <span class="error">{{ form.description.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
 
-.entity-form .form-control:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.entity-form textarea.form-control {
-  resize: vertical;
-}
-
-.entity-form .error {
-  display: block;
-  color: #dc2626;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-start;
-  padding-top: 2rem;
-}
-
-.alert {
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1.5rem;
-}
-
-.alert-success {
-  background: #d1fae5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
-}
-
-.alert-error {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-</style>
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+      {{ form.notes }}
+      {% if form.notes.errors %}
+        <span class="error">{{ form.notes.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
 {% endblock %}
-

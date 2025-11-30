@@ -17,7 +17,7 @@ class GroupListView(FeaturePermissionRequiredMixin, ListView):
     """List all groups."""
     model = Group
     template_name = 'shared/groups_list.html'
-    context_object_name = 'groups'
+    context_object_name = 'object_list'
     paginate_by = 20
     feature_code = 'shared.groups'
 
@@ -34,11 +34,35 @@ class GroupListView(FeaturePermissionRequiredMixin, ListView):
         return queryset
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and filters to context."""
+        """Add context variables for generic_list template."""
         context = super().get_context_data(**kwargs)
+        
+        # Ensure object_list is properly set from page_obj if pagination is used
+        if 'page_obj' in context and hasattr(context['page_obj'], 'object_list'):
+            context['object_list'] = context['page_obj'].object_list
+        elif 'object_list' in context and hasattr(context['object_list'], 'query'):
+            context['object_list'] = list(context['object_list'])
+        
         context['active_module'] = 'shared'
-        context['search_term'] = self.request.GET.get('search', '')
-        context['status_filter'] = self.request.GET.get('status', '')
+        context['page_title'] = _('Groups')
+        context['breadcrumbs'] = [
+            {'label': _('Dashboard'), 'url': reverse_lazy('ui:dashboard')},
+            {'label': _('Groups')},
+        ]
+        context['create_url'] = reverse_lazy('shared:group_create')
+        context['create_button_text'] = _('Create Group')
+        context['show_filters'] = True
+        context['status_filter'] = False
+        context['status_filter_value'] = self.request.GET.get('status', '')
+        context['search_placeholder'] = _('Group name')
+        context['clear_filter_url'] = reverse_lazy('shared:groups')
+        context['show_actions'] = True
+        context['edit_url_name'] = 'shared:group_edit'
+        context['delete_url_name'] = 'shared:group_delete'
+        context['empty_state_title'] = _('No Groups Found')
+        context['empty_state_message'] = _('Start by creating a group and assigning access levels.')
+        context['empty_state_icon'] = '👥'
+        
         return context
 
 
@@ -55,8 +79,14 @@ class GroupCreateView(FeaturePermissionRequiredMixin, CreateView):
         """Add active module and form title to context."""
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'shared'
+        context['form_title'] = _('Create Group')
         context['page_title'] = _('Create Group')
         context['is_create'] = True
+        context['breadcrumbs'] = [
+            {'label': _('Dashboard'), 'url': reverse_lazy('ui:dashboard')},
+            {'label': _('Groups'), 'url': reverse_lazy('shared:groups')},
+        ]
+        context['cancel_url'] = reverse_lazy('shared:groups')
         return context
 
     def form_valid(self, form: GroupForm) -> Any:
@@ -79,8 +109,14 @@ class GroupUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, Up
         """Add active module and form title to context."""
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'shared'
+        context['form_title'] = _('Edit Group')
         context['page_title'] = _('Edit Group')
         context['is_create'] = False
+        context['breadcrumbs'] = [
+            {'label': _('Dashboard'), 'url': reverse_lazy('ui:dashboard')},
+            {'label': _('Groups'), 'url': reverse_lazy('shared:groups')},
+        ]
+        context['cancel_url'] = reverse_lazy('shared:groups')
         return context
 
     def form_valid(self, form: GroupForm) -> Any:
@@ -93,7 +129,7 @@ class GroupUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, Up
 class GroupDeleteView(FeaturePermissionRequiredMixin, DeleteView):
     """Delete a group."""
     model = Group
-    template_name = 'shared/group_confirm_delete.html'
+    template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('shared:groups')
     feature_code = 'shared.groups'
     required_action = 'delete_own'
@@ -104,8 +140,20 @@ class GroupDeleteView(FeaturePermissionRequiredMixin, DeleteView):
         return super().delete(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module to context."""
+        """Add context for generic delete template."""
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'shared'
+        context['delete_title'] = _('Delete Group')
+        context['confirmation_message'] = _('Are you sure you want to delete group "{name}"?').format(name=self.object.name)
+        context['breadcrumbs'] = [
+            {'label': _('Dashboard'), 'url': reverse_lazy('ui:dashboard')},
+            {'label': _('Groups'), 'url': reverse_lazy('shared:groups')},
+            {'label': _('Delete')},
+        ]
+        context['object_details'] = [
+            {'label': _('Name'), 'value': self.object.name},
+            {'label': _('Members'), 'value': self.object.user_set.count()},
+        ]
+        context['cancel_url'] = reverse_lazy('shared:groups')
         return context
 

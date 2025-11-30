@@ -31,6 +31,7 @@
   {% endif %}
 
   <div class="form-container">
+    {% block before_form %}{% endblock %}
     {% if form.instance.pk and form.instance.public_code %}
     <div class="info-banner">
       <div><strong>{% trans "Code" %}:</strong> <code>{{ form.instance.public_code }}</code></div>

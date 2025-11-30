@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponseRedirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
@@ -22,7 +22,7 @@ class UserListView(FeaturePermissionRequiredMixin, ListView):
     """List all users."""
     model = User
     template_name = 'shared/users_list.html'
-    context_object_name = 'users'
+    context_object_name = 'object_list'
     paginate_by = 20
     feature_code = 'shared.users'
 
@@ -44,14 +44,51 @@ class UserListView(FeaturePermissionRequiredMixin, ListView):
             )
         if status in {'active', 'inactive'}:
             queryset = queryset.filter(is_active=(status == 'active'))
+        
         return queryset
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and filters to context."""
+        """Add context variables for generic_list template."""
         context = super().get_context_data(**kwargs)
+        
+        # Ensure object_list is properly set from page_obj if pagination is used
+        if 'page_obj' in context and hasattr(context['page_obj'], 'object_list'):
+            context['object_list'] = context['page_obj'].object_list
+        elif 'object_list' in context and hasattr(context['object_list'], 'query'):
+            # If object_list is a queryset, evaluate it to ensure it's accessible in template
+            context['object_list'] = list(context['object_list'])
+        
         context['active_module'] = 'shared'
-        context['search_term'] = self.request.GET.get('search', '')
-        context['status_filter'] = self.request.GET.get('status', '')
+        context['page_title'] = _('Users')
+        context['breadcrumbs'] = [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Users')},
+        ]
+        context['create_url'] = reverse('shared:user_create')
+        context['create_button_text'] = _('Create User')
+        context['show_filters'] = True
+        context['status_filter'] = False  # We override filter_fields block instead
+        context['status_filter_value'] = self.request.GET.get('status', '')
+        context['search_placeholder'] = _('Username, email or name')
+        context['clear_filter_url'] = reverse('shared:users')
+        context['show_actions'] = True
+        context['edit_url_name'] = 'shared:user_edit'
+        context['delete_url_name'] = 'shared:user_delete'
+        
+        # Table headers are not used since we override table_rows block
+        context['table_headers'] = [
+            {'label': _('Username')},
+            {'label': _('Name')},
+            {'label': _('Email')},
+            {'label': _('Default Company')},
+            {'label': _('Groups')},
+            {'label': _('Company Access')},
+            {'label': _('Status')},
+        ]
+        context['empty_state_title'] = _('No Users Found')
+        context['empty_state_message'] = _('Start by adding your first user to the system.')
+        context['empty_state_icon'] = '👤'
+        
         return context
 
 
@@ -69,8 +106,14 @@ class UserCreateView(FeaturePermissionRequiredMixin, UserAccessFormsetMixin, Cre
         context = super().get_context_data(**kwargs)
         context.setdefault('access_formset', self.get_access_formset(context.get('form')))
         context['active_module'] = 'shared'
+        context['form_title'] = _('Create User')
         context['page_title'] = _('Create User')
         context['is_create'] = True
+        context['breadcrumbs'] = [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Users'), 'url': reverse('shared:users')},
+        ]
+        context['cancel_url'] = reverse('shared:users')
         return context
 
     def form_valid(self, form: UserCreateForm) -> HttpResponseRedirect:
@@ -103,8 +146,14 @@ class UserUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, Use
         context = super().get_context_data(**kwargs)
         context.setdefault('access_formset', self.get_access_formset(context.get('form')))
         context['active_module'] = 'shared'
+        context['form_title'] = _('Edit User')
         context['page_title'] = _('Edit User')
         context['is_create'] = False
+        context['breadcrumbs'] = [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Users'), 'url': reverse('shared:users')},
+        ]
+        context['cancel_url'] = reverse('shared:users')
         return context
 
     def form_valid(self, form: UserUpdateForm) -> HttpResponseRedirect:
@@ -125,7 +174,7 @@ class UserUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, Use
 class UserDeleteView(FeaturePermissionRequiredMixin, DeleteView):
     """Delete a user."""
     model = User
-    template_name = 'shared/user_confirm_delete.html'
+    template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('shared:users')
     feature_code = 'shared.users'
     required_action = 'delete_own'
@@ -136,8 +185,21 @@ class UserDeleteView(FeaturePermissionRequiredMixin, DeleteView):
         return super().delete(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module to context."""
+        """Add context for generic delete template."""
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'shared'
+        context['delete_title'] = _('Delete User')
+        context['confirmation_message'] = _('Do you really want to delete user "{username}"?').format(username=self.object.username)
+        context['breadcrumbs'] = [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Users'), 'url': reverse('shared:users')},
+            {'label': _('Delete')},
+        ]
+        context['object_details'] = [
+            {'label': _('Username'), 'value': self.object.username},
+            {'label': _('Email'), 'value': self.object.email or '-'},
+            {'label': _('Name'), 'value': self.object.get_full_name() or '-'},
+        ]
+        context['cancel_url'] = reverse('shared:users')
         return context
 

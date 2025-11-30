@@ -75,9 +75,22 @@ class ProcessListView(FeaturePermissionRequiredMixin, ListView):
         return queryset.order_by('finished_item__name', 'revision', 'sort_order')
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module to context."""
+        """Add context for generic list template."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
+        context['page_title'] = _('Processes')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Processes'), 'url': None},
+        ]
+        context['create_url'] = reverse_lazy('production:process_create')
+        context['create_button_text'] = _('+ Create Process')
+        context['table_headers'] = []  # Overridden in template
+        context['show_actions'] = True
+        context['edit_url_name'] = 'production:process_edit'
+        context['delete_url_name'] = 'production:process_delete'
+        context['empty_state_title'] = _('No Processes Found')
+        context['empty_state_message'] = _('Start by creating your first process.')
+        context['empty_state_icon'] = '⚙️'
         return context
 
 
@@ -189,10 +202,16 @@ class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
         return response
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module, form title, and operations formset to context."""
+        """Add form title, breadcrumbs, and operations formset to context."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
         context['form_title'] = _('Create Process')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Processes'), 'url': reverse_lazy('production:processes')},
+            {'label': _('Create'), 'url': None},
+        ]
+        context['cancel_url'] = reverse_lazy('production:processes')
+        context['form_id'] = 'process-form'
         
         # Get BOM ID from form if available
         bom_id = None
@@ -379,10 +398,16 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
         return response
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module, form title, and operations formset to context."""
+        """Add form title, breadcrumbs, and operations formset to context."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
         context['form_title'] = _('Edit Process')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Processes'), 'url': reverse_lazy('production:processes')},
+            {'label': _('Edit'), 'url': None},
+        ]
+        context['cancel_url'] = reverse_lazy('production:processes')
+        context['form_id'] = 'process-form'
         
         # Get BOM ID from form or object
         bom_id = None
@@ -462,7 +487,7 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
 class ProcessDeleteView(FeaturePermissionRequiredMixin, DeleteView):
     """Delete a process."""
     model = Process
-    template_name = 'production/process_confirm_delete.html'
+    template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('production:processes')
     feature_code = 'production.processes'
     required_action = 'delete_own'
@@ -472,7 +497,7 @@ class ProcessDeleteView(FeaturePermissionRequiredMixin, DeleteView):
         active_company_id: Optional[int] = self.request.session.get('active_company_id')
         if not active_company_id:
             return Process.objects.none()
-        return Process.objects.filter(company_id=active_company_id)
+        return Process.objects.filter(company_id=active_company_id).select_related('finished_item', 'bom').prefetch_related('work_lines')
     
     def delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect:
         """Delete process and show success message."""
@@ -480,8 +505,33 @@ class ProcessDeleteView(FeaturePermissionRequiredMixin, DeleteView):
         return super().delete(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module to context."""
+        """Add context for generic delete template."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
+        context['delete_title'] = _('Delete Process')
+        context['confirmation_message'] = _('Are you sure you want to delete this process?')
+        
+        object_details = [
+            {'label': _('Code'), 'value': self.object.process_code},
+        ]
+        
+        if self.object.finished_item:
+            object_details.append({'label': _('Finished Item'), 'value': self.object.finished_item.name})
+        
+        if self.object.bom:
+            object_details.append({'label': _('BOM'), 'value': self.object.bom.bom_code})
+        
+        object_details.append({'label': _('Revision'), 'value': str(self.object.revision)})
+        
+        if self.object.work_lines.exists():
+            work_lines_text = ', '.join([wl.name for wl in self.object.work_lines.all()])
+            object_details.append({'label': _('Work Lines'), 'value': work_lines_text})
+        
+        context['object_details'] = object_details
+        context['cancel_url'] = reverse_lazy('production:processes')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Processes'), 'url': reverse_lazy('production:processes')},
+            {'label': _('Delete'), 'url': None},
+        ]
         return context
 

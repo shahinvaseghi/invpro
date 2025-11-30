@@ -22,7 +22,7 @@ class TicketCategoryListView(FeaturePermissionRequiredMixin, TicketingBaseView, 
 
     model = models.TicketCategory
     template_name = "ticketing/categories_list.html"
-    context_object_name = "categories"
+    context_object_name = "object_list"
     paginate_by = 50
     feature_code = "ticketing.management.categories"
     required_action = "view_all"
@@ -52,9 +52,28 @@ class TicketCategoryListView(FeaturePermissionRequiredMixin, TicketingBaseView, 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context data."""
         context = super().get_context_data(**kwargs)
+        if 'page_obj' in context and hasattr(context['page_obj'], 'object_list'):
+            context['object_list'] = context['page_obj'].object_list
+        elif 'object_list' in context and hasattr(context['object_list'], 'query'):
+            context['object_list'] = list(context['object_list'])
+        
         context["page_title"] = _("Ticket Categories")
-        context["search_term"] = self.request.GET.get("search", "")
-        context["parent_filter"] = self.request.GET.get("parent_filter", "")
+        context["breadcrumbs"] = [
+            {"label": _("Ticket Management"), "url": None},
+            {"label": _("Categories"), "url": None},
+        ]
+        context["create_url"] = reverse_lazy("ticketing:category_create")
+        context["create_button_text"] = _("Create Category")
+        context["show_filters"] = True
+        context["parent_filter_value"] = self.request.GET.get("parent_filter", "")
+        context["search_placeholder"] = _("Search by name or code")
+        context["clear_filter_url"] = reverse_lazy("ticketing:categories")
+        context["show_actions"] = True
+        context["edit_url_name"] = "ticketing:category_edit"
+        context["delete_url_name"] = "ticketing:category_delete"
+        context["empty_state_title"] = _("No Categories Found")
+        context["empty_state_message"] = _("Start by creating your first category.")
+        context["empty_state_icon"] = "📁"
         return context
 
 
@@ -78,7 +97,13 @@ class TicketCategoryCreateView(FeaturePermissionRequiredMixin, TicketingBaseView
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context data including permission formset."""
         context = super().get_context_data(**kwargs)
-        context["page_title"] = _("Create Category")
+        context["form_title"] = _("Create Category")
+        context["breadcrumbs"] = [
+            {"label": _("Ticket Management"), "url": None},
+            {"label": _("Categories"), "url": reverse_lazy("ticketing:categories")},
+            {"label": _("Create"), "url": None},
+        ]
+        context["cancel_url"] = reverse_lazy("ticketing:categories")
 
         # Create permission formset for new category
         if self.request.method == "POST":
@@ -156,7 +181,13 @@ class TicketCategoryUpdateView(EditLockProtectedMixin, FeaturePermissionRequired
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context data including permission formset."""
         context = super().get_context_data(**kwargs)
-        context["page_title"] = _("Edit Category")
+        context["form_title"] = _("Edit Category")
+        context["breadcrumbs"] = [
+            {"label": _("Ticket Management"), "url": None},
+            {"label": _("Categories"), "url": reverse_lazy("ticketing:categories")},
+            {"label": _("Edit"), "url": None},
+        ]
+        context["cancel_url"] = reverse_lazy("ticketing:categories")
 
         # Create permission formset for existing category
         if self.request.method == "POST":
@@ -206,7 +237,7 @@ class TicketCategoryDeleteView(FeaturePermissionRequiredMixin, TicketingBaseView
     """View for deleting a ticket category."""
 
     model = models.TicketCategory
-    template_name = "ticketing/category_confirm_delete.html"
+    template_name = "shared/generic/generic_confirm_delete.html"
     success_url = reverse_lazy("ticketing:categories")
     feature_code = "ticketing.management.categories"
     required_action = "delete_own"
@@ -224,6 +255,26 @@ class TicketCategoryDeleteView(FeaturePermissionRequiredMixin, TicketingBaseView
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context data."""
         context = super().get_context_data(**kwargs)
-        context["page_title"] = _("Delete Category")
+        context["delete_title"] = _("Delete Category")
+        context["confirmation_message"] = _("Are you sure you want to delete this category?")
+        context["object_details"] = [
+            {"label": _("Name"), "value": self.object.name},
+        ]
+        if self.object.public_code:
+            context["object_details"].append({"label": _("Code"), "value": f"<code>{self.object.public_code}</code>"})
+        if self.object.description:
+            context["object_details"].append({"label": _("Description"), "value": self.object.description})
+        
+        if self.object.subcategories.exists():
+            context["warning_message"] = _("This category has {count} subcategory(ies). They will also be deleted.").format(
+                count=self.object.subcategories.count()
+            )
+        
+        context["cancel_url"] = reverse_lazy("ticketing:categories")
+        context["breadcrumbs"] = [
+            {"label": _("Ticket Management"), "url": None},
+            {"label": _("Categories"), "url": reverse_lazy("ticketing:categories")},
+            {"label": _("Delete"), "url": None},
+        ]
         return context
 

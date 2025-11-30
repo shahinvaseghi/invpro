@@ -21,7 +21,7 @@ class BOMListView(FeaturePermissionRequiredMixin, ListView):
     """
     model = BOM
     template_name = 'production/bom_list.html'
-    context_object_name = 'boms'
+    context_object_name = 'object_list'
     paginate_by = 50
     feature_code = 'production.bom'
     
@@ -49,7 +49,27 @@ class BOMListView(FeaturePermissionRequiredMixin, ListView):
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add active module and finished items filter to context."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
+        if 'page_obj' in context and hasattr(context['page_obj'], 'object_list'):
+            context['object_list'] = context['page_obj'].object_list
+        elif 'object_list' in context and hasattr(context['object_list'], 'query'):
+            context['object_list'] = list(context['object_list'])
+        
+        context['page_title'] = _('BOM (Bill of Materials)')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('BOM'), 'url': None},
+        ]
+        context['create_url'] = reverse_lazy('production:bom_create')
+        context['create_button_text'] = _('Create BOM')
+        context['show_filters'] = True
+        context['clear_filter_url'] = reverse_lazy('production:bom_list')
+        context['show_actions'] = True
+        context['edit_url_name'] = 'production:bom_edit'
+        context['delete_url_name'] = 'production:bom_delete'
+        context['empty_state_title'] = _('No BOMs Found')
+        context['empty_state_message'] = _('Start by defining the materials needed for your products.')
+        context['empty_state_icon'] = '📋'
+        context['print_enabled'] = True
         
         # Get list of finished items for filter dropdown
         active_company_id: Optional[int] = self.request.session.get('active_company_id')
@@ -84,8 +104,13 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add formset to context."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
         context['form_title'] = _('Create BOM')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('BOM'), 'url': reverse_lazy('production:bom_list')},
+            {'label': _('Create'), 'url': None},
+        ]
+        context['cancel_url'] = reverse_lazy('production:bom_list')
         
         company_id: Optional[int] = self.request.session.get('active_company_id')
         
@@ -262,8 +287,13 @@ class BOMUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, Upda
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add formset to context."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
         context['form_title'] = _('Edit BOM')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('BOM'), 'url': reverse_lazy('production:bom_list')},
+            {'label': _('Edit'), 'url': None},
+        ]
+        context['cancel_url'] = reverse_lazy('production:bom_list')
         
         if self.request.POST:
             context['formset'] = BOMMaterialLineFormSet(
@@ -370,7 +400,7 @@ class BOMDeleteView(FeaturePermissionRequiredMixin, DeleteView):
     """Delete a BOM."""
     model = BOM
     success_url = reverse_lazy('production:bom_list')
-    template_name = 'production/bom_confirm_delete.html'
+    template_name = 'shared/generic/generic_confirm_delete.html'
     feature_code = 'production.bom'
     required_action = 'delete_own'
 
@@ -389,6 +419,22 @@ class BOMDeleteView(FeaturePermissionRequiredMixin, DeleteView):
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add active module to context."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
+        context['delete_title'] = _('Delete BOM')
+        context['confirmation_message'] = _('Are you sure you want to delete this BOM?')
+        context['object_details'] = [
+            {'label': _('BOM Code'), 'value': f'<code>{self.object.bom_code}</code>'},
+            {'label': _('Finished Product'), 'value': f'{self.object.finished_item.item_code} - {self.object.finished_item.name}'},
+            {'label': _('Version'), 'value': str(self.object.version)},
+        ]
+        if self.object.materials.exists():
+            context['warning_message'] = _('This BOM has {count} material line(s). They will also be deleted.').format(
+                count=self.object.materials.count()
+            )
+        context['cancel_url'] = reverse_lazy('production:bom_list')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('BOM'), 'url': reverse_lazy('production:bom_list')},
+            {'label': _('Delete'), 'url': None},
+        ]
         return context
 

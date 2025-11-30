@@ -36,12 +36,12 @@
 
 **Type**: `FeaturePermissionRequiredMixin, ListView`
 
-**Template**: `production/performance_record_list.html`
+**Template**: `production/performance_record_list.html` (extends `shared/generic/generic_list.html`)
 
 **Attributes**:
 - `model`: `PerformanceRecord`
 - `template_name`: `'production/performance_record_list.html'`
-- `context_object_name`: `'performance_records'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 - `feature_code`: `'production.performance_records'`
 - `required_action`: `'view_own'`
@@ -85,7 +85,14 @@
 - `Dict[str, Any]`: context با `active_module`
 
 **Context Variables اضافه شده**:
-- `active_module`: `'production'`
+- `page_title`: `_('Performance Records')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `create_url`, `create_button_text`: برای دکمه ایجاد (در صورت داشتن permission)
+- `show_filters`: `False` (فیلتر ندارد)
+- `show_actions`: `True` برای نمایش دکمه‌های action
+- `edit_url_name`, `delete_url_name`: نام URL برای action buttons
+- `empty_state_*`: پیام‌های empty state
+- `user_feature_permissions`: permissions کاربر برای بررسی در template
 
 **URL**: `/production/performance-records/`
 
@@ -95,7 +102,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, CreateView`
 
-**Template**: `production/performance_record_form.html`
+**Template**: `production/performance_record_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `PerformanceRecordForm`
 
@@ -188,7 +195,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, UpdateView`
 
-**Template**: `production/performance_record_form.html`
+**Template**: `production/performance_record_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `PerformanceRecordForm`
 
@@ -289,13 +296,13 @@
 
 **Type**: `FeaturePermissionRequiredMixin, DeleteView`
 
-**Template**: `production/performance_record_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `production:performance_records`
 
 **Attributes**:
 - `model`: `PerformanceRecord`
-- `template_name`: `'production/performance_record_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('production:performance_records')`
 - `feature_code`: `'production.performance_records'`
 - `required_action`: `'delete_own'`
@@ -311,6 +318,18 @@
 1. بررسی `is_locked` (اگر قفل شده باشد، قابل حذف نیست)
 2. بررسی `status` (فقط `pending_approval` قابل حذف است)
 3. حذف record
+
+#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic delete template اضافه می‌کند.
+
+**Context Variables اضافه شده**:
+- `delete_title`: `_('Delete Performance Record')`
+- `confirmation_message`: پیام تأیید حذف
+- `object_details`: لیست جزئیات performance record (code, order, date, status, quantities)
+- `warning_message`: هشدار در مورد materials, persons, machines (اگر وجود داشته باشند)
+- `cancel_url`: URL برای cancel
+- `breadcrumbs`: لیست breadcrumbs
 
 **URL**: `/production/performance-records/<pk>/delete/`
 
@@ -456,4 +475,8 @@
 3. **Transaction Management**: از `@transaction.atomic` برای atomic operations استفاده می‌شود
 4. **Multi-formset Handling**: 3 formsets (materials, persons, machines) مدیریت می‌شوند
 5. **Auto-population**: از order و transfer برای auto-populate استفاده می‌شود
+6. **Generic Templates**: تمام templates به generic templates منتقل شده‌اند:
+   - Performance Record List از `shared/generic/generic_list.html` extends می‌کند
+   - Performance Record Form از `shared/generic/generic_form.html` extends می‌کند (با 3 formsets پیچیده: materials, persons, machines)
+   - Performance Record Delete از `shared/generic/generic_confirm_delete.html` استفاده می‌کند
 

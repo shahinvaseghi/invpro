@@ -4,6 +4,7 @@ Personnel (Person) CRUD views for production module.
 from typing import Any, Dict, Optional
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -26,21 +27,63 @@ class PersonnelListView(FeaturePermissionRequiredMixin, ListView):
     feature_code = 'production.personnel'
     
     def get_queryset(self):
-        """Filter personnel by active company."""
+        """Filter personnel by active company and search/status filters."""
         active_company_id: Optional[int] = self.request.session.get('active_company_id')
         
         if not active_company_id:
             return Person.objects.none()
         
-        return Person.objects.filter(
+        queryset = Person.objects.filter(
             company_id=active_company_id,
-            is_enabled=1
         ).select_related('company').prefetch_related('company_units').order_by('public_code')
+        
+        # Apply search filter
+        search = self.request.GET.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(public_code__icontains=search) |
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search) |
+                Q(national_id__icontains=search)
+            )
+        
+        # Apply status filter
+        status = self.request.GET.get('status')
+        if status == '1':
+            queryset = queryset.filter(is_enabled=1)
+        elif status == '0':
+            queryset = queryset.filter(is_enabled=0)
+        
+        return queryset
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module to context."""
+        """Add context for generic list template."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
+        context['page_title'] = _('Personnel')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Personnel'), 'url': None},
+        ]
+        context['create_url'] = reverse_lazy('production:person_create')
+        context['create_button_text'] = _('Create Person +')
+        context['search_placeholder'] = _('Search by code, name, or national ID...')
+        context['show_filters'] = True
+        context['status_filter'] = True  # Enable status filter
+        context['clear_filter_url'] = reverse_lazy('production:personnel')
+        context['table_headers'] = [
+            _('Code'),
+            _('Name'),
+            _('National ID'),
+            _('Company Units'),
+            _('Status'),
+        ]
+        context['show_actions'] = True
+        context['edit_url_name'] = 'production:person_edit'
+        context['delete_url_name'] = 'production:person_delete'
+        context['empty_state_title'] = _('No Personnel Found')
+        context['empty_state_message'] = _('Create your first person to get started.')
+        context['empty_state_icon'] = '👤'
+        context['print_enabled'] = True
         return context
 
 
@@ -74,8 +117,13 @@ class PersonCreateView(FeaturePermissionRequiredMixin, CreateView):
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add active module and form title to context."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
         context['form_title'] = _('Create Person')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Personnel'), 'url': reverse_lazy('production:personnel')},
+            {'label': _('Create'), 'url': None},
+        ]
+        context['cancel_url'] = reverse_lazy('production:personnel')
         return context
 
 
@@ -110,8 +158,13 @@ class PersonUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, U
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add active module and form title to context."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
         context['form_title'] = _('Edit Person')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Personnel'), 'url': reverse_lazy('production:personnel')},
+            {'label': _('Edit'), 'url': None},
+        ]
+        context['cancel_url'] = reverse_lazy('production:personnel')
         return context
 
 
@@ -119,7 +172,7 @@ class PersonDeleteView(FeaturePermissionRequiredMixin, DeleteView):
     """Delete a person."""
     model = Person
     success_url = reverse_lazy('production:personnel')
-    template_name = 'production/person_confirm_delete.html'
+    template_name = 'shared/generic/generic_confirm_delete.html'
     feature_code = 'production.personnel'
     required_action = 'delete_own'
     
@@ -136,8 +189,21 @@ class PersonDeleteView(FeaturePermissionRequiredMixin, DeleteView):
         return super().delete(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module to context."""
+        """Add context for generic delete template."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'production'
+        context['delete_title'] = _('Delete Person')
+        context['confirmation_message'] = _('Are you sure you want to delete this person?')
+        context['object_details'] = [
+            {'label': _('Code'), 'value': self.object.public_code},
+            {'label': _('Name'), 'value': f"{self.object.first_name} {self.object.last_name}"},
+            {'label': _('National ID'), 'value': self.object.national_id or '-'},
+            {'label': _('Email'), 'value': self.object.email or '-'},
+        ]
+        context['cancel_url'] = reverse_lazy('production:personnel')
+        context['breadcrumbs'] = [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Personnel'), 'url': reverse_lazy('production:personnel')},
+            {'label': _('Delete'), 'url': None},
+        ]
         return context
 

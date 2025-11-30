@@ -83,7 +83,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, CreateView`
 
-**Template**: `production/product_order_form.html`
+**Template**: `production/product_order_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `ProductOrderForm`
 
@@ -227,7 +227,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, UpdateView`
 
-**Template**: `production/product_order_form.html`
+**Template**: `production/product_order_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `ProductOrderForm`
 
@@ -306,13 +306,13 @@
 
 **Type**: `FeaturePermissionRequiredMixin, DeleteView`
 
-**Template**: `production/product_order_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `production:product_orders`
 
 **Attributes**:
 - `model`: `ProductOrder`
-- `template_name`: `'production/product_order_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('production:product_orders')`
 - `feature_code`: `'production.product_orders'`
 - `required_action`: `'delete_own'`
@@ -390,6 +390,47 @@
 
 ### 5. Transaction Management
 - از `@transaction.atomic` استفاده می‌کند برای atomic operations
+
+---
+
+## Generic Templates
+
+تمام templates به generic templates منتقل شده‌اند:
+
+### Product Order List
+- **Template**: `production/product_orders.html` extends `shared/generic/generic_list.html`
+- **Blocks Overridden**: 
+  - `table_headers`: Order Code, BOM, Finished Item, Quantity, Unit, Priority, Status, Approver, Order Date
+  - `table_rows`: نمایش product orders با تمام فیلدها
+- **Context Variables**:
+  - `page_title`: "Product Orders"
+  - `breadcrumbs`: Production > Product Orders
+  - `create_url`: URL برای ایجاد Product Order جدید
+  - `table_headers`: [] (overridden in template)
+  - `show_actions`: True
+  - `edit_url_name`: 'production:product_order_edit'
+  - `delete_url_name`: 'production:product_order_delete'
+  - `empty_state_title`: "No Product Orders Found"
+  - `empty_state_message`: "Create your first product order to get started."
+  - `empty_state_icon`: "📋"
+
+### Product Order Form
+- **Template**: `production/product_order_form.html` extends `shared/generic/generic_form.html`
+- **Blocks Overridden**: 
+  - `breadcrumb_extra`: مسیر breadcrumb
+  - `form_sections`: فیلدهای form (Order Information)
+  - `form_extra`: بخش Transfer Request (optional) + Extra Items formset با cascading filters
+  - `extra_styles`: CSS برای table
+  - `form_scripts`: JavaScript برای Jalali DatePicker، toggle transfer section، formset management، و cascading filters
+
+### Product Order Delete
+- **Template**: `shared/generic/generic_confirm_delete.html`
+- **Context Variables**:
+  - `delete_title`: عنوان حذف
+  - `confirmation_message`: پیام تایید
+  - `object_details`: جزئیات سفارش (Order Code, BOM, Finished Item, Quantity, Status)
+  - `cancel_url`: URL برای لغو
+  - `breadcrumbs`: مسیر breadcrumb
 
 ---
 

@@ -1,491 +1,313 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
 
-{% block title %}{{ form_title }} - {{ block.super }}{% endblock %}
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Production" %}</span>
+<span class="separator">/</span>
+<a href="{% url 'production:processes' %}">{% trans "Processes" %}</a>
+{% endblock %}
 
-{% block content %}
-<div class="production-module">
-  <div class="module-header">
-    <nav class="breadcrumb">
-      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
-      <span>/</span>
-      <a href="{% url 'production:processes' %}">{% trans "Processes" %}</a>
-      <span>/</span>
-      <span>{{ form_title }}</span>
-    </nav>
-    
-    <h1 class="page-title">{{ form_title }}</h1>
+{% block before_form %}
+{% if form.instance.pk and form.instance.process_code %}
+<div class="info-banner" style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; color: #1f2937; font-weight: 600;">
+  <div><strong>{% trans "Code" %}:</strong> <code>{{ form.instance.process_code }}</code></div>
+  {% if form.instance.finished_item %}
+  <div><strong>{% trans "Finished Item" %}:</strong> {{ form.instance.finished_item.name }}</div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block form_sections %}
+<div class="form-section">
+  <h2>{% trans "Process Information" %}</h2>
+  
+  <div class="form-field">
+    <label for="{{ form.bom.id_for_label }}">
+      {{ form.bom.label }}
+      {% if form.bom.field.required %}*{% endif %}
+    </label>
+    {{ form.bom }}
+    {% if form.bom.errors %}
+      <span class="error">{{ form.bom.errors.0 }}</span>
+    {% endif %}
+    {% if form.bom.help_text %}
+      <small class="form-text">{{ form.bom.help_text }}</small>
+    {% endif %}
   </div>
 
-  <div class="form-container">
-    {% if messages %}
-      {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">
-        {{ message }}
-      </div>
-      {% endfor %}
+  <div class="form-field">
+    <label for="{{ form.work_lines.id_for_label }}">
+      {{ form.work_lines.label }}
+      {% if form.work_lines.field.required %}*{% endif %}
+    </label>
+    {{ form.work_lines }}
+    {% if form.work_lines.errors %}
+      <span class="error">{{ form.work_lines.errors.0 }}</span>
     {% endif %}
+    {% if form.work_lines.help_text %}
+      <small class="form-text">{{ form.work_lines.help_text }}</small>
+    {% endif %}
+    <small class="form-text">{% trans "برای انتخاب چند مورد، کلید Ctrl (یا Cmd در Mac) را نگه دارید و کلیک کنید" %}</small>
+  </div>
 
-    {% if form.instance.pk and form.instance.process_code %}
-    <div class="info-banner">
-      <div><strong>{% trans "Code" %}:</strong> <code>{{ form.instance.process_code }}</code></div>
-      {% if form.instance.finished_item %}
-      <div><strong>{% trans "Finished Item" %}:</strong> {{ form.instance.finished_item.name }}</div>
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.revision.id_for_label }}">
+        {{ form.revision.label }}
+        {% if form.revision.field.required %}*{% endif %}
+      </label>
+      {{ form.revision }}
+      {% if form.revision.errors %}
+        <span class="error">{{ form.revision.errors.0 }}</span>
+      {% endif %}
+      {% if form.revision.help_text %}
+        <small class="form-text">{{ form.revision.help_text }}</small>
       {% endif %}
     </div>
-    {% endif %}
 
-    <form method="post" class="entity-form">
-      {% csrf_token %}
-      
-      <div class="form-section">
-        <div class="form-field">
-          <label for="{{ form.bom.id_for_label }}">
-            {{ form.bom.label }}
-            {% if form.bom.field.required %}*{% endif %}
-          </label>
-          {{ form.bom }}
-          {% if form.bom.errors %}
-            <span class="error">{{ form.bom.errors.0 }}</span>
-          {% endif %}
-          {% if form.bom.help_text %}
-            <small class="form-text">{{ form.bom.help_text }}</small>
-          {% endif %}
-        </div>
-
-        <div class="form-field">
-          <label for="{{ form.work_lines.id_for_label }}">
-            {{ form.work_lines.label }}
-            {% if form.work_lines.field.required %}*{% endif %}
-          </label>
-          {{ form.work_lines }}
-          {% if form.work_lines.errors %}
-            <span class="error">{{ form.work_lines.errors.0 }}</span>
-          {% endif %}
-          {% if form.work_lines.help_text %}
-            <small class="form-text">{{ form.work_lines.help_text }}</small>
-          {% endif %}
-          <small class="form-text">{% trans "برای انتخاب چند مورد، کلید Ctrl (یا Cmd در Mac) را نگه دارید و کلیک کنید" %}</small>
-        </div>
-
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.revision.id_for_label }}">
-              {{ form.revision.label }}
-              {% if form.revision.field.required %}*{% endif %}
-            </label>
-            {{ form.revision }}
-            {% if form.revision.errors %}
-              <span class="error">{{ form.revision.errors.0 }}</span>
-            {% endif %}
-            {% if form.revision.help_text %}
-              <small class="form-text">{{ form.revision.help_text }}</small>
-            {% endif %}
-          </div>
-
-          <div class="form-field">
-            <label for="{{ form.is_primary.id_for_label }}">
-              {{ form.is_primary.label }}
-              {% if form.is_primary.field.required %}*{% endif %}
-            </label>
-            {{ form.is_primary }}
-            {% if form.is_primary.errors %}
-              <span class="error">{{ form.is_primary.errors.0 }}</span>
-            {% endif %}
-            {% if form.is_primary.help_text %}
-              <small class="form-text">{{ form.is_primary.help_text }}</small>
-            {% endif %}
-          </div>
-        </div>
-
-        <div class="form-field">
-          <label for="{{ form.approved_by.id_for_label }}">
-            {{ form.approved_by.label }}
-            {% if form.approved_by.field.required %}*{% endif %}
-          </label>
-          {{ form.approved_by }}
-          {% if form.approved_by.errors %}
-            <span class="error">{{ form.approved_by.errors.0 }}</span>
-          {% endif %}
-          {% if form.approved_by.help_text %}
-            <small class="form-text">{{ form.approved_by.help_text }}</small>
-          {% endif %}
-        </div>
-
-        <div class="form-field">
-          <label for="{{ form.description.id_for_label }}">
-            {{ form.description.label }}
-            {% if form.description.field.required %}*{% endif %}
-          </label>
-          {{ form.description }}
-          {% if form.description.errors %}
-            <span class="error">{{ form.description.errors.0 }}</span>
-          {% endif %}
-          {% if form.description.help_text %}
-            <small class="form-text">{{ form.description.help_text }}</small>
-          {% endif %}
-        </div>
-
-        <div class="form-field">
-          <label for="{{ form.notes.id_for_label }}">
-            {{ form.notes.label }}
-            {% if form.notes.field.required %}*{% endif %}
-          </label>
-          {{ form.notes }}
-          {% if form.notes.errors %}
-            <span class="error">{{ form.notes.errors.0 }}</span>
-          {% endif %}
-          {% if form.notes.help_text %}
-            <small class="form-text">{{ form.notes.help_text }}</small>
-          {% endif %}
-        </div>
-
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.sort_order.id_for_label }}">
-              {{ form.sort_order.label }}
-              {% if form.sort_order.field.required %}*{% endif %}
-            </label>
-            {{ form.sort_order }}
-            {% if form.sort_order.errors %}
-              <span class="error">{{ form.sort_order.errors.0 }}</span>
-            {% endif %}
-            {% if form.sort_order.help_text %}
-              <small class="form-text">{{ form.sort_order.help_text }}</small>
-            {% endif %}
-          </div>
-
-          <div class="form-field">
-            <label for="{{ form.is_enabled.id_for_label }}">
-              {{ form.is_enabled.label }}
-              {% if form.is_enabled.field.required %}*{% endif %}
-            </label>
-            {{ form.is_enabled }}
-            {% if form.is_enabled.errors %}
-              <span class="error">{{ form.is_enabled.errors.0 }}</span>
-            {% endif %}
-            {% if form.is_enabled.help_text %}
-              <small class="form-text">{{ form.is_enabled.help_text }}</small>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-
-      <!-- بخش عملیات تولید -->
-      {% if form.bom %}
-      <div class="form-section">
-        <h3>{% trans "Production Operations" %}</h3>
-        <p class="form-help-text">{% trans "Define production operations and materials used in each operation" %}</p>
-        
-        {{ operations_formset.management_form }}
-        
-        {% if operations_formset.non_form_errors %}
-          <div class="alert alert-error">
-            {{ operations_formset.non_form_errors }}
-          </div>
-        {% endif %}
-
-        <div id="operations-container">
-          {% for operation_form in operations_formset %}
-            <div class="operation-row" data-operation-index="{{ forloop.counter0 }}">
-              <div class="operation-header">
-                <h4>{% trans "Operation" %} #<span class="operation-number">{{ forloop.counter }}</span></h4>
-                {% if operation_form.DELETE %}
-                  {{ operation_form.DELETE }}
-                  <label for="{{ operation_form.DELETE.id_for_label }}" class="delete-operation-label">
-                    🗑️ {% trans "Delete Operation" %}
-                  </label>
-                {% else %}
-                  <button type="button" class="btn-remove-operation" onclick="removeOperation(this)">× {% trans "Remove" %}</button>
-                {% endif %}
-              </div>
-              
-              <div class="operation-form-fields">
-                <div class="form-row">
-                  <div class="form-field">
-                    <label for="{{ operation_form.name.id_for_label }}">{{ operation_form.name.label }}</label>
-                    {{ operation_form.name }}
-                    {% if operation_form.name.errors %}
-                      <span class="error">{{ operation_form.name.errors.0 }}</span>
-                    {% endif %}
-                  </div>
-                  
-                  <div class="form-field">
-                    <label for="{{ operation_form.sequence_order.id_for_label }}">{{ operation_form.sequence_order.label }}</label>
-                    {{ operation_form.sequence_order }}
-                    {% if operation_form.sequence_order.errors %}
-                      <span class="error">{{ operation_form.sequence_order.errors.0 }}</span>
-                    {% endif %}
-                  </div>
-                </div>
-
-                <div class="form-row">
-                  <div class="form-field">
-                    <label for="{{ operation_form.labor_minutes_per_unit.id_for_label }}">{{ operation_form.labor_minutes_per_unit.label }}</label>
-                    {{ operation_form.labor_minutes_per_unit }}
-                    {% if operation_form.labor_minutes_per_unit.errors %}
-                      <span class="error">{{ operation_form.labor_minutes_per_unit.errors.0 }}</span>
-                    {% endif %}
-                  </div>
-                  
-                  <div class="form-field">
-                    <label for="{{ operation_form.machine_minutes_per_unit.id_for_label }}">{{ operation_form.machine_minutes_per_unit.label }}</label>
-                    {{ operation_form.machine_minutes_per_unit }}
-                    {% if operation_form.machine_minutes_per_unit.errors %}
-                      <span class="error">{{ operation_form.machine_minutes_per_unit.errors.0 }}</span>
-                    {% endif %}
-                  </div>
-                </div>
-
-                <div class="form-field">
-                  <label for="{{ operation_form.description.id_for_label }}">{{ operation_form.description.label }}</label>
-                  {{ operation_form.description }}
-                  {% if operation_form.description.errors %}
-                    <span class="error">{{ operation_form.description.errors.0 }}</span>
-                  {% endif %}
-                </div>
-
-                <div class="form-field">
-                  <label for="{{ operation_form.notes.id_for_label }}">{{ operation_form.notes.label }}</label>
-                  {{ operation_form.notes }}
-                  {% if operation_form.notes.errors %}
-                    <span class="error">{{ operation_form.notes.errors.0 }}</span>
-                  {% endif %}
-                </div>
-
-                <!-- Materials formset for this operation -->
-                <div class="operation-materials-section">
-                  <h5>{% trans "Materials Used in This Operation" %}</h5>
-                  
-                  <div class="materials-table-wrapper">
-                    <table class="materials-table">
-                      <thead>
-                        <tr>
-                          <th>{% trans "Material from BOM" %}</th>
-                          <th style="width: 150px;">{% trans "Quantity Used" %}</th>
-                          <th style="width: 80px;">{% trans "Unit" %}</th>
-                          <th style="width: 60px;">{% trans "Delete" %}</th>
-                        </tr>
-                      </thead>
-                      <tbody class="operation-materials-tbody" data-operation-index="{{ forloop.counter0 }}">
-                        <!-- Materials will be added here via JavaScript -->
-                        <tr class="material-row-placeholder">
-                          <td colspan="4" class="text-center" style="color: #9ca3af; padding: 1rem;">
-                            {% trans "No materials added yet. Select a BOM first." %}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  
-                  <button type="button" class="btn btn-secondary btn-sm add-material-btn" 
-                          data-operation-index="{{ forloop.counter0 }}"
-                          onclick="addMaterialToOperation({{ forloop.counter0 }})"
-                          {% if not form.bom.value %}disabled{% endif %}>
-                    ➕ {% trans "Add Material" %}
-                  </button>
-                </div>
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-
-        <div class="formset-actions">
-          <button type="button" class="btn btn-secondary" id="add-operation-btn" onclick="addOperation()">
-            ➕ {% trans "Add Operation" %}
-          </button>
-        </div>
-      </div>
-      {% else %}
-      <div class="form-section">
-        <div class="info-banner" style="background: #fef3c7; border-color: #fbbf24;">
-          <p style="margin: 0;">⚠️ {% trans "Please select a BOM first to add production operations" %}</p>
-        </div>
-      </div>
+    <div class="form-field">
+      <label for="{{ form.is_primary.id_for_label }}">
+        {{ form.is_primary.label }}
+        {% if form.is_primary.field.required %}*{% endif %}
+      </label>
+      {{ form.is_primary }}
+      {% if form.is_primary.errors %}
+        <span class="error">{{ form.is_primary.errors.0 }}</span>
       {% endif %}
+      {% if form.is_primary.help_text %}
+        <small class="form-text">{{ form.is_primary.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
 
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-        <a href="{% url 'production:processes' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
-      </div>
-    </form>
+  <div class="form-field">
+    <label for="{{ form.approved_by.id_for_label }}">
+      {{ form.approved_by.label }}
+      {% if form.approved_by.field.required %}*{% endif %}
+    </label>
+    {{ form.approved_by }}
+    {% if form.approved_by.errors %}
+      <span class="error">{{ form.approved_by.errors.0 }}</span>
+    {% endif %}
+    {% if form.approved_by.help_text %}
+      <small class="form-text">{{ form.approved_by.help_text }}</small>
+    {% endif %}
+  </div>
+
+  <div class="form-field full-width">
+    <label for="{{ form.description.id_for_label }}">
+      {{ form.description.label }}
+      {% if form.description.field.required %}*{% endif %}
+    </label>
+    {{ form.description }}
+    {% if form.description.errors %}
+      <span class="error">{{ form.description.errors.0 }}</span>
+    {% endif %}
+    {% if form.description.help_text %}
+      <small class="form-text">{{ form.description.help_text }}</small>
+    {% endif %}
+  </div>
+
+  <div class="form-field full-width">
+    <label for="{{ form.notes.id_for_label }}">
+      {{ form.notes.label }}
+      {% if form.notes.field.required %}*{% endif %}
+    </label>
+    {{ form.notes }}
+    {% if form.notes.errors %}
+      <span class="error">{{ form.notes.errors.0 }}</span>
+    {% endif %}
+    {% if form.notes.help_text %}
+      <small class="form-text">{{ form.notes.help_text }}</small>
+    {% endif %}
+  </div>
+
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.sort_order.id_for_label }}">
+        {{ form.sort_order.label }}
+        {% if form.sort_order.field.required %}*{% endif %}
+      </label>
+      {{ form.sort_order }}
+      {% if form.sort_order.errors %}
+        <span class="error">{{ form.sort_order.errors.0 }}</span>
+      {% endif %}
+      {% if form.sort_order.help_text %}
+        <small class="form-text">{{ form.sort_order.help_text }}</small>
+      {% endif %}
+    </div>
+
+    <div class="form-field">
+      <label for="{{ form.is_enabled.id_for_label }}">
+        {{ form.is_enabled.label }}
+        {% if form.is_enabled.field.required %}*{% endif %}
+      </label>
+      {{ form.is_enabled }}
+      {% if form.is_enabled.errors %}
+        <span class="error">{{ form.is_enabled.errors.0 }}</span>
+      {% endif %}
+      {% if form.is_enabled.help_text %}
+        <small class="form-text">{{ form.is_enabled.help_text }}</small>
+      {% endif %}
+    </div>
   </div>
 </div>
+{% endblock %}
 
+{% block form_extra %}
+<!-- Production Operations Section -->
+{% if form.bom %}
+<div class="form-section">
+  <header class="section-header">
+    <h2>{% trans "Production Operations" %}</h2>
+    <p class="form-help-text">{% trans "Define production operations and materials used in each operation" %}</p>
+  </header>
+  
+  {{ operations_formset.management_form }}
+  
+  {% if operations_formset.non_form_errors %}
+    <div class="alert alert-error">
+      {% for error in operations_formset.non_form_errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div id="operations-container">
+    {% for operation_form in operations_formset %}
+      <div class="operation-row" data-operation-index="{{ forloop.counter0 }}">
+        {% for hidden in operation_form.hidden_fields %}{{ hidden }}{% endfor %}
+        
+        <div class="operation-header">
+          <h4>{% trans "Operation" %} #<span class="operation-number">{{ forloop.counter }}</span></h4>
+          {% if operation_form.DELETE %}
+            {{ operation_form.DELETE }}
+            <label for="{{ operation_form.DELETE.id_for_label }}" class="delete-operation-label">
+              🗑️ {% trans "Delete Operation" %}
+            </label>
+          {% else %}
+            <button type="button" class="btn-remove-operation" onclick="removeOperation(this)">× {% trans "Remove" %}</button>
+          {% endif %}
+        </div>
+        
+        <div class="operation-form-fields">
+          <div class="form-row">
+            <div class="form-field">
+              <label for="{{ operation_form.name.id_for_label }}">{{ operation_form.name.label }}</label>
+              {{ operation_form.name }}
+              {% if operation_form.name.errors %}
+                <span class="error">{{ operation_form.name.errors.0 }}</span>
+              {% endif %}
+            </div>
+            
+            <div class="form-field">
+              <label for="{{ operation_form.sequence_order.id_for_label }}">{{ operation_form.sequence_order.label }}</label>
+              {{ operation_form.sequence_order }}
+              {% if operation_form.sequence_order.errors %}
+                <span class="error">{{ operation_form.sequence_order.errors.0 }}</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="{{ operation_form.labor_minutes_per_unit.id_for_label }}">{{ operation_form.labor_minutes_per_unit.label }}</label>
+              {{ operation_form.labor_minutes_per_unit }}
+              {% if operation_form.labor_minutes_per_unit.errors %}
+                <span class="error">{{ operation_form.labor_minutes_per_unit.errors.0 }}</span>
+              {% endif %}
+            </div>
+            
+            <div class="form-field">
+              <label for="{{ operation_form.machine_minutes_per_unit.id_for_label }}">{{ operation_form.machine_minutes_per_unit.label }}</label>
+              {{ operation_form.machine_minutes_per_unit }}
+              {% if operation_form.machine_minutes_per_unit.errors %}
+                <span class="error">{{ operation_form.machine_minutes_per_unit.errors.0 }}</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-field full-width">
+            <label for="{{ operation_form.description.id_for_label }}">{{ operation_form.description.label }}</label>
+            {{ operation_form.description }}
+            {% if operation_form.description.errors %}
+              <span class="error">{{ operation_form.description.errors.0 }}</span>
+            {% endif %}
+          </div>
+
+          <div class="form-field full-width">
+            <label for="{{ operation_form.notes.id_for_label }}">{{ operation_form.notes.label }}</label>
+            {{ operation_form.notes }}
+            {% if operation_form.notes.errors %}
+              <span class="error">{{ operation_form.notes.errors.0 }}</span>
+            {% endif %}
+          </div>
+
+          <!-- Materials formset for this operation -->
+          <div class="operation-materials-section">
+            <h5>{% trans "Materials Used in This Operation" %}</h5>
+            
+            <div class="materials-table-wrapper">
+              <table class="materials-table">
+                <thead>
+                  <tr>
+                    <th>{% trans "Material from BOM" %}</th>
+                    <th style="width: 150px;">{% trans "Quantity Used" %}</th>
+                    <th style="width: 80px;">{% trans "Unit" %}</th>
+                    <th style="width: 60px;">{% trans "Delete" %}</th>
+                  </tr>
+                </thead>
+                <tbody class="operation-materials-tbody" data-operation-index="{{ forloop.counter0 }}">
+                  <!-- Materials will be added here via JavaScript -->
+                  <tr class="material-row-placeholder">
+                    <td colspan="4" class="text-center" style="color: #9ca3af; padding: 1rem;">
+                      {% trans "No materials added yet. Select a BOM first." %}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <button type="button" class="btn btn-secondary btn-sm add-material-btn" 
+                    data-operation-index="{{ forloop.counter0 }}"
+                    onclick="addMaterialToOperation({{ forloop.counter0 }})"
+                    {% if not form.bom.value %}disabled{% endif %}>
+              ➕ {% trans "Add Material" %}
+            </button>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="formset-actions">
+    <button type="button" class="btn btn-secondary" id="add-operation-btn" onclick="addOperation()">
+      ➕ {% trans "Add Operation" %}
+    </button>
+  </div>
+</div>
+{% else %}
+<div class="form-section">
+  <div class="info-banner" style="background: #fef3c7; border-color: #fbbf24;">
+    <p style="margin: 0;">⚠️ {% trans "Please select a BOM first to add production operations" %}</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_styles %}
 <style>
-.production-module {
-  padding: 2rem;
-}
-
-.module-header {
-  margin-bottom: 2rem;
-}
-
-.breadcrumb {
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.breadcrumb a {
-  color: #3b82f6;
-  text-decoration: none;
-}
-
-.breadcrumb a:hover {
-  text-decoration: underline;
-}
-
-.breadcrumb span {
-  margin: 0 0.5rem;
-}
-
-.page-title {
-  font-size: 1.875rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0;
-}
-
-.form-container {
-  max-width: 1000px;
-  margin: 0 auto;
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.info-banner {
-  display: flex;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: #f8fafc;
-  color: #1f2937;
-  font-weight: 600;
-}
-
-.entity-form .form-section {
-  display: grid;
-  gap: 1.5rem;
-}
-
-.entity-form .form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-}
-
-.entity-form .form-field label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: #374151;
-}
-
-.entity-form .form-control, 
-.entity-form select,
-.entity-form textarea,
-.entity-form input[type="text"],
-.entity-form input[type="number"],
-.entity-form input[type="date"] {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
 .entity-form select[multiple] {
   min-height: 200px;
   padding: 0.5rem;
 }
 
-.entity-form .form-control:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.entity-form textarea {
-  resize: vertical;
-}
-
-.entity-form .error {
-  display: block;
-  color: #dc2626;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-}
-
-.form-text {
-  display: block;
-  margin-top: 0.25rem;
+.form-help-text {
   color: #6b7280;
   font-size: 0.875rem;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-start;
-  padding-top: 2rem;
-  margin-top: 2rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-.alert {
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1.5rem;
-}
-
-.alert-success {
-  background: #d1fae5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
-}
-
-.alert-error {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-
-.btn {
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  text-decoration: none;
-  display: inline-block;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-}
-
-.btn-primary {
-  background: #3b82f6;
-  color: white;
-}
-
-.btn-primary:hover {
-  background: #2563eb;
-}
-
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background: #4b5563;
-}
-
-.btn-sm {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.875rem;
+  margin-bottom: 1rem;
 }
 
 /* Operation Styles */
@@ -585,12 +407,6 @@
   font-size: 0.875rem;
 }
 
-.form-help-text {
-  color: #6b7280;
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-}
-
 .add-material-btn {
   margin-top: 0.5rem;
 }
@@ -598,8 +414,28 @@
 .text-center {
   text-align: center;
 }
-</style>
 
+.btn-remove-material {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.btn-remove-material:hover {
+  background: #b91c1c;
+}
+
+.formset-actions {
+  margin-top: 1rem;
+}
+</style>
+{% endblock %}
+
+{% block form_scripts %}
 <script>
 // BOM change handler - load materials when BOM is selected
 document.addEventListener('DOMContentLoaded', function() {
@@ -626,7 +462,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-    // Load existing operations materials if in edit mode
+  // Load existing operations materials if in edit mode
   {% if existing_operations_data %}
     const bomSelect = document.getElementById('{{ form.bom.id_for_label }}');
     const bomId = bomSelect ? bomSelect.value : '';
@@ -751,12 +587,12 @@ function addOperation() {
           </div>
         </div>
         
-        <div class="form-field">
+        <div class="form-field full-width">
           <label>{% trans "Description" %}</label>
           <input type="text" name="operations-${formCount}-description" class="form-control operation-description" />
         </div>
         
-        <div class="form-field">
+        <div class="form-field full-width">
           <label>{% trans "Notes" %}</label>
           <textarea name="operations-${formCount}-notes" class="form-control operation-notes" rows="2"></textarea>
         </div>
@@ -1066,4 +902,3 @@ function addExistingMaterialToOperation(operationIndex, bomMaterialId, quantityU
 }
 </script>
 {% endblock %}
-

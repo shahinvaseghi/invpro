@@ -1,242 +1,150 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
 
-{% block title %}{{ form_title }} - {{ block.super }}{% endblock %}
+{% block breadcrumb_extra %}
+<span>/</span>
+<a href="{% url 'shared:companies' %}">{% trans "Companies" %}</a>
+<span>/</span>
+<span>{{ form_title }}</span>
+{% endblock %}
 
-{% block content %}
-<div class="inventory-module">
-  <div class="module-header">
-    <nav class="breadcrumb">
-      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
-      <span>/</span>
-      <a href="{% url 'shared:companies' %}">{% trans "Companies" %}</a>
-      <span>/</span>
-      <span>{{ form_title }}</span>
-    </nav>
+{% block form_sections %}
+<div class="form-section">
+  <h3>{% trans "Basic Information" %}</h3>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.public_code.id_for_label }}">
+        {{ form.public_code.label }} *
+      </label>
+      {{ form.public_code }}
+      {% if form.public_code.errors %}
+        <span class="error">{{ form.public_code.errors.0 }}</span>
+      {% endif %}
+    </div>
     
-    <h1 class="page-title">{{ form_title }}</h1>
+    <div class="form-field">
+      <label for="{{ form.is_enabled.id_for_label }}">
+        {{ form.is_enabled.label }}
+      </label>
+      {{ form.is_enabled }}
+    </div>
   </div>
 
-  <div class="form-container">
-    {% if messages %}
-      {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">
-        {{ message }}
-      </div>
-      {% endfor %}
-    {% endif %}
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.display_name.id_for_label }}">
+        {{ form.display_name.label }} *
+      </label>
+      {{ form.display_name }}
+      {% if form.display_name.errors %}
+        <span class="error">{{ form.display_name.errors.0 }}</span>
+      {% endif %}
+    </div>
 
-    <form method="post" class="entity-form">
-      {% csrf_token %}
-      
-      <div class="form-section">
-        <h3>{% trans "Basic Information" %}</h3>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.public_code.id_for_label }}">{{ form.public_code.label }} *</label>
-            {{ form.public_code }}
-            {% if form.public_code.errors %}
-              <span class="error">{{ form.public_code.errors.0 }}</span>
-            {% endif %}
-          </div>
-          
-          <div class="form-field">
-            <label for="{{ form.is_enabled.id_for_label }}">{{ form.is_enabled.label }}</label>
-            {{ form.is_enabled }}
-          </div>
-        </div>
+    <div class="form-field">
+      <label for="{{ form.display_name_en.id_for_label }}">
+        {{ form.display_name_en.label }}
+      </label>
+      {{ form.display_name_en }}
+    </div>
+  </div>
 
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.display_name.id_for_label }}">{{ form.display_name.label }} *</label>
-            {{ form.display_name }}
-            {% if form.display_name.errors %}
-              <span class="error">{{ form.display_name.errors.0 }}</span>
-            {% endif %}
-          </div>
-
-          <div class="form-field">
-            <label for="{{ form.display_name_en.id_for_label }}">{{ form.display_name_en.label }}</label>
-            {{ form.display_name_en }}
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-field full-width">
-            <label for="{{ form.legal_name.id_for_label }}">{{ form.legal_name.label }} *</label>
-            {{ form.legal_name }}
-            {% if form.legal_name.errors %}
-              <span class="error">{{ form.legal_name.errors.0 }}</span>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <h3>{% trans "Registration & Tax" %}</h3>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.registration_number.id_for_label }}">{{ form.registration_number.label }}</label>
-            {{ form.registration_number }}
-          </div>
-
-          <div class="form-field">
-            <label for="{{ form.tax_id.id_for_label }}">{{ form.tax_id.label }}</label>
-            {{ form.tax_id }}
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <h3>{% trans "Contact Information" %}</h3>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.phone_number.id_for_label }}">{{ form.phone_number.label }}</label>
-            {{ form.phone_number }}
-          </div>
-
-          <div class="form-field">
-            <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
-            {{ form.email }}
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-field full-width">
-            <label for="{{ form.website.id_for_label }}">{{ form.website.label }}</label>
-            {{ form.website }}
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-field full-width">
-            <label for="{{ form.address.id_for_label }}">{{ form.address.label }}</label>
-            {{ form.address }}
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.city.id_for_label }}">{{ form.city.label }}</label>
-            {{ form.city }}
-          </div>
-
-          <div class="form-field">
-            <label for="{{ form.state.id_for_label }}">{{ form.state.label }}</label>
-            {{ form.state }}
-          </div>
-
-          <div class="form-field">
-            <label for="{{ form.country.id_for_label }}">{{ form.country.label }}</label>
-            {{ form.country }}
-          </div>
-        </div>
-      </div>
-
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-        <a href="{% url 'shared:companies' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
-      </div>
-    </form>
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.legal_name.id_for_label }}">
+        {{ form.legal_name.label }} *
+      </label>
+      {{ form.legal_name }}
+      {% if form.legal_name.errors %}
+        <span class="error">{{ form.legal_name.errors.0 }}</span>
+      {% endif %}
+    </div>
   </div>
 </div>
 
-<style>
-.form-container {
-  max-width: 1000px;
-  margin: 2rem auto;
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
+<div class="form-section">
+  <h3>{% trans "Registration & Tax" %}</h3>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.registration_number.id_for_label }}">
+        {{ form.registration_number.label }}
+      </label>
+      {{ form.registration_number }}
+    </div>
 
-.entity-form .form-section {
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid #e5e7eb;
-}
+    <div class="form-field">
+      <label for="{{ form.tax_id.id_for_label }}">
+        {{ form.tax_id.label }}
+      </label>
+      {{ form.tax_id }}
+    </div>
+  </div>
+</div>
 
-.entity-form .form-section:last-of-type {
-  border-bottom: none;
-}
+<div class="form-section">
+  <h3>{% trans "Contact Information" %}</h3>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.phone_number.id_for_label }}">
+        {{ form.phone_number.label }}
+      </label>
+      {{ form.phone_number }}
+    </div>
 
-.entity-form .form-section h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: #1f2937;
-}
+    <div class="form-field">
+      <label for="{{ form.email.id_for_label }}">
+        {{ form.email.label }}
+      </label>
+      {{ form.email }}
+    </div>
+  </div>
 
-.entity-form .form-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.website.id_for_label }}">
+        {{ form.website.label }}
+      </label>
+      {{ form.website }}
+    </div>
+  </div>
 
-.entity-form .form-field.full-width {
-  grid-column: 1 / -1;
-}
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.address.id_for_label }}">
+        {{ form.address.label }}
+      </label>
+      {{ form.address }}
+    </div>
+  </div>
 
-.entity-form label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: #374151;
-}
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.city.id_for_label }}">
+        {{ form.city.label }}
+      </label>
+      {{ form.city }}
+    </div>
 
-.entity-form .form-control {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 1rem;
-}
+    <div class="form-field">
+      <label for="{{ form.state.id_for_label }}">
+        {{ form.state.label }}
+      </label>
+      {{ form.state }}
+    </div>
 
-.entity-form .form-control:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
+    <div class="form-field">
+      <label for="{{ form.country.id_for_label }}">
+        {{ form.country.label }}
+      </label>
+      {{ form.country }}
+    </div>
+  </div>
+</div>
+{% endblock %}
 
-.entity-form textarea.form-control {
-  resize: vertical;
-}
-
-.entity-form .error {
-  display: block;
-  color: #dc2626;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-start;
-  padding-top: 2rem;
-}
-
-.alert {
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1.5rem;
-}
-
-.alert-success {
-  background: #d1fae5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
-}
-
-.alert-error {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-</style>
+{% block form_actions_extra %}
+<a href="{% url 'shared:companies' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
 {% endblock %}

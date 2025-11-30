@@ -29,12 +29,12 @@
 
 **Type**: `FeaturePermissionRequiredMixin, ListView`
 
-**Template**: `shared/company_units.html`
+**Template**: `shared/company_units.html` (extends `shared/generic/generic_list.html`)
 
 **Attributes**:
 - `model`: `CompanyUnit`
 - `template_name`: `'shared/company_units.html'`
-- `context_object_name`: `'units'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 - `feature_code`: `'shared.company_units'`
 
@@ -86,7 +86,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, CreateView`
 
-**Template**: `shared/company_unit_form.html`
+**Template**: `shared/company_unit_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `CompanyUnitForm`
 
@@ -141,7 +141,9 @@
 **Context Variables**:
 - `form`: `CompanyUnitForm`
 - `active_module`: `'shared'`
-- `form_title`: `'ایجاد واحد سازمانی'`
+- `form_title`: `_('Create Company Unit')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `cancel_url`: URL برای cancel (back to company units list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با form_title
@@ -154,7 +156,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, UpdateView`
 
-**Template**: `shared/company_unit_form.html`
+**Template**: `shared/company_unit_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `CompanyUnitForm`
 
@@ -200,9 +202,11 @@
 
 **Context Variables**:
 - `form`: `CompanyUnitForm`
-- `unit`: company unit object (از `get_object()`)
+- `object`: company unit object (از `get_object()`)
 - `active_module`: `'shared'`
-- `form_title`: `'ویرایش واحد سازمانی'`
+- `form_title`: `_('Edit Company Unit')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `cancel_url`: URL برای cancel (back to company units list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با form_title
@@ -215,7 +219,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, DeleteView`
 
-**Template**: `shared/company_unit_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `shared:company_units`
 
@@ -247,8 +251,13 @@
 **توضیح**: اضافه کردن active module به context.
 
 **Context Variables**:
-- `unit`: company unit object (از `get_object()`)
+- `object`: company unit object (از `get_object()`)
 - `active_module`: `'shared'`
+- `delete_title`: `_('Delete Company Unit')`
+- `confirmation_message`: پیام تایید حذف با unit name
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `object_details`: لیست جزئیات unit برای نمایش (code, name, parent_unit)
+- `cancel_url`: URL برای cancel (back to company units list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با active_module
@@ -322,4 +331,29 @@ path('company-units/<int:pk>/delete/', CompanyUnitDeleteView.as_view(), name='co
 ### Inventory Module
 - Company units در issue destinations استفاده می‌شوند
 - در warehouse requests و issues برای destination استفاده می‌شوند
+
+---
+
+## Migration to Generic Templates
+
+این views در migration به template های generic منتقل شده‌اند:
+
+### List Template
+- **Template**: `shared/company_units.html` (extends `shared/generic/generic_list.html`)
+- **Note**: این template قبلاً از generic_list استفاده می‌کرد
+
+### Form Template
+- **Template**: `shared/company_unit_form.html` (extends `shared/generic/generic_form.html`)
+- **Changes**:
+  - Template از `base.html` به `generic_form.html` منتقل شد
+  - Blocks override شده: `form_sections`, `form_actions_extra`
+  - Context variables اضافه شد: `breadcrumbs`, `cancel_url`, `form_title`
+  - متن‌های فارسی به انگلیسی با `_()` تبدیل شد
+
+### Delete Template
+- **Template**: `shared/generic/generic_confirm_delete.html` (مستقیم استفاده می‌شود)
+- **Changes**:
+  - Template اختصاصی حذف شد
+  - `get_context_data` به‌روزرسانی شد تا context variables مناسب را ارسال کند
+  - پیام موفقیت از فارسی به انگلیسی با `_()` تبدیل شد
 

@@ -1,295 +1,294 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
 
 {% block title %}{{ page_title }} - {{ block.super }}{% endblock %}
 
-{% block content %}
-<div class="inventory-module">
-  <div class="module-header">
-    <nav class="breadcrumb">
-      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
-      <span>/</span>
-      <a href="{% url 'shared:access_levels' %}">{% trans "Access Levels" %}</a>
-      <span>/</span>
-      <span>{{ page_title }}</span>
-    </nav>
-    <h1 class="page-title">{{ page_title }}</h1>
-  </div>
-
-  <form method="post" class="entity-form">
-    {% csrf_token %}
-    {% if form.non_field_errors %}
-      <div class="form-errors">
-        {{ form.non_field_errors }}
-      </div>
-    {% endif %}
-
-    <div class="form-grid">
-      {% for field in form %}
-        <div class="form-field">
-          <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span style="color: red;">*</span>{% endif %}</label>
-          {{ field }}
-          {% if field.help_text %}
-            <small class="form-text text-muted">{{ field.help_text }}</small>
-          {% endif %}
-          {% for error in field.errors %}
-            <div class="field-error">{{ error }}</div>
-          {% endfor %}
-        </div>
-      {% endfor %}
-    </div>
-    
-    {% if form.instance and form.instance.pk and form.instance.code %}
-    <div class="form-grid">
-      <div class="form-field">
-        <label>{% trans "Code" %}</label>
-        <input type="text" class="form-control" value="{{ form.instance.code }}" readonly style="background-color: #f3f4f6;">
-        <small class="form-text text-muted">{% trans "Auto-generated from name. Cannot be changed." %}</small>
-      </div>
-    </div>
-    {% endif %}
-
-    <section class="form-section">
-      <header class="section-header">
-        <h2>{% trans "Feature Permissions" %}</h2>
-        <p>{% trans "Select the allowed actions for each feature. View permissions can be limited to own records or extended to all records." %}</p>
-        <div style="margin-top: 10px;">
-          <button type="button" id="select-all-global" class="btn btn-sm btn-secondary">{% trans "Select All" %}</button>
-          <button type="button" id="deselect-all-global" class="btn btn-sm btn-secondary">{% trans "Deselect All" %}</button>
-        </div>
-      </header>
-
-      <div class="module-accordions">
-        {% for module in feature_permissions %}
-        <div class="module-accordion">
-          <div class="module-accordion-header" onclick="toggleModule('{{ module.code }}')">
-            <h3>{{ module.label }}</h3>
-            <span class="accordion-icon" id="icon-{{ module.code }}">▼</span>
-          </div>
-          <div class="module-accordion-content" id="content-{{ module.code }}" style="display: none;">
-            <table class="data-table permissions-table">
-              <thead>
-                <tr>
-                  <th>{% trans "Feature" %}</th>
-                  <th>{% trans "View Scope" %}</th>
-                  <th>{% trans "Actions" %}</th>
-                  <th style="width: 150px;">{% trans "Quick Actions" %}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for feature in module.features %}
-                <tr data-feature-id="{{ feature.html_id }}">
-                  <td>
-                    <strong>{{ feature.label }}</strong>
-                    <div class="muted-text code">{{ feature.code }}</div>
-                  </td>
-                  <td>
-                    {% if feature.view_supported %}
-                      <select name="perm-{{ feature.html_id }}-view" class="form-control view-scope-select">
-                        <option value="none" {% if feature.view_scope == 'none' %}selected{% endif %}>{% trans "None" %}</option>
-                        <option value="own" {% if feature.view_scope == 'own' %}selected{% endif %}>{% trans "Own" %}</option>
-                        <option value="all" {% if feature.view_scope == 'all' %}selected{% endif %}>{% trans "All" %}</option>
-                      </select>
-                    {% else %}
-                      <span class="muted-text">{% trans "Not applicable" %}</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if feature.actions %}
-                      <div class="checkbox-grid">
-                        {% for action in feature.actions %}
-                          <label>
-                            <input type="checkbox" name="perm-{{ feature.html_id }}-{{ action.code }}" {% if action.checked %}checked{% endif %}>
-                            {{ action.label }}
-                          </label>
-                        {% endfor %}
-                      </div>
-                    {% else %}
-                      <span class="muted-text">{% trans "No extra actions available." %}</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    <button type="button" class="btn btn-sm btn-primary select-all-row" data-feature-id="{{ feature.html_id }}">{% trans "Select All" %}</button>
-                    <button type="button" class="btn btn-sm btn-secondary deselect-all-row" data-feature-id="{{ feature.html_id }}">{% trans "Deselect All" %}</button>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </section>
-
-    <style>
-      .module-accordions {
-        margin-top: 20px;
-      }
-      
-      .module-accordion {
-        margin-bottom: 15px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        overflow: hidden;
-      }
-      
-      .module-accordion-header {
-        background-color: #f8f9fa;
-        padding: 15px 20px;
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        user-select: none;
-        transition: background-color 0.2s;
-      }
-      
-      .module-accordion-header:hover {
-        background-color: #e9ecef;
-      }
-      
-      .module-accordion-header h3 {
-        margin: 0;
-        font-size: 1.1em;
-        font-weight: 600;
-      }
-      
-      .accordion-icon {
-        font-size: 0.9em;
-        transition: transform 0.3s;
-      }
-      
-      .module-accordion-content {
-        padding: 0;
-        background-color: #fff;
-      }
-      
-      .module-accordion-content table {
-        margin: 0;
-      }
-      
-      .view-scope-select {
-        min-width: 120px;
-      }
-      
-      .checkbox-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-      }
-      
-      .checkbox-grid label {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        font-weight: normal;
-      }
-    </style>
-
-    <script>
-    // Toggle module accordion
-    function toggleModule(moduleCode) {
-      const content = document.getElementById('content-' + moduleCode);
-      const icon = document.getElementById('icon-' + moduleCode);
-      
-      if (content.style.display === 'none') {
-        content.style.display = 'block';
-        icon.textContent = '▼';
-      } else {
-        content.style.display = 'none';
-        icon.textContent = '▶';
-      }
-    }
-    
-    document.addEventListener('DOMContentLoaded', function() {
-      // Expand first module by default
-      const firstModule = document.querySelector('.module-accordion');
-      if (firstModule) {
-        const moduleCode = firstModule.querySelector('.module-accordion-content').id.replace('content-', '');
-        toggleModule(moduleCode);
-      }
-      
-      // Function to select all in a row
-      function selectAllRow(featureId) {
-        const row = document.querySelector(`tr[data-feature-id="${featureId}"]`);
-        if (!row) return;
-        
-        // Select "all" in dropdown if view is supported
-        const viewSelect = row.querySelector(`select[name="perm-${featureId}-view"]`);
-        if (viewSelect) {
-          viewSelect.value = 'all';
-        }
-        
-        // Check all checkboxes in this row
-        const checkboxes = row.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
-          checkbox.checked = true;
-        });
-      }
-      
-      // Function to deselect all in a row
-      function deselectAllRow(featureId) {
-        const row = document.querySelector(`tr[data-feature-id="${featureId}"]`);
-        if (!row) return;
-        
-        // Select "none" in dropdown if view is supported
-        const viewSelect = row.querySelector(`select[name="perm-${featureId}-view"]`);
-        if (viewSelect) {
-          viewSelect.value = 'none';
-        }
-        
-        // Uncheck all checkboxes in this row
-        const checkboxes = row.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
-          checkbox.checked = false;
-        });
-      }
-      
-      // Function to select all globally
-      function selectAllGlobal() {
-        const rows = document.querySelectorAll('tr[data-feature-id]');
-        rows.forEach(row => {
-          const featureId = row.getAttribute('data-feature-id');
-          selectAllRow(featureId);
-        });
-      }
-      
-      // Function to deselect all globally
-      function deselectAllGlobal() {
-        const rows = document.querySelectorAll('tr[data-feature-id]');
-        rows.forEach(row => {
-          const featureId = row.getAttribute('data-feature-id');
-          deselectAllRow(featureId);
-        });
-      }
-      
-      // Attach event listeners for row buttons
-      document.querySelectorAll('.select-all-row').forEach(button => {
-        button.addEventListener('click', function() {
-          const featureId = this.getAttribute('data-feature-id');
-          selectAllRow(featureId);
-        });
-      });
-      
-      document.querySelectorAll('.deselect-all-row').forEach(button => {
-        button.addEventListener('click', function() {
-          const featureId = this.getAttribute('data-feature-id');
-          deselectAllRow(featureId);
-        });
-      });
-      
-      // Attach event listeners for global buttons
-      document.getElementById('select-all-global')?.addEventListener('click', selectAllGlobal);
-      document.getElementById('deselect-all-global')?.addEventListener('click', deselectAllGlobal);
-    });
-    </script>
-
-    <div class="form-actions">
-      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-      <a href="{% url 'shared:access_levels' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
-    </div>
-  </form>
-</div>
+{% block breadcrumb_extra %}
+<span>/</span>
+<a href="{% url 'shared:access_levels' %}">{% trans "Access Levels" %}</a>
+<span>/</span>
+<span>{{ page_title }}</span>
 {% endblock %}
 
+{% block form_sections %}
+<div class="form-section">
+  {% for field in form %}
+    <div class="form-field">
+      <label for="{{ field.id_for_label }}">
+        {{ field.label }}
+        {% if field.field.required %} <span style="color: red;">*</span>{% endif %}
+      </label>
+      {{ field }}
+      {% if field.errors %}
+        <span class="error">{{ field.errors.0 }}</span>
+      {% endif %}
+      {% if field.help_text %}
+        <small class="form-text">{{ field.help_text }}</small>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+
+{% if form.instance and form.instance.pk and form.instance.code %}
+<div class="form-section">
+  <div class="form-field">
+    <label>{% trans "Code" %}</label>
+    <input type="text" class="form-control" value="{{ form.instance.code }}" readonly style="background-color: #f3f4f6;">
+    <small class="form-text">{% trans "Auto-generated from name. Cannot be changed." %}</small>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block form_extra %}
+<section class="form-section" style="margin-top: 2rem; border-top: 2px solid #e5e7eb; padding-top: 2rem;">
+  <header class="section-header" style="margin-bottom: 1.5rem;">
+    <h2>{% trans "Feature Permissions" %}</h2>
+    <p>{% trans "Select the allowed actions for each feature. View permissions can be limited to own records or extended to all records." %}</p>
+    <div style="margin-top: 10px;">
+      <button type="button" id="select-all-global" class="btn btn-sm btn-secondary">{% trans "Select All" %}</button>
+      <button type="button" id="deselect-all-global" class="btn btn-sm btn-secondary">{% trans "Deselect All" %}</button>
+    </div>
+  </header>
+
+  <div class="module-accordions">
+    {% for module in feature_permissions %}
+    <div class="module-accordion">
+      <div class="module-accordion-header" onclick="toggleModule('{{ module.code }}')">
+        <h3>{{ module.label }}</h3>
+        <span class="accordion-icon" id="icon-{{ module.code }}">▼</span>
+      </div>
+      <div class="module-accordion-content" id="content-{{ module.code }}" style="display: none;">
+        <table class="data-table permissions-table">
+          <thead>
+            <tr>
+              <th>{% trans "Feature" %}</th>
+              <th>{% trans "View Scope" %}</th>
+              <th>{% trans "Actions" %}</th>
+              <th style="width: 150px;">{% trans "Quick Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for feature in module.features %}
+            <tr data-feature-id="{{ feature.html_id }}">
+              <td>
+                <strong>{{ feature.label }}</strong>
+                <div class="muted-text code">{{ feature.code }}</div>
+              </td>
+              <td>
+                {% if feature.view_supported %}
+                  <select name="perm-{{ feature.html_id }}-view" class="form-control view-scope-select">
+                    <option value="none" {% if feature.view_scope == 'none' %}selected{% endif %}>{% trans "None" %}</option>
+                    <option value="own" {% if feature.view_scope == 'own' %}selected{% endif %}>{% trans "Own" %}</option>
+                    <option value="all" {% if feature.view_scope == 'all' %}selected{% endif %}>{% trans "All" %}</option>
+                  </select>
+                {% else %}
+                  <span class="muted-text">{% trans "Not applicable" %}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if feature.actions %}
+                  <div class="checkbox-grid">
+                    {% for action in feature.actions %}
+                      <label>
+                        <input type="checkbox" name="perm-{{ feature.html_id }}-{{ action.code }}" {% if action.checked %}checked{% endif %}>
+                        {{ action.label }}
+                      </label>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <span class="muted-text">{% trans "No extra actions available." %}</span>
+                {% endif %}
+              </td>
+              <td>
+                <button type="button" class="btn btn-sm btn-primary select-all-row" data-feature-id="{{ feature.html_id }}">{% trans "Select All" %}</button>
+                <button type="button" class="btn btn-sm btn-secondary deselect-all-row" data-feature-id="{{ feature.html_id }}">{% trans "Deselect All" %}</button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+
+{% block form_actions_extra %}
+<a href="{% url 'shared:access_levels' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+{% endblock %}
+
+{% block form_scripts %}
+<style>
+  .module-accordions {
+    margin-top: 20px;
+  }
+  
+  .module-accordion {
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  
+  .module-accordion-header {
+    background-color: #f8f9fa;
+    padding: 15px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    transition: background-color 0.2s;
+  }
+  
+  .module-accordion-header:hover {
+    background-color: #e9ecef;
+  }
+  
+  .module-accordion-header h3 {
+    margin: 0;
+    font-size: 1.1em;
+    font-weight: 600;
+  }
+  
+  .accordion-icon {
+    font-size: 0.9em;
+    transition: transform 0.3s;
+  }
+  
+  .module-accordion-content {
+    padding: 0;
+    background-color: #fff;
+  }
+  
+  .module-accordion-content table {
+    margin: 0;
+  }
+  
+  .view-scope-select {
+    min-width: 120px;
+  }
+  
+  .checkbox-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .checkbox-grid label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: normal;
+  }
+
+  .muted-text {
+    color: #6b7280;
+    font-size: 0.875rem;
+  }
+
+  .code {
+    font-family: monospace;
+  }
+</style>
+
+<script>
+// Toggle module accordion
+function toggleModule(moduleCode) {
+  const content = document.getElementById('content-' + moduleCode);
+  const icon = document.getElementById('icon-' + moduleCode);
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    icon.textContent = '▼';
+  } else {
+    content.style.display = 'none';
+    icon.textContent = '▶';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Expand first module by default
+  const firstModule = document.querySelector('.module-accordion');
+  if (firstModule) {
+    const moduleCode = firstModule.querySelector('.module-accordion-content').id.replace('content-', '');
+    toggleModule(moduleCode);
+  }
+  
+  // Function to select all in a row
+  function selectAllRow(featureId) {
+    const row = document.querySelector(`tr[data-feature-id="${featureId}"]`);
+    if (!row) return;
+    
+    // Select "all" in dropdown if view is supported
+    const viewSelect = row.querySelector(`select[name="perm-${featureId}-view"]`);
+    if (viewSelect) {
+      viewSelect.value = 'all';
+    }
+    
+    // Check all checkboxes in this row
+    const checkboxes = row.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+      checkbox.checked = true;
+    });
+  }
+  
+  // Function to deselect all in a row
+  function deselectAllRow(featureId) {
+    const row = document.querySelector(`tr[data-feature-id="${featureId}"]`);
+    if (!row) return;
+    
+    // Select "none" in dropdown if view is supported
+    const viewSelect = row.querySelector(`select[name="perm-${featureId}-view"]`);
+    if (viewSelect) {
+      viewSelect.value = 'none';
+    }
+    
+    // Uncheck all checkboxes in this row
+    const checkboxes = row.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+      checkbox.checked = false;
+    });
+  }
+  
+  // Function to select all globally
+  function selectAllGlobal() {
+    const rows = document.querySelectorAll('tr[data-feature-id]');
+    rows.forEach(row => {
+      const featureId = row.getAttribute('data-feature-id');
+      selectAllRow(featureId);
+    });
+  }
+  
+  // Function to deselect all globally
+  function deselectAllGlobal() {
+    const rows = document.querySelectorAll('tr[data-feature-id]');
+    rows.forEach(row => {
+      const featureId = row.getAttribute('data-feature-id');
+      deselectAllRow(featureId);
+    });
+  }
+  
+  // Attach event listeners for row buttons
+  document.querySelectorAll('.select-all-row').forEach(button => {
+    button.addEventListener('click', function() {
+      const featureId = this.getAttribute('data-feature-id');
+      selectAllRow(featureId);
+    });
+  });
+  
+  document.querySelectorAll('.deselect-all-row').forEach(button => {
+    button.addEventListener('click', function() {
+      const featureId = this.getAttribute('data-feature-id');
+      deselectAllRow(featureId);
+    });
+  });
+  
+  // Attach event listeners for global buttons
+  document.getElementById('select-all-global')?.addEventListener('click', selectAllGlobal);
+  document.getElementById('deselect-all-global')?.addEventListener('click', deselectAllGlobal);
+});
+</script>
+{% endblock %}

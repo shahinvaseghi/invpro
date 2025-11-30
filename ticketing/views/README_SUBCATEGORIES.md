@@ -30,12 +30,12 @@
 
 **Type**: `FeaturePermissionRequiredMixin, TicketingBaseView, ListView`
 
-**Template**: `ticketing/subcategories_list.html`
+**Template**: `ticketing/subcategories_list.html` (extends `shared/generic/generic_list.html`)
 
 **Attributes**:
 - `model`: `TicketCategory`
 - `template_name`: `'ticketing/subcategories_list.html'`
-- `context_object_name`: `'subcategories'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 - `feature_code`: `'ticketing.management.subcategories'`
 - `required_action`: `'view_all'`
@@ -108,7 +108,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, TicketingBaseView, CreateView`
 
-**Template**: `ticketing/subcategory_form.html`
+**Template**: `ticketing/subcategory_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `TicketCategoryForm`
 
@@ -193,7 +193,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, TicketingBaseView, UpdateView`
 
-**Template**: `ticketing/subcategory_form.html`
+**Template**: `ticketing/subcategory_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `TicketCategoryForm`
 
@@ -276,7 +276,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, TicketingBaseView, DeleteView`
 
-**Template**: `ticketing/subcategory_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `ticketing:subcategories`
 

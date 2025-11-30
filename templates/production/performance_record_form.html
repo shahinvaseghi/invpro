@@ -1,391 +1,381 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
 {% load static %}
 {% load jalali_tags %}
 {% load access_tags %}
 
-{% block title %}{{ form_title }} - {{ block.super }}{% endblock %}
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Production" %}</span>
+<span class="separator">/</span>
+<a href="{% url 'production:performance_records' %}">{% trans "Performance Records" %}</a>
+<span class="separator">/</span>
+<span>{{ form_title }}</span>
+{% endblock %}
 
-{% block content %}
-<div class="inventory-module">
-  <div class="module-header">
-    <nav class="breadcrumb">
-      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
-      <span>/</span>
-      <a href="{% url 'production:performance_records' %}">{% trans "Performance Records" %}</a>
-      <span>/</span>
-      <span>{{ form_title }}</span>
-    </nav>
-    
-    <h1 class="page-title">{{ form_title }}</h1>
-  </div>
-
-  <div class="form-container">
-    {% if messages %}
-      {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">
-        {{ message }}
-      </div>
-      {% endfor %}
-    {% endif %}
-    
-    {% if object and object.pk %}
-      <div class="info-banner">
-        <div><strong>{% trans "Performance Code" %}:</strong> {{ object.performance_code }}</div>
-        <div><strong>{% trans "Performance Date" %}:</strong> {{ object.performance_date|jalali_date }}</div>
-        <div><strong>{% trans "Status" %}:</strong> {{ object.get_status_display }}</div>
-        <div class="lock-status">
-          <strong>{% trans "Lock Status" %}:</strong>
-          {% if object.is_locked == 1 %}
-            <span class="badge badge-locked">{% trans "Locked" %}</span>
-          {% else %}
-            <span class="badge badge-unlocked">{% trans "Editable" %}</span>
-          {% endif %}
-        </div>
-      </div>
-      
+{% block before_form %}
+{% if object and object.pk %}
+  <div class="info-banner" style="background: #f3f4f6; padding: 1.5rem; border-radius: 6px; margin-bottom: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+    <div><strong>{% trans "Performance Code" %}:</strong> <code>{{ object.performance_code }}</code></div>
+    <div><strong>{% trans "Performance Date" %}:</strong> {{ object.performance_date|jalali_date }}</div>
+    <div><strong>{% trans "Status" %}:</strong> {{ object.get_status_display }}</div>
+    <div class="lock-status">
+      <strong>{% trans "Lock Status" %}:</strong>
       {% if object.is_locked == 1 %}
-      <div class="alert alert-info">
-        {% trans "This performance record is locked and can no longer be edited." %}
-      </div>
+        <span class="badge badge-locked">{% trans "Locked" %}</span>
+      {% else %}
+        <span class="badge badge-unlocked">{% trans "Editable" %}</span>
       {% endif %}
-    {% endif %}
+    </div>
+  </div>
+  
+  {% if object.is_locked == 1 %}
+  <div class="alert alert-info" style="background: #dbeafe; color: #1e40af; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; border: 1px solid #93c5fd;">
+    {% trans "This performance record is locked and can no longer be edited." %}
+  </div>
+  {% endif %}
+{% endif %}
+{% endblock %}
+
+{% block form_sections %}
+{% if object and object.pk and object.is_locked == 1 %}
+<div class="alert alert-info" style="background: #dbeafe; color: #1e40af; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; border: 1px solid #93c5fd;">
+  {% trans "This performance record is locked and can no longer be edited." %}
+</div>
+{% endif %}
+
+{% block form_sections %}
+<div class="form-section">
+  <h2>{% trans "Performance Information" %}</h2>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.order.id_for_label }}">{{ form.order.label }} *</label>
+      {{ form.order }}
+      {% if form.order.errors %}
+        <span class="error">{{ form.order.errors.0 }}</span>
+      {% endif %}
+      {% if form.order.help_text %}
+        <small class="form-text">{{ form.order.help_text }}</small>
+      {% endif %}
+    </div>
     
-    <form method="post" class="performance-record-form" id="performance-form">
-      {% csrf_token %}
-
-      {% if form.non_field_errors %}
-        <div class="alert alert-error">
-          {{ form.non_field_errors }}
-        </div>
+    <div class="form-field">
+      <label for="{{ form.transfer.id_for_label }}">{{ form.transfer.label }}</label>
+      {{ form.transfer }}
+      {% if form.transfer.errors %}
+        <span class="error">{{ form.transfer.errors.0 }}</span>
       {% endif %}
-
-      <div class="form-section">
-        <h3>{% trans "Performance Information" %}</h3>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.order.id_for_label }}">{{ form.order.label }} *</label>
-            {{ form.order }}
-            {% if form.order.errors %}
-              <div class="field-errors">
-                {{ form.order.errors }}
-              </div>
-            {% endif %}
-            {% if form.order.help_text %}
-              <small class="help-text">{{ form.order.help_text }}</small>
-            {% endif %}
-          </div>
-          
-          <div class="form-field">
-            <label for="{{ form.transfer.id_for_label }}">{{ form.transfer.label }}</label>
-            {{ form.transfer }}
-            {% if form.transfer.errors %}
-              <div class="field-errors">
-                {{ form.transfer.errors }}
-              </div>
-            {% endif %}
-            {% if form.transfer.help_text %}
-              <small class="help-text">{{ form.transfer.help_text }}</small>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.performance_date.id_for_label }}">{{ form.performance_date.label }} *</label>
-            {{ form.performance_date }}
-            {% if form.performance_date.errors %}
-              <div class="field-errors">
-                {{ form.performance_date.errors }}
-              </div>
-            {% endif %}
-          </div>
-          
-          <div class="form-field">
-            <label for="{{ form.approved_by.id_for_label }}">{{ form.approved_by.label }}</label>
-            {{ form.approved_by }}
-            {% if form.approved_by.errors %}
-              <div class="field-errors">
-                {{ form.approved_by.errors }}
-              </div>
-            {% endif %}
-            {% if form.approved_by.help_text %}
-              <small class="help-text">{{ form.approved_by.help_text }}</small>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.quantity_planned.id_for_label }}">{{ form.quantity_planned.label }} *</label>
-            {{ form.quantity_planned }}
-            {% if form.quantity_planned.errors %}
-              <div class="field-errors">
-                {{ form.quantity_planned.errors }}
-              </div>
-            {% endif %}
-            {% if form.quantity_planned.help_text %}
-              <small class="help-text">{{ form.quantity_planned.help_text }}</small>
-            {% endif %}
-          </div>
-          
-          <div class="form-field">
-            <label for="{{ form.quantity_actual.id_for_label }}">{{ form.quantity_actual.label }} *</label>
-            {{ form.quantity_actual }}
-            {% if form.quantity_actual.errors %}
-              <div class="field-errors">
-                {{ form.quantity_actual.errors }}
-              </div>
-            {% endif %}
-            {% if form.quantity_actual.help_text %}
-              <small class="help-text">{{ form.quantity_actual.help_text }}</small>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
-            {{ form.notes }}
-            {% if form.notes.errors %}
-              <div class="field-errors">
-                {{ form.notes.errors }}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-
-      <!-- Materials Section -->
-      <div class="form-section">
-        <h3>{% trans "Materials (Waste Tracking)" %}</h3>
-        <p class="form-text">{% trans "Materials from transfer document. Enter waste quantity for each material." %}</p>
-        
-        {{ material_formset.management_form }}
-        
-        {% if material_formset.non_form_errors %}
-          <div class="alert alert-error">
-            {{ material_formset.non_form_errors }}
-          </div>
-        {% endif %}
-        
-        <div class="table-responsive">
-        <table class="data-table" id="materials-table">
-          <thead>
-            <tr>
-              <th>{% trans "Material Item" %}</th>
-              <th>{% trans "Required Quantity" %}</th>
-              <th>{% trans "Waste Quantity" %}</th>
-              <th>{% trans "Unit" %}</th>
-              <th>{% trans "Notes" %}</th>
-            </tr>
-          </thead>
-          <tbody id="materials-formset-container">
-            {% for material_form in material_formset %}
-            <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
-              {% for hidden in material_form.hidden_fields %}{{ hidden }}{% endfor %}
-              <td>
-                {% if material_form.material_item.value %}
-                  {{ material_form.material_item }}
-                {% else %}
-                  {{ material_form.material_item }}
-                {% endif %}
-                {% if material_form.material_item.errors %}
-                  <div class="field-errors">{{ material_form.material_item.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ material_form.quantity_required }}
-                {% if material_form.quantity_required.errors %}
-                  <div class="field-errors">{{ material_form.quantity_required.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ material_form.quantity_waste }}
-                {% if material_form.quantity_waste.errors %}
-                  <div class="field-errors">{{ material_form.quantity_waste.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ material_form.unit }}
-                {% if material_form.unit.errors %}
-                  <div class="field-errors">{{ material_form.unit.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ material_form.notes }}
-                {% if material_form.notes.errors %}
-                  <div class="field-errors">{{ material_form.notes.errors }}</div>
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        </div>
-      </div>
-
-      <!-- Persons Section -->
-      <div class="form-section">
-        <h3>{% trans "Personnel (Labor Time)" %}</h3>
-        <p class="form-text">{% trans "Add personnel who worked on this order and enter their work minutes." %}</p>
-        
-        {{ person_formset.management_form }}
-        
-        {% if person_formset.non_form_errors %}
-          <div class="alert alert-error">
-            {{ person_formset.non_form_errors }}
-          </div>
-        {% endif %}
-        
-        <div class="table-responsive">
-        <table class="data-table" id="persons-table">
-          <thead>
-            <tr>
-              <th>{% trans "Person" %}</th>
-              <th>{% trans "Work Minutes" %}</th>
-              <th>{% trans "Work Line" %}</th>
-              <th>{% trans "Notes" %}</th>
-              <th>{% trans "Actions" %}</th>
-            </tr>
-          </thead>
-          <tbody id="persons-formset-container">
-            {% for person_form in person_formset %}
-            <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
-              {% for hidden in person_form.hidden_fields %}{{ hidden }}{% endfor %}
-              <td>
-                {{ person_form.person }}
-                {% if person_form.person.errors %}
-                  <div class="field-errors">{{ person_form.person.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ person_form.work_minutes }}
-                {% if person_form.work_minutes.errors %}
-                  <div class="field-errors">{{ person_form.work_minutes.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ person_form.work_line }}
-                {% if person_form.work_line.errors %}
-                  <div class="field-errors">{{ person_form.work_line.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ person_form.notes }}
-                {% if person_form.notes.errors %}
-                  <div class="field-errors">{{ person_form.notes.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {% if person_formset.can_delete %}
-                  {{ person_form.DELETE }}
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        </div>
-        
-        <button type="button" id="add-person-btn" class="btn btn-success">{% trans "Add Person +" %}</button>
-      </div>
-
-      <!-- Machines Section -->
-      <div class="form-section">
-        <h3>{% trans "Machines (Machine Usage Time)" %}</h3>
-        <p class="form-text">{% trans "Add machines used in this order and enter their work minutes." %}</p>
-        
-        {{ machine_formset.management_form }}
-        
-        {% if machine_formset.non_form_errors %}
-          <div class="alert alert-error">
-            {{ machine_formset.non_form_errors }}
-          </div>
-        {% endif %}
-        
-        <div class="table-responsive">
-        <table class="data-table" id="machines-table">
-          <thead>
-            <tr>
-              <th>{% trans "Machine" %}</th>
-              <th>{% trans "Work Minutes" %}</th>
-              <th>{% trans "Work Line" %}</th>
-              <th>{% trans "Notes" %}</th>
-              <th>{% trans "Actions" %}</th>
-            </tr>
-          </thead>
-          <tbody id="machines-formset-container">
-            {% for machine_form in machine_formset %}
-            <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
-              {% for hidden in machine_form.hidden_fields %}{{ hidden }}{% endfor %}
-              <td>
-                {{ machine_form.machine }}
-                {% if machine_form.machine.errors %}
-                  <div class="field-errors">{{ machine_form.machine.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ machine_form.work_minutes }}
-                {% if machine_form.work_minutes.errors %}
-                  <div class="field-errors">{{ machine_form.work_minutes.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ machine_form.work_line }}
-                {% if machine_form.work_line.errors %}
-                  <div class="field-errors">{{ machine_form.work_line.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ machine_form.notes }}
-                {% if machine_form.notes.errors %}
-                  <div class="field-errors">{{ machine_form.notes.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {% if machine_formset.can_delete %}
-                  {{ machine_form.DELETE }}
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        </div>
-        
-        <button type="button" id="add-machine-btn" class="btn btn-success">{% trans "Add Machine +" %}</button>
-      </div>
-
-      <!-- Create Receipt Section (only for approved and locked records) -->
-      {% if object and object.pk and object.status == 'approved' and object.is_locked == 1 %}
-        {% if user_feature_permissions|feature_allowed:'production.performance_records:create_receipt' or user.is_superuser %}
-        <div class="form-section">
-          <h3>{% trans "Create Receipt" %}</h3>
-          <p class="form-text">{% trans "Create a receipt for the actual quantity produced." %}</p>
-          <a href="{% url 'production:performance_record_create_receipt' object.pk %}" class="btn btn-primary" onclick="return confirm('{% trans "Create receipt for this performance record?" %}')">
-            {% trans "Create Receipt" %}
-          </a>
-        </div>
-        {% endif %}
+      {% if form.transfer.help_text %}
+        <small class="form-text">{{ form.transfer.help_text }}</small>
       {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.performance_date.id_for_label }}">{{ form.performance_date.label }} *</label>
+      {{ form.performance_date }}
+      {% if form.performance_date.errors %}
+        <span class="error">{{ form.performance_date.errors.0 }}</span>
+      {% endif %}
+    </div>
+    
+    <div class="form-field">
+      <label for="{{ form.approved_by.id_for_label }}">{{ form.approved_by.label }}</label>
+      {{ form.approved_by }}
+      {% if form.approved_by.errors %}
+        <span class="error">{{ form.approved_by.errors.0 }}</span>
+      {% endif %}
+      {% if form.approved_by.help_text %}
+        <small class="form-text">{{ form.approved_by.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.quantity_planned.id_for_label }}">{{ form.quantity_planned.label }} *</label>
+      {{ form.quantity_planned }}
+      {% if form.quantity_planned.errors %}
+        <span class="error">{{ form.quantity_planned.errors.0 }}</span>
+      {% endif %}
+      {% if form.quantity_planned.help_text %}
+        <small class="form-text">{{ form.quantity_planned.help_text }}</small>
+      {% endif %}
+    </div>
+    
+    <div class="form-field">
+      <label for="{{ form.quantity_actual.id_for_label }}">{{ form.quantity_actual.label }} *</label>
+      {{ form.quantity_actual }}
+      {% if form.quantity_actual.errors %}
+        <span class="error">{{ form.quantity_actual.errors.0 }}</span>
+      {% endif %}
+      {% if form.quantity_actual.help_text %}
+        <small class="form-text">{{ form.quantity_actual.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+      {{ form.notes }}
+      {% if form.notes.errors %}
+        <span class="error">{{ form.notes.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
 
-      <div class="form-actions">
-        {% if not object %}
-          <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-        {% else %}
-          {% if object.is_locked != 1 %}
-            <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-          {% endif %}
-        {% endif %}
-        <a href="{% url 'production:performance_records' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
-      </div>
-    </form>
+{% block form_extra %}
+<!-- Materials Section -->
+<div class="form-section">
+  <header class="section-header">
+    <h2>{% trans "Materials (Waste Tracking)" %}</h2>
+    <p>{% trans "Materials from transfer document. Enter waste quantity for each material." %}</p>
+  </header>
+  
+  {{ material_formset.management_form }}
+  
+  {% if material_formset.non_form_errors %}
+    <div class="alert alert-error">
+      {% for error in material_formset.non_form_errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  
+  <div class="table-responsive" style="overflow-x: auto; width: 100%; margin-bottom: 1rem;">
+    <table class="data-table formset-table" id="materials-table">
+      <thead>
+        <tr>
+          <th>{% trans "Material Item" %}</th>
+          <th>{% trans "Required Quantity" %}</th>
+          <th>{% trans "Waste Quantity" %}</th>
+          <th>{% trans "Unit" %}</th>
+          <th>{% trans "Notes" %}</th>
+        </tr>
+      </thead>
+      <tbody id="materials-formset-container">
+        {% for material_form in material_formset %}
+        <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
+          {% for hidden in material_form.hidden_fields %}{{ hidden }}{% endfor %}
+          <td>
+            {{ material_form.material_item }}
+            {% if material_form.material_item.errors %}
+              <div class="field-error">{{ material_form.material_item.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ material_form.quantity_required }}
+            {% if material_form.quantity_required.errors %}
+              <div class="field-error">{{ material_form.quantity_required.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ material_form.quantity_waste }}
+            {% if material_form.quantity_waste.errors %}
+              <div class="field-error">{{ material_form.quantity_waste.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ material_form.unit }}
+            {% if material_form.unit.errors %}
+              <div class="field-error">{{ material_form.unit.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ material_form.notes }}
+            {% if material_form.notes.errors %}
+              <div class="field-error">{{ material_form.notes.errors.0 }}</div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
 
-{% block extra_css %}
+<!-- Persons Section -->
+<div class="form-section">
+  <header class="section-header">
+    <h2>{% trans "Personnel (Labor Time)" %}</h2>
+    <p>{% trans "Add personnel who worked on this order and enter their work minutes." %}</p>
+  </header>
+  
+  {{ person_formset.management_form }}
+  
+  {% if person_formset.non_form_errors %}
+    <div class="alert alert-error">
+      {% for error in person_formset.non_form_errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  
+  <div class="table-responsive" style="overflow-x: auto; width: 100%; margin-bottom: 1rem;">
+    <table class="data-table formset-table" id="persons-table">
+      <thead>
+        <tr>
+          <th>{% trans "Person" %}</th>
+          <th>{% trans "Work Minutes" %}</th>
+          <th>{% trans "Work Line" %}</th>
+          <th>{% trans "Notes" %}</th>
+          <th>{% trans "Actions" %}</th>
+        </tr>
+      </thead>
+      <tbody id="persons-formset-container">
+        {% for person_form in person_formset %}
+        <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
+          {% for hidden in person_form.hidden_fields %}{{ hidden }}{% endfor %}
+          <td>
+            {{ person_form.person }}
+            {% if person_form.person.errors %}
+              <div class="field-error">{{ person_form.person.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ person_form.work_minutes }}
+            {% if person_form.work_minutes.errors %}
+              <div class="field-error">{{ person_form.work_minutes.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ person_form.work_line }}
+            {% if person_form.work_line.errors %}
+              <div class="field-error">{{ person_form.work_line.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ person_form.notes }}
+            {% if person_form.notes.errors %}
+              <div class="field-error">{{ person_form.notes.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {% if person_formset.can_delete %}
+              {{ person_form.DELETE }}
+              {% if person_form.DELETE %}
+                <label for="{{ person_form.DELETE.id_for_label }}" style="margin-left: 5px; cursor: pointer;">
+                  {% trans "Delete" %}
+                </label>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  
+  <button type="button" id="add-person-btn" class="btn btn-secondary">+ {% trans "Add Person" %}</button>
+</div>
+
+<!-- Machines Section -->
+<div class="form-section">
+  <header class="section-header">
+    <h2>{% trans "Machines (Machine Usage Time)" %}</h2>
+    <p>{% trans "Add machines used in this order and enter their work minutes." %}</p>
+  </header>
+  
+  {{ machine_formset.management_form }}
+  
+  {% if machine_formset.non_form_errors %}
+    <div class="alert alert-error">
+      {% for error in machine_formset.non_form_errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  
+  <div class="table-responsive" style="overflow-x: auto; width: 100%; margin-bottom: 1rem;">
+    <table class="data-table formset-table" id="machines-table">
+      <thead>
+        <tr>
+          <th>{% trans "Machine" %}</th>
+          <th>{% trans "Work Minutes" %}</th>
+          <th>{% trans "Work Line" %}</th>
+          <th>{% trans "Notes" %}</th>
+          <th>{% trans "Actions" %}</th>
+        </tr>
+      </thead>
+      <tbody id="machines-formset-container">
+        {% for machine_form in machine_formset %}
+        <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
+          {% for hidden in machine_form.hidden_fields %}{{ hidden }}{% endfor %}
+          <td>
+            {{ machine_form.machine }}
+            {% if machine_form.machine.errors %}
+              <div class="field-error">{{ machine_form.machine.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ machine_form.work_minutes }}
+            {% if machine_form.work_minutes.errors %}
+              <div class="field-error">{{ machine_form.work_minutes.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ machine_form.work_line }}
+            {% if machine_form.work_line.errors %}
+              <div class="field-error">{{ machine_form.work_line.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ machine_form.notes }}
+            {% if machine_form.notes.errors %}
+              <div class="field-error">{{ machine_form.notes.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {% if machine_formset.can_delete %}
+              {{ machine_form.DELETE }}
+              {% if machine_form.DELETE %}
+                <label for="{{ machine_form.DELETE.id_for_label }}" style="margin-left: 5px; cursor: pointer;">
+                  {% trans "Delete" %}
+                </label>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  
+  <button type="button" id="add-machine-btn" class="btn btn-secondary">+ {% trans "Add Machine" %}</button>
+</div>
+
+<!-- Create Receipt Section (only for approved and locked records) -->
+{% if object and object.pk and object.status == 'approved' and object.is_locked == 1 %}
+  {% if user_feature_permissions|feature_allowed:'production.performance_records:create_receipt' or user.is_superuser %}
+  <div class="form-section">
+    <header class="section-header">
+      <h2>{% trans "Create Receipt" %}</h2>
+      <p>{% trans "Create a receipt for the actual quantity produced." %}</p>
+    </header>
+    <a href="{% url 'production:performance_record_create_receipt' object.pk %}" class="btn btn-primary" onclick="return confirm('{% trans "Create receipt for this performance record?" %}')">
+      {% trans "Create Receipt" %}
+    </a>
+  </div>
+  {% endif %}
+{% endif %}
+{% endblock %}
+
+{% block form_actions_extra %}
+{% if object and object.is_locked == 1 %}
+  <style>
+    .form-actions button[type="submit"] {
+      display: none !important;
+    }
+  </style>
+{% endif %}
+{% endblock %}
+
+{% block extra_styles %}
 <style>
 .table-responsive {
   overflow-x: auto;
@@ -411,19 +401,38 @@
   padding: 8px 12px;
 }
 
-.form-container {
-  max-width: 100%;
-  overflow-x: hidden;
+.formset-table {
+  border-collapse: collapse;
 }
 
-.inventory-module {
-  max-width: 100%;
-  overflow-x: hidden;
+.formset-table thead {
+  background: #f3f4f6;
+}
+
+.formset-table th {
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.formset-table td {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.formset-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.field-error {
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: block;
 }
 </style>
 {% endblock %}
 
-{% block extra_scripts %}
+{% block form_scripts %}
 <script src="{% static 'js/jalali-datepicker/jalali-datepicker.min.js' %}"></script>
 <link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">
 
@@ -509,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
 
-      newFormRow.querySelectorAll('.field-errors').forEach(function(error) {
+      newFormRow.querySelectorAll('.field-error').forEach(function(error) {
         error.textContent = '';
       });
 
@@ -546,7 +555,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
 
-      newFormRow.querySelectorAll('.field-errors').forEach(function(error) {
+      newFormRow.querySelectorAll('.field-error').forEach(function(error) {
         error.textContent = '';
       });
 
@@ -584,5 +593,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
-{% endblock %}
-

@@ -24,7 +24,7 @@ class TicketSubcategoryListView(FeaturePermissionRequiredMixin, TicketingBaseVie
 
     model = models.TicketCategory
     template_name = "ticketing/subcategories_list.html"
-    context_object_name = "subcategories"
+    context_object_name = "object_list"
     paginate_by = 50
     feature_code = "ticketing.management.subcategories"
     required_action = "view_all"
@@ -54,7 +54,27 @@ class TicketSubcategoryListView(FeaturePermissionRequiredMixin, TicketingBaseVie
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context data."""
         context = super().get_context_data(**kwargs)
+        if 'page_obj' in context and hasattr(context['page_obj'], 'object_list'):
+            context['object_list'] = context['page_obj'].object_list
+        elif 'object_list' in context and hasattr(context['object_list'], 'query'):
+            context['object_list'] = list(context['object_list'])
+        
         context["page_title"] = _("Ticket Subcategories")
+        context["breadcrumbs"] = [
+            {"label": _("Ticket Management"), "url": None},
+            {"label": _("Subcategories"), "url": None},
+        ]
+        context["create_url"] = reverse_lazy("ticketing:subcategory_create")
+        context["create_button_text"] = _("Create Subcategory")
+        context["show_filters"] = True
+        context["search_placeholder"] = _("Search by name or code")
+        context["clear_filter_url"] = reverse_lazy("ticketing:subcategories")
+        context["show_actions"] = True
+        context["edit_url_name"] = "ticketing:subcategory_edit"
+        context["delete_url_name"] = "ticketing:subcategory_delete"
+        context["empty_state_title"] = _("No Subcategories Found")
+        context["empty_state_message"] = _("Start by creating your first subcategory.")
+        context["empty_state_icon"] = "📂"
 
         # Get all parent categories for filter
         company_id = self.request.session.get("active_company_id")
@@ -63,8 +83,6 @@ class TicketSubcategoryListView(FeaturePermissionRequiredMixin, TicketingBaseVie
                 company_id=company_id, parent_category__isnull=True, is_enabled=1
             ).order_by("name")
 
-        context["search_term"] = self.request.GET.get("search", "")
-        context["selected_parent"] = self.request.GET.get("parent", "")
         return context
 
 
@@ -88,7 +106,13 @@ class TicketSubcategoryCreateView(FeaturePermissionRequiredMixin, TicketingBaseV
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context data including permission formset."""
         context = super().get_context_data(**kwargs)
-        context["page_title"] = _("Create Subcategory")
+        context["form_title"] = _("Create Subcategory")
+        context["breadcrumbs"] = [
+            {"label": _("Ticket Management"), "url": None},
+            {"label": _("Subcategories"), "url": reverse_lazy("ticketing:subcategories")},
+            {"label": _("Create"), "url": None},
+        ]
+        context["cancel_url"] = reverse_lazy("ticketing:subcategories")
 
         # Create permission formset for new subcategory
         if self.request.method == "POST":
@@ -181,7 +205,13 @@ class TicketSubcategoryUpdateView(EditLockProtectedMixin, FeaturePermissionRequi
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context data including permission formset."""
         context = super().get_context_data(**kwargs)
-        context["page_title"] = _("Edit Subcategory")
+        context["form_title"] = _("Edit Subcategory")
+        context["breadcrumbs"] = [
+            {"label": _("Ticket Management"), "url": None},
+            {"label": _("Subcategories"), "url": reverse_lazy("ticketing:subcategories")},
+            {"label": _("Edit"), "url": None},
+        ]
+        context["cancel_url"] = reverse_lazy("ticketing:subcategories")
 
         # Create permission formset for existing subcategory
         if self.request.method == "POST":
@@ -244,7 +274,7 @@ class TicketSubcategoryDeleteView(FeaturePermissionRequiredMixin, TicketingBaseV
     """View for deleting a ticket subcategory."""
 
     model = models.TicketCategory
-    template_name = "ticketing/subcategory_confirm_delete.html"
+    template_name = "shared/generic/generic_confirm_delete.html"
     success_url = reverse_lazy("ticketing:subcategories")
     feature_code = "ticketing.management.subcategories"
     required_action = "delete_own"
@@ -264,6 +294,23 @@ class TicketSubcategoryDeleteView(FeaturePermissionRequiredMixin, TicketingBaseV
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context data."""
         context = super().get_context_data(**kwargs)
-        context["page_title"] = _("Delete Subcategory")
+        context["delete_title"] = _("Delete Subcategory")
+        context["confirmation_message"] = _("Are you sure you want to delete this subcategory?")
+        context["object_details"] = [
+            {"label": _("Name"), "value": self.object.name},
+        ]
+        if self.object.public_code:
+            context["object_details"].append({"label": _("Code"), "value": f"<code>{self.object.public_code}</code>"})
+        if self.object.description:
+            context["object_details"].append({"label": _("Description"), "value": self.object.description})
+        if self.object.parent_category:
+            context["object_details"].append({"label": _("Parent Category"), "value": self.object.parent_category.name})
+        
+        context["cancel_url"] = reverse_lazy("ticketing:subcategories")
+        context["breadcrumbs"] = [
+            {"label": _("Ticket Management"), "url": None},
+            {"label": _("Subcategories"), "url": reverse_lazy("ticketing:subcategories")},
+            {"label": _("Delete"), "url": None},
+        ]
         return context
 

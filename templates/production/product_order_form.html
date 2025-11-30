@@ -1,287 +1,248 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
 {% load static %}
 {% load access_tags %}
 
-{% block title %}{{ form_title }} - {{ block.super }}{% endblock %}
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Production" %}</span>
+<span class="separator">/</span>
+<a href="{% url 'production:product_orders' %}">{% trans "Product Orders" %}</a>
+<span class="separator">/</span>
+<span>{{ form_title }}</span>
+{% endblock %}
 
-{% block content %}
-<div class="inventory-module">
-  <div class="module-header">
-    <nav class="breadcrumb">
-      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
-      <span>/</span>
-      <a href="{% url 'production:product_orders' %}">{% trans "Product Orders" %}</a>
-      <span>/</span>
-      <span>{{ form_title }}</span>
-    </nav>
-    
-    <h1 class="page-title">{{ form_title }}</h1>
+{% block form_sections %}
+<div class="form-section">
+  <h2>{% trans "Order Information" %}</h2>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.bom.id_for_label }}">{{ form.bom.label }} *</label>
+      {{ form.bom }}
+      {% if form.bom.errors %}
+        <span class="error">{{ form.bom.errors.0 }}</span>
+      {% endif %}
+      {% if form.bom.help_text %}
+        <small class="form-text">{{ form.bom.help_text }}</small>
+      {% endif %}
+    </div>
   </div>
-
-  <div class="form-container">
-    {% if messages %}
-      {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">
-        {{ message }}
-      </div>
-      {% endfor %}
-    {% endif %}
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.quantity_planned.id_for_label }}">{{ form.quantity_planned.label }} *</label>
+      {{ form.quantity_planned }}
+      {% if form.quantity_planned.errors %}
+        <span class="error">{{ form.quantity_planned.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.approved_by.id_for_label }}">{{ form.approved_by.label }}</label>
+      {{ form.approved_by }}
+      {% if form.approved_by.errors %}
+        <span class="error">{{ form.approved_by.errors.0 }}</span>
+      {% endif %}
+      {% if form.approved_by.help_text %}
+        <small class="form-text">{{ form.approved_by.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.due_date.id_for_label }}">{{ form.due_date.label }}</label>
+      {{ form.due_date }}
+      {% if form.due_date.errors %}
+        <span class="error">{{ form.due_date.errors.0 }}</span>
+      {% endif %}
+    </div>
     
-    <form method="post" class="product-order-form">
-      {% csrf_token %}
-
-      {% if form.non_field_errors %}
-        <div class="alert alert-error">
-          {{ form.non_field_errors }}
-        </div>
+    <div class="form-field">
+      <label for="{{ form.priority.id_for_label }}">{{ form.priority.label }}</label>
+      {{ form.priority }}
+      {% if form.priority.errors %}
+        <span class="error">{{ form.priority.errors.0 }}</span>
       {% endif %}
-
-      <div class="form-section">
-        <h3>{% trans "Order Information" %}</h3>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.bom.id_for_label }}">{{ form.bom.label }} *</label>
-            {{ form.bom }}
-            {% if form.bom.errors %}
-              <div class="field-errors">
-                {{ form.bom.errors }}
-              </div>
-            {% endif %}
-            {% if form.bom.help_text %}
-              <small class="help-text">{{ form.bom.help_text }}</small>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.quantity_planned.id_for_label }}">{{ form.quantity_planned.label }} *</label>
-            {{ form.quantity_planned }}
-            {% if form.quantity_planned.errors %}
-              <div class="field-errors">
-                {{ form.quantity_planned.errors }}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.approved_by.id_for_label }}">{{ form.approved_by.label }}</label>
-            {{ form.approved_by }}
-            {% if form.approved_by.errors %}
-              <div class="field-errors">
-                {{ form.approved_by.errors }}
-              </div>
-            {% endif %}
-            {% if form.approved_by.help_text %}
-              <small class="help-text">{{ form.approved_by.help_text }}</small>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.due_date.id_for_label }}">{{ form.due_date.label }}</label>
-            {{ form.due_date }}
-            {% if form.due_date.errors %}
-              <div class="field-errors">
-                {{ form.due_date.errors }}
-              </div>
-            {% endif %}
-          </div>
-          
-          <div class="form-field">
-            <label for="{{ form.priority.id_for_label }}">{{ form.priority.label }}</label>
-            {{ form.priority }}
-            {% if form.priority.errors %}
-              <div class="field-errors">
-                {{ form.priority.errors }}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.customer_reference.id_for_label }}">{{ form.customer_reference.label }}</label>
-            {{ form.customer_reference }}
-            {% if form.customer_reference.errors %}
-              <div class="field-errors">
-                {{ form.customer_reference.errors }}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
-            {{ form.notes }}
-            {% if form.notes.errors %}
-              <div class="field-errors">
-                {{ form.notes.errors }}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-
-      {% if user_feature_permissions|feature_allowed:'production.product_orders:create_transfer_from_order' or request.user.is_superuser %}
-      <div class="form-section" id="transfer-request-section">
-        <h3>{% trans "Transfer Request (Optional)" %}</h3>
-        <p class="form-text">{% trans "Optionally create a transfer to line request from this order." %}</p>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <div class="form-check">
-              {{ form.create_transfer_request }}
-              <label class="form-check-label" for="{{ form.create_transfer_request.id_for_label }}">
-                {{ form.create_transfer_request.label }}
-              </label>
-              {% if form.create_transfer_request.help_text %}
-                <small class="help-text">{{ form.create_transfer_request.help_text }}</small>
-              {% endif %}
-            </div>
-            {% if form.create_transfer_request.errors %}
-              <div class="field-errors">
-                {{ form.create_transfer_request.errors }}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row" id="transfer-approver-row" style="display: none;">
-          <div class="form-field">
-            <label for="{{ form.transfer_approved_by.id_for_label }}">{{ form.transfer_approved_by.label }} *</label>
-            {{ form.transfer_approved_by }}
-            {% if form.transfer_approved_by.errors %}
-              <div class="field-errors">
-                {{ form.transfer_approved_by.errors }}
-              </div>
-            {% endif %}
-            {% if form.transfer_approved_by.help_text %}
-              <small class="help-text">{{ form.transfer_approved_by.help_text }}</small>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div id="extra-items-section" style="display: none;">
-          <h4>{% trans "Extra Request Items" %}</h4>
-          <p class="form-text">{% trans "Add additional items that are not in the BOM." %}</p>
-          
-          {% if extra_items_formset %}
-            {{ extra_items_formset.management_form }}
-            
-            {% if extra_items_formset.non_form_errors %}
-              <div class="alert alert-error">
-                {{ extra_items_formset.non_form_errors }}
-              </div>
-            {% endif %}
-            
-            <div class="table-responsive">
-            <table class="data-table" id="extra-items-table">
-              <thead>
-                <tr>
-                  <th>{% trans "Material Type" %}</th>
-                  <th>{% trans "Category" %}</th>
-                  <th>{% trans "Subcategory" %}</th>
-                  <th>{% trans "Material Item" %}</th>
-                  <th>{% trans "Quantity Required" %}</th>
-                  <th>{% trans "Unit" %}</th>
-                  <th>{% trans "Source Warehouse" %}</th>
-                  <th>{% trans "Destination Work Center" %}</th>
-                  <th>{% trans "Scrap Allowance (%)" %}</th>
-                  <th>{% trans "Actions" %}</th>
-                </tr>
-              </thead>
-              <tbody id="extra-items-formset-container">
-                {% for item_form in extra_items_formset %}
-                <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
-                  {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
-                  <td>
-                    {{ item_form.material_type }}
-                    {% if item_form.material_type.errors %}
-                      <div class="field-errors">{{ item_form.material_type.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {{ item_form.material_category_filter }}
-                    {% if item_form.material_category_filter.errors %}
-                      <div class="field-errors">{{ item_form.material_category_filter.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {{ item_form.material_subcategory_filter }}
-                    {% if item_form.material_subcategory_filter.errors %}
-                      <div class="field-errors">{{ item_form.material_subcategory_filter.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {{ item_form.material_item }}
-                    {% if item_form.material_item.errors %}
-                      <div class="field-errors">{{ item_form.material_item.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {{ item_form.quantity_required }}
-                    {% if item_form.quantity_required.errors %}
-                      <div class="field-errors">{{ item_form.quantity_required.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {{ item_form.unit }}
-                    {% if item_form.unit.errors %}
-                      <div class="field-errors">{{ item_form.unit.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {{ item_form.source_warehouse }}
-                    {% if item_form.source_warehouse.errors %}
-                      <div class="field-errors">{{ item_form.source_warehouse.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {{ item_form.destination_work_center }}
-                    {% if item_form.destination_work_center.errors %}
-                      <div class="field-errors">{{ item_form.destination_work_center.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {{ item_form.material_scrap_allowance }}
-                    {% if item_form.material_scrap_allowance.errors %}
-                      <div class="field-errors">{{ item_form.material_scrap_allowance.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if extra_items_formset.can_delete %}
-                      {{ item_form.DELETE }}
-                    {% endif %}
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-            </div>
-            
-            <button type="button" id="add-extra-item-btn" class="btn btn-success">{% trans "Add Extra Item +" %}</button>
-          {% endif %}
-        </div>
-      </div>
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.customer_reference.id_for_label }}">{{ form.customer_reference.label }}</label>
+      {{ form.customer_reference }}
+      {% if form.customer_reference.errors %}
+        <span class="error">{{ form.customer_reference.errors.0 }}</span>
       {% endif %}
-
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-        <a href="{% url 'production:product_orders' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
-      </div>
-    </form>
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+      {{ form.notes }}
+      {% if form.notes.errors %}
+        <span class="error">{{ form.notes.errors.0 }}</span>
+      {% endif %}
+    </div>
   </div>
 </div>
 {% endblock %}
 
-{% block extra_css %}
+{% block form_extra %}
+{% if user_feature_permissions|feature_allowed:'production.product_orders:create_transfer_from_order' or request.user.is_superuser %}
+<div class="form-section" id="transfer-request-section">
+  <header class="section-header">
+    <h2>{% trans "Transfer Request (Optional)" %}</h2>
+    <p>{% trans "Optionally create a transfer to line request from this order." %}</p>
+  </header>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <div class="form-check">
+        {{ form.create_transfer_request }}
+        <label class="form-check-label" for="{{ form.create_transfer_request.id_for_label }}">
+          {{ form.create_transfer_request.label }}
+        </label>
+        {% if form.create_transfer_request.help_text %}
+          <small class="form-text">{{ form.create_transfer_request.help_text }}</small>
+        {% endif %}
+      </div>
+      {% if form.create_transfer_request.errors %}
+        <span class="error">{{ form.create_transfer_request.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row" id="transfer-approver-row" style="display: none;">
+    <div class="form-field">
+      <label for="{{ form.transfer_approved_by.id_for_label }}">{{ form.transfer_approved_by.label }} *</label>
+      {{ form.transfer_approved_by }}
+      {% if form.transfer_approved_by.errors %}
+        <span class="error">{{ form.transfer_approved_by.errors.0 }}</span>
+      {% endif %}
+      {% if form.transfer_approved_by.help_text %}
+        <small class="form-text">{{ form.transfer_approved_by.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div id="extra-items-section" style="display: none;">
+    <h3>{% trans "Extra Request Items" %}</h3>
+    <p class="form-text">{% trans "Add additional items that are not in the BOM." %}</p>
+    
+    {% if extra_items_formset %}
+      {{ extra_items_formset.management_form }}
+      
+      {% if extra_items_formset.non_form_errors %}
+        <div class="alert alert-error">
+          {% for error in extra_items_formset.non_form_errors %}
+            <div>{{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+      
+      <div class="table-responsive" style="overflow-x: auto; width: 100%; margin-bottom: 1rem;">
+      <table class="data-table formset-table" id="extra-items-table">
+        <thead>
+          <tr>
+            <th>{% trans "Material Type" %}</th>
+            <th>{% trans "Category" %}</th>
+            <th>{% trans "Subcategory" %}</th>
+            <th>{% trans "Material Item" %}</th>
+            <th>{% trans "Quantity Required" %}</th>
+            <th>{% trans "Unit" %}</th>
+            <th>{% trans "Source Warehouse" %}</th>
+            <th>{% trans "Destination Work Center" %}</th>
+            <th>{% trans "Scrap Allowance (%)" %}</th>
+            <th>{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody id="extra-items-formset-container">
+          {% for item_form in extra_items_formset %}
+          <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
+            {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
+            <td>
+              {{ item_form.material_type }}
+              {% if item_form.material_type.errors %}
+                <div class="field-error">{{ item_form.material_type.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {{ item_form.material_category_filter }}
+              {% if item_form.material_category_filter.errors %}
+                <div class="field-error">{{ item_form.material_category_filter.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {{ item_form.material_subcategory_filter }}
+              {% if item_form.material_subcategory_filter.errors %}
+                <div class="field-error">{{ item_form.material_subcategory_filter.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {{ item_form.material_item }}
+              {% if item_form.material_item.errors %}
+                <div class="field-error">{{ item_form.material_item.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {{ item_form.quantity_required }}
+              {% if item_form.quantity_required.errors %}
+                <div class="field-error">{{ item_form.quantity_required.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {{ item_form.unit }}
+              {% if item_form.unit.errors %}
+                <div class="field-error">{{ item_form.unit.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {{ item_form.source_warehouse }}
+              {% if item_form.source_warehouse.errors %}
+                <div class="field-error">{{ item_form.source_warehouse.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {{ item_form.destination_work_center }}
+              {% if item_form.destination_work_center.errors %}
+                <div class="field-error">{{ item_form.destination_work_center.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {{ item_form.material_scrap_allowance }}
+              {% if item_form.material_scrap_allowance.errors %}
+                <div class="field-error">{{ item_form.material_scrap_allowance.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {% if extra_items_formset.can_delete %}
+                {{ item_form.DELETE }}
+                {% if item_form.DELETE %}
+                  <label for="{{ item_form.DELETE.id_for_label }}" style="margin-left: 5px; cursor: pointer;">
+                    {% trans "Delete" %}
+                  </label>
+                {% endif %}
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      
+      <button type="button" id="add-extra-item-btn" class="btn btn-secondary">+ {% trans "Add Extra Item" %}</button>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_styles %}
 <style>
 .table-responsive {
   overflow-x: auto;
@@ -303,73 +264,117 @@
 
 #extra-items-table th:nth-child(1),
 #extra-items-table td:nth-child(1) {
-  min-width: 150px; /* Material Type */
+  min-width: 150px;
 }
 
 #extra-items-table th:nth-child(2),
 #extra-items-table td:nth-child(2) {
-  min-width: 150px; /* Category */
+  min-width: 150px;
 }
 
 #extra-items-table th:nth-child(3),
 #extra-items-table td:nth-child(3) {
-  min-width: 150px; /* Subcategory */
+  min-width: 150px;
 }
 
 #extra-items-table th:nth-child(4),
 #extra-items-table td:nth-child(4) {
-  min-width: 200px; /* Material Item */
+  min-width: 200px;
 }
 
 #extra-items-table th:nth-child(5),
 #extra-items-table td:nth-child(5) {
-  min-width: 120px; /* Quantity */
+  min-width: 120px;
 }
 
 #extra-items-table th:nth-child(6),
 #extra-items-table td:nth-child(6) {
-  min-width: 100px; /* Unit */
+  min-width: 100px;
 }
 
 #extra-items-table th:nth-child(7),
 #extra-items-table td:nth-child(7) {
-  min-width: 150px; /* Source Warehouse */
+  min-width: 150px;
 }
 
 #extra-items-table th:nth-child(8),
 #extra-items-table td:nth-child(8) {
-  min-width: 180px; /* Destination Work Center */
+  min-width: 180px;
 }
 
 #extra-items-table th:nth-child(9),
 #extra-items-table td:nth-child(9) {
-  min-width: 120px; /* Scrap Allowance */
+  min-width: 120px;
 }
 
 #extra-items-table th:nth-child(10),
 #extra-items-table td:nth-child(10) {
-  min-width: 80px; /* Actions */
+  min-width: 80px;
+}
+
+.formset-table {
+  border-collapse: collapse;
+}
+
+.formset-table thead {
+  background: #f3f4f6;
+}
+
+.formset-table th {
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.formset-table td {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.formset-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.field-error {
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.form-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.form-check-label {
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.form-check-input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.125rem;
+  cursor: pointer;
 }
 </style>
 {% endblock %}
 
-{% block extra_scripts %}
-<!-- Jalali DatePicker Library (Local) -->
+{% block form_scripts %}
 <link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">
 <script src="{% static 'js/jalali-datepicker/jalali-datepicker.min.js' %}"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialize Jalali DatePicker for all inputs with jalali-date-input class or data-jalali attribute
+  // Initialize Jalali DatePicker
   var jalaliInputs = document.querySelectorAll('input.jalali-date-input, input[data-jalali="true"]');
   
   jalaliInputs.forEach(function(input) {
-    // Add data-jdp attribute for auto-initialization
     input.setAttribute('data-jdp', '');
-    input.setAttribute('data-jdp-only-date', ''); // Only date, no time
+    input.setAttribute('data-jdp-only-date', '');
   });
   
-  // Start watching for Jalali DatePicker initialization
   if (typeof jalaliDatepicker !== 'undefined') {
     jalaliDatepicker.startWatch({
       date: true,
@@ -416,8 +421,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     createTransferCheckbox.addEventListener('change', toggleTransferSection);
-    
-    // Initialize on page load
     toggleTransferSection();
   }
   
@@ -433,10 +436,8 @@ document.addEventListener('DOMContentLoaded', function() {
       var formIndex = extraItemsFormCount;
       extraItemsFormCount++;
       
-      // Update data-row-index
       newForm.setAttribute('data-row-index', formIndex);
       
-      // Update field names and IDs
       newForm.querySelectorAll('input, select, textarea').forEach(function(field) {
         if (field.name) {
           field.name = field.name.replace(/extra_items-\d+-/, 'extra_items-' + formIndex + '-');
@@ -444,31 +445,32 @@ document.addEventListener('DOMContentLoaded', function() {
         if (field.id) {
           field.id = field.id.replace(/id_extra_items-\d+-/, 'id_extra_items-' + formIndex + '-');
         }
-        field.value = '';
+        if (field.type !== 'hidden' && field.type !== 'checkbox') {
+          field.value = '';
+        }
+        if (field.type === 'checkbox') {
+          field.checked = false;
+        }
       });
       
-      // Update labels
       newForm.querySelectorAll('label').forEach(function(label) {
         if (label.getAttribute('for')) {
           label.setAttribute('for', label.getAttribute('for').replace(/id_extra_items-\d+-/, 'id_extra_items-' + formIndex + '-'));
         }
       });
       
-      // Update DELETE checkbox
       var deleteCheckbox = newForm.querySelector('input[type="checkbox"][name$="-DELETE"]');
       if (deleteCheckbox) {
         deleteCheckbox.checked = false;
       }
       
-      // Clear errors
-      newForm.querySelectorAll('.field-errors').forEach(function(error) {
+      newForm.querySelectorAll('.field-error').forEach(function(error) {
         error.textContent = '';
       });
       
       extraItemsFormsetContainer.appendChild(newForm);
       extraItemsTotalFormsInput.value = extraItemsFormCount;
       
-      // Setup cascading filters for new row
       setTimeout(function() {
         setupRowCascading(newForm, 'extra_items');
       }, 100);
@@ -491,7 +493,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Cascading Filters for Extra Items (Type → Category → Subcategory → Item)
   function setupRowCascading(row, prefix) {
-    // Extract row index from data attribute or field name
     var rowIndex = row.dataset.rowIndex;
     if (!rowIndex) {
       var firstField = row.querySelector('[name]');
@@ -518,7 +519,6 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     
-    // Filter categories based on type
     function filterCategories() {
       var selectedType = typeSelect.value;
       var currentCategory = categorySelect.value;
@@ -568,7 +568,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Filter subcategories based on type and category
     function filterSubcategories() {
       var selectedType = typeSelect.value;
       var selectedCategory = categorySelect.value;
@@ -617,7 +616,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Filter items based on type, category, and subcategory
     function filterItems() {
       var selectedType = typeSelect.value;
       var selectedCategory = categorySelect.value;
@@ -664,7 +662,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Load units when material item is selected
     function loadItemUnits(materialItemSelect, idx, pfx) {
       var itemId = materialItemSelect.value;
       var unitSel = document.querySelector('select[name="' + pfx + '-' + idx + '-unit"]');
@@ -704,7 +701,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Attach event listeners
     typeSelect.addEventListener('change', filterCategories);
     categorySelect.addEventListener('change', filterSubcategories);
     subcategorySelect.addEventListener('change', filterItems);
@@ -722,4 +718,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
-

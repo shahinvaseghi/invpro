@@ -27,12 +27,12 @@
 
 **Type**: `FeaturePermissionRequiredMixin, ListView`
 
-**Template**: `shared/groups_list.html`
+**Template**: `shared/groups_list.html` (extends `shared/generic/generic_list.html`)
 
 **Attributes**:
 - `model`: `Group` (Django's built-in Group model)
 - `template_name`: `'shared/groups_list.html'`
-- `context_object_name`: `'groups'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `20`
 - `feature_code`: `'shared.groups'`
 
@@ -67,10 +67,18 @@
 **توضیح**: اضافه کردن active module و filter values به context.
 
 **Context Variables**:
-- `groups`: queryset groups (paginated)
+- `object_list`: queryset groups (paginated، از `page_obj.object_list`)
 - `active_module`: `'shared'`
-- `search_term`: مقدار search از GET
-- `status_filter`: مقدار status از GET
+- `page_title`: `_('Groups')`
+- `breadcrumbs`: لیست breadcrumbs
+- `create_url`: URL برای ایجاد group جدید
+- `show_filters`: `True`
+- `status_filter_value`: مقدار status از GET
+- `search_placeholder`: `_('Group name')`
+- `show_actions`: `True`
+- `edit_url_name`: `'shared:group_edit'`
+- `delete_url_name`: `'shared:group_delete'`
+- `empty_state_title`, `empty_state_message`, `empty_state_icon`: برای empty state
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با filter values
@@ -83,7 +91,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, CreateView`
 
-**Template**: `shared/group_form.html`
+**Template**: `shared/group_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `GroupForm`
 
@@ -102,8 +110,11 @@
 **Context Variables**:
 - `form`: `GroupForm`
 - `active_module`: `'shared'`
+- `form_title`: `_('Create Group')`
 - `page_title`: `_('Create Group')`
 - `is_create`: `True`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `cancel_url`: URL برای cancel (back to groups list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با form_title
@@ -133,7 +144,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, UpdateView`
 
-**Template**: `shared/group_form.html`
+**Template**: `shared/group_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `GroupForm`
 
@@ -151,10 +162,13 @@
 
 **Context Variables**:
 - `form`: `GroupForm`
-- `group`: group object (از `get_object()`)
+- `object`: group object (از `get_object()`)
 - `active_module`: `'shared'`
+- `form_title`: `_('Edit Group')`
 - `page_title`: `_('Edit Group')`
 - `is_create`: `False`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `cancel_url`: URL برای cancel (back to groups list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با form_title
@@ -184,7 +198,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, DeleteView`
 
-**Template**: `shared/group_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `shared:groups`
 
@@ -216,8 +230,13 @@
 **توضیح**: اضافه کردن active module به context.
 
 **Context Variables**:
-- `group`: group object (از `get_object()`)
+- `object`: group object (از `get_object()`)
 - `active_module`: `'shared'`
+- `delete_title`: `_('Delete Group')`
+- `confirmation_message`: پیام تایید حذف با group name
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `object_details`: لیست جزئیات group برای نمایش (name, members count)
+- `cancel_url`: URL برای cancel (back to groups list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با active_module
@@ -291,4 +310,29 @@ path('groups/<int:pk>/delete/', GroupDeleteView.as_view(), name='group_delete'),
 
 ### Shared Forms
 - از `GroupForm` برای create و update استفاده می‌کند
+
+---
+
+## Migration to Generic Templates
+
+این views در migration به template های generic منتقل شده‌اند:
+
+### List Template
+- **Template**: `shared/groups_list.html` (extends `shared/generic/generic_list.html`)
+- **Changes**: 
+  - `context_object_name` از `'groups'` به `'object_list'` تغییر یافت
+  - Context variables برای generic template اضافه شد (breadcrumbs, page_title, create_url, etc.)
+
+### Form Template
+- **Template**: `shared/group_form.html` (extends `shared/generic/generic_form.html`)
+- **Changes**:
+  - Template از `base.html` به `generic_form.html` منتقل شد
+  - Blocks override شده: `form_sections`, `form_actions_extra`
+  - Context variables اضافه شد: `breadcrumbs`, `cancel_url`, `form_title`
+
+### Delete Template
+- **Template**: `shared/generic/generic_confirm_delete.html` (مستقیم استفاده می‌شود)
+- **Changes**:
+  - Template اختصاصی حذف شد
+  - `get_context_data` به‌روزرسانی شد تا context variables مناسب را ارسال کند
 

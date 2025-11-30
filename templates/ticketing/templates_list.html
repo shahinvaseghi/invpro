@@ -1,125 +1,96 @@
-{% extends "ticketing/base.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n %}
 
-{% block page_title %}{{ page_title }}{% endblock %}
-
-{% block breadcrumb_extra %}
-<span class="separator">/</span>
-<span>{% trans "Ticket Management" %}</span>
-<span class="separator">/</span>
-<span>{% trans "Templates" %}</span>
-{% endblock %}
-
-{% block page_actions %}
-<div class="page-actions">
-  <a href="{% url 'ticketing:template_create' %}" class="btn btn-primary">
-    + {% trans "Create Template" %}
-  </a>
+{% block filter_fields %}
+<div class="form-group">
+  <label for="search">{% trans "Search" %}</label>
+  <input type="text" name="search" id="search" 
+         placeholder="{{ search_placeholder|default:'Search by name or code' }}" 
+         value="{{ request.GET.search }}"
+         class="form-control">
+</div>
+<div class="form-group">
+  <label for="category">{% trans "Category" %}</label>
+  <select name="category" id="category" class="form-control">
+    <option value="">{% trans "All Categories" %}</option>
+    {% for cat in categories %}
+      <option value="{{ cat.pk }}" {% if request.GET.category == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+    {% endfor %}
+  </select>
 </div>
 {% endblock %}
 
-{% block ticketing_content %}
-<div class="data-table-container">
-  <div class="filter-bar" style="margin-bottom: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
-    <form method="get" class="filter-form" style="display: flex; gap: 1rem; align-items: flex-end;">
-      <div class="filter-field">
-        <label for="search">{% trans "Search" %}</label>
-        <input type="text" name="search" id="search" value="{{ search_term }}" placeholder="{% trans "Search by name or code" %}" class="form-control" style="width: 200px;">
-      </div>
-      <div class="filter-field">
-        <label for="category">{% trans "Category" %}</label>
-        <select name="category" id="category" class="form-control">
-          <option value="">{% trans "All Categories" %}</option>
-          {% for cat in categories %}
-            <option value="{{ cat.pk }}" {% if selected_category == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="filter-actions">
-        <button type="submit" class="btn btn-secondary">{% trans "Filter" %}</button>
-        <a href="{% url 'ticketing:templates' %}" class="btn btn-link">{% trans "Clear" %}</a>
-      </div>
-    </form>
-  </div>
+{% block table_headers %}
+<th>{% trans "Code" %}</th>
+<th>{% trans "Name" %}</th>
+<th>{% trans "Category" %}</th>
+<th>{% trans "Default Priority" %}</th>
+<th>{% trans "Fields Count" %}</th>
+<th>{% trans "Status" %}</th>
+{% if show_actions %}
+  <th>{% trans "Actions" %}</th>
+{% endif %}
+{% endblock %}
 
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>{% trans "Code" %}</th>
-        <th>{% trans "Name" %}</th>
-        <th>{% trans "Category" %}</th>
-        <th>{% trans "Default Priority" %}</th>
-        <th>{% trans "Fields Count" %}</th>
-        <th>{% trans "Status" %}</th>
-        <th>{% trans "Actions" %}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% if templates %}
-        {% for template in templates %}
-        <tr>
-          <td><code>{{ template.template_code }}</code></td>
-          <td><strong>{{ template.name }}</strong></td>
-          <td>
-            {% if template.category %}
-              <a href="{% url 'ticketing:category_edit' template.category.pk %}">{{ template.category.name }}</a>
-            {% else %}
-              <span class="muted-text">–</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if template.default_priority %}
-              {{ template.default_priority.name }}
-            {% else %}
-              <span class="muted-text">–</span>
-            {% endif %}
-          </td>
-          <td style="text-align: center;">
-            <span class="badge">{{ template.fields.count }}</span>
-          </td>
-          <td>
-            {% if template.is_enabled == 1 %}
-              <span class="badge badge-active">{% trans "Active" %}</span>
-            {% else %}
-              <span class="badge badge-inactive">{% trans "Inactive" %}</span>
-            {% endif %}
-          </td>
-          <td>
-            <a href="{% url 'ticketing:template_edit' template.pk %}" class="btn btn-sm">{% trans "Edit" %}</a>
-            <a href="{% url 'ticketing:template_delete' template.pk %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
-          </td>
-        </tr>
-        {% endfor %}
-      {% else %}
-        <tr>
-          <td colspan="7">
-            <div class="empty-state">
-              <div class="empty-state-icon">📋</div>
-              <h3>{% trans "No Templates Found" %}</h3>
-              <p>{% trans "Start by creating your first template." %}</p>
-              <a href="{% url 'ticketing:template_create' %}" class="btn btn-primary">
-                + {% trans "Create Template" %}
-              </a>
-            </div>
-          </td>
-        </tr>
-      {% endif %}
-    </tbody>
-  </table>
+{% block table_rows %}
+{% for template in object_list %}
+<tr>
+  <td><code>{{ template.template_code }}</code></td>
+  <td><strong>{{ template.name }}</strong></td>
+  <td>
+    {% if template.category %}
+      <a href="{% url 'ticketing:category_edit' template.category.pk %}">{{ template.category.name }}</a>
+    {% else %}
+      <span class="muted-text">–</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if template.default_priority %}
+      {{ template.default_priority.name }}
+    {% else %}
+      <span class="muted-text">–</span>
+    {% endif %}
+  </td>
+  <td style="text-align: center;">
+    <span class="badge">{{ template.fields.count }}</span>
+  </td>
+  <td>
+    {% if template.is_enabled == 1 %}
+      <span class="badge badge-active">{% trans "Active" %}</span>
+    {% else %}
+      <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+    {% endif %}
+  </td>
+  {% if show_actions %}
+  <td>
+    <a href="{% url edit_url_name template.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+      {% trans "Edit" %}
+    </a>
+    <a href="{% url delete_url_name template.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+      {% trans "Delete" %}
+    </a>
+  </td>
+  {% endif %}
+</tr>
+{% endfor %}
+{% endblock %}
 
-  {% if is_paginated %}
-    <div class="pagination">
-      {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}{% if search_term %}&search={{ search_term }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" class="btn btn-sm">{% trans "Previous" %}</a>
-      {% endif %}
-      <span class="pagination-info">
-        {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
-      </span>
-      {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}{% if search_term %}&search={{ search_term }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" class="btn btn-sm">{% trans "Next" %}</a>
-      {% endif %}
-    </div>
+{% block pagination %}
+{% if is_paginated %}
+<div class="pagination">
+  {% if page_obj.has_previous %}
+    <a href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}">&laquo; {% trans "First" %}</a>
+    <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}">{% trans "Previous" %}</a>
+  {% endif %}
+
+  <span class="current">
+    {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+  </span>
+
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}">{% trans "Next" %}</a>
+    <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}">{% trans "Last" %} &raquo;</a>
   {% endif %}
 </div>
+{% endif %}
 {% endblock %}
-

@@ -1,123 +1,64 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Personnel" %} - {{ block.super }}{% endblock %}
-
-{% block content %}
-<div class="inventory-module">
-  <div class="module-header">
-    <nav class="breadcrumb">
-      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
-      <span>/</span>
-      <span>{% trans "Personnel" %}</span>
-    </nav>
-    
-    <h1 class="page-title">{% trans "Personnel" %}</h1>
-    
-    <div class="page-actions">
-      <button class="btn btn-secondary" onclick="window.print()">{% trans "Print" %}</button>
-      <a href="{% url 'production:person_create' %}" class="btn btn-primary">{% trans "Create Person +" %}</a>
-    </div>
-  </div>
-  
-  <div class="filter-panel">
-    <h3>{% trans "Filter & Search" %}</h3>
-    <form method="get" class="filter-form">
-      <div class="filter-row">
-        <div class="filter-field">
-          <label for="search">{% trans "Search" %}</label>
-          <input type="text" id="search" name="search" placeholder="{% trans 'Search by code or name' %}" value="{{ request.GET.search }}">
-        </div>
-        <div class="filter-field">
-          <label for="status">{% trans "Status" %}</label>
-          <select id="status" name="status">
-            <option value="">-- {% trans "All" %} --</option>
-            <option value="1" {% if request.GET.status == "1" %}selected{% endif %}>{% trans "Active" %}</option>
-            <option value="0" {% if request.GET.status == "0" %}selected{% endif %}>{% trans "Inactive" %}</option>
-          </select>
-        </div>
-        <div class="filter-actions">
-          <button type="submit" class="btn btn-primary">{% trans "Filter" %}</button>
-          <a href="{% url 'production:personnel' %}" class="btn btn-secondary">{% trans "Clear" %}</a>
-        </div>
-      </div>
-    </form>
-  </div>
-  
-  {% if personnel %}
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>{% trans "CODE" %}</th>
-        <th>{% trans "First Name" %}</th>
-        <th>{% trans "Last Name" %}</th>
-        <th>{% trans "National ID" %}</th>
-        <th>{% trans "Mobile" %}</th>
-        <th>{% trans "Email" %}</th>
-        <th>{% trans "Company Units" %}</th>
-        <th>{% trans "Status" %}</th>
-        <th>{% trans "Actions" %}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for person in personnel %}
-      <tr>
-        <td>{{ person.public_code }}</td>
-        <td>{{ person.first_name }}</td>
-        <td>{{ person.last_name }}</td>
-        <td>{{ person.national_id|default:"-" }}</td>
-        <td>{{ person.mobile_number|default:"-" }}</td>
-        <td>{{ person.email|default:"-" }}</td>
-        <td>
-          {% with units=person.company_units.all %}
-            {% if units %}
-              {{ units|join:", " }}
-            {% else %}
-              -
-            {% endif %}
-          {% endwith %}
-        </td>
-        <td>
-          {% if person.is_enabled %}
-            <span class="badge badge-success">{% trans "Active" %}</span>
-          {% else %}
-            <span class="badge badge-inactive">{% trans "Inactive" %}</span>
-          {% endif %}
-        </td>
-        <td>
-          <a href="{% url 'production:person_edit' person.id %}" class="btn btn-sm">{% trans "Edit" %}</a>
-          <a href="{% url 'production:person_delete' person.id %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  
-  {% if is_paginated %}
-  <div class="pagination">
-    {% if page_obj.has_previous %}
-      <a href="?page=1" class="page-link">{% trans "First" %}</a>
-      <a href="?page={{ page_obj.previous_page_number }}" class="page-link">{% trans "Previous" %}</a>
-    {% endif %}
-    
-    <span class="page-info">
-      {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
-    </span>
-    
-    {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}" class="page-link">{% trans "Next" %}</a>
-      <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">{% trans "Last" %}</a>
-    {% endif %}
-  </div>
+{% block page_actions %}
+<div class="page-actions">
+  {% if create_url %}
+    <button class="btn btn-secondary" onclick="window.print()">{% trans "Print" %}</button>
+    <a href="{{ create_url }}" class="btn btn-primary">
+      {{ create_button_text|default:"Create New" }}
+    </a>
   {% endif %}
-  
-  {% else %}
-  <div class="empty-state">
-    <h3>{% trans "No Personnel Found" %}</h3>
-    <p>{% trans "Start by adding your first person to the system." %}</p>
-    <a href="{% url 'production:person_create' %}" class="btn btn-primary">{% trans "Create Person +" %}</a>
-  </div>
-  {% endif %}
+  {% block extra_actions %}{% endblock %}
 </div>
 {% endblock %}
 
+{% block filter_fields %}
+<div class="form-group">
+  <label for="search">{% trans "Search" %}</label>
+  <input type="text" name="search" id="search" 
+         placeholder="{{ search_placeholder|default:'Search by code or name' }}" 
+         value="{{ request.GET.search }}"
+         class="form-control">
+</div>
+{% endblock %}
+
+{% block table_rows %}
+{% for person in object_list %}
+<tr>
+  <td><code>{{ person.public_code }}</code></td>
+  <td>{{ person.first_name }} {{ person.last_name }}</td>
+  <td>{{ person.national_id|default:"-" }}</td>
+  <td>
+    {% with units=person.company_units.all %}
+      {% if units %}
+        {{ units|join:", " }}
+      {% else %}
+        -
+      {% endif %}
+    {% endwith %}
+  </td>
+  <td>
+    {% if person.is_enabled %}
+      <span class="badge badge-success">{% trans "Active" %}</span>
+    {% else %}
+      <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+    {% endif %}
+  </td>
+  {% if show_actions %}
+  <td>
+    {% if edit_url_name %}
+      <a href="{% url edit_url_name person.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+        {% trans "Edit" %}
+      </a>
+    {% endif %}
+    {% if delete_url_name %}
+      <a href="{% url delete_url_name person.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+        {% trans "Delete" %}
+      </a>
+    {% endif %}
+  </td>
+  {% endif %}
+</tr>
+{% endfor %}
+{% endblock %}

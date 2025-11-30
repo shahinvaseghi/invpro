@@ -1,136 +1,85 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Groups" %} - {{ block.super }}{% endblock %}
-
-{% block content %}
-<div class="inventory-module">
-  <div class="module-header">
-    <nav class="breadcrumb">
-      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
-      <span>/</span>
-      <span>{% trans "Groups" %}</span>
-    </nav>
-
-    <h1 class="page-title">{% trans "Groups" %}</h1>
-
-    <div class="page-actions">
-      <a href="{% url 'shared:group_create' %}" class="btn btn-primary">
-        {% trans "Create Group +" %}
-      </a>
-    </div>
-  </div>
-
-  <div class="filter-panel">
-    <h3>{% trans "Filter & Search" %}</h3>
-    <form method="get" class="filter-form">
-      <div class="filter-row">
-        <div class="filter-field">
-          <label for="search">{% trans "Search" %}</label>
-          <input type="text" id="search" name="search" placeholder="{% trans 'Group name' %}" value="{{ search_term }}">
-        </div>
-        <div class="filter-field">
-          <label for="status">{% trans "Status" %}</label>
-          <select id="status" name="status">
-            <option value="">{% trans "All" %}</option>
-            <option value="active" {% if status_filter == "active" %}selected{% endif %}>{% trans "Active" %}</option>
-            <option value="inactive" {% if status_filter == "inactive" %}selected{% endif %}>{% trans "Inactive" %}</option>
-          </select>
-        </div>
-        <div class="filter-actions">
-          <button type="submit" class="btn btn-primary">{% trans "Filter" %}</button>
-          <a href="{% url 'shared:groups' %}" class="btn btn-secondary">{% trans "Clear" %}</a>
-        </div>
-      </div>
-    </form>
-  </div>
-
-  {% if groups %}
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>{% trans "Name" %}</th>
-        <th>{% trans "Description" %}</th>
-        <th>{% trans "Access Levels" %}</th>
-        <th>{% trans "Members" %}</th>
-        <th>{% trans "Status" %}</th>
-        <th>{% trans "Actions" %}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for group in groups %}
-      <tr>
-        <td>{{ group.name }}</td>
-        <td>
-          {% if group.profile and group.profile.description %}
-            {{ group.profile.description }}
-          {% else %}
-            -
-          {% endif %}
-        </td>
-        <td>
-          {% if group.profile %}
-            {% with levels=group.profile.access_levels.all %}
-              {% if levels %}
-                {{ levels|join:", " }}
-              {% else %}
-                -
-              {% endif %}
-            {% endwith %}
-          {% else %}
-            -
-          {% endif %}
-        </td>
-        <td>
-          {% with members=group.user_set.all %}
-            {% if members %}
-              {{ members|length }}
-            {% else %}
-              0
-            {% endif %}
-          {% endwith %}
-        </td>
-        <td>
-          {% if group.profile and group.profile.is_enabled %}
-            <span class="badge badge-success">{% trans "Active" %}</span>
-          {% else %}
-            <span class="badge badge-inactive">{% trans "Inactive" %}</span>
-          {% endif %}
-        </td>
-        <td>
-          <div class="action-buttons">
-            <a href="{% url 'shared:group_edit' group.pk %}" class="btn btn-sm">{% trans "Edit" %}</a>
-            <a href="{% url 'shared:group_delete' group.pk %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
-          </div>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  {% if is_paginated %}
-  <div class="pagination">
-    {% if page_obj.has_previous %}
-      <a href="?page=1{% if search_term %}&search={{ search_term }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-link">{% trans "First" %}</a>
-      <a href="?page={{ page_obj.previous_page_number }}{% if search_term %}&search={{ search_term }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-link">{% trans "Previous" %}</a>
-    {% endif %}
-    <span class="page-info">
-      {% blocktrans %}Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}{% endblocktrans %}
-    </span>
-    {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}{% if search_term %}&search={{ search_term }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-link">{% trans "Next" %}</a>
-      <a href="?page={{ page_obj.paginator.num_pages }}{% if search_term %}&search={{ search_term }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-link">{% trans "Last" %}</a>
-    {% endif %}
-  </div>
-  {% endif %}
-
-  {% else %}
-  <div class="empty-state">
-    <h3>{% trans "No Groups Found" %}</h3>
-    <p>{% trans "Start by creating a group and assigning access levels." %}</p>
-    <a href="{% url 'shared:group_create' %}" class="btn btn-primary">{% trans "Create Group +" %}</a>
-  </div>
-  {% endif %}
+{% block filter_fields %}
+<div class="form-group">
+  <label for="search">{% trans "Search" %}</label>
+  <input type="text" name="search" id="search" 
+         placeholder="{% trans 'Group name' %}" 
+         value="{{ request.GET.search }}"
+         class="form-control">
+</div>
+<div class="form-group">
+  <label for="status">{% trans "Status" %}</label>
+  <select name="status" id="status" class="form-control">
+    <option value="">-- {% trans "All" %} --</option>
+    <option value="active" {% if status_filter_value == "active" %}selected{% endif %}>{% trans "Active" %}</option>
+    <option value="inactive" {% if status_filter_value == "inactive" %}selected{% endif %}>{% trans "Inactive" %}</option>
+  </select>
 </div>
 {% endblock %}
 
+{% block table_headers %}
+<th>{% trans "Name" %}</th>
+<th>{% trans "Description" %}</th>
+<th>{% trans "Access Levels" %}</th>
+<th>{% trans "Members" %}</th>
+<th>{% trans "Status" %}</th>
+{% if show_actions %}
+  <th>{% trans "Actions" %}</th>
+{% endif %}
+{% endblock %}
+
+{% block table_rows %}
+{% for group in object_list %}
+<tr>
+  <td>{{ group.name }}</td>
+  <td>
+    {% if group.profile and group.profile.description %}
+      {{ group.profile.description }}
+    {% else %}
+      -
+    {% endif %}
+  </td>
+  <td>
+    {% if group.profile %}
+      {% with levels=group.profile.access_levels.all %}
+        {% if levels %}
+          {{ levels|join:", " }}
+        {% else %}
+          -
+        {% endif %}
+      {% endwith %}
+    {% else %}
+      -
+    {% endif %}
+  </td>
+  <td>
+    {% with members=group.user_set.all %}
+      {% if members %}
+        {{ members|length }}
+      {% else %}
+        0
+      {% endif %}
+    {% endwith %}
+  </td>
+  <td>
+    {% if group.profile and group.profile.is_enabled %}
+      <span class="badge badge-active">{% trans "Active" %}</span>
+    {% else %}
+      <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+    {% endif %}
+  </td>
+  {% if show_actions %}
+  <td>
+    <a href="{% url edit_url_name group.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+      {% trans "Edit" %}
+    </a>
+    <a href="{% url delete_url_name group.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+      {% trans "Delete" %}
+    </a>
+  </td>
+  {% endif %}
+</tr>
+{% endfor %}
+{% endblock %}

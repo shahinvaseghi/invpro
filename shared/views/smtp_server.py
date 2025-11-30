@@ -18,7 +18,7 @@ class SMTPServerListView(FeaturePermissionRequiredMixin, ListView):
     """List all SMTP server configurations."""
     model = SMTPServer
     template_name = 'shared/smtp_server_list.html'
-    context_object_name = 'smtp_servers'
+    context_object_name = 'object_list'
     paginate_by = 50
     feature_code = 'shared.smtp_servers'
     required_action = 'view_own'
@@ -28,9 +28,31 @@ class SMTPServerListView(FeaturePermissionRequiredMixin, ListView):
         return SMTPServer.objects.all().order_by('name')
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module to context."""
+        """Add context variables for generic_list template."""
         context = super().get_context_data(**kwargs)
+        
+        # Ensure object_list is properly set from page_obj if pagination is used
+        if 'page_obj' in context and hasattr(context['page_obj'], 'object_list'):
+            context['object_list'] = context['page_obj'].object_list
+        elif 'object_list' in context and hasattr(context['object_list'], 'query'):
+            context['object_list'] = list(context['object_list'])
+        
         context['active_module'] = 'shared'
+        context['page_title'] = _('SMTP Servers')
+        context['breadcrumbs'] = [
+            {'label': _('Dashboard'), 'url': reverse_lazy('ui:dashboard')},
+            {'label': _('SMTP Servers')},
+        ]
+        context['create_url'] = reverse_lazy('shared:smtp_server_create')
+        context['create_button_text'] = _('Create SMTP Server')
+        context['show_filters'] = False
+        context['show_actions'] = True
+        context['edit_url_name'] = 'shared:smtp_server_edit'
+        context['delete_url_name'] = 'shared:smtp_server_delete'
+        context['empty_state_title'] = _('No SMTP Servers Found')
+        context['empty_state_message'] = _('No SMTP server configurations found. Create your first SMTP server to enable email notifications.')
+        context['empty_state_icon'] = '📧'
+        
         return context
 
 
@@ -55,6 +77,11 @@ class SMTPServerCreateView(FeaturePermissionRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'shared'
         context['form_title'] = _('Create SMTP Server')
+        context['breadcrumbs'] = [
+            {'label': _('Dashboard'), 'url': reverse_lazy('ui:dashboard')},
+            {'label': _('SMTP Servers'), 'url': reverse_lazy('shared:smtp_servers')},
+        ]
+        context['cancel_url'] = reverse_lazy('shared:smtp_servers')
         return context
 
 
@@ -83,22 +110,40 @@ class SMTPServerUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixi
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'shared'
         context['form_title'] = _('Edit SMTP Server')
+        context['breadcrumbs'] = [
+            {'label': _('Dashboard'), 'url': reverse_lazy('ui:dashboard')},
+            {'label': _('SMTP Servers'), 'url': reverse_lazy('shared:smtp_servers')},
+        ]
+        context['cancel_url'] = reverse_lazy('shared:smtp_servers')
         return context
 
 
 class SMTPServerDeleteView(FeaturePermissionRequiredMixin, DeleteView):
     """Delete an SMTP server configuration."""
     model = SMTPServer
-    template_name = 'shared/smtp_server_confirm_delete.html'
+    template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('shared:smtp_servers')
-    context_object_name = 'smtp_server'
     feature_code = 'shared.smtp_servers'
     required_action = 'delete_own'
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module to context."""
+        """Add context for generic delete template."""
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'shared'
+        context['delete_title'] = _('Delete SMTP Server')
+        context['confirmation_message'] = _('Are you sure you want to delete SMTP server "{name}"?').format(name=self.object.name)
+        context['breadcrumbs'] = [
+            {'label': _('Dashboard'), 'url': reverse_lazy('ui:dashboard')},
+            {'label': _('SMTP Servers'), 'url': reverse_lazy('shared:smtp_servers')},
+            {'label': _('Delete')},
+        ]
+        context['object_details'] = [
+            {'label': _('Name'), 'value': self.object.name},
+            {'label': _('Host'), 'value': self.object.host},
+            {'label': _('Port'), 'value': self.object.port},
+            {'label': _('From Email'), 'value': self.object.from_email},
+        ]
+        context['cancel_url'] = reverse_lazy('shared:smtp_servers')
         return context
     
     def delete(self, request, *args, **kwargs):

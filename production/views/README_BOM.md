@@ -32,19 +32,25 @@
 
 **Type**: `FeaturePermissionRequiredMixin, ListView`
 
-**Template**: `production/bom_list.html`
+**Template**: `production/bom_list.html` (extends `shared/generic/generic_list.html`)
 
 **Attributes**:
 - `model`: `BOM`
 - `template_name`: `'production/bom_list.html'`
-- `context_object_name`: `'boms'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 - `feature_code`: `'production.bom'`
 
 **Context Variables**:
-- `boms`: queryset BOM ها (paginated)
-- `active_module`: `'production'`
+- `object_list`: queryset BOM ها (paginated)
+- `page_title`: `_('BOM (Bill of Materials)')`
+- `breadcrumbs`: لیست breadcrumbs
+- `create_url`, `create_button_text`: برای دکمه ایجاد
+- `show_filters`: `True` برای نمایش فیلترها
 - `finished_items`: لیست محصولات نهایی برای فیلتر dropdown
+- `show_actions`, `edit_url_name`, `delete_url_name`: برای دکمه‌های action
+- `empty_state_*`: پیام‌های empty state
+- `print_enabled`: `True` برای فعال‌سازی print
 
 **متدها**:
 
@@ -346,20 +352,24 @@
 
 **Type**: `FeaturePermissionRequiredMixin, DeleteView`
 
-**Template**: `production/bom_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `production:bom_list`
 
 **Attributes**:
 - `model`: `BOM`
-- `template_name`: `'production/bom_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('production:bom_list')`
 - `feature_code`: `'production.bom'`
 - `required_action`: `'delete_own'`
 
 **Context Variables**:
-- `object`: instance BOM برای حذف
-- `active_module`: `'production'`
+- `delete_title`: `_('Delete BOM')`
+- `confirmation_message`: پیام تأیید حذف
+- `object_details`: جزئیات BOM برای نمایش
+- `warning_message`: هشدار در مورد material lines (اگر وجود داشته باشند)
+- `cancel_url`: URL برای cancel
+- `breadcrumbs`: لیست breadcrumbs
 
 **متدها**:
 
@@ -400,13 +410,21 @@
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
 
-**توضیح**: `active_module` را به context اضافه می‌کند.
+**توضیح**: context variables را برای generic delete template اضافه می‌کند.
 
 **پارامترهای ورودی**:
 - `**kwargs`: متغیرهای context اضافی
 
 **مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `active_module` اضافه شده
+- `Dict[str, Any]`: context با تمام متغیرهای لازم برای generic template
+
+**Context Variables اضافه شده**:
+- `delete_title`: `_('Delete BOM')`
+- `confirmation_message`: پیام تأیید حذف
+- `object_details`: لیست جزئیات BOM (bom_code, finished_product, version)
+- `warning_message`: هشدار در مورد material lines (اگر وجود داشته باشند)
+- `cancel_url`: URL برای cancel
+- `breadcrumbs`: لیست breadcrumbs
 
 **URL**: `/production/bom/<pk>/delete/`
 
@@ -444,6 +462,11 @@ path('bom/<int:pk>/delete/', BOMDeleteView.as_view(), name='bom_delete'),
 
 ### 5. Company Filtering
 - تمام queryset ها بر اساس `active_company_id` فیلتر می‌شوند
+
+### 6. Generic Templates
+- **BOM List**: از `shared/generic/generic_list.html` extends می‌کند (با expandable rows برای نمایش materials)
+- **BOM Delete**: از `shared/generic/generic_confirm_delete.html` استفاده می‌کند
+- **BOM Form**: هنوز از template اختصاصی استفاده می‌کند (به دلیل پیچیدگی formset و JavaScript)
 
 ---
 

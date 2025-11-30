@@ -1,265 +1,253 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
 {% load static %}
 {% load jalali_tags %}
 
-{% block title %}{{ form_title }} - {{ block.super }}{% endblock %}
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Production" %}</span>
+<span class="separator">/</span>
+<a href="{% url 'production:transfer_requests' %}">{% trans "Transfer to Line Requests" %}</a>
+<span class="separator">/</span>
+<span>{{ form_title }}</span>
+{% endblock %}
 
-{% block content %}
-<div class="inventory-module">
-  <div class="module-header">
-    <nav class="breadcrumb">
-      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
-      <span>/</span>
-      <a href="{% url 'production:transfer_requests' %}">{% trans "Transfer to Line Requests" %}</a>
-      <span>/</span>
-      <span>{{ form_title }}</span>
-    </nav>
-    
-    <h1 class="page-title">{{ form_title }}</h1>
-  </div>
-
-  <div class="form-container">
-    {% if messages %}
-      {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">
-        {{ message }}
-      </div>
-      {% endfor %}
+{% block before_form %}
+{% if object and object.pk %}
+<div class="info-banner" style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; color: #1f2937; font-weight: 600;">
+  <div><strong>{% trans "Transfer Code" %}:</strong> {{ object.transfer_code }}</div>
+  <div><strong>{% trans "Transfer Date" %}:</strong> {{ object.transfer_date|jalali_date }}</div>
+  <div><strong>{% trans "Status" %}:</strong> {{ object.get_status_display }}</div>
+  <div class="lock-status">
+    <strong>{% trans "Lock Status" %}:</strong>
+    {% if object.is_locked == 1 %}
+      <span class="badge badge-locked" style="background: #dc2626; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem;">{% trans "Locked" %}</span>
+    {% else %}
+      <span class="badge badge-unlocked" style="background: #10b981; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem;">{% trans "Editable" %}</span>
     {% endif %}
-    
-    {% if object and object.pk %}
-      <div class="info-banner">
-        <div><strong>{% trans "Transfer Code" %}:</strong> {{ object.transfer_code }}</div>
-        <div><strong>{% trans "Transfer Date" %}:</strong> {{ object.transfer_date|jalali_date }}</div>
-        <div><strong>{% trans "Status" %}:</strong> {{ object.get_status_display }}</div>
-        <div class="lock-status">
-          <strong>{% trans "Lock Status" %}:</strong>
-          {% if object.is_locked == 1 %}
-            <span class="badge badge-locked">{% trans "Locked" %}</span>
-          {% else %}
-            <span class="badge badge-unlocked">{% trans "Editable" %}</span>
-          {% endif %}
-        </div>
-      </div>
-      
-      {% if object.is_locked == 1 %}
-      <div class="alert alert-info">
-        {% trans "This transfer request is locked and can no longer be edited." %}
-      </div>
-      {% endif %}
-    {% endif %}
-    
-    <form method="post" class="transfer-to-line-form" id="transfer-form">
-      {% csrf_token %}
-
-      {% if form.non_field_errors %}
-        <div class="alert alert-error">
-          {{ form.non_field_errors }}
-        </div>
-      {% endif %}
-
-      <div class="form-section">
-        <h3>{% trans "Transfer Information" %}</h3>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.order.id_for_label }}">{{ form.order.label }} *</label>
-            {{ form.order }}
-            {% if form.order.errors %}
-              <div class="field-errors">
-                {{ form.order.errors }}
-              </div>
-            {% endif %}
-            {% if form.order.help_text %}
-              <small class="help-text">{{ form.order.help_text }}</small>
-            {% endif %}
-          </div>
-          
-          <div class="form-field">
-            <label for="{{ form.transfer_date.id_for_label }}">{{ form.transfer_date.label }} *</label>
-            {{ form.transfer_date }}
-            {% if form.transfer_date.errors %}
-              <div class="field-errors">
-                {{ form.transfer_date.errors }}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.approved_by.id_for_label }}">{{ form.approved_by.label }}</label>
-            {{ form.approved_by }}
-            {% if form.approved_by.errors %}
-              <div class="field-errors">
-                {{ form.approved_by.errors }}
-              </div>
-            {% endif %}
-            {% if form.approved_by.help_text %}
-              <small class="help-text">{{ form.approved_by.help_text }}</small>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
-            {{ form.notes }}
-            {% if form.notes.errors %}
-              <div class="field-errors">
-                {{ form.notes.errors }}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-
-      {% if object and object.pk and bom_items %}
-      <div class="form-section">
-        <h3>{% trans "BOM Items" %} <small>({% trans "Read-only" %})</small></h3>
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>{% trans "Material Item" %}</th>
-              <th>{% trans "Quantity Required" %}</th>
-              <th>{% trans "Unit" %}</th>
-              <th>{% trans "Source Warehouse" %}</th>
-              <th>{% trans "Scrap Allowance (%)" %}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for item in bom_items %}
-            <tr>
-              <td>{{ item.material_item.item_code }} - {{ item.material_item.name }}</td>
-              <td>{{ item.quantity_required }}</td>
-              <td>{{ item.unit }}</td>
-              <td>{{ item.source_warehouse.name|default:"-" }}</td>
-              <td>{{ item.material_scrap_allowance }}%</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% endif %}
-
-      {% if not object or not object.pk or not is_locked %}
-      <div class="form-section">
-        <h3>{% trans "Extra Request Items" %}</h3>
-        <p class="form-text">{% trans "Add additional items that are not in the BOM." %}</p>
-        
-        {{ formset.management_form }}
-        
-        {% if formset.non_form_errors %}
-          <div class="alert alert-error">
-            {{ formset.non_form_errors }}
-          </div>
-        {% endif %}
-        
-        <div class="table-responsive">
-        <table class="data-table" id="extra-items-table">
-          <thead>
-            <tr>
-              <th>{% trans "Material Type" %}</th>
-              <th>{% trans "Category" %}</th>
-              <th>{% trans "Subcategory" %}</th>
-              <th>{% trans "Material Item" %}</th>
-              <th>{% trans "Quantity Required" %}</th>
-              <th>{% trans "Unit" %}</th>
-              <th>{% trans "Source Warehouse" %}</th>
-              <th>{% trans "Destination Work Center" %}</th>
-              <th>{% trans "Scrap Allowance (%)" %}</th>
-              <th>{% trans "Actions" %}</th>
-            </tr>
-          </thead>
-          <tbody id="formset-container">
-            {% for item_form in formset %}
-            <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
-              {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
-              <td>
-                {{ item_form.material_type }}
-                {% if item_form.material_type.errors %}
-                  <div class="field-errors">{{ item_form.material_type.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ item_form.material_category_filter }}
-                {% if item_form.material_category_filter.errors %}
-                  <div class="field-errors">{{ item_form.material_category_filter.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ item_form.material_subcategory_filter }}
-                {% if item_form.material_subcategory_filter.errors %}
-                  <div class="field-errors">{{ item_form.material_subcategory_filter.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ item_form.material_item }}
-                {% if item_form.material_item.errors %}
-                  <div class="field-errors">{{ item_form.material_item.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ item_form.quantity_required }}
-                {% if item_form.quantity_required.errors %}
-                  <div class="field-errors">{{ item_form.quantity_required.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ item_form.unit }}
-                {% if item_form.unit.errors %}
-                  <div class="field-errors">{{ item_form.unit.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ item_form.source_warehouse }}
-                {% if item_form.source_warehouse.errors %}
-                  <div class="field-errors">{{ item_form.source_warehouse.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ item_form.destination_work_center }}
-                {% if item_form.destination_work_center.errors %}
-                  <div class="field-errors">{{ item_form.destination_work_center.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ item_form.material_scrap_allowance }}
-                {% if item_form.material_scrap_allowance.errors %}
-                  <div class="field-errors">{{ item_form.material_scrap_allowance.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {% if formset.can_delete %}
-                  {{ item_form.DELETE }}
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        </div>
-        
-        <button type="button" id="add-extra-item-btn" class="btn btn-success">{% trans "Add Extra Item +" %}</button>
-      </div>
-      {% endif %}
-
-      <div class="form-actions">
-        {% if not object %}
-          <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-        {% else %}
-          {% if object.is_locked != 1 %}
-            <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-          {% endif %}
-        {% endif %}
-        <a href="{% url 'production:transfer_requests' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
-      </div>
-    </form>
   </div>
 </div>
 
-{% block extra_css %}
+{% if object.is_locked == 1 %}
+<div class="alert alert-info" style="margin-bottom: 1.5rem; padding: 1rem; border-radius: 4px; background: #dbeafe; border: 1px solid #93c5fd; color: #1e40af;">
+  {% trans "This transfer request is locked and can no longer be edited." %}
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block form_sections %}
+<div class="form-section">
+  <h2>{% trans "Transfer Information" %}</h2>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.order.id_for_label }}">
+        {{ form.order.label }}
+        {% if form.order.field.required %}*{% endif %}
+      </label>
+      {{ form.order }}
+      {% if form.order.errors %}
+        <span class="error">{{ form.order.errors.0 }}</span>
+      {% endif %}
+      {% if form.order.help_text %}
+        <small class="form-text">{{ form.order.help_text }}</small>
+      {% endif %}
+    </div>
+
+    <div class="form-field">
+      <label for="{{ form.transfer_date.id_for_label }}">
+        {{ form.transfer_date.label }}
+        {% if form.transfer_date.field.required %}*{% endif %}
+      </label>
+      {{ form.transfer_date }}
+      {% if form.transfer_date.errors %}
+        <span class="error">{{ form.transfer_date.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.approved_by.id_for_label }}">
+        {{ form.approved_by.label }}
+        {% if form.approved_by.field.required %}*{% endif %}
+      </label>
+      {{ form.approved_by }}
+      {% if form.approved_by.errors %}
+        <span class="error">{{ form.approved_by.errors.0 }}</span>
+      {% endif %}
+      {% if form.approved_by.help_text %}
+        <small class="form-text">{{ form.approved_by.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.notes.id_for_label }}">
+        {{ form.notes.label }}
+        {% if form.notes.field.required %}*{% endif %}
+      </label>
+      {{ form.notes }}
+      {% if form.notes.errors %}
+        <span class="error">{{ form.notes.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block form_extra %}
+{% if object and object.pk and bom_items %}
+<div class="form-section">
+  <header class="section-header">
+    <h2>{% trans "BOM Items" %} <small style="font-size: 0.875rem; color: #6b7280;">({% trans "Read-only" %})</small></h2>
+  </header>
+  
+  <div class="table-responsive" style="overflow-x: auto; width: 100%; margin-bottom: 1rem;">
+  <table class="data-table formset-table">
+    <thead>
+      <tr>
+        <th>{% trans "Material Item" %}</th>
+        <th>{% trans "Quantity Required" %}</th>
+        <th>{% trans "Unit" %}</th>
+        <th>{% trans "Source Warehouse" %}</th>
+        <th>{% trans "Scrap Allowance (%)" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in bom_items %}
+      <tr>
+        <td>{{ item.material_item.item_code }} - {{ item.material_item.name }}</td>
+        <td>{{ item.quantity_required }}</td>
+        <td>{{ item.unit }}</td>
+        <td>{{ item.source_warehouse.name|default:"-" }}</td>
+        <td>{{ item.material_scrap_allowance }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+{% if not object or not object.pk or not is_locked %}
+<div class="form-section">
+  <header class="section-header">
+    <h2>{% trans "Extra Request Items" %}</h2>
+    <p>{% trans "Add additional items that are not in the BOM." %}</p>
+  </header>
+  
+  {{ formset.management_form }}
+  
+  {% if formset.non_form_errors %}
+    <div class="alert alert-error">
+      {% for error in formset.non_form_errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  
+  <div class="table-responsive" style="overflow-x: auto; width: 100%; margin-bottom: 1rem;">
+  <table class="data-table formset-table" id="extra-items-table">
+    <thead>
+      <tr>
+        <th>{% trans "Material Type" %}</th>
+        <th>{% trans "Category" %}</th>
+        <th>{% trans "Subcategory" %}</th>
+        <th>{% trans "Material Item" %}</th>
+        <th>{% trans "Quantity Required" %}</th>
+        <th>{% trans "Unit" %}</th>
+        <th>{% trans "Source Warehouse" %}</th>
+        <th>{% trans "Destination Work Center" %}</th>
+        <th>{% trans "Scrap Allowance (%)" %}</th>
+        <th>{% trans "Actions" %}</th>
+      </tr>
+    </thead>
+    <tbody id="formset-container">
+      {% for item_form in formset %}
+      <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
+        {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
+        <td>
+          {{ item_form.material_type }}
+          {% if item_form.material_type.errors %}
+            <div class="field-error">{{ item_form.material_type.errors.0 }}</div>
+          {% endif %}
+        </td>
+        <td>
+          {{ item_form.material_category_filter }}
+          {% if item_form.material_category_filter.errors %}
+            <div class="field-error">{{ item_form.material_category_filter.errors.0 }}</div>
+          {% endif %}
+        </td>
+        <td>
+          {{ item_form.material_subcategory_filter }}
+          {% if item_form.material_subcategory_filter.errors %}
+            <div class="field-error">{{ item_form.material_subcategory_filter.errors.0 }}</div>
+          {% endif %}
+        </td>
+        <td>
+          {{ item_form.material_item }}
+          {% if item_form.material_item.errors %}
+            <div class="field-error">{{ item_form.material_item.errors.0 }}</div>
+          {% endif %}
+        </td>
+        <td>
+          {{ item_form.quantity_required }}
+          {% if item_form.quantity_required.errors %}
+            <div class="field-error">{{ item_form.quantity_required.errors.0 }}</div>
+          {% endif %}
+        </td>
+        <td>
+          {{ item_form.unit }}
+          {% if item_form.unit.errors %}
+            <div class="field-error">{{ item_form.unit.errors.0 }}</div>
+          {% endif %}
+        </td>
+        <td>
+          {{ item_form.source_warehouse }}
+          {% if item_form.source_warehouse.errors %}
+            <div class="field-error">{{ item_form.source_warehouse.errors.0 }}</div>
+          {% endif %}
+        </td>
+        <td>
+          {{ item_form.destination_work_center }}
+          {% if item_form.destination_work_center.errors %}
+            <div class="field-error">{{ item_form.destination_work_center.errors.0 }}</div>
+          {% endif %}
+        </td>
+        <td>
+          {{ item_form.material_scrap_allowance }}
+          {% if item_form.material_scrap_allowance.errors %}
+            <div class="field-error">{{ item_form.material_scrap_allowance.errors.0 }}</div>
+          {% endif %}
+        </td>
+        <td>
+          {% if formset.can_delete %}
+            {{ item_form.DELETE }}
+            {% if item_form.DELETE %}
+              <label for="{{ item_form.DELETE.id_for_label }}" style="margin-left: 5px; cursor: pointer; font-size: 0.875rem;">
+                {% trans "Delete" %}
+              </label>
+            {% endif %}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  
+  <button type="button" id="add-extra-item-btn" class="btn btn-secondary">+ {% trans "Add Extra Item" %}</button>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block form_actions_extra %}
+{% endblock %}
+
+{% block extra_styles %}
 <style>
 .table-responsive {
   overflow-x: auto;
@@ -281,73 +269,99 @@
 
 #extra-items-table th:nth-child(1),
 #extra-items-table td:nth-child(1) {
-  min-width: 150px; /* Material Type */
+  min-width: 150px;
 }
 
 #extra-items-table th:nth-child(2),
 #extra-items-table td:nth-child(2) {
-  min-width: 150px; /* Category */
+  min-width: 150px;
 }
 
 #extra-items-table th:nth-child(3),
 #extra-items-table td:nth-child(3) {
-  min-width: 150px; /* Subcategory */
+  min-width: 150px;
 }
 
 #extra-items-table th:nth-child(4),
 #extra-items-table td:nth-child(4) {
-  min-width: 200px; /* Material Item */
+  min-width: 200px;
 }
 
 #extra-items-table th:nth-child(5),
 #extra-items-table td:nth-child(5) {
-  min-width: 120px; /* Quantity */
+  min-width: 120px;
 }
 
 #extra-items-table th:nth-child(6),
 #extra-items-table td:nth-child(6) {
-  min-width: 100px; /* Unit */
+  min-width: 100px;
 }
 
 #extra-items-table th:nth-child(7),
 #extra-items-table td:nth-child(7) {
-  min-width: 150px; /* Source Warehouse */
+  min-width: 150px;
 }
 
 #extra-items-table th:nth-child(8),
 #extra-items-table td:nth-child(8) {
-  min-width: 180px; /* Destination Work Center */
+  min-width: 180px;
 }
 
 #extra-items-table th:nth-child(9),
 #extra-items-table td:nth-child(9) {
-  min-width: 120px; /* Scrap Allowance */
+  min-width: 120px;
 }
 
 #extra-items-table th:nth-child(10),
 #extra-items-table td:nth-child(10) {
-  min-width: 80px; /* Actions */
+  min-width: 80px;
 }
 
-.form-container {
-  max-width: 100%;
-  overflow-x: hidden;
+.formset-table {
+  border-collapse: collapse;
 }
 
-.inventory-module {
-  max-width: 100%;
-  overflow-x: hidden;
+.formset-table thead {
+  background: #f3f4f6;
+}
+
+.formset-table th {
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.formset-table td {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.formset-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.field-error {
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: block;
 }
 </style>
 {% endblock %}
 
-{% block extra_scripts %}
-<!-- Jalali DatePicker Library (Local) -->
+{% block form_scripts %}
 <link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">
 <script src="{% static 'js/jalali-datepicker/jalali-datepicker.min.js' %}"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // Hide submit button if transfer is locked
+  {% if object and object.pk and object.is_locked == 1 %}
+  var submitButton = document.querySelector('button[type="submit"]');
+  if (submitButton) {
+    submitButton.style.display = 'none';
+  }
+  {% endif %}
+  
   // Initialize Jalali DatePicker
   var jalaliInputs = document.querySelectorAll('input.jalali-date-input, input[data-jalali="true"]');
   
@@ -375,6 +389,8 @@ document.addEventListener('DOMContentLoaded', function() {
       useDropDownYears: true,
       zIndex: 1000
     });
+  } else {
+    console.error('Jalali DatePicker library not loaded!');
   }
   
   // Formset management for extra items
@@ -389,10 +405,8 @@ document.addEventListener('DOMContentLoaded', function() {
       var formIndex = formCount;
       formCount++;
       
-      // Update data-row-index
       newForm.setAttribute('data-row-index', formIndex);
       
-      // Update field names and IDs
       newForm.querySelectorAll('input, select, textarea').forEach(function(field) {
         if (field.name) {
           field.name = field.name.replace(/items-\d+-/, 'items-' + formIndex + '-');
@@ -400,31 +414,32 @@ document.addEventListener('DOMContentLoaded', function() {
         if (field.id) {
           field.id = field.id.replace(/id_items-\d+-/, 'id_items-' + formIndex + '-');
         }
-        field.value = '';
+        if (field.type !== 'hidden' && field.type !== 'checkbox') {
+          field.value = '';
+        }
+        if (field.type === 'checkbox') {
+          field.checked = false;
+        }
       });
       
-      // Update labels
       newForm.querySelectorAll('label').forEach(function(label) {
         if (label.getAttribute('for')) {
           label.setAttribute('for', label.getAttribute('for').replace(/id_items-\d+-/, 'id_items-' + formIndex + '-'));
         }
       });
       
-      // Update DELETE checkbox
       var deleteCheckbox = newForm.querySelector('input[type="checkbox"][name$="-DELETE"]');
       if (deleteCheckbox) {
         deleteCheckbox.checked = false;
       }
       
-      // Clear errors
-      newForm.querySelectorAll('.field-errors').forEach(function(error) {
+      newForm.querySelectorAll('.field-error').forEach(function(error) {
         error.textContent = '';
       });
       
       formsetContainer.appendChild(newForm);
       totalFormsInput.value = formCount;
       
-      // Setup cascading filters for new row
       setTimeout(function() {
         setupRowCascading(newForm);
       }, 100);
@@ -445,15 +460,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // ====================================================================
   // Cascading Filters for Extra Items (Type → Category → Subcategory → Item)
-  // ====================================================================
-  
   function setupRowCascading(row) {
-    // Extract row index from data attribute or field name
     var rowIndex = row.dataset.rowIndex;
     if (!rowIndex) {
-      // Try to extract from any field name
       var firstField = row.querySelector('[name]');
       if (firstField && firstField.name) {
         var nameMatch = firstField.name.match(/items-(\d+)-/);
@@ -461,10 +471,10 @@ document.addEventListener('DOMContentLoaded', function() {
           rowIndex = nameMatch[1];
           row.setAttribute('data-row-index', rowIndex);
         } else {
-          return; // Cannot determine row index
+          return;
         }
       } else {
-        return; // No fields found
+        return;
       }
     }
     
@@ -478,7 +488,6 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     
-    // Filter categories based on type
     function filterCategories() {
       var selectedType = typeSelect.value;
       var currentCategory = categorySelect.value;
@@ -528,7 +537,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Filter subcategories based on type and category
     function filterSubcategories() {
       var selectedType = typeSelect.value;
       var selectedCategory = categorySelect.value;
@@ -577,7 +585,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Filter items based on type, category, and subcategory
     function filterItems() {
       var selectedType = typeSelect.value;
       var selectedCategory = categorySelect.value;
@@ -624,7 +631,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Load units when material item is selected
     function loadItemUnits(materialItemSelect, idx) {
       var itemId = materialItemSelect.value;
       var unitSel = document.querySelector('select[name="items-' + idx + '-unit"]');
@@ -664,7 +670,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Attach event listeners
     typeSelect.addEventListener('change', filterCategories);
     categorySelect.addEventListener('change', filterSubcategories);
     subcategorySelect.addEventListener('change', filterItems);
@@ -702,5 +707,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
-{% endblock %}
-

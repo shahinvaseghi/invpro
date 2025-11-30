@@ -1,271 +1,241 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "BOM (Bill of Materials)" %} - {{ block.super }}{% endblock %}
+{% block filter_fields %}
+<div class="form-group">
+  <label for="finished_item">{% trans "Finished Product" %}</label>
+  <select id="finished_item" name="finished_item" class="form-control">
+    <option value="">-- {% trans "All Products" %} --</option>
+    {% for item in finished_items %}
+      <option value="{{ item.id }}" {% if request.GET.finished_item|stringformat:"s" == item.id|stringformat:"s" %}selected{% endif %}>
+        {{ item.code }} - {{ item.name }}
+      </option>
+    {% endfor %}
+  </select>
+</div>
+{% endblock %}
 
-{% block content %}
-<div class="inventory-module">
-  <div class="module-header">
-    <nav class="breadcrumb">
-      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
-      <span>/</span>
-      <span>{% trans "BOM" %}</span>
-    </nav>
-    
-    <h1 class="page-title">{% trans "BOM (Bill of Materials)" %}</h1>
-    
-    <div class="page-actions">
-      <button class="btn btn-secondary" onclick="window.print()">{% trans "Print" %}</button>
-      <a href="{% url 'production:bom_create' %}" class="btn btn-primary">{% trans "Create BOM +" %}</a>
-    </div>
-  </div>
-  
-  <div class="filter-panel">
-    <h3>{% trans "Filter & Search" %}</h3>
-    <form method="get" class="filter-form">
-      <div class="filter-row">
-        <div class="filter-field">
-          <label for="finished_item">{% trans "Finished Product" %}</label>
-          <select id="finished_item" name="finished_item">
-            <option value="">-- {% trans "All Products" %} --</option>
-            {% for item in finished_items %}
-              <option value="{{ item.id }}" {% if request.GET.finished_item|stringformat:"s" == item.id|stringformat:"s" %}selected{% endif %}>
-                {{ item.code }} - {{ item.name }}
-              </option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="filter-actions">
-          <button type="submit" class="btn btn-primary">{% trans "Filter" %}</button>
-          <a href="{% url 'production:bom_list' %}" class="btn btn-secondary">{% trans "Clear" %}</a>
-        </div>
-      </div>
-    </form>
-  </div>
-  
-  {% if boms %}
-  <table class="data-table bom-table">
-    <thead>
-      <tr>
-        <th style="width: 40px;"></th>
-        <th>{% trans "BOM Code" %}</th>
-        <th>{% trans "Finished Product" %}</th>
-        <th>{% trans "Version" %}</th>
-        <th>{% trans "Materials Count" %}</th>
-        <th>{% trans "Active" %}</th>
-        <th>{% trans "Actions" %}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for bom in boms %}
-      <tr class="bom-row" data-bom-id="{{ bom.id }}">
-        <td class="expand-cell">
-          {% if bom.materials.count > 0 %}
-            <button type="button" class="btn-expand" onclick="toggleMaterials(this, {{ bom.id }})">
-              <span class="expand-icon">▶</span>
-            </button>
-          {% endif %}
-        </td>
-        <td><strong>{{ bom.bom_code }}</strong></td>
-        <td>
-          <strong>{{ bom.finished_item.item_code }}</strong><br>
-          <small>{{ bom.finished_item.name }}</small>
-        </td>
-        <td>{{ bom.version }}</td>
-        <td class="text-center">
-          <span class="badge badge-info">{{ bom.materials.count }}</span>
-        </td>
-        <td class="text-center">
-          {% if bom.is_active %}
-            <span class="badge badge-success">{% trans "Active" %}</span>
-          {% else %}
-            <span class="badge badge-inactive">{% trans "Inactive" %}</span>
-          {% endif %}
-        </td>
-        <td>
-          <a href="{% url 'production:bom_edit' bom.id %}" class="btn btn-sm">{% trans "Edit" %}</a>
-          <a href="{% url 'production:bom_delete' bom.id %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
-        </td>
-      </tr>
-      <!-- Materials Details Row (Hidden by default) -->
-      <tr class="materials-detail-row" id="materials-{{ bom.id }}" style="display: none;">
-        <td colspan="7">
-          <div class="materials-detail">
-            <h4>{% trans "Materials" %}:</h4>
-            <table class="materials-subtable">
-              <thead>
-                <tr>
-                  <th>{% trans "Line" %}</th>
-                  <th>{% trans "Material Code" %}</th>
-                  <th>{% trans "Material Name" %}</th>
-                  <th>{% trans "Type" %}</th>
-                  <th>{% trans "Quantity" %}</th>
-                  <th>{% trans "Unit" %}</th>
-                  <th>{% trans "Scrap %" %}</th>
-                  <th>{% trans "Optional" %}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for material in bom.materials.all %}
-                <tr>
-                  <td>{{ material.line_number }}</td>
-                  <td><strong>{{ material.material_item.item_code }}</strong></td>
-                  <td>{{ material.material_item.name }}</td>
-                  <td>
-                    <span class="material-type-badge">
-                      {{ material.material_type.name }}
-                    </span>
-                  </td>
-                  <td class="text-right">{{ material.quantity_per_unit }}</td>
-                  <td>{{ material.unit }}</td>
-                  <td class="text-right">{{ material.scrap_allowance }}%</td>
-                  <td class="text-center">
-                    {% if material.is_optional %}
-                      <span class="badge badge-warning">{% trans "Optional" %}</span>
-                    {% else %}
-                      <span class="badge badge-success">{% trans "Required" %}</span>
-                    {% endif %}
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  
-  <style>
-    .btn-expand {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 4px 8px;
-      font-size: 12px;
-      transition: transform 0.2s;
-    }
-    
-    .btn-expand.expanded .expand-icon {
-      transform: rotate(90deg);
-      display: inline-block;
-    }
-    
-    .expand-icon {
-      display: inline-block;
-      transition: transform 0.2s;
-    }
-    
-    .materials-detail-row {
-      background: #f9fafb;
-    }
-    
-    .materials-detail {
-      padding: 20px;
-    }
-    
-    .materials-detail h4 {
-      margin: 0 0 15px 0;
-      color: #374151;
-      font-size: 1rem;
-      font-weight: 600;
-    }
-    
-    .materials-subtable {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      border-radius: 4px;
-      overflow: hidden;
-    }
-    
-    .materials-subtable thead {
-      background: #f3f4f6;
-    }
-    
-    .materials-subtable th {
-      padding: 10px;
-      text-align: left;
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: #6b7280;
-      border-bottom: 2px solid #e5e7eb;
-    }
-    
-    .materials-subtable td {
-      padding: 10px;
-      border-bottom: 1px solid #e5e7eb;
-      font-size: 0.875rem;
-    }
-    
-    .materials-subtable tbody tr:last-child td {
-      border-bottom: none;
-    }
-    
-    .materials-subtable tbody tr:hover {
-      background: #f9fafb;
-    }
-    
-    .material-type-badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      background: #e0e7ff;
-      color: #3730a3;
-    }
-    
-    .text-right {
-      text-align: right;
-    }
-    
-    [dir="rtl"] .materials-subtable th {
-      text-align: right;
-    }
-  </style>
-  
-  <script>
-    function toggleMaterials(button, bomId) {
-      const detailRow = document.getElementById('materials-' + bomId);
-      const isExpanded = detailRow.style.display !== 'none';
-      
-      if (isExpanded) {
-        detailRow.style.display = 'none';
-        button.classList.remove('expanded');
-      } else {
-        detailRow.style.display = 'table-row';
-        button.classList.add('expanded');
-      }
-    }
-  </script>
-  
-  {% if is_paginated %}
-  <div class="pagination">
-    {% if page_obj.has_previous %}
-      <a href="?page=1{% if request.GET.finished_item %}&finished_item={{ request.GET.finished_item }}{% endif %}" class="page-link">{% trans "First" %}</a>
-      <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.finished_item %}&finished_item={{ request.GET.finished_item }}{% endif %}" class="page-link">{% trans "Previous" %}</a>
+{% block table_headers %}
+<th style="width: 40px;"></th>
+<th>{% trans "BOM Code" %}</th>
+<th>{% trans "Finished Product" %}</th>
+<th>{% trans "Version" %}</th>
+<th>{% trans "Materials Count" %}</th>
+<th>{% trans "Active" %}</th>
+{% if show_actions %}
+  <th>{% trans "Actions" %}</th>
+{% endif %}
+{% endblock %}
+
+{% block table_rows %}
+{% for bom in object_list %}
+<tr class="bom-row" data-bom-id="{{ bom.id }}">
+  <td class="expand-cell">
+    {% if bom.materials.count > 0 %}
+      <button type="button" class="btn-expand" onclick="toggleMaterials(this, {{ bom.id }})">
+        <span class="expand-icon">▶</span>
+      </button>
     {% endif %}
-    
-    <span class="page-info">
-      {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
-    </span>
-    
-    {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}{% if request.GET.finished_item %}&finished_item={{ request.GET.finished_item }}{% endif %}" class="page-link">{% trans "Next" %}</a>
-      <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.finished_item %}&finished_item={{ request.GET.finished_item }}{% endif %}" class="page-link">{% trans "Last" %}</a>
+  </td>
+  <td><strong>{{ bom.bom_code }}</strong></td>
+  <td>
+    <strong>{{ bom.finished_item.item_code }}</strong><br>
+    <small>{{ bom.finished_item.name }}</small>
+  </td>
+  <td>{{ bom.version }}</td>
+  <td class="text-center">
+    <span class="badge badge-info">{{ bom.materials.count }}</span>
+  </td>
+  <td class="text-center">
+    {% if bom.is_active %}
+      <span class="badge badge-active">{% trans "Active" %}</span>
+    {% else %}
+      <span class="badge badge-inactive">{% trans "Inactive" %}</span>
     {% endif %}
-  </div>
+  </td>
+  {% if show_actions %}
+  <td>
+    <a href="{% url edit_url_name bom.id %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+      {% trans "Edit" %}
+    </a>
+    <a href="{% url delete_url_name bom.id %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+      {% trans "Delete" %}
+    </a>
+  </td>
   {% endif %}
-  
-  {% else %}
-  <div class="empty-state">
-    <h3>{% trans "No BOMs Found" %}</h3>
-    <p>{% trans "Start by defining the materials needed for your products." %}</p>
-    <a href="{% url 'production:bom_create' %}" class="btn btn-primary">{% trans "Create BOM +" %}</a>
-  </div>
+</tr>
+<!-- Materials Details Row (Hidden by default) -->
+<tr class="materials-detail-row" id="materials-{{ bom.id }}" style="display: none;">
+  <td colspan="{% if show_actions %}7{% else %}6{% endif %}">
+    <div class="materials-detail">
+      <h4>{% trans "Materials" %}:</h4>
+      <table class="materials-subtable">
+        <thead>
+          <tr>
+            <th>{% trans "Line" %}</th>
+            <th>{% trans "Material Code" %}</th>
+            <th>{% trans "Material Name" %}</th>
+            <th>{% trans "Type" %}</th>
+            <th>{% trans "Quantity" %}</th>
+            <th>{% trans "Unit" %}</th>
+            <th>{% trans "Scrap %" %}</th>
+            <th>{% trans "Optional" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for material in bom.materials.all %}
+          <tr>
+            <td>{{ material.line_number }}</td>
+            <td><strong>{{ material.material_item.item_code }}</strong></td>
+            <td>{{ material.material_item.name }}</td>
+            <td>
+              <span class="material-type-badge">
+                {{ material.material_type.name }}
+              </span>
+            </td>
+            <td class="text-right">{{ material.quantity_per_unit }}</td>
+            <td>{{ material.unit }}</td>
+            <td class="text-right">{{ material.scrap_allowance }}%</td>
+            <td class="text-center">
+              {% if material.is_optional %}
+                <span class="badge badge-warning">{% trans "Optional" %}</span>
+              {% else %}
+                <span class="badge badge-success">{% trans "Required" %}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </td>
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block pagination %}
+{% if is_paginated %}
+<div class="pagination">
+  {% if page_obj.has_previous %}
+    <a href="?page=1{% if request.GET.finished_item %}&finished_item={{ request.GET.finished_item }}{% endif %}">&laquo; {% trans "First" %}</a>
+    <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.finished_item %}&finished_item={{ request.GET.finished_item }}{% endif %}">{% trans "Previous" %}</a>
+  {% endif %}
+
+  <span class="current">
+    {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+  </span>
+
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if request.GET.finished_item %}&finished_item={{ request.GET.finished_item }}{% endif %}">{% trans "Next" %}</a>
+    <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.finished_item %}&finished_item={{ request.GET.finished_item }}{% endif %}">{% trans "Last" %} &raquo;</a>
   {% endif %}
 </div>
+{% endif %}
+{% endblock %}
+
+{% block after_table %}
+<style>
+  .btn-expand {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 12px;
+    transition: transform 0.2s;
+  }
+  
+  .btn-expand.expanded .expand-icon {
+    transform: rotate(90deg);
+    display: inline-block;
+  }
+  
+  .expand-icon {
+    display: inline-block;
+    transition: transform 0.2s;
+  }
+  
+  .materials-detail-row {
+    background: #f9fafb;
+  }
+  
+  .materials-detail {
+    padding: 20px;
+  }
+  
+  .materials-detail h4 {
+    margin: 0 0 15px 0;
+    color: #374151;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  
+  .materials-subtable {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  .materials-subtable thead {
+    background: #f3f4f6;
+  }
+  
+  .materials-subtable th {
+    padding: 10px;
+    text-align: left;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6b7280;
+    border-bottom: 2px solid #e5e7eb;
+  }
+  
+  .materials-subtable td {
+    padding: 10px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.875rem;
+  }
+  
+  .materials-subtable tbody tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .materials-subtable tbody tr:hover {
+    background: #f9fafb;
+  }
+  
+  .material-type-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #e0e7ff;
+    color: #3730a3;
+  }
+  
+  .text-right {
+    text-align: right;
+  }
+  
+  [dir="rtl"] .materials-subtable th {
+    text-align: right;
+  }
+</style>
+
+<script>
+  function toggleMaterials(button, bomId) {
+    const detailRow = document.getElementById('materials-' + bomId);
+    const isExpanded = detailRow.style.display !== 'none';
+    
+    if (isExpanded) {
+      detailRow.style.display = 'none';
+      button.classList.remove('expanded');
+    } else {
+      detailRow.style.display = 'table-row';
+      button.classList.add('expanded');
+    }
+  }
+</script>
 {% endblock %}
