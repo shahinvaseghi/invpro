@@ -870,34 +870,29 @@
         });
 
         // Close dropdowns when clicking outside
-        // Use setTimeout to ensure this runs after submenu toggle handlers
+        // This runs in bubble phase (AFTER capture phase handlers)
         document.addEventListener('click', function(e) {
-          // Don't close if clicking on dropdown-toggle, dropdown-menu-sub, dropdown-item-sub, dropdown-submenu, or inside top-menu-item
-          if (e.target.closest('.dropdown-toggle') || 
-              e.target.closest('.dropdown-menu-sub') || 
-              e.target.closest('.dropdown-item-sub') ||
-              e.target.closest('.dropdown-submenu') ||
-              e.target.closest('.dropdown-menu') ||
-              e.target.closest('.top-menu-item')) {
-            return;
+          // Don't close if clicking on ANY dropdown element
+          // Check thoroughly - including nested elements and buttons
+          const clickedOnDropdown = e.target.closest('.dropdown-toggle') || 
+                                    e.target.closest('.dropdown-menu-sub') || 
+                                    e.target.closest('.dropdown-item-sub') ||
+                                    e.target.closest('.dropdown-submenu') ||
+                                    e.target.closest('.dropdown-menu') ||
+                                    e.target.closest('.top-menu-item') ||
+                                    e.target.closest('.dropdown-item') ||
+                                    e.target.closest('button[data-submenu]') ||
+                                    e.target.closest('.top-menu-btn');
+          
+          if (clickedOnDropdown) {
+            return; // Don't close dropdown
           }
           
-          // Use setTimeout to ensure this runs after toggle handlers
-          setTimeout(function() {
-            // Double check that we're still outside
-            if (!e.target.closest('.dropdown-toggle') && 
-                !e.target.closest('.dropdown-menu-sub') && 
-                !e.target.closest('.dropdown-item-sub') &&
-                !e.target.closest('.dropdown-submenu') &&
-                !e.target.closest('.dropdown-menu') &&
-                !e.target.closest('.top-menu-item')) {
-              // Close all dropdowns when clicking outside
-              dropdowns.forEach(d => {
-                d.classList.remove('open');
-              });
-            }
-          }, 10);
-        });
+          // Only close if we're really outside
+          dropdowns.forEach(d => {
+            d.classList.remove('open');
+          });
+        }); // Bubble phase - runs AFTER capture phase
 
         // Notification dropdown
         const notificationBtn = document.getElementById('notification-btn');
@@ -951,23 +946,32 @@
         }
 
         // Dropdown submenus - click to toggle
-        document.querySelectorAll('.dropdown-submenu').forEach(submenu => {
+        // Use capture phase with HIGHEST priority to handle BEFORE all other handlers
+        document.addEventListener('click', function(e) {
+          // Check if click is on a dropdown-toggle button
+          const toggleBtn = e.target.closest('.dropdown-toggle');
+          if (!toggleBtn) return;
+          
+          // Check if this toggle is inside a dropdown-submenu
+          const submenu = toggleBtn.closest('.dropdown-submenu');
+          if (!submenu) return;
+          
           const submenuEl = submenu.querySelector('.dropdown-menu-sub');
-          const toggleBtn = submenu.querySelector('.dropdown-toggle');
           const dropdownMenu = submenu.closest('.dropdown-menu');
           
-          if (!submenuEl || !toggleBtn) return;
+          if (!submenuEl || !dropdownMenu) return;
           
-          // Click to toggle submenu
-          toggleBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation(); // Prevent other event listeners from firing
-            
-            const isOpen = submenuEl.classList.contains('open');
-            
-            // Close all other submenus
-            document.querySelectorAll('.dropdown-submenu').forEach(otherSubmenu => {
+          // Stop ALL event propagation immediately - BEFORE any other handlers
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          
+          const isOpen = submenuEl.classList.contains('open');
+          
+          // Close all other submenus at the same level
+          const parentSubmenu = submenu.parentElement.closest('.dropdown-submenu');
+          if (parentSubmenu) {
+            parentSubmenu.querySelectorAll('.dropdown-submenu').forEach(otherSubmenu => {
               if (otherSubmenu !== submenu) {
                 const otherSubmenuEl = otherSubmenu.querySelector('.dropdown-menu-sub');
                 if (otherSubmenuEl) {
@@ -976,53 +980,55 @@
                 }
               }
             });
-            
-            // Toggle current submenu
-            if (isOpen) {
-              submenuEl.classList.remove('open');
-              submenu.classList.remove('active');
-            } else {
-              submenuEl.classList.add('open');
-              submenu.classList.add('active');
-              
-              // Allow dropdown to show items below the submenu
-              if (dropdownMenu) {
-                dropdownMenu.style.overflowY = 'auto';
+          } else {
+            // Close all other submenus in the same dropdown
+            dropdownMenu.querySelectorAll('.dropdown-submenu').forEach(otherSubmenu => {
+              if (otherSubmenu !== submenu) {
+                const otherSubmenuEl = otherSubmenu.querySelector('.dropdown-menu-sub');
+                if (otherSubmenuEl) {
+                  otherSubmenuEl.classList.remove('open');
+                  otherSubmenu.classList.remove('active');
+                }
               }
-            }
-            
-            // Make sure parent dropdown stays open
-            if (dropdownMenu) {
-              dropdownMenu.classList.add('open');
-            }
-          });
-        });
-        
-        // Close submenu when clicking outside (but not when clicking on submenu items or toggles)
-        // Use a flag to track if a toggle was just clicked
-        let submenuToggleJustClicked = false;
-        
-        // Mark when toggle is clicked
-        document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
-          toggle.addEventListener('click', function() {
-            submenuToggleJustClicked = true;
-            setTimeout(function() {
-              submenuToggleJustClicked = false;
-            }, 100);
-          });
-        });
-        
-        document.addEventListener('click', function(e) {
-          // Don't close if a toggle was just clicked
-          if (submenuToggleJustClicked) {
-            return;
+            });
           }
           
+          // Toggle current submenu
+          if (isOpen) {
+            submenuEl.classList.remove('open');
+            submenu.classList.remove('active');
+          } else {
+            submenuEl.classList.add('open');
+            submenu.classList.add('active');
+            dropdownMenu.style.overflowY = 'auto';
+          }
+          
+          // CRITICAL: Force parent dropdown to stay open - use requestAnimationFrame to ensure it happens
+          requestAnimationFrame(function() {
+            dropdownMenu.classList.add('open');
+            const topMenuItem = dropdownMenu.closest('.top-menu-item');
+            if (topMenuItem) {
+              const menuBtn = topMenuItem.querySelector('.top-menu-btn');
+              if (menuBtn) {
+                menuBtn.classList.add('active');
+              }
+            }
+          });
+          
+          // Prevent any other handlers from running
+          return false;
+        }, true); // Capture phase - runs FIRST with highest priority
+        
+        // Close submenu when clicking outside (but not when clicking on submenu items or toggles)
+        document.addEventListener('click', function(e) {
           // Don't close if clicking on dropdown elements
-          if (e.target.closest('.dropdown-item-sub') || 
-              e.target.closest('.dropdown-toggle') || 
-              e.target.closest('.dropdown-submenu') ||
-              e.target.closest('.dropdown-menu')) {
+          const clickedInside = e.target.closest('.dropdown-item-sub') || 
+                                e.target.closest('.dropdown-toggle') || 
+                                e.target.closest('.dropdown-submenu') ||
+                                e.target.closest('.dropdown-menu') ||
+                                e.target.closest('.top-menu-item');
+          
+          if (clickedInside) {
             return;
           }
           

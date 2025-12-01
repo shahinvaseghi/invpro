@@ -37,16 +37,16 @@ class AccountForm(forms.ModelForm):
             'is_enabled': forms.Select(attrs={'class': 'form-control'}),
         }
         labels = {
-            'account_code': _('Account Code'),
-            'account_name': _('Account Name'),
-            'account_name_en': _('Account Name (English)'),
-            'account_type': _('Account Type'),
-            'account_level': _('Account Level'),
-            'parent_account': _('Parent Account'),
-            'normal_balance': _('Normal Balance'),
-            'opening_balance': _('Opening Balance'),
-            'description': _('Description'),
-            'is_enabled': _('Status'),
+            'account_code': _('کد حساب'),
+            'account_name': _('نام حساب'),
+            'account_name_en': _('نام حساب (انگلیسی)'),
+            'account_type': _('نوع حساب'),
+            'account_level': _('سطح حساب'),
+            'parent_account': _('حساب والد'),
+            'normal_balance': _('طرف تراز'),
+            'opening_balance': _('مانده ابتدای دوره'),
+            'description': _('توضیحات'),
+            'is_enabled': _('وضعیت'),
         }
     
     def __init__(self, *args, company_id: Optional[int] = None, exclude_account_id: Optional[int] = None, **kwargs):
@@ -86,17 +86,17 @@ class AccountForm(forms.ModelForm):
         if account_type and normal_balance:
             if account_type in ['ASSET', 'EXPENSE']:
                 if normal_balance != 'DEBIT':
-                    raise forms.ValidationError(_('Assets and Expenses must have DEBIT normal balance.'))
+                    raise forms.ValidationError(_('دارایی‌ها و هزینه‌ها باید طرف تراز بدهکار داشته باشند.'))
             elif account_type in ['LIABILITY', 'EQUITY', 'REVENUE']:
                 if normal_balance != 'CREDIT':
-                    raise forms.ValidationError(_('Liabilities, Equity, and Revenue must have CREDIT normal balance.'))
+                    raise forms.ValidationError(_('بدهی‌ها، حقوق صاحبان سهام و درآمد باید طرف تراز بستانکار داشته باشند.'))
         
         # Validate parent account
         if parent_account:
             if self.company_id and parent_account.company_id != self.company_id:
-                raise forms.ValidationError(_('Parent account must belong to the same company.'))
+                raise forms.ValidationError(_('حساب والد باید متعلق به همان شرکت باشد.'))
             if account_level and parent_account.account_level >= account_level:
-                raise forms.ValidationError(_('Parent account level must be less than child account level.'))
+                raise forms.ValidationError(_('سطح حساب والد باید کمتر از سطح حساب فرزند باشد.'))
         
         return cleaned_data
 

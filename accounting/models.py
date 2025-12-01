@@ -263,46 +263,46 @@ class Period(AccountingBaseModel):
 class Account(AccountingSortableModel):
     """Chart of Accounts - General, Subsidiary, and Detail accounts."""
     ACCOUNT_TYPE_CHOICES = [
-        ('ASSET', _('Asset')),
-        ('LIABILITY', _('Liability')),
-        ('EQUITY', _('Equity')),
-        ('REVENUE', _('Revenue')),
-        ('EXPENSE', _('Expense')),
+        ('ASSET', _('دارایی')),
+        ('LIABILITY', _('بدهی')),
+        ('EQUITY', _('حقوق صاحبان سهام')),
+        ('REVENUE', _('درآمد')),
+        ('EXPENSE', _('هزینه')),
     ]
 
     ACCOUNT_LEVEL_CHOICES = [
-        (1, _('General Ledger (کل)')),
-        (2, _('Subsidiary Ledger (معین)')),
-        (3, _('Detail Ledger (تفصیلی)')),
+        (1, _('کل')),
+        (2, _('معین')),
+        (3, _('تفصیلی')),
     ]
 
     NORMAL_BALANCE_CHOICES = [
-        ('DEBIT', _('Debit')),
-        ('CREDIT', _('Credit')),
+        ('DEBIT', _('بدهکار')),
+        ('CREDIT', _('بستانکار')),
     ]
 
     account_code = models.CharField(
         max_length=20,
         validators=[NUMERIC_CODE_VALIDATOR],
-        help_text=_("Hierarchical account code (e.g., '1.01.001')"),
+        help_text=_("کد سلسله مراتبی حساب (مثال: '1.01.001')"),
     )
     account_name = models.CharField(
         max_length=200,
-        help_text=_("Persian/local account name"),
+        help_text=_("نام حساب (فارسی)"),
     )
     account_name_en = models.CharField(
         max_length=200,
         blank=True,
-        help_text=_("English account name"),
+        help_text=_("نام حساب (انگلیسی)"),
     )
     account_type = models.CharField(
         max_length=30,
         choices=ACCOUNT_TYPE_CHOICES,
-        help_text=_("Account classification"),
+        help_text=_("نوع حساب"),
     )
     account_level = models.PositiveSmallIntegerField(
         choices=ACCOUNT_LEVEL_CHOICES,
-        help_text=_("Account level: 1=General, 2=Subsidiary, 3=Detail"),
+        help_text=_("سطح حساب: 1=کل، 2=معین، 3=تفصیلی"),
     )
     parent_account = models.ForeignKey(
         'self',
@@ -310,40 +310,40 @@ class Account(AccountingSortableModel):
         related_name='child_accounts',
         null=True,
         blank=True,
-        help_text=_("Parent account for hierarchical structure"),
+        help_text=_("حساب والد برای ساختار سلسله مراتبی"),
     )
     normal_balance = models.CharField(
         max_length=10,
         choices=NORMAL_BALANCE_CHOICES,
-        help_text=_("Expected balance side"),
+        help_text=_("طرف تراز مورد انتظار"),
     )
     is_system_account = models.PositiveSmallIntegerField(
         choices=ENABLED_FLAG_CHOICES,
         default=0,
-        help_text=_("System-generated accounts cannot be deleted"),
+        help_text=_("حساب‌های تولید شده توسط سیستم قابل حذف نیستند"),
     )
     opening_balance = models.DecimalField(
         max_digits=18,
         decimal_places=2,
         default=Decimal('0.00'),
         validators=[POSITIVE_DECIMAL],
-        help_text=_("Opening balance for current fiscal year"),
+        help_text=_("مانده ابتدای سال مالی جاری"),
     )
     current_balance = models.DecimalField(
         max_digits=18,
         decimal_places=2,
         default=Decimal('0.00'),
         editable=False,
-        help_text=_("Current period balance (calculated)"),
+        help_text=_("مانده جاری (محاسبه شده)"),
     )
     description = models.TextField(
         blank=True,
-        help_text=_("Account description and usage notes"),
+        help_text=_("توضیحات حساب و یادداشت‌های استفاده"),
     )
 
     class Meta:
-        verbose_name = _("Account")
-        verbose_name_plural = _("Accounts")
+        verbose_name = _("حساب")
+        verbose_name_plural = _("حساب‌ها")
         constraints = [
             models.UniqueConstraint(
                 fields=("company", "account_code"),
