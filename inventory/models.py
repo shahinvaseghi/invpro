@@ -48,7 +48,78 @@ class InventorySortableModel(InventoryBaseModel, SortableModel):
         abstract = True
 
 
-class InventoryDocumentBase(InventoryBaseModel, LockableModel):
+class FiscalYearMixin(models.Model):
+    """
+    Mixin to auto-populate fiscal_year_id from document_date or request_date.
+    Use this mixin for models that have document_date/request_date and need fiscal_year_id.
+    """
+    fiscal_year = models.ForeignKey(
+        'accounting.FiscalYear',
+        on_delete=models.PROTECT,
+        related_name='%(app_label)s_%(class)s_set',
+        null=True,
+        blank=True,
+        help_text=_("Fiscal year for this document (auto-populated from document_date)"),
+        db_index=True,  # Index for faster queries
+    )
+    
+    class Meta:
+        abstract = True
+    
+    def get_document_date_field_name(self):
+        """
+        Override this method if document_date field has a different name.
+        Default: 'document_date', fallback to 'request_date'
+        """
+        if hasattr(self, 'document_date'):
+            return 'document_date'
+        elif hasattr(self, 'request_date'):
+            return 'request_date'
+        return 'document_date'
+    
+    def save(self, *args, **kwargs):
+        """Auto-populate fiscal_year_id from document_date/request_date."""
+        if not self.fiscal_year_id:
+            date_field_name = self.get_document_date_field_name()
+            document_date = getattr(self, date_field_name, None)
+            
+            if document_date and self.company_id:
+                fiscal_year = get_fiscal_year_from_date(
+                    company_id=self.company_id,
+                    document_date=document_date
+                )
+                if fiscal_year:
+                    self.fiscal_year = fiscal_year
+        
+        super().save(*args, **kwargs)
+    
+    def clean(self):
+        """Validate that document_date is within fiscal_year range."""
+        from django.core.exceptions import ValidationError
+        
+        date_field_name = self.get_document_date_field_name()
+        document_date = getattr(self, date_field_name, None)
+        
+        if document_date and self.fiscal_year:
+            if document_date < self.fiscal_year.start_date:
+                raise ValidationError(
+                    _("Document date (%(date)s) is before fiscal year start date (%(start)s).") % {
+                        'date': document_date,
+                        'start': self.fiscal_year.start_date,
+                    }
+                )
+            if document_date > self.fiscal_year.end_date:
+                raise ValidationError(
+                    _("Document date (%(date)s) is after fiscal year end date (%(end)s).") % {
+                        'date': document_date,
+                        'end': self.fiscal_year.end_date,
+                    }
+                )
+        
+        super().clean()
+
+
+class InventoryDocumentBase(InventoryBaseModel, LockableModel, FiscalYearMixin):
     public_code_validator = NUMERIC_CODE_VALIDATOR
 
     document_code = models.CharField(max_length=30, unique=True)
@@ -685,7 +756,7 @@ class SupplierItem(InventoryBaseModel):
         return f"{self.item} by {self.supplier}"
 
 
-class PurchaseRequest(InventoryBaseModel, LockableModel):
+class PurchaseRequest(InventoryBaseModel, LockableModel, FiscalYearMixin):
     class Priority(models.TextChoices):
         LOW = "low", _("Low")
         NORMAL = "normal", _("Normal")
@@ -2040,7 +2111,7 @@ class StocktakingRecord(InventoryDocumentBase):
         super().save(*args, **kwargs)
 
 
-class WarehouseRequest(InventoryBaseModel, LockableModel):
+class WarehouseRequest(InventoryBaseModel, LockableModel, FiscalYearMixin):
     """
     Warehouse request for issuing materials to departments, production, or other internal use.
     Pattern: WRQ-YYYYMM-XXXXXX

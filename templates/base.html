@@ -27,8 +27,19 @@
               </button>
             </div>
             
-            <!-- Shared Menu -->
+            <!-- Modules Menu (All modules in one dropdown) -->
             <div class="top-menu-item">
+              <button type="button" class="top-menu-btn" data-menu="modules">
+                <span class="menu-icon">📁</span>
+                <span class="menu-label">{% trans "ماژول‌ها" %}</span>
+              </button>
+              {% include "ui/components/modules_menu.html" %}
+            </div>
+            
+            <!-- Old individual menus - commented out, all modules are now in modules_menu.html -->
+            {% comment %}
+            <!-- Shared Menu -->
+            <div class="top-menu-item" style="display: none;">
               <button type="button" class="top-menu-btn" data-menu="shared">
                 <span class="menu-icon">🔧</span>
                 <span class="menu-label">{% trans "Shared" %}</span>
@@ -317,24 +328,24 @@
                   </div>
                 </div>
                 {% endif %}
-                {% if user_feature_permissions|feature_allowed:'accounting.payroll.document' or user_feature_permissions|feature_allowed:'accounting.payroll.decrees' or user_feature_permissions|feature_allowed:'accounting.payroll.decree_groups' or user_feature_permissions|feature_allowed:'accounting.payroll.decree_subgroups' %}
+                {% if user_feature_permissions|feature_allowed:'accounting.payroll.payment' or user_feature_permissions|feature_allowed:'accounting.payroll.insurance_tax' or user_feature_permissions|feature_allowed:'accounting.payroll.document' or user_feature_permissions|feature_allowed:'accounting.payroll.bank_transfer' %}
                 <div class="dropdown-submenu">
                   <button type="button" class="dropdown-item dropdown-toggle" data-submenu="accounting-payroll">
                     <span>{% trans "Payroll" %}</span>
                     <span class="dropdown-arrow">▶</span>
                   </button>
                   <div class="dropdown-menu-sub" id="accounting-payroll">
+                    {% if user_feature_permissions|feature_allowed:'accounting.payroll.payment' %}
+                    <a href="{% url 'accounting:payroll_payment' %}" class="dropdown-item-sub">{% trans "پرداخت حقوق و دستمزد" %}</a>
+                    {% endif %}
+                    {% if user_feature_permissions|feature_allowed:'accounting.payroll.insurance_tax' %}
+                    <a href="{% url 'accounting:payroll_insurance_tax' %}" class="dropdown-item-sub">{% trans "تنظیمات بیمه و مالیات" %}</a>
+                    {% endif %}
                     {% if user_feature_permissions|feature_allowed:'accounting.payroll.document' %}
-                    <a href="{% url 'accounting:payroll_document' %}" class="dropdown-item-sub">{% trans "Payroll Document" %}</a>
+                    <a href="{% url 'accounting:payroll_document' %}" class="dropdown-item-sub">{% trans "بارگذاری اسناد حقوق و دستمزد" %}</a>
                     {% endif %}
-                    {% if user_feature_permissions|feature_allowed:'accounting.payroll.decrees' %}
-                    <a href="{% url 'accounting:payroll_decrees' %}" class="dropdown-item-sub">{% trans "Decrees" %}</a>
-                    {% endif %}
-                    {% if user_feature_permissions|feature_allowed:'accounting.payroll.decree_groups' %}
-                    <a href="{% url 'accounting:payroll_decree_groups' %}" class="dropdown-item-sub">{% trans "Decree Groups" %}</a>
-                    {% endif %}
-                    {% if user_feature_permissions|feature_allowed:'accounting.payroll.decree_subgroups' %}
-                    <a href="{% url 'accounting:payroll_decree_subgroups' %}" class="dropdown-item-sub">{% trans "Decree Subgroups" %}</a>
+                    {% if user_feature_permissions|feature_allowed:'accounting.payroll.bank_transfer' %}
+                    <a href="{% url 'accounting:payroll_bank_transfer' %}" class="dropdown-item-sub">{% trans "خروجی حقوق و دستمزد برای بانک" %}</a>
                     {% endif %}
                   </div>
                 </div>
@@ -427,6 +438,25 @@
                     {% endif %}
                     {% if user_feature_permissions|feature_allowed:'hr.loans.savings_fund' %}
                     <a href="{% url 'hr:loans_savings_fund' %}" class="dropdown-item-sub">{% trans "Savings Fund" %}</a>
+                    {% endif %}
+                  </div>
+                </div>
+                {% endif %}
+                {% if user_feature_permissions|feature_allowed:'hr.payroll.decrees' or user_feature_permissions|feature_allowed:'hr.payroll.decree_groups' or user_feature_permissions|feature_allowed:'hr.payroll.decree_subgroups' %}
+                <div class="dropdown-submenu">
+                  <button type="button" class="dropdown-item dropdown-toggle" data-submenu="hr-payroll-decrees">
+                    <span>{% trans "حکم‌های حقوق و دستمزد" %}</span>
+                    <span class="dropdown-arrow">▶</span>
+                  </button>
+                  <div class="dropdown-menu-sub" id="hr-payroll-decrees">
+                    {% if user_feature_permissions|feature_allowed:'hr.payroll.decrees' %}
+                    <a href="{% url 'hr:payroll_decrees' %}" class="dropdown-item-sub">{% trans "حکم‌ها" %}</a>
+                    {% endif %}
+                    {% if user_feature_permissions|feature_allowed:'hr.payroll.decree_groups' %}
+                    <a href="{% url 'hr:payroll_decree_groups' %}" class="dropdown-item-sub">{% trans "گروه‌بندی حکم‌ها" %}</a>
+                    {% endif %}
+                    {% if user_feature_permissions|feature_allowed:'hr.payroll.decree_subgroups' %}
+                    <a href="{% url 'hr:payroll_decree_subgroups' %}" class="dropdown-item-sub">{% trans "زیر گروه‌بندی حکم‌ها" %}</a>
                     {% endif %}
                   </div>
                 </div>
@@ -542,6 +572,8 @@
               </div>
             </div>
             {% endif %}
+            {% endcomment %}
+            <!-- End of old individual menus -->
             {% endblock %}
           </nav>
         </div>
@@ -607,7 +639,7 @@
           
           <!-- Company Selector -->
           {% if request.user.is_authenticated and user_companies|length > 1 %}
-          <form action="{% url 'set_active_company' %}" method="post" class="company-switcher">
+          <form action="{% url 'shared:set_active_company' %}" method="post" class="company-switcher">
             {% csrf_token %}
             <input name="next" type="hidden" value="{{ request.get_full_path }}" />
             <label for="company-select" style="margin-right: 8px; font-size: 0.9rem; color: #fff;">
@@ -621,6 +653,32 @@
               {% endfor %}
             </select>
           </form>
+          {% endif %}
+          
+          <!-- Fiscal Year Selector -->
+          {% if request.user.is_authenticated and active_company %}
+          {% if active_fiscal_year %}
+          <form action="{% url 'accounting:set_fiscal_year' %}" method="post" class="fiscal-year-switcher">
+            {% csrf_token %}
+            <input name="next" type="hidden" value="{{ request.get_full_path }}" />
+            <label for="fiscal-year-select" style="margin-right: 8px; font-size: 0.9rem; color: #fff;">
+              {% trans "سال مالی" %}:
+            </label>
+            <select name="fiscal_year_id" id="fiscal-year-select" onchange="this.form.submit()" class="fiscal-year-select">
+              {% if available_fiscal_years|length > 0 %}
+                {% for fy in available_fiscal_years %}
+                  <option value="{{ fy.id }}" {% if active_fiscal_year and fy.id == active_fiscal_year.id %}selected{% endif %}>
+                    {{ fy.fiscal_year_code }} - {{ fy.fiscal_year_name }}
+                  </option>
+                {% endfor %}
+              {% else %}
+                <option value="{{ active_fiscal_year.id }}" selected>
+                  {{ active_fiscal_year.fiscal_year_code }} - {{ active_fiscal_year.fiscal_year_name }}
+                </option>
+              {% endif %}
+            </select>
+          </form>
+          {% endif %}
           {% endif %}
           
           <!-- Language Switcher -->
@@ -770,6 +828,13 @@
           });
         });
 
+        // Prevent nav-link-sub clicks from closing parent sections
+        document.querySelectorAll('.nav-link-sub').forEach(link => {
+          link.addEventListener('click', function(e) {
+            e.stopPropagation();
+          });
+        });
+
         // Top menu dropdowns
         const menuButtons = document.querySelectorAll('.top-menu-btn');
         const dropdowns = document.querySelectorAll('.dropdown-menu');
@@ -794,13 +859,44 @@
           });
         });
         
+        // Prevent dropdown-item-sub clicks from closing dropdowns
+        document.querySelectorAll('.dropdown-item-sub').forEach(link => {
+          link.addEventListener('click', function(e) {
+            // Don't prevent default - allow navigation
+            // But stop propagation to prevent dropdown from closing
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+          });
+        });
+
         // Close dropdowns when clicking outside
+        // Use setTimeout to ensure this runs after submenu toggle handlers
         document.addEventListener('click', function(e) {
-          if (!e.target.closest('.top-menu-item')) {
-            dropdowns.forEach(d => {
-              d.classList.remove('open');
-            });
+          // Don't close if clicking on dropdown-toggle, dropdown-menu-sub, dropdown-item-sub, dropdown-submenu, or inside top-menu-item
+          if (e.target.closest('.dropdown-toggle') || 
+              e.target.closest('.dropdown-menu-sub') || 
+              e.target.closest('.dropdown-item-sub') ||
+              e.target.closest('.dropdown-submenu') ||
+              e.target.closest('.dropdown-menu') ||
+              e.target.closest('.top-menu-item')) {
+            return;
           }
+          
+          // Use setTimeout to ensure this runs after toggle handlers
+          setTimeout(function() {
+            // Double check that we're still outside
+            if (!e.target.closest('.dropdown-toggle') && 
+                !e.target.closest('.dropdown-menu-sub') && 
+                !e.target.closest('.dropdown-item-sub') &&
+                !e.target.closest('.dropdown-submenu') &&
+                !e.target.closest('.dropdown-menu') &&
+                !e.target.closest('.top-menu-item')) {
+              // Close all dropdowns when clicking outside
+              dropdowns.forEach(d => {
+                d.classList.remove('open');
+              });
+            }
+          }, 10);
         });
 
         // Notification dropdown
@@ -866,6 +962,7 @@
           toggleBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation(); // Prevent other event listeners from firing
             
             const isOpen = submenuEl.classList.contains('open');
             
@@ -893,11 +990,46 @@
                 dropdownMenu.style.overflowY = 'auto';
               }
             }
+            
+            // Make sure parent dropdown stays open
+            if (dropdownMenu) {
+              dropdownMenu.classList.add('open');
+            }
           });
+        });
+        
+        // Close submenu when clicking outside (but not when clicking on submenu items or toggles)
+        // Use a flag to track if a toggle was just clicked
+        let submenuToggleJustClicked = false;
+        
+        // Mark when toggle is clicked
+        document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
+          toggle.addEventListener('click', function() {
+            submenuToggleJustClicked = true;
+            setTimeout(function() {
+              submenuToggleJustClicked = false;
+            }, 100);
+          });
+        });
+        
+        document.addEventListener('click', function(e) {
+          // Don't close if a toggle was just clicked
+          if (submenuToggleJustClicked) {
+            return;
+          }
           
-          // Close submenu when clicking outside
-          document.addEventListener('click', function(e) {
-            if (!submenu.contains(e.target)) {
+          // Don't close if clicking on dropdown elements
+          if (e.target.closest('.dropdown-item-sub') || 
+              e.target.closest('.dropdown-toggle') || 
+              e.target.closest('.dropdown-submenu') ||
+              e.target.closest('.dropdown-menu')) {
+            return;
+          }
+          
+          // Close all submenus when clicking outside
+          document.querySelectorAll('.dropdown-submenu').forEach(submenu => {
+            const submenuEl = submenu.querySelector('.dropdown-menu-sub');
+            if (submenuEl) {
               submenuEl.classList.remove('open');
               submenu.classList.remove('active');
             }

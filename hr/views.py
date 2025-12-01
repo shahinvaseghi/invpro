@@ -162,3 +162,43 @@ class SavingsFundView(FeaturePermissionRequiredMixin, TemplateView):
         context['active_module'] = 'hr'
         context['page_title'] = 'صندوق اندوخته'
         return context
+
+
+# Payroll Decrees Section (حکم‌های حقوق و دستمزد)
+class PayrollDecreeListView(FeaturePermissionRequiredMixin, TemplateView):
+    """List view for payroll decrees."""
+    template_name = 'hr/payroll/decree_list.html'
+    feature_code = 'hr.payroll.decrees'
+    required_action = 'view'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'hr'
+        context['page_title'] = 'حکم‌ها'
+        return context
+
+
+class PayrollDecreeGroupListView(FeaturePermissionRequiredMixin, TemplateView):
+    """List view for payroll decree groups."""
+    template_name = 'hr/payroll/decree_group_list.html'
+    feature_code = 'hr.payroll.decree_groups'
+    required_action = 'view'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'hr'
+        context['page_title'] = 'گروه‌بندی حکم‌ها'
+        return context
+
+
+class PayrollDecreeSubGroupListView(FeaturePermissionRequiredMixin, TemplateView):
+    """List view for payroll decree sub-groups."""
+    template_name = 'hr/payroll/decree_subgroup_list.html'
+    feature_code = 'hr.payroll.decree_subgroups'
+    required_action = 'view'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'hr'
+        context['page_title'] = 'زیر گروه‌بندی حکم‌ها'
+        return context

@@ -3,12 +3,14 @@ URL configuration for shared module.
 """
 from django.urls import path
 from . import views
-from .views.auth import mark_notification_read, mark_notification_unread
+from .views.auth import mark_notification_read, mark_notification_unread, set_active_company
 from .views.notifications import NotificationListView
 
 app_name = 'shared'
 
 urlpatterns = [
+    # Authentication
+    path('set-company/', set_active_company, name='set_active_company'),
     path('companies/', views.CompanyListView.as_view(), name='companies'),
     path('companies/create/', views.CompanyCreateView.as_view(), name='company_create'),
     path('companies/<int:pk>/edit/', views.CompanyUpdateView.as_view(), name='company_edit'),

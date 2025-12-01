@@ -1,0 +1,547 @@
+{% load i18n access_tags %}
+<!-- Modules Dropdown Menu -->
+<div class="dropdown-menu" id="menu-modules" style="max-height: 80vh; overflow-y: auto;">
+  <!-- Shared Module -->
+  <div class="dropdown-submenu">
+    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-shared">
+      <span class="menu-icon">🔧</span>
+      <span>{% trans "Shared" %}</span>
+      <span class="dropdown-arrow">▶</span>
+    </button>
+    <div class="dropdown-menu-sub" id="modules-shared">
+      {% if user_feature_permissions|feature_allowed:'shared.companies' %}
+        <a href="{% url 'shared:companies' %}" class="dropdown-item-sub">{% trans "Companies" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'shared.company_units' %}
+        <a href="{% url 'shared:company_units' %}" class="dropdown-item-sub">{% trans "Company Units" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'shared.smtp_servers' or user.is_superuser %}
+        <a href="{% url 'shared:smtp_servers' %}" class="dropdown-item-sub">{% trans "SMTP Servers" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'shared.users' or user_feature_permissions|feature_allowed:'shared.groups' or user_feature_permissions|feature_allowed:'shared.access_levels' %}
+        <div class="dropdown-submenu">
+          <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-shared-users">
+            <span>{% trans "Users" %}</span>
+            <span class="dropdown-arrow">▶</span>
+          </button>
+          <div class="dropdown-menu-sub" id="modules-shared-users">
+            {% if user_feature_permissions|feature_allowed:'shared.users' %}
+              <a href="{% url 'shared:users' %}" class="dropdown-item-sub">{% trans "Users" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'shared.groups' %}
+              <a href="{% url 'shared:groups' %}" class="dropdown-item-sub">{% trans "Groups" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'shared.access_levels' %}
+              <a href="{% url 'shared:access_levels' %}" class="dropdown-item-sub">{% trans "Access Levels" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Inventory Module -->
+  <div class="dropdown-submenu">
+    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-inventory">
+      <span class="menu-icon">📦</span>
+      <span>{% trans "Inventory" %}</span>
+      <span class="dropdown-arrow">▶</span>
+    </button>
+    <div class="dropdown-menu-sub" id="modules-inventory">
+      {% if user_feature_permissions|feature_allowed:'inventory.master.items' or user_feature_permissions|feature_allowed:'inventory.master.item_serials' or user_feature_permissions|feature_allowed:'inventory.balance' %}
+        <div class="dropdown-submenu">
+          <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-inventory-items">
+            <span>{% trans "Items" %}</span>
+            <span class="dropdown-arrow">▶</span>
+          </button>
+          <div class="dropdown-menu-sub" id="modules-inventory-items">
+            {% if user_feature_permissions|feature_allowed:'inventory.master.items' %}
+              <a href="{% url 'inventory:items' %}" class="dropdown-item-sub">{% trans "Edit Items" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.master.item_serials' %}
+              <a href="{% url 'inventory:item_serials' %}" class="dropdown-item-sub">{% trans "Item Serials" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.balance' %}
+              <a href="{% url 'inventory:inventory_balance' %}" class="dropdown-item-sub">{% trans "Inventory Balance" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'inventory.master.warehouses' %}
+        <a href="{% url 'inventory:warehouses' %}" class="dropdown-item-sub">{% trans "Warehouses" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'inventory.suppliers.list' %}
+        <a href="{% url 'inventory:suppliers' %}" class="dropdown-item-sub">{% trans "Suppliers" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'inventory.receipts.temporary' or user_feature_permissions|feature_allowed:'inventory.receipts.permanent' or user_feature_permissions|feature_allowed:'inventory.receipts.consignment' %}
+        <div class="dropdown-submenu">
+          <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-inventory-receipts">
+            <span>{% trans "Receipts" %}</span>
+            <span class="dropdown-arrow">▶</span>
+          </button>
+          <div class="dropdown-menu-sub" id="modules-inventory-receipts">
+            {% if user_feature_permissions|feature_allowed:'inventory.receipts.temporary' %}
+              <a href="{% url 'inventory:receipt_temporary' %}" class="dropdown-item-sub">{% trans "Temporary Receipts" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.receipts.permanent' %}
+              <a href="{% url 'inventory:receipt_permanent' %}" class="dropdown-item-sub">{% trans "Permanent Receipts" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.receipts.consignment' %}
+              <a href="{% url 'inventory:receipt_consignment' %}" class="dropdown-item-sub">{% trans "Consignment Receipts" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'inventory.issues.permanent' or user_feature_permissions|feature_allowed:'inventory.issues.consumption' or user_feature_permissions|feature_allowed:'inventory.issues.consignment' %}
+        <div class="dropdown-submenu">
+          <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-inventory-issues">
+            <span>{% trans "Issues" %}</span>
+            <span class="dropdown-arrow">▶</span>
+          </button>
+          <div class="dropdown-menu-sub" id="modules-inventory-issues">
+            {% if user_feature_permissions|feature_allowed:'inventory.issues.permanent' %}
+              <a href="{% url 'inventory:issue_permanent' %}" class="dropdown-item-sub">{% trans "Permanent Issues" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.issues.consumption' %}
+              <a href="{% url 'inventory:issue_consumption' %}" class="dropdown-item-sub">{% trans "Consumption Issues" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.issues.consignment' %}
+              <a href="{% url 'inventory:issue_consignment' %}" class="dropdown-item-sub">{% trans "Consignment Issues" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' %}
+        <a href="{% url 'inventory:purchase_requests' %}" class="dropdown-item-sub">{% trans "Purchase Requests" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'inventory.requests.warehouse' %}
+        <a href="{% url 'inventory:warehouse_requests' %}" class="dropdown-item-sub">{% trans "Warehouse Requests" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' or user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' or user_feature_permissions|feature_allowed:'inventory.stocktaking.records' %}
+        <div class="dropdown-submenu">
+          <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-inventory-stocktaking">
+            <span>{% trans "Stocktaking" %}</span>
+            <span class="dropdown-arrow">▶</span>
+          </button>
+          <div class="dropdown-menu-sub" id="modules-inventory-stocktaking">
+            {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' %}
+              <a href="{% url 'inventory:stocktaking_deficit' %}" class="dropdown-item-sub">{% trans "Deficit Records" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' %}
+              <a href="{% url 'inventory:stocktaking_surplus' %}" class="dropdown-item-sub">{% trans "Surplus Records" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.records' %}
+              <a href="{% url 'inventory:stocktaking_records' %}" class="dropdown-item-sub">{% trans "Stocktaking Records" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Production Module -->
+  {% if user_feature_permissions|feature_allowed:'production.personnel' or user_feature_permissions|feature_allowed:'production.machines' or user_feature_permissions|feature_allowed:'production.work_lines' or user_feature_permissions|feature_allowed:'production.bom' or user_feature_permissions|feature_allowed:'production.processes' or user_feature_permissions|feature_allowed:'production.product_orders' or request.user.is_superuser %}
+  <div class="dropdown-submenu">
+    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-production">
+      <span class="menu-icon">⚙️</span>
+      <span>{% trans "Production" %}</span>
+      <span class="dropdown-arrow">▶</span>
+    </button>
+    <div class="dropdown-menu-sub" id="modules-production">
+      {% if user_feature_permissions|feature_allowed:'production.personnel' %}
+        <a href="{% url 'production:personnel' %}" class="dropdown-item-sub">{% trans "Personnel" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'production.machines' %}
+        <a href="{% url 'production:machines' %}" class="dropdown-item-sub">{% trans "Machines" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'production.work_lines' %}
+        <a href="{% url 'production:work_lines' %}" class="dropdown-item-sub">{% trans "Work Lines" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'production.bom' or request.user.is_superuser %}
+        <a href="{% url 'production:bom_list' %}" class="dropdown-item-sub">{% trans "BOM" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'production.processes' or request.user.is_superuser %}
+        <a href="{% url 'production:processes' %}" class="dropdown-item-sub">{% trans "Processes" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'production.product_orders' or request.user.is_superuser %}
+        <a href="{% url 'production:product_orders' %}" class="dropdown-item-sub">{% trans "Product Orders" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'production.transfer_requests' or request.user.is_superuser %}
+        <a href="{% url 'production:transfer_requests' %}" class="dropdown-item-sub">{% trans "Transfer to Line Requests" %}</a>
+      {% endif %}
+      {% if request.user.is_superuser %}
+        <a href="{% url 'production:performance_records' %}" class="dropdown-item-sub">{% trans "Performance" %}</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Quality Control Module -->
+  {% if request.user.is_superuser %}
+  <div class="dropdown-submenu">
+    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-qc">
+      <span class="menu-icon">🔬</span>
+      <span>{% trans "Quality Control" %}</span>
+      <span class="dropdown-arrow">▶</span>
+    </button>
+    <div class="dropdown-menu-sub" id="modules-qc">
+      <a href="{% url 'qc:temporary_receipts' %}" class="dropdown-item-sub">{% trans "Inspections" %}</a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Ticketing Module -->
+  {% if request.user.is_superuser %}
+  <div class="dropdown-submenu">
+    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-ticketing">
+      <span class="menu-icon">🎫</span>
+      <span>{% trans "Ticketing" %}</span>
+      <span class="dropdown-arrow">▶</span>
+    </button>
+    <div class="dropdown-menu-sub" id="modules-ticketing">
+      <div class="dropdown-submenu">
+        <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-ticketing-tickets">
+          <span>{% trans "Tickets" %}</span>
+          <span class="dropdown-arrow">▶</span>
+        </button>
+        <div class="dropdown-menu-sub" id="modules-ticketing-tickets">
+          <a href="{% url 'ticketing:ticket_create' %}" class="dropdown-item-sub">{% trans "Create Ticket" %}</a>
+          <a href="{% url 'ticketing:ticket_respond' %}" class="dropdown-item-sub">{% trans "Respond to Ticket" %}</a>
+        </div>
+      </div>
+      <div class="dropdown-submenu">
+        <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-ticketing-templates">
+          <span>{% trans "Templates" %}</span>
+          <span class="dropdown-arrow">▶</span>
+        </button>
+        <div class="dropdown-menu-sub" id="modules-ticketing-templates">
+          <a href="{% url 'ticketing:templates' %}" class="dropdown-item-sub">{% trans "Templates" %}</a>
+          <a href="{% url 'ticketing:categories' %}" class="dropdown-item-sub">{% trans "Categories" %}</a>
+          <a href="{% url 'ticketing:subcategories' %}" class="dropdown-item-sub">{% trans "Subcategories" %}</a>
+        </div>
+      </div>
+      <div class="dropdown-submenu">
+        <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-ticketing-automation">
+          <span>{% trans "Automation" %}</span>
+          <span class="dropdown-arrow">▶</span>
+        </button>
+        <div class="dropdown-menu-sub" id="modules-ticketing-automation">
+          <a href="{% url 'ticketing:auto_response' %}" class="dropdown-item-sub">{% trans "Auto Response" %}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Accounting Module -->
+  {% if user_feature_permissions|feature_allowed:'accounting.dashboard' or request.user.is_superuser %}
+  <div class="dropdown-submenu">
+    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-accounting">
+      <span class="menu-icon">💰</span>
+      <span>{% trans "Accounting" %}</span>
+      <span class="dropdown-arrow">▶</span>
+    </button>
+    <div class="dropdown-menu-sub" id="modules-accounting">
+      <a href="{% url 'accounting:dashboard' %}" class="dropdown-item-sub">{% trans "Dashboard" %}</a>
+      {% if user_feature_permissions|feature_allowed:'accounting.general.ledger' or user_feature_permissions|feature_allowed:'accounting.general.subsidiary' or user_feature_permissions|feature_allowed:'accounting.general.detail' %}
+      <div class="dropdown-submenu">
+        <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-accounting-general">
+          <span>{% trans "General" %}</span>
+          <span class="dropdown-arrow">▶</span>
+        </button>
+        <div class="dropdown-menu-sub" id="modules-accounting-general">
+          {% if user_feature_permissions|feature_allowed:'accounting.general.ledger' %}
+          <a href="{% url 'accounting:general_ledger' %}" class="dropdown-item-sub">{% trans "General Ledgers" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'accounting.general.subsidiary' %}
+          <a href="{% url 'accounting:general_subsidiary' %}" class="dropdown-item-sub">{% trans "Subsidiary Ledgers" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'accounting.general.detail' %}
+          <a href="{% url 'accounting:general_detail' %}" class="dropdown-item-sub">{% trans "Detail Ledgers" %}</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'accounting.documents.entry' or user_feature_permissions|feature_allowed:'accounting.documents.exit' %}
+      <div class="dropdown-submenu">
+        <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-accounting-documents">
+          <span>{% trans "Accounting Documents" %}</span>
+          <span class="dropdown-arrow">▶</span>
+        </button>
+        <div class="dropdown-menu-sub" id="modules-accounting-documents">
+          {% if user_feature_permissions|feature_allowed:'accounting.documents.entry' %}
+          <a href="{% url 'accounting:document_entry' %}" class="dropdown-item-sub">{% trans "Entry Document" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'accounting.documents.exit' %}
+          <a href="{% url 'accounting:document_exit' %}" class="dropdown-item-sub">{% trans "Exit Document" %}</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'accounting.treasury.expense' or user_feature_permissions|feature_allowed:'accounting.treasury.income' %}
+      <div class="dropdown-submenu">
+        <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-accounting-treasury">
+          <span>{% trans "Treasury" %}</span>
+          <span class="dropdown-arrow">▶</span>
+        </button>
+        <div class="dropdown-menu-sub" id="modules-accounting-treasury">
+          {% if user_feature_permissions|feature_allowed:'accounting.treasury.expense' %}
+          <a href="{% url 'accounting:treasury_expense' %}" class="dropdown-item-sub">{% trans "Expense Document" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'accounting.treasury.income' %}
+          <a href="{% url 'accounting:treasury_income' %}" class="dropdown-item-sub">{% trans "Income Document" %}</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'accounting.payroll.payment' or user_feature_permissions|feature_allowed:'accounting.payroll.insurance_tax' or user_feature_permissions|feature_allowed:'accounting.payroll.document' or user_feature_permissions|feature_allowed:'accounting.payroll.bank_transfer' %}
+      <div class="dropdown-submenu">
+        <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-accounting-payroll">
+          <span>{% trans "Payroll" %}</span>
+          <span class="dropdown-arrow">▶</span>
+        </button>
+        <div class="dropdown-menu-sub" id="modules-accounting-payroll">
+          {% if user_feature_permissions|feature_allowed:'accounting.payroll.payment' %}
+          <a href="{% url 'accounting:payroll_payment' %}" class="dropdown-item-sub">{% trans "پرداخت حقوق و دستمزد" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'accounting.payroll.insurance_tax' %}
+          <a href="{% url 'accounting:payroll_insurance_tax' %}" class="dropdown-item-sub">{% trans "تنظیمات بیمه و مالیات" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'accounting.payroll.document' %}
+          <a href="{% url 'accounting:payroll_document' %}" class="dropdown-item-sub">{% trans "بارگذاری اسناد حقوق و دستمزد" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'accounting.payroll.bank_transfer' %}
+          <a href="{% url 'accounting:payroll_bank_transfer' %}" class="dropdown-item-sub">{% trans "خروجی حقوق و دستمزد برای بانک" %}</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Sales Module -->
+  {% if user_feature_permissions|feature_allowed:'sales.dashboard' or request.user.is_superuser %}
+  <div class="dropdown-submenu">
+    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-sales">
+      <span class="menu-icon">🛒</span>
+      <span>{% trans "Sales" %}</span>
+      <span class="dropdown-arrow">▶</span>
+    </button>
+    <div class="dropdown-menu-sub" id="modules-sales">
+      <a href="{% url 'sales:dashboard' %}" class="dropdown-item-sub">{% trans "Dashboard" %}</a>
+      {% if user_feature_permissions|feature_allowed:'sales.invoice' %}
+      <a href="{% url 'sales:invoice_create' %}" class="dropdown-item-sub">{% trans "Sales Invoice" %}</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Human Resources Module -->
+  {% if user_feature_permissions|feature_allowed:'hr.dashboard' or request.user.is_superuser %}
+  <div class="dropdown-submenu">
+    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-hr">
+      <span class="menu-icon">👥</span>
+      <span>{% trans "Human Resources" %}</span>
+      <span class="dropdown-arrow">▶</span>
+    </button>
+    <div class="dropdown-menu-sub" id="modules-hr">
+      <a href="{% url 'hr:dashboard' %}" class="dropdown-item-sub">{% trans "Dashboard" %}</a>
+      {% if user_feature_permissions|feature_allowed:'hr.personnel' or user_feature_permissions|feature_allowed:'hr.personnel.decree' or user_feature_permissions|feature_allowed:'hr.personnel.form' or user_feature_permissions|feature_allowed:'hr.personnel.form_groups' or user_feature_permissions|feature_allowed:'hr.personnel.form_subgroups' %}
+      <div class="dropdown-submenu">
+        <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-hr-personnel">
+          <span>{% trans "Personnel" %}</span>
+          <span class="dropdown-arrow">▶</span>
+        </button>
+        <div class="dropdown-menu-sub" id="modules-hr-personnel">
+          {% if user_feature_permissions|feature_allowed:'hr.personnel' %}
+          <a href="{% url 'hr:personnel_create' %}" class="dropdown-item-sub">{% trans "Create Personnel" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'hr.personnel.decree' %}
+          <a href="{% url 'hr:personnel_decree_assignment' %}" class="dropdown-item-sub">{% trans "Assign Decree" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'hr.personnel.form' %}
+          <a href="{% url 'hr:personnel_form_create' %}" class="dropdown-item-sub">{% trans "Personnel Form" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'hr.personnel.form_groups' %}
+          <a href="{% url 'hr:personnel_form_groups' %}" class="dropdown-item-sub">{% trans "Form Groups" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'hr.personnel.form_subgroups' %}
+          <a href="{% url 'hr:personnel_form_subgroups' %}" class="dropdown-item-sub">{% trans "Form Subgroups" %}</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'hr.payroll.decrees' or user_feature_permissions|feature_allowed:'hr.payroll.decree_groups' or user_feature_permissions|feature_allowed:'hr.payroll.decree_subgroups' %}
+      <div class="dropdown-submenu">
+        <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-hr-payroll-decrees">
+          <span>{% trans "حکم‌های حقوق و دستمزد" %}</span>
+          <span class="dropdown-arrow">▶</span>
+        </button>
+        <div class="dropdown-menu-sub" id="modules-hr-payroll-decrees">
+          {% if user_feature_permissions|feature_allowed:'hr.payroll.decrees' %}
+          <a href="{% url 'hr:payroll_decrees' %}" class="dropdown-item-sub">{% trans "حکم‌ها" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'hr.payroll.decree_groups' %}
+          <a href="{% url 'hr:payroll_decree_groups' %}" class="dropdown-item-sub">{% trans "گروه‌بندی حکم‌ها" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'hr.payroll.decree_subgroups' %}
+          <a href="{% url 'hr:payroll_decree_subgroups' %}" class="dropdown-item-sub">{% trans "زیر گروه‌بندی حکم‌ها" %}</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'hr.requests.leave' or user_feature_permissions|feature_allowed:'hr.requests.sick_leave' or user_feature_permissions|feature_allowed:'hr.requests.loan' %}
+      <div class="dropdown-submenu">
+        <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-hr-requests">
+          <span>{% trans "Requests" %}</span>
+          <span class="dropdown-arrow">▶</span>
+        </button>
+        <div class="dropdown-menu-sub" id="modules-hr-requests">
+          {% if user_feature_permissions|feature_allowed:'hr.requests.leave' %}
+          <a href="{% url 'hr:requests_leave' %}" class="dropdown-item-sub">{% trans "Leave Request" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'hr.requests.sick_leave' %}
+          <a href="{% url 'hr:requests_sick_leave' %}" class="dropdown-item-sub">{% trans "Sick Leave Request" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'hr.requests.loan' %}
+          <a href="{% url 'hr:requests_loan' %}" class="dropdown-item-sub">{% trans "Loan Request" %}</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'hr.loans.management' or user_feature_permissions|feature_allowed:'hr.loans.scheduling' or user_feature_permissions|feature_allowed:'hr.loans.savings_fund' %}
+      <div class="dropdown-submenu">
+        <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-hr-loans">
+          <span>{% trans "Loans" %}</span>
+          <span class="dropdown-arrow">▶</span>
+        </button>
+        <div class="dropdown-menu-sub" id="modules-hr-loans">
+          {% if user_feature_permissions|feature_allowed:'hr.loans.management' %}
+          <a href="{% url 'hr:loans_management' %}" class="dropdown-item-sub">{% trans "Loan Management" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'hr.loans.scheduling' %}
+          <a href="{% url 'hr:loans_scheduling' %}" class="dropdown-item-sub">{% trans "Scheduling" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'hr.loans.savings_fund' %}
+          <a href="{% url 'hr:loans_savings_fund' %}" class="dropdown-item-sub">{% trans "Savings Fund" %}</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Office Automation Module -->
+  {% if user_feature_permissions|feature_allowed:'office_automation.dashboard' or request.user.is_superuser %}
+  <div class="dropdown-submenu">
+    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-office-automation">
+      <span class="menu-icon">📋</span>
+      <span>{% trans "Office Automation" %}</span>
+      <span class="dropdown-arrow">▶</span>
+    </button>
+    <div class="dropdown-menu-sub" id="modules-office-automation">
+      <a href="{% url 'office_automation:dashboard' %}" class="dropdown-item-sub">{% trans "Dashboard" %}</a>
+      {% if user_feature_permissions|feature_allowed:'office_automation.inbox.incoming' or user_feature_permissions|feature_allowed:'office_automation.inbox.write' or user_feature_permissions|feature_allowed:'office_automation.inbox.fill_form' %}
+      <div class="dropdown-submenu">
+        <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-office-automation-inbox">
+          <span>{% trans "Inbox" %}</span>
+          <span class="dropdown-arrow">▶</span>
+        </button>
+        <div class="dropdown-menu-sub" id="modules-office-automation-inbox">
+          {% if user_feature_permissions|feature_allowed:'office_automation.inbox.incoming' %}
+          <a href="{% url 'office_automation:inbox_incoming' %}" class="dropdown-item-sub">{% trans "Incoming Letters" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'office_automation.inbox.write' %}
+          <a href="{% url 'office_automation:inbox_write' %}" class="dropdown-item-sub">{% trans "Write Letter" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'office_automation.inbox.fill_form' %}
+          <a href="{% url 'office_automation:inbox_fill_form' %}" class="dropdown-item-sub">{% trans "Fill Form" %}</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'office_automation.processes.engine' or user_feature_permissions|feature_allowed:'office_automation.processes.form_connection' %}
+      <div class="dropdown-submenu">
+        <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-office-automation-processes">
+          <span>{% trans "Processes" %}</span>
+          <span class="dropdown-arrow">▶</span>
+        </button>
+        <div class="dropdown-menu-sub" id="modules-office-automation-processes">
+          {% if user_feature_permissions|feature_allowed:'office_automation.processes.engine' %}
+          <a href="{% url 'office_automation:processes_engine' %}" class="dropdown-item-sub">{% trans "Process Engine" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'office_automation.processes.form_connection' %}
+          <a href="{% url 'office_automation:processes_form_connection' %}" class="dropdown-item-sub">{% trans "Process-Form Connection" %}</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'office_automation.forms.builder' %}
+      <div class="dropdown-submenu">
+        <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-office-automation-forms">
+          <span>{% trans "Forms" %}</span>
+          <span class="dropdown-arrow">▶</span>
+        </button>
+        <div class="dropdown-menu-sub" id="modules-office-automation-forms">
+          <a href="{% url 'office_automation:forms_builder' %}" class="dropdown-item-sub">{% trans "Form Builder" %}</a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Transportation Module -->
+  {% if user_feature_permissions|feature_allowed:'transportation.dashboard' or request.user.is_superuser %}
+  <div class="dropdown-submenu">
+    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-transportation">
+      <span class="menu-icon">🚚</span>
+      <span>{% trans "Transportation" %}</span>
+      <span class="dropdown-arrow">▶</span>
+    </button>
+    <div class="dropdown-menu-sub" id="modules-transportation">
+      <a href="{% url 'transportation:dashboard' %}" class="dropdown-item-sub">{% trans "Dashboard" %}</a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Procurement Module -->
+  {% if user_feature_permissions|feature_allowed:'procurement.dashboard' or request.user.is_superuser %}
+  <div class="dropdown-submenu">
+    <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-procurement">
+      <span class="menu-icon">🛍️</span>
+      <span>{% trans "Procurement" %}</span>
+      <span class="dropdown-arrow">▶</span>
+    </button>
+    <div class="dropdown-menu-sub" id="modules-procurement">
+      <a href="{% url 'procurement:dashboard' %}" class="dropdown-item-sub">{% trans "Dashboard" %}</a>
+      {% if user_feature_permissions|feature_allowed:'procurement.purchases' %}
+      <div class="dropdown-submenu">
+        <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-procurement-purchases">
+          <span>{% trans "Purchases" %}</span>
+          <span class="dropdown-arrow">▶</span>
+        </button>
+        <div class="dropdown-menu-sub" id="modules-procurement-purchases">
+          <a href="{% url 'procurement:purchases' %}" class="dropdown-item-sub">{% trans "Purchases" %}</a>
+        </div>
+      </div>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'procurement.buyers' %}
+      <div class="dropdown-submenu">
+        <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-procurement-buyers">
+          <span>{% trans "Buyers" %}</span>
+          <span class="dropdown-arrow">▶</span>
+        </button>
+        <div class="dropdown-menu-sub" id="modules-procurement-buyers">
+          <a href="{% url 'procurement:buyer_create' %}" class="dropdown-item-sub">{% trans "Define Buyers" %}</a>
+          <a href="{% url 'procurement:buyer_assignment' %}" class="dropdown-item-sub">{% trans "Assign Buyers" %}</a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+

@@ -1,10 +1,15 @@
-# accounting/views.py - Views
+# accounting/views.py - Views (Placeholder Views)
 
-**هدف**: Views برای ماژول حسابداری
+**هدف**: Placeholder views برای ماژول حسابداری
+
+**نکته**: این فایل شامل placeholder views است. برای views پیاده‌سازی شده، به فایل‌های README زیر مراجعه کنید:
+- `accounting/views/README_BASE.md`: Base views و mixins
+- `accounting/views/README_FISCAL_YEARS.md`: CRUD views برای سال‌های مالی
+- `accounting/views/README_ACCOUNTS.md`: CRUD views برای حساب‌ها (Chart of Accounts)
 
 ---
 
-## Views
+## Placeholder Views
 
 ### Dashboard
 
@@ -148,51 +153,6 @@
 **Context**:
 - `active_module`: `'accounting'`
 - `page_title`: `'سند حقوق دستمزد'`
-
----
-
-#### `PayrollDecreeListView(FeaturePermissionRequiredMixin, TemplateView)`
-
-**توضیح**: List view برای حکم‌ها.
-
-**Attributes**:
-- `template_name`: `'accounting/payroll/decree_list.html'`
-- `feature_code`: `'accounting.payroll.decrees'`
-- `required_action`: `'view'`
-
-**Context**:
-- `active_module`: `'accounting'`
-- `page_title`: `'حکم‌ها'`
-
----
-
-#### `PayrollDecreeGroupListView(FeaturePermissionRequiredMixin, TemplateView)`
-
-**توضیح**: List view برای گروه‌بندی حکم‌ها.
-
-**Attributes**:
-- `template_name`: `'accounting/payroll/decree_group_list.html'`
-- `feature_code`: `'accounting.payroll.decree_groups'`
-- `required_action`: `'view'`
-
-**Context**:
-- `active_module`: `'accounting'`
-- `page_title`: `'گروه‌بندی حکم‌ها'`
-
----
-
-#### `PayrollDecreeSubGroupListView(FeaturePermissionRequiredMixin, TemplateView)`
-
-**توضیح**: List view برای زیر گروه‌بندی حکم‌ها.
-
-**Attributes**:
-- `template_name`: `'accounting/payroll/decree_subgroup_list.html'`
-- `feature_code`: `'accounting.payroll.decree_subgroups'`
-- `required_action`: `'view'`
-
-**Context**:
-- `active_module`: `'accounting'`
-- `page_title`: `'زیر گروه‌بندی حکم‌ها'`
 
 ---
 

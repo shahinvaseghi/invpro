@@ -105,6 +105,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'ui.context_processors.active_module',
                 'shared.context_processors.active_company',
+                'accounting.context_processors.active_fiscal_year',
             ],
         },
     },

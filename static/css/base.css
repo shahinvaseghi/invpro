@@ -619,6 +619,38 @@ body {
   color: #fff;
 }
 
+.fiscal-year-switcher {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 16px;
+}
+
+[dir="rtl"] .fiscal-year-switcher {
+  margin-right: 0;
+  margin-left: 16px;
+}
+
+.fiscal-year-select {
+  background-color: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-weight: 600;
+}
+
+.fiscal-year-select:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.fiscal-year-select option {
+  background-color: var(--color-primary);
+  color: #fff;
+}
+
 .language-switcher {
   display: inline-flex;
   align-items: center;

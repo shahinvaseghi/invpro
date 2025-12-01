@@ -251,54 +251,209 @@
       <span class="section-icon">▼</span>
     </button>
     <div class="section-content" id="accounting">
-      <a href="{% url 'accounting:dashboard' %}" class="nav-link">{% trans "Dashboard" %}</a>
-      
-      <div class="nav-group">
-        <button type="button" class="nav-group-header" data-submenu="accounting-general">
-          <span>{% trans "General" %}</span>
-          <span class="nav-group-icon">▼</span>
-        </button>
-        <div class="nav-group-content" id="accounting-general">
-          <a href="{% url 'accounting:general_ledger' %}" class="nav-link-sub">{% trans "General Ledger" %}</a>
-          <a href="{% url 'accounting:general_subsidiary' %}" class="nav-link-sub">{% trans "Subsidiary Ledgers" %}</a>
-          <a href="{% url 'accounting:general_detail' %}" class="nav-link-sub">{% trans "Detail Ledgers" %}</a>
-        </div>
-      </div>
+      <!-- Fiscal Years -->
+      {% if user_feature_permissions|feature_allowed:'accounting.fiscal_years' or request.user.is_superuser %}
+        <a href="{% url 'accounting:fiscal_years' %}" class="nav-link">{% trans "سال مالی" %}</a>
+      {% endif %}
 
-      <div class="nav-group">
-        <button type="button" class="nav-group-header" data-submenu="accounting-documents">
-          <span>{% trans "Accounting Documents" %}</span>
-          <span class="nav-group-icon">▼</span>
-        </button>
-        <div class="nav-group-content" id="accounting-documents">
-          <a href="{% url 'accounting:document_entry' %}" class="nav-link-sub">{% trans "Entry Document" %}</a>
-          <a href="{% url 'accounting:document_exit' %}" class="nav-link-sub">{% trans "Exit Document" %}</a>
-        </div>
-      </div>
+      <!-- Chart of Accounts -->
+      {% if user_feature_permissions|feature_allowed:'accounting.accounts' or request.user.is_superuser %}
+        <a href="{% url 'accounting:accounts' %}" class="nav-link">{% trans "چارت حساب‌ها" %}</a>
+      {% endif %}
 
-      <div class="nav-group">
-        <button type="button" class="nav-group-header" data-submenu="accounting-treasury">
-          <span>{% trans "Treasury" %}</span>
-          <span class="nav-group-icon">▼</span>
-        </button>
-        <div class="nav-group-content" id="accounting-treasury">
-          <a href="{% url 'accounting:treasury_expense' %}" class="nav-link-sub">{% trans "Expense Document" %}</a>
-          <a href="{% url 'accounting:treasury_income' %}" class="nav-link-sub">{% trans "Income Document" %}</a>
+      <!-- General Section -->
+      {% if user_feature_permissions|feature_allowed:'accounting.general.ledger' or user_feature_permissions|feature_allowed:'accounting.general.subsidiary' or user_feature_permissions|feature_allowed:'accounting.general.detail' or request.user.is_superuser %}
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="accounting-general">
+            <span>{% trans "عمومی" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="accounting-general">
+            {% if user_feature_permissions|feature_allowed:'accounting.general.ledger' or request.user.is_superuser %}
+              <a href="{% url 'accounting:general_ledger' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "اسناد کل" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.general.subsidiary' or request.user.is_superuser %}
+              <a href="{% url 'accounting:general_subsidiary' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "معین‌ها" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.general.detail' or request.user.is_superuser %}
+              <a href="{% url 'accounting:general_detail' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "تفصیلی‌ها" %}</a>
+            {% endif %}
+          </div>
         </div>
-      </div>
+      {% endif %}
 
-      <div class="nav-group">
-        <button type="button" class="nav-group-header" data-submenu="accounting-payroll">
-          <span>{% trans "Payroll" %}</span>
-          <span class="nav-group-icon">▼</span>
-        </button>
-        <div class="nav-group-content" id="accounting-payroll">
-          <a href="{% url 'accounting:payroll_document' %}" class="nav-link-sub">{% trans "Payroll Document" %}</a>
-          <a href="{% url 'accounting:payroll_decrees' %}" class="nav-link-sub">{% trans "Decrees" %}</a>
-          <a href="{% url 'accounting:payroll_decree_groups' %}" class="nav-link-sub">{% trans "Decree Groups" %}</a>
-          <a href="{% url 'accounting:payroll_decree_subgroups' %}" class="nav-link-sub">{% trans "Decree Sub-Groups" %}</a>
+      <!-- Accounting Documents -->
+      {% if user_feature_permissions|feature_allowed:'accounting.documents.entry' or user_feature_permissions|feature_allowed:'accounting.documents.exit' or request.user.is_superuser %}
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="accounting-documents">
+            <span>{% trans "اسناد حسابداری" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="accounting-documents">
+            {% if user_feature_permissions|feature_allowed:'accounting.documents.entry' or request.user.is_superuser %}
+              <a href="{% url 'accounting:document_entry' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "سند ورودی" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.documents.exit' or request.user.is_superuser %}
+              <a href="{% url 'accounting:document_exit' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "سند خروجی" %}</a>
+            {% endif %}
+          </div>
         </div>
-      </div>
+      {% endif %}
+
+      <!-- Treasury -->
+      {% if user_feature_permissions|feature_allowed:'accounting.treasury.expense' or user_feature_permissions|feature_allowed:'accounting.treasury.income' or user_feature_permissions|feature_allowed:'accounting.treasury.accounts' or user_feature_permissions|feature_allowed:'accounting.treasury.transactions' or user_feature_permissions|feature_allowed:'accounting.treasury.checks' or user_feature_permissions|feature_allowed:'accounting.treasury.reconciliation' or request.user.is_superuser %}
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="accounting-treasury">
+            <span>{% trans "خزانه" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="accounting-treasury">
+            {% if user_feature_permissions|feature_allowed:'accounting.treasury.expense' or request.user.is_superuser %}
+              <a href="{% url 'accounting:treasury_expense' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "سند هزینه" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.treasury.income' or request.user.is_superuser %}
+              <a href="{% url 'accounting:treasury_income' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "سند درآمد" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.treasury.accounts' or request.user.is_superuser %}
+              <a href="{% url 'accounting:treasury_accounts' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "حساب‌های نقدی و بانکی" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.treasury.transactions' or request.user.is_superuser %}
+              <a href="{% url 'accounting:treasury_transactions' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "تراکنش‌های خزانه" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.treasury.checks' or request.user.is_superuser %}
+              <a href="{% url 'accounting:treasury_checks' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "مدیریت چک‌ها" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.treasury.reconciliation' or request.user.is_superuser %}
+              <a href="{% url 'accounting:treasury_reconciliation' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "تطبیق بانکی" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Income & Expense -->
+      {% if user_feature_permissions|feature_allowed:'accounting.income_expense.income' or user_feature_permissions|feature_allowed:'accounting.income_expense.expense' or user_feature_permissions|feature_allowed:'accounting.income_expense.categories' or user_feature_permissions|feature_allowed:'accounting.income_expense.cost_centers' or request.user.is_superuser %}
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="accounting-income-expense">
+            <span>{% trans "درآمد و هزینه" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="accounting-income-expense">
+            {% if user_feature_permissions|feature_allowed:'accounting.income_expense.income' or request.user.is_superuser %}
+              <a href="{% url 'accounting:income_expense_income' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "ثبت درآمد" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.income_expense.expense' or request.user.is_superuser %}
+              <a href="{% url 'accounting:income_expense_expense' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "ثبت هزینه" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.income_expense.categories' or request.user.is_superuser %}
+              <a href="{% url 'accounting:income_expense_categories' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "دسته‌بندی درآمد و هزینه" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.income_expense.cost_centers' or request.user.is_superuser %}
+              <a href="{% url 'accounting:cost_centers' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "مرکز هزینه" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Party Accounts -->
+      {% if user_feature_permissions|feature_allowed:'accounting.parties.list' or user_feature_permissions|feature_allowed:'accounting.parties.accounts' or user_feature_permissions|feature_allowed:'accounting.parties.transactions' or request.user.is_superuser %}
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="accounting-parties">
+            <span>{% trans "طرف حساب‌ها" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="accounting-parties">
+            {% if user_feature_permissions|feature_allowed:'accounting.parties.list' or request.user.is_superuser %}
+              <a href="{% url 'accounting:parties' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "طرف حساب‌ها" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.parties.accounts' or request.user.is_superuser %}
+              <a href="{% url 'accounting:party_accounts' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "حساب‌های طرف حساب" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.parties.transactions' or request.user.is_superuser %}
+              <a href="{% url 'accounting:party_transactions' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "تراکنش‌های طرف حساب" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Payroll -->
+      {% if user_feature_permissions|feature_allowed:'accounting.payroll.payment' or user_feature_permissions|feature_allowed:'accounting.payroll.insurance_tax' or user_feature_permissions|feature_allowed:'accounting.payroll.document' or user_feature_permissions|feature_allowed:'accounting.payroll.bank_transfer' or request.user.is_superuser %}
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="accounting-payroll">
+            <span>{% trans "Payroll" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="accounting-payroll">
+            {% if user_feature_permissions|feature_allowed:'accounting.payroll.payment' or request.user.is_superuser %}
+              <a href="{% url 'accounting:payroll_payment' %}" class="nav-link-sub">{% trans "پرداخت حقوق و دستمزد" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.payroll.insurance_tax' or request.user.is_superuser %}
+              <a href="{% url 'accounting:payroll_insurance_tax' %}" class="nav-link-sub">{% trans "تنظیمات بیمه و مالیات" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.payroll.document' or request.user.is_superuser %}
+              <a href="{% url 'accounting:payroll_document' %}" class="nav-link-sub">{% trans "بارگذاری اسناد حقوق و دستمزد" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.payroll.bank_transfer' or request.user.is_superuser %}
+              <a href="{% url 'accounting:payroll_bank_transfer' %}" class="nav-link-sub">{% trans "خروجی حقوق و دستمزد برای بانک" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Tax Compliance -->
+      {% if user_feature_permissions|feature_allowed:'accounting.tax.vat' or user_feature_permissions|feature_allowed:'accounting.tax.ttms' or user_feature_permissions|feature_allowed:'accounting.tax.seasonal' or request.user.is_superuser %}
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="accounting-tax">
+            <span>{% trans "مالیات" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="accounting-tax">
+            {% if user_feature_permissions|feature_allowed:'accounting.tax.vat' or request.user.is_superuser %}
+              <a href="{% url 'accounting:tax_vat' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "مدیریت VAT" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.tax.ttms' or request.user.is_superuser %}
+              <a href="{% url 'accounting:tax_ttms' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "TTMS" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.tax.seasonal' or request.user.is_superuser %}
+              <a href="{% url 'accounting:tax_seasonal' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "گزارش فصلی" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Financial Reports -->
+      {% if user_feature_permissions|feature_allowed:'accounting.reports.balance_sheet' or user_feature_permissions|feature_allowed:'accounting.reports.income_statement' or user_feature_permissions|feature_allowed:'accounting.reports.account_movements' or user_feature_permissions|feature_allowed:'accounting.reports.trial_balance' or user_feature_permissions|feature_allowed:'accounting.reports.party_statement' or user_feature_permissions|feature_allowed:'accounting.reports.vat' or request.user.is_superuser %}
+        <div class="nav-group">
+          <button type="button" class="nav-group-header" data-submenu="accounting-reports">
+            <span>{% trans "گزارش‌های مالی" %}</span>
+            <span class="nav-group-icon">▼</span>
+          </button>
+          <div class="nav-group-content" id="accounting-reports">
+            {% if user_feature_permissions|feature_allowed:'accounting.reports.balance_sheet' or request.user.is_superuser %}
+              <a href="{% url 'accounting:report_balance_sheet' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "ترازنامه" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.reports.income_statement' or request.user.is_superuser %}
+              <a href="{% url 'accounting:report_income_statement' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "صورت سود و زیان" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.reports.account_movements' or request.user.is_superuser %}
+              <a href="{% url 'accounting:report_account_movements' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "گردش حساب" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.reports.trial_balance' or request.user.is_superuser %}
+              <a href="{% url 'accounting:report_trial_balance' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "تراز آزمایشی" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.reports.party_statement' or request.user.is_superuser %}
+              <a href="{% url 'accounting:report_party_statement' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "گزارش تفصیلی طرف حساب" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.reports.vat' or request.user.is_superuser %}
+              <a href="{% url 'accounting:report_vat' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "گزارش VAT" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Settings -->
+      {% if user_feature_permissions|feature_allowed:'accounting.settings' or request.user.is_superuser %}
+        <a href="{% url 'accounting:settings' %}" class="nav-link">{% trans "تنظیمات" %}</a>
+      {% endif %}
     </div>
   </div>
 
@@ -334,6 +489,18 @@
           <a href="{% url 'hr:personnel_form_create' %}" class="nav-link-sub">{% trans "Create Personnel Form" %}</a>
           <a href="{% url 'hr:personnel_form_groups' %}" class="nav-link-sub">{% trans "Personnel Form Groups" %}</a>
           <a href="{% url 'hr:personnel_form_subgroups' %}" class="nav-link-sub">{% trans "Personnel Form Sub-Groups" %}</a>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <button type="button" class="nav-group-header" data-submenu="hr-payroll-decrees">
+          <span>{% trans "حکم‌های حقوق و دستمزد" %}</span>
+          <span class="nav-group-icon">▼</span>
+        </button>
+        <div class="nav-group-content" id="hr-payroll-decrees">
+          <a href="{% url 'hr:payroll_decrees' %}" class="nav-link-sub">{% trans "حکم‌ها" %}</a>
+          <a href="{% url 'hr:payroll_decree_groups' %}" class="nav-link-sub">{% trans "گروه‌بندی حکم‌ها" %}</a>
+          <a href="{% url 'hr:payroll_decree_subgroups' %}" class="nav-link-sub">{% trans "زیر گروه‌بندی حکم‌ها" %}</a>
         </div>
       </div>
 

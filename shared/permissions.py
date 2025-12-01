@@ -539,6 +539,30 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.VIEW_ALL,
         ],
     ),
+    # Accounting – Fiscal Years
+    "accounting.fiscal_years": FeaturePermission(
+        code="accounting.fiscal_years",
+        label=_("Fiscal Years"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    # Accounting – Chart of Accounts
+    "accounting.accounts": FeaturePermission(
+        code="accounting.accounts",
+        label=_("Chart of Accounts"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
     # Accounting – General
     "accounting.general.ledger": FeaturePermission(
         code="accounting.general.ledger",
@@ -632,9 +656,31 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         ],
     ),
     # Accounting – Payroll
+    "accounting.payroll.payment": FeaturePermission(
+        code="accounting.payroll.payment",
+        label=_("Payroll Payment"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "accounting.payroll.insurance_tax": FeaturePermission(
+        code="accounting.payroll.insurance_tax",
+        label=_("Insurance and Tax Settings"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
     "accounting.payroll.document": FeaturePermission(
         code="accounting.payroll.document",
-        label=_("Payroll Document"),
+        label=_("Payroll Document Upload"),
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
@@ -645,31 +691,9 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.REJECT,
         ],
     ),
-    "accounting.payroll.decrees": FeaturePermission(
-        code="accounting.payroll.decrees",
-        label=_("Decrees"),
-        actions=[
-            PermissionAction.VIEW_OWN,
-            PermissionAction.VIEW_ALL,
-            PermissionAction.CREATE,
-            PermissionAction.EDIT_OWN,
-            PermissionAction.DELETE_OWN,
-        ],
-    ),
-    "accounting.payroll.decree_groups": FeaturePermission(
-        code="accounting.payroll.decree_groups",
-        label=_("Decree Groups"),
-        actions=[
-            PermissionAction.VIEW_OWN,
-            PermissionAction.VIEW_ALL,
-            PermissionAction.CREATE,
-            PermissionAction.EDIT_OWN,
-            PermissionAction.DELETE_OWN,
-        ],
-    ),
-    "accounting.payroll.decree_subgroups": FeaturePermission(
-        code="accounting.payroll.decree_subgroups",
-        label=_("Decree Sub-Groups"),
+    "accounting.payroll.bank_transfer": FeaturePermission(
+        code="accounting.payroll.bank_transfer",
+        label=_("Bank Transfer Output"),
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
@@ -756,6 +780,40 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
     "hr.personnel.form_subgroups": FeaturePermission(
         code="hr.personnel.form_subgroups",
         label=_("Personnel Form Sub-Groups"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    # HR - Payroll Decrees
+    "hr.payroll.decrees": FeaturePermission(
+        code="hr.payroll.decrees",
+        label=_("Payroll Decrees"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "hr.payroll.decree_groups": FeaturePermission(
+        code="hr.payroll.decree_groups",
+        label=_("Decree Groups"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "hr.payroll.decree_subgroups": FeaturePermission(
+        code="hr.payroll.decree_subgroups",
+        label=_("Decree Sub-Groups"),
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
