@@ -444,3 +444,152 @@ class SettingsView(FeaturePermissionRequiredMixin, TemplateView):
         return context
 
 
+# Document Attachments (بارگذاری اسناد) - imported from views package
+
+# Placeholder views for new menu items
+class AccountingDocumentCreateView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/documents/create.html'
+    feature_code = 'accounting.documents.create'
+    required_action = 'view'
+
+class AccountingDocumentListView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/documents/list.html'
+    feature_code = 'accounting.documents.list'
+    required_action = 'view'
+
+class AccountingDocumentStatusView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/documents/status.html'
+    feature_code = 'accounting.documents.status'
+    required_action = 'view'
+
+class TafsiliMovementsView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/reports/tafsili_movements.html'
+    feature_code = 'accounting.documents.tafsili_movements'
+    required_action = 'view'
+
+class TreasuryReceiveView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/treasury/receive.html'
+    feature_code = 'accounting.treasury.receive'
+    required_action = 'view'
+
+class TreasuryPayView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/treasury/pay.html'
+    feature_code = 'accounting.treasury.pay'
+    required_action = 'view'
+
+class TreasuryTransferView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/treasury/transfer.html'
+    feature_code = 'accounting.treasury.transfer'
+    required_action = 'view'
+
+class TreasuryCashReportView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/treasury/cash_report.html'
+    feature_code = 'accounting.treasury.cash_report'
+    required_action = 'view'
+
+class CostAllocationView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/income_expense/cost_allocation.html'
+    feature_code = 'accounting.income_expense.cost_allocation'
+    required_action = 'view'
+
+class IncomeReportView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/income_expense/income_report.html'
+    feature_code = 'accounting.income_expense.income_report'
+    required_action = 'view'
+
+class ExpenseReportView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/income_expense/expense_report.html'
+    feature_code = 'accounting.income_expense.expense_report'
+    required_action = 'view'
+
+class CostCenterReportView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/income_expense/cost_center_report.html'
+    feature_code = 'accounting.income_expense.cost_center_report'
+    required_action = 'view'
+
+class PartyMovementsView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/parties/movements.html'
+    feature_code = 'accounting.parties.movements'
+    required_action = 'view'
+
+class PartyBalanceReportView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/parties/balance_report.html'
+    feature_code = 'accounting.parties.balance_report'
+    required_action = 'view'
+
+class TaxValidationView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/tax/validation.html'
+    feature_code = 'accounting.tax.validation'
+    required_action = 'view'
+
+class TaxDiscrepancyReportView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/tax/discrepancy_report.html'
+    feature_code = 'accounting.tax.discrepancy_report'
+    required_action = 'view'
+
+class ReportCashFlowView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/reports/cash_flow.html'
+    feature_code = 'accounting.reports.cash_flow'
+    required_action = 'view'
+
+class ReportTafsiliCostCenterView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/reports/tafsili_cost_center.html'
+    feature_code = 'accounting.reports.tafsili_cost_center'
+    required_action = 'view'
+
+class ReportChecksView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/reports/checks.html'
+    feature_code = 'accounting.reports.check_report'
+    required_action = 'view'
+
+class ReportTreasuryView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/reports/treasury.html'
+    feature_code = 'accounting.reports.treasury_report'
+    required_action = 'view'
+
+class ReportMonthlyView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/reports/monthly.html'
+    feature_code = 'accounting.reports.monthly'
+    required_action = 'view'
+
+class AttachmentAttachView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/attachments/attach.html'
+    feature_code = 'accounting.attachments.attach_to_document'
+    required_action = 'view'
+
+class CloseTempAccountsView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/utils/close_temp_accounts.html'
+    feature_code = 'accounting.utils.close_temp'
+    required_action = 'view'
+
+class OpeningEntryView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/utils/opening_entry.html'
+    feature_code = 'accounting.utils.opening'
+    required_action = 'view'
+
+class ClosingEntryView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/utils/closing_entry.html'
+    feature_code = 'accounting.utils.closing'
+    required_action = 'view'
+
+class IntegrationView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/utils/integration.html'
+    feature_code = 'accounting.utils.integration'
+    required_action = 'view'
+
+class BackupRestoreView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/utils/backup_restore.html'
+    feature_code = 'accounting.utils.backup'
+    required_action = 'view'
+
+class SettingsTreasuryView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/settings/treasury.html'
+    feature_code = 'accounting.settings.treasury'
+    required_action = 'view'
+
+class SettingsTaxView(FeaturePermissionRequiredMixin, TemplateView):
+    template_name = 'accounting/settings/tax.html'
+    feature_code = 'accounting.settings.tax'
+    required_action = 'view'
+
+

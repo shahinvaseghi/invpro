@@ -14,6 +14,30 @@ from .accounts import (
     AccountUpdateView,
     AccountDeleteView,
 )
+from .gl_accounts import (
+    GLAccountListView,
+    GLAccountCreateView,
+    GLAccountUpdateView,
+    GLAccountDeleteView,
+)
+from .sub_accounts import (
+    SubAccountListView,
+    SubAccountCreateView,
+    SubAccountUpdateView,
+    SubAccountDeleteView,
+)
+from .tafsili_accounts import (
+    TafsiliAccountListView,
+    TafsiliAccountCreateView,
+    TafsiliAccountUpdateView,
+    TafsiliAccountDeleteView,
+)
+from .tafsili_hierarchy import (
+    TafsiliHierarchyListView,
+    TafsiliHierarchyCreateView,
+    TafsiliHierarchyUpdateView,
+    TafsiliHierarchyDeleteView,
+)
 
 # Import placeholder views from parent views.py for backward compatibility
 # Using TYPE_CHECKING to avoid circular import
@@ -70,6 +94,26 @@ __all__ = [
     'AccountCreateView',
     'AccountUpdateView',
     'AccountDeleteView',
+    # GL Accounts (حساب کل)
+    'GLAccountListView',
+    'GLAccountCreateView',
+    'GLAccountUpdateView',
+    'GLAccountDeleteView',
+    # Sub Accounts (حساب معین)
+    'SubAccountListView',
+    'SubAccountCreateView',
+    'SubAccountUpdateView',
+    'SubAccountDeleteView',
+    # Tafsili Accounts (حساب تفصیلی)
+    'TafsiliAccountListView',
+    'TafsiliAccountCreateView',
+    'TafsiliAccountUpdateView',
+    'TafsiliAccountDeleteView',
+    # Tafsili Hierarchy (تفصیلی چند سطحی)
+    'TafsiliHierarchyListView',
+    'TafsiliHierarchyCreateView',
+    'TafsiliHierarchyUpdateView',
+    'TafsiliHierarchyDeleteView',
     # Placeholder views
     'AccountingDashboardView',
     'GeneralLedgerListView',
