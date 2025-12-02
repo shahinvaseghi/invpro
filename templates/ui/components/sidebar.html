@@ -289,9 +289,6 @@
             {% if user_feature_permissions|feature_allowed:'accounting.base.parties' or request.user.is_superuser %}
               <a href="{% url 'accounting:parties' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "طرف حساب‌ها" %}</a>
             {% endif %}
-            {% if user_feature_permissions|feature_allowed:'accounting.base.party_accounts' or request.user.is_superuser %}
-              <a href="{% url 'accounting:party_accounts' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "حساب‌های طرف حساب" %}</a>
-            {% endif %}
             {% if user_feature_permissions|feature_allowed:'accounting.base.cash_accounts' or request.user.is_superuser %}
               <a href="{% url 'accounting:treasury_accounts' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "حساب‌های نقدی و بانکی" %}</a>
             {% endif %}
@@ -417,9 +414,6 @@
           <div class="nav-group-content" id="accounting-parties">
             {% if user_feature_permissions|feature_allowed:'accounting.parties.list' or request.user.is_superuser %}
               <a href="{% url 'accounting:parties' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "لیست طرف حساب‌ها" %}</a>
-            {% endif %}
-            {% if user_feature_permissions|feature_allowed:'accounting.parties.accounts' or request.user.is_superuser %}
-              <a href="{% url 'accounting:party_accounts' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "حساب‌های طرف حساب" %}</a>
             {% endif %}
             {% if user_feature_permissions|feature_allowed:'accounting.parties.movements' or request.user.is_superuser %}
               <a href="{% url 'accounting:party_movements' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "گردش طرف حساب" %}</a>

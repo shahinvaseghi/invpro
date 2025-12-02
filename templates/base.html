@@ -854,7 +854,15 @@
             
             // Toggle current dropdown
             if (dropdown) {
+              const isOpening = !dropdown.classList.contains('open');
               dropdown.classList.toggle('open');
+              
+              // Toggle button active state
+              if (isOpening) {
+                this.classList.add('active');
+              } else {
+                this.classList.remove('active');
+              }
             }
           });
         });

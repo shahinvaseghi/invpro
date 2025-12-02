@@ -184,7 +184,9 @@ body {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
-  min-width: 220px;
+  min-width: 250px;
+  max-width: 350px;
+  width: auto;
   background-color: #fff;
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 8px;
@@ -195,9 +197,22 @@ body {
   transition: all 0.2s ease;
   z-index: 1000;
   padding: 8px 0;
-  max-height: 400px;
+  max-height: 80vh;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+/* Special styling for modules menu - wider but still constrained */
+#menu-modules {
+  max-width: 350px;
+  min-width: 250px;
+  width: auto;
+}
+
+/* Prevent nested scrollbars in dropdown submenus */
+.dropdown-menu .dropdown-menu-sub {
+  overflow-y: visible !important;
+  max-height: none !important;
 }
 
 [dir="rtl"] .dropdown-menu {
@@ -298,9 +313,10 @@ body {
 .dropdown-menu-sub.open {
   opacity: 1;
   visibility: visible;
-  max-height: 500px;
+  max-height: none;
   padding: 4px 0;
   overflow-y: visible;
+  overflow-x: hidden;
 }
 
 .dropdown-item-sub {

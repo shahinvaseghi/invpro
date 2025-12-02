@@ -16,6 +16,7 @@ from shared.models import (
     TimeStampedModel,
     User,
 )
+from accounting.models import get_fiscal_year_from_date
 from .utils.codes import generate_sequential_code
 
 
@@ -770,7 +771,7 @@ class PurchaseRequest(InventoryBaseModel, LockableModel, FiscalYearMixin):
         FULFILLED = "fulfilled", _("Fulfilled")
         CANCELLED = "cancelled", _("Cancelled")
 
-    request_code = models.CharField(max_length=20, unique=True)
+    request_code = models.CharField(max_length=20)
     request_date = models.DateField(default=timezone.now)
     requested_by = models.ForeignKey(
         User,
@@ -2116,7 +2117,7 @@ class WarehouseRequest(InventoryBaseModel, LockableModel, FiscalYearMixin):
     Warehouse request for issuing materials to departments, production, or other internal use.
     Pattern: WRQ-YYYYMM-XXXXXX
     """
-    request_code = models.CharField(max_length=20, unique=True)
+    request_code = models.CharField(max_length=20)
     request_date = models.DateField(default=timezone.now)
     
     item = models.ForeignKey(
@@ -2217,6 +2218,49 @@ class WarehouseRequest(InventoryBaseModel, LockableModel, FiscalYearMixin):
     notes = models.TextField(blank=True)
     attachments = models.JSONField(default=list, blank=True)
     request_metadata = models.JSONField(default=dict, blank=True)
+
+    def _generate_request_code(self) -> str:
+        """
+        Generates a unique code following the pattern WRQ-YYYYMM-XXXXXX scoped per company.
+        """
+        now = timezone.now()
+        month_year = now.strftime("%Y%m")
+        prefix = f"WRQ-{month_year}"
+        last_request = (
+            WarehouseRequest.objects.filter(
+                company_id=self.company_id,
+                request_code__startswith=prefix,
+            )
+            .order_by("-request_code")
+            .first()
+        )
+        if last_request and last_request.request_code:
+            try:
+                sequence = int(last_request.request_code.split("-")[-1])
+            except (ValueError, IndexError):
+                sequence = 0
+        else:
+            sequence = 0
+        return f"{prefix}-{sequence + 1:06d}"
+
+    def save(self, *args, **kwargs):
+        """Auto-generate request_code if not provided."""
+        if not self.request_code or not self.request_code.strip():
+            self.request_code = self._generate_request_code()
+        
+        # Ensure item_code is set from item if not already set
+        if self.item and not self.item_code:
+            self.item_code = self.item.item_code or self.item.full_item_code or ''
+        
+        # Ensure warehouse_code is set from warehouse if not already set
+        if self.warehouse and not self.warehouse_code:
+            self.warehouse_code = self.warehouse.public_code or ''
+        
+        # Ensure department_unit_code is set from department_unit if not already set
+        if self.department_unit and not self.department_unit_code:
+            self.department_unit_code = self.department_unit.public_code or ''
+        
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = _("Warehouse Request")

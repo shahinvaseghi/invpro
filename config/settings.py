@@ -49,6 +49,8 @@ CSRF_USE_SESSIONS = False
 # Application definition
 
 INSTALLED_APPS = [
+    'unfold',  # Unfold admin theme (must be before django.contrib.admin)
+    'unfold.contrib.filters',  # Unfold filters
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -289,3 +291,34 @@ LOGGING = {
         },
     },
 }
+
+
+# ---------------------------------------------------------------------------
+# Unfold admin theme configuration
+# ---------------------------------------------------------------------------
+
+UNFOLD = {
+    "SITE_TITLE": "مدیریت وب گاه | UNFOLD",
+    "SITE_HEADER": "مدیریت وب گاه",
+    "SITE_URL": "/",
+    "SITE_SYMBOL": "inventory_2",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "ENVIRONMENT": "config.settings.environment_callback",
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+    },
+    "STYLES": [
+        {
+            "source": "https://fonts.googleapis.com/css2?family=Vazir:wght@400;500;600;700&display=swap",
+            "pipeline": False,
+        },
+    ],
+    "SCRIPTS": [],
+}
+
+
+def environment_callback(request):
+    """Environment callback for Unfold."""
+    return "Development" if DEBUG else "Production"

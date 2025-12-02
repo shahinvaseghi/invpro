@@ -276,13 +276,14 @@ class LineFormsetMixin:
     formset_class = None
     formset_prefix: str = 'lines'
     
-    def build_line_formset(self, data=None, instance=None, company_id: Optional[int] = None, request=None):
+    def build_line_formset(self, data=None, instance=None, company_id: Optional[int] = None, request=None, initial=None):
         """Build line formset for the document."""
         logger.info("=" * 80)
         logger.info("LineFormsetMixin.build_line_formset() called")
         logger.info(f"data is None: {data is None}")
         logger.info(f"instance: {instance}")
         logger.info(f"company_id: {company_id}")
+        logger.info(f"initial: {initial}")
         if instance is None:
             instance = getattr(self, "object", None)
             logger.info(f"Instance from self.object: {instance}")
@@ -310,6 +311,9 @@ class LineFormsetMixin:
         if data is not None:
             kwargs['data'] = data
             logger.info(f"Data provided, keys: {list(data.keys())[:10]}...")
+        if initial is not None:
+            kwargs['initial'] = initial
+            logger.info(f"Initial data provided: {initial}")
         logger.info(f"Formset kwargs: instance={instance}, prefix={self.formset_prefix}, company_id={company_id}")
         formset = self.formset_class(**kwargs)
         logger.info(f"Formset created, forms count: {len(formset.forms)}")

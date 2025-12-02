@@ -1,8 +1,15 @@
 """
 Views for accounting module.
 """
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, CreateView
+from django.http import HttpResponseRedirect
+from django.urls import reverse, reverse_lazy, NoReverseMatch
+from django.contrib import messages
+from django.utils.translation import gettext_lazy as _
 from shared.mixins import FeaturePermissionRequiredMixin
+from accounting.views.base import AccountingBaseView
+from accounting.models import CostCenter, IncomeExpenseCategory, Party, PartyAccount
+from accounting.forms import CostCenterForm, IncomeExpenseCategoryForm, PartyForm, PartyAccountForm
 
 
 class AccountingDashboardView(FeaturePermissionRequiredMixin, TemplateView):
@@ -255,6 +262,43 @@ class IncomeExpenseCategoriesView(FeaturePermissionRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'accounting'
         context['page_title'] = 'دسته‌بندی درآمد و هزینه'
+        context['create_url'] = reverse('accounting:income_expense_category_create')
+        return context
+
+
+class IncomeExpenseCategoryCreateView(FeaturePermissionRequiredMixin, AccountingBaseView, CreateView):
+    """Create income/expense category view."""
+    model = IncomeExpenseCategory
+    form_class = IncomeExpenseCategoryForm
+    template_name = 'accounting/income_expense/category_form.html'
+    success_url = reverse_lazy('accounting:income_expense_categories')
+    feature_code = 'accounting.income_expense.categories'
+    required_action = 'create'
+
+    def get_form_kwargs(self):
+        """Add company_id to form kwargs."""
+        kwargs = super().get_form_kwargs()
+        kwargs['company_id'] = self.request.session.get('active_company_id')
+        return kwargs
+    
+    def form_valid(self, form):
+        """Set created_by and show success message."""
+        form.instance.created_by = self.request.user
+        messages.success(self.request, _('دسته‌بندی درآمد/هزینه با موفقیت ایجاد شد.'))
+        return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        """Add context for form template."""
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = 'ایجاد دسته‌بندی درآمد/هزینه'
+        context['form_title'] = 'ایجاد دسته‌بندی درآمد/هزینه'
+        context['breadcrumbs'] = [
+            {'label': 'داشبورد', 'url': reverse('ui:dashboard')},
+            {'label': 'حسابداری', 'url': reverse('accounting:dashboard')},
+            {'label': 'دسته‌بندی درآمد و هزینه', 'url': reverse('accounting:income_expense_categories')},
+            {'label': 'ایجاد'},
+        ]
+        context['cancel_url'] = reverse('accounting:income_expense_categories')
         return context
 
 
@@ -267,7 +311,44 @@ class CostCentersView(FeaturePermissionRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'accounting'
-        context['page_title'] = 'مرکز هزینه'
+        context['page_title'] = 'مراکز هزینه'
+        context['create_url'] = reverse('accounting:cost_center_create')
+        return context
+
+
+class CostCenterCreateView(FeaturePermissionRequiredMixin, AccountingBaseView, CreateView):
+    """Create cost center view."""
+    model = CostCenter
+    form_class = CostCenterForm
+    template_name = 'accounting/income_expense/cost_center_form.html'
+    success_url = reverse_lazy('accounting:cost_centers')
+    feature_code = 'accounting.income_expense.cost_centers'
+    required_action = 'create'
+
+    def get_form_kwargs(self):
+        """Add company_id to form kwargs."""
+        kwargs = super().get_form_kwargs()
+        kwargs['company_id'] = self.request.session.get('active_company_id')
+        return kwargs
+    
+    def form_valid(self, form):
+        """Set created_by and show success message."""
+        form.instance.created_by = self.request.user
+        messages.success(self.request, _('مرکز هزینه با موفقیت ایجاد شد.'))
+        return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        """Add context for form template."""
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = 'ایجاد مرکز هزینه'
+        context['form_title'] = 'ایجاد مرکز هزینه'
+        context['breadcrumbs'] = [
+            {'label': 'داشبورد', 'url': reverse('ui:dashboard')},
+            {'label': 'حسابداری', 'url': reverse('accounting:dashboard')},
+            {'label': 'مراکز هزینه', 'url': reverse('accounting:cost_centers')},
+            {'label': 'ایجاد'},
+        ]
+        context['cancel_url'] = reverse('accounting:cost_centers')
         return context
 
 
@@ -282,6 +363,44 @@ class PartiesView(FeaturePermissionRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'accounting'
         context['page_title'] = 'طرف حساب‌ها'
+        context['create_url'] = reverse('accounting:party_create')
+        context['party_accounts_url'] = reverse('accounting:party_accounts')
+        return context
+
+
+class PartyCreateView(FeaturePermissionRequiredMixin, AccountingBaseView, CreateView):
+    """Create party view."""
+    model = Party
+    form_class = PartyForm
+    template_name = 'accounting/parties/party_form.html'
+    success_url = reverse_lazy('accounting:parties')
+    feature_code = 'accounting.parties.list'
+    required_action = 'create'
+
+    def get_form_kwargs(self):
+        """Add company_id to form kwargs."""
+        kwargs = super().get_form_kwargs()
+        kwargs['company_id'] = self.request.session.get('active_company_id')
+        return kwargs
+    
+    def form_valid(self, form):
+        """Set created_by and show success message."""
+        form.instance.created_by = self.request.user
+        messages.success(self.request, _('طرف حساب با موفقیت ایجاد شد.'))
+        return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        """Add context for form template."""
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = 'ایجاد طرف حساب'
+        context['form_title'] = 'ایجاد طرف حساب'
+        context['breadcrumbs'] = [
+            {'label': 'داشبورد', 'url': reverse('ui:dashboard')},
+            {'label': 'حسابداری', 'url': reverse('accounting:dashboard')},
+            {'label': 'طرف حساب‌ها', 'url': reverse('accounting:parties')},
+            {'label': 'ایجاد'},
+        ]
+        context['cancel_url'] = reverse('accounting:parties')
         return context
 
 
@@ -295,6 +414,44 @@ class PartyAccountsView(FeaturePermissionRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'accounting'
         context['page_title'] = 'حساب‌های طرف حساب'
+        context['create_url'] = reverse('accounting:party_account_create')
+        context['parties_url'] = reverse('accounting:parties')
+        return context
+
+
+class PartyAccountCreateView(FeaturePermissionRequiredMixin, AccountingBaseView, CreateView):
+    """Create party account view."""
+    model = PartyAccount
+    form_class = PartyAccountForm
+    template_name = 'accounting/parties/party_account_form.html'
+    success_url = reverse_lazy('accounting:party_accounts')
+    feature_code = 'accounting.parties.accounts'
+    required_action = 'create'
+
+    def get_form_kwargs(self):
+        """Add company_id to form kwargs."""
+        kwargs = super().get_form_kwargs()
+        kwargs['company_id'] = self.request.session.get('active_company_id')
+        return kwargs
+    
+    def form_valid(self, form):
+        """Set created_by and show success message."""
+        form.instance.created_by = self.request.user
+        messages.success(self.request, _('حساب طرف حساب با موفقیت ایجاد شد.'))
+        return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        """Add context for form template."""
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = 'ایجاد حساب طرف حساب'
+        context['form_title'] = 'ایجاد حساب طرف حساب'
+        context['breadcrumbs'] = [
+            {'label': 'داشبورد', 'url': reverse('ui:dashboard')},
+            {'label': 'حسابداری', 'url': reverse('accounting:dashboard')},
+            {'label': 'حساب‌های طرف حساب', 'url': reverse('accounting:party_accounts')},
+            {'label': 'ایجاد'},
+        ]
+        context['cancel_url'] = reverse('accounting:party_accounts')
         return context
 
 

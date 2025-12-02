@@ -2,11 +2,17 @@
 
 **هدف**: تمام model classes برای ماژول Accounting
 
-این فایل شامل **8 model class** است که به دسته‌های زیر تقسیم می‌شوند:
+این فایل شامل **20 model class** است که به دسته‌های زیر تقسیم می‌شوند:
 - Base Models (Abstract)
 - Fiscal Year Management Models
 - Chart of Accounts Models
 - Accounting Document Models
+- Party Management Models
+- Cost Center Models
+- Income/Expense Category Models
+- Hierarchy Models
+- Attachment Models
+- Account Relation Models
 
 ---
 
@@ -433,4 +439,444 @@
 
 ---
 
-**Last Updated**: 2025-12-01
+## Party Management Models
+
+### `Party`
+
+**Inheritance**: `AccountingSortableModel`
+
+**توضیح**: مدل طرف حساب برای ردیابی مشتریان، تأمین‌کنندگان و سایر شرکای تجاری
+
+**Choices**:
+- `party_type`: `'customer'` (مشتری), `'supplier'` (تأمین‌کننده), `'employee'` (کارمند), `'other'` (سایر)
+
+**Fields**:
+- `party_type` (CharField, max_length=20): نوع طرف حساب
+- `party_code` (CharField, max_length=10, validators=[NUMERIC_CODE_VALIDATOR], blank=True, editable=False): کد طرف حساب (auto-generated)
+- `party_name` (CharField, max_length=200): نام طرف حساب (فارسی)
+- `party_name_en` (CharField, max_length=200, blank=True): نام طرف حساب (انگلیسی)
+- `national_id` (CharField, max_length=20, blank=True): کد ملی / شماره ثبت
+- `tax_id` (CharField, max_length=20, blank=True): شناسه مالیاتی
+- `address` (TextField, blank=True): آدرس
+- `phone` (CharField, max_length=50, blank=True): شماره تلفن
+- `email` (EmailField, blank=True): آدرس ایمیل
+- `contact_person` (CharField, max_length=200, blank=True): شخص رابط
+- `notes` (TextField, blank=True): توضیحات اضافی
+
+**Constraints**:
+- Unique: `(company, party_code)`
+- Unique: `(company, party_name)`
+
+**Ordering**: `("company", "party_type", "sort_order", "party_code")`
+
+**Methods**:
+
+#### `__str__(self) -> str`
+
+**توضیح**: نمایش رشته‌ای طرف حساب
+
+**مقدار بازگشتی**:
+- `str`: `"{party_code} - {party_name}"`
+
+#### `save(self, *args, **kwargs) -> None`
+
+**توضیح**: ذخیره با auto-generation کد طرف حساب
+
+**منطق**:
+1. اگر `party_code` وجود ندارد و `company_id` و `party_type` موجود هستند:
+   - تولید کد متوالی با `generate_sequential_code()`
+   - فیلتر اضافی: `{"party_type": self.party_type}`
+   - عرض کد: 10 رقم
+2. فراخوانی `super().save()`
+
+---
+
+### `PartyAccount`
+
+**Inheritance**: `AccountingSortableModel`
+
+**توضیح**: مدل حساب طرف حساب برای ارتباط طرف حساب با حساب‌های تفصیلی
+
+**Fields**:
+- `party` (ForeignKey to Party, on_delete=CASCADE, related_name='accounts'): طرف حساب مربوطه
+- `account` (ForeignKey to Account, on_delete=PROTECT, related_name='party_accounts', limit_choices_to={'account_level': 3}): حساب تفصیلی
+- `account_code` (CharField, max_length=30, blank=True, editable=False): کد حساب (کش شده)
+- `account_name` (CharField, max_length=200, blank=True, editable=False): نام حساب (کش شده)
+- `is_primary` (PositiveSmallIntegerField, default=0): حساب اصلی (1=بله، 0=خیر)
+- `notes` (TextField, blank=True): توضیحات درباره این حساب
+
+**Constraints**:
+- Unique: `(company, party, account)`
+
+**Ordering**: `("company", "party", "-is_primary", "account_code")`
+
+**Methods**:
+
+#### `__str__(self) -> str`
+
+**توضیح**: نمایش رشته‌ای حساب طرف حساب
+
+**مقدار بازگشتی**:
+- `str`: `"{party.party_name} - {account.account_code}"`
+
+#### `save(self, *args, **kwargs) -> None`
+
+**توضیح**: ذخیره با cache کردن کد و نام حساب
+
+**منطق**:
+1. اگر `account` وجود دارد:
+   - اگر `account_code` خالی است، از `account.account_code` پر می‌شود
+   - اگر `account_name` خالی است، از `account.account_name` پر می‌شود
+2. فراخوانی `super().save()`
+
+---
+
+## Cost Center Models
+
+### `CostCenter`
+
+**Inheritance**: `AccountingSortableModel`
+
+**توضیح**: مدل مرکز هزینه برای ردیابی هزینه‌ها بر اساس واحد سازمانی و خط کاری
+
+**Fields**:
+- `cost_center_code` (CharField, max_length=10, validators=[NUMERIC_CODE_VALIDATOR], blank=True, editable=False): کد مرکز هزینه (auto-generated)
+- `cost_center_name` (CharField, max_length=200): نام مرکز هزینه (فارسی)
+- `cost_center_name_en` (CharField, max_length=200, blank=True): نام مرکز هزینه (انگلیسی)
+- `company_unit` (ForeignKey to 'shared.CompanyUnit', on_delete=PROTECT, related_name='cost_centers'): واحد سازمانی که این مرکز هزینه به آن تعلق دارد
+- `company_unit_code` (CharField, max_length=5, validators=[NUMERIC_CODE_VALIDATOR], blank=True, editable=False): کد واحد سازمانی (کش شده)
+- `work_line` (ForeignKey to 'production.WorkLine', on_delete=SET_NULL, related_name='cost_centers', null=True, blank=True): خط کاری تولید (اختیاری - فقط در صورت نصب ماژول تولید)
+- `work_line_code` (CharField, max_length=5, validators=[NUMERIC_CODE_VALIDATOR], blank=True, editable=False): کد خط کاری (کش شده)
+- `description` (TextField, blank=True): توضیحات و یادداشت‌ها درباره این مرکز هزینه
+
+**Constraints**:
+- Unique: `(company, cost_center_code)`
+- Unique: `(company, cost_center_name)`
+
+**Ordering**: `("company", "sort_order", "cost_center_code")`
+
+**Methods**:
+
+#### `__str__(self) -> str`
+
+**توضیح**: نمایش رشته‌ای مرکز هزینه
+
+**مقدار بازگشتی**:
+- `str`: `"{cost_center_code} - {cost_center_name}"`
+
+#### `save(self, *args, **kwargs) -> None`
+
+**توضیح**: ذخیره با auto-generation کد و cache کردن کدها
+
+**منطق**:
+1. اگر `cost_center_code` وجود ندارد و `company_id` موجود است:
+   - تولید کد متوالی با `generate_sequential_code()`
+   - عرض کد: 10 رقم
+2. اگر `company_unit` وجود دارد و `company_unit_code` خالی است:
+   - Cache کردن `company_unit.public_code` در `company_unit_code`
+3. اگر `work_line` وجود دارد و `work_line_code` خالی است:
+   - Cache کردن `work_line.public_code` در `work_line_code`
+4. فراخوانی `super().save()`
+
+---
+
+## Income/Expense Category Models
+
+### `IncomeExpenseCategory`
+
+**Inheritance**: `AccountingSortableModel`
+
+**توضیح**: مدل دسته‌بندی برای طبقه‌بندی تراکنش‌های درآمد و هزینه
+
+**Choices**:
+- `category_type`: `'income'` (درآمد), `'expense'` (هزینه)
+
+**Fields**:
+- `category_type` (CharField, max_length=20): نوع دسته‌بندی (درآمد یا هزینه)
+- `category_code` (CharField, max_length=10, validators=[NUMERIC_CODE_VALIDATOR], blank=True, editable=False): کد دسته‌بندی (auto-generated)
+- `category_name` (CharField, max_length=200): نام دسته‌بندی (فارسی)
+- `category_name_en` (CharField, max_length=200, blank=True): نام دسته‌بندی (انگلیسی)
+- `description` (TextField, blank=True): توضیحات و یادداشت‌ها درباره این دسته‌بندی
+
+**Constraints**:
+- Unique: `(company, category_type, category_code)`
+- Unique: `(company, category_type, category_name)`
+
+**Ordering**: `("company", "category_type", "sort_order", "category_code")`
+
+**Methods**:
+
+#### `__str__(self) -> str`
+
+**توضیح**: نمایش رشته‌ای دسته‌بندی
+
+**مقدار بازگشتی**:
+- `str`: `"{type_label} - {category_code} - {category_name}"` (type_label: "درآمد" یا "هزینه")
+
+#### `save(self, *args, **kwargs) -> None`
+
+**توضیح**: ذخیره با auto-generation کد دسته‌بندی
+
+**منطق**:
+1. اگر `category_code` وجود ندارد و `company_id` و `category_type` موجود هستند:
+   - تولید کد متوالی با `generate_sequential_code()`
+   - فیلتر اضافی: `{"category_type": self.category_type}`
+   - عرض کد: 10 رقم
+2. فراخوانی `super().save()`
+
+---
+
+## Hierarchy Models
+
+### `TafsiliHierarchy`
+
+**Inheritance**: `AccountingBaseModel`
+
+**توضیح**: ساختار سلسله‌مراتبی برای تفصیلی چند سطحی - امکان ایجاد ساختار درختی برای سازماندهی و طبقه‌بندی بهتر حساب‌های تفصیلی
+
+**Fields**:
+- `code` (CharField, max_length=50, validators=[NUMERIC_CODE_VALIDATOR]): کد تفصیلی چند سطحی (یکتا در شرکت)
+- `name` (CharField, max_length=200): نام تفصیلی چند سطحی
+- `name_en` (CharField, max_length=200, blank=True): نام تفصیلی چند سطحی (انگلیسی)
+- `parent` (ForeignKey to 'self', on_delete=CASCADE, related_name='children', null=True, blank=True): تفصیلی چند سطحی والد (برای ساختار درختی)
+- `tafsili_account` (ForeignKey to Account, on_delete=SET_NULL, related_name='hierarchies', null=True, blank=True, limit_choices_to={'account_level': 3}): تفصیلی اصلی مرتبط (اختیاری - برای ریشه‌های درخت)
+- `level` (PositiveSmallIntegerField, default=1, editable=False): سطح در درخت (1=ریشه، 2=زیرگروه اول، ...)
+- `sort_order` (PositiveSmallIntegerField, default=0): ترتیب نمایش
+- `description` (TextField, blank=True): توضیحات
+
+**Constraints**:
+- Unique: `(company, code)`
+
+**Ordering**: `("company", "level", "sort_order", "code")`
+
+**Methods**:
+
+#### `__str__(self) -> str`
+
+**توضیح**: نمایش رشته‌ای تفصیلی چند سطحی
+
+**مقدار بازگشتی**:
+- `str`: `"{code} - {name}"`
+
+#### `clean(self) -> None`
+
+**توضیح**: اعتبارسنجی ساختار سلسله‌مراتبی
+
+**منطق**:
+1. اگر `parent` وجود دارد:
+   - بررسی می‌کند که `parent` متعلق به همان شرکت باشد
+   - بررسی می‌کند که circular reference وجود نداشته باشد (یک node نمی‌تواند والد خودش باشد)
+   - عمق بررسی: حداکثر 100 سطح (safety limit)
+2. اگر `tafsili_account` ارائه شده:
+   - بررسی می‌کند که `tafsili_account` متعلق به همان شرکت باشد
+   - بررسی می‌کند که `account_level = 3` باشد (فقط تفصیلی)
+3. در صورت عدم اعتبار، `ValidationError` می‌اندازد
+
+#### `save(self, *args, **kwargs) -> None`
+
+**توضیح**: ذخیره با محاسبه level و اعتبارسنجی
+
+**منطق**:
+1. محاسبه `level` بر اساس `parent`:
+   - اگر `parent` وجود دارد: `level = parent.level + 1`
+   - در غیر این صورت: `level = 1`
+2. فراخوانی `clean()` برای اعتبارسنجی
+3. فراخوانی `super().save()`
+4. به‌روزرسانی سطح children در صورت تغییر level:
+   - برای هر child، `save()` را فراخوانی می‌کند تا level آن‌ها دوباره محاسبه شود
+
+#### `get_full_path(self) -> str`
+
+**توضیح**: دریافت مسیر کامل از ریشه تا این node
+
+**مقدار بازگشتی**:
+- `str`: مسیر کامل با فرمت `"root > parent > ... > current"`
+
+**منطق**:
+1. شروع از node فعلی
+2. پیمایش به بالا از طریق `parent`
+3. جمع‌آوری نام‌ها در لیست
+4. برگرداندن مسیر با separator `" > "`
+
+#### `get_full_code_path(self) -> str`
+
+**توضیح**: دریافت مسیر کامل کد از ریشه تا این node
+
+**مقدار بازگشتی**:
+- `str`: مسیر کامل کد با فرمت `"code1 > code2 > ... > current_code"`
+
+**منطق**:
+1. شروع از node فعلی
+2. پیمایش به بالا از طریق `parent`
+3. جمع‌آوری کدها در لیست
+4. برگرداندن مسیر با separator `" > "`
+
+---
+
+## Attachment Models
+
+### `DocumentAttachment`
+
+**Inheritance**: `AccountingBaseModel`
+
+**توضیح**: مدل فایل‌های پیوست برای اسناد حسابداری (مثل تصاویر فاکتور، رسید). امکان آپلود و اتصال فایل‌ها به اسناد حسابداری
+
+**Choices**:
+- `FILE_TYPE_CHOICES`: `'INVOICE'` (فاکتور), `'RECEIPT'` (رسید), `'CONTRACT'` (قرارداد), `'CHECK'` (چک), `'OTHER'` (سایر)
+
+**Fields**:
+- `document` (ForeignKey to AccountingDocument, on_delete=CASCADE, related_name='attachments', null=True, blank=True): سند حسابداری مرتبط (اختیاری)
+- `document_number` (CharField, max_length=50, blank=True): شماره سند (برای جستجو و فیلتر)
+- `file` (FileField, upload_to='accounting/documents/%Y/%m/'): فایل پیوست
+- `file_type` (CharField, max_length=30, choices=FILE_TYPE_CHOICES, default='OTHER'): نوع فایل
+- `file_name` (CharField, max_length=255): نام اصلی فایل
+- `file_size` (PositiveIntegerField): حجم فایل به بایت
+- `mime_type` (CharField, max_length=100, blank=True): نوع MIME فایل
+- `description` (TextField, blank=True): توضیحات فایل
+- `uploaded_by` (ForeignKey to User, on_delete=SET_NULL, related_name="accounting_attachments_uploaded", null=True, blank=True): کاربری که فایل را آپلود کرده
+- `uploaded_at` (DateTimeField, auto_now_add=True): تاریخ و زمان آپلود
+
+**Constraints**:
+- هیچ unique constraint ندارد (چند فایل می‌توانند برای یک سند آپلود شوند)
+
+**Ordering**: `("company", "-uploaded_at", "document_number")`
+
+**Indexes**:
+- `("company", "document")` - برای جستجوی سریع بر اساس سند
+- `("company", "document_number")` - برای جستجوی سریع بر اساس شماره سند
+- `("company", "file_type")` - برای فیلتر کردن بر اساس نوع فایل
+
+**Methods**:
+
+#### `__str__(self) -> str`
+
+**توضیح**: نمایش رشته‌ای پیوست
+
+**مقدار بازگشتی**:
+- `str`: `"{file_name} - {document_number or 'بدون سند'}"`
+
+#### `save(self, *args, **kwargs) -> None`
+
+**توضیح**: ذخیره با auto-populate metadata فایل
+
+**منطق**:
+1. اگر `file` وجود دارد و `file_name` خالی است:
+   - استخراج نام فایل از `file.name` (آخرین بخش بعد از `/`)
+2. اگر `file` وجود دارد و `file_size` خالی است:
+   - خواندن `file.size` و ذخیره در `file_size`
+   - در صورت خطا (AttributeError, OSError)، نادیده گرفته می‌شود
+3. اگر `uploaded_by` خالی است و `_uploaded_by` در instance وجود دارد:
+   - استفاده از `_uploaded_by` (برای تنظیم دستی)
+4. فراخوانی `super().save()`
+
+#### `get_file_size_display(self) -> str`
+
+**توضیح**: دریافت حجم فایل به صورت خوانا برای انسان
+
+**مقدار بازگشتی**:
+- `str`: حجم فایل با واحد مناسب (B, KB, MB, GB, TB)
+
+**منطق**:
+1. شروع از `file_size` (بر حسب بایت)
+2. تقسیم متوالی بر 1024.0 تا زمانی که کمتر از 1024 شود
+3. برگرداندن مقدار با واحد مناسب (B, KB, MB, GB, TB)
+
+---
+
+## Account Relation Models
+
+### `SubAccountGLAccountRelation`
+
+**Inheritance**: `AccountingBaseModel`
+
+**توضیح**: رابطه many-to-many بین حساب‌های معین (Sub Account) و حساب‌های کل (GL Account). امکان تعلق یک حساب معین به چند حساب کل (floating sub account)
+
+**Fields**:
+- `sub_account` (ForeignKey to Account, on_delete=CASCADE, related_name='gl_relations', limit_choices_to={'account_level': 2}): حساب معین
+- `gl_account` (ForeignKey to Account, on_delete=CASCADE, related_name='sub_relations', limit_choices_to={'account_level': 1}): حساب کل
+- `is_primary` (PositiveSmallIntegerField, choices=ENABLED_FLAG_CHOICES, default=0): حساب کل اصلی (برای نمایش پیش‌فرض)
+- `notes` (TextField, blank=True): یادداشت‌های اضافی
+
+**Constraints**:
+- Unique: `(company, sub_account, gl_account)`
+
+**Ordering**: `("company", "sub_account", "-is_primary", "gl_account")`
+
+**Methods**:
+
+#### `__str__(self) -> str`
+
+**توضیح**: نمایش رشته‌ای رابطه
+
+**مقدار بازگشتی**:
+- `str`: `"{sub_account.account_code} → {gl_account.account_code}"`
+
+#### `clean(self) -> None`
+
+**توضیح**: اعتبارسنجی رابطه
+
+**منطق**:
+1. بررسی می‌کند که `sub_account.account_level = 2` باشد (معین)
+2. بررسی می‌کند که `gl_account.account_level = 1` باشد (کل)
+3. بررسی می‌کند که هر دو حساب متعلق به همان شرکت باشند
+4. بررسی می‌کند که هر دو حساب نوع یکسانی داشته باشند (`account_type`)
+5. در صورت عدم اعتبار، `ValidationError` می‌اندازد
+
+#### `save(self, *args, **kwargs) -> None`
+
+**توضیح**: ذخیره با اعتبارسنجی
+
+**منطق**:
+1. فراخوانی `clean()` برای اعتبارسنجی
+2. فراخوانی `super().save()`
+
+---
+
+### `TafsiliSubAccountRelation`
+
+**Inheritance**: `AccountingBaseModel`
+
+**توضیح**: رابطه many-to-many بین حساب‌های تفصیلی (Tafsili Account) و حساب‌های معین (Sub Account). امکان تعلق یک حساب تفصیلی به چند حساب معین (floating tafsili)
+
+**Fields**:
+- `tafsili_account` (ForeignKey to Account, on_delete=CASCADE, related_name='tafsili_sub_relations', limit_choices_to={'account_level': 3}): حساب تفصیلی
+- `sub_account` (ForeignKey to Account, on_delete=CASCADE, related_name='tafsili_account_relations', limit_choices_to={'account_level': 2}): حساب معین
+- `is_primary` (PositiveSmallIntegerField, choices=ENABLED_FLAG_CHOICES, default=0): حساب معین اصلی (برای نمایش پیش‌فرض)
+- `notes` (TextField, blank=True): یادداشت‌های اضافی
+
+**Constraints**:
+- Unique: `(company, tafsili_account, sub_account)`
+
+**Ordering**: `("company", "tafsili_account", "-is_primary", "sub_account")`
+
+**Methods**:
+
+#### `__str__(self) -> str`
+
+**توضیح**: نمایش رشته‌ای رابطه
+
+**مقدار بازگشتی**:
+- `str`: `"{tafsili_account.account_code} → {sub_account.account_code}"`
+
+#### `clean(self) -> None`
+
+**توضیح**: اعتبارسنجی رابطه
+
+**منطق**:
+1. بررسی می‌کند که `tafsili_account.account_level = 3` باشد (تفصیلی)
+2. بررسی می‌کند که `sub_account.account_level = 2` باشد (معین)
+3. بررسی می‌کند که هر دو حساب متعلق به همان شرکت باشند
+4. بررسی می‌کند که هر دو حساب نوع یکسانی داشته باشند (`account_type`)
+5. در صورت عدم اعتبار، `ValidationError` می‌اندازد
+
+#### `save(self, *args, **kwargs) -> None`
+
+**توضیح**: ذخیره با اعتبارسنجی
+
+**منطق**:
+1. فراخوانی `clean()` برای اعتبارسنجی
+2. فراخوانی `super().save()`
+
+---
+
+**Last Updated**: 2025-12-02

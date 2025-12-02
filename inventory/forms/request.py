@@ -524,9 +524,22 @@ class WarehouseRequestLineForm(forms.ModelForm):
         warehouse = self.cleaned_data.get('warehouse')
         item = self._resolve_item(self.cleaned_data.get('item'))
         if item and warehouse:
-            allowed_warehouses = item.allowed_warehouses.filter(company_id=self.company_id, is_enabled=1)
-            if warehouse not in allowed_warehouses:
-                raise forms.ValidationError(_('Selected warehouse is not allowed for this item.'))
+            # Get allowed warehouses from ItemWarehouse relations
+            relations = item.warehouses.select_related('warehouse').filter(
+                warehouse__company_id=self.company_id,
+                warehouse__is_enabled=1
+            )
+            allowed_warehouse_ids = {rel.warehouse_id for rel in relations}
+            
+            # If no explicit warehouses configured, allow all warehouses for the company
+            if not allowed_warehouse_ids:
+                # Check that warehouse belongs to the company and is enabled
+                if warehouse.company_id != self.company_id or not warehouse.is_enabled:
+                    raise forms.ValidationError(_('Selected warehouse is not valid for this company or is disabled.'))
+            else:
+                # Check if selected warehouse is in allowed list
+                if warehouse.id not in allowed_warehouse_ids:
+                    raise forms.ValidationError(_('Selected warehouse is not allowed for this item.'))
         return warehouse
     
     def clean(self) -> Dict[str, Any]:

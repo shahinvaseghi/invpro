@@ -1,6 +1,6 @@
 {% load i18n access_tags %}
 <!-- Modules Dropdown Menu -->
-<div class="dropdown-menu" id="menu-modules" style="max-height: 80vh; overflow-y: auto;">
+<div class="dropdown-menu" id="menu-modules">
   <!-- Shared Module -->
   <div class="dropdown-submenu">
     <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-shared">
@@ -277,9 +277,6 @@
           {% if user_feature_permissions|feature_allowed:'accounting.base.parties' or request.user.is_superuser %}
             <a href="{% url 'accounting:parties' %}" class="dropdown-item-sub">{% trans "طرف حساب‌ها" %}</a>
           {% endif %}
-          {% if user_feature_permissions|feature_allowed:'accounting.base.party_accounts' or request.user.is_superuser %}
-            <a href="{% url 'accounting:party_accounts' %}" class="dropdown-item-sub">{% trans "حساب‌های طرف حساب" %}</a>
-          {% endif %}
           {% if user_feature_permissions|feature_allowed:'accounting.base.cash_accounts' or request.user.is_superuser %}
             <a href="{% url 'accounting:treasury_accounts' %}" class="dropdown-item-sub">{% trans "حساب‌های نقدی و بانکی" %}</a>
           {% endif %}
@@ -405,9 +402,6 @@
         <div class="dropdown-menu-sub" id="modules-accounting-parties">
           {% if user_feature_permissions|feature_allowed:'accounting.parties.list' or request.user.is_superuser %}
             <a href="{% url 'accounting:parties' %}" class="dropdown-item-sub">{% trans "لیست طرف حساب‌ها" %}</a>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'accounting.parties.accounts' or request.user.is_superuser %}
-            <a href="{% url 'accounting:party_accounts' %}" class="dropdown-item-sub">{% trans "حساب‌های طرف حساب" %}</a>
           {% endif %}
           {% if user_feature_permissions|feature_allowed:'accounting.parties.movements' or request.user.is_superuser %}
             <a href="{% url 'accounting:party_movements' %}" class="dropdown-item-sub">{% trans "گردش طرف حساب" %}</a>

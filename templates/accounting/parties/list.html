@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% if page_title %}{{ page_title }}{% else %}{% trans "طرف حساب‌ها" %}{% endif %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding: 1rem 0;">
+        <h1 style="margin: 0;">{% if page_title %}{{ page_title }}{% else %}{% trans "طرف حساب‌ها" %}{% endif %}</h1>
+        {% if create_url %}
+        <a href="{{ create_url }}" class="btn btn-primary">+ {% trans "ایجاد طرف حساب" %}</a>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <p>{% trans "این صفحه در حال توسعه است." %}</p>
+        
+        {% if party_accounts_url %}
+        <div style="margin-top: 1rem;">
+            <a href="{{ party_accounts_url }}" class="btn btn-secondary">{% trans "حساب‌های طرف حساب‌ها" %}</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+

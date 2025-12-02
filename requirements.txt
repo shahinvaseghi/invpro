@@ -6,4 +6,5 @@ djangorestframework==3.16.1
 psycopg[binary]==3.2.12
 jdatetime==4.1.0
 openpyxl==3.1.2
+django-unfold==0.56.0
 

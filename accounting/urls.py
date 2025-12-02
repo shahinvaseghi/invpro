@@ -121,11 +121,15 @@ urlpatterns = [
     path('income-expense/expense-report/', views_module.ExpenseReportView.as_view(), name='expense_report'),
     path('income-expense/cost-center-report/', views_module.CostCenterReportView.as_view(), name='cost_center_report'),
     path('income-expense/categories/', views_module.IncomeExpenseCategoriesView.as_view(), name='income_expense_categories'),
+    path('income-expense/categories/create/', views_module.IncomeExpenseCategoryCreateView.as_view(), name='income_expense_category_create'),
     path('income-expense/cost-centers/', views_module.CostCentersView.as_view(), name='cost_centers'),
+    path('income-expense/cost-centers/create/', views_module.CostCenterCreateView.as_view(), name='cost_center_create'),
     
     # Party Accounts (طرف حساب‌ها)
     path('parties/', views_module.PartiesView.as_view(), name='parties'),
+    path('parties/create/', views_module.PartyCreateView.as_view(), name='party_create'),
     path('parties/accounts/', views_module.PartyAccountsView.as_view(), name='party_accounts'),
+    path('parties/accounts/create/', views_module.PartyAccountCreateView.as_view(), name='party_account_create'),
     path('parties/movements/', views_module.PartyMovementsView.as_view(), name='party_movements'),
     path('parties/balance-report/', views_module.PartyBalanceReportView.as_view(), name='party_balance_report'),
     

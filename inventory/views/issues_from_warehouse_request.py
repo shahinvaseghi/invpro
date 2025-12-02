@@ -77,13 +77,8 @@ class IssuePermanentCreateFromWarehouseRequestView(FeaturePermissionRequiredMixi
         context['warehouse_request'] = warehouse_request
         
         # Override formset with initial data
-        if initial_data and 'lines_formset' in context:
-            lines_formset = self.build_line_formset(instance=self.object)
-            # Populate first form with initial data
-            if lines_formset.forms:
-                for key, value in initial_data[0].items():
-                    if value is not None:
-                        lines_formset.forms[0].initial[key] = value
+        if initial_data:
+            lines_formset = self.build_line_formset(instance=self.object, initial=initial_data)
             context['lines_formset'] = lines_formset
         
         # Pre-fill form with warehouse request data
@@ -211,13 +206,8 @@ class IssueConsumptionCreateFromWarehouseRequestView(FeaturePermissionRequiredMi
         context['warehouse_request'] = warehouse_request
         
         # Override formset with initial data
-        if initial_data and 'lines_formset' in context:
-            lines_formset = self.build_line_formset(instance=self.object)
-            # Populate first form with initial data
-            if lines_formset.forms:
-                for key, value in initial_data[0].items():
-                    if value is not None:
-                        lines_formset.forms[0].initial[key] = value
+        if initial_data:
+            lines_formset = self.build_line_formset(instance=self.object, initial=initial_data)
             context['lines_formset'] = lines_formset
         
         # Pre-fill form with warehouse request data
@@ -333,13 +323,8 @@ class IssueConsignmentCreateFromWarehouseRequestView(FeaturePermissionRequiredMi
         context['warehouse_request'] = warehouse_request
         
         # Override formset with initial data
-        if initial_data and 'lines_formset' in context:
-            lines_formset = self.build_line_formset(instance=self.object)
-            # Populate first form with initial data
-            if lines_formset.forms:
-                for key, value in initial_data[0].items():
-                    if value is not None:
-                        lines_formset.forms[0].initial[key] = value
+        if initial_data:
+            lines_formset = self.build_line_formset(instance=self.object, initial=initial_data)
             context['lines_formset'] = lines_formset
         
         # Pre-fill form with warehouse request data

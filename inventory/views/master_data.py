@@ -225,7 +225,6 @@ class ItemCategoryListView(InventoryBaseView, ListView):
         """Filter queryset by user permissions."""
         queryset = super().get_queryset()
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_categories', 'created_by')
-        queryset = queryset.select_related('item_type')
         return queryset
     
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
@@ -320,7 +319,6 @@ class ItemCategoryDeleteView(InventoryBaseView, DeleteView):
         """Filter queryset by user permissions."""
         queryset = super().get_queryset()
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_categories', 'created_by')
-        queryset = queryset.select_related('item_type')
         return queryset
     
     def delete(self, request, *args, **kwargs):
@@ -408,7 +406,7 @@ class ItemSubcategoryListView(InventoryBaseView, ListView):
         """Filter queryset by user permissions."""
         queryset = super().get_queryset()
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_subcategories', 'created_by')
-        queryset = queryset.select_related('item_type', 'category')
+        queryset = queryset.select_related('category')
         return queryset
     
     def get_context_data(self, **kwargs) -> Dict[str, Any]:

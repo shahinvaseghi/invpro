@@ -27,7 +27,7 @@ POSITIVE_DECIMAL = MinValueValidator(Decimal("0"))
 def get_fiscal_year_from_date(company_id: int, document_date) -> 'FiscalYear':
     """
     Get fiscal year for a given company and date.
-    Returns the active fiscal year that contains the document_date.
+    Returns the enabled fiscal year that contains the document_date.
     """
     from .fiscal_years import FiscalYear
     try:
@@ -35,7 +35,7 @@ def get_fiscal_year_from_date(company_id: int, document_date) -> 'FiscalYear':
             company_id=company_id,
             start_date__lte=document_date,
             end_date__gte=document_date,
-            is_active=1
+            is_enabled=1
         )
     except FiscalYear.DoesNotExist:
         return None
@@ -45,7 +45,7 @@ def get_fiscal_year_from_date(company_id: int, document_date) -> 'FiscalYear':
             company_id=company_id,
             start_date__lte=document_date,
             end_date__gte=document_date,
-            is_active=1
+            is_enabled=1
         ).order_by('-start_date').first()
 
 
