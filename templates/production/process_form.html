@@ -569,23 +569,104 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
+  // Create array of materials for each operation index (matching formset order)
+  const operationMaterialsByIndex = [];
+  {% if existing_operations_data %}
+    {% for op_data in existing_operations_data %}
+      operationMaterialsByIndex[{{ forloop.counter0 }}] = [
+        {% for material in op_data.materials %}
+          {
+            id: {{ material.id|default:"null" }},
+            bom_material_id: {{ material.bom_material_id }},
+            quantity_used: '{{ material.quantity_used|escapejs }}',
+            unit: '{{ material.unit|escapejs }}'
+          }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      ];
+    {% endfor %}
+  {% endif %}
+  
+  // Function to load existing materials for all operations
+  function loadAllExistingMaterials() {
+    {% if existing_operations_data %}
+      // Function to actually add materials after BOM is loaded
+      const addMaterialsToOperations = () => {
+        // Wait a bit for DOM to be fully ready and BOM materials to be cached
+        setTimeout(() => {
+          operationMaterialsByIndex.forEach((materials, operationIndex) => {
+            if (materials && materials.length > 0) {
+              // Add each material one by one with a small delay
+              materials.forEach((material, idx) => {
+                setTimeout(() => {
+                  addExistingMaterialToOperation(
+                    operationIndex,
+                    material.bom_material_id,
+                    material.quantity_used,
+                    material.unit,
+                    material.id
+                  );
+                }, idx * 200); // Increased delay between each material to ensure dropdown is ready
+              });
+            }
+          });
+        }, 500); // Increased delay to ensure everything is ready
+      };
+      
+      const bomId = bomSelect ? bomSelect.value : '';
+      
+      if (bomId) {
+        // Wait for BOM materials to load, then add materials
+        loadBOMMaterials(bomId).then(() => {
+          // Wait a bit more for cache to be ready
+          setTimeout(() => {
+            addMaterialsToOperations();
+          }, 300);
+        });
+      } else if (processIdGlobal) {
+        // Wait for process BOM materials to load, then add materials
+        loadProcessBOMMaterials(processIdGlobal).then(() => {
+          // Wait a bit more for cache to be ready
+          setTimeout(() => {
+            addMaterialsToOperations();
+          }, 300);
+        });
+      }
+    {% endif %}
+  }
+  
   // Load existing operations materials if in edit mode
   {% if existing_operations_data %}
-    const bomId = bomSelect ? bomSelect.value : '';
+    // Wait for initial BOM loading to complete, then load materials
+    // First ensure BOM materials are loaded
+    const ensureBOMMaterialsLoaded = () => {
+      const bomId = bomSelect ? bomSelect.value : '';
+      
+      if (bomId && bomMaterialsCache[bomId]) {
+        // BOM materials already cached
+        return Promise.resolve();
+      } else if (bomId) {
+        // Load BOM materials
+        return loadBOMMaterials(bomId);
+      } else if (processIdGlobal && bomMaterialsCache[`process_${processIdGlobal}`]) {
+        // Process BOM materials already cached
+        return Promise.resolve();
+      } else if (processIdGlobal) {
+        // Load process BOM materials
+        return loadProcessBOMMaterials(processIdGlobal);
+      } else {
+        return Promise.resolve();
+      }
+    };
     
-    if (bomId) {
-      loadBOMMaterials(bomId).then(() => {
-        {% for op_data in existing_operations_data %}
-          loadExistingOperationMaterials({{ forloop.counter0 }}, {{ op_data.operation.id }}, {{ op_data.materials|length }});
-        {% endfor %}
+    // Wait a bit for DOM to be ready, then ensure BOM materials are loaded, then load materials
+    setTimeout(() => {
+      ensureBOMMaterialsLoaded().then(() => {
+        // Wait a bit more for everything to be ready
+        setTimeout(() => {
+          loadAllExistingMaterials();
+        }, 200);
       });
-    } else if (processIdGlobal) {
-      loadProcessBOMMaterials(processIdGlobal).then(() => {
-        {% for op_data in existing_operations_data %}
-          loadExistingOperationMaterials({{ forloop.counter0 }}, {{ op_data.operation.id }}, {{ op_data.materials|length }});
-        {% endfor %}
-      });
-    }
+    }, 500);
   {% endif %}
 });
 
@@ -685,7 +766,7 @@ function loadBOMMaterials(bomId) {
   });
 }
 
-function updateMaterialSelect(selectElement, materials) {
+function updateMaterialSelect(selectElement, materials, targetValue = null) {
   // Only update if materials array is provided and not empty
   if (!materials || !Array.isArray(materials) || materials.length === 0) {
     // If no materials, keep only the default option
@@ -694,21 +775,39 @@ function updateMaterialSelect(selectElement, materials) {
     return;
   }
   
-  const currentValue = selectElement.value;
-  selectElement.innerHTML = '<option value="">---</option>';
+  const currentValue = targetValue || selectElement.value;
+  
+  // Clear all existing options
+  while (selectElement.firstChild) {
+    selectElement.removeChild(selectElement.firstChild);
+  }
+  
+  // Add default option
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = '---';
+  selectElement.appendChild(defaultOption);
   
   let addedCount = 0;
+  let targetOption = null;
   
   // Only add BOM materials (these should only be BOM materials from API)
   materials.forEach(material => {
     // Ensure we only add materials that have required fields (BOM materials)
     if (material.id && material.material_item_code && material.material_item_name) {
       const option = document.createElement('option');
-      option.value = material.id;
+      const materialIdStr = String(material.id);
+      option.value = materialIdStr;
       option.textContent = `${material.material_item_code} - ${material.material_item_name}`;
       option.dataset.unit = material.unit || '';
       option.dataset.quantityPerUnit = material.quantity_per_unit || '';
       selectElement.appendChild(option);
+      
+      // Track if this is the target option
+      if (targetValue && materialIdStr === String(targetValue)) {
+        targetOption = option;
+      }
+      
       addedCount++;
     } else {
       console.warn('updateMaterialSelect: Skipping invalid material:', material);
@@ -717,11 +816,24 @@ function updateMaterialSelect(selectElement, materials) {
   
   console.log(`updateMaterialSelect: Added ${addedCount} BOM materials to dropdown (total provided: ${materials.length})`);
   
-  // Restore previous value if still valid
-  if (currentValue) {
-    const optionExists = Array.from(selectElement.options).some(opt => opt.value === currentValue);
+  // Set the target value if provided and found
+  if (targetValue && targetOption) {
+    targetOption.setAttribute('selected', 'selected');
+    targetOption.selected = true;
+    selectElement.value = String(targetValue);
+    selectElement.selectedIndex = Array.from(selectElement.options).indexOf(targetOption);
+    console.log(`updateMaterialSelect: Set target value ${targetValue} during populate, select.value: ${selectElement.value}`);
+  } else if (currentValue) {
+    // Restore previous value if still valid
+    const optionExists = Array.from(selectElement.options).some(opt => opt.value === String(currentValue));
     if (optionExists) {
-      selectElement.value = currentValue;
+      selectElement.value = String(currentValue);
+      const selectedOption = selectElement.querySelector(`option[value="${String(currentValue)}"]`);
+      if (selectedOption) {
+        selectedOption.setAttribute('selected', 'selected');
+        selectedOption.selected = true;
+      }
+      console.log(`updateMaterialSelect: Restored previous value ${currentValue}, select.value: ${selectElement.value}`);
     }
   }
 }
@@ -1322,42 +1434,212 @@ function addExistingMaterialToOperation(operationIndex, bomMaterialId, quantityU
   tbody.insertAdjacentHTML('beforeend', newMaterialRow);
   
   // Load BOM materials and set selected value
-  const select = tbody.querySelector(`.material-row[data-material-index="${materialIndex}"] .operation-material-bom-material`);
-  
-  if (processIdGlobal) {
-    // Load from Process
-    const cacheKey = `process_${processIdGlobal}`;
-    if (bomMaterialsCache[cacheKey]) {
-      if (select) {
-        updateMaterialSelect(select, bomMaterialsCache[cacheKey]);
-        attachMaterialSelectHandlers(select);
-        select.value = bomMaterialId;
-        select.dispatchEvent(new Event('change'));
-      }
-    } else {
-        loadProcessBOMMaterials(processIdGlobal).then(() => {
-        if (select) {
-          select.value = bomMaterialId;
-          select.dispatchEvent(new Event('change'));
+  // Wait a bit longer for DOM to be ready (row needs to be fully inserted)
+  setTimeout(() => {
+    const select = tbody.querySelector(`.material-row[data-material-index="${materialIndex}"] .operation-material-bom-material`);
+    
+    if (!select) {
+      console.error(`Cannot find select for operation ${operationIndex}, material ${materialIndex}`);
+      return;
+    }
+    
+      const populateAndSelect = (materials) => {
+        if (!materials || materials.length === 0) {
+          console.warn('No BOM materials available for populating dropdown');
+          return;
         }
-      });
-    }
-  } else if (bomId && bomMaterialsCache[bomId]) {
-    if (select) {
-      updateMaterialSelect(select, bomMaterialsCache[bomId]);
-      attachMaterialSelectHandlers(select);
-      select.value = bomMaterialId;
-      select.dispatchEvent(new Event('change'));
-    }
-  } else if (bomId) {
-    // Wait for BOM materials to load
-    loadBOMMaterials(bomId).then(() => {
-      if (select) {
-        select.value = bomMaterialId;
-        select.dispatchEvent(new Event('change'));
+        
+        // Save the target value before clearing
+        const targetValue = String(bomMaterialId);
+        
+        console.log(`Populating dropdown for operation ${operationIndex}, material ${materialIndex}, target value: ${targetValue}`);
+        console.log('Available materials:', materials.map(m => `${m.id} (${m.material_item_code})`));
+        
+        // Populate dropdown - pass target value to preserve it
+        updateMaterialSelect(select, materials, targetValue);
+        
+        // Immediately after populate, verify the value was set
+        console.log(`Immediately after populate - select.value: ${select.value}, options count: ${select.options.length}`);
+        if (select.value !== targetValue) {
+          console.warn(`Value not set correctly during populate! Expected: ${targetValue}, Got: ${select.value}`);
+          // Try to set it now
+          const foundOption = Array.from(select.options).find(opt => String(opt.value) === String(targetValue));
+          if (foundOption) {
+            select.value = targetValue;
+            select.selectedIndex = Array.from(select.options).indexOf(foundOption);
+            console.log(`Manually set value after populate, select.value now: ${select.value}`);
+          }
+        }
+        
+        // Wait for DOM to update, then verify and set value again if needed
+        // Use a longer delay to ensure dropdown is fully populated
+        setTimeout(() => {
+        // Verify select element is still in DOM and visible
+        if (!select || !select.parentElement || !document.body.contains(select)) {
+          console.error('Select element not found in DOM!');
+          return;
+        }
+        
+        // Verify dropdown has options
+        const options = select.querySelectorAll('option');
+        console.log(`Dropdown has ${options.length} options after populate`);
+        console.log('Available option values:', Array.from(options).map(opt => `${opt.value} (${opt.textContent})`));
+        
+        // If dropdown has no options or only default option, wait more
+        if (options.length <= 1) {
+          console.warn('Dropdown not fully populated yet, waiting more...');
+          setTimeout(() => {
+            const retryOptions = select.querySelectorAll('option');
+            console.log(`After retry, dropdown has ${retryOptions.length} options`);
+          }, 200);
+          return;
+        }
+        
+        // Find the option with matching value (try both string and number)
+        let option = select.querySelector(`option[value="${targetValue}"]`);
+        if (!option) {
+          // Try to find by comparing values (in case of type mismatch)
+          option = Array.from(select.options).find(opt => String(opt.value) === String(targetValue));
+        }
+        
+        if (option) {
+          // First remove selected from all options
+          select.querySelectorAll('option').forEach(opt => {
+            opt.removeAttribute('selected');
+            opt.selected = false;
+          });
+          
+          // Set selected attribute and property on the target option
+          option.setAttribute('selected', 'selected');
+          option.selected = true;
+          
+          // Set value property (try both string and number)
+          console.log(`Attempting to set value to: ${targetValue}, current select.value before: ${select.value}`);
+          
+          // First, try setting selectedIndex directly
+          const optionIndex = Array.from(select.options).indexOf(option);
+          console.log(`Found option at index: ${optionIndex}, option value: ${option.value}, option text: ${option.textContent}`);
+          
+          if (optionIndex >= 0) {
+            select.selectedIndex = optionIndex;
+            console.log(`Set selectedIndex to ${optionIndex}, select.value now: ${select.value}`);
+          }
+          
+          // Also set value property
+          select.value = targetValue;
+          console.log(`Set select.value to ${targetValue}, select.value now: ${select.value}`);
+          
+          // Verify the value is actually set
+          if (select.value !== targetValue && select.value !== String(targetValue)) {
+            console.warn(`Value mismatch! Expected: ${targetValue}, Got: ${select.value}`);
+            // Try with number if string didn't work
+            const numValue = parseInt(targetValue);
+            if (!isNaN(numValue)) {
+              select.value = numValue;
+              console.log(`Tried setting with number: ${numValue}, select.value now: ${select.value}`);
+            }
+          }
+          
+          // Force a re-check after a small delay
+          setTimeout(() => {
+            const currentValue = select.value;
+            const currentSelected = select.options[select.selectedIndex];
+            console.log(`After delay - select.value: ${currentValue}, selectedIndex: ${select.selectedIndex}, selected option: ${currentSelected ? currentSelected.textContent : 'none'}`);
+            
+            if (currentValue !== targetValue && String(currentValue) !== String(targetValue)) {
+              console.warn(`Value not set correctly! Expected: ${targetValue}, Current: ${currentValue}`);
+              // Try one more time
+              select.value = targetValue;
+              select.selectedIndex = optionIndex;
+              console.log(`Retried setting value, select.value now: ${select.value}`);
+            }
+          }, 50);
+          
+          console.log(`Successfully set value to ${targetValue}, selectedIndex: ${optionIndex}, current select.value: ${select.value}`);
+          
+          // Attach handlers after value is set
+          attachMaterialSelectHandlers(select);
+          
+          // Final verification and force set if needed
+          setTimeout(() => {
+            if (select.value !== targetValue && String(select.value) !== String(targetValue)) {
+              console.warn(`Value was changed after setting! Expected: ${targetValue}, Current: ${select.value}, forcing reset...`);
+              select.value = targetValue;
+              select.selectedIndex = optionIndex;
+              option.selected = true;
+              option.setAttribute('selected', 'selected');
+            }
+            
+            // Trigger change event to update unit and other dependent fields
+            const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+            select.dispatchEvent(changeEvent);
+            
+            // Force a re-render by triggering input event as well
+            const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+            select.dispatchEvent(inputEvent);
+            
+            // Final check - log the actual displayed value
+            const displayedOption = select.options[select.selectedIndex];
+            const displayedText = displayedOption ? displayedOption.textContent : 'N/A';
+            const displayedValue = select.value;
+            
+            console.log(`Final state - select.value: ${displayedValue}, displayed text: "${displayedText}", selectedIndex: ${select.selectedIndex}`);
+            
+            // If value is set but text is still "---", there's a display issue
+            if (displayedValue === targetValue && displayedText === '---') {
+              console.error(`ERROR: Value is set (${displayedValue}) but dropdown shows "---"! This is a display issue.`);
+              console.error('Select element:', select);
+              console.error('Selected option:', displayedOption);
+              console.error('All options:', Array.from(select.options).map(opt => ({value: opt.value, text: opt.textContent, selected: opt.selected})));
+              
+              // Try to force a visual update by toggling disabled state
+              const wasDisabled = select.disabled;
+              select.disabled = true;
+              setTimeout(() => {
+                select.disabled = wasDisabled;
+                console.log('Toggled disabled state to force re-render');
+              }, 10);
+            } else if (displayedValue === targetValue) {
+              console.log(`✅ SUCCESS: Value correctly set and displayed: "${displayedText}"`);
+            } else {
+              console.warn(`⚠️ WARNING: Value mismatch. Expected: ${targetValue}, Displayed value: ${displayedValue}, Displayed text: "${displayedText}"`);
+            }
+            
+            console.log(`Successfully set BOM material ${targetValue} for operation ${operationIndex}`);
+          }, 100);
+        } else {
+          const availableValues = Array.from(select.options).map(opt => `${opt.value} (${typeof opt.value})`);
+          console.warn(`BOM material ${targetValue} (${typeof targetValue}) not found in dropdown options. Available values:`, availableValues);
+          console.warn(`Select element:`, select);
+        }
+      }, 200); // Increased delay to ensure dropdown is fully populated
+    };
+    
+    if (processIdGlobal) {
+      // Load from Process
+      const cacheKey = `process_${processIdGlobal}`;
+      if (bomMaterialsCache[cacheKey]) {
+        populateAndSelect(bomMaterialsCache[cacheKey]);
+      } else {
+        loadProcessBOMMaterials(processIdGlobal).then((materials) => {
+          populateAndSelect(materials);
+        }).catch(err => {
+          console.error('Error loading process BOM materials:', err);
+        });
       }
-    });
-  }
+    } else if (bomId && bomMaterialsCache[bomId]) {
+      populateAndSelect(bomMaterialsCache[bomId]);
+    } else if (bomId) {
+      // Wait for BOM materials to load
+      loadBOMMaterials(bomId).then((materials) => {
+        populateAndSelect(materials);
+      }).catch(err => {
+        console.error('Error loading BOM materials:', err);
+      });
+    } else {
+      console.warn('No BOM ID or process ID available for loading materials');
+    }
+  }, 150); // Increased delay to ensure row is fully inserted in DOM
 }
 </script>
 {% endblock %}

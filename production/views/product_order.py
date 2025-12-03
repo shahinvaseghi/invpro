@@ -148,10 +148,15 @@ class ProductOrderCreateView(FeaturePermissionRequiredMixin, CreateView):
                     )
                     self.extra_items_formset = extra_items_formset
                     
+                    transfer_type = form.cleaned_data.get('transfer_type', 'full')
+                    selected_operations = form.cleaned_data.get('selected_operations', [])
+                    
                     self._create_transfer_request(
                         order=self.object,
                         approved_by=transfer_approved_by,
                         company_id=active_company_id,
+                        transfer_type=transfer_type,
+                        selected_operations=selected_operations,
                     )
                     messages.success(self.request, _('Product order and transfer request created successfully.'))
                 except Exception as e:
@@ -174,10 +179,15 @@ class ProductOrderCreateView(FeaturePermissionRequiredMixin, CreateView):
         order: ProductOrder,
         approved_by,
         company_id: int,
+        transfer_type: str = 'full',
+        selected_operations: list = None,
     ) -> TransferToLine:
         """Helper method to create a transfer request from a product order."""
         if not order.bom:
             raise ValueError(_('Product order must have a BOM to create a transfer request.'))
+        
+        if selected_operations is None:
+            selected_operations = []
         
         # Create transfer request
         transfer = TransferToLine.objects.create(
@@ -201,20 +211,60 @@ class ProductOrderCreateView(FeaturePermissionRequiredMixin, CreateView):
             )
             transfer.save(update_fields=['transfer_code'])
         
-        # Create items from BOM
-        bom = order.bom
+        # Collect materials to transfer based on transfer_type
+        from inventory.models import ItemWarehouse
+        from production.utils.transfer import get_operation_materials
+        from production.models import ProcessOperation
+        
         quantity_planned = order.quantity_planned
+        materials_to_transfer = []  # List of (material_item, quantity, unit, scrap_allowance)
         
-        bom_materials = bom.materials.all().select_related('material_item')
-        
-        for bom_material in bom_materials:
-            # Calculate required quantity: quantity_planned × quantity_per_unit
-            quantity_required = quantity_planned * bom_material.quantity_per_unit
+        if transfer_type == 'full':
+            # Transfer all BOM materials
+            bom = order.bom
+            bom_materials = bom.materials.filter(is_enabled=1).select_related('material_item')
             
+            for bom_material in bom_materials:
+                quantity_required = quantity_planned * bom_material.quantity_per_unit
+                materials_to_transfer.append((
+                    bom_material.material_item,
+                    quantity_required,
+                    bom_material.unit,
+                    bom_material.scrap_allowance,
+                ))
+        
+        elif transfer_type == 'operations' and selected_operations:
+            # Transfer materials from selected operations
+            operation_ids = [int(op_id) for op_id in selected_operations]
+            operations = ProcessOperation.objects.filter(
+                id__in=operation_ids,
+                is_enabled=1,
+            ).select_related('process')
+            
+            for operation in operations:
+                operation_materials = get_operation_materials(operation, order)
+                
+                for op_material in operation_materials:
+                    # Calculate quantity: quantity_planned × quantity_used (from ProcessOperationMaterial)
+                    quantity_required = quantity_planned * op_material.quantity_used
+                    
+                    # Get scrap allowance from BOM material if available
+                    scrap_allowance = Decimal('0.00')
+                    if op_material.bom_material:
+                        scrap_allowance = op_material.bom_material.scrap_allowance
+                    
+                    materials_to_transfer.append((
+                        op_material.material_item,
+                        quantity_required,
+                        op_material.unit,
+                        scrap_allowance,
+                    ))
+        
+        # Create transfer items
+        for material_item, quantity_required, unit, scrap_allowance in materials_to_transfer:
             # Get source warehouse from ItemWarehouse (first allowed warehouse)
-            from inventory.models import ItemWarehouse
             item_warehouse = ItemWarehouse.objects.filter(
-                item=bom_material.material_item,
+                item=material_item,
                 company_id=company_id,
                 is_enabled=1,
             ).select_related('warehouse').first()
@@ -223,7 +273,7 @@ class ProductOrderCreateView(FeaturePermissionRequiredMixin, CreateView):
                 messages.warning(
                     self.request,
                     _('No allowed warehouse found for item {item_code}. Skipping this item.').format(
-                        item_code=bom_material.material_item.item_code
+                        item_code=material_item.item_code
                     )
                 )
                 continue
@@ -239,19 +289,19 @@ class ProductOrderCreateView(FeaturePermissionRequiredMixin, CreateView):
                     # Note: WorkLine doesn't have work_center, so we'll leave it None for now
                     pass
             
-            # Create transfer item from BOM
+            # Create transfer item
             TransferToLineItem.objects.create(
                 transfer=transfer,
                 company_id=company_id,
-                material_item=bom_material.material_item,
-                material_item_code=bom_material.material_item.item_code,
+                material_item=material_item,
+                material_item_code=material_item.item_code,
                 quantity_required=quantity_required,
-                unit=bom_material.unit,
+                unit=unit,
                 source_warehouse=source_warehouse,
                 source_warehouse_code=source_warehouse.public_code,
                 destination_work_center=destination_work_center,
-                material_scrap_allowance=bom_material.scrap_allowance,
-                is_extra=0,  # From BOM
+                material_scrap_allowance=scrap_allowance,
+                is_extra=0,  # From BOM or Operations
                 created_by=self.request.user,
             )
         
@@ -383,10 +433,15 @@ class ProductOrderUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMi
                     )
                     self.extra_items_formset = extra_items_formset
                     
+                    transfer_type = form.cleaned_data.get('transfer_type', 'full')
+                    selected_operations = form.cleaned_data.get('selected_operations', [])
+                    
                     self._create_transfer_request(
                         order=self.object,
                         approved_by=transfer_approved_by,
                         company_id=self.object.company_id,
+                        transfer_type=transfer_type,
+                        selected_operations=selected_operations,
                     )
                     messages.success(self.request, _('Product order updated and transfer request created successfully.'))
                 except Exception as e:
@@ -409,10 +464,15 @@ class ProductOrderUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMi
         order: ProductOrder,
         approved_by,
         company_id: int,
+        transfer_type: str = 'full',
+        selected_operations: list = None,
     ) -> TransferToLine:
         """Helper method to create a transfer request from a product order."""
         if not order.bom:
             raise ValueError(_('Product order must have a BOM to create a transfer request.'))
+        
+        if selected_operations is None:
+            selected_operations = []
         
         # Create transfer request
         transfer = TransferToLine.objects.create(
@@ -436,20 +496,60 @@ class ProductOrderUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMi
             )
             transfer.save(update_fields=['transfer_code'])
         
-        # Create items from BOM
-        bom = order.bom
+        # Collect materials to transfer based on transfer_type
+        from inventory.models import ItemWarehouse
+        from production.utils.transfer import get_operation_materials
+        from production.models import ProcessOperation
+        
         quantity_planned = order.quantity_planned
+        materials_to_transfer = []  # List of (material_item, quantity, unit, scrap_allowance)
         
-        bom_materials = bom.materials.all().select_related('material_item')
-        
-        for bom_material in bom_materials:
-            # Calculate required quantity: quantity_planned × quantity_per_unit
-            quantity_required = quantity_planned * bom_material.quantity_per_unit
+        if transfer_type == 'full':
+            # Transfer all BOM materials
+            bom = order.bom
+            bom_materials = bom.materials.filter(is_enabled=1).select_related('material_item')
             
+            for bom_material in bom_materials:
+                quantity_required = quantity_planned * bom_material.quantity_per_unit
+                materials_to_transfer.append((
+                    bom_material.material_item,
+                    quantity_required,
+                    bom_material.unit,
+                    bom_material.scrap_allowance,
+                ))
+        
+        elif transfer_type == 'operations' and selected_operations:
+            # Transfer materials from selected operations
+            operation_ids = [int(op_id) for op_id in selected_operations]
+            operations = ProcessOperation.objects.filter(
+                id__in=operation_ids,
+                is_enabled=1,
+            ).select_related('process')
+            
+            for operation in operations:
+                operation_materials = get_operation_materials(operation, order)
+                
+                for op_material in operation_materials:
+                    # Calculate quantity: quantity_planned × quantity_used (from ProcessOperationMaterial)
+                    quantity_required = quantity_planned * op_material.quantity_used
+                    
+                    # Get scrap allowance from BOM material if available
+                    scrap_allowance = Decimal('0.00')
+                    if op_material.bom_material:
+                        scrap_allowance = op_material.bom_material.scrap_allowance
+                    
+                    materials_to_transfer.append((
+                        op_material.material_item,
+                        quantity_required,
+                        op_material.unit,
+                        scrap_allowance,
+                    ))
+        
+        # Create transfer items
+        for material_item, quantity_required, unit, scrap_allowance in materials_to_transfer:
             # Get source warehouse from ItemWarehouse (first allowed warehouse)
-            from inventory.models import ItemWarehouse
             item_warehouse = ItemWarehouse.objects.filter(
-                item=bom_material.material_item,
+                item=material_item,
                 company_id=company_id,
                 is_enabled=1,
             ).select_related('warehouse').first()
@@ -458,7 +558,7 @@ class ProductOrderUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMi
                 messages.warning(
                     self.request,
                     _('No allowed warehouse found for item {item_code}. Skipping this item.').format(
-                        item_code=bom_material.material_item.item_code
+                        item_code=material_item.item_code
                     )
                 )
                 continue
@@ -474,19 +574,19 @@ class ProductOrderUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMi
                     # Note: WorkLine doesn't have work_center, so we'll leave it None for now
                     pass
             
-            # Create transfer item from BOM
+            # Create transfer item
             TransferToLineItem.objects.create(
                 transfer=transfer,
                 company_id=company_id,
-                material_item=bom_material.material_item,
-                material_item_code=bom_material.material_item.item_code,
+                material_item=material_item,
+                material_item_code=material_item.item_code,
                 quantity_required=quantity_required,
-                unit=bom_material.unit,
+                unit=unit,
                 source_warehouse=source_warehouse,
                 source_warehouse_code=source_warehouse.public_code,
                 destination_work_center=destination_work_center,
-                material_scrap_allowance=bom_material.scrap_allowance,
-                is_extra=0,  # From BOM
+                material_scrap_allowance=scrap_allowance,
+                is_extra=0,  # From BOM or Operations
                 created_by=self.request.user,
             )
         

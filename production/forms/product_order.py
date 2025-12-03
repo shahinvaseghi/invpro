@@ -36,6 +36,27 @@ class ProductOrderForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-control'}),
     )
     
+    # Transfer type: 'full' for all materials, 'operations' for selected operations
+    transfer_type = forms.ChoiceField(
+        choices=[
+            ('full', _('انتقال همه مواد')),
+            ('operations', _('انتقال عملیات انتخابی')),
+        ],
+        initial='full',
+        required=False,
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+        label=_('نوع انتقال'),
+        help_text=_('انتخاب کنید که آیا همه مواد انتقال داده شوند یا مواد از عملیات خاص'),
+    )
+    
+    # Selected operations (for transfer_type='operations')
+    selected_operations = forms.MultipleChoiceField(
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+        label=_('انتخاب عملیات'),
+        help_text=_('عملیات‌هایی که مواد آنها باید انتقال داده شود را انتخاب کنید'),
+    )
+    
     class Meta:
         model = ProductOrder
         fields = [
@@ -152,6 +173,9 @@ class ProductOrderForm(forms.ModelForm):
             self.fields['process'].queryset = Process.objects.none()
             self.fields['approved_by'].queryset = User.objects.none()
             self.fields['transfer_approved_by'].queryset = User.objects.none()
+        
+        # Initialize selected_operations choices (will be populated via JavaScript)
+        self.fields['selected_operations'].choices = []
     
     def clean(self) -> dict:
         """Validate form data."""
@@ -160,6 +184,8 @@ class ProductOrderForm(forms.ModelForm):
         quantity_planned = cleaned_data.get('quantity_planned')
         create_transfer_request = cleaned_data.get('create_transfer_request')
         transfer_approved_by = cleaned_data.get('transfer_approved_by')
+        transfer_type = cleaned_data.get('transfer_type', 'full')
+        selected_operations = cleaned_data.get('selected_operations', [])
         
         # Validate Process is selected
         if not process:
@@ -172,6 +198,13 @@ class ProductOrderForm(forms.ModelForm):
         # If create_transfer_request is checked, transfer_approved_by is required
         if create_transfer_request and not transfer_approved_by:
             raise forms.ValidationError(_('Transfer Request Approver is required when creating a transfer request.'))
+        
+        # If create_transfer_request is checked and transfer_type is 'operations', validate that operations are selected
+        if create_transfer_request and transfer_type == 'operations':
+            if not selected_operations:
+                raise forms.ValidationError({
+                    'selected_operations': _('Please select at least one operation when transferring specific operations.')
+                })
         
         # Auto-set finished_item and bom from Process
         if process:

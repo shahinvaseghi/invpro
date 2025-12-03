@@ -19,6 +19,117 @@ from production.forms import (
 from production.models import Process, ProcessOperation, ProcessOperationMaterial
 
 
+def save_operation_materials_from_post(request, operation, operation_index, company_id, bom_id=None):
+    """
+    Save materials for an operation by parsing POST data manually.
+    
+    Format in POST: materials-{operation_index}-{material_index}-{field_name}
+    """
+    from production.models import BOMMaterial
+    
+    # Parse materials manually from POST data
+    # Format: materials-{operation_index}-{material_index}-{field_name}
+    materials_data = {}
+    
+    # Collect all material data from POST
+    for key, value in request.POST.items():
+        if key.startswith(f'materials-{operation_index}-'):
+            # Extract material index and field name
+            parts = key.split('-')
+            if len(parts) >= 4:
+                material_index = parts[2]
+                field_name = '-'.join(parts[3:])
+                
+                if material_index not in materials_data:
+                    materials_data[material_index] = {}
+                
+                materials_data[material_index][field_name] = value
+    
+    # Track which materials should be kept (updated or newly created)
+    kept_material_ids = set()
+    
+    # Save materials from POST data
+    for material_index, mat_data in materials_data.items():
+        bom_material_id = mat_data.get('bom_material', '').strip()
+        quantity_used = mat_data.get('quantity_used', '').strip()
+        
+        # Skip empty materials
+        if not bom_material_id or not quantity_used:
+            continue
+        
+        try:
+            bom_material = BOMMaterial.objects.get(
+                id=int(bom_material_id),
+                is_enabled=1,
+            )
+            
+            # Get or create material
+            material_id = mat_data.get('id', '').strip()
+            if material_id:
+                try:
+                    material = ProcessOperationMaterial.objects.get(
+                        id=int(material_id),
+                        operation=operation,
+                    )
+                    # Update existing
+                    material.bom_material = bom_material
+                    material.material_item = bom_material.material_item
+                    material.material_item_code = bom_material.material_item_code
+                    material.quantity_used = quantity_used
+                    material.unit = bom_material.unit
+                    material.is_enabled = 1
+                    if hasattr(material, 'edited_by'):
+                        material.edited_by = request.user
+                    material.save()
+                    kept_material_ids.add(material.id)
+                except (ProcessOperationMaterial.DoesNotExist, ValueError):
+                    # Create new if ID doesn't exist
+                    material = ProcessOperationMaterial.objects.create(
+                        operation=operation,
+                        company_id=company_id,
+                        created_by=request.user,
+                        bom_material=bom_material,
+                        material_item=bom_material.material_item,
+                        material_item_code=bom_material.material_item_code,
+                        quantity_used=quantity_used,
+                        unit=bom_material.unit,
+                    )
+                    kept_material_ids.add(material.id)
+            else:
+                # Create new material
+                material = ProcessOperationMaterial.objects.create(
+                    operation=operation,
+                    company_id=company_id,
+                    created_by=request.user,
+                    bom_material=bom_material,
+                    material_item=bom_material.material_item,
+                    material_item_code=bom_material.material_item_code,
+                    quantity_used=quantity_used,
+                    unit=bom_material.unit,
+                )
+                kept_material_ids.add(material.id)
+        except (BOMMaterial.DoesNotExist, ValueError, TypeError) as e:
+            messages.error(request, f"❌ {_('Material')} {operation_index + 1}: {_('Invalid material selected.')}")
+            return False
+    
+    # Hard delete materials that were not in the POST data (truly removed)
+    if operation.pk:
+        all_existing_ids = set(
+            ProcessOperationMaterial.objects.filter(
+                operation=operation,
+                is_enabled=1,
+            ).values_list('id', flat=True)
+        )
+        ids_to_delete = all_existing_ids - kept_material_ids
+        if ids_to_delete:
+            ProcessOperationMaterial.objects.filter(
+                id__in=ids_to_delete,
+                operation=operation,
+            ).delete()
+    
+    return True
+
+
 class ProcessListView(FeaturePermissionRequiredMixin, ListView):
     """List all processes for the active company."""
     model = Process
@@ -169,24 +280,14 @@ class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
                     if (name or sequence_order) and operation_index < len(operations):
                         operation = operations[operation_index]
                         
-                        # Parse materials formset for this operation
-                        materials_formset = ProcessOperationMaterialFormSet(
-                            self.request.POST,
-                            instance=operation,
-                            prefix=f'materials-{operation_index}',
-                            form_kwargs={'bom_id': bom_id, 'process_id': self.object.id if hasattr(self, 'object') and self.object else None},
-                            process_id=self.object.id if hasattr(self, 'object') and self.object else None,
+                        # Save materials manually from POST data
+                        save_operation_materials_from_post(
+                            self.request,
+                            operation,
+                            operation_index,
+                            active_company_id,
+                            bom_id,
                         )
-                        
-                        if materials_formset.is_valid():
-                            materials_formset.save()
-                        else:
-                            # Collect errors
-                            for mat_form in materials_formset:
-                                if mat_form.errors:
-                                    for field, errors in mat_form.errors.items():
-                                        for error in errors:
-                                            messages.error(self.request, f"❌ {_('Material')} {operation_index + 1}: {error}")
                         
                         operation_index += 1
         else:
@@ -383,24 +484,14 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
                     if (name or sequence_order) and operation_index < len(operations):
                         operation = operations[operation_index]
                         
-                        # Parse materials formset for this operation
-                        materials_formset = ProcessOperationMaterialFormSet(
-                            self.request.POST,
-                            instance=operation,
-                            prefix=f'materials-{operation_index}',
-                            form_kwargs={'bom_id': bom_id, 'process_id': self.object.id if hasattr(self, 'object') and self.object else None},
-                            process_id=self.object.id if hasattr(self, 'object') and self.object else None,
+                        # Save materials manually from POST data
+                        save_operation_materials_from_post(
+                            self.request,
+                            operation,
+                            operation_index,
+                            active_company_id,
+                            bom_id,
                         )
-                        
-                        if materials_formset.is_valid():
-                            materials_formset.save()
-                        else:
-                            # Collect errors
-                            for mat_form in materials_formset:
-                                if mat_form.errors:
-                                    for field, errors in mat_form.errors.items():
-                                        for error in errors:
-                                            messages.error(self.request, f"❌ {_('Material')} {operation_index + 1}: {error}")
                         
                         operation_index += 1
         else:
@@ -454,6 +545,9 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
                 prefix='operations',
                 form_kwargs={'bom_id': bom_id, 'company_id': active_company_id},
             )
+            # POST request - no existing operations data needed
+            context['existing_operations_data'] = None
+            context['operation_id_to_index'] = {}
         else:
             # Load existing operations
             existing_operations = ProcessOperation.objects.filter(
@@ -462,7 +556,8 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
             ).order_by('sequence_order', 'id')
             
             initial_data = []
-            for op in existing_operations:
+            operation_id_to_index = {}
+            for index, op in enumerate(existing_operations):
                 initial_data.append({
                     'name': op.name,
                     'description': op.description,
@@ -472,6 +567,7 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
                     'work_line': op.work_line_id,
                     'notes': op.notes,
                 })
+                operation_id_to_index[op.id] = index
             
             operations_formset = ProcessOperationFormSet(
                 prefix='operations',
@@ -501,6 +597,7 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
                 })
             
             context['existing_operations_data'] = existing_operations_data
+            context['operation_id_to_index'] = operation_id_to_index
         
         context['operations_formset'] = operations_formset
         context['process_id'] = self.object.id if hasattr(self, 'object') and self.object else None

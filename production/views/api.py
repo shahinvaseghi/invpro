@@ -8,7 +8,7 @@ from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse, HttpRequest
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
-from production.models import BOM, BOMMaterial, ProductOrder, Process
+from production.models import BOM, BOMMaterial, ProductOrder, Process, ProcessOperation
 from production.utils.transfer import (
     get_available_operations_for_order,
     is_full_order_transferred,
@@ -111,6 +111,48 @@ def get_order_operations(request: HttpRequest, order_id: int) -> JsonResponse:
         })
     except Exception as e:
         logger.error(f"Error in get_order_operations: {e}", exc_info=True)
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+@login_required
+def get_process_operations(request: HttpRequest, process_id: int) -> JsonResponse:
+    """API endpoint to get operations for a process."""
+    company_id = request.session.get('active_company_id')
+    if not company_id:
+        return JsonResponse({'error': 'No active company'}, status=400)
+
+    try:
+        process = get_object_or_404(
+            Process,
+            pk=process_id,
+            company_id=company_id,
+            is_enabled=1,
+        )
+
+        # Get all enabled operations for this process
+        operations = ProcessOperation.objects.filter(
+            process=process,
+            is_enabled=1,
+        ).order_by('sequence_order', 'id')
+
+        operations_data = [
+            {
+                'id': op.id,
+                'name': op.name or f"Operation {op.sequence_order}",
+                'sequence_order': op.sequence_order,
+                'description': op.description or '',
+            }
+            for op in operations
+        ]
+
+        return JsonResponse({
+            'operations': operations_data,
+            'has_process': True,
+            'process_code': process.process_code,
+        })
+    except Exception as e:
+        logger.error(f"Error in get_process_operations: {e}", exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
 
 
