@@ -129,6 +129,7 @@ urlpatterns = [
     path('issues/consignment/<int:pk>/delete/', views.IssueConsignmentDeleteView.as_view(), name='issue_consignment_delete'),
     path('issues/consignment/<int:pk>/lock/', views.IssueConsignmentLockView.as_view(), name='issue_consignment_lock'),
     path('issues/consignment/<int:pk>/lines/<int:line_id>/serials/', views.IssueConsignmentLineSerialAssignmentView.as_view(), name='issue_consignment_line_serials'),
+    path('issues/warehouse-transfer/', views.IssueWarehouseTransferListView.as_view(), name='issue_warehouse_transfer'),
     
     # Stocktaking
     path('stocktaking/deficit/', views.StocktakingDeficitListView.as_view(), name='stocktaking_deficit'),

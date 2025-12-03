@@ -46,6 +46,9 @@ from .income_expense_categories import IncomeExpenseCategory
 # Parties
 from .parties import Party, PartyAccount
 
+# Treasury Accounts
+from .treasury_accounts import TreasuryAccount
+
 # Export all models for backward compatibility
 __all__ = [
     # Base
@@ -78,5 +81,7 @@ __all__ = [
     # Parties
     'Party',
     'PartyAccount',
+    # Treasury Accounts
+    'TreasuryAccount',
 ]
 

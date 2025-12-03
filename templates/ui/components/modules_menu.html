@@ -92,7 +92,7 @@
           </div>
         </div>
       {% endif %}
-      {% if user_feature_permissions|feature_allowed:'inventory.issues.permanent' or user_feature_permissions|feature_allowed:'inventory.issues.consumption' or user_feature_permissions|feature_allowed:'inventory.issues.consignment' %}
+      {% if user_feature_permissions|feature_allowed:'inventory.issues.permanent' or user_feature_permissions|feature_allowed:'inventory.issues.consumption' or user_feature_permissions|feature_allowed:'inventory.issues.consignment' or user_feature_permissions|feature_allowed:'inventory.issues.warehouse_transfer' %}
         <div class="dropdown-submenu">
           <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-inventory-issues">
             <span>{% trans "Issues" %}</span>
@@ -107,6 +107,9 @@
             {% endif %}
             {% if user_feature_permissions|feature_allowed:'inventory.issues.consignment' %}
               <a href="{% url 'inventory:issue_consignment' %}" class="dropdown-item-sub">{% trans "Consignment Issues" %}</a>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'inventory.issues.warehouse_transfer' or request.user.is_superuser %}
+              <a href="{% url 'inventory:issue_warehouse_transfer' %}" class="dropdown-item-sub">{% trans "حواله انتقال بین انبارها" %}</a>
             {% endif %}
           </div>
         </div>
@@ -140,7 +143,7 @@
   </div>
 
   <!-- Production Module -->
-  {% if user_feature_permissions|feature_allowed:'production.personnel' or user_feature_permissions|feature_allowed:'production.machines' or user_feature_permissions|feature_allowed:'production.work_lines' or user_feature_permissions|feature_allowed:'production.bom' or user_feature_permissions|feature_allowed:'production.processes' or user_feature_permissions|feature_allowed:'production.product_orders' or request.user.is_superuser %}
+  {% if user_feature_permissions|feature_allowed:'production.personnel' or user_feature_permissions|feature_allowed:'production.machines' or user_feature_permissions|feature_allowed:'production.work_lines' or user_feature_permissions|feature_allowed:'production.bom' or user_feature_permissions|feature_allowed:'production.processes' or user_feature_permissions|feature_allowed:'production.product_orders' or user_feature_permissions|feature_allowed:'production.tracking_identification' or request.user.is_superuser %}
   <div class="dropdown-submenu">
     <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-production">
       <span class="menu-icon">⚙️</span>
@@ -171,6 +174,9 @@
       {% endif %}
       {% if request.user.is_superuser %}
         <a href="{% url 'production:performance_records' %}" class="dropdown-item-sub">{% trans "Performance" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'production.tracking_identification' or request.user.is_superuser %}
+        <a href="{% url 'production:tracking_identification' %}" class="dropdown-item-sub">{% trans "شناسایی و ردیابی" %}</a>
       {% endif %}
     </div>
   </div>
@@ -243,7 +249,7 @@
     </button>
     <div class="dropdown-menu-sub" id="modules-accounting">
       <!-- 1. تعاریف پایه (Base Definitions) -->
-      {% if user_feature_permissions|feature_allowed:'accounting.base.fiscal_years' or user_feature_permissions|feature_allowed:'accounting.base.accounts' or user_feature_permissions|feature_allowed:'accounting.base.gl' or user_feature_permissions|feature_allowed:'accounting.base.sub' or user_feature_permissions|feature_allowed:'accounting.base.tafsili' or user_feature_permissions|feature_allowed:'accounting.base.tafsili_hierarchy' or user_feature_permissions|feature_allowed:'accounting.base.cost_centers' or user_feature_permissions|feature_allowed:'accounting.base.income_expense_categories' or user_feature_permissions|feature_allowed:'accounting.base.parties' or user_feature_permissions|feature_allowed:'accounting.base.party_accounts' or user_feature_permissions|feature_allowed:'accounting.base.cash_accounts' or user_feature_permissions|feature_allowed:'accounting.base.checks' or request.user.is_superuser %}
+      {% if user_feature_permissions|feature_allowed:'accounting.base.fiscal_years' or user_feature_permissions|feature_allowed:'accounting.base.accounts' or user_feature_permissions|feature_allowed:'accounting.base.gl' or user_feature_permissions|feature_allowed:'accounting.base.sub' or user_feature_permissions|feature_allowed:'accounting.base.tafsili' or user_feature_permissions|feature_allowed:'accounting.base.tafsili_hierarchy' or user_feature_permissions|feature_allowed:'accounting.base.cost_centers' or user_feature_permissions|feature_allowed:'accounting.base.income_expense_categories' or user_feature_permissions|feature_allowed:'accounting.base.parties' or user_feature_permissions|feature_allowed:'accounting.base.party_accounts' or request.user.is_superuser %}
       <div class="dropdown-submenu">
         <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-accounting-base">
           <span>{% trans "تعاریف پایه" %}</span>
@@ -277,11 +283,8 @@
           {% if user_feature_permissions|feature_allowed:'accounting.base.parties' or request.user.is_superuser %}
             <a href="{% url 'accounting:parties' %}" class="dropdown-item-sub">{% trans "طرف حساب‌ها" %}</a>
           {% endif %}
-          {% if user_feature_permissions|feature_allowed:'accounting.base.cash_accounts' or request.user.is_superuser %}
+          {% if user_feature_permissions|feature_allowed:'accounting.treasury.accounts' or request.user.is_superuser %}
             <a href="{% url 'accounting:treasury_accounts' %}" class="dropdown-item-sub">{% trans "حساب‌های نقدی و بانکی" %}</a>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'accounting.base.checks' or request.user.is_superuser %}
-            <a href="{% url 'accounting:treasury_checks' %}" class="dropdown-item-sub">{% trans "مدیریت چک‌ها" %}</a>
           {% endif %}
         </div>
       </div>
@@ -324,19 +327,13 @@
       {% endif %}
 
       <!-- 3. خزانه‌داری (Treasury) -->
-      {% if user_feature_permissions|feature_allowed:'accounting.treasury.income' or user_feature_permissions|feature_allowed:'accounting.treasury.expense' or user_feature_permissions|feature_allowed:'accounting.treasury.receive' or user_feature_permissions|feature_allowed:'accounting.treasury.pay' or user_feature_permissions|feature_allowed:'accounting.treasury.transactions' or user_feature_permissions|feature_allowed:'accounting.treasury.transfer' or user_feature_permissions|feature_allowed:'accounting.treasury.checks' or user_feature_permissions|feature_allowed:'accounting.treasury.reconciliation' or user_feature_permissions|feature_allowed:'accounting.treasury.cash_report' or request.user.is_superuser %}
+      {% if user_feature_permissions|feature_allowed:'accounting.treasury.receive' or user_feature_permissions|feature_allowed:'accounting.treasury.pay' or user_feature_permissions|feature_allowed:'accounting.treasury.transactions' or user_feature_permissions|feature_allowed:'accounting.treasury.transfer' or user_feature_permissions|feature_allowed:'accounting.treasury.accounts' or user_feature_permissions|feature_allowed:'accounting.treasury.checks' or user_feature_permissions|feature_allowed:'accounting.treasury.reconciliation' or user_feature_permissions|feature_allowed:'accounting.treasury.cash_report' or user_feature_permissions|feature_allowed:'accounting.income_expense.cost_allocation' or user_feature_permissions|feature_allowed:'accounting.income_expense.income_report' or user_feature_permissions|feature_allowed:'accounting.income_expense.expense_report' or user_feature_permissions|feature_allowed:'accounting.income_expense.cost_center_report' or request.user.is_superuser %}
       <div class="dropdown-submenu">
         <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-accounting-treasury">
           <span>{% trans "خزانه‌داری" %}</span>
           <span class="dropdown-arrow">▶</span>
         </button>
         <div class="dropdown-menu-sub" id="modules-accounting-treasury">
-          {% if user_feature_permissions|feature_allowed:'accounting.treasury.income' or request.user.is_superuser %}
-            <a href="{% url 'accounting:treasury_income' %}" class="dropdown-item-sub">{% trans "ثبت درآمد" %}</a>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'accounting.treasury.expense' or request.user.is_superuser %}
-            <a href="{% url 'accounting:treasury_expense' %}" class="dropdown-item-sub">{% trans "ثبت هزینه" %}</a>
-          {% endif %}
           {% if user_feature_permissions|feature_allowed:'accounting.treasury.receive' or request.user.is_superuser %}
             <a href="{% url 'accounting:treasury_receive' %}" class="dropdown-item-sub">{% trans "دریافت" %}</a>
           {% endif %}
@@ -349,6 +346,9 @@
           {% if user_feature_permissions|feature_allowed:'accounting.treasury.transfer' or request.user.is_superuser %}
             <a href="{% url 'accounting:treasury_transfer' %}" class="dropdown-item-sub">{% trans "انتقال بین حساب‌ها" %}</a>
           {% endif %}
+          {% if user_feature_permissions|feature_allowed:'accounting.treasury.accounts' or request.user.is_superuser %}
+            <a href="{% url 'accounting:treasury_accounts' %}" class="dropdown-item-sub">{% trans "حساب‌های نقدی و بانکی" %}</a>
+          {% endif %}
           {% if user_feature_permissions|feature_allowed:'accounting.treasury.checks' or request.user.is_superuser %}
             <a href="{% url 'accounting:treasury_checks' %}" class="dropdown-item-sub">{% trans "مدیریت چک‌ها" %}</a>
           {% endif %}
@@ -357,24 +357,6 @@
           {% endif %}
           {% if user_feature_permissions|feature_allowed:'accounting.treasury.cash_report' or request.user.is_superuser %}
             <a href="{% url 'accounting:treasury_cash_report' %}" class="dropdown-item-sub">{% trans "گزارش وجوه نقد و بانک‌ها" %}</a>
-          {% endif %}
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- 4. درآمد و هزینه (Income & Expense) -->
-      {% if user_feature_permissions|feature_allowed:'accounting.income_expense.income' or user_feature_permissions|feature_allowed:'accounting.income_expense.expense' or user_feature_permissions|feature_allowed:'accounting.income_expense.cost_allocation' or user_feature_permissions|feature_allowed:'accounting.income_expense.income_report' or user_feature_permissions|feature_allowed:'accounting.income_expense.expense_report' or user_feature_permissions|feature_allowed:'accounting.income_expense.cost_center_report' or request.user.is_superuser %}
-      <div class="dropdown-submenu">
-        <button type="button" class="dropdown-item dropdown-toggle" data-submenu="modules-accounting-income-expense">
-          <span>{% trans "درآمد و هزینه" %}</span>
-          <span class="dropdown-arrow">▶</span>
-        </button>
-        <div class="dropdown-menu-sub" id="modules-accounting-income-expense">
-          {% if user_feature_permissions|feature_allowed:'accounting.income_expense.income' or request.user.is_superuser %}
-            <a href="{% url 'accounting:income_expense_income' %}" class="dropdown-item-sub">{% trans "ثبت درآمد" %}</a>
-          {% endif %}
-          {% if user_feature_permissions|feature_allowed:'accounting.income_expense.expense' or request.user.is_superuser %}
-            <a href="{% url 'accounting:income_expense_expense' %}" class="dropdown-item-sub">{% trans "ثبت هزینه" %}</a>
           {% endif %}
           {% if user_feature_permissions|feature_allowed:'accounting.income_expense.cost_allocation' or request.user.is_superuser %}
             <a href="{% url 'accounting:cost_allocation' %}" class="dropdown-item-sub">{% trans "تخصیص مرکز هزینه" %}</a>

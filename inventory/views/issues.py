@@ -5,6 +5,7 @@ This module contains views for:
 - Permanent Issues
 - Consumption Issues
 - Consignment Issues
+- Warehouse Transfer Issues
 - Serial Assignment for Issues
 """
 from typing import Dict, Any, Optional
@@ -1126,4 +1127,39 @@ class IssueConsignmentLineSerialAssignmentView(IssueLineSerialAssignmentBaseView
     list_url_name = 'inventory:issue_consignment'
     edit_url_name = 'inventory:issue_consignment_edit'
     lock_url_name = 'inventory:issue_consignment_lock'
+
+
+# ============================================================================
+# Warehouse Transfer Issue Views
+# ============================================================================
+
+class IssueWarehouseTransferListView(InventoryBaseView, ListView):
+    """List view for warehouse transfer issues."""
+    template_name = 'inventory/issue_warehouse_transfer.html'
+    context_object_name = 'object_list'
+    paginate_by = 50
+    ordering = ['-id']  # Show newest documents first
+
+    def get_queryset(self):
+        """Return empty queryset for now - placeholder view."""
+        # Placeholder: return empty queryset until model is defined
+        return models.IssuePermanent.objects.none()
+
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic list template."""
+        context = super().get_context_data(**kwargs)
+        
+        context['page_title'] = _('حواله انتقال بین انبارها')
+        context['breadcrumbs'] = [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': None},
+        ]
+        context['create_url'] = None  # Will be set when create view is implemented
+        context['create_button_text'] = _('ایجاد حواله انتقال')
+        context['create_label'] = _('حواله انتقال بین انبارها')
+        context['show_filters'] = True
+        context['print_enabled'] = True
+        context['show_actions'] = True
+        
+        return context
 

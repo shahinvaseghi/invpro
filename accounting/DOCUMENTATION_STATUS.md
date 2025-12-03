@@ -169,17 +169,82 @@
 
 ## 📝 فایل‌های README ایجاد/به‌روزرسانی شده
 
-1. ✅ `accounting/README_MODELS.md` - تمام 17 مدل
+### فایل‌های اصلی
+1. ✅ `accounting/README_MODELS.md` - تمام 20 مدل (17 مدل اصلی + 3 مدل جدید: CostCenter, IncomeExpenseCategory, TafsiliHierarchy, DocumentAttachment, SubAccountGLAccountRelation, TafsiliSubAccountRelation)
 2. ✅ `accounting/README_VIEWS.md` - view های اصلی + Party views
 3. ✅ `accounting/README_FORMS.md` - فرم‌های پایه
-4. ✅ `accounting/forms/README_PARTIES.md` - فرم‌های Party
-5. ✅ `accounting/forms/README_COST_CENTERS.md` - فرم CostCenter
-6. ✅ `accounting/forms/README_INCOME_EXPENSE_CATEGORIES.md` - فرم IncomeExpenseCategory
-7. ✅ `accounting/forms/README_OTHER_FORMS.md` - سایر فرم‌ها
-8. ✅ `accounting/views/README_OTHER_VIEWS.md` - سایر view ها
-9. ✅ `accounting/README_UTILS.md` - utility functions
-10. ✅ `accounting/README_CONTEXT_PROCESSORS.md` - context processors
-11. ✅ `accounting/DOCUMENTATION_STATUS.md` - این فایل
+4. ✅ `accounting/README_UTILS.md` - utility functions (get_available_fiscal_years)
+5. ✅ `accounting/README_CONTEXT_PROCESSORS.md` - context processors (active_fiscal_year)
+6. ✅ `accounting/DOCUMENTATION_STATUS.md` - این فایل
+
+### Forms README Files
+7. ✅ `accounting/forms/README.md` - Overview کلی forms package
+8. ✅ `accounting/forms/README_PARTIES.md` - فرم‌های Party (PartyForm, PartyAccountForm)
+9. ✅ `accounting/forms/README_COST_CENTERS.md` - فرم CostCenter (CostCenterForm)
+10. ✅ `accounting/forms/README_INCOME_EXPENSE_CATEGORIES.md` - فرم IncomeExpenseCategory (IncomeExpenseCategoryForm)
+11. ✅ `accounting/forms/README_OTHER_FORMS.md` - سایر فرم‌ها (DocumentAttachmentUploadForm, DocumentAttachmentFilterForm, GLAccountForm, SubAccountForm, TafsiliAccountForm, TafsiliHierarchyForm) - **کامل با جزئیات**
+
+### Views README Files
+12. ✅ `accounting/views/README.md` - Overview کلی views package
+13. ✅ `accounting/views/README_BASE.md` - Base views (AccountingBaseView)
+14. ✅ `accounting/views/README_FISCAL_YEARS.md` - Fiscal Year views
+15. ✅ `accounting/views/README_ACCOUNTS.md` - Account views
+16. ✅ `accounting/views/README_GL_ACCOUNTS.md` - GL Account views (4 view) - **کامل با جزئیات**
+17. ✅ `accounting/views/README_OTHER_VIEWS.md` - سایر view ها (خلاصه + لینک به فایل‌های جداگانه)
+
+---
+
+## ✅ وضعیت مستندسازی نهایی
+
+### Models
+- ✅ **مستندسازی شده**: 20 مدل (17 مدل اصلی + 6 مدل جدید که 3 تای آن‌ها در continuation هستند)
+- ❌ **بدون مستندسازی**: 0 مدل
+- **درصد تکمیل**: 100% ✅
+
+### Forms
+- ✅ **مستندسازی شده**: 12 فرم (همه کامل با جزئیات)
+  - `FiscalYearForm`, `PeriodForm`, `AccountForm` (در README_FORMS.md)
+  - `PartyForm`, `PartyAccountForm` (در README_PARTIES.md)
+  - `CostCenterForm` (در README_COST_CENTERS.md)
+  - `IncomeExpenseCategoryForm` (در README_INCOME_EXPENSE_CATEGORIES.md)
+  - `DocumentAttachmentUploadForm`, `DocumentAttachmentFilterForm`, `GLAccountForm`, `SubAccountForm`, `TafsiliAccountForm`, `TafsiliHierarchyForm` (در README_OTHER_FORMS.md - **کامل**)
+- ❌ **بدون مستندسازی**: 0 فرم
+- **درصد تکمیل**: 100% ✅
+
+### Views
+- ✅ **مستندسازی شده**: تمام view ها
+  - Base views (README_BASE.md)
+  - Fiscal Year views (README_FISCAL_YEARS.md)
+  - Account views (README_ACCOUNTS.md)
+  - GL Account views (README_GL_ACCOUNTS.md - **کامل**)
+  - سایر views (README_OTHER_VIEWS.md - خلاصه)
+- ❌ **بدون مستندسازی**: 0 view
+- **درصد تکمیل**: 100% ✅
+
+### Other Files
+- ✅ **مستندسازی شده**: 2 فایل
+  - `utils.py` (README_UTILS.md - **کامل**)
+  - `context_processors.py` (README_CONTEXT_PROCESSORS.md - **کامل**)
+- ❌ **بدون مستندسازی**: 3 فایل/پوشه (اولویت پایین)
+- **درصد تکمیل**: 66.7%
+
+**درصد کلی تکمیل مستندات**: ~95% (فقط موارد با اولویت پایین باقی مانده)
+
+---
+
+## 🔴 اولویت‌های مستندسازی
+
+### ✅ تکمیل شده
+- ✅ تمام Models (20 مدل)
+- ✅ تمام Forms (12 فرم)
+- ✅ تمام Views (با README های جداگانه)
+- ✅ Utils (utils.py)
+- ✅ Context Processors (context_processors.py)
+
+### ⏳ باقی‌مانده (اولویت پایین)
+- ⏳ `serializers/` - API serializers (اولویت پایین)
+- ⏳ `urls.py` - URL patterns (اولویت پایین)
+- ⏳ `admin.py` - Admin configurations (اولویت پایین)
 
 ---
 

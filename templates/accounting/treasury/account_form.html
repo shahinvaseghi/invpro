@@ -1,0 +1,334 @@
+{% extends "shared/generic/generic_form.html" %}
+{% load i18n %}
+
+{% block breadcrumb_extra %}
+{% if breadcrumbs %}
+  {% for crumb in breadcrumbs %}
+    <span class="separator">/</span>
+    {% if crumb.url %}
+      <a href="{{ crumb.url }}">{{ crumb.label }}</a>
+    {% else %}
+      <span>{{ crumb.label }}</span>
+    {% endif %}
+  {% endfor %}
+{% else %}
+<span class="separator">/</span>
+<a href="{% url 'accounting:dashboard' %}">{% trans "حسابداری" %}</a>
+<span class="separator">/</span>
+<a href="{% url 'accounting:treasury_accounts' %}">{% trans "حساب‌های نقدی و بانکی" %}</a>
+<span class="separator">/</span>
+<span>{{ form_title|default:"ایجاد حساب نقدی/بانکی" }}</span>
+{% endif %}
+{% endblock %}
+
+{% block form_sections %}
+<div class="form-section">
+  <h3>{% trans "انتخاب حساب" %}</h3>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.tafsili_account.id_for_label }}">
+        {{ form.tafsili_account.label }} *
+      </label>
+      {{ form.tafsili_account }}
+      {% if form.tafsili_account.errors %}
+        <span class="error">{{ form.tafsili_account.errors.0 }}</span>
+      {% endif %}
+      {% if form.tafsili_account.help_text %}
+        <small class="form-text">{{ form.tafsili_account.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.sub_account.id_for_label }}">
+        {{ form.sub_account.label }}
+      </label>
+      {{ form.sub_account }}
+      {% if form.sub_account.errors %}
+        <span class="error">{{ form.sub_account.errors.0 }}</span>
+      {% endif %}
+      {% if form.sub_account.help_text %}
+        <small class="form-text">{{ form.sub_account.help_text }}</small>
+      {% endif %}
+    </div>
+    
+    <div class="form-field">
+      <label for="{{ form.gl_account.id_for_label }}">
+        {{ form.gl_account.label }}
+      </label>
+      {{ form.gl_account }}
+      {% if form.gl_account.errors %}
+        <span class="error">{{ form.gl_account.errors.0 }}</span>
+      {% endif %}
+      {% if form.gl_account.help_text %}
+        <small class="form-text">{{ form.gl_account.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="form-section">
+  <h3>{% trans "اطلاعات پایه" %}</h3>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.account_type.id_for_label }}">
+        {{ form.account_type.label }} *
+      </label>
+      {{ form.account_type }}
+      {% if form.account_type.errors %}
+        <span class="error">{{ form.account_type.errors.0 }}</span>
+      {% endif %}
+    </div>
+    
+    <div class="form-field">
+      <label for="{{ form.account_name.id_for_label }}">
+        {{ form.account_name.label }} *
+      </label>
+      {{ form.account_name }}
+      {% if form.account_name.errors %}
+        <span class="error">{{ form.account_name.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.account_name_en.id_for_label }}">
+        {{ form.account_name_en.label }}
+      </label>
+      {{ form.account_name_en }}
+      {% if form.account_name_en.errors %}
+        <span class="error">{{ form.account_name_en.errors.0 }}</span>
+      {% endif %}
+    </div>
+    
+    <div class="form-field">
+      <label for="{{ form.currency.id_for_label }}">
+        {{ form.currency.label }}
+      </label>
+      {{ form.currency }}
+      {% if form.currency.errors %}
+        <span class="error">{{ form.currency.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="form-section">
+  <h3>{% trans "اطلاعات بانکی" %}</h3>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.bank_name.id_for_label }}">
+        {{ form.bank_name.label }}
+      </label>
+      {{ form.bank_name }}
+      {% if form.bank_name.errors %}
+        <span class="error">{{ form.bank_name.errors.0 }}</span>
+      {% endif %}
+    </div>
+    
+    <div class="form-field">
+      <label for="{{ form.account_number.id_for_label }}">
+        {{ form.account_number.label }}
+      </label>
+      {{ form.account_number }}
+      {% if form.account_number.errors %}
+        <span class="error">{{ form.account_number.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.branch_name.id_for_label }}">
+        {{ form.branch_name.label }}
+      </label>
+      {{ form.branch_name }}
+      {% if form.branch_name.errors %}
+        <span class="error">{{ form.branch_name.errors.0 }}</span>
+      {% endif %}
+    </div>
+    
+    <div class="form-field">
+      <label for="{{ form.branch_code.id_for_label }}">
+        {{ form.branch_code.label }}
+      </label>
+      {{ form.branch_code }}
+      {% if form.branch_code.errors %}
+        <span class="error">{{ form.branch_code.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.iban.id_for_label }}">
+        {{ form.iban.label }}
+      </label>
+      {{ form.iban }}
+      {% if form.iban.errors %}
+        <span class="error">{{ form.iban.errors.0 }}</span>
+      {% endif %}
+    </div>
+    
+    <div class="form-field">
+      <label for="{{ form.initial_balance.id_for_label }}">
+        {{ form.initial_balance.label }}
+      </label>
+      {{ form.initial_balance }}
+      {% if form.initial_balance.errors %}
+        <span class="error">{{ form.initial_balance.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="form-section">
+  <h3>{% trans "سایر اطلاعات" %}</h3>
+  
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.notes.id_for_label }}">
+        {{ form.notes.label }}
+      </label>
+      {{ form.notes }}
+      {% if form.notes.errors %}
+        <span class="error">{{ form.notes.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if form.is_enabled %}
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.is_enabled.id_for_label }}">
+        {{ form.is_enabled.label }}
+      </label>
+      {{ form.is_enabled }}
+      {% if form.is_enabled.errors %}
+        <span class="error">{{ form.is_enabled.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tafsiliSelect = document.getElementById('id_tafsili_account');
+    const subAccountSelect = document.getElementById('id_sub_account');
+    const glAccountSelect = document.getElementById('id_gl_account');
+    
+    if (!tafsiliSelect || !subAccountSelect || !glAccountSelect) return;
+    
+    // Load sub accounts when tafsili is selected
+    tafsiliSelect.addEventListener('change', function() {
+        const tafsiliId = this.value;
+        
+        // Reset sub_account and gl_account
+        subAccountSelect.innerHTML = '<option value="">--- {% trans "ابتدا تفصیلی را انتخاب کنید" %} ---</option>';
+        glAccountSelect.innerHTML = '<option value="">--- {% trans "ابتدا معین را انتخاب کنید" %} ---</option>';
+        
+        if (!tafsiliId) {
+            subAccountSelect.disabled = true;
+            glAccountSelect.disabled = true;
+            return;
+        }
+        
+        // Fetch sub accounts
+        fetch(`{% url 'accounting:treasury_account_api_sub_accounts' %}?tafsili_account_id=${tafsiliId}`)
+            .then(response => response.json())
+            .then(data => {
+                subAccountSelect.innerHTML = '<option value="">--- {% trans "انتخاب کنید" %} ---</option>';
+                
+                if (data.sub_accounts && data.sub_accounts.length > 0) {
+                    data.sub_accounts.forEach(function(subAccount) {
+                        const option = document.createElement('option');
+                        option.value = subAccount.id;
+                        option.textContent = subAccount.code + ' · ' + subAccount.name;
+                        subAccountSelect.appendChild(option);
+                    });
+                    
+                    subAccountSelect.disabled = false;
+                    
+                    // Auto-select if only one option
+                    if (data.sub_accounts.length === 1) {
+                        subAccountSelect.value = data.sub_accounts[0].id;
+                        subAccountSelect.dispatchEvent(new Event('change'));
+                    }
+                } else {
+                    subAccountSelect.innerHTML = '<option value="">--- {% trans "هیچ معینی یافت نشد" %} ---</option>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading sub accounts:', error);
+                subAccountSelect.innerHTML = '<option value="">--- {% trans "خطا در بارگذاری" %} ---</option>';
+            });
+    });
+    
+    // Load GL accounts when sub account is selected
+    subAccountSelect.addEventListener('change', function() {
+        const subAccountId = this.value;
+        
+        // Reset gl_account
+        glAccountSelect.innerHTML = '<option value="">--- {% trans "ابتدا معین را انتخاب کنید" %} ---</option>';
+        
+        if (!subAccountId) {
+            glAccountSelect.disabled = true;
+            return;
+        }
+        
+        // Fetch GL accounts
+        fetch(`{% url 'accounting:treasury_account_api_gl_accounts' %}?sub_account_id=${subAccountId}`)
+            .then(response => response.json())
+            .then(data => {
+                glAccountSelect.innerHTML = '<option value="">--- {% trans "انتخاب کنید" %} ---</option>';
+                
+                if (data.gl_accounts && data.gl_accounts.length > 0) {
+                    data.gl_accounts.forEach(function(glAccount) {
+                        const option = document.createElement('option');
+                        option.value = glAccount.id;
+                        option.textContent = glAccount.code + ' · ' + glAccount.name;
+                        glAccountSelect.appendChild(option);
+                    });
+                    
+                    glAccountSelect.disabled = false;
+                    
+                    // Auto-select primary GL account or first one
+                    const primaryGL = data.gl_accounts.find(ga => ga.is_primary === 1);
+                    if (primaryGL) {
+                        glAccountSelect.value = primaryGL.id;
+                    } else if (data.gl_accounts.length === 1) {
+                        glAccountSelect.value = data.gl_accounts[0].id;
+                    }
+                } else {
+                    glAccountSelect.innerHTML = '<option value="">--- {% trans "هیچ حسابی یافت نشد" %} ---</option>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading GL accounts:', error);
+                glAccountSelect.innerHTML = '<option value="">--- {% trans "خطا در بارگذاری" %} ---</option>';
+            });
+    });
+    
+    // Initially disable sub_account and gl_account
+    subAccountSelect.disabled = true;
+    glAccountSelect.disabled = true;
+    
+    // If tafsili is already selected (edit mode), trigger change
+    if (tafsiliSelect.value) {
+        tafsiliSelect.dispatchEvent(new Event('change'));
+        if (subAccountSelect.value) {
+            subAccountSelect.dispatchEvent(new Event('change'));
+        }
+    }
+});
+</script>
+{% endblock %}
+

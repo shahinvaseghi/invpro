@@ -2,14 +2,15 @@
 Views for accounting module.
 """
 from django.views.generic import TemplateView, CreateView
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse, reverse_lazy, NoReverseMatch
 from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
+from django.views.decorators.http import require_http_methods
 from shared.mixins import FeaturePermissionRequiredMixin
 from accounting.views.base import AccountingBaseView
-from accounting.models import CostCenter, IncomeExpenseCategory, Party, PartyAccount
-from accounting.forms import CostCenterForm, IncomeExpenseCategoryForm, PartyForm, PartyAccountForm
+from accounting.models import CostCenter, IncomeExpenseCategory, Party, PartyAccount, TreasuryAccount
+from accounting.forms import CostCenterForm, IncomeExpenseCategoryForm, PartyForm, PartyAccountForm, TreasuryAccountForm
 
 
 class AccountingDashboardView(FeaturePermissionRequiredMixin, TemplateView):
@@ -183,7 +184,117 @@ class TreasuryAccountsView(FeaturePermissionRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'accounting'
         context['page_title'] = 'حساب‌های نقدی و بانکی'
+        try:
+            context['create_url'] = reverse('accounting:treasury_account_create')
+        except NoReverseMatch:
+            context['create_url'] = None
         return context
+
+
+class TreasuryAccountCreateView(FeaturePermissionRequiredMixin, AccountingBaseView, CreateView):
+    """Create treasury account view."""
+    model = TreasuryAccount
+    form_class = TreasuryAccountForm
+    template_name = 'accounting/treasury/account_form.html'
+    success_url = reverse_lazy('accounting:treasury_accounts')
+    feature_code = 'accounting.treasury.accounts'
+    required_action = 'create'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['company_id'] = self.request.session.get('active_company_id')
+        return kwargs
+    
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        messages.success(self.request, _('حساب نقدی/بانکی با موفقیت ایجاد شد.'))
+        return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = 'ایجاد حساب نقدی/بانکی'
+        context['form_title'] = 'ایجاد حساب نقدی/بانکی'
+        context['breadcrumbs'] = [
+            {'label': 'داشبورد', 'url': reverse('ui:dashboard')},
+            {'label': 'حسابداری', 'url': reverse('accounting:dashboard')},
+            {'label': 'حساب‌های نقدی و بانکی', 'url': reverse('accounting:treasury_accounts')},
+            {'label': 'ایجاد'},
+        ]
+        context['cancel_url'] = reverse('accounting:treasury_accounts')
+        context['company_id'] = self.request.session.get('active_company_id')
+        return context
+
+
+class TreasuryAccountSubAccountsAPIView(FeaturePermissionRequiredMixin, TemplateView):
+    """API endpoint to get sub accounts for a tafsili account."""
+    feature_code = 'accounting.treasury.accounts'
+    required_action = 'view'
+
+    def get(self, request, *args, **kwargs):
+        tafsili_account_id = request.GET.get('tafsili_account_id')
+        company_id = request.session.get('active_company_id')
+        
+        if not tafsili_account_id or not company_id:
+            return JsonResponse({'error': 'Missing parameters'}, status=400)
+        
+        try:
+            from ..models import TafsiliSubAccountRelation, Account
+            relations = TafsiliSubAccountRelation.objects.filter(
+                company_id=company_id,
+                tafsili_account_id=tafsili_account_id,
+            ).select_related('sub_account').order_by('-is_primary', 'sub_account__account_code')
+            
+            sub_accounts = []
+            for relation in relations:
+                sub_accounts.append({
+                    'id': relation.sub_account.id,
+                    'code': relation.sub_account.account_code,
+                    'name': relation.sub_account.account_name,
+                    'is_primary': relation.is_primary,
+                })
+            
+            return JsonResponse({
+                'sub_accounts': sub_accounts,
+                'count': len(sub_accounts),
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+class TreasuryAccountGLAccountsAPIView(FeaturePermissionRequiredMixin, TemplateView):
+    """API endpoint to get GL accounts for a sub account."""
+    feature_code = 'accounting.treasury.accounts'
+    required_action = 'view'
+
+    def get(self, request, *args, **kwargs):
+        sub_account_id = request.GET.get('sub_account_id')
+        company_id = request.session.get('active_company_id')
+        
+        if not sub_account_id or not company_id:
+            return JsonResponse({'error': 'Missing parameters'}, status=400)
+        
+        try:
+            from ..models import SubAccountGLAccountRelation, Account
+            relations = SubAccountGLAccountRelation.objects.filter(
+                company_id=company_id,
+                sub_account_id=sub_account_id,
+            ).select_related('gl_account').order_by('-is_primary', 'gl_account__account_code')
+            
+            gl_accounts = []
+            for relation in relations:
+                gl_accounts.append({
+                    'id': relation.gl_account.id,
+                    'code': relation.gl_account.account_code,
+                    'name': relation.gl_account.account_name,
+                    'is_primary': relation.is_primary,
+                })
+            
+            return JsonResponse({
+                'gl_accounts': gl_accounts,
+                'count': len(gl_accounts),
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
 
 
 class TreasuryTransactionsView(FeaturePermissionRequiredMixin, TemplateView):

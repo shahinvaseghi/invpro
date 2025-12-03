@@ -128,6 +128,8 @@ from .issues import (
     IssueConsignmentDeleteView,
     IssueConsignmentLockView,
     IssueConsignmentLineSerialAssignmentView,
+    # Warehouse Transfer Issues
+    IssueWarehouseTransferListView,
 )
 
 # Import issue views from warehouse request (intermediate selection views)
@@ -300,6 +302,7 @@ __all__ = [
     'IssueConsignmentDeleteView',
     'IssueConsignmentLockView',
     'IssueConsignmentLineSerialAssignmentView',
+    'IssueWarehouseTransferListView',
     # Issues from Warehouse Request (intermediate selection)
     'CreatePermanentIssueFromWarehouseRequestView',
     'CreateConsumptionIssueFromWarehouseRequestView',
@@ -415,6 +418,7 @@ if _views_py_path.exists():
         'IssueConsumptionDeleteView', 'IssueConsumptionLockView', 'IssueConsumptionLineSerialAssignmentView',
         'IssueConsignmentListView', 'IssueConsignmentCreateView', 'IssueConsignmentUpdateView',
         'IssueConsignmentDeleteView', 'IssueConsignmentLockView', 'IssueConsignmentLineSerialAssignmentView',
+        'IssueWarehouseTransferListView',
         'StocktakingFormMixin',
         'StocktakingDeficitListView', 'StocktakingDeficitCreateView', 'StocktakingDeficitUpdateView',
         'StocktakingDeficitDeleteView', 'StocktakingDeficitLockView',

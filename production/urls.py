@@ -59,6 +59,9 @@ urlpatterns = [
     path('performance-records/<int:pk>/reject/', views.PerformanceRecordRejectView.as_view(), name='performance_record_reject'),
     path('performance-records/<int:pk>/create-receipt/', views.PerformanceRecordCreateReceiptView.as_view(), name='performance_record_create_receipt'),
     
+    # Tracking and Identification (شناسایی و ردیابی)
+    path('tracking-identification/', views.TrackingIdentificationView.as_view(), name='tracking_identification'),
+    
     # API endpoints
     path('api/bom/<int:bom_id>/materials/', api.get_bom_materials, name='api_bom_materials'),
 ]

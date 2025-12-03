@@ -7,9 +7,14 @@ This package contains refactored views organized by functionality:
 - bom: BOM (Bill of Materials) CRUD views
 - work_line: WorkLine CRUD views
 - process: Process CRUD views
-- placeholders: Placeholder views (TransferToLineRequest, PerformanceRecord)
+- placeholders: Placeholder views (TransferToLineRequest, PerformanceRecord, TrackingIdentification)
 """
 __all__ = []
+
+# Import placeholder views
+from production.views.placeholders import (
+    TrackingIdentificationView,
+)
 
 # Import personnel views
 from production.views.personnel import (
@@ -126,5 +131,7 @@ __all__ = [
     'PerformanceRecordApproveView',
     'PerformanceRecordRejectView',
     'PerformanceRecordCreateReceiptView',
+    # Placeholder views
+    'TrackingIdentificationView',
 ]
 

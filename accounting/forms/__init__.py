@@ -12,6 +12,7 @@ from .document_attachments import DocumentAttachmentUploadForm, DocumentAttachme
 from .cost_centers import CostCenterForm
 from .income_expense_categories import IncomeExpenseCategoryForm
 from .parties import PartyForm, PartyAccountForm
+from .treasury_accounts import TreasuryAccountForm
 
 __all__ = [
     'FiscalYearForm',
@@ -27,5 +28,6 @@ __all__ = [
     'IncomeExpenseCategoryForm',
     'PartyForm',
     'PartyAccountForm',
+    'TreasuryAccountForm',
 ]
 
