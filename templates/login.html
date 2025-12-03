@@ -2,11 +2,11 @@
 {% load i18n %}
 <!DOCTYPE html>
 {% get_current_language as LANGUAGE_CODE %}
-<html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_CODE == 'fa' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE }}" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if LANGUAGE_CODE == 'fa' %}ورود به سیستم{% else %}Login{% endif %} - INVPROJ</title>
+    <title>ورود به سیستم - INVPROJ</title>
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css" rel="stylesheet" type="text/css" />
     <style>
@@ -273,31 +273,6 @@
             line-height: 1.6;
         }
 
-        .language-switcher {
-            position: absolute;
-            top: 32px;
-            right: 32px;
-            display: flex;
-            gap: 12px;
-            z-index: 10;
-        }
-
-        [dir="rtl"] .language-switcher {
-            right: auto;
-            left: 32px;
-        }
-        
-        @media (max-width: 640px) {
-            .language-switcher {
-                top: 20px;
-                right: 20px;
-            }
-            
-            [dir="rtl"] .language-switcher {
-                right: auto;
-                left: 20px;
-            }
-        }
 
         .lang-btn {
             padding: 8px 16px;
@@ -383,21 +358,6 @@
     <div class="shape shape-2"></div>
     <div class="shape shape-3"></div>
 
-    <div class="language-switcher">
-        <form action="{% url 'set_language' %}" method="post" style="display: inline;">
-            {% csrf_token %}
-            <input type="hidden" name="language" value="fa">
-            <input type="hidden" name="next" value="{{ request.path }}">
-            <button type="submit" class="lang-btn {% if LANGUAGE_CODE == 'fa' %}active{% endif %}">فارسی</button>
-        </form>
-        <form action="{% url 'set_language' %}" method="post" style="display: inline;">
-            {% csrf_token %}
-            <input type="hidden" name="language" value="en">
-            <input type="hidden" name="next" value="{{ request.path }}">
-            <button type="submit" class="lang-btn {% if LANGUAGE_CODE == 'en' %}active{% endif %}">English</button>
-        </form>
-    </div>
-
     <div class="login-container">
         <div class="login-card">
             <div class="login-header">
@@ -435,7 +395,7 @@
                 
                 <div class="form-group">
                     <label for="id_username">
-                        {% if LANGUAGE_CODE == 'fa' %}نام کاربری{% else %}Username{% endif %}
+                        نام کاربری
                     </label>
                     <div class="input-wrapper">
                         <input type="text" 
@@ -444,14 +404,14 @@
                                class="form-control" 
                                required 
                                autofocus
-                               placeholder="{% if LANGUAGE_CODE == 'fa' %}نام کاربری خود را وارد کنید{% else %}Enter your username{% endif %}">
+                               placeholder="نام کاربری خود را وارد کنید">
                         <span class="input-icon">👤</span>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label for="id_password">
-                        {% if LANGUAGE_CODE == 'fa' %}رمز عبور{% else %}Password{% endif %}
+                        رمز عبور
                     </label>
                     <div class="input-wrapper">
                         <input type="password" 
@@ -459,7 +419,7 @@
                                id="id_password" 
                                class="form-control" 
                                required
-                               placeholder="{% if LANGUAGE_CODE == 'fa' %}رمز عبور خود را وارد کنید{% else %}Enter your password{% endif %}">
+                               placeholder="رمز عبور خود را وارد کنید">
                         <span class="input-icon">🔒</span>
                     </div>
                 </div>
@@ -467,21 +427,13 @@
                 <input type="hidden" name="next" value="{{ next }}">
 
                 <button type="submit" class="btn-login">
-                    {% if LANGUAGE_CODE == 'fa' %}
-                        ورود به سیستم
-                    {% else %}
-                        Sign In
-                    {% endif %}
+                    ورود به سیستم
                 </button>
             </form>
 
             <div class="login-footer">
                 <p>
-                    {% if LANGUAGE_CODE == 'fa' %}
-                        سیستم مدیریت موجودی و تولید
-                    {% else %}
-                        Inventory & Production Management System
-                    {% endif %}
+                    سیستم مدیریت موجودی و تولید
                     <br>
                     <span style="opacity: 0.7;">INVPROJ &copy; 2024</span>
                 </p>

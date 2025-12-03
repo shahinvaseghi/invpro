@@ -1,7 +1,7 @@
 {% load static %}
 {% load i18n %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_CODE == 'fa' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE }}" dir="ltr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -680,36 +680,6 @@
           </form>
           {% endif %}
           {% endif %}
-          
-          <!-- Language Switcher -->
-          <form action="{% url 'set_language' %}" method="post" class="language-switcher" id="language-switcher-form">
-            {% csrf_token %}
-            <input name="next" type="hidden" id="language-next-input" value="" />
-            <select name="language" onchange="updateLanguageNext(); this.form.submit();" class="language-select">
-              {% get_current_language as LANGUAGE_CODE %}
-              {% get_available_languages as LANGUAGES %}
-              {% for lang_code, lang_name in LANGUAGES %}
-                <option value="{{ lang_code }}" {% if lang_code == LANGUAGE_CODE %}selected{% endif %}>
-                  {{ lang_name }}
-                </option>
-              {% endfor %}
-            </select>
-          </form>
-          <script>
-            function updateLanguageNext() {
-              // Get current path and remove language prefix if exists
-              let currentPath = window.location.pathname;
-              // Remove /fa/ or /en/ prefix
-              currentPath = currentPath.replace(/^\/(fa|en)\//, '/');
-              // If path is empty, use /
-              if (!currentPath || currentPath === '/') {
-                currentPath = '/';
-              }
-              document.getElementById('language-next-input').value = currentPath;
-            }
-            // Set initial value
-            updateLanguageNext();
-          </script>
           
           <!-- User Info -->
           <div class="user-info-container">

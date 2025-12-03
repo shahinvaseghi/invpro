@@ -153,7 +153,6 @@ LANGUAGE_CODE = 'fa'
 
 LANGUAGES = [
     ("fa", "Persian"),
-    ("en", "English"),
 ]
 
 TIME_ZONE = env.str("DJANGO_TIME_ZONE")
