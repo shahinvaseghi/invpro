@@ -3,6 +3,7 @@ Process forms for production module.
 """
 from typing import Optional, Any
 from django import forms
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from production.models import Process, BOM, WorkLine
@@ -93,14 +94,18 @@ class ProcessForm(forms.ModelForm):
             ).values_list('user_id', flat=True))
             
             # Filter User queryset to show only users with approve permission
+            # Also include superusers automatically
             if approver_user_ids:
                 self.fields['approved_by'].queryset = User.objects.filter(
-                    id__in=approver_user_ids,
+                    Q(id__in=approver_user_ids) | Q(is_superuser=True),
                     is_active=True,
                 ).order_by('first_name', 'last_name', 'username')
             else:
-                # No approvers found, show empty queryset
-                self.fields['approved_by'].queryset = User.objects.none()
+                # If no approvers found, show only superusers
+                self.fields['approved_by'].queryset = User.objects.filter(
+                    is_superuser=True,
+                    is_active=True,
+                ).order_by('first_name', 'last_name', 'username')
         else:
             from django.contrib.auth import get_user_model
             User = get_user_model()

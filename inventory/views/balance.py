@@ -15,14 +15,17 @@ from django.utils.translation import gettext_lazy as _
 from .base import InventoryBaseView
 from .. import models
 from .. import inventory_balance
+from shared.mixins import FeaturePermissionRequiredMixin
 
 
-class InventoryBalanceView(InventoryBaseView, TemplateView):
+class InventoryBalanceView(FeaturePermissionRequiredMixin, InventoryBaseView, TemplateView):
     """
     Display current inventory balances calculated from stocktaking baseline
     plus subsequent receipts and issues.
     """
     template_name = 'inventory/inventory_balance.html'
+    feature_code = 'inventory.balance'
+    required_action = 'view_own'
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Calculate and return inventory balances."""
@@ -90,12 +93,14 @@ class InventoryBalanceView(InventoryBaseView, TemplateView):
         return context
 
 
-class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
+class InventoryBalanceDetailsView(FeaturePermissionRequiredMixin, InventoryBaseView, TemplateView):
     """
     Display detailed transaction history (receipts and issues) for a specific item in a warehouse.
     Shows all movements from baseline date to as_of_date.
     """
     template_name = 'inventory/inventory_balance_details.html'
+    feature_code = 'inventory.balance'
+    required_action = 'view_own'
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Get transaction history for item in warehouse."""

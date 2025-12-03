@@ -130,6 +130,8 @@ from .issues import (
     IssueConsignmentLineSerialAssignmentView,
     # Warehouse Transfer Issues
     IssueWarehouseTransferListView,
+    IssueWarehouseTransferCreateView,
+    IssueWarehouseTransferUpdateView,
 )
 
 # Import issue views from warehouse request (intermediate selection views)

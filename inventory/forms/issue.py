@@ -26,9 +26,11 @@ from inventory.models import (
     IssuePermanent,
     IssueConsumption,
     IssueConsignment,
+    IssueWarehouseTransfer,
     IssuePermanentLine,
     IssueConsumptionLine,
     IssueConsignmentLine,
+    IssueWarehouseTransferLine,
     ReceiptConsignment,
 )
 from inventory.services import serials as serial_service
@@ -1361,6 +1363,313 @@ IssueConsignmentLineFormSet = inlineformset_factory(
     IssueConsignment,
     IssueConsignmentLine,
     form=IssueConsignmentLineForm,
+    formset=BaseLineFormSet,
+    extra=1,
+    can_delete=True,
+    min_num=1,
+    validate_min=True,
+)
+
+
+class IssueWarehouseTransferForm(forms.ModelForm):
+    """Header-only form for warehouse transfer issue documents with multi-line support."""
+
+    class Meta:
+        model = IssueWarehouseTransfer
+        fields = [
+            'document_code',
+            'document_date',
+        ]
+        widgets = {
+            'document_code': forms.HiddenInput(),
+            'document_date': forms.HiddenInput(),
+        }
+
+    def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
+        """Initialize form."""
+        super().__init__(*args, **kwargs)
+        self.company_id = company_id or getattr(self.instance, 'company_id', None)
+        
+        # Make document_code and document_date not required (they're auto-generated)
+        if 'document_code' in self.fields:
+            self.fields['document_code'].required = False
+        if 'document_date' in self.fields:
+            self.fields['document_date'].required = False
+            # Set initial value for document_date
+            if not self.instance.pk:
+                self.fields['document_date'].initial = timezone.now().date()
+    
+    def clean_document_date(self):
+        """Clean and provide default value for document_date."""
+        date_value = self.cleaned_data.get('document_date')
+        if not date_value:
+            date_value = timezone.now().date()
+        return date_value
+    
+    def clean_document_code(self) -> str:
+        """Clean and provide default value for document_code."""
+        code_value = self.cleaned_data.get('document_code')
+        if not code_value:
+            code_value = ''
+        return code_value
+
+    def clean(self) -> Dict[str, Any]:
+        """Validate form data."""
+        cleaned_data = super().clean()
+        
+        # Set default values for document_code and document_date if not provided
+        if not cleaned_data.get('document_code'):
+            cleaned_data['document_code'] = ''
+        if not cleaned_data.get('document_date'):
+            cleaned_data['document_date'] = timezone.now().date()
+        
+        return cleaned_data
+    
+    def save(self, commit: bool = True):
+        """Save form instance."""
+        instance = super().save(commit=False)
+        if not instance.document_code:
+            instance.document_code = generate_document_code(IssueWarehouseTransfer, instance.company_id, "IWT")
+        if not instance.document_date:
+            instance.document_date = timezone.now().date()
+        
+        if commit:
+            instance.save()
+        return instance
+
+
+class IssueWarehouseTransferLineForm(IssueLineBaseForm):
+    """Form for warehouse transfer issue line items."""
+    
+    source_warehouse = forms.ModelChoiceField(
+        queryset=Warehouse.objects.none(),
+        label=_('انبار مبدأ'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        help_text=_('انباری که کالا از آن خارج می‌شود.'),
+    )
+    
+    destination_warehouse = forms.ModelChoiceField(
+        queryset=Warehouse.objects.none(),
+        label=_('انبار مقصد'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        help_text=_('انباری که کالا به آن وارد می‌شود.'),
+    )
+    
+    class Meta:
+        model = IssueWarehouseTransferLine
+        fields = [
+            'item', 'source_warehouse', 'destination_warehouse', 'unit', 'quantity',
+            'entered_unit', 'entered_quantity',
+            'line_notes',
+        ]
+        widgets = {
+            'item': forms.Select(attrs={'class': 'form-control'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'entered_unit': forms.TextInput(attrs={'class': 'form-control'}),
+            'entered_quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+    
+    def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
+        """Initialize form with company filtering."""
+        super().__init__(*args, company_id=company_id, **kwargs)
+        # Remove warehouse field from parent (we use source_warehouse and destination_warehouse instead)
+        if 'warehouse' in self.fields:
+            del self.fields['warehouse']
+        
+        # Set warehouse querysets
+        if self.company_id:
+            # Source warehouse: filter by item's allowed warehouses
+            if 'source_warehouse' in self.fields:
+                item = self._resolve_item()
+                if item:
+                    allowed_ids = [int(option['value']) for option in self._get_item_allowed_warehouses(item)]
+                    if allowed_ids:
+                        queryset = Warehouse.objects.filter(pk__in=allowed_ids, is_enabled=1)
+                        if getattr(self.instance, 'pk', None) and getattr(self.instance, 'source_warehouse_id', None):
+                            queryset = Warehouse.objects.filter(
+                                pk__in=allowed_ids
+                            ).filter(
+                                Q(is_enabled=1) | Q(pk=self.instance.source_warehouse_id)
+                            )
+                        self.fields['source_warehouse'].queryset = queryset.order_by('name')
+                    else:
+                        self.fields['source_warehouse'].queryset = Warehouse.objects.none()
+                else:
+                    queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
+                    if getattr(self.instance, 'pk', None) and getattr(self.instance, 'source_warehouse_id', None):
+                        queryset = Warehouse.objects.filter(
+                            company_id=self.company_id
+                        ).filter(
+                            Q(is_enabled=1) | Q(pk=self.instance.source_warehouse_id)
+                        )
+                    self.fields['source_warehouse'].queryset = queryset.order_by('name')
+                self.fields['source_warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
+            
+            # Destination warehouse: filter by item's allowed warehouses (same as source_warehouse)
+            if 'destination_warehouse' in self.fields:
+                item = self._resolve_item()
+                if item:
+                    allowed_ids = [int(option['value']) for option in self._get_item_allowed_warehouses(item)]
+                    if allowed_ids:
+                        queryset = Warehouse.objects.filter(pk__in=allowed_ids, is_enabled=1)
+                        if getattr(self.instance, 'pk', None) and getattr(self.instance, 'destination_warehouse_id', None):
+                            queryset = Warehouse.objects.filter(
+                                pk__in=allowed_ids
+                            ).filter(
+                                Q(is_enabled=1) | Q(pk=self.instance.destination_warehouse_id)
+                            )
+                        self.fields['destination_warehouse'].queryset = queryset.order_by('name')
+                    else:
+                        self.fields['destination_warehouse'].queryset = Warehouse.objects.none()
+                else:
+                    queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
+                    if getattr(self.instance, 'pk', None) and getattr(self.instance, 'destination_warehouse_id', None):
+                        queryset = Warehouse.objects.filter(
+                            company_id=self.company_id
+                        ).filter(
+                            Q(is_enabled=1) | Q(pk=self.instance.destination_warehouse_id)
+                        )
+                    self.fields['destination_warehouse'].queryset = queryset.order_by('name')
+                self.fields['destination_warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
+    
+    def clean_source_warehouse(self) -> Optional[Warehouse]:
+        """Validate source warehouse against item's allowed warehouses."""
+        source_warehouse = self.cleaned_data.get('source_warehouse')
+        item = self.cleaned_data.get('item')
+        
+        if source_warehouse and item:
+            allowed_ids = {int(option['value']) for option in self._get_item_allowed_warehouses(item)}
+            if allowed_ids:
+                if source_warehouse.id not in allowed_ids:
+                    raise forms.ValidationError(
+                        _('انبار مبدأ انتخاب شده برای این کالا مجاز نیست. لطفاً یکی از انبارهای مجاز را انتخاب کنید.')
+                    )
+            else:
+                raise forms.ValidationError(
+                    _('این کالا هیچ انبار مجازی ندارد. لطفاً ابتدا در تعریف کالا، حداقل یک انبار مجاز را انتخاب کنید.')
+                )
+        
+        return source_warehouse
+    
+    def clean_destination_warehouse(self) -> Optional[Warehouse]:
+        """Validate destination warehouse against item's allowed warehouses."""
+        destination_warehouse = self.cleaned_data.get('destination_warehouse')
+        item = self.cleaned_data.get('item')
+        
+        if destination_warehouse and item:
+            allowed_ids = {int(option['value']) for option in self._get_item_allowed_warehouses(item)}
+            if allowed_ids:
+                if destination_warehouse.id not in allowed_ids:
+                    raise forms.ValidationError(
+                        _('انبار مقصد انتخاب شده برای این کالا مجاز نیست. لطفاً یکی از انبارهای مجاز را انتخاب کنید.')
+                    )
+            else:
+                raise forms.ValidationError(
+                    _('این کالا هیچ انبار مجازی ندارد. لطفاً ابتدا در تعریف کالا، حداقل یک انبار مجاز را انتخاب کنید.')
+                )
+        
+        return destination_warehouse
+    
+    def clean(self) -> Dict[str, Any]:
+        """Validate form data."""
+        cleaned_data = super().clean()
+        
+        # Check if form is empty (for inline formsets, empty forms should be skipped)
+        item = cleaned_data.get('item')
+        if not item:
+            return cleaned_data
+        
+        source_warehouse = cleaned_data.get('source_warehouse')
+        destination_warehouse = cleaned_data.get('destination_warehouse')
+        
+        # Validate that source and destination warehouses are different
+        if source_warehouse and destination_warehouse:
+            if source_warehouse.id == destination_warehouse.id:
+                self.add_error('destination_warehouse', _('انبار مبدأ و مقصد نمی‌توانند یکسان باشند.'))
+        
+        # Validate destination warehouse against item's allowed warehouses
+        if destination_warehouse and item:
+            allowed_ids = {int(option['value']) for option in self._get_item_allowed_warehouses(item)}
+            if allowed_ids:
+                if destination_warehouse.id not in allowed_ids:
+                    self.add_error('destination_warehouse', _('انبار مقصد انتخاب شده برای این کالا مجاز نیست. لطفاً یکی از انبارهای مجاز را انتخاب کنید.'))
+            else:
+                self.add_error('destination_warehouse', _('این کالا هیچ انبار مجازی ندارد. لطفاً ابتدا در تعریف کالا، حداقل یک انبار مجاز را انتخاب کنید.'))
+        
+        # Validate inventory balance for source warehouse
+        if source_warehouse and item and self.company_id:
+            quantity = cleaned_data.get('quantity')
+            if quantity:
+                try:
+                    from inventory import inventory_balance
+                    
+                    balance_info = inventory_balance.calculate_item_balance(
+                        company_id=self.company_id,
+                        warehouse_id=source_warehouse.id,
+                        item_id=item.id,
+                        as_of_date=timezone.now().date()
+                    )
+                    
+                    current_balance = Decimal(str(balance_info['current_balance']))
+                    issue_quantity = Decimal(str(quantity))
+                    
+                    # If editing, add back the old quantity (if it exists)
+                    if self.instance.pk:
+                        old_quantity = Decimal(str(self.instance.quantity or 0))
+                        available_balance = current_balance + old_quantity
+                    else:
+                        available_balance = current_balance
+                    
+                    # Check if we have enough inventory
+                    if issue_quantity > available_balance:
+                        self.add_error(
+                            'quantity',
+                            _('موجودی کافی نیست. موجودی فعلی در انبار مبدأ: %(balance)s، مقدار درخواستی: %(requested)s') % {
+                                'balance': available_balance,
+                                'requested': issue_quantity
+                            }
+                        )
+                except Exception:
+                    pass
+        
+        return cleaned_data
+    
+    def save(self, commit: bool = True):
+        """Save form instance."""
+        instance = super().save(commit=False)
+        
+        # Set warehouse to source_warehouse (for compatibility with IssueLineBase)
+        source_warehouse = self.cleaned_data.get('source_warehouse')
+        if source_warehouse:
+            instance.warehouse = source_warehouse
+            instance.warehouse_code = source_warehouse.public_code
+            instance.source_warehouse = source_warehouse
+            instance.source_warehouse_code = source_warehouse.public_code
+        
+        destination_warehouse = self.cleaned_data.get('destination_warehouse')
+        if destination_warehouse:
+            instance.destination_warehouse = destination_warehouse
+            instance.destination_warehouse_code = destination_warehouse.public_code
+        
+        # Save entered unit and quantity
+        entered_unit = self._entered_unit_value or getattr(instance, 'entered_unit', '') or instance.unit
+        instance.entered_unit = entered_unit
+        if self._entered_quantity_value is not None:
+            instance.entered_quantity = self._entered_quantity_value
+        elif instance.entered_quantity is None:
+            instance.entered_quantity = instance.quantity
+        
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
+
+
+IssueWarehouseTransferLineFormSet = inlineformset_factory(
+    IssueWarehouseTransfer,
+    IssueWarehouseTransferLine,
+    form=IssueWarehouseTransferLineForm,
     formset=BaseLineFormSet,
     extra=1,
     can_delete=True,

@@ -48,6 +48,14 @@
     <span class="badge badge-{{ object.status }}">
       {{ object.get_status_display }}
     </span>
+    {% if object.is_scrap_replacement == 1 %}
+      <br>
+      <small>
+        <span class="badge badge-{{ object.qc_status }}">
+          {% trans "QC:" %} {{ object.get_qc_status_display }}
+        </span>
+      </small>
+    {% endif %}
   </td>
   <td>{{ object.approved_by.get_full_name|default:object.approved_by.username|default:"-" }}</td>
   <td>
@@ -72,6 +80,14 @@
       {% endif %}
       {% if user_feature_permissions|feature_allowed:'production.transfer_requests:reject' or user.is_superuser %}
         <button type="button" class="btn btn-sm btn-warning" onclick="rejectTransfer({{ object.pk }})">{% trans "Reject" %}</button>
+      {% endif %}
+    {% endif %}
+    {% if object.status == 'pending_qc_approval' and object.qc_approved_by == user %}
+      {% if user_feature_permissions|feature_allowed:'production.transfer_requests:approve' or user.is_superuser %}
+        <button type="button" class="btn btn-sm btn-success" onclick="approveQCTransfer({{ object.pk }})">{% trans "Approve QC" %}</button>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'production.transfer_requests:reject' or user.is_superuser %}
+        <button type="button" class="btn btn-sm btn-warning" onclick="rejectQCTransfer({{ object.pk }})">{% trans "Reject QC" %}</button>
       {% endif %}
     {% endif %}
   </td>
@@ -130,6 +146,44 @@ function rejectTransfer(transferId) {
   const form = document.createElement('form');
   form.method = 'POST';
   form.action = `{% url 'production:transfer_request_reject' 0 %}`.replace('0', transferId);
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (csrfToken) {
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = csrfToken.value;
+    form.appendChild(csrfInput);
+  }
+  document.body.appendChild(form);
+  form.submit();
+}
+
+function approveQCTransfer(transferId) {
+  if (!confirm('{% trans "Are you sure you want to approve QC for this transfer request?" %}')) {
+    return;
+  }
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = `{% url 'production:transfer_request_qc_approve' 0 %}`.replace('0', transferId);
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (csrfToken) {
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = csrfToken.value;
+    form.appendChild(csrfInput);
+  }
+  document.body.appendChild(form);
+  form.submit();
+}
+
+function rejectQCTransfer(transferId) {
+  if (!confirm('{% trans "Are you sure you want to reject QC for this transfer request?" %}')) {
+    return;
+  }
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = `{% url 'production:transfer_request_qc_reject' 0 %}`.replace('0', transferId);
   const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
   if (csrfToken) {
     const csrfInput = document.createElement('input');

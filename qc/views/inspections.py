@@ -24,7 +24,7 @@ class TemporaryReceiptQCListView(FeaturePermissionRequiredMixin, QCBaseView, Lis
     context_object_name = 'object_list'
     paginate_by = 50
     feature_code = 'qc.inspections'
-    required_action = 'view'
+    required_action = 'view_own'
     
     def get_queryset(self):
         """Show all receipts (awaiting, approved, rejected) - locked ones are read-only."""

@@ -137,7 +137,7 @@ class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
         operations_formset = ProcessOperationFormSet(
             self.request.POST,
             prefix='operations',
-            form_kwargs={'bom_id': bom_id},
+            form_kwargs={'bom_id': bom_id, 'company_id': active_company_id},
         )
         
         if operations_formset.is_valid():
@@ -172,7 +172,8 @@ class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
                             self.request.POST,
                             instance=operation,
                             prefix=f'materials-{operation_index}',
-                            form_kwargs={'bom_id': bom_id},
+                            form_kwargs={'bom_id': bom_id, 'process_id': self.object.id if hasattr(self, 'object') and self.object else None},
+                            process_id=self.object.id if hasattr(self, 'object') and self.object else None,
                         )
                         
                         if materials_formset.is_valid():
@@ -228,19 +229,36 @@ class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
                     pass
         
         # Create operations formset
+        active_company_id = self.request.session.get('active_company_id')
         if self.request.POST:
             operations_formset = ProcessOperationFormSet(
                 self.request.POST,
                 prefix='operations',
-                form_kwargs={'bom_id': bom_id},
+                form_kwargs={'bom_id': bom_id, 'company_id': active_company_id},
             )
         else:
             operations_formset = ProcessOperationFormSet(
                 prefix='operations',
-                form_kwargs={'bom_id': bom_id},
+                form_kwargs={'bom_id': bom_id, 'company_id': active_company_id},
             )
         
         context['operations_formset'] = operations_formset
+        context['process_id'] = self.object.id if hasattr(self, 'object') and self.object else None
+        
+        # Add work lines to context for JavaScript
+        active_company_id = self.request.session.get('active_company_id')
+        if active_company_id:
+            from production.models import WorkLine
+            work_lines = WorkLine.objects.filter(
+                company_id=active_company_id,
+                is_enabled=1,
+            ).order_by('name')
+            context['work_lines'] = [
+                {'id': wl.id, 'name': wl.name, 'public_code': wl.public_code}
+                for wl in work_lines
+            ]
+        else:
+            context['work_lines'] = []
         
         return context
 
@@ -294,7 +312,7 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
         operations_formset = ProcessOperationFormSet(
             self.request.POST,
             prefix='operations',
-            form_kwargs={'bom_id': bom_id},
+            form_kwargs={'bom_id': bom_id, 'company_id': active_company_id},
         )
         
         if operations_formset.is_valid():
@@ -322,7 +340,7 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
                                 )
                                 # Update existing
                                 for field in ['name', 'description', 'sequence_order', 
-                                            'labor_minutes_per_unit', 'machine_minutes_per_unit', 'notes']:
+                                            'labor_minutes_per_unit', 'machine_minutes_per_unit', 'work_line', 'notes']:
                                     if field in operation_form.cleaned_data:
                                         setattr(operation, field, operation_form.cleaned_data[field])
                                 operation.edited_by = self.request.user
@@ -368,7 +386,8 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
                             self.request.POST,
                             instance=operation,
                             prefix=f'materials-{operation_index}',
-                            form_kwargs={'bom_id': bom_id},
+                            form_kwargs={'bom_id': bom_id, 'process_id': self.object.id if hasattr(self, 'object') and self.object else None},
+                            process_id=self.object.id if hasattr(self, 'object') and self.object else None,
                         )
                         
                         if materials_formset.is_valid():
@@ -426,11 +445,12 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
                     pass
         
         # Create operations formset
+        active_company_id = self.request.session.get('active_company_id')
         if self.request.POST:
             operations_formset = ProcessOperationFormSet(
                 self.request.POST,
                 prefix='operations',
-                form_kwargs={'bom_id': bom_id},
+                form_kwargs={'bom_id': bom_id, 'company_id': active_company_id},
             )
         else:
             # Load existing operations
@@ -447,12 +467,13 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
                     'sequence_order': op.sequence_order,
                     'labor_minutes_per_unit': op.labor_minutes_per_unit,
                     'machine_minutes_per_unit': op.machine_minutes_per_unit,
+                    'work_line': op.work_line_id,
                     'notes': op.notes,
                 })
             
             operations_formset = ProcessOperationFormSet(
                 prefix='operations',
-                form_kwargs={'bom_id': bom_id},
+                form_kwargs={'bom_id': bom_id, 'company_id': self.object.company_id},
                 initial=initial_data,
             )
             
@@ -480,6 +501,22 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
             context['existing_operations_data'] = existing_operations_data
         
         context['operations_formset'] = operations_formset
+        context['process_id'] = self.object.id if hasattr(self, 'object') and self.object else None
+        
+        # Add work lines to context for JavaScript
+        active_company_id = self.request.session.get('active_company_id')
+        if active_company_id:
+            from production.models import WorkLine
+            work_lines = WorkLine.objects.filter(
+                company_id=active_company_id,
+                is_enabled=1,
+            ).order_by('name')
+            context['work_lines'] = [
+                {'id': wl.id, 'name': wl.name, 'public_code': wl.public_code}
+                for wl in work_lines
+            ]
+        else:
+            context['work_lines'] = []
         
         return context
 

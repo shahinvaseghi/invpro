@@ -179,7 +179,7 @@ class DocumentAttachmentListView(FeaturePermissionRequiredMixin, AccountingBaseV
 class DocumentAttachmentDownloadSingleView(FeaturePermissionRequiredMixin, AccountingBaseView, ListView):
     """Download a single attachment file."""
     feature_code = 'accounting.attachments.download'
-    required_action = 'view'
+    required_action = 'view_own'
     
     def get(self, request, *args, **kwargs):
         """Download single file."""
@@ -206,7 +206,7 @@ class DocumentAttachmentDownloadSingleView(FeaturePermissionRequiredMixin, Accou
 class DocumentAttachmentDownloadBulkView(FeaturePermissionRequiredMixin, AccountingBaseView, ListView):
     """Download multiple attachments as a ZIP file."""
     feature_code = 'accounting.attachments.download'
-    required_action = 'view'
+    required_action = 'view_own'
     
     def get(self, request, *args, **kwargs):
         """Download multiple files as ZIP."""

@@ -229,6 +229,17 @@
             </div>
           </div>
 
+          <div class="form-field">
+            <label for="{{ operation_form.work_line.id_for_label }}">{{ operation_form.work_line.label }}</label>
+            {{ operation_form.work_line }}
+            {% if operation_form.work_line.errors %}
+              <span class="error">{{ operation_form.work_line.errors.0 }}</span>
+            {% endif %}
+            {% if operation_form.work_line.help_text %}
+              <small class="form-text">{{ operation_form.work_line.help_text }}</small>
+            {% endif %}
+          </div>
+
           <div class="form-field full-width">
             <label for="{{ operation_form.description.id_for_label }}">{{ operation_form.description.label }}</label>
             {{ operation_form.description }}
@@ -273,7 +284,7 @@
             <button type="button" class="btn btn-secondary btn-sm add-material-btn" 
                     data-operation-index="{{ forloop.counter0 }}"
                     onclick="addMaterialToOperation({{ forloop.counter0 }})"
-                    {% if not form.bom.value %}disabled{% endif %}>
+                    {% if not form.bom.value and not process_id %}disabled{% endif %}>
               ➕ {% trans "Add Material" %}
             </button>
           </div>
@@ -437,34 +448,129 @@
 
 {% block form_scripts %}
 <script>
+// Define global variables for process and BOM
+const processIdGlobal = {% if process_id %}{{ process_id }}{% else %}null{% endif %};
+const bomSelectId = '{{ form.bom.id_for_label }}';
+
+// Work lines data for JavaScript
+const workLinesData = [
+  {% for wl in work_lines %}
+  {id: {{ wl.id }}, name: "{{ wl.name|escapejs }}", public_code: "{{ wl.public_code|escapejs }}"}{% if not forloop.last %},{% endif %}
+  {% empty %}
+  {% endfor %}
+];
+
+// Validate all material quantities before form submission
+function validateAllMaterialQuantities() {
+  let hasErrors = false;
+  const bomMaterialIds = new Set();
+  
+  // Collect all BOM material IDs
+  document.querySelectorAll('.operation-material-bom-material').forEach(select => {
+    if (select.value) {
+      bomMaterialIds.add(select.value);
+    }
+  });
+  
+  // Validate each material
+  bomMaterialIds.forEach(bomMaterialId => {
+    const quantityPerUnit = getBOMQuantityPerUnit(bomMaterialId);
+    if (!quantityPerUnit) return;
+    
+    let total = 0;
+    document.querySelectorAll('.operation-material-bom-material').forEach(select => {
+      if (select.value === bomMaterialId) {
+        const materialRow = select.closest('.material-row');
+        if (materialRow) {
+          const quantityInput = materialRow.querySelector('.operation-material-quantity');
+          if (quantityInput && quantityInput.value) {
+            const quantity = parseFloat(quantityInput.value);
+            if (!isNaN(quantity) && quantity > 0) {
+              total += quantity;
+            }
+          }
+        }
+      }
+    });
+    
+    if (total > quantityPerUnit) {
+      // Mark all inputs with this material as error
+      document.querySelectorAll('.operation-material-bom-material').forEach(select => {
+        if (select.value === bomMaterialId) {
+          const materialRow = select.closest('.material-row');
+          if (materialRow) {
+            const quantityInput = materialRow.querySelector('.operation-material-quantity');
+            if (quantityInput) {
+              validateMaterialQuantity(bomMaterialId, quantityInput);
+            }
+          }
+        }
+      });
+      hasErrors = true;
+    }
+  });
+  
+  return !hasErrors;
+}
+
 // BOM change handler - load materials when BOM is selected
 document.addEventListener('DOMContentLoaded', function() {
-  const bomSelect = document.getElementById('{{ form.bom.id_for_label }}');
+  const bomSelect = document.getElementById(bomSelectId);
+  
+  // Function to enable/disable add material buttons
+  function updateAddMaterialButtons() {
+    const addMaterialBtns = document.querySelectorAll('.add-material-btn');
+    const currentBomId = bomSelect ? bomSelect.value : '';
+    const hasBOM = currentBomId || processIdGlobal; // Enable if BOM selected or process_id exists
+    
+    console.log('updateAddMaterialButtons - hasBOM:', hasBOM, 'currentBomId:', currentBomId, 'processId:', processIdGlobal);
+    console.log('Found', addMaterialBtns.length, 'Add Material buttons');
+    
+    addMaterialBtns.forEach((btn, index) => {
+      btn.disabled = !hasBOM;
+      console.log(`Button ${index} (operation ${btn.getAttribute('data-operation-index') || 'unknown'}): disabled = ${btn.disabled}`);
+    });
+  }
   
   if (bomSelect) {
     bomSelect.addEventListener('change', function() {
       const bomId = this.value;
-      // Enable/disable add material buttons based on BOM selection
-      const addMaterialBtns = document.querySelectorAll('.add-material-btn');
-      addMaterialBtns.forEach(btn => {
-        btn.disabled = !bomId;
-      });
+      updateAddMaterialButtons();
       
       // Reload materials dropdowns if BOM is selected
       if (bomId) {
         loadBOMMaterials(bomId);
+      } else if (processIdGlobal) {
+        // If BOM is cleared but process_id exists, load from Process
+        loadProcessBOMMaterials(processIdGlobal);
       }
     });
     
     // Initial state
+    updateAddMaterialButtons();
     if (bomSelect.value) {
       loadBOMMaterials(bomSelect.value);
     }
+  } else if (processIdGlobal) {
+    // If no BOM select but process_id exists, enable buttons and load materials
+    updateAddMaterialButtons();
+    loadProcessBOMMaterials(processIdGlobal);
+  }
+  
+  // Add form submission validation
+  const form = document.querySelector('form.entity-form');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      if (!validateAllMaterialQuantities()) {
+        e.preventDefault();
+        alert('لطفاً خطاهای مربوط به مقادیر مواد را برطرف کنید. مجموع مقادیر استفاده شده در عملیات‌ها نباید بیشتر از مقدار مجاز BOM باشد.');
+        return false;
+      }
+    });
   }
   
   // Load existing operations materials if in edit mode
   {% if existing_operations_data %}
-    const bomSelect = document.getElementById('{{ form.bom.id_for_label }}');
     const bomId = bomSelect ? bomSelect.value : '';
     
     if (bomId) {
@@ -473,9 +579,52 @@ document.addEventListener('DOMContentLoaded', function() {
           loadExistingOperationMaterials({{ forloop.counter0 }}, {{ op_data.operation.id }}, {{ op_data.materials|length }});
         {% endfor %}
       });
+    } else if (processIdGlobal) {
+      loadProcessBOMMaterials(processIdGlobal).then(() => {
+        {% for op_data in existing_operations_data %}
+          loadExistingOperationMaterials({{ forloop.counter0 }}, {{ op_data.operation.id }}, {{ op_data.materials|length }});
+        {% endfor %}
+      });
     }
   {% endif %}
 });
+
+// Function to load BOM materials from Process
+function loadProcessBOMMaterials(processId) {
+  return new Promise((resolve, reject) => {
+    if (!processId) {
+      resolve([]);
+      return;
+    }
+    
+    const cacheKey = `process_${processId}`;
+    
+    // Check cache first
+    if (bomMaterialsCache[cacheKey]) {
+      resolve(bomMaterialsCache[cacheKey]);
+      return;
+    }
+    
+    fetch(`/production/api/process/${processId}/bom-materials/`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to load BOM materials from Process');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        bomMaterialsCache[cacheKey] = data.materials;
+        resolve(data.materials);
+      })
+      .catch(error => {
+        console.error('Error loading BOM materials from Process:', error);
+        reject(error);
+      });
+  });
+}
 
 // Store BOM materials globally
 let bomMaterialsCache = {};
@@ -510,6 +659,12 @@ function loadBOMMaterials(bomId) {
         // Cache materials
         bomMaterialsCache[bomId] = data.materials;
         
+        // Log for debugging
+        console.log(`Loaded ${data.materials.length} materials from BOM ${bomId}:`);
+        console.log('BOM Code:', data.bom_code);
+        console.log('Finished Item:', data.finished_item_name);
+        console.log('Materials:', data.materials.map(m => `${m.material_item_code} - ${m.material_item_name} (ID: ${m.id})`));
+        
         // Enable all add material buttons
         document.querySelectorAll('.add-material-btn').forEach(btn => {
           btn.disabled = false;
@@ -520,7 +675,6 @@ function loadBOMMaterials(bomId) {
           updateMaterialSelect(select, data.materials);
         });
         
-        console.log(`Loaded ${data.materials.length} materials from BOM ${bomId}`);
         resolve(data.materials);
       })
       .catch(error => {
@@ -532,21 +686,43 @@ function loadBOMMaterials(bomId) {
 }
 
 function updateMaterialSelect(selectElement, materials) {
+  // Only update if materials array is provided and not empty
+  if (!materials || !Array.isArray(materials) || materials.length === 0) {
+    // If no materials, keep only the default option
+    selectElement.innerHTML = '<option value="">---</option>';
+    console.log('updateMaterialSelect: No materials provided, dropdown cleared');
+    return;
+  }
+  
   const currentValue = selectElement.value;
   selectElement.innerHTML = '<option value="">---</option>';
   
+  let addedCount = 0;
+  
+  // Only add BOM materials (these should only be BOM materials from API)
   materials.forEach(material => {
-    const option = document.createElement('option');
-    option.value = material.id;
-    option.textContent = `${material.material_item_code} - ${material.material_item_name}`;
-    option.dataset.unit = material.unit;
-    option.dataset.quantityPerUnit = material.quantity_per_unit;
-    selectElement.appendChild(option);
+    // Ensure we only add materials that have required fields (BOM materials)
+    if (material.id && material.material_item_code && material.material_item_name) {
+      const option = document.createElement('option');
+      option.value = material.id;
+      option.textContent = `${material.material_item_code} - ${material.material_item_name}`;
+      option.dataset.unit = material.unit || '';
+      option.dataset.quantityPerUnit = material.quantity_per_unit || '';
+      selectElement.appendChild(option);
+      addedCount++;
+    } else {
+      console.warn('updateMaterialSelect: Skipping invalid material:', material);
+    }
   });
+  
+  console.log(`updateMaterialSelect: Added ${addedCount} BOM materials to dropdown (total provided: ${materials.length})`);
   
   // Restore previous value if still valid
   if (currentValue) {
-    selectElement.value = currentValue;
+    const optionExists = Array.from(selectElement.options).some(opt => opt.value === currentValue);
+    if (optionExists) {
+      selectElement.value = currentValue;
+    }
   }
 }
 
@@ -587,6 +763,14 @@ function addOperation() {
           </div>
         </div>
         
+        <div class="form-field">
+          <label>{% trans "Work Line (خط کاری)" %}</label>
+          <select name="operations-${formCount}-work_line" class="form-control operation-work-line">
+            <option value="">---</option>
+            ${workLinesData.map(wl => `<option value="${wl.id}">${wl.public_code} - ${wl.name}</option>`).join('')}
+          </select>
+        </div>
+        
         <div class="form-field full-width">
           <label>{% trans "Description" %}</label>
           <input type="text" name="operations-${formCount}-description" class="form-control operation-description" />
@@ -620,8 +804,7 @@ function addOperation() {
           </div>
           <button type="button" class="btn btn-secondary btn-sm add-material-btn" 
                   data-operation-index="${formCount}"
-                  onclick="addMaterialToOperation(${formCount})"
-                  {% if not form.bom.value %}disabled{% endif %}>
+                  onclick="addMaterialToOperation(${formCount})">
             ➕ {% trans "Add Material" %}
           </button>
         </div>
@@ -635,6 +818,33 @@ function addOperation() {
   
   // Update operation numbers
   updateOperationNumbers();
+  
+  // Wait for DOM to be ready, then update buttons
+  setTimeout(function() {
+    // Update add material buttons state for newly added operation
+    updateAddMaterialButtons();
+    
+    // Ensure the newly added button is enabled if BOM or process exists
+    const bomSelect = document.getElementById(bomSelectId);
+    const bomId = bomSelect ? bomSelect.value : '';
+    const hasBOM = bomId || processIdGlobal;
+    
+    console.log('New operation added - formCount:', formCount, 'hasBOM:', hasBOM, 'bomId:', bomId);
+    
+    // Enable the newly added button if BOM/process exists
+    if (hasBOM) {
+      const newBtn = container.querySelector(`.operation-row[data-operation-index="${formCount}"] .add-material-btn`);
+      console.log('Found new button:', newBtn);
+      if (newBtn) {
+        newBtn.disabled = false;
+        console.log('Button enabled for operation', formCount);
+      } else {
+        console.error('Could not find button for operation', formCount);
+      }
+    } else {
+      console.warn('No BOM selected, button will be disabled');
+    }
+  }, 100);
 }
 
 function removeOperation(button) {
@@ -656,12 +866,25 @@ function updateOperationNumbers() {
 let materialCounters = {};
 
 function addMaterialToOperation(operationIndex) {
+  console.log('addMaterialToOperation called for operation index:', operationIndex);
+  
   if (!materialCounters[operationIndex]) {
     materialCounters[operationIndex] = 0;
   }
   
   const materialIndex = materialCounters[operationIndex]++;
+  console.log('Material index:', materialIndex);
+  
   const tbody = document.querySelector(`.operation-materials-tbody[data-operation-index="${operationIndex}"]`);
+  console.log('Found tbody:', tbody);
+  
+  // Check if tbody exists
+  if (!tbody) {
+    console.error(`Cannot find tbody for operation index ${operationIndex}`);
+    console.error('Available tbodies:', document.querySelectorAll('.operation-materials-tbody'));
+    alert('خطا: نتوانست بخش مواد عملیات را پیدا کند. لطفاً صفحه را رفرش کنید.');
+    return;
+  }
   
   // Remove placeholder if exists
   const placeholder = tbody.querySelector('.material-row-placeholder');
@@ -669,15 +892,12 @@ function addMaterialToOperation(operationIndex) {
     placeholder.remove();
   }
   
-  const bomSelect = document.getElementById('{{ form.bom.id_for_label }}');
-  const bomId = bomSelect ? bomSelect.value : '';
-  
   const newMaterialRow = `
     <tr class="material-row" data-material-index="${materialIndex}">
       <td>
         <select name="materials-${operationIndex}-${materialIndex}-bom_material" class="form-control operation-material-bom-material" required>
           <option value="">---</option>
-          <!-- Options will be loaded from BOM -->
+          <!-- Options will be loaded from Process BOM -->
         </select>
       </td>
       <td>
@@ -696,21 +916,62 @@ function addMaterialToOperation(operationIndex) {
   
   tbody.insertAdjacentHTML('beforeend', newMaterialRow);
   
-  // Load BOM materials if BOM is selected
-  if (bomId) {
-    loadBOMMaterialsForOperation(operationIndex, materialIndex, bomId);
-  } else {
-    // If no BOM selected, use cached materials if available
-    const bomSelect = document.getElementById('{{ form.bom.id_for_label }}');
+  // Load BOM materials - wait a bit for DOM to be ready
+  setTimeout(function() {
+    const select = tbody.querySelector(`.material-row[data-material-index="${materialIndex}"] .operation-material-bom-material`);
+    if (!select) {
+      console.error(`Cannot find select element for operation ${operationIndex}, material ${materialIndex}`);
+      return;
+    }
+    
+    // Get current BOM ID from select element
+    const bomSelect = document.getElementById(bomSelectId);
     const currentBomId = bomSelect ? bomSelect.value : '';
-    if (currentBomId && bomMaterialsCache[currentBomId]) {
-      const select = tbody.querySelector(`.material-row[data-material-index="${materialIndex}"] .operation-material-bom-material`);
-      if (select) {
+    const processId = processIdGlobal;
+    
+    // Load BOM materials from Process if process_id is available
+    if (processId) {
+      loadProcessBOMMaterialsForOperation(operationIndex, materialIndex, processId);
+      return;
+    }
+    
+    // Try to load from current BOM ID (either from cache or API)
+    if (currentBomId) {
+      if (bomMaterialsCache[currentBomId]) {
+        // Use cached materials
         updateMaterialSelect(select, bomMaterialsCache[currentBomId]);
         attachMaterialSelectHandlers(select);
+      } else {
+        // Load from API and cache
+        loadBOMMaterialsForOperation(operationIndex, materialIndex, currentBomId);
       }
+      return;
     }
-  }
+    
+    // If no BOM selected, try to use any available cache
+    const cachedBomId = Object.keys(bomMaterialsCache).find(key => !key.startsWith('process_'));
+    if (cachedBomId && bomMaterialsCache[cachedBomId]) {
+      console.log('Using cached BOM materials from:', cachedBomId);
+      updateMaterialSelect(select, bomMaterialsCache[cachedBomId]);
+      attachMaterialSelectHandlers(select);
+      return;
+    }
+    
+    // Also check for process cache
+    const processCacheKey = Object.keys(bomMaterialsCache).find(key => key.startsWith('process_'));
+    if (processCacheKey && bomMaterialsCache[processCacheKey]) {
+      console.log('Using cached process BOM materials from:', processCacheKey);
+      updateMaterialSelect(select, bomMaterialsCache[processCacheKey]);
+      attachMaterialSelectHandlers(select);
+      return;
+    }
+    
+    // If nothing available, keep dropdown empty (only --- option)
+    console.warn('No BOM selected and no cached materials available');
+    console.warn('Available cache keys:', Object.keys(bomMaterialsCache));
+    // Don't show alert - just keep dropdown empty
+    // Dropdown should only show materials after BOM is selected
+  }, 100);
 }
 
 function removeMaterial(button) {
@@ -728,6 +989,54 @@ function removeMaterial(button) {
       </tr>
     `;
   }
+}
+
+function loadProcessBOMMaterialsForOperation(operationIndex, materialIndex, processId) {
+  const select = document.querySelector(
+    `.operation-materials-tbody[data-operation-index="${operationIndex}"] .material-row[data-material-index="${materialIndex}"] .operation-material-bom-material`
+  );
+  
+  if (!select) {
+    return;
+  }
+  
+  // Use process_id as cache key
+  const cacheKey = `process_${processId}`;
+  
+  // Check cache first
+  if (bomMaterialsCache[cacheKey]) {
+    updateMaterialSelect(select, bomMaterialsCache[cacheKey]);
+    attachMaterialSelectHandlers(select);
+    return;
+  }
+  
+  // Fetch BOM materials from Process
+  fetch(`/production/api/process/${processId}/bom-materials/`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to load BOM materials from Process');
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      // Log for debugging
+      console.log(`Loaded ${data.materials.length} materials from Process ${processId}:`);
+      console.log('BOM Code:', data.bom_code);
+      console.log('Finished Item:', data.finished_item_name);
+      console.log('Materials:', data.materials.map(m => `${m.material_item_code} - ${m.material_item_name} (ID: ${m.id})`));
+      
+      bomMaterialsCache[cacheKey] = data.materials;
+      updateMaterialSelect(select, data.materials);
+      attachMaterialSelectHandlers(select);
+    })
+    .catch(error => {
+      console.error('Error loading BOM materials from Process:', error);
+      alert('خطا در بارگذاری مواد BOM از فرایند. لطفاً دوباره تلاش کنید.');
+    });
 }
 
 function loadBOMMaterialsForOperation(operationIndex, materialIndex, bomId) {
@@ -765,6 +1074,100 @@ function loadBOMMaterialsForOperation(operationIndex, materialIndex, bomId) {
     });
 }
 
+// Calculate total quantity used for a specific BOM material across all operations
+function calculateTotalQuantityUsed(bomMaterialId) {
+  let total = 0;
+  
+  document.querySelectorAll('.operation-material-bom-material').forEach(select => {
+    if (select.value === bomMaterialId) {
+      const materialRow = select.closest('.material-row');
+      if (materialRow) {
+        const quantityInput = materialRow.querySelector('.operation-material-quantity');
+        if (quantityInput && quantityInput.value) {
+          const quantity = parseFloat(quantityInput.value);
+          if (!isNaN(quantity) && quantity > 0) {
+            total += quantity;
+          }
+        }
+      }
+    }
+  });
+  
+  return total;
+}
+
+// Get quantity_per_unit for a BOM material
+function getBOMQuantityPerUnit(bomMaterialId) {
+  const select = document.querySelector(`.operation-material-bom-material option[value="${bomMaterialId}"]`);
+  if (select) {
+    const quantityPerUnit = parseFloat(select.dataset.quantityPerUnit);
+    return isNaN(quantityPerUnit) ? null : quantityPerUnit;
+  }
+  return null;
+}
+
+// Validate quantity used for a specific material
+function validateMaterialQuantity(bomMaterialId, quantityInput) {
+  const quantityPerUnit = getBOMQuantityPerUnit(bomMaterialId);
+  if (!quantityPerUnit) return true; // Skip validation if quantity_per_unit not found
+  
+  // Calculate total excluding current input
+  let total = 0;
+  document.querySelectorAll('.operation-material-bom-material').forEach(select => {
+    if (select.value === bomMaterialId) {
+      const materialRow = select.closest('.material-row');
+      if (materialRow) {
+        const qtyInput = materialRow.querySelector('.operation-material-quantity');
+        // Exclude current input from calculation
+        if (qtyInput && qtyInput !== quantityInput && qtyInput.value) {
+          const qty = parseFloat(qtyInput.value);
+          if (!isNaN(qty) && qty > 0) {
+            total += qty;
+          }
+        }
+      }
+    }
+  });
+  
+  // Add current input value
+  const currentQuantity = parseFloat(quantityInput.value);
+  if (!isNaN(currentQuantity) && currentQuantity > 0) {
+    total += currentQuantity;
+  }
+  
+  // Validate
+  if (total > quantityPerUnit) {
+    const materialRow = quantityInput.closest('.material-row');
+    const select = materialRow ? materialRow.querySelector('.operation-material-bom-material') : null;
+    const materialName = select && select.selectedOptions[0] ? select.selectedOptions[0].textContent : '';
+    
+    // Show error message
+    let errorMsg = materialRow ? materialRow.querySelector('.quantity-error-msg') : null;
+    if (!errorMsg) {
+      errorMsg = document.createElement('div');
+      errorMsg.className = 'quantity-error-msg';
+      errorMsg.style.color = '#dc2626';
+      errorMsg.style.fontSize = '0.875rem';
+      errorMsg.style.marginTop = '0.25rem';
+      if (quantityInput.parentNode) {
+        quantityInput.parentNode.appendChild(errorMsg);
+      }
+    }
+    errorMsg.innerHTML = `<bdi>مجموع مقادیر استفاده شده (${total.toFixed(6)}) بیشتر از مقدار مجاز BOM برای یک واحد محصول نهایی (${quantityPerUnit}) است</bdi>`;
+    quantityInput.style.borderColor = '#dc2626';
+    return false;
+  } else {
+    // Remove error message if exists
+    const materialRow = quantityInput.closest('.material-row');
+    const errorMsg = materialRow ? materialRow.querySelector('.quantity-error-msg') : null;
+    if (errorMsg) {
+      errorMsg.remove();
+    }
+    quantityInput.style.borderColor = '';
+    return true;
+  }
+}
+
 function attachMaterialSelectHandlers(selectElement) {
   // Remove existing handlers
   const newSelect = selectElement.cloneNode(true);
@@ -791,12 +1194,52 @@ function attachMaterialSelectHandlers(selectElement) {
       if (quantityInput && !quantityInput.value && quantityPerUnit) {
         quantityInput.value = quantityPerUnit;
       }
+      
+      // Validate quantity after material selection
+      if (quantityInput && quantityInput.value) {
+        validateMaterialQuantity(this.value, quantityInput);
+      }
     } else {
       if (unitInput) {
         unitInput.value = '';
       }
+      // Remove error message if material is deselected
+      const errorMsg = materialRow.querySelector('.quantity-error-msg');
+      if (errorMsg) {
+        errorMsg.remove();
+      }
+      if (quantityInput) {
+        quantityInput.style.borderColor = '';
+      }
     }
   });
+  
+  // Add validation handler for quantity input
+  const materialRow = newSelect.closest('.material-row');
+  if (materialRow) {
+    const quantityInput = materialRow.querySelector('.operation-material-quantity');
+    if (quantityInput) {
+      // Remove existing validation handlers
+      const newQuantityInput = quantityInput.cloneNode(true);
+      quantityInput.parentNode.replaceChild(newQuantityInput, quantityInput);
+      
+      // Add validation on input change
+      newQuantityInput.addEventListener('input', function() {
+        const bomMaterialSelect = materialRow.querySelector('.operation-material-bom-material');
+        if (bomMaterialSelect && bomMaterialSelect.value) {
+          validateMaterialQuantity(bomMaterialSelect.value, this);
+        }
+      });
+      
+      // Add validation on blur
+      newQuantityInput.addEventListener('blur', function() {
+        const bomMaterialSelect = materialRow.querySelector('.operation-material-bom-material');
+        if (bomMaterialSelect && bomMaterialSelect.value) {
+          validateMaterialQuantity(bomMaterialSelect.value, this);
+        }
+      });
+    }
+  }
 }
 
 // Load existing operation materials (for edit mode)
@@ -810,10 +1253,10 @@ function loadExistingOperationMaterials(operationIndex, operationId, materialCou
     placeholder.remove();
   }
   
-  const bomSelect = document.getElementById('{{ form.bom.id_for_label }}');
+  const bomSelect = document.getElementById(bomSelectId);
   const bomId = bomSelect ? bomSelect.value : '';
   
-  if (!bomId) {
+  if (!bomId && !processIdGlobal) {
     return;
   }
   
@@ -851,7 +1294,7 @@ function addExistingMaterialToOperation(operationIndex, bomMaterialId, quantityU
     placeholder.remove();
   }
   
-  const bomSelect = document.getElementById('{{ form.bom.id_for_label }}');
+  const bomSelect = document.getElementById(bomSelectId);
   const bomId = bomSelect ? bomSelect.value : '';
   
   const newMaterialRow = `
@@ -879,22 +1322,38 @@ function addExistingMaterialToOperation(operationIndex, bomMaterialId, quantityU
   tbody.insertAdjacentHTML('beforeend', newMaterialRow);
   
   // Load BOM materials and set selected value
-  if (bomId && bomMaterialsCache[bomId]) {
-    const select = tbody.querySelector(`.material-row[data-material-index="${materialIndex}"] .operation-material-bom-material`);
+  const select = tbody.querySelector(`.material-row[data-material-index="${materialIndex}"] .operation-material-bom-material`);
+  
+  if (processIdGlobal) {
+    // Load from Process
+    const cacheKey = `process_${processIdGlobal}`;
+    if (bomMaterialsCache[cacheKey]) {
+      if (select) {
+        updateMaterialSelect(select, bomMaterialsCache[cacheKey]);
+        attachMaterialSelectHandlers(select);
+        select.value = bomMaterialId;
+        select.dispatchEvent(new Event('change'));
+      }
+    } else {
+        loadProcessBOMMaterials(processIdGlobal).then(() => {
+        if (select) {
+          select.value = bomMaterialId;
+          select.dispatchEvent(new Event('change'));
+        }
+      });
+    }
+  } else if (bomId && bomMaterialsCache[bomId]) {
     if (select) {
       updateMaterialSelect(select, bomMaterialsCache[bomId]);
       attachMaterialSelectHandlers(select);
       select.value = bomMaterialId;
-      // Trigger change to update unit
       select.dispatchEvent(new Event('change'));
     }
   } else if (bomId) {
     // Wait for BOM materials to load
     loadBOMMaterials(bomId).then(() => {
-      const select = tbody.querySelector(`.material-row[data-material-index="${materialIndex}"] .operation-material-bom-material`);
       if (select) {
         select.value = bomMaterialId;
-        // Trigger change to update unit
         select.dispatchEvent(new Event('change'));
       }
     });

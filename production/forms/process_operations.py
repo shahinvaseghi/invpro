@@ -5,7 +5,7 @@ from typing import Optional
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from production.models import ProcessOperation, ProcessOperationMaterial, BOMMaterial
+from production.models import ProcessOperation, ProcessOperationMaterial, BOMMaterial, WorkLine
 
 
 class ProcessOperationMaterialForm(forms.ModelForm):
@@ -30,14 +30,36 @@ class ProcessOperationMaterialForm(forms.ModelForm):
             'quantity_used': _('Quantity Used'),
         }
     
-    def __init__(self, *args: tuple, bom_id: Optional[int] = None, **kwargs: dict):
-        """Initialize form with BOM filtering."""
+    def __init__(self, *args: tuple, bom_id: Optional[int] = None, process_id: Optional[int] = None, **kwargs: dict):
+        """Initialize form with BOM filtering from Process or direct BOM ID."""
         super().__init__(*args, **kwargs)
         
-        if bom_id:
+        # Get BOM ID from process if available, otherwise use provided bom_id
+        final_bom_id = bom_id
+        
+        # Try to get BOM from instance's operation's process
+        if not final_bom_id and hasattr(self, 'instance') and self.instance and self.instance.operation_id:
+            try:
+                operation = self.instance.operation
+                if operation.process_id and operation.process.bom_id:
+                    final_bom_id = operation.process.bom_id
+            except Exception:
+                pass
+        
+        # Try to get BOM from process_id if provided
+        if not final_bom_id and process_id:
+            try:
+                from production.models import Process
+                process = Process.objects.get(pk=process_id)
+                if process.bom_id:
+                    final_bom_id = process.bom_id
+            except Exception:
+                pass
+        
+        if final_bom_id:
             # Filter BOM materials by BOM
             self.fields['bom_material'].queryset = BOMMaterial.objects.filter(
-                bom_id=bom_id,
+                bom_id=final_bom_id,
                 is_enabled=1,
             ).select_related('material_item').order_by('line_number')
         else:
@@ -61,6 +83,17 @@ class ProcessOperationMaterialForm(forms.ModelForm):
 
 class ProcessOperationMaterialFormSetBase(forms.BaseInlineFormSet):
     """Custom formset with validation for operation materials."""
+    
+    def __init__(self, *args, process_id: Optional[int] = None, **kwargs):
+        """Initialize formset with process_id to pass to forms."""
+        super().__init__(*args, **kwargs)
+        self.process_id = process_id
+        
+        # Pass process_id to all forms in the formset
+        if process_id:
+            form_kwargs = kwargs.get('form_kwargs', {})
+            form_kwargs['process_id'] = process_id
+            kwargs['form_kwargs'] = form_kwargs
     
     def clean(self) -> None:
         """Validate that materials are not duplicated."""
@@ -104,6 +137,7 @@ class ProcessOperationForm(forms.ModelForm):
             'sequence_order',
             'labor_minutes_per_unit',
             'machine_minutes_per_unit',
+            'work_line',
             'notes',
         ]
         widgets = {
@@ -123,6 +157,7 @@ class ProcessOperationForm(forms.ModelForm):
                 'step': '0.000001',
                 'min': '0',
             }),
+            'work_line': forms.Select(attrs={'class': 'form-control operation-work-line'}),
             'notes': forms.Textarea(attrs={'class': 'form-control operation-notes', 'rows': 2}),
         }
         labels = {
@@ -131,13 +166,23 @@ class ProcessOperationForm(forms.ModelForm):
             'sequence_order': _('Sequence Order'),
             'labor_minutes_per_unit': _('Labor Minutes per Unit'),
             'machine_minutes_per_unit': _('Machine Minutes per Unit'),
+            'work_line': _('Work Line (خط کاری)'),
             'notes': _('Notes'),
         }
     
-    def __init__(self, *args: tuple, bom_id: Optional[int] = None, **kwargs: dict):
-        """Initialize form with BOM ID for nested formset."""
+    def __init__(self, *args: tuple, bom_id: Optional[int] = None, company_id: Optional[int] = None, **kwargs: dict):
+        """Initialize form with BOM ID and company ID for nested formset and work line filtering."""
         super().__init__(*args, **kwargs)
         self.bom_id = bom_id
+        
+        # Filter work lines by company
+        if company_id:
+            self.fields['work_line'].queryset = WorkLine.objects.filter(
+                company_id=company_id,
+                is_enabled=1,
+            ).order_by('name')
+        else:
+            self.fields['work_line'].queryset = WorkLine.objects.none()
 
 
 class ProcessOperationFormSetBase(forms.BaseFormSet):

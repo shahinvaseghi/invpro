@@ -93,11 +93,16 @@ class ProductOrderCreateView(FeaturePermissionRequiredMixin, CreateView):
         form.instance.company_id = active_company_id
         form.instance.created_by = self.request.user
         
-        # Auto-set finished_item from BOM
-        if form.cleaned_data.get('bom'):
-            form.instance.finished_item = form.cleaned_data['bom'].finished_item
-            form.instance.finished_item_code = form.cleaned_data['bom'].finished_item.item_code
-            form.instance.bom_code = form.cleaned_data['bom'].bom_code
+        # Auto-set finished_item and bom from Process
+        if form.cleaned_data.get('process'):
+            process = form.cleaned_data['process']
+            form.instance.process = process
+            form.instance.process_code = process.process_code
+            form.instance.finished_item = process.finished_item
+            form.instance.finished_item_code = process.finished_item.item_code
+            if process.bom:
+                form.instance.bom = process.bom
+                form.instance.bom_code = process.bom.bom_code
         
         # Auto-generate order_code if not provided
         if not form.instance.order_code:
@@ -336,11 +341,16 @@ class ProductOrderUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMi
         """Auto-set edited_by and update related fields."""
         form.instance.edited_by = self.request.user
         
-        # Update finished_item and bom_code if BOM changed
-        if form.cleaned_data.get('bom'):
-            form.instance.finished_item = form.cleaned_data['bom'].finished_item
-            form.instance.finished_item_code = form.cleaned_data['bom'].finished_item.item_code
-            form.instance.bom_code = form.cleaned_data['bom'].bom_code
+        # Update finished_item and bom from Process if Process changed
+        if form.cleaned_data.get('process'):
+            process = form.cleaned_data['process']
+            form.instance.process = process
+            form.instance.process_code = process.process_code
+            form.instance.finished_item = process.finished_item
+            form.instance.finished_item_code = process.finished_item.item_code
+            if process.bom:
+                form.instance.bom = process.bom
+                form.instance.bom_code = process.bom.bom_code
         
         # Save product order first
         response = super().form_valid(form)

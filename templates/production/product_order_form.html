@@ -18,14 +18,24 @@
   
   <div class="form-row">
     <div class="form-field">
-      <label for="{{ form.bom.id_for_label }}">{{ form.bom.label }} *</label>
-      {{ form.bom }}
-      {% if form.bom.errors %}
-        <span class="error">{{ form.bom.errors.0 }}</span>
+      <label for="{{ form.process.id_for_label }}">{{ form.process.label }} *</label>
+      {{ form.process }}
+      {% if form.process.errors %}
+        <span class="error">{{ form.process.errors.0 }}</span>
       {% endif %}
-      {% if form.bom.help_text %}
-        <small class="form-text">{{ form.bom.help_text }}</small>
+      {% if form.process.help_text %}
+        <small class="form-text">{{ form.process.help_text }}</small>
       {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row" id="process-info-row" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: #f3f4f6; border-radius: 4px;">
+    <div class="form-field full-width">
+      <small class="form-text">
+        <strong>{% trans "BOM" %}:</strong> <span id="process-bom-display">-</span>
+        <span style="margin: 0 1rem;">|</span>
+        <strong>{% trans "Finished Item" %}:</strong> <span id="process-finished-item-display">-</span>
+      </small>
     </div>
   </div>
   
@@ -714,6 +724,64 @@ document.addEventListener('DOMContentLoaded', function() {
     extraItemsFormsetContainer.querySelectorAll('.formset-row').forEach(function(row) {
       setupRowCascading(row, 'extra_items');
     });
+  }
+  
+  // Process selection handler - display BOM and finished item info
+  var processSelect = document.getElementById('id_process');
+  var processInfoRow = document.getElementById('process-info-row');
+  var processBomDisplay = document.getElementById('process-bom-display');
+  var processFinishedItemDisplay = document.getElementById('process-finished-item-display');
+  
+  function loadProcessDetails() {
+    var processId = processSelect ? processSelect.value : null;
+    
+    if (!processId) {
+      if (processInfoRow) processInfoRow.style.display = 'none';
+      return;
+    }
+    
+    var url = '{% url "production:api_process_details" 0 %}'.replace('0', processId);
+    
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          console.error('Error loading process details:', data.error);
+          if (processInfoRow) processInfoRow.style.display = 'none';
+          return;
+        }
+        
+        if (processInfoRow) processInfoRow.style.display = 'block';
+        
+        if (processBomDisplay) {
+          if (data.bom_code) {
+            processBomDisplay.textContent = data.bom_code;
+          } else {
+            processBomDisplay.textContent = '{% trans "No BOM" %}';
+          }
+        }
+        
+        if (processFinishedItemDisplay) {
+          if (data.finished_item_code && data.finished_item_name) {
+            processFinishedItemDisplay.textContent = data.finished_item_code + ' - ' + data.finished_item_name;
+          } else {
+            processFinishedItemDisplay.textContent = '-';
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error loading process details:', error);
+        if (processInfoRow) processInfoRow.style.display = 'none';
+      });
+  }
+  
+  if (processSelect) {
+    processSelect.addEventListener('change', loadProcessDetails);
+    
+    // Load details on page load if process is already selected (edit mode)
+    if (processSelect.value) {
+      loadProcessDetails();
+    }
   }
 });
 </script>

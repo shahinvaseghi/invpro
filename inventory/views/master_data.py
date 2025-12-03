@@ -496,7 +496,7 @@ class ItemSubcategoryDeleteView(DocumentDeleteViewBase):
     model = models.ItemSubcategory
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:item_subcategories')
-    feature_code = 'inventory.master_data.item_subcategory'
+    feature_code = 'inventory.master.item_subcategories'
     required_action = 'delete_own'
     allow_own_scope = True
     success_message = _('زیردسته کالا با موفقیت حذف شد.')

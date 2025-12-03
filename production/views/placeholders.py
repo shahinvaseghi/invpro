@@ -66,7 +66,7 @@ class TrackingIdentificationView(FeaturePermissionRequiredMixin, TemplateView):
     """
     template_name = 'production/tracking_identification.html'
     feature_code = 'production.tracking_identification'
-    required_action = 'view'
+    required_action = 'view_own'
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add active module and page title to context."""

@@ -1,17 +1,88 @@
-{% extends "base.html" %}
-{% load i18n %}
+{% extends "shared/generic/generic_list.html" %}
+{% load i18n jalali_tags %}
 
-{% block title %}{% trans "حواله انتقال بین انبارها" %} - {{ block.super }}{% endblock %}
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Issues" %}</span>
+<span class="separator">/</span>
+<span>{% trans "Warehouse Transfer Issues" %}</span>
+{% endblock %}
 
-{% block content %}
-<section class="page-section">
-    <div class="section-header">
-        <h1>{% trans "حواله انتقال بین انبارها" %}</h1>
-    </div>
+{% block page_actions %}
+<div class="page-actions">
+  {% if create_url %}
+    <a href="{{ create_url }}" class="btn btn-primary">
+      + {% trans "Create" %} {{ create_label|default:_("Warehouse Transfer Issue") }}
+    </a>
+  {% endif %}
+  {% if print_enabled %}
+    <button onclick="window.print()" class="btn btn-secondary">
+      {% trans "Print" %}
+    </button>
+  {% endif %}
+</div>
+{% endblock %}
 
-    <div class="card">
-        <p>{% trans "این صفحه در حال توسعه است." %}</p>
-    </div>
-</section>
+{% block before_table %}
+<style>
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .stat-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+  }
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+  }
+</style>
+{% if stats %}
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">{% trans "Total" %}</div>
+    <div class="stat-value">{{ stats.total }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">{% trans "Posted" %}</div>
+    <div class="stat-value">{{ stats.posted }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">{% trans "Draft" %}</div>
+    <div class="stat-value">{{ stats.draft }}</div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block filter_fields %}
+<div class="form-group">
+  <label for="posted">{% trans "Posted Status" %}</label>
+  <select name="posted" id="posted" class="form-control">
+    <option value="">-- {% trans "All" %} --</option>
+    <option value="1" {% if request.GET.posted == '1' %}selected{% endif %}>{% trans "Posted" %}</option>
+    <option value="0" {% if request.GET.posted == '0' %}selected{% endif %}>{% trans "Not Posted" %}</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label for="search">{% trans "Search" %}</label>
+  <input type="text" name="search" id="search" 
+         placeholder="{% trans 'Document code or item' %}" 
+         value="{{ request.GET.search }}"
+         class="form-control">
+</div>
 {% endblock %}
 

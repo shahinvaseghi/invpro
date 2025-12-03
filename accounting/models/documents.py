@@ -179,6 +179,8 @@ class AccountingDocumentLine(AccountingBaseModel):
         on_delete=models.PROTECT,
         related_name="document_lines_as_gl",
         limit_choices_to={'account_level': 1},
+        null=True,
+        blank=True,
         help_text=_("GL Account (کل)"),
     )
     sub_account = models.ForeignKey(

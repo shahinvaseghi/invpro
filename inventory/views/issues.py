@@ -174,12 +174,17 @@ class IssuePermanentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
         form.instance.created_by = self.request.user
         form.instance.edited_by = self.request.user
         
-        # Save document first
-        self.object = form.save()
+        # Create a temporary instance for formset validation (don't save yet)
+        # We need to set the instance temporarily to validate the formset
+        temp_instance = form.save(commit=False)
+        temp_instance.pk = None  # Ensure it's treated as new
         
-        # Handle line formset
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        # Validate formset BEFORE saving the document
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=temp_instance)
         if not lines_formset.is_valid():
+            # Formset is invalid, don't save the document
+            # Rebuild formset with None instance to show errors properly
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
@@ -194,9 +199,22 @@ class IssuePermanentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
                 valid_lines += 1
         
         if valid_lines == 0:
-            # Delete the document if no valid lines
-            self.object.delete()
+            # No valid lines, don't save the document
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
             lines_formset.add_error(None, _('Please add at least one line with an item.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # All validations passed, now save the document
+        self.object = form.save()
+        
+        # Rebuild formset with the saved instance
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        # Formset should still be valid, but validate again to be safe
+        if not lines_formset.is_valid():
+            # This should not happen, but if it does, delete the document
+            self.object.delete()
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
@@ -510,12 +528,15 @@ class IssueConsumptionCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
         form.instance.created_by = self.request.user
         form.instance.edited_by = self.request.user
         
-        # Save document first
-        self.object = form.save()
+        # Create a temporary instance for formset validation (don't save yet)
+        # We need to set the instance temporarily to validate the formset
+        temp_instance = form.save(commit=False)
+        temp_instance.pk = None  # Ensure it's treated as new
         
-        # Handle line formset
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        # Validate formset BEFORE saving the document
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=temp_instance)
         if not lines_formset.is_valid():
+            # Formset is invalid, don't save the document
             # Add formset errors to form for display
             if lines_formset.non_form_errors():
                 for error in lines_formset.non_form_errors():
@@ -531,6 +552,8 @@ class IssueConsumptionCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
                                 'error': error
                             }
                             form.add_error(None, error_msg)
+            # Rebuild formset with None instance to show errors properly
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
@@ -561,8 +584,7 @@ class IssueConsumptionCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
             valid_lines.append(line_form)
         
         if not valid_lines:
-            # No valid lines, show error and delete the document
-            self.object.delete()
+            # No valid lines, don't save the document
             if form_errors:
                 for error_msg in form_errors:
                     form.add_error(None, error_msg)
@@ -570,6 +592,19 @@ class IssueConsumptionCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
                 form.add_error(None, _('Please add at least one line with an item and complete all required fields.'))
             # Rebuild formset with POST data to preserve user input and show errors
             lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # All validations passed, now save the document
+        self.object = form.save()
+        
+        # Rebuild formset with the saved instance
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        # Formset should still be valid, but validate again to be safe
+        if not lines_formset.is_valid():
+            # This should not happen, but if it does, delete the document
+            self.object.delete()
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
@@ -864,15 +899,51 @@ class IssueConsignmentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
         form.instance.created_by = self.request.user
         form.instance.edited_by = self.request.user
         
-        # Save document first
-        self.object = form.save()
+        # Create a temporary instance for formset validation (don't save yet)
+        # We need to set the instance temporarily to validate the formset
+        temp_instance = form.save(commit=False)
+        temp_instance.pk = None  # Ensure it's treated as new
         
-        # Handle line formset
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        # Validate formset BEFORE saving the document
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=temp_instance)
         if not lines_formset.is_valid():
+            # Formset is invalid, don't save the document
+            # Rebuild formset with None instance to show errors properly
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
+        
+        # Check if there are any valid lines
+        valid_lines = 0
+        for line_form in lines_formset.forms:
+            if (line_form.cleaned_data and 
+                not line_form.errors and
+                line_form.cleaned_data.get('item') and 
+                not line_form.cleaned_data.get('DELETE', False)):
+                valid_lines += 1
+        
+        if valid_lines == 0:
+            # No valid lines, don't save the document
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+            lines_formset.add_error(None, _('Please add at least one line with an item.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # All validations passed, now save the document
+        self.object = form.save()
+        
+        # Rebuild formset with the saved instance
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        # Formset should still be valid, but validate again to be safe
+        if not lines_formset.is_valid():
+            # This should not happen, but if it does, delete the document
+            self.object.delete()
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
         self._save_line_formset(lines_formset)
         
         messages.success(self.request, _('حواله امانی با موفقیت ایجاد شد.'))
@@ -1135,15 +1206,56 @@ class IssueConsignmentLineSerialAssignmentView(IssueLineSerialAssignmentBaseView
 
 class IssueWarehouseTransferListView(InventoryBaseView, ListView):
     """List view for warehouse transfer issues."""
+    model = models.IssueWarehouseTransfer
     template_name = 'inventory/issue_warehouse_transfer.html'
     context_object_name = 'object_list'
     paginate_by = 50
     ordering = ['-id']  # Show newest documents first
 
     def get_queryset(self):
-        """Return empty queryset for now - placeholder view."""
-        # Placeholder: return empty queryset until model is defined
-        return models.IssuePermanent.objects.none()
+        """Prefetch related objects for efficient display and apply filters."""
+        queryset = super().get_queryset()
+        # Filter by user permissions (own vs all)
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.warehouse_transfer', 'created_by')
+        queryset = queryset.select_related('created_by').prefetch_related(
+            'lines__item',
+            'lines__source_warehouse',
+            'lines__destination_warehouse',
+        )
+        
+        # Apply filters
+        posted_param = self.request.GET.get('posted')
+        if posted_param == '1':
+            queryset = queryset.filter(is_locked=1)
+        elif posted_param == '0':
+            queryset = queryset.filter(is_locked=0)
+        
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(document_code__icontains=search_query) |
+                Q(lines__item__name__icontains=search_query) |
+                Q(lines__item__item_code__icontains=search_query)
+            ).distinct()
+        
+        return queryset
+
+    def _get_stats(self) -> Dict[str, int]:
+        """Return aggregate stats for summary cards."""
+        stats = {
+            'total': 0,
+            'posted': 0,
+            'draft': 0,
+        }
+        company_id = self.request.session.get('active_company_id')
+        if not company_id:
+            return stats
+        base_qs = models.IssueWarehouseTransfer.objects.filter(company_id=company_id)
+        stats['total'] = base_qs.count()
+        stats['posted'] = base_qs.filter(is_locked=1).count()
+        stats['draft'] = base_qs.filter(is_locked=0).count()
+        return stats
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context for generic list template."""
@@ -1154,12 +1266,138 @@ class IssueWarehouseTransferListView(InventoryBaseView, ListView):
             {'label': _('Inventory'), 'url': None},
             {'label': _('Issues'), 'url': None},
         ]
-        context['create_url'] = None  # Will be set when create view is implemented
-        context['create_button_text'] = _('ایجاد حواله انتقال')
+        context['create_url'] = reverse_lazy('inventory:issue_warehouse_transfer_create')
+        context['create_button_text'] = _('ایجاد حواله انتقال بین انبارها')
         context['create_label'] = _('حواله انتقال بین انبارها')
         context['show_filters'] = True
         context['print_enabled'] = True
         context['show_actions'] = True
-        
+        context['stats'] = self._get_stats()
         return context
+
+
+class IssueWarehouseTransferCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
+    """Create view for warehouse transfer issues."""
+    model = models.IssueWarehouseTransfer
+    form_class = forms.IssueWarehouseTransferForm
+    formset_class = forms.IssueWarehouseTransferLineFormSet
+    success_url = reverse_lazy('inventory:issue_warehouse_transfer')
+    form_title = _('ایجاد حواله انتقال بین انبارها')
+    receipt_variant = 'issue_warehouse_transfer'
+    list_url_name = 'inventory:issue_warehouse_transfer'
+    lock_url_name = 'inventory:issue_warehouse_transfer_lock'
+
+    def form_valid(self, form):
+        """Save document and line formset."""
+        form.instance.company_id = self.request.session.get('active_company_id')
+        form.instance.created_by = self.request.user
+        form.instance.edited_by = self.request.user
+        
+        # Create a temporary instance for formset validation (don't save yet)
+        # We need to set the instance temporarily to validate the formset
+        temp_instance = form.save(commit=False)
+        temp_instance.pk = None  # Ensure it's treated as new
+        
+        # Validate formset BEFORE saving the document
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=temp_instance)
+        if not lines_formset.is_valid():
+            # Formset is invalid, don't save the document
+            # Rebuild formset with None instance to show errors properly
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # Check if there are any valid lines
+        valid_lines = 0
+        for line_form in lines_formset.forms:
+            if (line_form.cleaned_data and 
+                not line_form.errors and
+                line_form.cleaned_data.get('item') and 
+                not line_form.cleaned_data.get('DELETE', False)):
+                valid_lines += 1
+        
+        if valid_lines == 0:
+            # No valid lines, don't save the document
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+            lines_formset.add_error(None, _('Please add at least one line with an item.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # All validations passed, now save the document
+        self.object = form.save()
+        
+        # Rebuild formset with the saved instance
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        # Formset should still be valid, but validate again to be safe
+        if not lines_formset.is_valid():
+            # This should not happen, but if it does, delete the document
+            self.object.delete()
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        self._save_line_formset(lines_formset)
+        
+        messages.success(self.request, _('حواله انتقال بین انبارها با موفقیت ایجاد شد.'))
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_fieldsets(self) -> list:
+        """Return fieldsets configuration."""
+        return [
+            (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
+        ]
+
+
+class IssueWarehouseTransferUpdateView(EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
+    """Update view for warehouse transfer issues."""
+    model = models.IssueWarehouseTransfer
+    form_class = forms.IssueWarehouseTransferForm
+    formset_class = forms.IssueWarehouseTransferLineFormSet
+    success_url = reverse_lazy('inventory:issue_warehouse_transfer')
+    form_title = _('ویرایش حواله انتقال بین انبارها')
+    receipt_variant = 'issue_warehouse_transfer'
+    list_url_name = 'inventory:issue_warehouse_transfer'
+    lock_url_name = 'inventory:issue_warehouse_transfer_lock'
+
+    def form_valid(self, form):
+        """Save document and line formset."""
+        form.instance.edited_by = self.request.user
+        
+        # Save document first
+        self.object = form.save()
+        
+        # Handle line formset
+        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+        if not lines_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        # Check if there are any valid lines
+        valid_lines = 0
+        for line_form in lines_formset.forms:
+            if (line_form.cleaned_data and 
+                not line_form.errors and
+                line_form.cleaned_data.get('item') and 
+                not line_form.cleaned_data.get('DELETE', False)):
+                valid_lines += 1
+        
+        if valid_lines == 0:
+            lines_formset.add_error(None, _('Please add at least one line with an item.'))
+            return self.render_to_response(
+                self.get_context_data(form=form, lines_formset=lines_formset)
+            )
+        
+        self._save_line_formset(lines_formset)
+        
+        messages.success(self.request, _('حواله انتقال بین انبارها با موفقیت به‌روزرسانی شد.'))
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_fieldsets(self) -> list:
+        """Return fieldsets configuration."""
+        return [
+            (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
+        ]
 

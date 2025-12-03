@@ -158,6 +158,16 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.REJECT,
         ],
     ),
+    "production.transfer_requests.qc_approval": FeaturePermission(
+        code="production.transfer_requests.qc_approval",
+        label=_("QC Approval for Transfer to Line Requests"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+        ],
+    ),
     "production.performance_records": FeaturePermission(
         code="production.performance_records",
         label=_("Performance Records"),
@@ -172,6 +182,14 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CREATE_RECEIPT,
+        ],
+    ),
+    "production.tracking_identification": FeaturePermission(
+        code="production.tracking_identification",
+        label=_("Tracking and Identification"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
         ],
     ),
     "shared.users": FeaturePermission(
@@ -561,6 +579,75 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
             PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "accounting.accounts.gl": FeaturePermission(
+        code="accounting.accounts.gl",
+        label=_("GL Accounts (حساب کل)"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "accounting.accounts.sub": FeaturePermission(
+        code="accounting.accounts.sub",
+        label=_("Sub Accounts (حساب معین)"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "accounting.accounts.tafsili": FeaturePermission(
+        code="accounting.accounts.tafsili",
+        label=_("Tafsili Accounts (حساب تفصیلی)"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "accounting.accounts.tafsili_hierarchy": FeaturePermission(
+        code="accounting.accounts.tafsili_hierarchy",
+        label=_("Tafsili Hierarchy (تفصیلی چند سطحی)"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "accounting.attachments.upload": FeaturePermission(
+        code="accounting.attachments.upload",
+        label=_("Document Attachments Upload"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+        ],
+    ),
+    "accounting.attachments.list": FeaturePermission(
+        code="accounting.attachments.list",
+        label=_("Document Attachments List"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+        ],
+    ),
+    "accounting.attachments.download": FeaturePermission(
+        code="accounting.attachments.download",
+        label=_("Document Attachments Download"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
         ],
     ),
     # Accounting – General
@@ -1010,6 +1097,40 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
     "procurement.buyers": FeaturePermission(
         code="procurement.buyers",
         label=_("Buyers"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    # Ticketing – Management
+    "ticketing.management.categories": FeaturePermission(
+        code="ticketing.management.categories",
+        label=_("Ticket Categories"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "ticketing.management.subcategories": FeaturePermission(
+        code="ticketing.management.subcategories",
+        label=_("Ticket Subcategories"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.DELETE_OWN,
+        ],
+    ),
+    "ticketing.management.templates": FeaturePermission(
+        code="ticketing.management.templates",
+        label=_("Ticket Templates"),
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,

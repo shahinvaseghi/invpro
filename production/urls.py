@@ -49,6 +49,8 @@ urlpatterns = [
     path('transfer-requests/<int:pk>/delete/', views.TransferToLineDeleteView.as_view(), name='transfer_request_delete'),
     path('transfer-requests/<int:pk>/approve/', views.TransferToLineApproveView.as_view(), name='transfer_request_approve'),
     path('transfer-requests/<int:pk>/reject/', views.TransferToLineRejectView.as_view(), name='transfer_request_reject'),
+    path('transfer-requests/<int:pk>/qc-approve/', views.TransferToLineQCApproveView.as_view(), name='transfer_request_qc_approve'),
+    path('transfer-requests/<int:pk>/qc-reject/', views.TransferToLineQCRejectView.as_view(), name='transfer_request_qc_reject'),
     
     # Performance Records (سند عملکرد)
     path('performance-records/', views.PerformanceRecordListView.as_view(), name='performance_records'),
@@ -64,5 +66,8 @@ urlpatterns = [
     
     # API endpoints
     path('api/bom/<int:bom_id>/materials/', api.get_bom_materials, name='api_bom_materials'),
+    path('api/order/<int:order_id>/operations/', api.get_order_operations, name='api_order_operations'),
+    path('api/process/<int:process_id>/details/', api.get_process_details, name='api_process_details'),
+    path('api/process/<int:process_id>/bom-materials/', api.get_process_bom_materials, name='api_process_bom_materials'),
 ]
 

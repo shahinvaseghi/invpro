@@ -3,6 +3,7 @@ Transfer to Line Request forms for production module.
 """
 from typing import Optional
 from django import forms
+from django.db.models import Q
 from django.forms import inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
@@ -16,7 +17,27 @@ class TransferToLineForm(forms.ModelForm):
     # Override transfer_date to use JalaliDateField
     transfer_date = JalaliDateField(
         required=True,
-        label=_('Transfer Date'),
+        label=_('تاریخ انتقال'),
+    )
+    
+    # Transfer type: 'full' for all materials, 'operations' for selected operations
+    transfer_type = forms.ChoiceField(
+        choices=[
+            ('full', _('انتقال همه مواد')),
+            ('operations', _('انتقال عملیات انتخابی')),
+        ],
+        initial='full',
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+        label=_('نوع انتقال'),
+        help_text=_('انتخاب کنید که آیا همه مواد انتقال داده شوند یا مواد از عملیات خاص'),
+    )
+    
+    # Selected operations (for transfer_type='operations')
+    selected_operations = forms.MultipleChoiceField(
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+        label=_('انتخاب عملیات'),
+        help_text=_('عملیات‌هایی که مواد آنها باید انتقال داده شود را انتخاب کنید'),
     )
     
     class Meta:
@@ -25,22 +46,30 @@ class TransferToLineForm(forms.ModelForm):
             'order',
             'transfer_date',
             'approved_by',
+            'is_scrap_replacement',
+            'qc_approved_by',
             'notes',
         ]
         widgets = {
-            'order': forms.Select(attrs={'class': 'form-control'}),
+            'order': forms.Select(attrs={'class': 'form-control', 'id': 'id_order'}),
             'approved_by': forms.Select(attrs={'class': 'form-control'}),
+            'is_scrap_replacement': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'qc_approved_by': forms.Select(attrs={'class': 'form-control'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
         labels = {
-            'order': _('Product Order'),
-            'transfer_date': _('Transfer Date'),
-            'approved_by': _('Approver'),
-            'notes': _('Notes'),
+            'order': _('سفارش محصول'),
+            'transfer_date': _('تاریخ انتقال'),
+            'approved_by': _('تایید کننده'),
+            'is_scrap_replacement': _('جایگزینی ضایعات'),
+            'qc_approved_by': _('تایید کننده QC'),
+            'notes': _('یادداشت‌ها'),
         }
         help_texts = {
-            'order': _('Select the product order for this transfer request'),
-            'approved_by': _('Select the user who can approve this transfer request'),
+            'order': _('سفارش محصول را برای این درخواست انتقال انتخاب کنید'),
+            'approved_by': _('کاربری که می‌تواند این درخواست انتقال را تایید کند انتخاب کنید'),
+            'is_scrap_replacement': _('اگر این انتقال برای جایگزینی مواد ضایعاتی است، این گزینه را انتخاب کنید'),
+            'qc_approved_by': _('کاربری که می‌تواند تایید QC را برای این درخواست انتقال انجام دهد (فقط برای جایگزینی ضایعات)'),
         }
     
     def __init__(self, *args: tuple, company_id: Optional[int] = None, **kwargs: dict):
@@ -49,11 +78,13 @@ class TransferToLineForm(forms.ModelForm):
         self.company_id: Optional[int] = company_id or (self.instance.company_id if self.instance and self.instance.pk else None)
         
         if self.company_id:
-            # Filter Product Orders by company and approved status
+            # Filter Product Orders by company and valid statuses for transfer
+            # Show orders that are planned, released, or in_progress and have BOM
             self.fields['order'].queryset = ProductOrder.objects.filter(
                 company_id=self.company_id,
                 is_enabled=1,
-                status='approved',  # Only show approved orders
+                status__in=['planned', 'released', 'in_progress'],  # Valid statuses for transfer
+                bom__isnull=False,  # Must have BOM for transfer
             ).select_related('bom', 'finished_item').order_by('-order_date', 'order_code')
             
             # Filter approved_by (User) - only users with approve permission for production.transfer_requests
@@ -76,25 +107,72 @@ class TransferToLineForm(forms.ModelForm):
             ).values_list('user_id', flat=True))
             
             # Filter User queryset to show only users with approve permission
+            # Also include superusers automatically
             if approver_user_ids:
                 self.fields['approved_by'].queryset = User.objects.filter(
-                    id__in=approver_user_ids,
+                    Q(id__in=approver_user_ids) | Q(is_superuser=True),
                     is_active=True,
                 ).order_by('first_name', 'last_name', 'username')
             else:
-                # No approvers found, show empty queryset
-                self.fields['approved_by'].queryset = User.objects.none()
+                # If no approvers found, show only superusers
+                self.fields['approved_by'].queryset = User.objects.filter(
+                    is_superuser=True,
+                    is_active=True,
+                ).order_by('first_name', 'last_name', 'username')
+            
+            # Filter QC approvers - users with QC approval permission for transfer requests
+            # Use resource code 'production.transfer_requests.qc_approval' for QC approvers
+            qc_approve_access_levels = list(AccessLevelPermission.objects.filter(
+                module_code='production',
+                resource_code='production.transfer_requests.qc_approval',
+                can_approve=1,
+            ).values_list('access_level_id', flat=True))
+            
+            # If no specific QC approval permission found, fallback to regular approve permission
+            if not qc_approve_access_levels:
+                qc_approve_access_levels = approve_access_levels
+            
+            # Find users with QC approve permission for this company
+            qc_approver_user_ids = list(UserCompanyAccess.objects.filter(
+                company_id=self.company_id,
+                access_level_id__in=qc_approve_access_levels,
+                is_enabled=1,
+            ).values_list('user_id', flat=True))
+            
+            # Filter QC approver queryset
+            if qc_approver_user_ids:
+                self.fields['qc_approved_by'].queryset = User.objects.filter(
+                    Q(id__in=qc_approver_user_ids) | Q(is_superuser=True),
+                    is_active=True,
+                ).order_by('first_name', 'last_name', 'username')
+            else:
+                # If no QC approvers found, show only superusers
+                self.fields['qc_approved_by'].queryset = User.objects.filter(
+                    is_superuser=True,
+                    is_active=True,
+                ).order_by('first_name', 'last_name', 'username')
         else:
             from django.contrib.auth import get_user_model
             User = get_user_model()
             
             self.fields['order'].queryset = ProductOrder.objects.none()
             self.fields['approved_by'].queryset = User.objects.none()
+            self.fields['qc_approved_by'].queryset = User.objects.none()
+        
+        # Initialize selected_operations choices (will be populated via JavaScript)
+        self.fields['selected_operations'].choices = []
+        
+        # Make qc_approved_by field conditional (only shown when is_scrap_replacement is checked)
+        # This will be handled via JavaScript in the template
     
     def clean(self) -> dict:
         """Validate form data."""
         cleaned_data = super().clean()
         order = cleaned_data.get('order')
+        transfer_type = cleaned_data.get('transfer_type')
+        selected_operations = cleaned_data.get('selected_operations', [])
+        is_scrap_replacement = cleaned_data.get('is_scrap_replacement', False)
+        qc_approved_by = cleaned_data.get('qc_approved_by')
         
         # Validate order is selected
         if not order:
@@ -103,6 +181,47 @@ class TransferToLineForm(forms.ModelForm):
         # Validate order has BOM
         if order and not order.bom:
             raise forms.ValidationError(_('Selected product order must have a BOM.'))
+        
+        # Validate QC approver if scrap replacement is checked
+        if is_scrap_replacement and not qc_approved_by:
+            raise forms.ValidationError({
+                'qc_approved_by': _('QC approver is required when scrap replacement is selected.')
+            })
+        
+        # If transfer_type is 'operations', validate that operations are selected
+        if transfer_type == 'operations':
+            if not selected_operations:
+                raise forms.ValidationError({
+                    'selected_operations': _('Please select at least one operation when transferring specific operations.')
+                })
+        
+        # Validate against already transferred materials (if not scrap replacement)
+        if order and not is_scrap_replacement:
+            from production.utils.transfer import (
+                is_full_order_transferred,
+                get_available_operations_for_order,
+            )
+            
+            # Check if full order is already transferred
+            if transfer_type == 'full' and is_full_order_transferred(order, exclude_scrap_replacement=True):
+                raise forms.ValidationError(
+                    _('All materials for this order have already been transferred. '
+                      'If this is for scrap replacement, please check the "Scrap Replacement" checkbox.')
+                )
+            
+            # Check if selected operations are already transferred
+            if transfer_type == 'operations':
+                available_operations = get_available_operations_for_order(order, include_scrap_replacement=False)
+                available_operation_ids = {str(op['id']) for op in available_operations}
+                
+                invalid_operations = [op_id for op_id in selected_operations if op_id not in available_operation_ids]
+                if invalid_operations:
+                    raise forms.ValidationError({
+                        'selected_operations': _(
+                            'Some selected operations have already been transferred. '
+                            'If this is for scrap replacement, please check the "Scrap Replacement" checkbox.'
+                        )
+                    })
         
         return cleaned_data
 
@@ -114,23 +233,23 @@ class TransferToLineItemForm(forms.ModelForm):
     material_type = forms.ModelChoiceField(
         queryset=None,
         required=False,
-        label=_('Material Type'),
+        label=_('نوع ماده'),
         widget=forms.Select(attrs={'class': 'form-control'}),
-        help_text=_('Filter materials by type'),
+        help_text=_('فیلتر کردن مواد بر اساس نوع'),
     )
     material_category_filter = forms.ModelChoiceField(
         queryset=None,
         required=False,
-        label=_('Category'),
+        label=_('دسته‌بندی'),
         widget=forms.Select(attrs={'class': 'form-control'}),
-        help_text=_('Filter materials by category'),
+        help_text=_('فیلتر کردن مواد بر اساس دسته‌بندی'),
     )
     material_subcategory_filter = forms.ModelChoiceField(
         queryset=None,
         required=False,
-        label=_('Subcategory'),
+        label=_('زیردسته‌بندی'),
         widget=forms.Select(attrs={'class': 'form-control'}),
-        help_text=_('Filter materials by subcategory'),
+        help_text=_('فیلتر کردن مواد بر اساس زیردسته‌بندی'),
     )
     
     class Meta:
@@ -145,15 +264,24 @@ class TransferToLineItemForm(forms.ModelForm):
             'notes',
         ]
         widgets = {
-            'material_item': forms.Select(attrs={'class': 'form-control'}),
+            'material_item': forms.Select(attrs={
+                'class': 'form-control searchable-select',
+                'data-searchable': 'true'
+            }),
             'quantity_required': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'step': '0.000001',
                 'min': '0'
             }),
             'unit': forms.Select(attrs={'class': 'form-control'}),
-            'source_warehouse': forms.Select(attrs={'class': 'form-control'}),
-            'destination_work_center': forms.Select(attrs={'class': 'form-control'}),
+            'source_warehouse': forms.Select(attrs={
+                'class': 'form-control searchable-select',
+                'data-searchable': 'true'
+            }),
+            'destination_work_center': forms.Select(attrs={
+                'class': 'form-control searchable-select',
+                'data-searchable': 'true'
+            }),
             'material_scrap_allowance': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'step': '0.01',
@@ -163,13 +291,13 @@ class TransferToLineItemForm(forms.ModelForm):
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
         labels = {
-            'material_item': _('Material Item'),
-            'quantity_required': _('Quantity Required'),
-            'unit': _('Unit'),
-            'source_warehouse': _('Source Warehouse'),
-            'destination_work_center': _('Destination Work Center'),
-            'material_scrap_allowance': _('Scrap Allowance (%)'),
-            'notes': _('Notes'),
+            'material_item': _('کالای مورد نیاز'),
+            'quantity_required': _('مقدار مورد نیاز'),
+            'unit': _('واحد'),
+            'source_warehouse': _('انبار مبدا'),
+            'destination_work_center': _('مرکز کار مقصد'),
+            'material_scrap_allowance': _('ضریب ضایعات (%)'),
+            'notes': _('یادداشت‌ها'),
         }
     
     def __init__(self, *args: tuple, company_id: Optional[int] = None, **kwargs: dict):

@@ -1862,6 +1862,75 @@ class IssueConsignment(InventoryDocumentBase):
         super().save(*args, **kwargs)
 
 
+class IssueWarehouseTransfer(InventoryDocumentBase):
+    """Header-only model for warehouse transfer issue documents with multi-line support."""
+    document_code = models.CharField(max_length=20, unique=True)
+    document_date = models.DateField(default=timezone.now)
+    # Header-level fields only - item/warehouse/quantity moved to IssueWarehouseTransferLine
+    issue_metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        verbose_name = _("Warehouse Transfer Issue")
+        verbose_name_plural = _("Warehouse Transfer Issues")
+        ordering = ("-document_date", "document_code")
+
+    def __str__(self) -> str:
+        return self.document_code
+
+
+class IssueWarehouseTransferLine(IssueLineBase):
+    """Line item for warehouse transfer issue documents."""
+    
+    document = models.ForeignKey(
+        "IssueWarehouseTransfer",
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    source_warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.PROTECT,
+        related_name="warehouse_transfer_source_lines",
+    )
+    source_warehouse_code = models.CharField(max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
+    destination_warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.PROTECT,
+        related_name="warehouse_transfer_destination_lines",
+    )
+    destination_warehouse_code = models.CharField(max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
+    serials = models.ManyToManyField(
+        "inventory.ItemSerial",
+        related_name="issue_warehouse_transfer_lines",
+        blank=True,
+    )
+    
+    class Meta:
+        verbose_name = _("Warehouse Transfer Issue Line")
+        verbose_name_plural = _("Warehouse Transfer Issue Lines")
+        ordering = ("sort_order", "id")
+        indexes = [
+            models.Index(fields=("company", "document"), name="inv_issue_wht_line_doc_idx"),
+            models.Index(fields=("company", "item"), name="inv_issue_wht_line_item_idx"),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.document.document_code} - {self.item.name}"
+    
+    def save(self, *args, **kwargs):
+        # Set warehouse to source_warehouse (for compatibility with IssueLineBase)
+        if self.source_warehouse_id and not self.warehouse_id:
+            self.warehouse = self.source_warehouse
+            self.warehouse_code = self.source_warehouse.public_code
+        
+        # Save codes
+        if self.source_warehouse and not self.source_warehouse_code:
+            self.source_warehouse_code = self.source_warehouse.public_code
+        if self.destination_warehouse and not self.destination_warehouse_code:
+            self.destination_warehouse_code = self.destination_warehouse.public_code
+        
+        super().save(*args, **kwargs)
+
+
 class StocktakingDeficit(InventoryDocumentBase):
     """Header-only model for stocktaking deficit documents with multi-line support."""
     document_code = models.CharField(_("Document Code"), max_length=20, unique=True)

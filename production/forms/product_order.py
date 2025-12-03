@@ -3,10 +3,11 @@ Product Order forms for production module.
 """
 from typing import Optional
 from django import forms
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from inventory.fields import JalaliDateField
-from production.models import ProductOrder, BOM
+from production.models import ProductOrder, BOM, Process
 
 
 class ProductOrderForm(forms.ModelForm):
@@ -38,7 +39,7 @@ class ProductOrderForm(forms.ModelForm):
     class Meta:
         model = ProductOrder
         fields = [
-            'bom',
+            'process',
             'quantity_planned',
             'approved_by',
             'due_date',
@@ -47,7 +48,7 @@ class ProductOrderForm(forms.ModelForm):
             'notes',
         ]
         widgets = {
-            'bom': forms.Select(attrs={'class': 'form-control'}),
+            'process': forms.Select(attrs={'class': 'form-control', 'id': 'id_process'}),
             'quantity_planned': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'step': '0.000001',
@@ -59,7 +60,7 @@ class ProductOrderForm(forms.ModelForm):
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
         labels = {
-            'bom': _('BOM (Bill of Materials)'),
+            'process': _('Process (فرایند)'),
             'quantity_planned': _('Quantity'),
             'approved_by': _('Approver'),
             'due_date': _('Due Date'),
@@ -68,7 +69,7 @@ class ProductOrderForm(forms.ModelForm):
             'notes': _('Notes'),
         }
         help_texts = {
-            'bom': _('Select the BOM for this production order'),
+            'process': _('Select the process for this production order'),
             'quantity_planned': _('Enter the planned quantity to produce'),
             'approved_by': _('Select the user who can approve this order'),
         }
@@ -79,11 +80,11 @@ class ProductOrderForm(forms.ModelForm):
         self.company_id: Optional[int] = company_id or (self.instance.company_id if self.instance and self.instance.pk else None)
         
         if self.company_id:
-            # Filter BOMs by company
-            self.fields['bom'].queryset = BOM.objects.filter(
+            # Filter Processes by company - show all enabled processes
+            self.fields['process'].queryset = Process.objects.filter(
                 company_id=self.company_id,
                 is_enabled=1,
-            ).select_related('finished_item').order_by('finished_item__item_code', 'version')
+            ).select_related('finished_item', 'bom').order_by('finished_item__item_code', 'revision')
             
             # Filter approved_by (User) - only users with approve permission for production.product_orders
             from shared.models import UserCompanyAccess, AccessLevelPermission
@@ -105,14 +106,18 @@ class ProductOrderForm(forms.ModelForm):
             ).values_list('user_id', flat=True))
             
             # Filter User queryset to show only users with approve permission
+            # Also include superusers automatically
             if approver_user_ids:
                 self.fields['approved_by'].queryset = User.objects.filter(
-                    id__in=approver_user_ids,
+                    Q(id__in=approver_user_ids) | Q(is_superuser=True),
                     is_active=True,
                 ).order_by('first_name', 'last_name', 'username')
             else:
-                # No approvers found, show empty queryset
-                self.fields['approved_by'].queryset = User.objects.none()
+                # If no approvers found, show only superusers
+                self.fields['approved_by'].queryset = User.objects.filter(
+                    is_superuser=True,
+                    is_active=True,
+                ).order_by('first_name', 'last_name', 'username')
             
             # Filter transfer_approved_by (users with approve permission for transfer_requests)
             from shared.models import AccessLevelPermission as ALP
@@ -128,32 +133,37 @@ class ProductOrderForm(forms.ModelForm):
                 is_enabled=1,
             ).values_list('user_id', flat=True))
             
+            # Also include superusers automatically for transfer approvers
             if transfer_approver_user_ids:
                 self.fields['transfer_approved_by'].queryset = User.objects.filter(
-                    id__in=transfer_approver_user_ids,
+                    Q(id__in=transfer_approver_user_ids) | Q(is_superuser=True),
                     is_active=True,
                 ).order_by('first_name', 'last_name', 'username')
             else:
-                self.fields['transfer_approved_by'].queryset = User.objects.none()
+                # If no approvers found, show only superusers
+                self.fields['transfer_approved_by'].queryset = User.objects.filter(
+                    is_superuser=True,
+                    is_active=True,
+                ).order_by('first_name', 'last_name', 'username')
         else:
             from django.contrib.auth import get_user_model
             User = get_user_model()
             
-            self.fields['bom'].queryset = BOM.objects.none()
+            self.fields['process'].queryset = Process.objects.none()
             self.fields['approved_by'].queryset = User.objects.none()
             self.fields['transfer_approved_by'].queryset = User.objects.none()
     
     def clean(self) -> dict:
         """Validate form data."""
         cleaned_data = super().clean()
-        bom = cleaned_data.get('bom')
+        process = cleaned_data.get('process')
         quantity_planned = cleaned_data.get('quantity_planned')
         create_transfer_request = cleaned_data.get('create_transfer_request')
         transfer_approved_by = cleaned_data.get('transfer_approved_by')
         
-        # Validate BOM is selected
-        if not bom:
-            raise forms.ValidationError(_('BOM is required.'))
+        # Validate Process is selected
+        if not process:
+            raise forms.ValidationError(_('Process is required.'))
         
         # Validate quantity is positive
         if quantity_planned and quantity_planned <= 0:
@@ -163,9 +173,12 @@ class ProductOrderForm(forms.ModelForm):
         if create_transfer_request and not transfer_approved_by:
             raise forms.ValidationError(_('Transfer Request Approver is required when creating a transfer request.'))
         
-        # Auto-set finished_item from BOM if not already set
-        if bom and not self.instance.finished_item_id:
-            self.instance.finished_item = bom.finished_item
+        # Auto-set finished_item and bom from Process
+        if process:
+            if not self.instance.finished_item_id:
+                self.instance.finished_item = process.finished_item
+            if process.bom and not self.instance.bom_id:
+                self.instance.bom = process.bom
         
         return cleaned_data
 

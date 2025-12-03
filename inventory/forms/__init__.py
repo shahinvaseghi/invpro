@@ -111,28 +111,34 @@ from inventory.forms.issue import (
     IssuePermanentForm,
     IssueConsumptionForm,
     IssueConsignmentForm,
+    IssueWarehouseTransferForm,
     IssueLineSerialAssignmentForm,
     IssueLineBaseForm,
     IssuePermanentLineForm,
     IssueConsumptionLineForm,
     IssueConsignmentLineForm,
+    IssueWarehouseTransferLineForm,
     IssuePermanentLineFormSet,
     IssueConsumptionLineFormSet,
     IssueConsignmentLineFormSet,
+    IssueWarehouseTransferLineFormSet,
 )
 
 __all__.extend([
     'IssuePermanentForm',
     'IssueConsumptionForm',
     'IssueConsignmentForm',
+    'IssueWarehouseTransferForm',
     'IssueLineSerialAssignmentForm',
     'IssueLineBaseForm',
     'IssuePermanentLineForm',
     'IssueConsumptionLineForm',
     'IssueConsignmentLineForm',
+    'IssueWarehouseTransferLineForm',
     'IssuePermanentLineFormSet',
     'IssueConsumptionLineFormSet',
     'IssueConsignmentLineFormSet',
+    'IssueWarehouseTransferLineFormSet',
 ])
 
 # Import stocktaking forms

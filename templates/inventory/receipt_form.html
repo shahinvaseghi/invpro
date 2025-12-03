@@ -181,6 +181,32 @@
                 </div>
                 {% endif %}
 
+                {% if 'source_warehouse' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.source_warehouse.label }}{% if line_form.source_warehouse.field.required %}*{% endif %}</label>
+                  {{ line_form.source_warehouse }}
+                  {% if line_form.source_warehouse.errors %}
+                    <span class="error">{{ line_form.source_warehouse.errors.0 }}</span>
+                  {% endif %}
+                  {% if line_form.source_warehouse.help_text %}
+                    <small class="form-text text-muted">{{ line_form.source_warehouse.help_text }}</small>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'destination_warehouse' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.destination_warehouse.label }}{% if line_form.destination_warehouse.field.required %}*{% endif %}</label>
+                  {{ line_form.destination_warehouse }}
+                  {% if line_form.destination_warehouse.errors %}
+                    <span class="error">{{ line_form.destination_warehouse.errors.0 }}</span>
+                  {% endif %}
+                  {% if line_form.destination_warehouse.help_text %}
+                    <small class="form-text text-muted">{{ line_form.destination_warehouse.help_text }}</small>
+                  {% endif %}
+                </div>
+                {% endif %}
+
                 {% if 'unit' in line_form.fields %}
                 <div class="form-field">
                   <label>{{ line_form.unit.label }}{% if line_form.unit.field.required %}*{% endif %}</label>
@@ -545,6 +571,32 @@
                 </div>
                 {% endif %}
 
+                {% if 'source_warehouse' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.source_warehouse.label }}{% if line_form.source_warehouse.field.required %}*{% endif %}</label>
+                  {{ line_form.source_warehouse }}
+                  {% if line_form.source_warehouse.errors %}
+                    <span class="error">{{ line_form.source_warehouse.errors.0 }}</span>
+                  {% endif %}
+                  {% if line_form.source_warehouse.help_text %}
+                    <small class="form-text text-muted">{{ line_form.source_warehouse.help_text }}</small>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'destination_warehouse' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.destination_warehouse.label }}{% if line_form.destination_warehouse.field.required %}*{% endif %}</label>
+                  {{ line_form.destination_warehouse }}
+                  {% if line_form.destination_warehouse.errors %}
+                    <span class="error">{{ line_form.destination_warehouse.errors.0 }}</span>
+                  {% endif %}
+                  {% if line_form.destination_warehouse.help_text %}
+                    <small class="form-text text-muted">{{ line_form.destination_warehouse.help_text }}</small>
+                  {% endif %}
+                </div>
+                {% endif %}
+
                 {% if 'unit' in line_form.fields %}
                 <div class="form-field">
                   <label>{{ line_form.unit.label }}{% if line_form.unit.field.required %}*{% endif %}</label>
@@ -838,6 +890,32 @@
                   {{ line_form.warehouse }}
                   {% if line_form.warehouse.errors %}
                     <span class="error">{{ line_form.warehouse.errors.0 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'source_warehouse' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.source_warehouse.label }}{% if line_form.source_warehouse.field.required %}*{% endif %}</label>
+                  {{ line_form.source_warehouse }}
+                  {% if line_form.source_warehouse.errors %}
+                    <span class="error">{{ line_form.source_warehouse.errors.0 }}</span>
+                  {% endif %}
+                  {% if line_form.source_warehouse.help_text %}
+                    <small class="form-text text-muted">{{ line_form.source_warehouse.help_text }}</small>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if 'destination_warehouse' in line_form.fields %}
+                <div class="form-field">
+                  <label>{{ line_form.destination_warehouse.label }}{% if line_form.destination_warehouse.field.required %}*{% endif %}</label>
+                  {{ line_form.destination_warehouse }}
+                  {% if line_form.destination_warehouse.errors %}
+                    <span class="error">{{ line_form.destination_warehouse.errors.0 }}</span>
+                  {% endif %}
+                  {% if line_form.destination_warehouse.help_text %}
+                    <small class="form-text text-muted">{{ line_form.destination_warehouse.help_text }}</small>
                   {% endif %}
                 </div>
                 {% endif %}
@@ -1698,6 +1776,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const itemSelect = lineForm.querySelector('select[name*="-item"]');
     const unitSelect = lineForm.querySelector('select[name*="-unit"]');
     const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+    const sourceWarehouseSelect = lineForm.querySelector('select[name*="-source_warehouse"]');
+    const destinationWarehouseSelect = lineForm.querySelector('select[name*="-destination_warehouse"]');
     
     if (itemSelect && unitSelect) {
       if (!itemSelect.value || itemSelect.value === '') {
@@ -1727,6 +1807,40 @@ document.addEventListener('DOMContentLoaded', function() {
           warehouseSelect.setAttribute('data-initial-value', currentWarehouseValue);
         }
         updateWarehouseChoices(itemSelect, warehouseSelect);
+      }
+    }
+    
+    if (itemSelect && sourceWarehouseSelect) {
+      if (!itemSelect.value || itemSelect.value === '') {
+        sourceWarehouseSelect.disabled = true;
+        const placeholder = sourceWarehouseSelect.querySelector('option[value=""]');
+        if (!placeholder || (placeholder && placeholder.textContent.indexOf('Select Item') === -1)) {
+          sourceWarehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+        }
+      } else {
+        // Item is already selected (edit mode), update source warehouse
+        const currentSourceWarehouseValue = sourceWarehouseSelect.value || sourceWarehouseSelect.querySelector('option[selected]')?.value;
+        if (currentSourceWarehouseValue) {
+          sourceWarehouseSelect.setAttribute('data-initial-value', currentSourceWarehouseValue);
+        }
+        updateWarehouseChoices(itemSelect, sourceWarehouseSelect);
+      }
+    }
+    
+    if (itemSelect && destinationWarehouseSelect) {
+      if (!itemSelect.value || itemSelect.value === '') {
+        destinationWarehouseSelect.disabled = true;
+        const destPlaceholder = destinationWarehouseSelect.querySelector('option[value=""]');
+        if (!destPlaceholder || (destPlaceholder && destPlaceholder.textContent.indexOf('Select Item') === -1)) {
+          destinationWarehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+        }
+      } else {
+        // Item is already selected (edit mode), update destination warehouse
+        const currentDestinationWarehouseValue = destinationWarehouseSelect.value || destinationWarehouseSelect.querySelector('option[selected]')?.value;
+        if (currentDestinationWarehouseValue) {
+          destinationWarehouseSelect.setAttribute('data-initial-value', currentDestinationWarehouseValue);
+        }
+        updateWarehouseChoices(itemSelect, destinationWarehouseSelect);
       }
     }
   });
@@ -2409,10 +2523,18 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('[setupItemSelectHandlers] Item changed event fired (direct), value:', this.value, 'event:', e);
         // Get fresh reference to warehouseSelect in case DOM changed
         const freshWarehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+        const freshSourceWarehouseSelect = lineForm.querySelector('select[name*="-source_warehouse"]');
+        const freshDestinationWarehouseSelect = lineForm.querySelector('select[name*="-destination_warehouse"]');
         if (freshWarehouseSelect) {
           updateWarehouseChoices(this, freshWarehouseSelect);
         } else {
           console.error('[setupItemSelectHandlers] Could not find warehouse select after item change');
+        }
+        if (freshSourceWarehouseSelect) {
+          updateWarehouseChoices(this, freshSourceWarehouseSelect);
+        }
+        if (freshDestinationWarehouseSelect) {
+          updateWarehouseChoices(this, freshDestinationWarehouseSelect);
         }
       };
       // Use the same itemSelect (already cloned above if needed)
@@ -2426,12 +2548,36 @@ document.addEventListener('DOMContentLoaded', function() {
       if (itemSelect.value) {
         console.log('[setupItemSelectHandlers] Item has value, updating warehouse choices immediately:', itemSelect.value);
         updateWarehouseChoices(itemSelect, warehouseSelect);
+        const sourceWarehouseSelect = lineForm.querySelector('select[name*="-source_warehouse"]');
+        const destinationWarehouseSelect = lineForm.querySelector('select[name*="-destination_warehouse"]');
+        if (sourceWarehouseSelect) {
+          updateWarehouseChoices(itemSelect, sourceWarehouseSelect);
+        }
+        if (destinationWarehouseSelect) {
+          updateWarehouseChoices(itemSelect, destinationWarehouseSelect);
+        }
       } else {
-        // If no item selected, disable warehouse select
+        // If no item selected, disable warehouse selects
         warehouseSelect.disabled = true;
         const placeholder = warehouseSelect.querySelector('option[value=""]');
         if (!placeholder || placeholder.textContent.indexOf('Select Item') === -1) {
           warehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+        }
+        const sourceWarehouseSelect = lineForm.querySelector('select[name*="-source_warehouse"]');
+        const destinationWarehouseSelect = lineForm.querySelector('select[name*="-destination_warehouse"]');
+        if (sourceWarehouseSelect) {
+          sourceWarehouseSelect.disabled = true;
+          const sourcePlaceholder = sourceWarehouseSelect.querySelector('option[value=""]');
+          if (!sourcePlaceholder || sourcePlaceholder.textContent.indexOf('Select Item') === -1) {
+            sourceWarehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+          }
+        }
+        if (destinationWarehouseSelect) {
+          destinationWarehouseSelect.disabled = true;
+          const destPlaceholder = destinationWarehouseSelect.querySelector('option[value=""]');
+          if (!destPlaceholder || destPlaceholder.textContent.indexOf('Select Item') === -1) {
+            destinationWarehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+          }
         }
       }
     }
@@ -3016,6 +3162,8 @@ document.addEventListener('DOMContentLoaded', function() {
           console.log('[Event Delegation] Found lineForm, updating units and warehouses...');
           const unitSelect = lineForm.querySelector('select[name*="-unit"]');
           const warehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
+          const sourceWarehouseSelect = lineForm.querySelector('select[name*="-source_warehouse"]');
+          const destinationWarehouseSelect = lineForm.querySelector('select[name*="-destination_warehouse"]');
           if (unitSelect) {
             console.log('[Event Delegation] Calling updateUnitChoices');
             updateUnitChoices(target, unitSelect);
@@ -3023,6 +3171,14 @@ document.addEventListener('DOMContentLoaded', function() {
           if (warehouseSelect) {
             console.log('[Event Delegation] Calling updateWarehouseChoices');
             updateWarehouseChoices(target, warehouseSelect);
+          }
+          if (sourceWarehouseSelect) {
+            console.log('[Event Delegation] Calling updateWarehouseChoices for source_warehouse');
+            updateWarehouseChoices(target, sourceWarehouseSelect);
+          }
+          if (destinationWarehouseSelect) {
+            console.log('[Event Delegation] Calling updateWarehouseChoices for destination_warehouse');
+            updateWarehouseChoices(target, destinationWarehouseSelect);
           }
         } else {
           console.error('[Event Delegation] Could not find lineForm for item select:', target.name);
@@ -3060,6 +3216,23 @@ document.addEventListener('DOMContentLoaded', function() {
           warehouseSelect.setAttribute('data-initial-value', currentWarehouseValue);
         }
         updateWarehouseChoices(itemSelect, warehouseSelect);
+      }
+      const sourceWarehouseSelect = lineForm.querySelector('select[name*="-source_warehouse"]');
+      const destinationWarehouseSelect = lineForm.querySelector('select[name*="-destination_warehouse"]');
+      if (sourceWarehouseSelect) {
+        console.log('[Initialization] Updating source warehouse choices for pre-selected item');
+        const currentSourceWarehouseValue = sourceWarehouseSelect.value || sourceWarehouseSelect.querySelector('option[selected]')?.value;
+        if (currentSourceWarehouseValue) {
+          sourceWarehouseSelect.setAttribute('data-initial-value', currentSourceWarehouseValue);
+        }
+        updateWarehouseChoices(itemSelect, sourceWarehouseSelect);
+      }
+      if (destinationWarehouseSelect) {
+        const currentDestinationWarehouseValue = destinationWarehouseSelect.value || destinationWarehouseSelect.querySelector('option[selected]')?.value;
+        if (currentDestinationWarehouseValue) {
+          destinationWarehouseSelect.setAttribute('data-initial-value', currentDestinationWarehouseValue);
+        }
+        updateWarehouseChoices(itemSelect, destinationWarehouseSelect);
       }
     }
     
@@ -3379,6 +3552,8 @@ document.addEventListener('DOMContentLoaded', function() {
       // Disable unit and warehouse selects for new form (no item selected yet)
       const newFormUnitSelect = newForm.querySelector('select[name*="-unit"]');
       const newFormWarehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
+      const newFormSourceWarehouseSelect = newForm.querySelector('select[name*="-source_warehouse"]');
+      const newFormDestinationWarehouseSelect = newForm.querySelector('select[name*="-destination_warehouse"]');
       if (newFormUnitSelect) {
         newFormUnitSelect.disabled = true;
         newFormUnitSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
@@ -3386,6 +3561,13 @@ document.addEventListener('DOMContentLoaded', function() {
       if (newFormWarehouseSelect) {
         newFormWarehouseSelect.disabled = true;
         newFormWarehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+      }
+      if (newFormSourceWarehouseSelect) {
+        newFormSourceWarehouseSelect.disabled = true;
+        newFormSourceWarehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+      }
+      if (newFormDestinationWarehouseSelect) {
+        newFormDestinationWarehouseSelect.disabled = true;
       }
       
       // Setup filters for new form

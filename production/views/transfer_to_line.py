@@ -164,23 +164,67 @@ class TransferToLineCreateView(FeaturePermissionRequiredMixin, CreateView):
                     item.created_by = self.request.user
                     item.save()
         
-        # Create items from BOM
+        # Create items based on transfer type
         order = form.instance.order
+        transfer_type = form.cleaned_data.get('transfer_type', 'full')
+        selected_operations = form.cleaned_data.get('selected_operations', [])
+        
         if order and order.bom:
-            bom = order.bom
+            from inventory.models import ItemWarehouse
+            from production.utils.transfer import get_operation_materials
+            from production.models import ProcessOperation
+            
             quantity_planned = order.quantity_planned
             
-            # Get BOM materials
-            bom_materials = bom.materials.all().select_related('material_item')
+            # Collect materials to transfer
+            materials_to_transfer = []  # List of (material_item, quantity, unit, scrap_allowance)
             
-            for bom_material in bom_materials:
-                # Calculate required quantity: quantity_planned × quantity_per_unit
-                quantity_required = quantity_planned * bom_material.quantity_per_unit
+            if transfer_type == 'full':
+                # Transfer all BOM materials
+                bom = order.bom
+                bom_materials = bom.materials.filter(is_enabled=1).select_related('material_item')
                 
+                for bom_material in bom_materials:
+                    quantity_required = quantity_planned * bom_material.quantity_per_unit
+                    materials_to_transfer.append((
+                        bom_material.material_item,
+                        quantity_required,
+                        bom_material.unit,
+                        bom_material.scrap_allowance,
+                    ))
+            
+            elif transfer_type == 'operations' and selected_operations:
+                # Transfer materials from selected operations
+                operation_ids = [int(op_id) for op_id in selected_operations]
+                operations = ProcessOperation.objects.filter(
+                    id__in=operation_ids,
+                    is_enabled=1,
+                ).select_related('process')
+                
+                for operation in operations:
+                    operation_materials = get_operation_materials(operation, order)
+                    
+                    for op_material in operation_materials:
+                        # Calculate quantity: quantity_planned × quantity_used (from ProcessOperationMaterial)
+                        quantity_required = quantity_planned * op_material.quantity_used
+                        
+                        # Get scrap allowance from BOM material if available
+                        scrap_allowance = Decimal('0.00')
+                        if op_material.bom_material:
+                            scrap_allowance = op_material.bom_material.scrap_allowance
+                        
+                        materials_to_transfer.append((
+                            op_material.material_item,
+                            quantity_required,
+                            op_material.unit,
+                            scrap_allowance,
+                        ))
+            
+            # Create transfer items
+            for material_item, quantity_required, unit, scrap_allowance in materials_to_transfer:
                 # Get source warehouse from ItemWarehouse (first allowed warehouse)
-                from inventory.models import ItemWarehouse
                 item_warehouse = ItemWarehouse.objects.filter(
-                    item=bom_material.material_item,
+                    item=material_item,
                     company_id=active_company_id,
                     is_enabled=1,
                 ).select_related('warehouse').first()
@@ -189,7 +233,7 @@ class TransferToLineCreateView(FeaturePermissionRequiredMixin, CreateView):
                     messages.warning(
                         self.request,
                         _('No allowed warehouse found for item {item_code}. Please configure ItemWarehouse first.').format(
-                            item_code=bom_material.material_item.item_code
+                            item_code=material_item.item_code
                         )
                     )
                     continue
@@ -206,19 +250,19 @@ class TransferToLineCreateView(FeaturePermissionRequiredMixin, CreateView):
                         # Note: WorkLine doesn't have work_center, so we'll leave it None for now
                         pass
                 
-                # Create transfer item from BOM
+                # Create transfer item
                 TransferToLineItem.objects.create(
                     transfer=self.object,
                     company_id=active_company_id,
-                    material_item=bom_material.material_item,
-                    material_item_code=bom_material.material_item.item_code,
+                    material_item=material_item,
+                    material_item_code=material_item.item_code,
                     quantity_required=quantity_required,
-                    unit=bom_material.unit,
+                    unit=unit,
                     source_warehouse=source_warehouse,
                     source_warehouse_code=source_warehouse.public_code,
                     destination_work_center=destination_work_center,
-                    material_scrap_allowance=bom_material.scrap_allowance,
-                    is_extra=0,  # From BOM
+                    material_scrap_allowance=scrap_allowance,
+                    is_extra=0,  # From BOM or Operations
                     created_by=self.request.user,
                 )
         
@@ -410,68 +454,81 @@ class TransferToLineApproveView(FeaturePermissionRequiredMixin, View):
         if transfer.status == TransferToLine.Status.REJECTED:
             return JsonResponse({'error': _('This transfer request is already rejected.')}, status=400)
         
-        # Approve and lock, then create consumption issue
+        # Approve - workflow depends on scrap replacement flag
         with transaction.atomic():
-            transfer.status = TransferToLine.Status.APPROVED
-            transfer.is_locked = 1
-            transfer.locked_at = timezone.now()
-            transfer.locked_by = request.user
-            transfer.save()
-            
-            # Create consumption issue document
-            try:
-                from inventory.models import IssueConsumption, IssueConsumptionLine
-                
-                # Create IssueConsumption header
-                consumption_issue = IssueConsumption.objects.create(
-                    company_id=active_company_id,
-                    document_code=generate_document_code(IssueConsumption, active_company_id, "ISU"),
-                    document_date=transfer.transfer_date,
-                    created_by=request.user,
-                    edited_by=request.user,
-                )
-                
-                # Create IssueConsumptionLine for each TransferToLineItem
-                transfer_items = transfer.items.filter(is_enabled=1).order_by('id')
-                for idx, transfer_item in enumerate(transfer_items, start=1):
-                    # Note: destination_work_center is a WorkCenter, not WorkLine
-                    # WorkLine is optional and can be set manually later if needed
-                    work_line = None
-                    work_line_code = ''
-                    
-                    IssueConsumptionLine.objects.create(
-                        company_id=active_company_id,
-                        document=consumption_issue,
-                        item=transfer_item.material_item,
-                        item_code=transfer_item.material_item_code,
-                        warehouse=transfer_item.source_warehouse,
-                        warehouse_code=transfer_item.source_warehouse_code,
-                        unit=transfer_item.unit,
-                        quantity=transfer_item.quantity_required,  # Use quantity_required
-                        consumption_type='production_transfer',
-                        production_transfer_id=transfer.id,
-                        production_transfer_code=transfer.transfer_code,
-                        work_line=work_line,
-                        work_line_code=work_line_code,
-                        sort_order=idx,
-                        is_enabled=1,
-                    )
+            # Check if this is a scrap replacement that requires QC approval
+            if transfer.is_scrap_replacement == 1:
+                # Set status to pending QC approval
+                transfer.status = TransferToLine.Status.PENDING_QC_APPROVAL
+                transfer.qc_status = TransferToLine.QCStatus.PENDING_APPROVAL
+                transfer.save()
                 
                 messages.success(
                     request,
-                    _('Transfer request approved and consumption issue %(code)s created successfully.')
-                    % {'code': consumption_issue.document_code}
+                    _('Transfer request approved. Waiting for QC approval.')
                 )
-            except Exception as e:
-                # Log error but don't fail the approval
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f'Error creating consumption issue for transfer {transfer.transfer_code}: {e}')
-                messages.warning(
-                    request,
-                    _('Transfer request approved, but failed to create consumption issue: %(error)s')
-                    % {'error': str(e)}
-                )
+            else:
+                # Regular approval - lock and create consumption issue
+                transfer.status = TransferToLine.Status.APPROVED
+                transfer.is_locked = 1
+                transfer.locked_at = timezone.now()
+                transfer.locked_by = request.user
+                transfer.save()
+                
+                # Create consumption issue document
+                try:
+                    from inventory.models import IssueConsumption, IssueConsumptionLine
+                    
+                    # Create IssueConsumption header
+                    consumption_issue = IssueConsumption.objects.create(
+                        company_id=active_company_id,
+                        document_code=generate_document_code(IssueConsumption, active_company_id, "ISU"),
+                        document_date=transfer.transfer_date,
+                        created_by=request.user,
+                        edited_by=request.user,
+                    )
+                    
+                    # Create IssueConsumptionLine for each TransferToLineItem
+                    transfer_items = transfer.items.filter(is_enabled=1).order_by('id')
+                    for idx, transfer_item in enumerate(transfer_items, start=1):
+                        # Note: destination_work_center is a WorkCenter, not WorkLine
+                        # WorkLine is optional and can be set manually later if needed
+                        work_line = None
+                        work_line_code = ''
+                        
+                        IssueConsumptionLine.objects.create(
+                            company_id=active_company_id,
+                            document=consumption_issue,
+                            item=transfer_item.material_item,
+                            item_code=transfer_item.material_item_code,
+                            warehouse=transfer_item.source_warehouse,
+                            warehouse_code=transfer_item.source_warehouse_code,
+                            unit=transfer_item.unit,
+                            quantity=transfer_item.quantity_required,  # Use quantity_required
+                            consumption_type='production_transfer',
+                            production_transfer_id=transfer.id,
+                            production_transfer_code=transfer.transfer_code,
+                            work_line=work_line,
+                            work_line_code=work_line_code,
+                            sort_order=idx,
+                            is_enabled=1,
+                        )
+                    
+                    messages.success(
+                        request,
+                        _('Transfer request approved and consumption issue %(code)s created successfully.')
+                        % {'code': consumption_issue.document_code}
+                    )
+                except Exception as e:
+                    # Log error but don't fail the approval
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f'Error creating consumption issue for transfer {transfer.transfer_code}: {e}')
+                    messages.warning(
+                        request,
+                        _('Transfer request approved, but failed to create consumption issue: %(error)s')
+                        % {'error': str(e)}
+                    )
         
         return JsonResponse({'success': True, 'message': _('Transfer request approved successfully.')})
 
@@ -515,4 +572,155 @@ class TransferToLineRejectView(FeaturePermissionRequiredMixin, View):
         
         messages.success(request, _('Transfer request rejected successfully.'))
         return JsonResponse({'success': True, 'message': _('Transfer request rejected successfully.')})
+
+
+class TransferToLineQCApproveView(FeaturePermissionRequiredMixin, View):
+    """Approve QC for a transfer to line request (scrap replacement only)."""
+    feature_code = 'production.transfer_requests.qc_approval'
+    required_action = 'approve'
+    
+    def post(self, request, *args, **kwargs):
+        """Approve QC for the transfer request."""
+        transfer_id = kwargs.get('pk')
+        active_company_id: Optional[int] = request.session.get('active_company_id')
+        
+        if not active_company_id:
+            return JsonResponse({'error': _('Please select a company first.')}, status=400)
+        
+        try:
+            transfer = TransferToLine.objects.get(
+                id=transfer_id,
+                company_id=active_company_id,
+            )
+        except TransferToLine.DoesNotExist:
+            return JsonResponse({'error': _('Transfer request not found.')}, status=404)
+        
+        # Check if this is a scrap replacement
+        if transfer.is_scrap_replacement != 1:
+            return JsonResponse({'error': _('QC approval is only required for scrap replacement transfers.')}, status=400)
+        
+        # Check if user is the QC approver
+        if transfer.qc_approved_by != request.user:
+            return JsonResponse({'error': _('You are not authorized to approve QC for this transfer request.')}, status=403)
+        
+        # Check if already QC approved or rejected
+        if transfer.qc_status == TransferToLine.QCStatus.APPROVED:
+            return JsonResponse({'error': _('QC approval for this transfer request has already been granted.')}, status=400)
+        
+        if transfer.qc_status == TransferToLine.QCStatus.REJECTED:
+            return JsonResponse({'error': _('QC approval for this transfer request has already been rejected.')}, status=400)
+        
+        # Check if status is pending QC approval
+        if transfer.status != TransferToLine.Status.PENDING_QC_APPROVAL:
+            return JsonResponse({'error': _('Transfer request is not in pending QC approval status.')}, status=400)
+        
+        # Approve QC, lock, and create consumption issue
+        with transaction.atomic():
+            transfer.qc_status = TransferToLine.QCStatus.APPROVED
+            transfer.status = TransferToLine.Status.APPROVED
+            transfer.is_locked = 1
+            transfer.locked_at = timezone.now()
+            transfer.locked_by = request.user
+            transfer.save()
+            
+            # Create consumption issue document
+            try:
+                from inventory.models import IssueConsumption, IssueConsumptionLine
+                
+                # Create IssueConsumption header
+                consumption_issue = IssueConsumption.objects.create(
+                    company_id=active_company_id,
+                    document_code=generate_document_code(IssueConsumption, active_company_id, "ISU"),
+                    document_date=transfer.transfer_date,
+                    created_by=request.user,
+                    edited_by=request.user,
+                )
+                
+                # Create IssueConsumptionLine for each TransferToLineItem
+                transfer_items = transfer.items.filter(is_enabled=1).order_by('id')
+                for idx, transfer_item in enumerate(transfer_items, start=1):
+                    work_line = None
+                    work_line_code = ''
+                    
+                    IssueConsumptionLine.objects.create(
+                        company_id=active_company_id,
+                        document=consumption_issue,
+                        item=transfer_item.material_item,
+                        item_code=transfer_item.material_item_code,
+                        warehouse=transfer_item.source_warehouse,
+                        warehouse_code=transfer_item.source_warehouse_code,
+                        unit=transfer_item.unit,
+                        quantity=transfer_item.quantity_required,
+                        consumption_type='production_transfer',
+                        production_transfer_id=transfer.id,
+                        production_transfer_code=transfer.transfer_code,
+                        work_line=work_line,
+                        work_line_code=work_line_code,
+                        sort_order=idx,
+                        is_enabled=1,
+                    )
+                
+                messages.success(
+                    request,
+                    _('QC approval granted. Transfer request approved and consumption issue %(code)s created successfully.')
+                    % {'code': consumption_issue.document_code}
+                )
+            except Exception as e:
+                # Log error but don't fail the approval
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f'Error creating consumption issue for transfer {transfer.transfer_code}: {e}')
+                messages.warning(
+                    request,
+                    _('QC approval granted, but failed to create consumption issue: %(error)s')
+                    % {'error': str(e)}
+                )
+        
+        return JsonResponse({'success': True, 'message': _('QC approval granted successfully.')})
+
+
+class TransferToLineQCRejectView(FeaturePermissionRequiredMixin, View):
+    """Reject QC for a transfer to line request (scrap replacement only)."""
+    feature_code = 'production.transfer_requests.qc_approval'
+    required_action = 'reject'
+    
+    def post(self, request, *args, **kwargs):
+        """Reject QC for the transfer request."""
+        transfer_id = kwargs.get('pk')
+        active_company_id: Optional[int] = request.session.get('active_company_id')
+        
+        if not active_company_id:
+            return JsonResponse({'error': _('Please select a company first.')}, status=400)
+        
+        try:
+            transfer = TransferToLine.objects.get(
+                id=transfer_id,
+                company_id=active_company_id,
+            )
+        except TransferToLine.DoesNotExist:
+            return JsonResponse({'error': _('Transfer request not found.')}, status=404)
+        
+        # Check if this is a scrap replacement
+        if transfer.is_scrap_replacement != 1:
+            return JsonResponse({'error': _('QC approval is only required for scrap replacement transfers.')}, status=400)
+        
+        # Check if user is the QC approver
+        if transfer.qc_approved_by != request.user:
+            return JsonResponse({'error': _('You are not authorized to reject QC for this transfer request.')}, status=403)
+        
+        # Check if already QC approved or rejected
+        if transfer.qc_status == TransferToLine.QCStatus.APPROVED:
+            return JsonResponse({'error': _('QC approval for this transfer request has already been granted.')}, status=400)
+        
+        if transfer.qc_status == TransferToLine.QCStatus.REJECTED:
+            return JsonResponse({'error': _('QC approval for this transfer request has already been rejected.')}, status=400)
+        
+        # Reject QC
+        with transaction.atomic():
+            transfer.qc_status = TransferToLine.QCStatus.REJECTED
+            transfer.status = TransferToLine.Status.REJECTED
+            transfer.save()
+        
+        messages.success(request, _('QC approval rejected successfully.'))
+        return JsonResponse({'success': True, 'message': _('QC approval rejected successfully.')})
 

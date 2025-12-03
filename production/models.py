@@ -625,6 +625,14 @@ class ProcessOperation(ProductionBaseModel):
         default=Decimal("0"),
         help_text=_("Machine minutes required per unit"),
     )
+    work_line = models.ForeignKey(
+        "WorkLine",
+        on_delete=models.SET_NULL,
+        related_name="process_operations",
+        null=True,
+        blank=True,
+        help_text=_("Work line where this operation is performed"),
+    )
     notes = models.TextField(
         blank=True,
         help_text=_("Additional notes for this operation"),
@@ -880,6 +888,13 @@ class TransferToLine(ProductionBaseModel, LockableModel):
         PENDING_APPROVAL = "pending_approval", _("Pending Approval")
         APPROVED = "approved", _("Approved")
         REJECTED = "rejected", _("Rejected")
+        PENDING_QC_APPROVAL = "pending_qc_approval", _("Pending QC Approval")
+
+    class QCStatus(models.TextChoices):
+        NOT_REQUIRED = "not_required", _("Not Required")
+        PENDING_APPROVAL = "pending_approval", _("Pending Approval")
+        APPROVED = "approved", _("Approved")
+        REJECTED = "rejected", _("Rejected")
 
     transfer_code = models.CharField(max_length=30, unique=True)
     order = models.ForeignKey(
@@ -899,6 +914,28 @@ class TransferToLine(ProductionBaseModel, LockableModel):
         verbose_name=_("Approver"),
         help_text=_("User who can approve this transfer request"),
     )
+    is_scrap_replacement = models.PositiveSmallIntegerField(
+        default=0,
+        choices=ENABLED_FLAG_CHOICES,
+        verbose_name=_("Scrap Replacement"),
+        help_text=_("Whether this transfer is for replacing scrap/waste materials"),
+    )
+    qc_approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="qc_approved_transfers",
+        null=True,
+        blank=True,
+        verbose_name=_("QC Approver"),
+        help_text=_("User who can approve QC for this transfer request (only for scrap replacement)"),
+    )
+    qc_status = models.CharField(
+        max_length=20,
+        choices=QCStatus.choices,
+        default=QCStatus.NOT_REQUIRED,
+        verbose_name=_("QC Status"),
+        help_text=_("Quality Control approval status for scrap replacement transfers"),
+    )
     notes = models.TextField(blank=True)
 
     class Meta:
@@ -912,6 +949,17 @@ class TransferToLine(ProductionBaseModel, LockableModel):
     def save(self, *args, **kwargs):
         if not self.order_code:
             self.order_code = self.order.order_code
+        
+        # Set QC status based on is_scrap_replacement
+        if self.is_scrap_replacement == 1:
+            # If scrap replacement is checked and QC status is not required, set to pending
+            if self.qc_status == self.QCStatus.NOT_REQUIRED:
+                self.qc_status = self.QCStatus.PENDING_APPROVAL
+        else:
+            # If scrap replacement is not checked, QC is not required
+            self.qc_status = self.QCStatus.NOT_REQUIRED
+            self.qc_approved_by = None
+        
         super().save(*args, **kwargs)
 
 
