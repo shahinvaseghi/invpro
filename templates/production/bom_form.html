@@ -108,13 +108,16 @@
                 <th style="width: 100px;">{% trans "Quantity" %}</th>
                 <th style="width: 80px;">{% trans "Unit" %}</th>
                 <th style="width: 70px;">{% trans "Scrap %" %}</th>
+                <th style="width: 180px;">{% trans "Source Warehouses" %}</th>
                 <th style="width: 70px;">{% trans "Optional" %}</th>
                 <th style="width: 60px;">{% trans "Delete" %}</th>
               </tr>
             </thead>
             <tbody id="materials-tbody">
               {% for form in formset %}
-                <tr class="material-row {% if form.instance.pk %}existing{% else %}new{% endif %}" data-form-idx="{{ forloop.counter0 }}">
+                <tr class="material-row {% if form.instance.pk %}existing{% else %}new{% endif %}" 
+                    data-form-idx="{{ forloop.counter0 }}"
+                    {% if form.unit.value %}data-initial-unit-value="{{ form.unit.value }}"{% endif %}>
                   <td class="line-number">{{ forloop.counter }}</td>
                   <td>
                     {{ form.id }}
@@ -165,6 +168,29 @@
                     {{ form.scrap_allowance }}
                     {% if form.scrap_allowance.errors %}
                       <span class="error">{{ form.scrap_allowance.errors.0 }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {{ form.source_warehouses }}
+                    {% if form.instance.pk and form.instance.source_warehouses %}
+                      <script type="application/json" id="existing-warehouses-{{ forloop.counter0 }}">{{ form.instance.source_warehouses|safe }}</script>
+                    {% endif %}
+                    <div class="source-warehouses-container" 
+                         data-form-index="{{ forloop.counter0 }}">
+                      <button type="button" class="btn-manage-warehouses" onclick="toggleWarehousesManager(this)" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; background: #f3f4f6; cursor: pointer;">
+                        <span class="warehouses-count">0</span> {% trans "warehouses" %}
+                      </button>
+                      <div class="warehouses-manager" style="display: none; margin-top: 0.5rem; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 4px; background: #f9fafb;">
+                        <div class="warehouses-list" style="margin-bottom: 0.5rem;">
+                          <!-- Will be populated by JavaScript -->
+                        </div>
+                        <button type="button" class="btn-add-warehouse" onclick="addWarehouseRow(this)" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid #3b82f6; border-radius: 4px; background: #3b82f6; color: white; cursor: pointer;">
+                          + {% trans "Add Warehouse" %}
+                        </button>
+                      </div>
+                    </div>
+                    {% if form.source_warehouses.errors %}
+                      <span class="error">{{ form.source_warehouses.errors.0 }}</span>
                     {% endif %}
                   </td>
                   <td class="text-center">
@@ -726,22 +752,54 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function setupRowCascading(row) {
+    // Get form index from row data attribute
+    const formIndex = row.dataset.formIdx || row.querySelector('[data-form-index]')?.dataset.formIndex || '';
+    
     const typeSelect = row.querySelector('select[name*="material_type"]');
     const categorySelect = row.querySelector('select[name*="material_category_filter"]');
     const subcategorySelect = row.querySelector('select[name*="material_subcategory_filter"]');
     const itemSelect = row.querySelector('select[name*="material_item"]');
-    const unitSelect = row.querySelector('select[name*="-unit"]');
+    // Unit field might be text input or select, handle both cases
+    let unitSelect = row.querySelector('select[name*="-unit"]');
+    let unitInput = null;
+    let unitValueFromInput = null;
+    
+    // If unit field is a text input, we need to convert it to select
+    if (!unitSelect) {
+      unitInput = row.querySelector('input[name*="-unit"]');
+      if (unitInput) {
+        // Store the value for later restoration BEFORE converting
+        unitValueFromInput = unitInput.value || row.dataset.initialUnitValue;
+        if (unitValueFromInput) {
+          row.dataset.unitValue = unitValueFromInput;
+          console.log(`Unit value from input/text field for row ${formIndex}: ${unitValueFromInput}`);
+        }
+        // Create a select element to replace the input
+        unitSelect = document.createElement('select');
+        unitSelect.name = unitInput.name;
+        unitSelect.id = unitInput.id;
+        unitSelect.className = unitInput.className || 'form-control';
+        unitSelect.setAttribute('required', unitInput.hasAttribute('required'));
+        unitSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
+        unitInput.parentNode.replaceChild(unitSelect, unitInput);
+        console.log(`Converted unit input to select for row ${formIndex}`);
+      }
+    }
+    
+    const warehousesContainer = row.querySelector('.source-warehouses-container');
     
     if (!typeSelect || !categorySelect || !subcategorySelect || !itemSelect || !unitSelect) {
       return;
     }
     
-    // Disable unit select until item is selected
+    // Handle unit select state based on item selection
     if (!itemSelect.value) {
       unitSelect.disabled = true;
       unitSelect.innerHTML = '<option value="">ابتدا ماده را انتخاب کنید</option>';
     } else {
       unitSelect.disabled = false;
+      // If unit was converted from input, we already have the value stored in row.dataset.unitValue
+      // Units will be loaded in the initialization section below
     }
     
     // Filter categories based on type
@@ -1006,7 +1064,18 @@ document.addEventListener('DOMContentLoaded', function() {
           console.error('Error loading units:', error);
           unitSelect.innerHTML = '<option value="">{% trans "Error loading units" %}</option>';
         });
+      
+      // Initialize warehouses manager for this row
+      if (warehousesContainer) {
+        initializeWarehousesManager(warehousesContainer, itemId);
+      }
     });
+    
+    // Initialize warehouses manager if item is already selected on page load
+    if (itemSelect.value && warehousesContainer) {
+      const itemId = itemSelect.value;
+      initializeWarehousesManager(warehousesContainer, itemId);
+    }
     
     // Initialize items on page load
     // If item is already selected (edit mode), restore type, category, subcategory, and unit
@@ -1014,19 +1083,59 @@ document.addEventListener('DOMContentLoaded', function() {
     if (itemSelect.value) {
       const itemId = itemSelect.value;
       
-      // Save current unit value before making API calls
-      let savedUnitValue = unitSelect.value;
-      if (!savedUnitValue && unitSelect.selectedIndex > 0) {
-        const unitOption = unitSelect.options[unitSelect.selectedIndex];
-        if (unitOption && unitOption.value) {
-          savedUnitValue = unitOption.value;
+      // CRITICAL: Save current unit value BEFORE making any changes to the select
+      // First, enable the select if disabled (disabled selects don't return proper values)
+      const wasDisabled = unitSelect.disabled;
+      if (wasDisabled) {
+        unitSelect.disabled = false;
+      }
+      
+      // Get unit value from multiple sources (priority order)
+      let savedUnitValue = null;
+      
+      // Try 1: Get from selected option value
+      if (unitSelect.selectedIndex >= 0) {
+        const selectedOption = unitSelect.options[unitSelect.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+          savedUnitValue = selectedOption.value;
+        } else if (selectedOption && selectedOption.textContent && selectedOption.textContent.trim() !== '') {
+          // If no value but has text, use text as value (for CharField units)
+          savedUnitValue = selectedOption.textContent.trim();
         }
       }
-      if (!savedUnitValue) {
-        savedUnitValue = row.dataset.unitValue;
+      
+      // Try 2: Get from unitSelect.value directly
+      if (!savedUnitValue && unitSelect.value) {
+        savedUnitValue = unitSelect.value;
       }
+      
+      // Try 3: Get from row data attribute (from template or converted input)
+      if (!savedUnitValue) {
+        savedUnitValue = row.dataset.initialUnitValue || row.dataset.unitValue || unitValueFromInput;
+      }
+      
+      // Try 4: Get from the actual selected option text (for CharField units stored as text)
+      if (!savedUnitValue && unitSelect && unitSelect.selectedIndex > 0) {
+        const option = unitSelect.options[unitSelect.selectedIndex];
+        if (option && option.textContent) {
+          savedUnitValue = option.textContent.trim();
+        }
+      }
+      
+      // Store in data attribute for later restoration
       if (savedUnitValue) {
         row.dataset.unitValue = savedUnitValue;
+        console.log(`Saved unit value for row ${formIndex}: ${savedUnitValue}`);
+      } else {
+        // Last attempt: check if there's a selected option with text content
+        if (unitSelect && unitSelect.selectedIndex >= 0) {
+          const selectedOption = unitSelect.options[unitSelect.selectedIndex];
+          if (selectedOption && selectedOption.textContent && selectedOption.textContent.trim() !== '' && selectedOption.textContent.trim() !== '---') {
+            savedUnitValue = selectedOption.textContent.trim();
+            row.dataset.unitValue = savedUnitValue;
+            console.log(`Saved unit value from option text for row ${formIndex}: ${savedUnitValue}`);
+          }
+        }
       }
       
       // Load item units API which now returns type_id, category_id, subcategory_id, and units
@@ -1078,10 +1187,32 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Restore previously selected unit if exists
             if (savedUnitValue) {
-              const unitOption = unitSelect.querySelector(`option[value="${savedUnitValue}"]`);
+              // Try exact value match first
+              let unitOption = unitSelect.querySelector(`option[value="${savedUnitValue}"]`);
+              
+              // If not found, try matching by unit_name (for CharField units)
+              if (!unitOption) {
+                const allOptions = unitSelect.querySelectorAll('option');
+                for (let opt of allOptions) {
+                  if (opt.value === savedUnitValue || opt.textContent.trim() === savedUnitValue) {
+                    unitOption = opt;
+                    break;
+                  }
+                  // Also check if unit_name matches
+                  const unitNameMatch = data.units.find(u => u.unit_name === savedUnitValue || u.label === savedUnitValue);
+                  if (unitNameMatch && opt.value === unitNameMatch.unit_name) {
+                    unitOption = opt;
+                    break;
+                  }
+                }
+              }
+              
               if (unitOption) {
-                unitSelect.value = savedUnitValue;
+                unitSelect.value = unitOption.value;
+                console.log(`Restored unit value for row ${formIndex}: ${unitOption.value} (${unitOption.textContent})`);
                 delete row.dataset.unitValue;
+              } else {
+                console.warn(`Could not restore unit value for row ${formIndex}: ${savedUnitValue}. Available units:`, data.units.map(u => u.unit_name));
               }
             }
           } else {
@@ -1131,6 +1262,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
       
+      // CRITICAL: Update all warehouses JSON before submission
+      const allWarehousesContainers = form.querySelectorAll('.source-warehouses-container');
+      allWarehousesContainers.forEach(function(container) {
+        updateWarehousesJSON(container);
+      });
+      
       // Check if at least one material is added
       const materialRows = tbody.querySelectorAll('.material-row');
       let validRowCount = 0;
@@ -1165,6 +1302,264 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
+
+// ====================================================================
+// Source Warehouses Management Functions (Global)
+// ====================================================================
+
+// Store warehouses data for each row
+const warehousesData = {};
+
+function initializeWarehousesManager(container, itemId) {
+  const formIndex = container.dataset.formIndex;
+  const row = container.closest('.material-row');
+  const hiddenField = row.querySelector('input[name*="source_warehouses"]');
+  
+  if (!itemId) {
+    container.querySelector('.btn-manage-warehouses').disabled = true;
+    container.querySelector('.btn-add-warehouse').disabled = true;
+    return;
+  }
+  
+  // Initialize data structure for this row
+  if (!warehousesData[formIndex]) {
+    warehousesData[formIndex] = {
+      itemId: itemId,
+      warehouses: [],
+      availableWarehouses: []
+    };
+  } else {
+    warehousesData[formIndex].itemId = itemId;
+  }
+  
+  // Load existing warehouses from script tag, hidden field, or data attribute
+  let existingWarehouses = null;
+  
+  // First try script tag (from instance)
+  const scriptTag = document.getElementById('existing-warehouses-' + formIndex);
+  if (scriptTag) {
+    try {
+      existingWarehouses = JSON.parse(scriptTag.textContent);
+    } catch (e) {
+      console.error('Error parsing existing warehouses from script tag:', e);
+    }
+  }
+  
+  // If not found in script tag, try hidden field
+  if (!existingWarehouses && hiddenField && hiddenField.value) {
+    try {
+      existingWarehouses = JSON.parse(hiddenField.value);
+    } catch (e) {
+      console.error('Error parsing existing warehouses from hidden field:', e);
+    }
+  }
+  
+  if (existingWarehouses && Array.isArray(existingWarehouses)) {
+    warehousesData[formIndex].warehouses = existingWarehouses;
+    updateWarehousesCount(container);
+  }
+  
+  // Load available warehouses for this item
+  fetch('/inventory/api/item-allowed-warehouses/?item_id=' + itemId)
+    .then(response => response.json())
+    .then(data => {
+      if (data.warehouses && data.warehouses.length > 0) {
+        warehousesData[formIndex].availableWarehouses = data.warehouses;
+        // Re-render to update available options
+        renderWarehousesList(container);
+      }
+      container.querySelector('.btn-manage-warehouses').disabled = false;
+    })
+    .catch(error => {
+      console.error('Error loading warehouses:', error);
+      container.querySelector('.btn-manage-warehouses').disabled = true;
+    });
+}
+
+function toggleWarehousesManager(button) {
+  const container = button.closest('.source-warehouses-container');
+  const manager = container.querySelector('.warehouses-manager');
+  
+  if (manager.style.display === 'none') {
+    manager.style.display = 'block';
+    renderWarehousesList(container);
+  } else {
+    manager.style.display = 'none';
+  }
+}
+
+function renderWarehousesList(container) {
+  const formIndex = container.dataset.formIndex;
+  const data = warehousesData[formIndex];
+  const listContainer = container.querySelector('.warehouses-list');
+  
+  if (!data || !listContainer) return;
+  
+  listContainer.innerHTML = '';
+  
+  if (data.warehouses.length === 0) {
+    listContainer.innerHTML = '<div style="padding: 0.5rem; color: #6b7280; font-size: 0.875rem;">{% trans "No warehouses added yet." %}</div>';
+    updateWarehousesCount(container);
+    updateWarehousesJSON(container);
+    return;
+  }
+  
+  // Sort by priority
+  const sorted = [...data.warehouses].sort((a, b) => (a.priority || 999) - (b.priority || 999));
+  
+  sorted.forEach((warehouse, originalIndex) => {
+    const row = document.createElement('div');
+    row.className = 'warehouse-row';
+    row.style.cssText = 'display: flex; gap: 0.5rem; align-items: center; padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 4px; margin-bottom: 0.5rem; background: white;';
+    
+    // Get currently selected warehouse IDs (excluding current one)
+    const selectedIds = data.warehouses
+      .map((w, idx) => idx !== originalIndex && w.warehouse_id ? String(w.warehouse_id) : null)
+      .filter(id => id);
+    
+    // Filter available warehouses: show all if not selected, or only selected one if already selected
+    const availableOptions = data.availableWarehouses.filter(w => {
+      if (warehouse.warehouse_id && String(w.value) === String(warehouse.warehouse_id)) {
+        return true; // Always show currently selected warehouse
+      }
+      return !selectedIds.includes(String(w.value)); // Don't show already selected warehouses
+    });
+    
+    row.innerHTML = `
+      <select class="warehouse-select" style="flex: 1; padding: 0.375rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.875rem;" onchange="updateWarehouseSelect(this, ${formIndex}, ${originalIndex})">
+        <option value="">---</option>
+        ${availableOptions.map(w => {
+          const labelParts = w.label.split(' - ');
+          const code = labelParts[0] || '';
+          return `
+          <option value="${w.value}" data-code="${code}" ${String(w.value) === String(warehouse.warehouse_id) ? 'selected' : ''}>
+            ${w.label}
+          </option>
+        `;
+        }).join('')}
+      </select>
+      <input type="number" class="warehouse-priority" min="1" max="5" value="${warehouse.priority || originalIndex + 1}" 
+             style="width: 60px; padding: 0.375rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.875rem;"
+             onchange="updateWarehousePriority(this, ${formIndex}, ${originalIndex})" />
+      <button type="button" class="btn-remove-warehouse" onclick="removeWarehouseRow(this, ${formIndex}, ${originalIndex})" 
+              style="padding: 0.25rem 0.5rem; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        ×
+      </button>
+    `;
+    
+    listContainer.appendChild(row);
+  });
+  
+  updateWarehousesCount(container);
+  updateWarehousesJSON(container);
+}
+
+function addWarehouseRow(button) {
+  const container = button.closest('.source-warehouses-container');
+  const formIndex = container.dataset.formIndex;
+  const data = warehousesData[formIndex];
+  
+  if (!data) {
+    alert('{% trans "Please select a material item first." %}');
+    return;
+  }
+  
+  // Check if already 5 warehouses
+  if (data.warehouses.length >= 5) {
+    alert('{% trans "Maximum 5 warehouses allowed per material." %}');
+    return;
+  }
+  
+  // Check if there are available warehouses
+  const selectedIds = data.warehouses.map(w => String(w.warehouse_id)).filter(id => id);
+  const availableOptions = data.availableWarehouses.filter(w => !selectedIds.includes(String(w.value)));
+  
+  if (availableOptions.length === 0) {
+    alert('{% trans "No more warehouses available for this material." %}');
+    return;
+  }
+  
+  // Add new warehouse with next priority
+  const nextPriority = data.warehouses.length + 1;
+  data.warehouses.push({
+    warehouse_id: null,
+    warehouse_code: '',
+    priority: nextPriority
+  });
+  
+  renderWarehousesList(container);
+}
+
+function removeWarehouseRow(button, formIndex, index) {
+  const container = button.closest('.source-warehouses-container');
+  const data = warehousesData[formIndex];
+  
+  if (data && data.warehouses[index]) {
+    data.warehouses.splice(index, 1);
+    renderWarehousesList(container);
+  }
+}
+
+function updateWarehouseSelect(select, formIndex, index) {
+  const container = select.closest('.source-warehouses-container');
+  const data = warehousesData[formIndex];
+  
+  if (data && data.warehouses[index]) {
+    const selectedOption = select.options[select.selectedIndex];
+    if (selectedOption && selectedOption.value) {
+      const labelParts = selectedOption.textContent.split(' - ');
+      data.warehouses[index].warehouse_id = parseInt(selectedOption.value);
+      data.warehouses[index].warehouse_code = labelParts[0] || '';
+    } else {
+      data.warehouses[index].warehouse_id = null;
+      data.warehouses[index].warehouse_code = '';
+    }
+    renderWarehousesList(container);
+  }
+}
+
+function updateWarehousePriority(input, formIndex, index) {
+  const container = input.closest('.source-warehouses-container');
+  const data = warehousesData[formIndex];
+  
+  if (data && data.warehouses[index]) {
+    const priority = parseInt(input.value) || 1;
+    data.warehouses[index].priority = Math.max(1, Math.min(5, priority));
+    renderWarehousesList(container);
+  }
+}
+
+function updateWarehousesCount(container) {
+  const formIndex = container.dataset.formIndex;
+  const data = warehousesData[formIndex];
+  const countElement = container.querySelector('.warehouses-count');
+  
+  if (countElement && data) {
+    const validCount = data.warehouses.filter(w => w.warehouse_id).length;
+    countElement.textContent = validCount;
+  }
+}
+
+function updateWarehousesJSON(container) {
+  const formIndex = container.dataset.formIndex;
+  const row = container.closest('.material-row');
+  const hiddenField = row.querySelector('input[name*="source_warehouses"]');
+  const data = warehousesData[formIndex];
+  
+  if (hiddenField && data) {
+    // Filter out warehouses without warehouse_id
+    const validWarehouses = data.warehouses
+      .filter(w => w.warehouse_id)
+      .map(w => ({
+        warehouse_id: w.warehouse_id,
+        warehouse_code: w.warehouse_code,
+        priority: w.priority || 999
+      }));
+    
+    hiddenField.value = JSON.stringify(validWarehouses);
+  }
+}
 
 
 // ====================================================================

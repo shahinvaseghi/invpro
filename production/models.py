@@ -423,6 +423,27 @@ class BOMMaterial(ProductionBaseModel):
     )
     line_number = models.PositiveSmallIntegerField(default=1)
     is_optional = models.PositiveSmallIntegerField(default=0)
+    source_warehouse = models.ForeignKey(
+        "inventory.Warehouse",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bom_materials",
+        verbose_name=_("Source Warehouse"),
+        help_text=_("The warehouse from which this material should be transferred (optional)"),
+    )
+    source_warehouse_code = models.CharField(
+        max_length=8,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        blank=True,
+        help_text=_("Warehouse code for reference"),
+    )
+    source_warehouses = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=_("List of source warehouses with priorities. Format: [{'warehouse_id': 1, 'warehouse_code': '001', 'priority': 1}, ...]"),
+        verbose_name=_("Source Warehouses"),
+    )
     description = models.CharField(max_length=255, blank=True)
     notes = models.TextField(blank=True)
 
@@ -447,6 +468,9 @@ class BOMMaterial(ProductionBaseModel):
     def save(self, *args, **kwargs):
         if not self.material_item_code and self.material_item_id:
             self.material_item_code = self.material_item.item_code
+        # Auto-assign source_warehouse_code from source_warehouse
+        if self.source_warehouse and not self.source_warehouse_code:
+            self.source_warehouse_code = self.source_warehouse.public_code
         # Auto-assign company from BOM
         if not self.company_id and self.bom_id:
             self.company_id = self.bom.company_id

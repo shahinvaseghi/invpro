@@ -141,6 +141,7 @@ class BOMMaterialLineForm(forms.ModelForm):
             'quantity_per_unit',
             'unit',
             'scrap_allowance',
+            'source_warehouses',
             'is_optional',
             'description',
         ]
@@ -158,6 +159,7 @@ class BOMMaterialLineForm(forms.ModelForm):
                 'min': '0',
                 'max': '100'
             }),
+            'source_warehouses': forms.HiddenInput(),  # Will be populated via JavaScript
             # is_optional is defined explicitly above, so don't include it here
             'description': forms.TextInput(attrs={'class': 'form-control'}),
         }
@@ -167,8 +169,12 @@ class BOMMaterialLineForm(forms.ModelForm):
             'quantity_per_unit': _('Quantity'),
             'unit': _('Unit'),
             'scrap_allowance': _('Scrap %'),
+            'source_warehouses': _('Source Warehouses'),
             'is_optional': _('Optional'),
             'description': _('Description'),
+        }
+        help_texts = {
+            'source_warehouses': _('Select up to 5 source warehouses with priorities'),
         }
     
     def __init__(self, *args: tuple, company_id: Optional[int] = None, **kwargs: dict):
@@ -177,7 +183,7 @@ class BOMMaterialLineForm(forms.ModelForm):
         self.company_id: Optional[int] = company_id
 
         if self.company_id:
-            from inventory.models import Item, ItemType, ItemCategory, ItemSubcategory, ItemUnit
+            from inventory.models import Item, ItemType, ItemCategory, ItemSubcategory, ItemUnit, Warehouse
             
             # Filter material type by company
             self.fields['material_type'].queryset = ItemType.objects.filter(

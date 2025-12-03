@@ -217,7 +217,7 @@ class ProductOrderCreateView(FeaturePermissionRequiredMixin, CreateView):
         from production.models import ProcessOperation
         
         quantity_planned = order.quantity_planned
-        materials_to_transfer = []  # List of (material_item, quantity, unit, scrap_allowance)
+        materials_to_transfer = []  # List of (material_item, quantity, unit, scrap_allowance, source_warehouses_list)
         
         if transfer_type == 'full':
             # Transfer all BOM materials
@@ -226,11 +226,24 @@ class ProductOrderCreateView(FeaturePermissionRequiredMixin, CreateView):
             
             for bom_material in bom_materials:
                 quantity_required = quantity_planned * bom_material.quantity_per_unit
+                
+                # Get source_warehouses from JSONField, or fallback to source_warehouse (backward compatibility)
+                source_warehouses_list = bom_material.source_warehouses or []
+                
+                # If source_warehouses is empty but source_warehouse is set, use it for backward compatibility
+                if not source_warehouses_list and bom_material.source_warehouse:
+                    source_warehouses_list = [{
+                        'warehouse_id': bom_material.source_warehouse.id,
+                        'warehouse_code': bom_material.source_warehouse.public_code,
+                        'priority': 1
+                    }]
+                
                 materials_to_transfer.append((
                     bom_material.material_item,
                     quantity_required,
                     bom_material.unit,
                     bom_material.scrap_allowance,
+                    source_warehouses_list,  # Include source_warehouses list from BOM
                 ))
         
         elif transfer_type == 'operations' and selected_operations:
@@ -248,37 +261,71 @@ class ProductOrderCreateView(FeaturePermissionRequiredMixin, CreateView):
                     # Calculate quantity: quantity_planned × quantity_used (from ProcessOperationMaterial)
                     quantity_required = quantity_planned * op_material.quantity_used
                     
-                    # Get scrap allowance from BOM material if available
+                    # Get scrap allowance and source_warehouses from BOM material if available
                     scrap_allowance = Decimal('0.00')
+                    source_warehouses_list = []
                     if op_material.bom_material:
                         scrap_allowance = op_material.bom_material.scrap_allowance
+                        source_warehouses_list = op_material.bom_material.source_warehouses or []
+                        
+                        # Backward compatibility: if source_warehouses is empty but source_warehouse is set
+                        if not source_warehouses_list and op_material.bom_material.source_warehouse:
+                            source_warehouses_list = [{
+                                'warehouse_id': op_material.bom_material.source_warehouse.id,
+                                'warehouse_code': op_material.bom_material.source_warehouse.public_code,
+                                'priority': 1
+                            }]
                     
                     materials_to_transfer.append((
                         op_material.material_item,
                         quantity_required,
                         op_material.unit,
                         scrap_allowance,
+                        source_warehouses_list,  # Include source_warehouses list from BOM
                     ))
         
         # Create transfer items
-        for material_item, quantity_required, unit, scrap_allowance in materials_to_transfer:
-            # Get source warehouse from ItemWarehouse (first allowed warehouse)
-            item_warehouse = ItemWarehouse.objects.filter(
-                item=material_item,
-                company_id=company_id,
-                is_enabled=1,
-            ).select_related('warehouse').first()
+        for material_item, quantity_required, unit, scrap_allowance, source_warehouses_list in materials_to_transfer:
+            # Priority 1: Use first warehouse from source_warehouses list (sorted by priority)
+            # Priority 2: Use first allowed warehouse from ItemWarehouse
+            source_warehouse = None
             
-            if not item_warehouse:
-                messages.warning(
-                    self.request,
-                    _('No allowed warehouse found for item {item_code}. Skipping this item.').format(
-                        item_code=material_item.item_code
-                    )
+            if source_warehouses_list and len(source_warehouses_list) > 0:
+                # Sort by priority and get first warehouse (priority 1)
+                sorted_warehouses = sorted(
+                    source_warehouses_list,
+                    key=lambda x: x.get('priority', 999)
                 )
-                continue
+                
+                if sorted_warehouses and sorted_warehouses[0].get('warehouse_id'):
+                    from inventory.models import Warehouse
+                    try:
+                        source_warehouse = Warehouse.objects.get(
+                            id=sorted_warehouses[0]['warehouse_id'],
+                            company_id=company_id,
+                            is_enabled=1,
+                        )
+                    except Warehouse.DoesNotExist:
+                        pass
             
-            source_warehouse = item_warehouse.warehouse
+            if not source_warehouse:
+                # Fallback: Get source warehouse from ItemWarehouse (first allowed warehouse)
+                item_warehouse = ItemWarehouse.objects.filter(
+                    item=material_item,
+                    company_id=company_id,
+                    is_enabled=1,
+                ).select_related('warehouse').first()
+                
+                if not item_warehouse:
+                    messages.warning(
+                        self.request,
+                        _('No allowed warehouse found for item {item_code}. Skipping this item.').format(
+                            item_code=material_item.item_code
+                        )
+                    )
+                    continue
+                
+                source_warehouse = item_warehouse.warehouse
             
             # Get destination work center from order's process if available
             destination_work_center = None
@@ -502,7 +549,7 @@ class ProductOrderUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMi
         from production.models import ProcessOperation
         
         quantity_planned = order.quantity_planned
-        materials_to_transfer = []  # List of (material_item, quantity, unit, scrap_allowance)
+        materials_to_transfer = []  # List of (material_item, quantity, unit, scrap_allowance, source_warehouses_list)
         
         if transfer_type == 'full':
             # Transfer all BOM materials
@@ -511,11 +558,24 @@ class ProductOrderUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMi
             
             for bom_material in bom_materials:
                 quantity_required = quantity_planned * bom_material.quantity_per_unit
+                
+                # Get source_warehouses from JSONField, or fallback to source_warehouse (backward compatibility)
+                source_warehouses_list = bom_material.source_warehouses or []
+                
+                # If source_warehouses is empty but source_warehouse is set, use it for backward compatibility
+                if not source_warehouses_list and bom_material.source_warehouse:
+                    source_warehouses_list = [{
+                        'warehouse_id': bom_material.source_warehouse.id,
+                        'warehouse_code': bom_material.source_warehouse.public_code,
+                        'priority': 1
+                    }]
+                
                 materials_to_transfer.append((
                     bom_material.material_item,
                     quantity_required,
                     bom_material.unit,
                     bom_material.scrap_allowance,
+                    source_warehouses_list,  # Include source_warehouses list from BOM
                 ))
         
         elif transfer_type == 'operations' and selected_operations:
@@ -533,37 +593,71 @@ class ProductOrderUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMi
                     # Calculate quantity: quantity_planned × quantity_used (from ProcessOperationMaterial)
                     quantity_required = quantity_planned * op_material.quantity_used
                     
-                    # Get scrap allowance from BOM material if available
+                    # Get scrap allowance and source_warehouses from BOM material if available
                     scrap_allowance = Decimal('0.00')
+                    source_warehouses_list = []
                     if op_material.bom_material:
                         scrap_allowance = op_material.bom_material.scrap_allowance
+                        source_warehouses_list = op_material.bom_material.source_warehouses or []
+                        
+                        # Backward compatibility: if source_warehouses is empty but source_warehouse is set
+                        if not source_warehouses_list and op_material.bom_material.source_warehouse:
+                            source_warehouses_list = [{
+                                'warehouse_id': op_material.bom_material.source_warehouse.id,
+                                'warehouse_code': op_material.bom_material.source_warehouse.public_code,
+                                'priority': 1
+                            }]
                     
                     materials_to_transfer.append((
                         op_material.material_item,
                         quantity_required,
                         op_material.unit,
                         scrap_allowance,
+                        source_warehouses_list,  # Include source_warehouses list from BOM
                     ))
         
         # Create transfer items
-        for material_item, quantity_required, unit, scrap_allowance in materials_to_transfer:
-            # Get source warehouse from ItemWarehouse (first allowed warehouse)
-            item_warehouse = ItemWarehouse.objects.filter(
-                item=material_item,
-                company_id=company_id,
-                is_enabled=1,
-            ).select_related('warehouse').first()
+        for material_item, quantity_required, unit, scrap_allowance, source_warehouses_list in materials_to_transfer:
+            # Priority 1: Use first warehouse from source_warehouses list (sorted by priority)
+            # Priority 2: Use first allowed warehouse from ItemWarehouse
+            source_warehouse = None
             
-            if not item_warehouse:
-                messages.warning(
-                    self.request,
-                    _('No allowed warehouse found for item {item_code}. Skipping this item.').format(
-                        item_code=material_item.item_code
-                    )
+            if source_warehouses_list and len(source_warehouses_list) > 0:
+                # Sort by priority and get first warehouse (priority 1)
+                sorted_warehouses = sorted(
+                    source_warehouses_list,
+                    key=lambda x: x.get('priority', 999)
                 )
-                continue
+                
+                if sorted_warehouses and sorted_warehouses[0].get('warehouse_id'):
+                    from inventory.models import Warehouse
+                    try:
+                        source_warehouse = Warehouse.objects.get(
+                            id=sorted_warehouses[0]['warehouse_id'],
+                            company_id=company_id,
+                            is_enabled=1,
+                        )
+                    except Warehouse.DoesNotExist:
+                        pass
             
-            source_warehouse = item_warehouse.warehouse
+            if not source_warehouse:
+                # Fallback: Get source warehouse from ItemWarehouse (first allowed warehouse)
+                item_warehouse = ItemWarehouse.objects.filter(
+                    item=material_item,
+                    company_id=company_id,
+                    is_enabled=1,
+                ).select_related('warehouse').first()
+                
+                if not item_warehouse:
+                    messages.warning(
+                        self.request,
+                        _('No allowed warehouse found for item {item_code}. Skipping this item.').format(
+                            item_code=material_item.item_code
+                        )
+                    )
+                    continue
+                
+                source_warehouse = item_warehouse.warehouse
             
             # Get destination work center from order's process if available
             destination_work_center = None
