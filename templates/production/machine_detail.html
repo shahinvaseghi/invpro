@@ -1,0 +1,240 @@
+{% extends "shared/base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "View Machine" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'production:machines' %}">{% trans "Production" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'production:machines' %}">{% trans "Machines" %}</a></li>
+          <li class="breadcrumb-item active">{% trans "View Machine" %}</li>
+        </ol>
+      </nav>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>{% trans "View Machine" %}</h2>
+        </div>
+        <div class="card-body">
+          <div class="info-banner" style="background-color: #f3f4f6; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+            <div class="row">
+              <div class="col-md-3">
+                <strong>{% trans "Code" %}:</strong> <code>{{ machine.public_code }}</code>
+              </div>
+              <div class="col-md-3">
+                <strong>{% trans "Status" %}:</strong>
+                {% if machine.is_enabled %}
+                  <span class="badge badge-success">{% trans "Active" %}</span>
+                {% else %}
+                  <span class="badge badge-secondary">{% trans "Inactive" %}</span>
+                {% endif %}
+              </div>
+              <div class="col-md-3">
+                <strong>{% trans "Machine Status" %}:</strong> {{ machine.get_status_display }}
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Basic Information" %}</h3>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Name" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ machine.name }}
+                  </div>
+                </div>
+              </div>
+              {% if machine.name_en %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Name (EN)" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ machine.name_en }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Machine Type" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ machine.machine_type }}
+                  </div>
+                </div>
+              </div>
+              {% if machine.work_center %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Work Center" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ machine.work_center.name }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if machine.manufacturer %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Manufacturer" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ machine.manufacturer }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if machine.model_number %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Model Number" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ machine.model_number }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if machine.serial_number %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Serial Number" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ machine.serial_number }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if machine.purchase_date %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Purchase Date" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ machine.purchase_date|jalali_date }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if machine.installation_date %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Installation Date" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ machine.installation_date|jalali_date }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if machine.description %}
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label>{% trans "Description" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ machine.description }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if machine.last_maintenance_date or machine.next_maintenance_date %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Maintenance Information" %}</h3>
+            <div class="row">
+              {% if machine.last_maintenance_date %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Last Maintenance Date" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ machine.last_maintenance_date|jalali_date }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if machine.next_maintenance_date %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Next Maintenance Date" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ machine.next_maintenance_date|jalali_date }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if machine.notes %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Notes" %}</h3>
+            <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+              {{ machine.notes|linebreaks }}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Audit Information" %}</h3>
+            <div class="row">
+              {% if machine.created_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ machine.created_by.get_full_name|default:machine.created_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if machine.created_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created At" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ machine.created_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if machine.edited_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Edited By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ machine.edited_by.get_full_name|default:machine.edited_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if machine.updated_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Last Updated" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ machine.updated_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-actions" style="margin-top: 2rem;">
+            <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
+            {% if can_edit %}
+            <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

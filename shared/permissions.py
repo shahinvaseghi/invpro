@@ -23,15 +23,20 @@ class PermissionAction(Enum):
 
     VIEW_OWN = "view_own"
     VIEW_ALL = "view_all"
+    VIEW_SAME_GROUP = "view_same_group"
     CREATE = "create"
     EDIT_OWN = "edit_own"
     EDIT_OTHER = "edit_other"
+    EDIT_SAME_GROUP = "edit_same_group"
     DELETE_OWN = "delete_own"
     DELETE_OTHER = "delete_other"
+    DELETE_SAME_GROUP = "delete_same_group"
     LOCK_OWN = "lock_own"
     LOCK_OTHER = "lock_other"
+    LOCK_SAME_GROUP = "lock_same_group"
     UNLOCK_OWN = "unlock_own"
     UNLOCK_OTHER = "unlock_other"
+    UNLOCK_SAME_GROUP = "unlock_same_group"
     APPROVE = "approve"
     REJECT = "reject"
     CANCEL = "cancel"
@@ -60,9 +65,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "shared.company_units": FeaturePermission(
@@ -71,9 +79,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "shared.smtp_servers": FeaturePermission(
@@ -82,9 +93,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "production.personnel": FeaturePermission(
@@ -93,9 +107,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "production.machines": FeaturePermission(
@@ -104,9 +121,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "production.bom": FeaturePermission(
@@ -115,9 +135,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "production.processes": FeaturePermission(
@@ -126,9 +149,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.APPROVE,
         ],
     ),
@@ -138,9 +164,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.CREATE_TRANSFER_FROM_ORDER,
         ],
@@ -151,13 +180,18 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
+            PermissionAction.LOCK_SAME_GROUP,
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
+            PermissionAction.UNLOCK_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
         ],
@@ -168,6 +202,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
         ],
@@ -178,15 +213,20 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
             PermissionAction.EDIT_OTHER,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
             PermissionAction.DELETE_OTHER,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
+            PermissionAction.LOCK_SAME_GROUP,
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
+            PermissionAction.UNLOCK_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CREATE_RECEIPT,
@@ -198,6 +238,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
         ],
     ),
     "shared.users": FeaturePermission(
@@ -206,9 +247,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "shared.groups": FeaturePermission(
@@ -217,9 +261,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "shared.access_levels": FeaturePermission(
@@ -228,9 +275,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.APPROVE,
         ],
     ),
@@ -241,9 +291,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "inventory.master.item_categories": FeaturePermission(
@@ -252,9 +305,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "inventory.master.item_subcategories": FeaturePermission(
@@ -263,9 +319,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "inventory.master.items": FeaturePermission(
@@ -274,9 +333,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "inventory.master.item_serials": FeaturePermission(
@@ -285,6 +347,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
         ],
     ),
     "inventory.master.warehouses": FeaturePermission(
@@ -293,9 +356,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "production.work_lines": FeaturePermission(
@@ -304,9 +370,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     # Inventory – Suppliers
@@ -316,9 +385,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "inventory.suppliers.list": FeaturePermission(
@@ -327,9 +399,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     # Inventory – Receipts
@@ -339,14 +414,19 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
             PermissionAction.DELETE_OTHER,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
+            PermissionAction.LOCK_SAME_GROUP,
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
+            PermissionAction.UNLOCK_SAME_GROUP,
             PermissionAction.CANCEL,
             PermissionAction.CREATE_RECEIPT_FROM_PURCHASE_REQUEST,
         ],
@@ -357,14 +437,19 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
             PermissionAction.DELETE_OTHER,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
+            PermissionAction.LOCK_SAME_GROUP,
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
+            PermissionAction.UNLOCK_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
@@ -377,14 +462,19 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
             PermissionAction.DELETE_OTHER,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
+            PermissionAction.LOCK_SAME_GROUP,
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
+            PermissionAction.UNLOCK_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
@@ -398,14 +488,19 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
             PermissionAction.DELETE_OTHER,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
+            PermissionAction.LOCK_SAME_GROUP,
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
+            PermissionAction.UNLOCK_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
@@ -418,14 +513,19 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
             PermissionAction.DELETE_OTHER,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
+            PermissionAction.LOCK_SAME_GROUP,
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
+            PermissionAction.UNLOCK_SAME_GROUP,
             PermissionAction.CANCEL,
             PermissionAction.CREATE_ISSUE_FROM_WAREHOUSE_REQUEST,
         ],
@@ -436,14 +536,19 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
             PermissionAction.DELETE_OTHER,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
+            PermissionAction.LOCK_SAME_GROUP,
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
+            PermissionAction.UNLOCK_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
@@ -457,14 +562,19 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
             PermissionAction.DELETE_OTHER,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
+            PermissionAction.LOCK_SAME_GROUP,
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
+            PermissionAction.UNLOCK_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
@@ -477,14 +587,19 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
             PermissionAction.DELETE_OTHER,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
+            PermissionAction.LOCK_SAME_GROUP,
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
+            PermissionAction.UNLOCK_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
@@ -498,14 +613,19 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
             PermissionAction.DELETE_OTHER,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
+            PermissionAction.LOCK_SAME_GROUP,
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
+            PermissionAction.UNLOCK_SAME_GROUP,
         ],
     ),
     "inventory.stocktaking.surplus": FeaturePermission(
@@ -514,14 +634,19 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
             PermissionAction.DELETE_OTHER,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
+            PermissionAction.LOCK_SAME_GROUP,
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
+            PermissionAction.UNLOCK_SAME_GROUP,
         ],
     ),
     "inventory.stocktaking.records": FeaturePermission(
@@ -530,14 +655,19 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
             PermissionAction.DELETE_OTHER,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
+            PermissionAction.LOCK_SAME_GROUP,
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
+            PermissionAction.UNLOCK_SAME_GROUP,
             PermissionAction.APPROVE,
         ],
     ),
@@ -547,6 +677,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
         ],
     ),
     # QC – Inspections
@@ -556,9 +687,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
             PermissionAction.CANCEL,
@@ -571,6 +705,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
         ],
     ),
     # Accounting – Fiscal Years
@@ -580,9 +715,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     # Accounting – Chart of Accounts
@@ -592,9 +730,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "accounting.accounts.gl": FeaturePermission(
@@ -603,9 +744,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "accounting.accounts.sub": FeaturePermission(
@@ -614,9 +758,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "accounting.accounts.tafsili": FeaturePermission(
@@ -625,9 +772,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "accounting.accounts.tafsili_hierarchy": FeaturePermission(
@@ -636,9 +786,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "accounting.attachments.upload": FeaturePermission(
@@ -647,6 +800,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
         ],
     ),
@@ -656,6 +810,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
         ],
     ),
     "accounting.attachments.download": FeaturePermission(
@@ -664,6 +819,17 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.attachments.attach_to_document": FeaturePermission(
+        code="accounting.attachments.attach_to_document",
+        label=_("Attach File to Document"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
         ],
     ),
     # Accounting – General
@@ -673,9 +839,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "accounting.general.subsidiary": FeaturePermission(
@@ -684,9 +853,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "accounting.general.detail": FeaturePermission(
@@ -695,9 +867,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     # Accounting – Documents
@@ -707,13 +882,18 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
+            PermissionAction.LOCK_SAME_GROUP,
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
+            PermissionAction.UNLOCK_SAME_GROUP,
         ],
     ),
     "accounting.documents.exit": FeaturePermission(
@@ -722,13 +902,408 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.LOCK_OWN,
             PermissionAction.LOCK_OTHER,
+            PermissionAction.LOCK_SAME_GROUP,
             PermissionAction.UNLOCK_OWN,
             PermissionAction.UNLOCK_OTHER,
+            PermissionAction.UNLOCK_SAME_GROUP,
+        ],
+    ),
+    "accounting.documents.create": FeaturePermission(
+        code="accounting.documents.create",
+        label=_("Create Document"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+        ],
+    ),
+    "accounting.documents.list": FeaturePermission(
+        code="accounting.documents.list",
+        label=_("Documents List"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.documents.status": FeaturePermission(
+        code="accounting.documents.status",
+        label=_("Document Status"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+        ],
+    ),
+    "accounting.documents.tafsili_movements": FeaturePermission(
+        code="accounting.documents.tafsili_movements",
+        label=_("Tafsili Movements"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    # Accounting – Income/Expense
+    "accounting.income_expense.categories": FeaturePermission(
+        code="accounting.income_expense.categories",
+        label=_("Income/Expense Categories"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
+    "accounting.income_expense.cost_allocation": FeaturePermission(
+        code="accounting.income_expense.cost_allocation",
+        label=_("Cost Allocation"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
+    "accounting.income_expense.cost_center_report": FeaturePermission(
+        code="accounting.income_expense.cost_center_report",
+        label=_("Cost Center Report"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.income_expense.cost_centers": FeaturePermission(
+        code="accounting.income_expense.cost_centers",
+        label=_("Cost Centers"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
+    "accounting.income_expense.expense": FeaturePermission(
+        code="accounting.income_expense.expense",
+        label=_("Expense Management"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
+    "accounting.income_expense.expense_report": FeaturePermission(
+        code="accounting.income_expense.expense_report",
+        label=_("Expense Report"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.income_expense.income": FeaturePermission(
+        code="accounting.income_expense.income",
+        label=_("Income Management"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
+    "accounting.income_expense.income_report": FeaturePermission(
+        code="accounting.income_expense.income_report",
+        label=_("Income Report"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    # Accounting – Parties
+    "accounting.parties.accounts": FeaturePermission(
+        code="accounting.parties.accounts",
+        label=_("Party Accounts"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
+    "accounting.parties.balance_report": FeaturePermission(
+        code="accounting.parties.balance_report",
+        label=_("Party Balance Report"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.parties.list": FeaturePermission(
+        code="accounting.parties.list",
+        label=_("Parties List"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
+    "accounting.parties.movements": FeaturePermission(
+        code="accounting.parties.movements",
+        label=_("Party Movements"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.parties.transactions": FeaturePermission(
+        code="accounting.parties.transactions",
+        label=_("Party Transactions"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    # Accounting – Reports
+    "accounting.reports.account_movements": FeaturePermission(
+        code="accounting.reports.account_movements",
+        label=_("Account Movements Report"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.reports.balance_sheet": FeaturePermission(
+        code="accounting.reports.balance_sheet",
+        label=_("Balance Sheet Report"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.reports.cash_flow": FeaturePermission(
+        code="accounting.reports.cash_flow",
+        label=_("Cash Flow Report"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.reports.check_report": FeaturePermission(
+        code="accounting.reports.check_report",
+        label=_("Check Report"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.reports.income_statement": FeaturePermission(
+        code="accounting.reports.income_statement",
+        label=_("Income Statement Report"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.reports.monthly": FeaturePermission(
+        code="accounting.reports.monthly",
+        label=_("Monthly Report"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.reports.party_statement": FeaturePermission(
+        code="accounting.reports.party_statement",
+        label=_("Party Statement Report"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.reports.tafsili_cost_center": FeaturePermission(
+        code="accounting.reports.tafsili_cost_center",
+        label=_("Tafsili Cost Center Report"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.reports.treasury_report": FeaturePermission(
+        code="accounting.reports.treasury_report",
+        label=_("Treasury Report"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.reports.trial_balance": FeaturePermission(
+        code="accounting.reports.trial_balance",
+        label=_("Trial Balance Report"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.reports.vat": FeaturePermission(
+        code="accounting.reports.vat",
+        label=_("VAT Report"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    # Accounting – Settings
+    "accounting.settings": FeaturePermission(
+        code="accounting.settings",
+        label=_("Accounting Settings"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+        ],
+    ),
+    "accounting.settings.tax": FeaturePermission(
+        code="accounting.settings.tax",
+        label=_("Tax Settings"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+        ],
+    ),
+    "accounting.settings.treasury": FeaturePermission(
+        code="accounting.settings.treasury",
+        label=_("Treasury Settings"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+        ],
+    ),
+    # Accounting – Tax
+    "accounting.tax.discrepancy_report": FeaturePermission(
+        code="accounting.tax.discrepancy_report",
+        label=_("Tax Discrepancy Report"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.tax.seasonal": FeaturePermission(
+        code="accounting.tax.seasonal",
+        label=_("Seasonal Tax"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
+    "accounting.tax.ttms": FeaturePermission(
+        code="accounting.tax.ttms",
+        label=_("TTMS Tax"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
+    "accounting.tax.validation": FeaturePermission(
+        code="accounting.tax.validation",
+        label=_("Tax Validation"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+        ],
+    ),
+    "accounting.tax.vat": FeaturePermission(
+        code="accounting.tax.vat",
+        label=_("VAT Tax"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     # Accounting – Treasury
@@ -738,9 +1313,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
         ],
@@ -751,11 +1329,179 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
+        ],
+    ),
+    "accounting.treasury.accounts": FeaturePermission(
+        code="accounting.treasury.accounts",
+        label=_("Treasury Accounts"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
+    "accounting.treasury.cash_report": FeaturePermission(
+        code="accounting.treasury.cash_report",
+        label=_("Cash Report"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.treasury.checks": FeaturePermission(
+        code="accounting.treasury.checks",
+        label=_("Checks Management"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+        ],
+    ),
+    "accounting.treasury.pay": FeaturePermission(
+        code="accounting.treasury.pay",
+        label=_("Pay Transactions"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
+    "accounting.treasury.receive": FeaturePermission(
+        code="accounting.treasury.receive",
+        label=_("Receive Transactions"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
+    "accounting.treasury.reconciliation": FeaturePermission(
+        code="accounting.treasury.reconciliation",
+        label=_("Bank Reconciliation"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
+    "accounting.treasury.transactions": FeaturePermission(
+        code="accounting.treasury.transactions",
+        label=_("Treasury Transactions"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
+    "accounting.treasury.transfer": FeaturePermission(
+        code="accounting.treasury.transfer",
+        label=_("Transfer Transactions"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
+    # Accounting – Utils
+    "accounting.utils.backup": FeaturePermission(
+        code="accounting.utils.backup",
+        label=_("Backup"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+        ],
+    ),
+    "accounting.utils.close_temp": FeaturePermission(
+        code="accounting.utils.close_temp",
+        label=_("Close Temporary Accounts"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+        ],
+    ),
+    "accounting.utils.closing": FeaturePermission(
+        code="accounting.utils.closing",
+        label=_("Period Closing"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+        ],
+    ),
+    "accounting.utils.integration": FeaturePermission(
+        code="accounting.utils.integration",
+        label=_("Integration"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+        ],
+    ),
+    "accounting.utils.opening": FeaturePermission(
+        code="accounting.utils.opening",
+        label=_("Period Opening"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
         ],
     ),
     # Accounting – Payroll
@@ -765,9 +1511,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "accounting.payroll.insurance_tax": FeaturePermission(
@@ -776,9 +1525,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "accounting.payroll.document": FeaturePermission(
@@ -787,9 +1539,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
         ],
@@ -800,9 +1555,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     # Sales
@@ -812,6 +1570,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
         ],
     ),
     "sales.invoice": FeaturePermission(
@@ -820,9 +1579,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
         ],
@@ -834,6 +1596,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
         ],
     ),
     # HR – Personnel
@@ -843,9 +1606,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "hr.personnel.decree": FeaturePermission(
@@ -854,8 +1620,10 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.EDIT_OWN,
             PermissionAction.EDIT_OTHER,
+            PermissionAction.EDIT_SAME_GROUP,
         ],
     ),
     "hr.personnel.form": FeaturePermission(
@@ -864,9 +1632,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "hr.personnel.form_groups": FeaturePermission(
@@ -875,9 +1646,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "hr.personnel.form_subgroups": FeaturePermission(
@@ -886,9 +1660,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     # HR - Payroll Decrees
@@ -898,9 +1675,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "hr.payroll.decree_groups": FeaturePermission(
@@ -909,9 +1689,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "hr.payroll.decree_subgroups": FeaturePermission(
@@ -920,9 +1703,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     # HR – Requests
@@ -932,9 +1718,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
         ],
@@ -945,9 +1734,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
         ],
@@ -958,9 +1750,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
         ],
@@ -972,9 +1767,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
         ],
@@ -985,9 +1783,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "hr.loans.savings_fund": FeaturePermission(
@@ -996,9 +1797,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     # Office Automation – Dashboard
@@ -1008,6 +1812,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
         ],
     ),
     # Office Automation – Inbox
@@ -1017,7 +1822,9 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
         ],
@@ -1028,8 +1835,10 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
         ],
     ),
     "office_automation.inbox.fill_form": FeaturePermission(
@@ -1038,8 +1847,10 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
         ],
     ),
     # Office Automation – Processes
@@ -1049,9 +1860,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "office_automation.processes.form_connection": FeaturePermission(
@@ -1060,9 +1874,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     # Office Automation – Forms
@@ -1072,9 +1889,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     # Transportation
@@ -1084,6 +1904,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
         ],
     ),
     # Procurement – Dashboard
@@ -1093,6 +1914,7 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
         ],
     ),
     # Procurement – Purchases
@@ -1102,9 +1924,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
         ],
@@ -1116,9 +1941,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     # Ticketing – Management
@@ -1128,9 +1956,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "ticketing.management.subcategories": FeaturePermission(
@@ -1139,9 +1970,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     "ticketing.management.templates": FeaturePermission(
@@ -1150,9 +1984,12 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
         actions=[
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
             PermissionAction.CREATE,
             PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
             PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
 }

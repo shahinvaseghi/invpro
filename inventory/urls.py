@@ -12,24 +12,28 @@ urlpatterns = [
     # Master Data - Item Types
     path('item-types/', views.ItemTypeListView.as_view(), name='item_types'),
     path('item-types/create/', views.ItemTypeCreateView.as_view(), name='itemtype_create'),
+    path('item-types/<int:pk>/', views.ItemTypeDetailView.as_view(), name='itemtype_detail'),
     path('item-types/<int:pk>/edit/', views.ItemTypeUpdateView.as_view(), name='itemtype_edit'),
     path('item-types/<int:pk>/delete/', views.ItemTypeDeleteView.as_view(), name='itemtype_delete'),
     
     # Master Data - Item Categories
     path('item-categories/', views.ItemCategoryListView.as_view(), name='item_categories'),
     path('item-categories/create/', views.ItemCategoryCreateView.as_view(), name='itemcategory_create'),
+    path('item-categories/<int:pk>/', views.ItemCategoryDetailView.as_view(), name='itemcategory_detail'),
     path('item-categories/<int:pk>/edit/', views.ItemCategoryUpdateView.as_view(), name='itemcategory_edit'),
     path('item-categories/<int:pk>/delete/', views.ItemCategoryDeleteView.as_view(), name='itemcategory_delete'),
     
     # Master Data - Item Subcategories
     path('item-subcategories/', views.ItemSubcategoryListView.as_view(), name='item_subcategories'),
     path('item-subcategories/create/', views.ItemSubcategoryCreateView.as_view(), name='itemsubcategory_create'),
+    path('item-subcategories/<int:pk>/', views.ItemSubcategoryDetailView.as_view(), name='itemsubcategory_detail'),
     path('item-subcategories/<int:pk>/edit/', views.ItemSubcategoryUpdateView.as_view(), name='itemsubcategory_edit'),
     path('item-subcategories/<int:pk>/delete/', views.ItemSubcategoryDeleteView.as_view(), name='itemsubcategory_delete'),
     
     # Master Data - Items
     path('items/', views.ItemListView.as_view(), name='items'),
     path('items/create/', views.ItemCreateView.as_view(), name='item_create'),
+    path('items/<int:pk>/', views.ItemDetailView.as_view(), name='item_detail'),
     path('items/<int:pk>/edit/', views.ItemUpdateView.as_view(), name='item_edit'),
     path('items/<int:pk>/delete/', views.ItemDeleteView.as_view(), name='item_delete'),
     path('item-serials/', views.ItemSerialListView.as_view(), name='item_serials'),
@@ -52,6 +56,7 @@ urlpatterns = [
     # Master Data - Warehouses
     path('warehouses/', views.WarehouseListView.as_view(), name='warehouses'),
     path('warehouses/create/', views.WarehouseCreateView.as_view(), name='warehouse_create'),
+    path('warehouses/<int:pk>/', views.WarehouseDetailView.as_view(), name='warehouse_detail'),
     path('warehouses/<int:pk>/edit/', views.WarehouseUpdateView.as_view(), name='warehouse_edit'),
     path('warehouses/<int:pk>/delete/', views.WarehouseDeleteView.as_view(), name='warehouse_delete'),
     
@@ -61,17 +66,20 @@ urlpatterns = [
     # Suppliers
     path('supplier-categories/', views.SupplierCategoryListView.as_view(), name='supplier_categories'),
     path('supplier-categories/create/', views.SupplierCategoryCreateView.as_view(), name='suppliercategory_create'),
+    path('supplier-categories/<int:pk>/', views.SupplierCategoryDetailView.as_view(), name='suppliercategory_detail'),
     path('supplier-categories/<int:pk>/edit/', views.SupplierCategoryUpdateView.as_view(), name='suppliercategory_edit'),
     path('supplier-categories/<int:pk>/delete/', views.SupplierCategoryDeleteView.as_view(), name='suppliercategory_delete'),
     
     path('suppliers/', views.SupplierListView.as_view(), name='suppliers'),
     path('suppliers/create/', views.SupplierCreateView.as_view(), name='supplier_create'),
+    path('suppliers/<int:pk>/', views.SupplierDetailView.as_view(), name='supplier_detail'),
     path('suppliers/<int:pk>/edit/', views.SupplierUpdateView.as_view(), name='supplier_edit'),
     path('suppliers/<int:pk>/delete/', views.SupplierDeleteView.as_view(), name='supplier_delete'),
     
     # Purchase Requests
     path('purchase-requests/', views.PurchaseRequestListView.as_view(), name='purchase_requests'),
     path('purchase-requests/create/', views.PurchaseRequestCreateView.as_view(), name='purchase_request_create'),
+    path('purchase-requests/<int:pk>/', views.PurchaseRequestDetailView.as_view(), name='purchase_request_detail'),
     path('purchase-requests/<int:pk>/edit/', views.PurchaseRequestUpdateView.as_view(), name='purchase_request_edit'),
     path('purchase-requests/<int:pk>/approve/', views.PurchaseRequestApproveView.as_view(), name='purchase_request_approve'),
     path('purchase-requests/<int:pk>/create-temporary-receipt/', views.CreateTemporaryReceiptFromPurchaseRequestView.as_view(), name='purchase_request_create_temporary_receipt'),
@@ -136,16 +144,19 @@ urlpatterns = [
     # Stocktaking
     path('stocktaking/deficit/', views.StocktakingDeficitListView.as_view(), name='stocktaking_deficit'),
     path('stocktaking/deficit/create/', views.StocktakingDeficitCreateView.as_view(), name='stocktaking_deficit_create'),
+    path('stocktaking/deficit/<int:pk>/', views.StocktakingDeficitDetailView.as_view(), name='stocktaking_deficit_detail'),
     path('stocktaking/deficit/<int:pk>/edit/', views.StocktakingDeficitUpdateView.as_view(), name='stocktaking_deficit_edit'),
     path('stocktaking/deficit/<int:pk>/delete/', views.StocktakingDeficitDeleteView.as_view(), name='stocktaking_deficit_delete'),
     path('stocktaking/deficit/<int:pk>/lock/', views.StocktakingDeficitLockView.as_view(), name='stocktaking_deficit_lock'),
     path('stocktaking/surplus/', views.StocktakingSurplusListView.as_view(), name='stocktaking_surplus'),
     path('stocktaking/surplus/create/', views.StocktakingSurplusCreateView.as_view(), name='stocktaking_surplus_create'),
+    path('stocktaking/surplus/<int:pk>/', views.StocktakingSurplusDetailView.as_view(), name='stocktaking_surplus_detail'),
     path('stocktaking/surplus/<int:pk>/edit/', views.StocktakingSurplusUpdateView.as_view(), name='stocktaking_surplus_edit'),
     path('stocktaking/surplus/<int:pk>/delete/', views.StocktakingSurplusDeleteView.as_view(), name='stocktaking_surplus_delete'),
     path('stocktaking/surplus/<int:pk>/lock/', views.StocktakingSurplusLockView.as_view(), name='stocktaking_surplus_lock'),
     path('stocktaking/records/', views.StocktakingRecordListView.as_view(), name='stocktaking_records'),
     path('stocktaking/records/create/', views.StocktakingRecordCreateView.as_view(), name='stocktaking_record_create'),
+    path('stocktaking/records/<int:pk>/', views.StocktakingRecordDetailView.as_view(), name='stocktaking_record_detail'),
     path('stocktaking/records/<int:pk>/edit/', views.StocktakingRecordUpdateView.as_view(), name='stocktaking_record_edit'),
     path('stocktaking/records/<int:pk>/delete/', views.StocktakingRecordDeleteView.as_view(), name='stocktaking_record_delete'),
     path('stocktaking/records/<int:pk>/lock/', views.StocktakingRecordLockView.as_view(), name='stocktaking_record_lock'),
@@ -153,6 +164,7 @@ urlpatterns = [
     # Warehouse Requests
     path('warehouse-requests/', views.WarehouseRequestListView.as_view(), name='warehouse_requests'),
     path('warehouse-requests/create/', views.WarehouseRequestCreateView.as_view(), name='warehouse_request_create'),
+    path('warehouse-requests/<int:pk>/', views.WarehouseRequestDetailView.as_view(), name='warehouse_request_detail'),
     path('warehouse-requests/<int:pk>/edit/', views.WarehouseRequestUpdateView.as_view(), name='warehouse_request_edit'),
     path('warehouse-requests/<int:pk>/approve/', views.WarehouseRequestApproveView.as_view(), name='warehouse_request_approve'),
     # Intermediate selection views (quantity selection)

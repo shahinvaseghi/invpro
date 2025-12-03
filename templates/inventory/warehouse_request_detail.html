@@ -1,0 +1,173 @@
+{% extends "inventory/base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "View Warehouse Request" %}{% endblock %}
+
+{% block inventory_content %}
+<div class="form-container">
+  <div class="info-banner">
+    <div><strong>{% trans "Request Code" %}:</strong> {{ warehouse_request.request_code }}</div>
+    <div><strong>{% trans "Request Date" %}:</strong> {{ warehouse_request.request_date|jalali_date }}</div>
+    <div><strong>{% trans "Status" %}:</strong> {{ warehouse_request.get_request_status_display }}</div>
+    <div class="lock-status">
+      <strong>{% trans "Lock Status" %}:</strong>
+      {% if warehouse_request.is_locked %}
+        <span class="badge badge-locked">{% trans "Locked" %}</span>
+      {% else %}
+        <span class="badge badge-unlocked">{% trans "Editable" %}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if warehouse_request.is_locked %}
+  <div class="alert alert-info">
+    {% trans "This document is locked and can no longer be edited or deleted." %}
+  </div>
+  {% endif %}
+
+  <div class="form-section">
+    <h3>{% trans "Request Information" %}</h3>
+    <div class="form-row">
+      <div class="form-field">
+        <label>{% trans "Item" %}</label>
+        <div class="readonly-field">
+          <strong>{{ warehouse_request.item.name }}</strong>
+          <br>
+          <small class="text-muted">{{ warehouse_request.item.item_code }}</small>
+        </div>
+      </div>
+      <div class="form-field">
+        <label>{% trans "Warehouse" %}</label>
+        <div class="readonly-field">{{ warehouse_request.warehouse.name }} ({{ warehouse_request.warehouse.public_code }})</div>
+      </div>
+      <div class="form-field">
+        <label>{% trans "Quantity Requested" %}</label>
+        <div class="readonly-field">{{ warehouse_request.quantity_requested|floatformat:2 }} {{ warehouse_request.unit }}</div>
+      </div>
+      {% if warehouse_request.quantity_issued %}
+      <div class="form-field">
+        <label>{% trans "Quantity Issued" %}</label>
+        <div class="readonly-field">{{ warehouse_request.quantity_issued|floatformat:2 }} {{ warehouse_request.unit }}</div>
+      </div>
+      {% endif %}
+      <div class="form-field">
+        <label>{% trans "Requester" %}</label>
+        <div class="readonly-field">{{ warehouse_request.requester.get_full_name|default:warehouse_request.requester.username }}</div>
+      </div>
+      {% if warehouse_request.department_unit %}
+      <div class="form-field">
+        <label>{% trans "Department Unit" %}</label>
+        <div class="readonly-field">{{ warehouse_request.department_unit.name }} ({{ warehouse_request.department_unit.public_code }})</div>
+      </div>
+      {% endif %}
+      {% if warehouse_request.approver %}
+      <div class="form-field">
+        <label>{% trans "Approver" %}</label>
+        <div class="readonly-field">{{ warehouse_request.approver.get_full_name|default:warehouse_request.approver.username }}</div>
+      </div>
+      {% endif %}
+      <div class="form-field">
+        <label>{% trans "Priority" %}</label>
+        <div class="readonly-field">{{ warehouse_request.get_priority_display }}</div>
+      </div>
+      {% if warehouse_request.needed_by_date %}
+      <div class="form-field">
+        <label>{% trans "Needed By Date" %}</label>
+        <div class="readonly-field">{{ warehouse_request.needed_by_date|jalali_date }}</div>
+      </div>
+      {% endif %}
+      {% if warehouse_request.approved_at %}
+      <div class="form-field">
+        <label>{% trans "Approved At" %}</label>
+        <div class="readonly-field">{{ warehouse_request.approved_at|jalali_date }}</div>
+      </div>
+      {% endif %}
+      {% if warehouse_request.issued_at %}
+      <div class="form-field">
+        <label>{% trans "Issued At" %}</label>
+        <div class="readonly-field">{{ warehouse_request.issued_at|jalali_date }}</div>
+      </div>
+      {% endif %}
+      {% if warehouse_request.issue_document_code %}
+      <div class="form-field">
+        <label>{% trans "Issue Document" %}</label>
+        <div class="readonly-field">{{ warehouse_request.issue_document_code }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if warehouse_request.purpose %}
+  <div class="form-section">
+    <h3>{% trans "Purpose" %}</h3>
+    <div class="readonly-field">{{ warehouse_request.purpose|linebreaks }}</div>
+  </div>
+  {% endif %}
+
+  {% if warehouse_request.approval_notes %}
+  <div class="form-section">
+    <h3>{% trans "Approval Notes" %}</h3>
+    <div class="readonly-field">{{ warehouse_request.approval_notes|linebreaks }}</div>
+  </div>
+  {% endif %}
+
+  {% if warehouse_request.rejection_reason %}
+  <div class="form-section">
+    <h3>{% trans "Rejection Reason" %}</h3>
+    <div class="readonly-field">{{ warehouse_request.rejection_reason|linebreaks }}</div>
+  </div>
+  {% endif %}
+
+  {% if warehouse_request.lines.all %}
+  <div class="form-section">
+    <h3>{% trans "Request Lines" %}</h3>
+    <div class="data-table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{% trans "Item" %}</th>
+            <th>{% trans "Warehouse" %}</th>
+            <th>{% trans "Unit" %}</th>
+            <th>{% trans "Quantity Requested" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for line in warehouse_request.lines.all %}
+          <tr>
+            <td>
+              <strong>{{ line.item.name }}</strong>
+              <br>
+              <small class="text-muted">{{ line.item.item_code }}</small>
+            </td>
+            <td>{{ line.warehouse.name }} ({{ line.warehouse.public_code }})</td>
+            <td>{{ line.unit }}</td>
+            <td style="text-align: right;">{{ line.quantity_requested|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="form-actions" style="margin-top: 2rem;">
+    <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
+    {% if can_edit %}
+    <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.readonly-field {
+  padding: 0.5rem;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+}
+</style>
+{% endblock %}
+

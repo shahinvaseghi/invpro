@@ -9,7 +9,7 @@ from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from shared.views.base import UserAccessFormsetMixin, EditLockProtectedMixin
 from shared.mixins import FeaturePermissionRequiredMixin
@@ -72,6 +72,8 @@ class UserListView(FeaturePermissionRequiredMixin, ListView):
         context['search_placeholder'] = _('Username, email or name')
         context['clear_filter_url'] = reverse('shared:users')
         context['show_actions'] = True
+        context['feature_code'] = 'shared.users'
+        context['detail_url_name'] = 'shared:user_detail'
         context['edit_url_name'] = 'shared:user_edit'
         context['delete_url_name'] = 'shared:user_delete'
         
@@ -169,6 +171,38 @@ class UserUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, Use
             access_formset.save()
         messages.success(self.request, _('User updated successfully.'))
         return HttpResponseRedirect(self.get_success_url())
+
+
+class UserDetailView(FeaturePermissionRequiredMixin, DetailView):
+    """Detail view for viewing users (read-only)."""
+    model = User
+    template_name = 'shared/user_detail.html'
+    context_object_name = 'user_obj'
+    feature_code = 'shared.users'
+    required_action = 'view_own'
+    
+    def get_queryset(self):
+        """Get all users."""
+        queryset = User.objects.all()
+        queryset = queryset.select_related(
+            'default_company',
+        ).prefetch_related(
+            'groups',
+            'company_accesses__company',
+            'company_accesses__access_level',
+            'primary_groups',
+        )
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'shared'
+        context['list_url'] = reverse_lazy('shared:users')
+        context['edit_url'] = reverse_lazy('shared:user_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
+        context['feature_code'] = 'shared.users'
+        return context
 
 
 class UserDeleteView(FeaturePermissionRequiredMixin, DeleteView):

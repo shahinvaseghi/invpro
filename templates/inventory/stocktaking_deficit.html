@@ -84,10 +84,33 @@
         </td>
         <td rowspan="{{ lines|length }}">
           <div class="action-buttons">
+            {% load access_tags %}
+            {# View button - always show if user has view permission #}
+            {% if detail_url_name %}
+              {% can_view_object record feature_code|default:"" as can_view %}
+              {% if can_view or user.is_superuser %}
+                <a href="{% url detail_url_name record.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+                  {% trans "View" %}
+                </a>
+              {% endif %}
+            {% elif view_url_name %}
+              {% can_view_object record feature_code|default:"" as can_view %}
+              {% if can_view or user.is_superuser %}
+                <a href="{% url view_url_name record.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+                  {% trans "View" %}
+                </a>
+              {% endif %}
+            {% endif %}
+            {# Edit button - only show if object is not locked and user has edit permission #}
             {% if edit_url_name %}
-            <a href="{% url edit_url_name record.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
-              {% if record.is_locked %}{% trans "View" %}{% else %}{% trans "Edit" %}{% endif %}
-            </a>
+              {% can_edit_object record feature_code|default:"" as can_edit %}
+              {% if can_edit or user.is_superuser %}
+                {% if not record.is_locked %}
+                  <a href="{% url edit_url_name record.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+                    {% trans "Edit" %}
+                  </a>
+                {% endif %}
+              {% endif %}
             {% endif %}
             {% if record.is_locked %}
               <span class="badge-locked">{% trans "Locked" %}</span>
@@ -135,10 +158,33 @@
         </td>
         <td>
           <div class="action-buttons">
+            {% load access_tags %}
+            {# View button - always show if user has view permission #}
+            {% if detail_url_name %}
+              {% can_view_object record feature_code|default:"" as can_view %}
+              {% if can_view or user.is_superuser %}
+                <a href="{% url detail_url_name record.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+                  {% trans "View" %}
+                </a>
+              {% endif %}
+            {% elif view_url_name %}
+              {% can_view_object record feature_code|default:"" as can_view %}
+              {% if can_view or user.is_superuser %}
+                <a href="{% url view_url_name record.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+                  {% trans "View" %}
+                </a>
+              {% endif %}
+            {% endif %}
+            {# Edit button - only show if object is not locked and user has edit permission #}
             {% if edit_url_name %}
-            <a href="{% url edit_url_name record.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
-              {% if record.is_locked %}{% trans "View" %}{% else %}{% trans "Edit" %}{% endif %}
-            </a>
+              {% can_edit_object record feature_code|default:"" as can_edit %}
+              {% if can_edit or user.is_superuser %}
+                {% if not record.is_locked %}
+                  <a href="{% url edit_url_name record.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+                    {% trans "Edit" %}
+                  </a>
+                {% endif %}
+              {% endif %}
             {% endif %}
             {% if record.is_locked %}
               <span class="badge-locked">{% trans "Locked" %}</span>

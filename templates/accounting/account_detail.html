@@ -1,0 +1,177 @@
+{% extends "shared/base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "View Account" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'accounting:accounts' %}">{% trans "Accounting" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'accounting:accounts' %}">{% trans "Chart of Accounts" %}</a></li>
+          <li class="breadcrumb-item active">{% trans "View Account" %}</li>
+        </ol>
+      </nav>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>{% trans "View Account" %}</h2>
+        </div>
+        <div class="card-body">
+          <div class="info-banner" style="background-color: #f3f4f6; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+            <div class="row">
+              <div class="col-md-3">
+                <strong>{% trans "Account Code" %}:</strong> <code>{{ account.account_code }}</code>
+              </div>
+              <div class="col-md-3">
+                <strong>{% trans "Account Level" %}:</strong> {{ account.account_level }}
+              </div>
+              <div class="col-md-3">
+                <strong>{% trans "Status" %}:</strong>
+                {% if account.is_enabled %}
+                  <span class="badge badge-success">{% trans "Active" %}</span>
+                {% else %}
+                  <span class="badge badge-secondary">{% trans "Inactive" %}</span>
+                {% endif %}
+              </div>
+              {% if account.current_balance %}
+              <div class="col-md-3">
+                <strong>{% trans "Current Balance" %}:</strong> {{ account.current_balance|floatformat:2 }}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Basic Information" %}</h3>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Account Name" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ account.account_name }}
+                  </div>
+                </div>
+              </div>
+              {% if account.account_name_en %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Account Name (EN)" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ account.account_name_en }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Account Type" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ account.get_account_type_display|default:account.account_type }}
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Normal Balance" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ account.get_normal_balance_display|default:account.normal_balance }}
+                  </div>
+                </div>
+              </div>
+              {% if account.parent_account %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Parent Account" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <code>{{ account.parent_account.account_code }}</code> - {{ account.parent_account.account_name }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if account.description %}
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label>{% trans "Description" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ account.description|linebreaks }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if account.child_accounts.exists %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Child Accounts" %}</h3>
+            <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+              {% for child in account.child_accounts.all %}
+                <code>{{ child.account_code }}</code> - {{ child.account_name }} ({% trans "Level" %} {{ child.account_level }}){% if not forloop.last %}<br>{% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Audit Information" %}</h3>
+            <div class="row">
+              {% if account.created_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ account.created_by.get_full_name|default:account.created_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if account.created_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created At" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ account.created_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if account.edited_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Edited By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ account.edited_by.get_full_name|default:account.edited_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if account.edited_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Last Updated" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ account.edited_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-actions" style="margin-top: 2rem;">
+            <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
+            {% if can_edit %}
+            <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

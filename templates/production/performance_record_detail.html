@@ -1,0 +1,301 @@
+{% extends "shared/base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "View Performance Record" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'production:performance_records' %}">{% trans "Production" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'production:performance_records' %}">{% trans "Performance Records" %}</a></li>
+          <li class="breadcrumb-item active">{% trans "View Performance Record" %}</li>
+        </ol>
+      </nav>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>{% trans "View Performance Record" %}</h2>
+        </div>
+        <div class="card-body">
+          <div class="info-banner" style="background-color: #f3f4f6; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+            <div class="row">
+              <div class="col-md-3">
+                <strong>{% trans "Performance Code" %}:</strong> <code>{{ performance_record.performance_code }}</code>
+              </div>
+              <div class="col-md-3">
+                <strong>{% trans "Performance Date" %}:</strong> {{ performance_record.performance_date|jalali_date }}
+              </div>
+              <div class="col-md-3">
+                <strong>{% trans "Status" %}:</strong> {{ performance_record.get_status_display }}
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Order Information" %}</h3>
+            <div class="row">
+              {% if performance_record.order %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Product Order" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <code>{{ performance_record.order.order_code }}</code>
+                    {% if performance_record.order.finished_item %}
+                    <br>
+                    <small>{{ performance_record.order.finished_item.name }}</small>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if performance_record.transfer %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Transfer Request" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <code>{{ performance_record.transfer.transfer_code }}</code>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Production Quantities" %}</h3>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>{% trans "Quantity Produced" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ performance_record.quantity_produced|floatformat:2 }}
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>{% trans "Quantity Received" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ performance_record.quantity_received|floatformat:2 }}
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>{% trans "Quantity Scrapped" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ performance_record.quantity_scrapped|floatformat:2 }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Time Information" %}</h3>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>{% trans "Unit Cycle Minutes" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ performance_record.unit_cycle_minutes|floatformat:2 }}
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>{% trans "Total Run Minutes" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ performance_record.total_run_minutes|floatformat:2 }}
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>{% trans "Machine Usage Minutes" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ performance_record.machine_usage_minutes|floatformat:2 }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {% if performance_record.materials.exists %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Material Usage" %}</h3>
+            <div class="table-responsive">
+              <table class="table table-bordered">
+                <thead>
+                  <tr>
+                    <th>{% trans "Material Item" %}</th>
+                    <th>{% trans "Quantity Used" %}</th>
+                    <th>{% trans "Unit" %}</th>
+                    <th>{% trans "Scrap Quantity" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for material in performance_record.materials.all %}
+                  <tr>
+                    <td>
+                      <strong>{{ material.material_item.name }}</strong>
+                      <br>
+                      <small class="text-muted">{{ material.material_item.item_code }}</small>
+                    </td>
+                    <td style="text-align: right;">{{ material.quantity_used|floatformat:2 }}</td>
+                    <td>{{ material.unit }}</td>
+                    <td style="text-align: right;">{{ material.scrap_quantity|floatformat:2 }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if performance_record.persons.exists %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Personnel Usage" %}</h3>
+            <div class="table-responsive">
+              <table class="table table-bordered">
+                <thead>
+                  <tr>
+                    <th>{% trans "Person" %}</th>
+                    <th>{% trans "Minutes" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for person in performance_record.persons.all %}
+                  <tr>
+                    <td>{{ person.person.first_name }} {{ person.person.last_name }}</td>
+                    <td style="text-align: right;">{{ person.minutes|floatformat:2 }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if performance_record.machines.exists %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Machine Usage" %}</h3>
+            <div class="table-responsive">
+              <table class="table table-bordered">
+                <thead>
+                  <tr>
+                    <th>{% trans "Machine" %}</th>
+                    <th>{% trans "Minutes" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for machine in performance_record.machines.all %}
+                  <tr>
+                    <td>{{ machine.machine.name }}</td>
+                    <td style="text-align: right;">{{ machine.minutes|floatformat:2 }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if performance_record.approved_by %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Approval Information" %}</h3>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Approved By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ performance_record.approved_by.get_full_name|default:performance_record.approved_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% if performance_record.approved_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Approved At" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ performance_record.approved_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if performance_record.notes %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Notes" %}</h3>
+            <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+              {{ performance_record.notes|linebreaks }}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Audit Information" %}</h3>
+            <div class="row">
+              {% if performance_record.created_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ performance_record.created_by.get_full_name|default:performance_record.created_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if performance_record.created_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created At" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ performance_record.created_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if performance_record.edited_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Edited By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ performance_record.edited_by.get_full_name|default:performance_record.edited_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if performance_record.updated_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Last Updated" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ performance_record.updated_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-actions" style="margin-top: 2rem;">
+            <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
+            {% if can_edit %}
+            <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

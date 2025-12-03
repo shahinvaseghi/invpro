@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.views.base import EditLockProtectedMixin
@@ -78,6 +78,8 @@ class TafsiliAccountListView(FeaturePermissionRequiredMixin, AccountingBaseView,
         context['clear_filter_url'] = reverse('accounting:tafsili_accounts')
         context['print_enabled'] = True
         context['show_actions'] = True
+        context['feature_code'] = 'accounting.accounts.tafsili'
+        context['detail_url_name'] = 'accounting:tafsili_account_detail'
         context['edit_url_name'] = 'accounting:tafsili_account_edit'
         context['delete_url_name'] = 'accounting:tafsili_account_delete'
         context['table_headers'] = [
@@ -193,6 +195,47 @@ class TafsiliAccountUpdateView(EditLockProtectedMixin, FeaturePermissionRequired
             {'label': _('ویرایش')},
         ]
         context['cancel_url'] = reverse('accounting:tafsili_accounts')
+        return context
+
+
+class TafsiliAccountDetailView(FeaturePermissionRequiredMixin, AccountingBaseView, DetailView):
+    """Detail view for viewing Tafsili accounts (read-only)."""
+    model = Account
+    template_name = 'accounting/tafsili_account_detail.html'
+    context_object_name = 'account'
+    feature_code = 'accounting.accounts.tafsili'
+    required_action = 'view_own'
+    
+    def get_queryset(self):
+        """Filter Tafsili accounts (level 3) by active company."""
+        queryset = Account.objects.filter(account_level=3)
+        queryset = self.filter_queryset_by_permissions(queryset, self.feature_code)
+        queryset = queryset.select_related(
+            'parent_account',
+            'created_by',
+            'edited_by',
+        ).prefetch_related('sub_account_relations_as_tafsili__sub_account')
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = _('مشاهده حساب تفصیلی')
+        context['list_url'] = reverse_lazy('accounting:tafsili_accounts')
+        context['edit_url'] = reverse_lazy('accounting:tafsili_account_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
+        context['feature_code'] = 'accounting.accounts.tafsili'
+        
+        # Get related sub accounts
+        from accounting.models import TafsiliSubAccountRelation
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            relations = TafsiliSubAccountRelation.objects.filter(
+                tafsili_account=self.object,
+                company_id=company_id
+            ).select_related('sub_account')
+            context['related_sub_accounts'] = [rel.sub_account for rel in relations]
+        
         return context
 
 

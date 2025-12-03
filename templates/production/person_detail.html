@@ -1,0 +1,219 @@
+{% extends "shared/base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "View Person" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'production:personnel' %}">{% trans "Production" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'production:personnel' %}">{% trans "Personnel" %}</a></li>
+          <li class="breadcrumb-item active">{% trans "View Person" %}</li>
+        </ol>
+      </nav>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>{% trans "View Person" %}</h2>
+        </div>
+        <div class="card-body">
+          <div class="info-banner" style="background-color: #f3f4f6; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+            <div class="row">
+              <div class="col-md-3">
+                <strong>{% trans "Code" %}:</strong> <code>{{ person.public_code }}</code>
+              </div>
+              <div class="col-md-3">
+                <strong>{% trans "Status" %}:</strong>
+                {% if person.is_enabled %}
+                  <span class="badge badge-success">{% trans "Active" %}</span>
+                {% else %}
+                  <span class="badge badge-secondary">{% trans "Inactive" %}</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Personal Information" %}</h3>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "First Name" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ person.first_name }}
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Last Name" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ person.last_name }}
+                  </div>
+                </div>
+              </div>
+              {% if person.national_id %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "National ID" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ person.national_id }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if person.email %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Email" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ person.email }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if person.phone_number %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Phone" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ person.phone_number }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if person.mobile_number %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Mobile" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ person.mobile_number }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if person.username %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Username" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ person.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if person.personnel_code %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Personnel Code" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ person.personnel_code }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if person.user %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Linked User" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ person.user.get_full_name|default:person.user.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if person.company_units.exists %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Company Units" %}</h3>
+            <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+              {% for unit in person.company_units.all %}
+                {{ unit.name }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if person.description %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Description" %}</h3>
+            <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+              {{ person.description }}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if person.notes %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Notes" %}</h3>
+            <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+              {{ person.notes|linebreaks }}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Audit Information" %}</h3>
+            <div class="row">
+              {% if person.created_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ person.created_by.get_full_name|default:person.created_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if person.created_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created At" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ person.created_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if person.edited_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Edited By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ person.edited_by.get_full_name|default:person.edited_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if person.updated_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Last Updated" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ person.updated_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-actions" style="margin-top: 2rem;">
+            <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
+            {% if can_edit %}
+            <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

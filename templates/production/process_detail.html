@@ -1,0 +1,232 @@
+{% extends "shared/base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "View Process" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'production:processes' %}">{% trans "Production" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'production:processes' %}">{% trans "Processes" %}</a></li>
+          <li class="breadcrumb-item active">{% trans "View Process" %}</li>
+        </ol>
+      </nav>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>{% trans "View Process" %}</h2>
+        </div>
+        <div class="card-body">
+          <div class="info-banner" style="background-color: #f3f4f6; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+            <div class="row">
+              <div class="col-md-3">
+                <strong>{% trans "Process Code" %}:</strong> <code>{{ process.process_code }}</code>
+              </div>
+              {% if process.revision %}
+              <div class="col-md-3">
+                <strong>{% trans "Revision" %}:</strong> {{ process.revision }}
+              </div>
+              {% endif %}
+              <div class="col-md-3">
+                <strong>{% trans "Status" %}:</strong>
+                {% if process.approval_status == 'approved' %}
+                  <span class="badge badge-success">{% trans "Approved" %}</span>
+                {% elif process.approval_status == 'draft' %}
+                  <span class="badge badge-secondary">{% trans "Draft" %}</span>
+                {% else %}
+                  <span class="badge badge-warning">{{ process.get_approval_status_display }}</span>
+                {% endif %}
+              </div>
+              {% if process.is_primary %}
+              <div class="col-md-3">
+                <strong>{% trans "Primary" %}:</strong> <span class="badge badge-info">{% trans "Yes" %}</span>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Basic Information" %}</h3>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Finished Item" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <strong>{{ process.finished_item.name }}</strong>
+                    <br>
+                    <small class="text-muted">{{ process.finished_item.item_code }}</small>
+                  </div>
+                </div>
+              </div>
+              {% if process.bom %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "BOM" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <code>{{ process.bom.bom_code }}</code>
+                    <br>
+                    <small>{{ process.bom.version }}</small>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if process.description %}
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label>{% trans "Description" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ process.description }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if process.work_lines.exists %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Work Lines" %}</h3>
+            <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+              {% for work_line in process.work_lines.all %}
+                {{ work_line.name }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if process.operations.exists %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Operations" %}</h3>
+            <div class="table-responsive">
+              <table class="table table-bordered">
+                <thead>
+                  <tr>
+                    <th>{% trans "Name" %}</th>
+                    <th>{% trans "Sequence" %}</th>
+                    <th>{% trans "Work Line" %}</th>
+                    <th>{% trans "Labor Minutes" %}</th>
+                    <th>{% trans "Machine Minutes" %}</th>
+                    <th>{% trans "Materials" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for operation in process.operations.all %}
+                  <tr>
+                    <td><strong>{{ operation.name }}</strong></td>
+                    <td>{{ operation.sequence_order }}</td>
+                    <td>{% if operation.work_line %}{{ operation.work_line.name }}{% else %}—{% endif %}</td>
+                    <td>{{ operation.labor_minutes_per_unit|floatformat:2 }}</td>
+                    <td>{{ operation.machine_minutes_per_unit|floatformat:2 }}</td>
+                    <td>
+                      {% if operation.operation_materials.exists %}
+                        {{ operation.operation_materials.count }} {% trans "material(s)" %}
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if process.approved_by %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Approval Information" %}</h3>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Approved By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ process.approved_by.get_full_name|default:process.approved_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% if process.approved_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Approved At" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ process.approved_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if process.notes %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Notes" %}</h3>
+            <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+              {{ process.notes|linebreaks }}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Audit Information" %}</h3>
+            <div class="row">
+              {% if process.created_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ process.created_by.get_full_name|default:process.created_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if process.created_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created At" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ process.created_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if process.edited_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Edited By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ process.edited_by.get_full_name|default:process.edited_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if process.updated_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Last Updated" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ process.updated_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-actions" style="margin-top: 2rem;">
+            <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
+            {% if can_edit %}
+            <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

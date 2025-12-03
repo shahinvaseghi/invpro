@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.views.base import EditLockProtectedMixin
@@ -65,6 +65,8 @@ class FiscalYearListView(FeaturePermissionRequiredMixin, AccountingBaseView, Lis
         context['clear_filter_url'] = reverse('accounting:fiscal_years')
         context['print_enabled'] = True
         context['show_actions'] = True
+        context['feature_code'] = 'accounting.fiscal_years'
+        context['detail_url_name'] = 'accounting:fiscal_year_detail'
         context['edit_url_name'] = 'accounting:fiscal_year_edit'
         context['delete_url_name'] = 'accounting:fiscal_year_delete'
         context['table_headers'] = [
@@ -148,6 +150,35 @@ class FiscalYearUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixi
             {'label': _('Fiscal Years'), 'url': reverse('accounting:fiscal_years')},
         ]
         context['cancel_url'] = reverse('accounting:fiscal_years')
+        return context
+
+
+class FiscalYearDetailView(FeaturePermissionRequiredMixin, AccountingBaseView, DetailView):
+    """Detail view for viewing fiscal years (read-only)."""
+    model = FiscalYear
+    template_name = 'accounting/fiscal_year_detail.html'
+    context_object_name = 'fiscal_year'
+    feature_code = 'accounting.fiscal_years'
+    required_action = 'view_own'
+    
+    def get_queryset(self):
+        """Filter by active company."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, self.feature_code)
+        queryset = queryset.select_related(
+            'created_by',
+            'edited_by',
+        )
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = _('View Fiscal Year')
+        context['list_url'] = reverse_lazy('accounting:fiscal_years')
+        context['edit_url'] = reverse_lazy('accounting:fiscal_year_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
+        context['feature_code'] = 'accounting.fiscal_years'
         return context
 
 

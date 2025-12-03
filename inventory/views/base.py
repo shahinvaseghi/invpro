@@ -39,20 +39,212 @@ class InventoryBaseView(LoginRequiredMixin):
         context['active_module'] = 'inventory'
         return context
     
-    def add_delete_permissions_to_context(self, context: Dict[str, Any], feature_code: str) -> Dict[str, Any]:
+    def add_delete_permissions_to_context(self, context: Dict[str, Any], feature_code: str, resource_owner=None) -> Dict[str, Any]:
         """Helper method to add delete permission checks to context."""
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission, are_users_in_same_primary_group
+        company_id = self.request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(self.request.user, company_id)
+        
+        # Superuser can always delete
+        is_superuser = self.request.user.is_superuser
+        
+        # Check permissions
+        can_delete_own = is_superuser or has_feature_permission(
+            permissions, feature_code, 'delete_own', allow_own_scope=True,
+            current_user=self.request.user, resource_owner=resource_owner
+        )
+        can_delete_other = is_superuser or has_feature_permission(
+            permissions, feature_code, 'delete_other', allow_own_scope=False,
+            current_user=self.request.user, resource_owner=resource_owner
+        )
+        can_delete_same_group = is_superuser or (
+            has_feature_permission(
+                permissions, feature_code, 'delete_same_group', allow_own_scope=False,
+                current_user=self.request.user, resource_owner=resource_owner
+            ) if resource_owner else False
+        )
+        
+        context['can_delete_own'] = can_delete_own
+        context['can_delete_other'] = can_delete_other
+        context['can_delete_same_group'] = can_delete_same_group
+        context['user'] = self.request.user  # Make user available in template
+        return context
+    
+    def add_view_edit_permissions_to_context(self, context: Dict[str, Any], feature_code: str) -> Dict[str, Any]:
+        """
+        Helper method to add view and edit permission checks to context.
+        This is used in ListView to determine which buttons to show for each object.
+        
+        Args:
+            context: The context dictionary to update
+            feature_code: Feature code for permission checking (e.g., 'inventory.receipts.temporary')
+        
+        Returns:
+            Updated context dictionary with permission flags
+        """
         from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
         company_id = self.request.session.get('active_company_id')
         permissions = get_user_feature_permissions(self.request.user, company_id)
-        # Superuser can always delete
-        context['can_delete_own'] = self.request.user.is_superuser or has_feature_permission(
-            permissions, feature_code, 'delete_own', allow_own_scope=True
+        
+        # Superuser can always view and edit
+        is_superuser = self.request.user.is_superuser
+        
+        # Check view permissions
+        can_view_own = is_superuser or has_feature_permission(
+            permissions, feature_code, 'view_own', allow_own_scope=True,
+            current_user=self.request.user, resource_owner=None
         )
-        context['can_delete_other'] = self.request.user.is_superuser or has_feature_permission(
-            permissions, feature_code, 'delete_other', allow_own_scope=False
+        can_view_all = is_superuser or has_feature_permission(
+            permissions, feature_code, 'view_all', allow_own_scope=False,
+            current_user=self.request.user, resource_owner=None
         )
+        can_view_same_group = is_superuser or has_feature_permission(
+            permissions, feature_code, 'view_same_group', allow_own_scope=False,
+            current_user=self.request.user, resource_owner=None
+        )
+        
+        # Check edit permissions
+        can_edit_own = is_superuser or has_feature_permission(
+            permissions, feature_code, 'edit_own', allow_own_scope=True,
+            current_user=self.request.user, resource_owner=None
+        )
+        can_edit_other = is_superuser or has_feature_permission(
+            permissions, feature_code, 'edit_other', allow_own_scope=False,
+            current_user=self.request.user, resource_owner=None
+        )
+        can_edit_same_group = is_superuser or has_feature_permission(
+            permissions, feature_code, 'edit_same_group', allow_own_scope=False,
+            current_user=self.request.user, resource_owner=None
+        )
+        
+        # Add to context
+        context['can_view_own'] = can_view_own
+        context['can_view_all'] = can_view_all
+        context['can_view_same_group'] = can_view_same_group
+        context['can_edit_own'] = can_edit_own
+        context['can_edit_other'] = can_edit_other
+        context['can_edit_same_group'] = can_edit_same_group
+        context['feature_code'] = feature_code  # Store feature code for per-object checks
         context['user'] = self.request.user  # Make user available in template
+        
         return context
+    
+    def can_view_object(self, obj, feature_code: str) -> bool:
+        """
+        Check if current user can view a specific object.
+        
+        Args:
+            obj: The object to check
+            feature_code: Feature code for permission checking
+        
+        Returns:
+            True if user can view the object, False otherwise
+        """
+        if self.request.user.is_superuser:
+            return True
+        
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission, are_users_in_same_primary_group
+        company_id = self.request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(self.request.user, company_id)
+        
+        # Get resource owner
+        resource_owner = None
+        if hasattr(obj, 'created_by'):
+            resource_owner = obj.created_by
+        elif hasattr(obj, 'owner'):
+            resource_owner = obj.owner
+        elif hasattr(obj, 'user'):
+            resource_owner = obj.user
+        
+        # Check view permissions
+        can_view_all = has_feature_permission(
+            permissions, feature_code, 'view_all', allow_own_scope=False,
+            current_user=self.request.user, resource_owner=resource_owner
+        )
+        if can_view_all:
+            return True
+        
+        # Check if user is owner
+        is_owner = resource_owner == self.request.user if resource_owner else False
+        if is_owner:
+            can_view_own = has_feature_permission(
+                permissions, feature_code, 'view_own', allow_own_scope=True,
+                current_user=self.request.user, resource_owner=resource_owner
+            )
+            if can_view_own:
+                return True
+        
+        # Check same group permission
+        if resource_owner:
+            can_view_same_group = has_feature_permission(
+                permissions, feature_code, 'view_same_group', allow_own_scope=False,
+                current_user=self.request.user, resource_owner=resource_owner
+            )
+            if can_view_same_group and are_users_in_same_primary_group(self.request.user, resource_owner):
+                return True
+        
+        return False
+    
+    def can_edit_object(self, obj, feature_code: str) -> bool:
+        """
+        Check if current user can edit a specific object.
+        Also checks if object is locked.
+        
+        Args:
+            obj: The object to check
+            feature_code: Feature code for permission checking
+        
+        Returns:
+            True if user can edit the object and it's not locked, False otherwise
+        """
+        # Check if object is locked
+        if getattr(obj, 'is_locked', 0):
+            return False
+        
+        if self.request.user.is_superuser:
+            return True
+        
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission, are_users_in_same_primary_group
+        company_id = self.request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(self.request.user, company_id)
+        
+        # Get resource owner
+        resource_owner = None
+        if hasattr(obj, 'created_by'):
+            resource_owner = obj.created_by
+        elif hasattr(obj, 'owner'):
+            resource_owner = obj.owner
+        elif hasattr(obj, 'user'):
+            resource_owner = obj.user
+        
+        # Check edit permissions
+        can_edit_other = has_feature_permission(
+            permissions, feature_code, 'edit_other', allow_own_scope=False,
+            current_user=self.request.user, resource_owner=resource_owner
+        )
+        if can_edit_other:
+            return True
+        
+        # Check if user is owner
+        is_owner = resource_owner == self.request.user if resource_owner else False
+        if is_owner:
+            can_edit_own = has_feature_permission(
+                permissions, feature_code, 'edit_own', allow_own_scope=True,
+                current_user=self.request.user, resource_owner=resource_owner
+            )
+            if can_edit_own:
+                return True
+        
+        # Check same group permission
+        if resource_owner:
+            can_edit_same_group = has_feature_permission(
+                permissions, feature_code, 'edit_same_group', allow_own_scope=False,
+                current_user=self.request.user, resource_owner=resource_owner
+            )
+            if can_edit_same_group and are_users_in_same_primary_group(self.request.user, resource_owner):
+                return True
+        
+        return False
     
     def filter_queryset_by_permissions(self, queryset, feature_code: str, owner_field: str = 'created_by'):
         """
@@ -70,26 +262,51 @@ class InventoryBaseView(LoginRequiredMixin):
         if self.request.user.is_superuser:
             return queryset
         
-        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission, are_users_in_same_primary_group
+        from django.db.models import Q
         company_id = self.request.session.get('active_company_id')
         permissions = get_user_feature_permissions(self.request.user, company_id)
         
         # Check view scope
         can_view_all = has_feature_permission(permissions, feature_code, 'view_all', allow_own_scope=False)
         can_view_own = has_feature_permission(permissions, feature_code, 'view_own', allow_own_scope=True)
+        can_view_same_group = has_feature_permission(permissions, feature_code, 'view_same_group', allow_own_scope=False)
         
         # If user can view all, return queryset as is
         if can_view_all:
             return queryset
         
-        # If user can only view own records, filter by owner
-        if can_view_own:
-            # Check if model has the owner field
-            if hasattr(queryset.model, owner_field):
-                return queryset.filter(**{owner_field: self.request.user})
+        # Build filter conditions
+        filter_conditions = Q()
         
-        # If user has no view permission, return empty queryset
-        return queryset.none()
+        # If user can view own records, add own records to filter
+        if can_view_own:
+            if hasattr(queryset.model, owner_field):
+                filter_conditions |= Q(**{owner_field: self.request.user})
+        
+        # If user can view same group records, add same group records to filter
+        if can_view_same_group:
+            if hasattr(queryset.model, owner_field):
+                # Get current user's primary groups
+                current_user_primary_groups = set(self.request.user.primary_groups.all().values_list('id', flat=True))
+                
+                if current_user_primary_groups:
+                    # Get users who share at least one primary group with current user
+                    from django.contrib.auth import get_user_model
+                    User = get_user_model()
+                    same_group_users = User.objects.filter(
+                        primary_groups__id__in=current_user_primary_groups
+                    ).distinct()
+                    
+                    # Add same group records to filter
+                    filter_conditions |= Q(**{f'{owner_field}__in': same_group_users})
+        
+        # If no permissions, return empty queryset
+        if not filter_conditions:
+            return queryset.none()
+        
+        # Apply filter
+        return queryset.filter(filter_conditions).distinct()
 
 
 class DocumentLockProtectedMixin:
@@ -114,8 +331,30 @@ class DocumentLockProtectedMixin:
                 owner = getattr(obj, self.owner_field, None)
                 owner_id = getattr(owner, 'id', None) if owner else None
                 if owner_id and owner_id != request.user.id:
-                    messages.error(request, self.owner_error_message)
-                    return HttpResponseRedirect(self._get_lock_redirect_url())
+                    # Check if user has permission to edit same group or other
+                    from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+                    company_id = request.session.get('active_company_id')
+                    permissions = get_user_feature_permissions(request.user, company_id)
+                    
+                    # Get feature code from view
+                    feature_code = getattr(self, 'feature_code', None)
+                    if feature_code:
+                        can_edit_same_group = has_feature_permission(
+                            permissions, feature_code, 'edit_same_group', allow_own_scope=False,
+                            current_user=request.user, resource_owner=owner
+                        )
+                        can_edit_other = has_feature_permission(
+                            permissions, feature_code, 'edit_other', allow_own_scope=False,
+                            current_user=request.user, resource_owner=owner
+                        )
+                        
+                        if not can_edit_same_group and not can_edit_other:
+                            messages.error(request, self.owner_error_message)
+                            return HttpResponseRedirect(self._get_lock_redirect_url())
+                    else:
+                        # If no feature_code, use default behavior
+                        messages.error(request, self.owner_error_message)
+                        return HttpResponseRedirect(self._get_lock_redirect_url())
         return super().dispatch(request, *args, **kwargs)
 
     def _get_lock_redirect_url(self) -> str:

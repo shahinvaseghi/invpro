@@ -8,7 +8,7 @@ This module contains views for:
 """
 from typing import Dict, Any, Optional
 from django.contrib import messages
-from django.views.generic import ListView, CreateView, UpdateView
+from django.views.generic import ListView, CreateView, UpdateView, DetailView
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -148,6 +148,8 @@ class StocktakingDeficitListView(InventoryBaseView, ListView):
         context['show_actions'] = True
         
         # Stocktaking Deficit-specific context
+        context['feature_code'] = 'inventory.stocktaking.deficit'
+        context['detail_url_name'] = 'inventory:stocktaking_deficit_detail'
         context['edit_url_name'] = 'inventory:stocktaking_deficit_edit'
         context['delete_url_name'] = 'inventory:stocktaking_deficit_delete'
         context['lock_url_name'] = 'inventory:stocktaking_deficit_lock'
@@ -207,6 +209,31 @@ class StocktakingDeficitCreateView(LineFormsetMixin, StocktakingFormMixin, Creat
         self._save_line_formset(lines_formset)
         messages.success(self.request, _('سند کسری انبارگردانی با موفقیت ایجاد شد.'))
         return HttpResponseRedirect(self.get_success_url())
+
+
+class StocktakingDeficitDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing stocktaking deficit records (read-only)."""
+    model = models.StocktakingDeficit
+    template_name = 'inventory/stocktaking_deficit_detail.html'
+    context_object_name = 'deficit'
+    
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.deficit', 'created_by')
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse'
+        ).select_related('created_by')
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['list_url'] = reverse('inventory:stocktaking_deficit')
+        context['edit_url'] = reverse('inventory:stocktaking_deficit_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
+        return context
 
 
 class StocktakingDeficitUpdateView(EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView):
@@ -326,6 +353,8 @@ class StocktakingSurplusListView(InventoryBaseView, ListView):
         context['show_actions'] = True
         
         # Stocktaking Surplus-specific context
+        context['feature_code'] = 'inventory.stocktaking.surplus'
+        context['detail_url_name'] = 'inventory:stocktaking_surplus_detail'
         context['edit_url_name'] = 'inventory:stocktaking_surplus_edit'
         context['delete_url_name'] = 'inventory:stocktaking_surplus_delete'
         context['lock_url_name'] = 'inventory:stocktaking_surplus_lock'
@@ -385,6 +414,31 @@ class StocktakingSurplusCreateView(LineFormsetMixin, StocktakingFormMixin, Creat
         self._save_line_formset(lines_formset)
         messages.success(self.request, _('سند مازاد انبارگردانی با موفقیت ایجاد شد.'))
         return HttpResponseRedirect(self.get_success_url())
+
+
+class StocktakingSurplusDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing stocktaking surplus records (read-only)."""
+    model = models.StocktakingSurplus
+    template_name = 'inventory/stocktaking_surplus_detail.html'
+    context_object_name = 'surplus'
+    
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.surplus', 'created_by')
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse'
+        ).select_related('created_by')
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['list_url'] = reverse('inventory:stocktaking_surplus')
+        context['edit_url'] = reverse('inventory:stocktaking_surplus_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
+        return context
 
 
 class StocktakingSurplusUpdateView(EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView):
@@ -501,6 +555,8 @@ class StocktakingRecordListView(InventoryBaseView, ListView):
         context['show_actions'] = True
         
         # Stocktaking Record-specific context
+        context['feature_code'] = 'inventory.stocktaking.records'
+        context['detail_url_name'] = 'inventory:stocktaking_record_detail'
         context['edit_url_name'] = 'inventory:stocktaking_record_edit'
         context['delete_url_name'] = 'inventory:stocktaking_record_delete'
         context['lock_url_name'] = 'inventory:stocktaking_record_lock'
@@ -543,6 +599,28 @@ class StocktakingRecordCreateView(StocktakingFormMixin, CreateView):
             (_('وضعیت تایید'), ['approver', 'approval_status', 'approver_notes']),
             (_('خلاصه موجودی'), ['final_inventory_value']),
         ]
+
+
+class StocktakingRecordDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing stocktaking records (read-only)."""
+    model = models.StocktakingRecord
+    template_name = 'inventory/stocktaking_record_detail.html'
+    context_object_name = 'record'
+    
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.records', 'created_by')
+        queryset = queryset.select_related('confirmed_by', 'created_by')
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['list_url'] = reverse('inventory:stocktaking_records')
+        context['edit_url'] = reverse('inventory:stocktaking_record_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
+        return context
 
 
 class StocktakingRecordUpdateView(EditLockProtectedMixin, DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView):

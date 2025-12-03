@@ -5,36 +5,42 @@ from .base import AccountingBaseView
 from .fiscal_years import (
     FiscalYearListView,
     FiscalYearCreateView,
+    FiscalYearDetailView,
     FiscalYearUpdateView,
     FiscalYearDeleteView,
 )
 from .accounts import (
     AccountListView,
     AccountCreateView,
+    AccountDetailView,
     AccountUpdateView,
     AccountDeleteView,
 )
 from .gl_accounts import (
     GLAccountListView,
     GLAccountCreateView,
+    GLAccountDetailView,
     GLAccountUpdateView,
     GLAccountDeleteView,
 )
 from .sub_accounts import (
     SubAccountListView,
     SubAccountCreateView,
+    SubAccountDetailView,
     SubAccountUpdateView,
     SubAccountDeleteView,
 )
 from .tafsili_accounts import (
     TafsiliAccountListView,
     TafsiliAccountCreateView,
+    TafsiliAccountDetailView,
     TafsiliAccountUpdateView,
     TafsiliAccountDeleteView,
 )
 from .tafsili_hierarchy import (
     TafsiliHierarchyListView,
     TafsiliHierarchyCreateView,
+    TafsiliHierarchyDetailView,
     TafsiliHierarchyUpdateView,
     TafsiliHierarchyDeleteView,
 )
@@ -87,31 +93,37 @@ __all__ = [
     # Fiscal Years
     'FiscalYearListView',
     'FiscalYearCreateView',
+    'FiscalYearDetailView',
     'FiscalYearUpdateView',
     'FiscalYearDeleteView',
     # Accounts
     'AccountListView',
     'AccountCreateView',
+    'AccountDetailView',
     'AccountUpdateView',
     'AccountDeleteView',
     # GL Accounts (حساب کل)
     'GLAccountListView',
     'GLAccountCreateView',
+    'GLAccountDetailView',
     'GLAccountUpdateView',
     'GLAccountDeleteView',
     # Sub Accounts (حساب معین)
     'SubAccountListView',
     'SubAccountCreateView',
+    'SubAccountDetailView',
     'SubAccountUpdateView',
     'SubAccountDeleteView',
     # Tafsili Accounts (حساب تفصیلی)
     'TafsiliAccountListView',
     'TafsiliAccountCreateView',
+    'TafsiliAccountDetailView',
     'TafsiliAccountUpdateView',
     'TafsiliAccountDeleteView',
     # Tafsili Hierarchy (تفصیلی چند سطحی)
     'TafsiliHierarchyListView',
     'TafsiliHierarchyCreateView',
+    'TafsiliHierarchyDetailView',
     'TafsiliHierarchyUpdateView',
     'TafsiliHierarchyDeleteView',
     # Placeholder views

@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.models import CompanyUnit
@@ -66,6 +66,8 @@ class CompanyUnitListView(FeaturePermissionRequiredMixin, ListView):
         context['clear_filter_url'] = reverse('shared:company_units')
         context['print_enabled'] = True
         context['show_actions'] = True
+        context['feature_code'] = 'shared.company_units'
+        context['detail_url_name'] = 'shared:company_unit_detail'
         context['edit_url_name'] = 'shared:company_unit_edit'
         context['delete_url_name'] = 'shared:company_unit_delete'
         context['table_headers'] = [
@@ -150,6 +152,39 @@ class CompanyUnitUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMix
             {'label': _('Company Units'), 'url': reverse('shared:company_units')},
         ]
         context['cancel_url'] = reverse('shared:company_units')
+        return context
+
+
+class CompanyUnitDetailView(FeaturePermissionRequiredMixin, DetailView):
+    """Detail view for viewing company units (read-only)."""
+    model = CompanyUnit
+    template_name = 'shared/company_unit_detail.html'
+    context_object_name = 'unit'
+    feature_code = 'shared.company_units'
+    required_action = 'view_own'
+    
+    def get_queryset(self):
+        """Filter by active company."""
+        active_company_id: Optional[int] = self.request.session.get('active_company_id')
+        if not active_company_id:
+            return CompanyUnit.objects.none()
+        queryset = CompanyUnit.objects.filter(company_id=active_company_id)
+        queryset = queryset.select_related(
+            'parent_unit',
+            'company',
+            'created_by',
+            'edited_by',
+        ).prefetch_related('child_units')
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'shared'
+        context['list_url'] = reverse_lazy('shared:company_units')
+        context['edit_url'] = reverse_lazy('shared:company_unit_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
+        context['feature_code'] = 'shared.company_units'
         return context
 
 

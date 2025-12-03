@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load i18n %}
 {% load generic_tags %}
+{% load access_tags %}
 
 {% block title %}{{ page_title|default:"List" }} - {{ block.super }}{% endblock %}
 
@@ -130,11 +131,32 @@
           {% if show_actions %}
             <td>
               {% block action_buttons %}
-              {% if edit_url_name %}
-                <a href="{% url edit_url_name object.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
-                  {% trans "Edit" %}
-                </a>
+              {# View button - always show if user has view permission and detail_url_name exists #}
+              {% if detail_url_name %}
+                {% can_view_object object feature_code|default:"" as can_view %}
+                {% if can_view %}
+                  <a href="{% url detail_url_name object.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+                    {% trans "View" %}
+                  </a>
+                {% endif %}
+              {% elif view_url_name %}
+                {% can_view_object object feature_code|default:"" as can_view %}
+                {% if can_view %}
+                  <a href="{% url view_url_name object.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+                    {% trans "View" %}
+                  </a>
+                {% endif %}
               {% endif %}
+              {# Edit button - only show if object is not locked and user has edit permission #}
+              {% if edit_url_name %}
+                {% can_edit_object object feature_code|default:"" as can_edit %}
+                {% if can_edit %}
+                  <a href="{% url edit_url_name object.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+                    {% trans "Edit" %}
+                  </a>
+                {% endif %}
+              {% endif %}
+              {# Delete button - keep existing logic #}
               {% if delete_url_name %}
                 <a href="{% url delete_url_name object.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
                   {% trans "Delete" %}

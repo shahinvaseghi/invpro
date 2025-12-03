@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.db.models import Q
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from shared.views.base import AccessLevelPermissionMixin, EditLockProtectedMixin
 from shared.mixins import FeaturePermissionRequiredMixin
@@ -57,6 +57,8 @@ class AccessLevelListView(FeaturePermissionRequiredMixin, ListView):
         context['search_placeholder'] = _('Code or name')
         context['clear_filter_url'] = reverse_lazy('shared:access_levels')
         context['show_actions'] = True
+        context['feature_code'] = 'shared.access_levels'
+        context['detail_url_name'] = 'shared:access_level_detail'
         context['edit_url_name'] = 'shared:access_level_edit'
         context['delete_url_name'] = 'shared:access_level_delete'
         context['empty_state_title'] = _('No Access Levels Found')
@@ -130,6 +132,42 @@ class AccessLevelUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMix
         self._save_permissions(form)
         messages.success(self.request, _('Access level updated successfully.'))
         return response
+
+
+class AccessLevelDetailView(FeaturePermissionRequiredMixin, DetailView):
+    """Detail view for viewing access levels (read-only)."""
+    model = AccessLevel
+    template_name = 'shared/access_level_detail.html'
+    context_object_name = 'access_level'
+    feature_code = 'shared.access_levels'
+    required_action = 'view_own'
+    
+    def get_queryset(self):
+        """Get all access levels."""
+        queryset = AccessLevel.objects.all()
+        queryset = queryset.prefetch_related(
+            'permissions',
+            'groups',
+        ).select_related('created_by', 'edited_by')
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'shared'
+        context['list_url'] = reverse_lazy('shared:access_levels')
+        context['edit_url'] = reverse_lazy('shared:access_level_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
+        context['feature_code'] = 'shared.access_levels'
+        
+        # Get permissions for this access level
+        from shared.models import AccessLevelPermission
+        permissions = AccessLevelPermission.objects.filter(
+            access_level=self.object
+        ).select_related('access_level').order_by('feature_code', 'action')
+        context['permissions'] = permissions
+        
+        return context
 
 
 class AccessLevelDeleteView(FeaturePermissionRequiredMixin, DeleteView):

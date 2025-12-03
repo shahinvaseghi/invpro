@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.models import Company, UserCompanyAccess
@@ -76,6 +76,8 @@ class CompanyListView(FeaturePermissionRequiredMixin, ListView):
         context['clear_filter_url'] = reverse('shared:companies')
         context['print_enabled'] = True
         context['show_actions'] = True
+        context['feature_code'] = 'shared.companies'
+        context['detail_url_name'] = 'shared:company_detail'
         context['edit_url_name'] = 'shared:company_edit'
         context['delete_url_name'] = 'shared:company_delete'
         context['table_headers'] = [
@@ -160,6 +162,33 @@ class CompanyUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
             {'label': _('Companies'), 'url': reverse('shared:companies')},
         ]
         context['cancel_url'] = reverse('shared:companies')
+        return context
+
+
+class CompanyDetailView(FeaturePermissionRequiredMixin, DetailView):
+    """Detail view for viewing companies (read-only)."""
+    model = Company
+    template_name = 'shared/company_detail.html'
+    context_object_name = 'company'
+    feature_code = 'shared.companies'
+    required_action = 'view_own'
+    
+    def get_queryset(self):
+        """Filter companies based on user access."""
+        user_company_ids = UserCompanyAccess.objects.filter(
+            user=self.request.user,
+            is_enabled=1
+        ).values_list('company_id', flat=True)
+        return Company.objects.filter(id__in=user_company_ids).select_related('created_by', 'edited_by')
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'shared'
+        context['list_url'] = reverse_lazy('shared:companies')
+        context['edit_url'] = reverse_lazy('shared:company_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
+        context['feature_code'] = 'shared.companies'
         return context
 
 

@@ -31,6 +31,21 @@ class FeaturePermissionRequiredMixin(LoginRequiredMixin):
         company_id = request.session.get("active_company_id")
         return get_user_feature_permissions(request.user, company_id)
 
+    def get_resource_owner(self):
+        """
+        Get the owner of the resource being accessed.
+        Override this method in views that have an object with a created_by or owner field.
+        """
+        if hasattr(self, 'object') and self.object:
+            # Try common owner field names
+            if hasattr(self.object, 'created_by'):
+                return self.object.created_by
+            if hasattr(self.object, 'owner'):
+                return self.object.owner
+            if hasattr(self.object, 'user'):
+                return self.object.user
+        return None
+
     def has_feature_permission(self) -> bool:
         feature_code = self.get_feature_code()
         if not feature_code:
@@ -41,11 +56,15 @@ class FeaturePermissionRequiredMixin(LoginRequiredMixin):
             return True
 
         permissions = self._resolve_permissions()
+        resource_owner = self.get_resource_owner()
+        
         return has_feature_permission(
             permissions,
             feature_code,
             action=self.get_required_action(),
             allow_own_scope=self.allow_own_scope,
+            current_user=self.request.user,
+            resource_owner=resource_owner,
         )
 
     def dispatch(self, request, *args, **kwargs):

@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.db.models import Q
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from .. import models
 from ..forms.categories import TicketCategoryForm, TicketCategoryPermissionFormSet
@@ -70,6 +70,8 @@ class TicketSubcategoryListView(FeaturePermissionRequiredMixin, TicketingBaseVie
         context["search_placeholder"] = _("Search by name or code")
         context["clear_filter_url"] = reverse_lazy("ticketing:subcategories")
         context["show_actions"] = True
+        context["feature_code"] = "ticketing.management.subcategories"
+        context["detail_url_name"] = "ticketing:subcategory_detail"
         context["edit_url_name"] = "ticketing:subcategory_edit"
         context["delete_url_name"] = "ticketing:subcategory_delete"
         context["empty_state_title"] = _("No Subcategories Found")
@@ -268,6 +270,40 @@ class TicketSubcategoryUpdateView(EditLockProtectedMixin, FeaturePermissionRequi
 
         messages.success(self.request, _("Subcategory updated successfully."))
         return response
+
+
+class TicketSubcategoryDetailView(FeaturePermissionRequiredMixin, TicketingBaseView, DetailView):
+    """Detail view for viewing ticket subcategories (read-only)."""
+    model = models.TicketCategory
+    template_name = "ticketing/subcategory_detail.html"
+    context_object_name = "subcategory"
+    feature_code = "ticketing.management.subcategories"
+    required_action = "view_all"
+    
+    def get_queryset(self):
+        """Filter by company and ensure it's a subcategory."""
+        company_id = self.request.session.get("active_company_id")
+        if not company_id:
+            return models.TicketCategory.objects.none()
+        queryset = models.TicketCategory.objects.filter(
+            company_id=company_id, parent_category__isnull=False
+        )
+        queryset = queryset.select_related(
+            'parent_category',
+            'created_by',
+            'edited_by',
+        )
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        context["page_title"] = _("View Subcategory")
+        context["list_url"] = reverse_lazy("ticketing:subcategories")
+        context["edit_url"] = reverse_lazy("ticketing:subcategory_edit", kwargs={"pk": self.object.pk})
+        context["can_edit"] = not getattr(self.object, "is_locked", 0) if hasattr(self.object, "is_locked") else True
+        context["feature_code"] = "ticketing.management.subcategories"
+        return context
 
 
 class TicketSubcategoryDeleteView(FeaturePermissionRequiredMixin, TicketingBaseView, DeleteView):

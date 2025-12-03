@@ -7,7 +7,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.views.base import EditLockProtectedMixin
@@ -64,6 +64,8 @@ class BOMListView(FeaturePermissionRequiredMixin, ListView):
         context['show_filters'] = True
         context['clear_filter_url'] = reverse_lazy('production:bom_list')
         context['show_actions'] = True
+        context['feature_code'] = 'production.bom'
+        context['detail_url_name'] = 'production:bom_detail'
         context['edit_url_name'] = 'production:bom_edit'
         context['delete_url_name'] = 'production:bom_delete'
         context['empty_state_title'] = _('No BOMs Found')
@@ -394,6 +396,37 @@ class BOMUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, Upda
         
         messages.success(self.request, _('BOM updated successfully.'))
         return super().form_valid(form)
+
+
+class BOMDetailView(FeaturePermissionRequiredMixin, DetailView):
+    """Detail view for viewing BOMs (read-only)."""
+    model = BOM
+    template_name = 'production/bom_detail.html'
+    context_object_name = 'bom'
+    feature_code = 'production.bom'
+    required_action = 'view_own'
+    
+    def get_queryset(self):
+        """Filter by active company."""
+        active_company_id: Optional[int] = self.request.session.get('active_company_id')
+        if not active_company_id:
+            return BOM.objects.none()
+        queryset = BOM.objects.filter(company_id=active_company_id)
+        queryset = queryset.select_related(
+            'finished_item',
+            'created_by',
+            'edited_by',
+        ).prefetch_related('materials__material_item', 'materials__material_type')
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        context['list_url'] = reverse_lazy('production:bom_list')
+        context['edit_url'] = reverse_lazy('production:bom_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
+        context['feature_code'] = 'production.bom'
+        return context
 
 
 class BOMDeleteView(FeaturePermissionRequiredMixin, DeleteView):

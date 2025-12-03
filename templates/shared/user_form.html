@@ -56,12 +56,12 @@
 {% block form_sections %}
 <div class="form-section">
   {% for field in form %}
-    <div class="form-field {% if field.name == 'groups' %}form-field-checkboxes{% endif %}">
+    <div class="form-field {% if field.name == 'groups' or field.name == 'primary_groups' %}form-field-checkboxes{% endif %}">
       <label for="{{ field.id_for_label }}">
         {{ field.label }}
         {% if field.field.required %}*{% endif %}
       </label>
-      {% if field.name == 'groups' %}
+      {% if field.name == 'groups' or field.name == 'primary_groups' %}
         <div class="checkbox-list" style="margin-top: 8px;">
           {{ field }}
         </div>

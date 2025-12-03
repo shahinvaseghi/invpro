@@ -8,7 +8,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from .. import models
 from ..forms.templates import (
@@ -76,6 +76,8 @@ class TicketTemplateListView(FeaturePermissionRequiredMixin, TicketingBaseView, 
         context["search_placeholder"] = _("Search by name or code")
         context["clear_filter_url"] = reverse_lazy("ticketing:templates")
         context["show_actions"] = True
+        context["feature_code"] = "ticketing.management.templates"
+        context["detail_url_name"] = "ticketing:template_detail"
         context["edit_url_name"] = "ticketing:template_edit"
         context["delete_url_name"] = "ticketing:template_delete"
         context["empty_state_title"] = _("No Templates Found")
@@ -327,6 +329,43 @@ class TicketTemplateUpdateView(EditLockProtectedMixin, FeaturePermissionRequired
 
         messages.success(self.request, _("Template updated successfully."))
         return response
+
+
+class TicketTemplateDetailView(FeaturePermissionRequiredMixin, TicketingBaseView, DetailView):
+    """Detail view for viewing ticket templates (read-only)."""
+    model = models.TicketTemplate
+    template_name = "ticketing/template_detail.html"
+    context_object_name = "template"
+    feature_code = "ticketing.management.templates"
+    required_action = "view_all"
+    
+    def get_queryset(self):
+        """Filter by company."""
+        company_id = self.request.session.get("active_company_id")
+        if not company_id:
+            return models.TicketTemplate.objects.none()
+        queryset = models.TicketTemplate.objects.filter(company_id=company_id)
+        queryset = queryset.select_related(
+            'category',
+            'subcategory',
+            'default_priority',
+            'created_by',
+            'edited_by',
+        ).prefetch_related(
+            'fields',
+            'permissions',
+        )
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        context["page_title"] = _("View Template")
+        context["list_url"] = reverse_lazy("ticketing:templates")
+        context["edit_url"] = reverse_lazy("ticketing:template_edit", kwargs={"pk": self.object.pk})
+        context["can_edit"] = not getattr(self.object, "is_locked", 0) if hasattr(self.object, "is_locked") else True
+        context["feature_code"] = "ticketing.management.templates"
+        return context
 
 
 class TicketTemplateDeleteView(FeaturePermissionRequiredMixin, TicketingBaseView, DeleteView):

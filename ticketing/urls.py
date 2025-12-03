@@ -10,24 +10,30 @@ app_name = 'ticketing'
 
 urlpatterns = [
     # Tickets
+    path('tickets/', views.TicketListView.as_view(), name='ticket_list'),
     path('tickets/create/', views.TicketCreateView.as_view(), name='ticket_create'),
+    path('tickets/<int:pk>/', views.TicketDetailView.as_view(), name='ticket_detail'),
+    path('tickets/<int:pk>/edit/', views.TicketEditView.as_view(), name='ticket_edit'),
     path('tickets/respond/', views.TicketRespondView.as_view(), name='ticket_respond'),
     
     # Management - Categories
     path('management/categories/', views.TicketCategoryListView.as_view(), name='categories'),
     path('management/categories/create/', views.TicketCategoryCreateView.as_view(), name='category_create'),
+    path('management/categories/<int:pk>/', views.TicketCategoryDetailView.as_view(), name='category_detail'),
     path('management/categories/<int:pk>/edit/', views.TicketCategoryUpdateView.as_view(), name='category_edit'),
     path('management/categories/<int:pk>/delete/', views.TicketCategoryDeleteView.as_view(), name='category_delete'),
     
     # Management - Templates
     path('management/templates/', views.TicketTemplateListView.as_view(), name='templates'),
     path('management/templates/create/', views.TicketTemplateCreateView.as_view(), name='template_create'),
+    path('management/templates/<int:pk>/', views.TicketTemplateDetailView.as_view(), name='template_detail'),
     path('management/templates/<int:pk>/edit/', views.TicketTemplateUpdateView.as_view(), name='template_edit'),
     path('management/templates/<int:pk>/delete/', views.TicketTemplateDeleteView.as_view(), name='template_delete'),
     
     # Management - Subcategories
     path('management/subcategories/', views.TicketSubcategoryListView.as_view(), name='subcategories'),
     path('management/subcategories/create/', views.TicketSubcategoryCreateView.as_view(), name='subcategory_create'),
+    path('management/subcategories/<int:pk>/', views.TicketSubcategoryDetailView.as_view(), name='subcategory_detail'),
     path('management/subcategories/<int:pk>/edit/', views.TicketSubcategoryUpdateView.as_view(), name='subcategory_edit'),
     path('management/subcategories/<int:pk>/delete/', views.TicketSubcategoryDeleteView.as_view(), name='subcategory_delete'),
     

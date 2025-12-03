@@ -10,7 +10,7 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.views.base import EditLockProtectedMixin
@@ -59,6 +59,8 @@ class ProductOrderListView(FeaturePermissionRequiredMixin, ListView):
         context['create_button_text'] = _('Create Product Order +')
         context['table_headers'] = []  # Overridden in template
         context['show_actions'] = True
+        context['feature_code'] = 'production.product_orders'
+        context['detail_url_name'] = 'production:product_order_detail'
         context['edit_url_name'] = 'production:product_order_edit'
         context['delete_url_name'] = 'production:product_order_delete'
         context['empty_state_title'] = _('No Product Orders Found')
@@ -543,6 +545,40 @@ class ProductOrderUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMi
                         prefix='extra_items',
                     )
         
+        return context
+
+
+class ProductOrderDetailView(FeaturePermissionRequiredMixin, DetailView):
+    """Detail view for viewing product orders (read-only)."""
+    model = ProductOrder
+    template_name = 'production/product_order_detail.html'
+    context_object_name = 'order'
+    feature_code = 'production.product_orders'
+    required_action = 'view_own'
+    
+    def get_queryset(self):
+        """Filter by active company."""
+        active_company_id: Optional[int] = self.request.session.get('active_company_id')
+        if not active_company_id:
+            return ProductOrder.objects.none()
+        queryset = ProductOrder.objects.filter(company_id=active_company_id)
+        queryset = queryset.select_related(
+            'finished_item',
+            'bom',
+            'process',
+            'approved_by',
+            'created_by',
+            'edited_by',
+        )
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        context['list_url'] = reverse_lazy('production:product_orders')
+        context['edit_url'] = reverse_lazy('production:product_order_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
+        context['feature_code'] = 'production.product_orders'
         return context
 
 

@@ -142,10 +142,36 @@
   </td>
   <td>
     <div class="action-buttons">
+      {% load access_tags %}
+      {# View button - always show if user has view permission #}
+      {% if detail_url_name %}
+        {% can_view_object receipt feature_code|default:"" as can_view %}
+        {% if can_view or user.is_superuser %}
+          <a href="{% url detail_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+            {% trans "View" %}
+          </a>
+        {% endif %}
+      {% elif view_url_name %}
+        {% can_view_object receipt feature_code|default:"" as can_view %}
+        {% if can_view or user.is_superuser %}
+          <a href="{% url view_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+            {% trans "View" %}
+          </a>
+        {% endif %}
+      {% endif %}
+      {# Edit button - only show if object is not locked and user has edit permission #}
+      {% if edit_url_name %}
+        {% can_edit_object receipt feature_code|default:"" as can_edit %}
+        {% if can_edit or user.is_superuser %}
+          {% if not receipt.is_locked %}
+            <a href="{% url edit_url_name receipt.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+              {% trans "Edit" %}
+            </a>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+      {# Lock status and unlock button #}
       {% if receipt.is_locked %}
-        <a href="{% url detail_url_name receipt.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
-          {% trans "View" %}
-        </a>
         <span class="badge badge-locked" style="margin-top:4px;">{% trans "Locked" %}</span>
         {% if receipt.created_by == user %}
           {% if can_unlock_own %}
@@ -166,10 +192,9 @@
             </form>
           {% endif %}
         {% endif %}
-      {% else %}
-        <a href="{% url edit_url_name receipt.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
-          {% trans "Edit" %}
-        </a>
+      {% endif %}
+      {# Additional actions for unlocked receipts #}
+      {% if not receipt.is_locked %}
         {% if delete_url_name %}
           {% if receipt.created_by == user %}
             {% if can_delete_own %}
@@ -192,6 +217,25 @@
             {% trans "Lock" %}
           </button>
         </form>
+        {% endif %}
+        {% if serial_url_name and receipt.enabled_lines %}
+          {% with first_line=receipt.enabled_lines|first %}
+            {% if first_line.item.has_lot_tracking == 1 %}
+              <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
+                {% trans "Manage Serials" %}
+              </a>
+            {% endif %}
+          {% endwith %}
+        {% endif %}
+      {% else %}
+        {% if serial_url_name and receipt.enabled_lines %}
+          {% with first_line=receipt.enabled_lines|first %}
+            {% if first_line.item.has_lot_tracking == 1 %}
+              <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
+                {% trans "View Serials" %}
+              </a>
+            {% endif %}
+          {% endwith %}
         {% endif %}
       {% endif %}
     </div>

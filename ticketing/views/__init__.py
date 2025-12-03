@@ -17,6 +17,7 @@ from .base import (
 from .tickets import (
     TicketListView,
     TicketCreateView,
+    TicketDetailView,
     TicketEditView,
 )
 
@@ -30,6 +31,7 @@ from .placeholders import (
 from .templates import (
     TicketTemplateListView,
     TicketTemplateCreateView,
+    TicketTemplateDetailView,
     TicketTemplateUpdateView,
     TicketTemplateDeleteView,
 )
@@ -38,6 +40,7 @@ from .templates import (
 from .categories import (
     TicketCategoryListView,
     TicketCategoryCreateView,
+    TicketCategoryDetailView,
     TicketCategoryUpdateView,
     TicketCategoryDeleteView,
 )
@@ -46,6 +49,7 @@ from .categories import (
 from .subcategories import (
     TicketSubcategoryListView,
     TicketSubcategoryCreateView,
+    TicketSubcategoryDetailView,
     TicketSubcategoryUpdateView,
     TicketSubcategoryDeleteView,
 )
@@ -68,18 +72,22 @@ __all__ = [
     "TicketLockProtectedMixin",
     "TicketListView",
     "TicketCreateView",
+    "TicketDetailView",
     "TicketEditView",
     "TicketRespondView",
     "TicketTemplateListView",
     "TicketTemplateCreateView",
+    "TicketTemplateDetailView",
     "TicketTemplateUpdateView",
     "TicketTemplateDeleteView",
     "TicketCategoryListView",
     "TicketCategoryCreateView",
+    "TicketCategoryDetailView",
     "TicketCategoryUpdateView",
     "TicketCategoryDeleteView",
     "TicketSubcategoryListView",
     "TicketSubcategoryCreateView",
+    "TicketSubcategoryDetailView",
     "TicketSubcategoryUpdateView",
     "TicketSubcategoryDeleteView",
     "AutoResponseView",

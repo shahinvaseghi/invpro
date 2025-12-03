@@ -1,0 +1,156 @@
+{% extends "shared/base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "View Group" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'shared:groups' %}">{% trans "Groups" %}</a></li>
+          <li class="breadcrumb-item active">{% trans "View Group" %}</li>
+        </ol>
+      </nav>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>{% trans "View Group" %}</h2>
+        </div>
+        <div class="card-body">
+          <div class="info-banner" style="background-color: #f3f4f6; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+            <div class="row">
+              <div class="col-md-3">
+                <strong>{% trans "Group Name" %}:</strong> <code>{{ group.name }}</code>
+              </div>
+              {% if group.profile %}
+              <div class="col-md-3">
+                <strong>{% trans "Status" %}:</strong>
+                {% if group.profile.is_enabled %}
+                  <span class="badge badge-success">{% trans "Active" %}</span>
+                {% else %}
+                  <span class="badge badge-secondary">{% trans "Inactive" %}</span>
+                {% endif %}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Basic Information" %}</h3>
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label>{% trans "Group Name" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ group.name }}
+                  </div>
+                </div>
+              </div>
+              {% if group.profile and group.profile.description %}
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label>{% trans "Description" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ group.profile.description }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if group.user_set.exists %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Members" %} ({{ group.user_set.count }})</h3>
+            <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+              {% for user in group.user_set.all %}
+                {{ user.get_full_name|default:user.username }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if group.profile and group.profile.access_levels.exists %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Access Levels" %}</h3>
+            <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+              {% for access_level in group.profile.access_levels.all %}
+                {{ access_level.name }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if group.profile and group.profile.notes %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Notes" %}</h3>
+            <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+              {{ group.profile.notes|linebreaks }}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if group.profile %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Audit Information" %}</h3>
+            <div class="row">
+              {% if group.profile.created_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ group.profile.created_by.get_full_name|default:group.profile.created_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if group.profile.created_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created At" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ group.profile.created_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if group.profile.edited_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Edited By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ group.profile.edited_by.get_full_name|default:group.profile.edited_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if group.profile.edited_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Last Updated" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ group.profile.edited_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="form-actions" style="margin-top: 2rem;">
+            <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
+            {% if can_edit %}
+            <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

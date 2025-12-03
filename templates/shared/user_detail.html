@@ -1,0 +1,212 @@
+{% extends "shared/base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "View User" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'shared:users' %}">{% trans "Users" %}</a></li>
+          <li class="breadcrumb-item active">{% trans "View User" %}</li>
+        </ol>
+      </nav>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>{% trans "View User" %}</h2>
+        </div>
+        <div class="card-body">
+          <div class="info-banner" style="background-color: #f3f4f6; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+            <div class="row">
+              <div class="col-md-3">
+                <strong>{% trans "Username" %}:</strong> <code>{{ user_obj.username }}</code>
+              </div>
+              <div class="col-md-3">
+                <strong>{% trans "Status" %}:</strong>
+                {% if user_obj.is_active %}
+                  <span class="badge badge-success">{% trans "Active" %}</span>
+                {% else %}
+                  <span class="badge badge-secondary">{% trans "Inactive" %}</span>
+                {% endif %}
+              </div>
+              {% if user_obj.is_superuser %}
+              <div class="col-md-3">
+                <strong>{% trans "Superuser" %}:</strong> <span class="badge badge-warning">{% trans "Yes" %}</span>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Personal Information" %}</h3>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "First Name" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ user_obj.first_name|default:"—" }}
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Last Name" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ user_obj.last_name|default:"—" }}
+                  </div>
+                </div>
+              </div>
+              {% if user_obj.first_name_en or user_obj.last_name_en %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Name (EN)" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ user_obj.first_name_en }} {{ user_obj.last_name_en }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Email" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ user_obj.email|default:"—" }}
+                  </div>
+                </div>
+              </div>
+              {% if user_obj.phone_number %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Phone" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ user_obj.phone_number }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if user_obj.mobile_number %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Mobile" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ user_obj.mobile_number }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if user_obj.default_company %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Default Company" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ user_obj.default_company.display_name }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if user_obj.groups.exists %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Groups" %}</h3>
+            <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+              {% for group in user_obj.groups.all %}
+                {{ group.name }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if user_obj.primary_groups.exists %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Primary Groups" %}</h3>
+            <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+              {% for group in user_obj.primary_groups.all %}
+                {{ group.name }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if user_obj.company_accesses.exists %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Company Access" %}</h3>
+            <div class="table-responsive">
+              <table class="table table-bordered">
+                <thead>
+                  <tr>
+                    <th>{% trans "Company" %}</th>
+                    <th>{% trans "Access Level" %}</th>
+                    <th>{% trans "Primary" %}</th>
+                    <th>{% trans "Status" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for access in user_obj.company_accesses.all %}
+                  <tr>
+                    <td>{{ access.company.display_name }}</td>
+                    <td>{{ access.access_level.name }}</td>
+                    <td>
+                      {% if access.is_primary %}
+                        <span class="badge badge-info">{% trans "Yes" %}</span>
+                      {% else %}
+                        <span class="badge badge-secondary">{% trans "No" %}</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if access.is_enabled %}
+                        <span class="badge badge-success">{% trans "Active" %}</span>
+                      {% else %}
+                        <span class="badge badge-secondary">{% trans "Inactive" %}</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "System Information" %}</h3>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Date Joined" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ user_obj.date_joined|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% if user_obj.last_login %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Last Login" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ user_obj.last_login|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-actions" style="margin-top: 2rem;">
+            <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
+            {% if can_edit %}
+            <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

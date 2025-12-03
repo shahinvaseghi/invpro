@@ -8,7 +8,7 @@ This module contains views for:
 from typing import Dict, Any, Set, Optional
 from decimal import Decimal, InvalidOperation
 from django.contrib import messages
-from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView
+from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
 from django.http import HttpResponseRedirect, Http404
 from django.urls import reverse, reverse_lazy
 from django.shortcuts import get_object_or_404
@@ -180,6 +180,8 @@ class PurchaseRequestListView(InventoryBaseView, ListView):
         context['show_actions'] = True
         
         # Purchase Request-specific context
+        context['feature_code'] = 'inventory.requests.purchase'
+        context['detail_url_name'] = 'inventory:purchase_request_detail'
         context['edit_url_name'] = 'inventory:purchase_request_edit'
         context['approve_url_name'] = 'inventory:purchase_request_approve'
         context['empty_state_title'] = _('No Purchase Requests Found')
@@ -305,6 +307,31 @@ class PurchaseRequestCreateView(LineFormsetMixin, PurchaseRequestFormMixin, Crea
             (_('زمان بندی و اولویت'), ['needed_by_date', 'priority']),
             (_('تایید و توضیحات'), ['approver', 'reason_code']),
         ]
+
+
+class PurchaseRequestDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing purchase requests (read-only)."""
+    model = models.PurchaseRequest
+    template_name = 'inventory/purchase_request_detail.html'
+    context_object_name = 'purchase_request'
+    
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.requests.purchase', 'requested_by')
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__unit'
+        ).select_related('requested_by', 'approver')
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['list_url'] = reverse('inventory:purchase_requests')
+        context['edit_url'] = reverse('inventory:purchase_request_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
+        return context
 
 
 class PurchaseRequestUpdateView(EditLockProtectedMixin, LineFormsetMixin, PurchaseRequestFormMixin, UpdateView):
@@ -577,6 +604,8 @@ class WarehouseRequestListView(InventoryBaseView, ListView):
         context['show_actions'] = True
         
         # Warehouse Request-specific context
+        context['feature_code'] = 'inventory.requests.warehouse'
+        context['detail_url_name'] = 'inventory:warehouse_request_detail'
         context['edit_url_name'] = 'inventory:warehouse_request_edit'
         context['approve_url_name'] = 'inventory:warehouse_request_approve'
         context['empty_state_title'] = _('No Requests Found')
@@ -703,6 +732,32 @@ class WarehouseRequestCreateView(LineFormsetMixin, WarehouseRequestFormMixin, Cr
             (_('زمان‌بندی و اولویت'), ['needed_by_date', 'priority']),
             (_('تایید و توضیحات'), ['approver', 'purpose']),
         ]
+
+
+class WarehouseRequestDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing warehouse requests (read-only)."""
+    model = models.WarehouseRequest
+    template_name = 'inventory/warehouse_request_detail.html'
+    context_object_name = 'warehouse_request'
+    
+    def get_queryset(self):
+        """Prefetch related objects for efficient display."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.requests.warehouse', 'requester')
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__warehouse',
+            'lines__unit'
+        ).select_related('item', 'warehouse', 'requester', 'approver')
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['list_url'] = reverse('inventory:warehouse_requests')
+        context['edit_url'] = reverse('inventory:warehouse_request_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
+        return context
 
 
 class WarehouseRequestUpdateView(EditLockProtectedMixin, LineFormsetMixin, WarehouseRequestFormMixin, UpdateView):

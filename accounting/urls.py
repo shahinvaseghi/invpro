@@ -16,26 +16,32 @@ spec.loader.exec_module(views_module)
 from .views import (
     FiscalYearListView,
     FiscalYearCreateView,
+    FiscalYearDetailView,
     FiscalYearUpdateView,
     FiscalYearDeleteView,
     AccountListView,
     AccountCreateView,
+    AccountDetailView,
     AccountUpdateView,
     AccountDeleteView,
     GLAccountListView,
     GLAccountCreateView,
+    GLAccountDetailView,
     GLAccountUpdateView,
     GLAccountDeleteView,
     SubAccountListView,
     SubAccountCreateView,
+    SubAccountDetailView,
     SubAccountUpdateView,
     SubAccountDeleteView,
     TafsiliAccountListView,
     TafsiliAccountCreateView,
+    TafsiliAccountDetailView,
     TafsiliAccountUpdateView,
     TafsiliAccountDeleteView,
     TafsiliHierarchyListView,
     TafsiliHierarchyCreateView,
+    TafsiliHierarchyDetailView,
     TafsiliHierarchyUpdateView,
     TafsiliHierarchyDeleteView,
 )
@@ -57,12 +63,14 @@ urlpatterns = [
     # Fiscal Years
     path('fiscal-years/', FiscalYearListView.as_view(), name='fiscal_years'),
     path('fiscal-years/create/', FiscalYearCreateView.as_view(), name='fiscal_year_create'),
+    path('fiscal-years/<int:pk>/', FiscalYearDetailView.as_view(), name='fiscal_year_detail'),
     path('fiscal-years/<int:pk>/edit/', FiscalYearUpdateView.as_view(), name='fiscal_year_edit'),
     path('fiscal-years/<int:pk>/delete/', FiscalYearDeleteView.as_view(), name='fiscal_year_delete'),
     
     # Chart of Accounts
     path('accounts/', AccountListView.as_view(), name='accounts'),
     path('accounts/create/', AccountCreateView.as_view(), name='account_create'),
+    path('accounts/<int:pk>/', AccountDetailView.as_view(), name='account_detail'),
     path('accounts/<int:pk>/edit/', AccountUpdateView.as_view(), name='account_edit'),
     path('accounts/<int:pk>/delete/', AccountDeleteView.as_view(), name='account_delete'),
     
@@ -74,24 +82,28 @@ urlpatterns = [
     # GL Accounts (حساب کل)
     path('gl-accounts/', GLAccountListView.as_view(), name='gl_accounts'),
     path('gl-accounts/create/', GLAccountCreateView.as_view(), name='gl_account_create'),
+    path('gl-accounts/<int:pk>/', GLAccountDetailView.as_view(), name='gl_account_detail'),
     path('gl-accounts/<int:pk>/edit/', GLAccountUpdateView.as_view(), name='gl_account_edit'),
     path('gl-accounts/<int:pk>/delete/', GLAccountDeleteView.as_view(), name='gl_account_delete'),
     
     # Sub Accounts (حساب معین)
     path('sub-accounts/', SubAccountListView.as_view(), name='sub_accounts'),
     path('sub-accounts/create/', SubAccountCreateView.as_view(), name='sub_account_create'),
+    path('sub-accounts/<int:pk>/', SubAccountDetailView.as_view(), name='sub_account_detail'),
     path('sub-accounts/<int:pk>/edit/', SubAccountUpdateView.as_view(), name='sub_account_edit'),
     path('sub-accounts/<int:pk>/delete/', SubAccountDeleteView.as_view(), name='sub_account_delete'),
     
     # Tafsili Accounts (حساب تفصیلی)
     path('tafsili-accounts/', TafsiliAccountListView.as_view(), name='tafsili_accounts'),
     path('tafsili-accounts/create/', TafsiliAccountCreateView.as_view(), name='tafsili_account_create'),
+    path('tafsili-accounts/<int:pk>/', TafsiliAccountDetailView.as_view(), name='tafsili_account_detail'),
     path('tafsili-accounts/<int:pk>/edit/', TafsiliAccountUpdateView.as_view(), name='tafsili_account_edit'),
     path('tafsili-accounts/<int:pk>/delete/', TafsiliAccountDeleteView.as_view(), name='tafsili_account_delete'),
     
     # Tafsili Hierarchy (تفصیلی چند سطحی)
     path('tafsili-hierarchy/', TafsiliHierarchyListView.as_view(), name='tafsili_hierarchy_list'),
     path('tafsili-hierarchy/create/', TafsiliHierarchyCreateView.as_view(), name='tafsili_hierarchy_create'),
+    path('tafsili-hierarchy/<int:pk>/', TafsiliHierarchyDetailView.as_view(), name='tafsili_hierarchy_detail'),
     path('tafsili-hierarchy/<int:pk>/edit/', TafsiliHierarchyUpdateView.as_view(), name='tafsili_hierarchy_edit'),
     path('tafsili-hierarchy/<int:pk>/delete/', TafsiliHierarchyDeleteView.as_view(), name='tafsili_hierarchy_delete'),
     

@@ -15,7 +15,7 @@ from typing import Dict, Any
 from django.contrib import messages
 from django.db.models import Q
 from django.db.models.deletion import ProtectedError
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 
@@ -59,6 +59,8 @@ class ItemTypeListView(InventoryBaseView, ListView):
         context['create_button_text'] = _('Create Item Type')
         context['table_headers'] = []  # Overridden in template
         context['show_actions'] = True
+        context['feature_code'] = 'inventory.master.item_types'
+        context['detail_url_name'] = 'inventory:itemtype_detail'
         context['edit_url_name'] = 'inventory:itemtype_edit'
         context['delete_url_name'] = 'inventory:itemtype_delete'
         context['empty_state_title'] = _('No Item Types Found')
@@ -125,6 +127,27 @@ class ItemTypeUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView):
             {'label': _('Edit'), 'url': None},
         ]
         context['cancel_url'] = reverse_lazy('inventory:item_types')
+        return context
+
+
+class ItemTypeDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing item types (read-only)."""
+    model = models.ItemType
+    template_name = 'inventory/itemtype_detail.html'
+    context_object_name = 'itemtype'
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_types', 'created_by')
+        return queryset
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['list_url'] = reverse_lazy('inventory:item_types')
+        context['edit_url'] = reverse_lazy('inventory:itemtype_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
         return context
 
 
@@ -240,6 +263,8 @@ class ItemCategoryListView(InventoryBaseView, ListView):
         context['create_button_text'] = _('Create Item Category')
         context['table_headers'] = []  # Overridden in template
         context['show_actions'] = True
+        context['feature_code'] = 'inventory.master.item_categories'
+        context['detail_url_name'] = 'inventory:itemcategory_detail'
         context['edit_url_name'] = 'inventory:itemcategory_edit'
         context['delete_url_name'] = 'inventory:itemcategory_delete'
         context['empty_state_title'] = _('No Item Categories Found')
@@ -306,6 +331,27 @@ class ItemCategoryUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateVi
             {'label': _('Edit'), 'url': None},
         ]
         context['cancel_url'] = reverse_lazy('inventory:item_categories')
+        return context
+
+
+class ItemCategoryDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing item categories (read-only)."""
+    model = models.ItemCategory
+    template_name = 'inventory/itemcategory_detail.html'
+    context_object_name = 'itemcategory'
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_categories', 'created_by')
+        return queryset
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['list_url'] = reverse_lazy('inventory:item_categories')
+        context['edit_url'] = reverse_lazy('inventory:itemcategory_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
         return context
 
 
@@ -422,6 +468,8 @@ class ItemSubcategoryListView(InventoryBaseView, ListView):
         context['create_button_text'] = _('Create Item Subcategory')
         context['table_headers'] = []  # Overridden in template
         context['show_actions'] = True
+        context['feature_code'] = 'inventory.master.item_subcategories'
+        context['detail_url_name'] = 'inventory:itemsubcategory_detail'
         context['edit_url_name'] = 'inventory:itemsubcategory_edit'
         context['delete_url_name'] = 'inventory:itemsubcategory_delete'
         context['empty_state_title'] = _('No Item Subcategories Found')
@@ -488,6 +536,28 @@ class ItemSubcategoryUpdateView(EditLockProtectedMixin, InventoryBaseView, Updat
             {'label': _('Edit'), 'url': None},
         ]
         context['cancel_url'] = reverse_lazy('inventory:item_subcategories')
+        return context
+
+
+class ItemSubcategoryDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing item subcategories (read-only)."""
+    model = models.ItemSubcategory
+    template_name = 'inventory/itemsubcategory_detail.html'
+    context_object_name = 'itemsubcategory'
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_subcategories', 'created_by')
+        queryset = queryset.select_related('category')
+        return queryset
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['list_url'] = reverse_lazy('inventory:item_subcategories')
+        context['edit_url'] = reverse_lazy('inventory:itemsubcategory_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
         return context
 
 
@@ -632,6 +702,8 @@ class ItemListView(InventoryBaseView, ListView):
         context['create_button_text'] = _('Create New Item')
         context['table_headers'] = []  # Overridden in template
         context['show_actions'] = True
+        context['feature_code'] = 'inventory.master.items'
+        context['detail_url_name'] = 'inventory:item_detail'
         context['edit_url_name'] = 'inventory:item_edit'
         context['delete_url_name'] = 'inventory:item_delete'
         context['empty_state_title'] = _('No Items Found')
@@ -703,6 +775,8 @@ class ItemSerialListView(FeaturePermissionRequiredMixin, InventoryBaseView, List
             context['serial_code'],
             context['status'],
         ])
+        # ItemSerial is read-only, no view/edit buttons needed
+        context['show_actions'] = False
         return context
 
 
@@ -910,6 +984,28 @@ class ItemUpdateView(EditLockProtectedMixin, ItemUnitFormsetMixin, InventoryBase
         return context
 
 
+class ItemDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing items (read-only)."""
+    model = models.Item
+    template_name = 'inventory/item_detail.html'
+    context_object_name = 'item'
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.items', 'created_by')
+        queryset = queryset.select_related('type', 'category', 'subcategory').prefetch_related('warehouses__warehouse', 'units')
+        return queryset
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['list_url'] = reverse_lazy('inventory:items')
+        context['edit_url'] = reverse_lazy('inventory:item_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
+        return context
+
+
 class ItemDeleteView(InventoryBaseView, DeleteView):
     """Delete view for items."""
     model = models.Item
@@ -1015,6 +1111,8 @@ class WarehouseListView(InventoryBaseView, ListView):
         context['create_button_text'] = _('Create Warehouse')
         context['table_headers'] = []  # Overridden in template
         context['show_actions'] = True
+        context['feature_code'] = 'inventory.master.warehouses'
+        context['detail_url_name'] = 'inventory:warehouse_detail'
         context['edit_url_name'] = 'inventory:warehouse_edit'
         context['delete_url_name'] = 'inventory:warehouse_delete'
         context['empty_state_title'] = _('No Warehouses Found')
@@ -1081,6 +1179,27 @@ class WarehouseUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView)
             {'label': _('Edit'), 'url': None},
         ]
         context['cancel_url'] = reverse_lazy('inventory:warehouses')
+        return context
+
+
+class WarehouseDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing warehouses (read-only)."""
+    model = models.Warehouse
+    template_name = 'inventory/warehouse_detail.html'
+    context_object_name = 'warehouse'
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.warehouses', 'created_by')
+        return queryset
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['list_url'] = reverse_lazy('inventory:warehouses')
+        context['edit_url'] = reverse_lazy('inventory:warehouse_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
         return context
 
 
@@ -1196,6 +1315,8 @@ class SupplierCategoryListView(InventoryBaseView, ListView):
         context['create_button_text'] = _('Create Supplier Category')
         context['table_headers'] = []  # Overridden in template
         context['show_actions'] = True
+        context['feature_code'] = 'inventory.suppliers.categories'
+        context['detail_url_name'] = 'inventory:suppliercategory_detail'
         context['edit_url_name'] = 'inventory:suppliercategory_edit'
         context['delete_url_name'] = 'inventory:suppliercategory_delete'
         context['empty_state_title'] = _('No Supplier Categories Found')
@@ -1383,6 +1504,28 @@ class SupplierCategoryUpdateView(EditLockProtectedMixin, InventoryBaseView, Upda
         return context
 
 
+class SupplierCategoryDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing supplier categories (read-only)."""
+    model = models.SupplierCategory
+    template_name = 'inventory/suppliercategory_detail.html'
+    context_object_name = 'suppliercategory'
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.suppliers.categories', 'created_by')
+        queryset = queryset.select_related('supplier', 'category')
+        return queryset
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['list_url'] = reverse_lazy('inventory:supplier_categories')
+        context['edit_url'] = reverse_lazy('inventory:suppliercategory_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
+        return context
+
+
 class SupplierCategoryDeleteView(InventoryBaseView, DeleteView):
     """Delete view for supplier categories."""
     model = models.SupplierCategory
@@ -1452,6 +1595,8 @@ class SupplierListView(InventoryBaseView, ListView):
         context['create_button_text'] = _('Create Supplier')
         context['table_headers'] = []  # Overridden in template
         context['show_actions'] = True
+        context['feature_code'] = 'inventory.suppliers.list'
+        context['detail_url_name'] = 'inventory:supplier_detail'
         context['edit_url_name'] = 'inventory:supplier_edit'
         context['delete_url_name'] = 'inventory:supplier_delete'
         context['empty_state_title'] = _('No Suppliers Found')
@@ -1519,6 +1664,27 @@ class SupplierUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView):
             {'label': _('Edit'), 'url': None},
         ]
         context['cancel_url'] = reverse_lazy('inventory:suppliers')
+        return context
+
+
+class SupplierDetailView(InventoryBaseView, DetailView):
+    """Detail view for viewing suppliers (read-only)."""
+    model = models.Supplier
+    template_name = 'inventory/supplier_detail.html'
+    context_object_name = 'supplier'
+    
+    def get_queryset(self):
+        """Filter queryset by user permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.suppliers.list', 'created_by')
+        return queryset
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add context for detail view."""
+        context = super().get_context_data(**kwargs)
+        context['list_url'] = reverse_lazy('inventory:suppliers')
+        context['edit_url'] = reverse_lazy('inventory:supplier_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
         return context
 
 

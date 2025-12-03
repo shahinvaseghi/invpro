@@ -1,0 +1,237 @@
+{% extends "shared/base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "View Company" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'shared:companies' %}">{% trans "Companies" %}</a></li>
+          <li class="breadcrumb-item active">{% trans "View Company" %}</li>
+        </ol>
+      </nav>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>{% trans "View Company" %}</h2>
+        </div>
+        <div class="card-body">
+          <div class="info-banner" style="background-color: #f3f4f6; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+            <div class="row">
+              <div class="col-md-3">
+                <strong>{% trans "Code" %}:</strong> <code>{{ company.public_code }}</code>
+              </div>
+              <div class="col-md-3">
+                <strong>{% trans "Status" %}:</strong>
+                {% if company.is_enabled %}
+                  <span class="badge badge-success">{% trans "Active" %}</span>
+                {% else %}
+                  <span class="badge badge-secondary">{% trans "Inactive" %}</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Basic Information" %}</h3>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Display Name" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ company.display_name }}
+                  </div>
+                </div>
+              </div>
+              {% if company.legal_name %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Legal Name" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ company.legal_name }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if company.tax_id %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Tax ID" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ company.tax_id }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if company.address or company.city or company.state or company.country or company.postal_code %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Address Information" %}</h3>
+            <div class="row">
+              {% if company.address %}
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label>{% trans "Address" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ company.address }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if company.city %}
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>{% trans "City" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ company.city }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if company.state %}
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>{% trans "State/Province" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ company.state }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if company.postal_code %}
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>{% trans "Postal Code" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ company.postal_code }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if company.country %}
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>{% trans "Country" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ company.country }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if company.postal_code %}
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>{% trans "Postal Code" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ company.postal_code }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if company.phone or company.email or company.website %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Contact Information" %}</h3>
+            <div class="row">
+              {% if company.phone_number %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Phone" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ company.phone_number }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if company.email %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Email" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ company.email }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if company.website %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Website" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <a href="{{ company.website }}" target="_blank">{{ company.website }}</a>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Audit Information" %}</h3>
+            <div class="row">
+              {% if company.created_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ company.created_by.get_full_name|default:company.created_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if company.created_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created At" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ company.created_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if company.edited_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Edited By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ company.edited_by.get_full_name|default:company.edited_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if company.edited_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Last Updated" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ company.edited_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-actions" style="margin-top: 2rem;">
+            <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
+            {% if can_edit %}
+            <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.models import SMTPServer
@@ -47,6 +47,8 @@ class SMTPServerListView(FeaturePermissionRequiredMixin, ListView):
         context['create_button_text'] = _('Create SMTP Server')
         context['show_filters'] = False
         context['show_actions'] = True
+        context['feature_code'] = 'shared.smtp_servers'
+        context['detail_url_name'] = 'shared:smtp_server_detail'
         context['edit_url_name'] = 'shared:smtp_server_edit'
         context['delete_url_name'] = 'shared:smtp_server_delete'
         context['empty_state_title'] = _('No SMTP Servers Found')
@@ -115,6 +117,31 @@ class SMTPServerUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixi
             {'label': _('SMTP Servers'), 'url': reverse_lazy('shared:smtp_servers')},
         ]
         context['cancel_url'] = reverse_lazy('shared:smtp_servers')
+        return context
+
+
+class SMTPServerDetailView(FeaturePermissionRequiredMixin, DetailView):
+    """Detail view for viewing SMTP servers (read-only)."""
+    model = SMTPServer
+    template_name = 'shared/smtp_server_detail.html'
+    context_object_name = 'smtp_server'
+    feature_code = 'shared.smtp_servers'
+    required_action = 'view_own'
+    
+    def get_queryset(self):
+        """Get all SMTP servers."""
+        queryset = SMTPServer.objects.all()
+        queryset = queryset.select_related('created_by', 'edited_by')
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'shared'
+        context['list_url'] = reverse_lazy('shared:smtp_servers')
+        context['edit_url'] = reverse_lazy('shared:smtp_server_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
+        context['feature_code'] = 'shared.smtp_servers'
         return context
 
 

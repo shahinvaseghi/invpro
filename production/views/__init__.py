@@ -20,6 +20,7 @@ from production.views.placeholders import (
 from production.views.personnel import (
     PersonnelListView,
     PersonCreateView,
+    PersonDetailView,
     PersonUpdateView,
     PersonDeleteView,
 )
@@ -28,6 +29,7 @@ from production.views.personnel import (
 from production.views.machine import (
     MachineListView,
     MachineCreateView,
+    MachineDetailView,
     MachineUpdateView,
     MachineDeleteView,
 )
@@ -36,6 +38,7 @@ from production.views.machine import (
 from production.views.bom import (
     BOMListView,
     BOMCreateView,
+    BOMDetailView,
     BOMUpdateView,
     BOMDeleteView,
 )
@@ -44,6 +47,7 @@ from production.views.bom import (
 from production.views.work_line import (
     WorkLineListView,
     WorkLineCreateView,
+    WorkLineDetailView,
     WorkLineUpdateView,
     WorkLineDeleteView,
 )
@@ -52,6 +56,7 @@ from production.views.work_line import (
 from production.views.process import (
     ProcessListView,
     ProcessCreateView,
+    ProcessDetailView,
     ProcessUpdateView,
     ProcessDeleteView,
 )
@@ -60,6 +65,7 @@ from production.views.process import (
 from production.views.product_order import (
     ProductOrderListView,
     ProductOrderCreateView,
+    ProductOrderDetailView,
     ProductOrderUpdateView,
     ProductOrderDeleteView,
 )
@@ -68,6 +74,7 @@ from production.views.product_order import (
 from production.views.transfer_to_line import (
     TransferToLineListView,
     TransferToLineCreateView,
+    TransferToLineDetailView,
     TransferToLineUpdateView,
     TransferToLineDeleteView,
     TransferToLineApproveView,
@@ -80,6 +87,7 @@ from production.views.transfer_to_line import (
 from production.views.performance_record import (
     PerformanceRecordListView,
     PerformanceRecordCreateView,
+    PerformanceRecordDetailView,
     PerformanceRecordUpdateView,
     PerformanceRecordDeleteView,
     PerformanceRecordApproveView,
@@ -91,36 +99,43 @@ __all__ = [
     # Personnel views
     'PersonnelListView',
     'PersonCreateView',
+    'PersonDetailView',
     'PersonUpdateView',
     'PersonDeleteView',
     # Machine views
     'MachineListView',
     'MachineCreateView',
+    'MachineDetailView',
     'MachineUpdateView',
     'MachineDeleteView',
     # BOM views
     'BOMListView',
     'BOMCreateView',
+    'BOMDetailView',
     'BOMUpdateView',
     'BOMDeleteView',
     # WorkLine views
     'WorkLineListView',
     'WorkLineCreateView',
+    'WorkLineDetailView',
     'WorkLineUpdateView',
     'WorkLineDeleteView',
     # Process views
     'ProcessListView',
     'ProcessCreateView',
+    'ProcessDetailView',
     'ProcessUpdateView',
     'ProcessDeleteView',
     # Product Order views
     'ProductOrderListView',
     'ProductOrderCreateView',
+    'ProductOrderDetailView',
     'ProductOrderUpdateView',
     'ProductOrderDeleteView',
     # Transfer to Line views
     'TransferToLineListView',
     'TransferToLineCreateView',
+    'TransferToLineDetailView',
     'TransferToLineUpdateView',
     'TransferToLineDeleteView',
     'TransferToLineApproveView',
@@ -130,6 +145,7 @@ __all__ = [
     # Performance Record views
     'PerformanceRecordListView',
     'PerformanceRecordCreateView',
+    'PerformanceRecordDetailView',
     'PerformanceRecordUpdateView',
     'PerformanceRecordDeleteView',
     'PerformanceRecordApproveView',

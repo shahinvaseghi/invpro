@@ -1,0 +1,188 @@
+{% extends "shared/base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "View Product Order" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'production:product_orders' %}">{% trans "Production" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'production:product_orders' %}">{% trans "Product Orders" %}</a></li>
+          <li class="breadcrumb-item active">{% trans "View Product Order" %}</li>
+        </ol>
+      </nav>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>{% trans "View Product Order" %}</h2>
+        </div>
+        <div class="card-body">
+          <div class="info-banner" style="background-color: #f3f4f6; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+            <div class="row">
+              <div class="col-md-3">
+                <strong>{% trans "Order Code" %}:</strong> <code>{{ order.order_code }}</code>
+              </div>
+              <div class="col-md-3">
+                <strong>{% trans "Order Date" %}:</strong> {{ order.order_date|jalali_date }}
+              </div>
+              <div class="col-md-3">
+                <strong>{% trans "Status" %}:</strong> {{ order.get_status_display }}
+              </div>
+              <div class="col-md-3">
+                <strong>{% trans "Priority" %}:</strong> {{ order.get_priority_display }}
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Order Information" %}</h3>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Finished Item" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <strong>{{ order.finished_item.name }}</strong>
+                    <br>
+                    <small class="text-muted">{{ order.finished_item.item_code }}</small>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Quantity Planned" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ order.quantity_planned|floatformat:2 }} {{ order.unit }}
+                  </div>
+                </div>
+              </div>
+              {% if order.bom %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "BOM" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <code>{{ order.bom.bom_code }}</code>
+                    <br>
+                    <small>{{ order.bom.version }}</small>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if order.process %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Process" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <code>{{ order.process.process_code }}</code>
+                    {% if order.process.revision %}
+                    <br>
+                    <small>{% trans "Revision" %}: {{ order.process.revision }}</small>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if order.due_date %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Due Date" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ order.due_date|jalali_date }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if order.customer_reference %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Customer Reference" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ order.customer_reference }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if order.approved_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Approved By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ order.approved_by.get_full_name|default:order.approved_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if order.notes %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Notes" %}</h3>
+            <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+              {{ order.notes|linebreaks }}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Audit Information" %}</h3>
+            <div class="row">
+              {% if order.created_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ order.created_by.get_full_name|default:order.created_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if order.created_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created At" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ order.created_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if order.edited_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Edited By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ order.edited_by.get_full_name|default:order.edited_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if order.updated_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Last Updated" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ order.updated_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-actions" style="margin-top: 2rem;">
+            <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
+            {% if can_edit %}
+            <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

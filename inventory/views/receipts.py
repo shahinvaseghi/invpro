@@ -259,6 +259,8 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
         context['show_actions'] = True
         
         # Receipt-specific context
+        context['feature_code'] = 'inventory.receipts.temporary'
+        context['view_url_name'] = 'inventory:receipt_temporary_detail'  # Use detail view
         context['detail_url_name'] = 'inventory:receipt_temporary_detail'
         context['edit_url_name'] = 'inventory:receipt_temporary_edit'
         context['delete_url_name'] = 'inventory:receipt_temporary_delete'
@@ -716,6 +718,8 @@ class ReceiptPermanentListView(InventoryBaseView, ListView):
         context['show_actions'] = True
         
         # Receipt-specific context
+        context['feature_code'] = 'inventory.receipts.permanent'
+        context['view_url_name'] = 'inventory:receipt_permanent_detail'  # Use detail view
         context['detail_url_name'] = 'inventory:receipt_permanent_detail'
         context['edit_url_name'] = 'inventory:receipt_permanent_edit'
         context['delete_url_name'] = 'inventory:receipt_permanent_delete'
@@ -998,6 +1002,8 @@ class ReceiptConsignmentListView(InventoryBaseView, ListView):
         context['show_actions'] = True
         
         # Receipt-specific context
+        context['feature_code'] = 'inventory.receipts.consignment'
+        context['view_url_name'] = 'inventory:receipt_consignment_detail'  # Use detail view
         context['detail_url_name'] = 'inventory:receipt_consignment_detail'
         context['edit_url_name'] = 'inventory:receipt_consignment_edit'
         context['delete_url_name'] = 'inventory:receipt_consignment_delete'

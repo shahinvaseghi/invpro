@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.views.base import EditLockProtectedMixin
@@ -81,6 +81,8 @@ class MachineListView(FeaturePermissionRequiredMixin, ListView):
         context['search_placeholder'] = _('Search by code or name')
         context['clear_filter_url'] = reverse_lazy('production:machines')
         context['show_actions'] = True
+        context['feature_code'] = 'production.machines'
+        context['detail_url_name'] = 'production:machine_detail'
         context['edit_url_name'] = 'production:machine_edit'
         context['delete_url_name'] = 'production:machine_delete'
         context['empty_state_title'] = _('No Machines Found')
@@ -177,6 +179,37 @@ class MachineUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
             {'label': _('Edit'), 'url': None},
         ]
         context['cancel_url'] = reverse_lazy('production:machines')
+        return context
+
+
+class MachineDetailView(FeaturePermissionRequiredMixin, DetailView):
+    """Detail view for viewing machines (read-only)."""
+    model = Machine
+    template_name = 'production/machine_detail.html'
+    context_object_name = 'machine'
+    feature_code = 'production.machines'
+    required_action = 'view_own'
+    
+    def get_queryset(self):
+        """Filter by active company."""
+        active_company_id: Optional[int] = self.request.session.get('active_company_id')
+        if not active_company_id:
+            return Machine.objects.none()
+        queryset = Machine.objects.filter(company_id=active_company_id)
+        queryset = queryset.select_related(
+            'work_center',
+            'created_by',
+            'edited_by',
+        )
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        context['list_url'] = reverse_lazy('production:machines')
+        context['edit_url'] = reverse_lazy('production:machine_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
+        context['feature_code'] = 'production.machines'
         return context
 
 

@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.views.base import EditLockProtectedMixin
@@ -70,6 +70,8 @@ class GLAccountListView(FeaturePermissionRequiredMixin, AccountingBaseView, List
         context['clear_filter_url'] = reverse('accounting:gl_accounts')
         context['print_enabled'] = True
         context['show_actions'] = True
+        context['feature_code'] = 'accounting.accounts.gl'
+        context['detail_url_name'] = 'accounting:gl_account_detail'
         context['edit_url_name'] = 'accounting:gl_account_edit'
         context['delete_url_name'] = 'accounting:gl_account_delete'
         context['table_headers'] = [
@@ -159,6 +161,35 @@ class GLAccountUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin
             {'label': _('ویرایش')},
         ]
         context['cancel_url'] = reverse('accounting:gl_accounts')
+        return context
+
+
+class GLAccountDetailView(FeaturePermissionRequiredMixin, AccountingBaseView, DetailView):
+    """Detail view for viewing GL accounts (read-only)."""
+    model = Account
+    template_name = 'accounting/gl_account_detail.html'
+    context_object_name = 'account'
+    feature_code = 'accounting.accounts.gl'
+    required_action = 'view_own'
+    
+    def get_queryset(self):
+        """Filter GL accounts (level 1) by active company."""
+        queryset = Account.objects.filter(account_level=1)
+        queryset = self.filter_queryset_by_permissions(queryset, self.feature_code)
+        queryset = queryset.select_related(
+            'created_by',
+            'edited_by',
+        ).prefetch_related('child_accounts')
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = _('مشاهده حساب کل')
+        context['list_url'] = reverse_lazy('accounting:gl_accounts')
+        context['edit_url'] = reverse_lazy('accounting:gl_account_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
+        context['feature_code'] = 'accounting.accounts.gl'
         return context
 
 

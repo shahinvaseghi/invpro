@@ -58,6 +58,7 @@ class TemporaryReceiptQCListView(FeaturePermissionRequiredMixin, QCBaseView, Lis
         ]
         context['table_headers'] = []  # Overridden in template
         context['show_actions'] = True
+        context['view_url_name'] = 'inventory:receipt_temporary_detail'  # Use detail view from inventory
         context['empty_state_title'] = _('No Receipts')
         context['empty_state_message'] = _('There are no temporary receipts.')
         context['empty_state_icon'] = '📋'

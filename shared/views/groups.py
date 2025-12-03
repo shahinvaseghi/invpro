@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.models import Group
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.forms import GroupForm
@@ -57,6 +57,8 @@ class GroupListView(FeaturePermissionRequiredMixin, ListView):
         context['search_placeholder'] = _('Group name')
         context['clear_filter_url'] = reverse_lazy('shared:groups')
         context['show_actions'] = True
+        context['feature_code'] = 'shared.groups'
+        context['detail_url_name'] = 'shared:group_detail'
         context['edit_url_name'] = 'shared:group_edit'
         context['delete_url_name'] = 'shared:group_delete'
         context['empty_state_title'] = _('No Groups Found')
@@ -124,6 +126,34 @@ class GroupUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, Up
         response = super().form_valid(form)
         messages.success(self.request, _('Group updated successfully.'))
         return response
+
+
+class GroupDetailView(FeaturePermissionRequiredMixin, DetailView):
+    """Detail view for viewing groups (read-only)."""
+    model = Group
+    template_name = 'shared/group_detail.html'
+    context_object_name = 'group'
+    feature_code = 'shared.groups'
+    required_action = 'view_own'
+    
+    def get_queryset(self):
+        """Get all groups."""
+        queryset = Group.objects.all()
+        queryset = queryset.prefetch_related(
+            'user_set',
+            'profile__access_levels',
+        )
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'shared'
+        context['list_url'] = reverse_lazy('shared:groups')
+        context['edit_url'] = reverse_lazy('shared:group_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
+        context['feature_code'] = 'shared.groups'
+        return context
 
 
 class GroupDeleteView(FeaturePermissionRequiredMixin, DeleteView):

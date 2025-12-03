@@ -172,13 +172,47 @@ def get_user_feature_permissions(user: User, company_id: Optional[int]) -> Dict[
     return _resolve_feature_permissions(level_ids)
 
 
+def are_users_in_same_primary_group(user1: User, user2: User) -> bool:
+    """
+    Check if two users share at least one primary group.
+    
+    Args:
+        user1: First user
+        user2: Second user
+        
+    Returns:
+        True if users share at least one primary group, False otherwise
+    """
+    if not user1 or not user2:
+        return False
+    
+    # Get primary groups for both users
+    user1_groups = set(user1.primary_groups.all().values_list('id', flat=True))
+    user2_groups = set(user2.primary_groups.all().values_list('id', flat=True))
+    
+    # Check if there's any intersection
+    return bool(user1_groups & user2_groups)
+
+
 def has_feature_permission(
     permissions: Mapping[str, FeaturePermissionState],
     feature_code: str,
     action: str = "view",
     allow_own_scope: bool = True,
+    current_user: Optional[User] = None,
+    resource_owner: Optional[User] = None,
 ) -> bool:
-    """Utility for validating a particular feature/action combination."""
+    """
+    Utility for validating a particular feature/action combination.
+    
+    Args:
+        permissions: Resolved permissions mapping
+        feature_code: Feature code to check
+        action: Action to check (e.g., 'view_own', 'view_same_group')
+        allow_own_scope: Whether to allow own scope fallback
+        current_user: Current user (required for same_group checks)
+        resource_owner: Owner of the resource (required for same_group checks)
+    """
 
     if "__superuser__" in permissions:
         return True
@@ -198,6 +232,20 @@ def has_feature_permission(
 
     if action == "view_own":
         return state.view_scope in {"own", "all"}
+    
+    # Check same_group actions
+    if action in {"view_same_group", "edit_same_group", "delete_same_group", "lock_same_group", "unlock_same_group"}:
+        # Check if user has the same_group permission
+        action_value = state.actions.get(action)
+        if not action_value:
+            return False
+        
+        # If permission exists, check if users are in same primary group
+        if current_user and resource_owner:
+            if are_users_in_same_primary_group(current_user, resource_owner):
+                return True
+        
+        return False
 
     action_value = state.actions.get(action)
     if action_value:

@@ -7,7 +7,7 @@ from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.views.base import EditLockProtectedMixin
@@ -86,6 +86,8 @@ class ProcessListView(FeaturePermissionRequiredMixin, ListView):
         context['create_button_text'] = _('+ Create Process')
         context['table_headers'] = []  # Overridden in template
         context['show_actions'] = True
+        context['feature_code'] = 'production.processes'
+        context['detail_url_name'] = 'production:process_detail'
         context['edit_url_name'] = 'production:process_edit'
         context['delete_url_name'] = 'production:process_delete'
         context['empty_state_title'] = _('No Processes Found')
@@ -518,6 +520,44 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
         else:
             context['work_lines'] = []
         
+        return context
+
+
+class ProcessDetailView(FeaturePermissionRequiredMixin, DetailView):
+    """Detail view for viewing processes (read-only)."""
+    model = Process
+    template_name = 'production/process_detail.html'
+    context_object_name = 'process'
+    feature_code = 'production.processes'
+    required_action = 'view_own'
+    
+    def get_queryset(self):
+        """Filter by active company."""
+        active_company_id: Optional[int] = self.request.session.get('active_company_id')
+        if not active_company_id:
+            return Process.objects.none()
+        queryset = Process.objects.filter(company_id=active_company_id)
+        queryset = queryset.select_related(
+            'finished_item',
+            'bom',
+            'approved_by',
+            'created_by',
+            'edited_by',
+        ).prefetch_related(
+            'work_lines',
+            'operations',
+            'operations__operation_materials',
+            'operations__operation_materials__bom_material',
+        )
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        context['list_url'] = reverse_lazy('production:processes')
+        context['edit_url'] = reverse_lazy('production:process_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
+        context['feature_code'] = 'production.processes'
         return context
 
 

@@ -100,6 +100,8 @@ class IssuePermanentListView(InventoryBaseView, ListView):
         context['show_actions'] = True
         
         # Issue-specific context
+        context['feature_code'] = 'inventory.issues.permanent'
+        context['view_url_name'] = 'inventory:issue_permanent_detail'  # Use detail view
         context['edit_url_name'] = 'inventory:issue_permanent_edit'
         context['delete_url_name'] = 'inventory:issue_permanent_delete'
         context['lock_url_name'] = 'inventory:issue_permanent_lock'
@@ -452,6 +454,8 @@ class IssueConsumptionListView(InventoryBaseView, ListView):
         context['show_actions'] = True
         
         # Issue-specific context
+        context['feature_code'] = 'inventory.issues.consumption'
+        context['view_url_name'] = 'inventory:issue_consumption_detail'  # Use detail view
         context['edit_url_name'] = 'inventory:issue_consumption_edit'
         context['delete_url_name'] = 'inventory:issue_consumption_delete'
         context['lock_url_name'] = 'inventory:issue_consumption_lock'
@@ -827,6 +831,8 @@ class IssueConsignmentListView(InventoryBaseView, ListView):
         context['show_actions'] = True
         
         # Issue-specific context
+        context['feature_code'] = 'inventory.issues.consignment'
+        context['view_url_name'] = 'inventory:issue_consignment_detail'  # Use detail view
         context['edit_url_name'] = 'inventory:issue_consignment_edit'
         context['delete_url_name'] = 'inventory:issue_consignment_delete'
         context['lock_url_name'] = 'inventory:issue_consignment_lock'

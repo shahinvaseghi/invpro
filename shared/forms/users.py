@@ -24,6 +24,13 @@ class UserBaseForm(forms.ModelForm):
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
         help_text=_('Assign the user to one or more groups.'),
     )
+    primary_groups = forms.ModelMultipleChoiceField(
+        queryset=Group.objects.none(),
+        required=False,
+        label=_('Primary Groups'),
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+        help_text=_('Select primary groups for same-group permissions. Users in the same primary group can access each other\'s resources.'),
+    )
 
     class Meta:
         model = User
@@ -71,11 +78,14 @@ class UserBaseForm(forms.ModelForm):
         """Initialize form with groups queryset."""
         super().__init__(*args, **kwargs)
         self._pending_groups = None
+        self._pending_primary_groups = None
         self.fields['default_company'].queryset = Company.objects.filter(is_enabled=1)
         self.fields['default_company'].required = False
         self.fields['groups'].queryset = Group.objects.order_by('name')
+        self.fields['primary_groups'].queryset = Group.objects.order_by('name')
         if self.instance.pk:
             self.fields['groups'].initial = self.instance.groups.all()
+            self.fields['primary_groups'].initial = self.instance.primary_groups.all()
 
         self.fields['is_active'] = forms.BooleanField(
             required=False,
@@ -100,18 +110,21 @@ class UserBaseForm(forms.ModelForm):
         """Store groups to user instance."""
         if self._pending_groups is not None:
             self.instance.groups.set(self._pending_groups)
+        if self._pending_primary_groups is not None:
+            self.instance.primary_groups.set(self._pending_primary_groups)
 
     def save(self, commit: bool = True):
         """Save user with groups."""
         # Store groups before calling super().save() to ensure they're available
         self._pending_groups = self.cleaned_data.get('groups')
+        self._pending_primary_groups = self.cleaned_data.get('primary_groups')
         user = super().save(commit=commit)
         if commit:
             self._store_groups()
         return user
 
     def save_m2m(self) -> None:
-        """Save many-to-many relationships (groups)."""
+        """Save many-to-many relationships (groups and primary_groups)."""
         # Store groups BEFORE calling super().save_m2m() which may clear them
         # Use _pending_groups if set, otherwise fall back to cleaned_data
         groups_to_set = None
@@ -122,11 +135,19 @@ class UserBaseForm(forms.ModelForm):
             # Convert QuerySet to list of IDs
             groups_to_set = list(self.cleaned_data['groups'].values_list('id', flat=True))
         
+        primary_groups_to_set = None
+        if hasattr(self, '_pending_primary_groups') and self._pending_primary_groups is not None:
+            primary_groups_to_set = list(self._pending_primary_groups.values_list('id', flat=True))
+        elif hasattr(self, 'cleaned_data') and 'primary_groups' in self.cleaned_data:
+            primary_groups_to_set = list(self.cleaned_data['primary_groups'].values_list('id', flat=True))
+        
         # Don't call super().save_m2m() because it will try to save 'groups' field
         # which is not in the form's Meta.fields, and may clear existing groups
         # Instead, set groups directly
         if groups_to_set is not None:
             self.instance.groups.set(groups_to_set)
+        if primary_groups_to_set is not None:
+            self.instance.primary_groups.set(primary_groups_to_set)
 
 
 class UserCreateForm(UserBaseForm):
@@ -197,9 +218,11 @@ class UserUpdateForm(UserBaseForm):
 
     def save(self, commit: bool = True):
         """Save user with optional password change."""
-        # Ensure _pending_groups is set before calling super().save()
+        # Ensure _pending_groups and _pending_primary_groups are set before calling super().save()
         if not hasattr(self, '_pending_groups') or self._pending_groups is None:
             self._pending_groups = self.cleaned_data.get('groups')
+        if not hasattr(self, '_pending_primary_groups') or self._pending_primary_groups is None:
+            self._pending_primary_groups = self.cleaned_data.get('primary_groups')
         
         user = super().save(commit=False)
         new_password = self.cleaned_data.get('new_password1')
@@ -211,6 +234,9 @@ class UserUpdateForm(UserBaseForm):
             if hasattr(self, '_pending_groups') and self._pending_groups is not None:
                 groups_to_set = list(self._pending_groups.values_list('id', flat=True))
                 user.groups.set(groups_to_set)
+            if hasattr(self, '_pending_primary_groups') and self._pending_primary_groups is not None:
+                primary_groups_to_set = list(self._pending_primary_groups.values_list('id', flat=True))
+                user.primary_groups.set(primary_groups_to_set)
             # Call save_m2m for any other M2M fields
             self.save_m2m()
         else:
@@ -218,6 +244,8 @@ class UserUpdateForm(UserBaseForm):
             # so save_m2m() can use it later
             if not hasattr(self, '_pending_groups') or self._pending_groups is None:
                 self._pending_groups = self.cleaned_data.get('groups')
+            if not hasattr(self, '_pending_primary_groups') or self._pending_primary_groups is None:
+                self._pending_primary_groups = self.cleaned_data.get('primary_groups')
         return user
 
 

@@ -1,0 +1,99 @@
+{% extends "inventory/base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "View Item Category" %}{% endblock %}
+
+{% block inventory_content %}
+<div class="form-container">
+  <div class="info-banner">
+    <div><strong>{% trans "Code" %}:</strong> <code>{{ itemcategory.public_code }}</code></div>
+    <div><strong>{% trans "Status" %}:</strong>
+      {% if itemcategory.is_enabled %}
+        <span class="badge badge-active">{% trans "Active" %}</span>
+      {% else %}
+        <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h3>{% trans "Basic Information" %}</h3>
+    <div class="form-row">
+      <div class="form-field">
+        <label>{% trans "Name" %} (FA)</label>
+        <div class="readonly-field">{{ itemcategory.name }}</div>
+      </div>
+      <div class="form-field">
+        <label>{% trans "Name" %} (EN)</label>
+        <div class="readonly-field">{{ itemcategory.name_en|default:"-" }}</div>
+      </div>
+      <div class="form-field">
+        <label>{% trans "Sort Order" %}</label>
+        <div class="readonly-field">{{ itemcategory.sort_order }}</div>
+      </div>
+    </div>
+  </div>
+
+  {% if itemcategory.description %}
+  <div class="form-section">
+    <h3>{% trans "Description" %}</h3>
+    <div class="readonly-field">{{ itemcategory.description }}</div>
+  </div>
+  {% endif %}
+
+  {% if itemcategory.notes %}
+  <div class="form-section">
+    <h3>{% trans "Notes" %}</h3>
+    <div class="readonly-field">{{ itemcategory.notes|linebreaks }}</div>
+  </div>
+  {% endif %}
+
+  <div class="form-section">
+    <h3>{% trans "Metadata" %}</h3>
+    <div class="form-row">
+      <div class="form-field">
+        <label>{% trans "Created At" %}</label>
+        <div class="readonly-field">{{ itemcategory.created_at|jalali_date }}</div>
+      </div>
+      {% if itemcategory.created_by %}
+      <div class="form-field">
+        <label>{% trans "Created By" %}</label>
+        <div class="readonly-field">{{ itemcategory.created_by.get_full_name|default:itemcategory.created_by.username }}</div>
+      </div>
+      {% endif %}
+      {% if itemcategory.updated_at %}
+      <div class="form-field">
+        <label>{% trans "Updated At" %}</label>
+        <div class="readonly-field">{{ itemcategory.updated_at|jalali_date }}</div>
+      </div>
+      {% endif %}
+      {% if itemcategory.edited_by %}
+      <div class="form-field">
+        <label>{% trans "Edited By" %}</label>
+        <div class="readonly-field">{{ itemcategory.edited_by.get_full_name|default:itemcategory.edited_by.username }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-actions" style="margin-top: 2rem;">
+    <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
+    {% if can_edit %}
+    <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.readonly-field {
+  padding: 0.5rem;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+}
+</style>
+{% endblock %}
+

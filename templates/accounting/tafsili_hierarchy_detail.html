@@ -1,0 +1,174 @@
+{% extends "shared/base.html" %}
+{% load i18n jalali_tags %}
+
+{% block page_title %}{% trans "View Tafsili Hierarchy" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'accounting:tafsili_hierarchy_list' %}">{% trans "Accounting" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'accounting:tafsili_hierarchy_list' %}">{% trans "Tafsili Hierarchy" %}</a></li>
+          <li class="breadcrumb-item active">{% trans "View Tafsili Hierarchy" %}</li>
+        </ol>
+      </nav>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>{% trans "View Tafsili Hierarchy" %}</h2>
+        </div>
+        <div class="card-body">
+          <div class="info-banner" style="background-color: #f3f4f6; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+            <div class="row">
+              <div class="col-md-3">
+                <strong>{% trans "Code" %}:</strong> <code>{{ hierarchy.code }}</code>
+              </div>
+              <div class="col-md-3">
+                <strong>{% trans "Level" %}:</strong> {{ hierarchy.level }}
+              </div>
+              <div class="col-md-3">
+                <strong>{% trans "Status" %}:</strong>
+                {% if hierarchy.is_enabled %}
+                  <span class="badge badge-success">{% trans "Active" %}</span>
+                {% else %}
+                  <span class="badge badge-secondary">{% trans "Inactive" %}</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Basic Information" %}</h3>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Name" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ hierarchy.name }}
+                  </div>
+                </div>
+              </div>
+              {% if hierarchy.name_en %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Name (EN)" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ hierarchy.name_en }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if hierarchy.parent %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Parent" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <code>{{ hierarchy.parent.code }}</code> - {{ hierarchy.parent.name }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if hierarchy.tafsili_account %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Tafsili Account" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <code>{{ hierarchy.tafsili_account.account_code }}</code> - {{ hierarchy.tafsili_account.account_name }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Full Path" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ hierarchy.get_full_path|default:hierarchy.name }}
+                  </div>
+                </div>
+              </div>
+              {% if hierarchy.description %}
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label>{% trans "Description" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ hierarchy.description|linebreaks }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if hierarchy.children.exists %}
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Child Hierarchies" %}</h3>
+            <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+              {% for child in hierarchy.children.all %}
+                <code>{{ child.code }}</code> - {{ child.name }} ({% trans "Level" %} {{ child.level }}){% if not forloop.last %}<br>{% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="form-section" style="margin-bottom: 2rem;">
+            <h3>{% trans "Audit Information" %}</h3>
+            <div class="row">
+              {% if hierarchy.created_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ hierarchy.created_by.get_full_name|default:hierarchy.created_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if hierarchy.created_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Created At" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ hierarchy.created_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if hierarchy.edited_by %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Edited By" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ hierarchy.edited_by.get_full_name|default:hierarchy.edited_by.username }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if hierarchy.edited_at %}
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>{% trans "Last Updated" %}</label>
+                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
+                    {{ hierarchy.edited_at|jalali_date:"%Y/%m/%d %H:%M" }}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-actions" style="margin-top: 2rem;">
+            <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
+            {% if can_edit %}
+            <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

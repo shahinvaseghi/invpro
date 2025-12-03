@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import ListView, CreateView, UpdateView
+from django.views.generic import ListView, CreateView, DetailView, UpdateView
 
 from .. import models
 from .base import TicketingBaseView
@@ -28,6 +28,9 @@ class TicketListView(TicketingBaseView, ListView):
         """Add context data."""
         context = super().get_context_data(**kwargs)
         context["page_title"] = _("Tickets")
+        context["feature_code"] = "ticketing.tickets"
+        context["detail_url_name"] = "ticketing:ticket_detail"
+        context["edit_url_name"] = "ticketing:ticket_edit"
         return context
 
 
@@ -196,6 +199,40 @@ class TicketCreateView(TicketingBaseView, CreateView):
     def get_success_url(self):
         """Redirect to ticket list."""
         return reverse_lazy("ticketing:ticket_list")
+
+
+class TicketDetailView(TicketingBaseView, DetailView):
+    """Detail view for viewing tickets (read-only)."""
+    model = models.Ticket
+    template_name = "ticketing/ticket_detail.html"
+    context_object_name = "ticket"
+    
+    def get_queryset(self):
+        """Filter by active company."""
+        company_id = self.request.session.get("active_company_id")
+        if not company_id:
+            return models.Ticket.objects.none()
+        queryset = models.Ticket.objects.filter(company_id=company_id)
+        queryset = queryset.select_related(
+            'template',
+            'category',
+            'subcategory',
+            'reported_by',
+            'assigned_to',
+            'created_by',
+            'edited_by',
+        )
+        return queryset
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        context["page_title"] = _("View Ticket")
+        context["list_url"] = reverse_lazy("ticketing:ticket_list")
+        context["edit_url"] = reverse_lazy("ticketing:ticket_edit", kwargs={"pk": self.object.pk})
+        context["can_edit"] = not getattr(self.object, "is_locked", 0) if hasattr(self.object, "is_locked") else True
+        context["feature_code"] = "ticketing.tickets"
+        return context
 
 
 class TicketEditView(EditLockProtectedMixin, TicketingBaseView, UpdateView):
