@@ -1018,11 +1018,13 @@ class TransferToLineItem(ProductionBaseModel):
     )
     source_warehouse_code = models.CharField(max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
     destination_work_center = models.ForeignKey(
-        WorkCenter,
+        WorkLine,
         on_delete=models.PROTECT,
         related_name="transfer_items",
         null=True,
         blank=True,
+        verbose_name=_("Destination Work Line"),
+        help_text=_("Work line where materials should be transferred (determines destination warehouse)"),
     )
     destination_location_code = models.CharField(max_length=30, blank=True)
     material_scrap_allowance = models.DecimalField(

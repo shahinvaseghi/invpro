@@ -13,6 +13,7 @@ from production.utils.transfer import (
     get_available_operations_for_order,
     is_full_order_transferred,
 )
+from production.models import TransferToLine
 
 logger = logging.getLogger('production.views.api')
 
@@ -74,6 +75,8 @@ def get_order_operations(request: HttpRequest, order_id: int) -> JsonResponse:
     try:
         # Get is_scrap_replacement from query params (optional)
         include_scrap_replacement = request.GET.get('include_scrap_replacement', 'false').lower() == 'true'
+        # Get scrap_replacement_mode: if True, return only transferred operations
+        scrap_replacement_mode = request.GET.get('scrap_replacement_mode', 'false').lower() == 'true'
         
         order = get_object_or_404(
             ProductOrder,
@@ -93,7 +96,8 @@ def get_order_operations(request: HttpRequest, order_id: int) -> JsonResponse:
         # Get available operations
         available_operations = get_available_operations_for_order(
             order,
-            include_scrap_replacement=include_scrap_replacement
+            include_scrap_replacement=include_scrap_replacement,
+            scrap_replacement_mode=scrap_replacement_mode
         )
 
         # Check if full order is transferred
@@ -102,10 +106,18 @@ def get_order_operations(request: HttpRequest, order_id: int) -> JsonResponse:
             exclude_scrap_replacement=not include_scrap_replacement
         )
 
+        # Check if order has any previous transfers (for scrap replacement validation)
+        has_previous_transfers = TransferToLine.objects.filter(
+            order=order,
+            is_enabled=1,
+            is_scrap_replacement=0,  # Exclude scrap replacements
+        ).exists()
+        
         return JsonResponse({
             'operations': available_operations,
             'has_process': True,
             'is_full_transferred': is_full_transferred,
+            'has_previous_transfers': has_previous_transfers,
             'order_code': order.order_code,
             'process_code': order.process.process_code if order.process else None,
         })

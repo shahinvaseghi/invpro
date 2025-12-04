@@ -17,7 +17,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 from decimal import Decimal, InvalidOperation
 
-from .base import InventoryBaseView, DocumentLockProtectedMixin, DocumentLockView, LineFormsetMixin
+from .base import InventoryBaseView, DocumentLockProtectedMixin, DocumentLockView, DocumentUnlockView, LineFormsetMixin
 from shared.views.base import EditLockProtectedMixin
 from .receipts import DocumentDeleteViewBase, ReceiptFormMixin
 from shared.mixins import FeaturePermissionRequiredMixin
@@ -1221,9 +1221,29 @@ class IssueWarehouseTransferListView(InventoryBaseView, ListView):
     def get_queryset(self):
         """Prefetch related objects for efficient display and apply filters."""
         queryset = super().get_queryset()
+        
         # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.warehouse_transfer', 'created_by')
-        queryset = queryset.select_related('created_by').prefetch_related(
+        # But also include warehouse transfers created from TransferToLine
+        from django.db.models import Q
+        
+        # Get base filtered queryset
+        base_queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.warehouse_transfer', 'created_by')
+        
+        # Always include warehouse transfers created from TransferToLine
+        # These are part of the production workflow and should be visible
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            # Include warehouse transfers created from TransferToLine
+            production_transfer_queryset = queryset.filter(
+                production_transfer__isnull=False,
+                company_id=company_id,
+            )
+            # Combine both querysets (union removes duplicates)
+            queryset = (base_queryset | production_transfer_queryset).distinct()
+        else:
+            queryset = base_queryset
+        
+        queryset = queryset.select_related('created_by', 'production_transfer').prefetch_related(
             'lines__item',
             'lines__source_warehouse',
             'lines__destination_warehouse',
@@ -1238,7 +1258,6 @@ class IssueWarehouseTransferListView(InventoryBaseView, ListView):
         
         search_query = self.request.GET.get('search', '').strip()
         if search_query:
-            from django.db.models import Q
             queryset = queryset.filter(
                 Q(document_code__icontains=search_query) |
                 Q(lines__item__name__icontains=search_query) |
@@ -1278,7 +1297,18 @@ class IssueWarehouseTransferListView(InventoryBaseView, ListView):
         context['show_filters'] = True
         context['print_enabled'] = True
         context['show_actions'] = True
+        context['edit_url_name'] = 'inventory:issue_warehouse_transfer_edit'
+        context['delete_url_name'] = None  # Delete not implemented yet
+        context['detail_url_name'] = 'inventory:issue_warehouse_transfer_detail'
+        context['feature_code'] = 'inventory.issues.warehouse_transfer'
         context['stats'] = self._get_stats()
+        
+        # Add user_feature_permissions for template
+        active_company_id = self.request.session.get('active_company_id')
+        if active_company_id:
+            from shared.utils.permissions import get_user_feature_permissions
+            context['user_feature_permissions'] = get_user_feature_permissions(self.request.user, active_company_id)
+        
         return context
 
 
@@ -1407,3 +1437,43 @@ class IssueWarehouseTransferUpdateView(EditLockProtectedMixin, LineFormsetMixin,
             (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
         ]
 
+
+
+
+class IssueWarehouseTransferDetailView(InventoryBaseView, DetailView):
+    """Detail view for warehouse transfer issues (read-only)."""
+    model = models.IssueWarehouseTransfer
+    template_name = 'inventory/issue_warehouse_transfer_detail.html'
+    context_object_name = 'warehouse_transfer'
+    
+    def get_queryset(self):
+        """Filter by active company."""
+        active_company_id: Optional[int] = self.request.session.get('active_company_id')
+        if not active_company_id:
+            return models.IssueWarehouseTransfer.objects.none()
+        return models.IssueWarehouseTransfer.objects.filter(company_id=active_company_id)
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        context['list_url'] = reverse_lazy('inventory:issue_warehouse_transfer')
+        context['edit_url'] = reverse_lazy('inventory:issue_warehouse_transfer_edit', kwargs={'pk': self.object.pk})
+        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
+        context['feature_code'] = 'inventory.issues.warehouse_transfer'
+        return context
+
+
+class IssueWarehouseTransferLockView(DocumentLockView):
+    """Lock view for warehouse transfer issues."""
+    model = models.IssueWarehouseTransfer
+    success_url_name = 'inventory:issue_warehouse_transfer'
+    success_message = _('حواله انتقال بین انبارها قفل شد و دیگر قابل ویرایش نیست.')
+
+
+class IssueWarehouseTransferUnlockView(DocumentUnlockView):
+    """Unlock view for warehouse transfer issues."""
+    model = models.IssueWarehouseTransfer
+    success_url_name = 'inventory:issue_warehouse_transfer'
+    success_message = _('حواله انتقال بین انبارها از قفل خارج شد و قابل ویرایش است.')
+    feature_code = 'inventory.issues.warehouse_transfer'
+    required_action = 'unlock_own'

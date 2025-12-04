@@ -1868,6 +1868,17 @@ class IssueWarehouseTransfer(InventoryDocumentBase):
     document_date = models.DateField(default=timezone.now)
     # Header-level fields only - item/warehouse/quantity moved to IssueWarehouseTransferLine
     issue_metadata = models.JSONField(default=dict, blank=True)
+    # Reference to TransferToLine if created from production transfer
+    production_transfer = models.ForeignKey(
+        'production.TransferToLine',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='warehouse_transfers',
+        verbose_name=_('Production Transfer'),
+        help_text=_('The production transfer request that created this warehouse transfer'),
+    )
+    production_transfer_code = models.CharField(max_length=30, blank=True)
 
     class Meta:
         verbose_name = _("Warehouse Transfer Issue")
@@ -1876,6 +1887,12 @@ class IssueWarehouseTransfer(InventoryDocumentBase):
 
     def __str__(self) -> str:
         return self.document_code
+    
+    def save(self, *args, **kwargs):
+        """Auto-set production_transfer_code from production_transfer."""
+        if self.production_transfer and not self.production_transfer_code:
+            self.production_transfer_code = self.production_transfer.transfer_code
+        super().save(*args, **kwargs)
 
 
 class IssueWarehouseTransferLine(IssueLineBase):

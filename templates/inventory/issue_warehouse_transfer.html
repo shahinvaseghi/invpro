@@ -1,5 +1,5 @@
 {% extends "shared/generic/generic_list.html" %}
-{% load i18n jalali_tags %}
+{% load i18n jalali_tags access_tags %}
 
 {% block breadcrumb_extra %}
 <span class="separator">/</span>
@@ -84,5 +84,95 @@
          value="{{ request.GET.search }}"
          class="form-control">
 </div>
+{% endblock %}
+
+{% block table_headers %}
+<th>{% trans "Document Code" %}</th>
+<th>{% trans "Document Date" %}</th>
+<th>{% trans "Production Transfer" %}</th>
+<th>{% trans "Finished Item" %}</th>
+<th>{% trans "Status" %}</th>
+<th>{% trans "Lock Status" %}</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for warehouse_transfer in object_list %}
+<tr>
+  <td><code>{{ warehouse_transfer.document_code }}</code></td>
+  <td>{{ warehouse_transfer.document_date|jalali_date }}</td>
+  <td>
+    {% if warehouse_transfer.production_transfer %}
+      <a href="{% url 'production:transfer_request_detail' warehouse_transfer.production_transfer.pk %}" style="color: #3b82f6; text-decoration: underline;">
+        <code>{{ warehouse_transfer.production_transfer_code }}</code>
+      </a>
+    {% else %}
+      -
+    {% endif %}
+  </td>
+  <td>
+    {% if warehouse_transfer.production_transfer and warehouse_transfer.production_transfer.order.finished_item %}
+      {{ warehouse_transfer.production_transfer.order.finished_item.name }}
+    {% else %}
+      -
+    {% endif %}
+  </td>
+  <td>
+    {% if warehouse_transfer.is_locked %}
+      <span class="badge badge-success">{% trans "Approved" %}</span>
+    {% else %}
+      <span class="badge badge-secondary">{% trans "Pending Approval" %}</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if warehouse_transfer.is_locked %}
+      <span class="badge badge-locked">{% trans "Locked" %}</span>
+    {% else %}
+      <span class="badge badge-secondary">{% trans "EDITABLE" %}</span>
+    {% endif %}
+  </td>
+  {% if show_actions %}
+  <td>
+    {% load access_tags %}
+    {# View button - always show if user has view permission #}
+    {% can_view_object warehouse_transfer feature_code|default:"" as can_view %}
+    {% if can_view %}
+      <a href="{% url 'inventory:issue_warehouse_transfer_detail' warehouse_transfer.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+        {% trans "View" %}
+      </a>
+    {% endif %}
+    {# Edit button - only show if not locked and user has edit permission #}
+    {% if not warehouse_transfer.is_locked %}
+      {% can_edit_object warehouse_transfer feature_code|default:"" as can_edit %}
+      {% if can_edit %}
+        <a href="{% url edit_url_name warehouse_transfer.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+          {% trans "Edit" %}
+        </a>
+      {% endif %}
+    {% else %}
+      {# Unlock button - only show if locked and user has unlock permission #}
+      {% if user_feature_permissions|feature_allowed:'inventory.issues.warehouse_transfer:unlock_own' or user.is_superuser %}
+        <form method="post" action="{% url 'inventory:issue_warehouse_transfer_unlock' warehouse_transfer.pk %}" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem; background-color: #ffc107; border-color: #ffc107; color: #000;" onclick="return confirm('{% trans 'Are you sure you want to unlock this warehouse transfer?' %}')">
+            {% trans "Unlock" %}
+          </button>
+        </form>
+      {% endif %}
+    {% endif %}
+    {# Lock button - only show if not locked and user has lock permission #}
+    {% if not warehouse_transfer.is_locked %}
+      {% if user_feature_permissions|feature_allowed:'inventory.issues.warehouse_transfer:lock' or user.is_superuser %}
+        <form method="post" action="{% url 'inventory:issue_warehouse_transfer_lock' warehouse_transfer.pk %}" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-success" style="padding: 4px 12px; font-size: 0.85rem; background-color: #10b981; border-color: #10b981;" onclick="return confirm('{% trans 'Are you sure you want to lock this warehouse transfer?' %}')">
+            {% trans "Lock" %}
+          </button>
+        </form>
+      {% endif %}
+    {% endif %}
+  </td>
+  {% endif %}
+</tr>
+{% endfor %}
 {% endblock %}
 

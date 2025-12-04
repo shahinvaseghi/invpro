@@ -81,6 +81,8 @@ from production.views.transfer_to_line import (
     TransferToLineRejectView,
     TransferToLineQCApproveView,
     TransferToLineQCRejectView,
+    TransferToLineCreateWarehouseTransferView,
+    TransferToLineUnlockView,
 )
 
 # Import performance record views
@@ -142,6 +144,8 @@ __all__ = [
     'TransferToLineRejectView',
     'TransferToLineQCApproveView',
     'TransferToLineQCRejectView',
+    'TransferToLineCreateWarehouseTransferView',
+    'TransferToLineUnlockView',
     # Performance Record views
     'PerformanceRecordListView',
     'PerformanceRecordCreateView',

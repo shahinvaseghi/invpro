@@ -1141,10 +1141,12 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     
-    var includeScrapReplacement = scrapReplacementCheckbox ? scrapReplacementCheckbox.checked : false;
+    // scrap_replacement_mode: if checkbox is checked, show only transferred operations
+    // if checkbox is unchecked, show only non-transferred operations
+    var scrapReplacementMode = scrapReplacementCheckbox ? scrapReplacementCheckbox.checked : false;
     var url = '{% url "production:api_order_operations" 0 %}'.replace('0', orderId);
-    if (includeScrapReplacement) {
-      url += '?include_scrap_replacement=true';
+    if (scrapReplacementMode) {
+      url += '?scrap_replacement_mode=true';
     }
     
     operationsLoading.style.display = 'block';
@@ -1168,7 +1170,7 @@ document.addEventListener('DOMContentLoaded', function() {
           return;
         }
         
-        if (data.is_full_transferred && !includeScrapReplacement) {
+        if (data.is_full_transferred && !scrapReplacementMode) {
           operationsError.innerHTML = '{% trans "All materials for this order have already been transferred. If this is for scrap replacement, please check the Scrap Replacement checkbox." %}';
           operationsError.style.display = 'block';
         }
@@ -1196,7 +1198,11 @@ document.addEventListener('DOMContentLoaded', function() {
             operationsList.appendChild(checkboxDiv);
           });
         } else {
-          operationsList.innerHTML = '<div style="padding: 1rem; color: #6b7280;">{% trans "هیچ عملیاتی یافت نشد." %}</div>';
+          if (scrapReplacementMode) {
+            operationsList.innerHTML = '<div style="padding: 1rem; color: #6b7280;">{% trans "هیچ عملیات انتقال داده شده‌ای یافت نشد." %}</div>';
+          } else {
+            operationsList.innerHTML = '<div style="padding: 1rem; color: #6b7280;">{% trans "هیچ عملیاتی یافت نشد." %}</div>';
+          }
         }
       })
       .catch(error => {
@@ -1212,9 +1218,69 @@ document.addEventListener('DOMContentLoaded', function() {
     radio.addEventListener('change', updateOperationsVisibility);
   });
   
+  // Function to check if order has previous transfers and update scrap replacement checkbox
+  function updateScrapReplacementAvailability() {
+    var orderId = orderSelect ? orderSelect.value : null;
+    if (!orderId || !scrapReplacementCheckbox) {
+      return;
+    }
+    
+    var url = '{% url "production:api_order_operations" 0 %}'.replace('0', orderId);
+    
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        if (data.has_previous_transfers) {
+          // Order has previous transfers - enable scrap replacement checkbox
+          scrapReplacementCheckbox.disabled = false;
+          scrapReplacementCheckbox.title = '';
+          // Remove any warning styling
+          var checkboxLabel = scrapReplacementCheckbox.closest('label');
+          if (checkboxLabel) {
+            checkboxLabel.style.opacity = '1';
+            checkboxLabel.style.cursor = 'pointer';
+          }
+        } else {
+          // Order has no previous transfers - disable scrap replacement checkbox
+          scrapReplacementCheckbox.disabled = true;
+          scrapReplacementCheckbox.checked = false;
+          scrapReplacementCheckbox.title = '{% trans "این گزینه فقط برای سفارش‌هایی که قبلاً انتقال به پای کار داشته‌اند فعال است" %}';
+          // Add visual indication
+          var checkboxLabel = scrapReplacementCheckbox.closest('label');
+          if (checkboxLabel) {
+            checkboxLabel.style.opacity = '0.6';
+            checkboxLabel.style.cursor = 'not-allowed';
+          }
+          // Hide QC approver row if visible
+          if (qcApproverRow) {
+            qcApproverRow.style.display = 'none';
+          }
+          if (qcApproverField) {
+            qcApproverField.required = false;
+            qcApproverField.value = '';
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error checking order transfers:', error);
+        // On error, enable checkbox to avoid blocking user
+        if (scrapReplacementCheckbox) {
+          scrapReplacementCheckbox.disabled = false;
+        }
+        // Remove hidden input on error
+        if (hiddenInput) {
+          hiddenInput.remove();
+        }
+      });
+  }
+  
   // Handle order change
   if (orderSelect) {
     orderSelect.addEventListener('change', function() {
+      // Check scrap replacement availability
+      updateScrapReplacementAvailability();
+      
+      // Load operations if needed
       if (document.querySelector('input[name="transfer_type"]:checked')?.value === 'operations') {
         loadOperations();
       }
@@ -1234,9 +1300,14 @@ document.addEventListener('DOMContentLoaded', function() {
   updateOperationsVisibility();
   
   // QC Approver field visibility (only shown when scrap replacement is checked)
-  var scrapReplacementCheckbox = document.getElementById('id_is_scrap_replacement');
+  // Note: scrapReplacementCheckbox is already defined above
   var qcApproverRow = document.getElementById('qc-approver-row');
   var qcApproverField = document.getElementById('id_qc_approved_by');
+  
+  // Check scrap replacement availability on page load
+  if (orderSelect && orderSelect.value) {
+    updateScrapReplacementAvailability();
+  }
   
   function updateQCApproverVisibility() {
     if (scrapReplacementCheckbox && qcApproverRow) {

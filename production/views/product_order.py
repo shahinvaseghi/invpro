@@ -15,9 +15,9 @@ from django.views.generic import CreateView, DeleteView, DetailView, ListView, U
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.views.base import EditLockProtectedMixin
 from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
-from inventory.utils.codes import generate_sequential_code
 from production.forms import ProductOrderForm
 from production.models import ProductOrder, TransferToLine, TransferToLineItem
+from production.utils.transfer import generate_transfer_code
 
 
 class ProductOrderListView(FeaturePermissionRequiredMixin, ListView):
@@ -202,10 +202,8 @@ class ProductOrderCreateView(FeaturePermissionRequiredMixin, CreateView):
         
         # Generate transfer code
         if not transfer.transfer_code:
-            transfer.transfer_code = generate_sequential_code(
-                TransferToLine,
+            transfer.transfer_code = generate_transfer_code(
                 company_id=company_id,
-                field='transfer_code',
                 prefix='TR',
                 width=8,
             )
@@ -534,10 +532,8 @@ class ProductOrderUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMi
         
         # Generate transfer code
         if not transfer.transfer_code:
-            transfer.transfer_code = generate_sequential_code(
-                TransferToLine,
+            transfer.transfer_code = generate_transfer_code(
                 company_id=company_id,
-                field='transfer_code',
                 prefix='TR',
                 width=8,
             )

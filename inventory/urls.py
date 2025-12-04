@@ -139,7 +139,10 @@ urlpatterns = [
     path('issues/consignment/<int:pk>/lines/<int:line_id>/serials/', views.IssueConsignmentLineSerialAssignmentView.as_view(), name='issue_consignment_line_serials'),
     path('issues/warehouse-transfer/', views.IssueWarehouseTransferListView.as_view(), name='issue_warehouse_transfer'),
     path('issues/warehouse-transfer/create/', views.IssueWarehouseTransferCreateView.as_view(), name='issue_warehouse_transfer_create'),
+    path('issues/warehouse-transfer/<int:pk>/', views.IssueWarehouseTransferDetailView.as_view(), name='issue_warehouse_transfer_detail'),
     path('issues/warehouse-transfer/<int:pk>/edit/', views.IssueWarehouseTransferUpdateView.as_view(), name='issue_warehouse_transfer_edit'),
+    path('issues/warehouse-transfer/<int:pk>/lock/', views.IssueWarehouseTransferLockView.as_view(), name='issue_warehouse_transfer_lock'),
+    path('issues/warehouse-transfer/<int:pk>/unlock/', views.IssueWarehouseTransferUnlockView.as_view(), name='issue_warehouse_transfer_unlock'),
     
     # Stocktaking
     path('stocktaking/deficit/', views.StocktakingDeficitListView.as_view(), name='stocktaking_deficit'),

@@ -40,6 +40,14 @@ class TransferToLineForm(forms.ModelForm):
         help_text=_('عملیات‌هایی که مواد آنها باید انتقال داده شود را انتخاب کنید'),
     )
     
+    # Override is_scrap_replacement as BooleanField to handle checkbox properly
+    is_scrap_replacement = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        label=_('جایگزینی ضایعات'),
+        help_text=_('اگر این انتقال برای جایگزینی مواد ضایعاتی است، این گزینه را انتخاب کنید'),
+    )
+    
     class Meta:
         model = TransferToLine
         fields = [
@@ -53,7 +61,6 @@ class TransferToLineForm(forms.ModelForm):
         widgets = {
             'order': forms.Select(attrs={'class': 'form-control', 'id': 'id_order'}),
             'approved_by': forms.Select(attrs={'class': 'form-control'}),
-            'is_scrap_replacement': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'qc_approved_by': forms.Select(attrs={'class': 'form-control'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
@@ -61,14 +68,12 @@ class TransferToLineForm(forms.ModelForm):
             'order': _('سفارش محصول'),
             'transfer_date': _('تاریخ انتقال'),
             'approved_by': _('تایید کننده'),
-            'is_scrap_replacement': _('جایگزینی ضایعات'),
             'qc_approved_by': _('تایید کننده QC'),
             'notes': _('یادداشت‌ها'),
         }
         help_texts = {
             'order': _('سفارش محصول را برای این درخواست انتقال انتخاب کنید'),
             'approved_by': _('کاربری که می‌تواند این درخواست انتقال را تایید کند انتخاب کنید'),
-            'is_scrap_replacement': _('اگر این انتقال برای جایگزینی مواد ضایعاتی است، این گزینه را انتخاب کنید'),
             'qc_approved_by': _('کاربری که می‌تواند تایید QC را برای این درخواست انتقال انجام دهد (فقط برای جایگزینی ضایعات)'),
         }
     
@@ -162,6 +167,10 @@ class TransferToLineForm(forms.ModelForm):
         # Initialize selected_operations choices (will be populated via JavaScript)
         self.fields['selected_operations'].choices = []
         
+        # Set initial value for is_scrap_replacement from instance if editing
+        if self.instance and self.instance.pk:
+            self.fields['is_scrap_replacement'].initial = (self.instance.is_scrap_replacement == 1)
+        
         # Make qc_approved_by field conditional (only shown when is_scrap_replacement is checked)
         # This will be handled via JavaScript in the template
     
@@ -171,7 +180,12 @@ class TransferToLineForm(forms.ModelForm):
         order = cleaned_data.get('order')
         transfer_type = cleaned_data.get('transfer_type')
         selected_operations = cleaned_data.get('selected_operations', [])
-        is_scrap_replacement = cleaned_data.get('is_scrap_replacement', False)
+        
+        # Convert is_scrap_replacement from BooleanField (True/False) to PositiveSmallIntegerField (0/1)
+        is_scrap_replacement_bool = cleaned_data.get('is_scrap_replacement', False)
+        is_scrap_replacement = 1 if is_scrap_replacement_bool else 0
+        cleaned_data['is_scrap_replacement'] = is_scrap_replacement
+        
         qc_approved_by = cleaned_data.get('qc_approved_by')
         
         # Validate order is selected
@@ -182,8 +196,26 @@ class TransferToLineForm(forms.ModelForm):
         if order and not order.bom:
             raise forms.ValidationError(_('Selected product order must have a BOM.'))
         
+        # Validate scrap replacement: only allowed if order has previous transfers
+        if order and is_scrap_replacement == 1:
+            from production.models import TransferToLine
+            # Check if order has any previous transfers (excluding scrap replacements)
+            has_previous_transfers = TransferToLine.objects.filter(
+                order=order,
+                is_enabled=1,
+                is_scrap_replacement=0,  # Exclude scrap replacements
+            ).exists()
+            
+            if not has_previous_transfers:
+                raise forms.ValidationError({
+                    'is_scrap_replacement': _(
+                        'Scrap replacement can only be selected for orders that have already been transferred. '
+                        'This order has no previous transfer requests.'
+                    )
+                })
+        
         # Validate QC approver if scrap replacement is checked
-        if is_scrap_replacement and not qc_approved_by:
+        if is_scrap_replacement == 1 and not qc_approved_by:
             raise forms.ValidationError({
                 'qc_approved_by': _('QC approver is required when scrap replacement is selected.')
             })
@@ -196,7 +228,7 @@ class TransferToLineForm(forms.ModelForm):
                 })
         
         # Validate against already transferred materials (if not scrap replacement)
-        if order and not is_scrap_replacement:
+        if order and is_scrap_replacement == 0:
             from production.utils.transfer import (
                 is_full_order_transferred,
                 get_available_operations_for_order,
@@ -295,7 +327,7 @@ class TransferToLineItemForm(forms.ModelForm):
             'quantity_required': _('مقدار مورد نیاز'),
             'unit': _('واحد'),
             'source_warehouse': _('انبار مبدا'),
-            'destination_work_center': _('مرکز کار مقصد'),
+            'destination_work_center': _('خط کاری مقصد'),
             'material_scrap_allowance': _('ضریب ضایعات (%)'),
             'notes': _('یادداشت‌ها'),
         }
@@ -308,7 +340,7 @@ class TransferToLineItemForm(forms.ModelForm):
         if self.company_id:
             # Filter items by company
             from inventory.models import Item, Warehouse, ItemType, ItemCategory, ItemSubcategory
-            from production.models import WorkCenter
+            from production.models import WorkLine
             
             # Material type filter
             self.fields['material_type'].queryset = ItemType.objects.filter(
@@ -333,10 +365,10 @@ class TransferToLineItemForm(forms.ModelForm):
                 is_enabled=1,
             ).order_by('public_code', 'name')
             
-            self.fields['destination_work_center'].queryset = WorkCenter.objects.filter(
+            self.fields['destination_work_center'].queryset = WorkLine.objects.filter(
                 company_id=self.company_id,
                 is_enabled=1,
-            ).order_by('public_code', 'name')
+            ).select_related('warehouse').order_by('public_code', 'name')
             
             # Unit field will be populated dynamically via JavaScript based on selected item
             self.fields['unit'].widget.attrs['disabled'] = True
@@ -352,14 +384,14 @@ class TransferToLineItemForm(forms.ModelForm):
                     self.fields['material_subcategory_filter'].initial = item.subcategory_id
         else:
             from inventory.models import Item, Warehouse, ItemType, ItemCategory, ItemSubcategory
-            from production.models import WorkCenter
+            from production.models import WorkLine
             
             self.fields['material_type'].queryset = ItemType.objects.none()
             self.fields['material_category_filter'].queryset = ItemCategory.objects.none()
             self.fields['material_subcategory_filter'].queryset = ItemSubcategory.objects.none()
             self.fields['material_item'].queryset = Item.objects.none()
             self.fields['source_warehouse'].queryset = Warehouse.objects.none()
-            self.fields['destination_work_center'].queryset = WorkCenter.objects.none()
+            self.fields['destination_work_center'].queryset = WorkLine.objects.none()
     
     def clean(self) -> dict:
         """Validate form data."""

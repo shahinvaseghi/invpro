@@ -25,6 +25,7 @@
 <th>{% trans "Product Order" %}</th>
 <th>{% trans "Finished Item" %}</th>
 <th>{% trans "Transfer Date" %}</th>
+<th>{% trans "Warehouse Transfer" %}</th>
 <th>{% trans "Status" %}</th>
 <th>{% trans "Approver" %}</th>
 <th>{% trans "Lock Status" %}</th>
@@ -44,6 +45,24 @@
     {% endif %}
   </td>
   <td>{{ object.transfer_date|jalali_date }}</td>
+  <td>
+    {% if object.active_warehouse_transfers %}
+      {% for wt in object.active_warehouse_transfers %}
+        <a href="{% url 'inventory:issue_warehouse_transfer_detail' wt.pk %}" style="color: #3b82f6; text-decoration: underline;">
+          <code>{{ wt.document_code }}</code>
+        </a>
+        {% if not forloop.last %}, {% endif %}
+      {% endfor %}
+    {% else %}
+      {% if object.status == 'approved' and object.is_locked == 1 %}
+        <button type="button" class="btn btn-sm btn-primary" onclick="createWarehouseTransfer({{ object.pk }})" title="{% trans 'Create Warehouse Transfer' %}">
+          {% trans "Issue Transfer" %}
+        </button>
+      {% else %}
+        -
+      {% endif %}
+    {% endif %}
+  </td>
   <td>
     <span class="badge badge-{{ object.status }}">
       {{ object.get_status_display }}
@@ -66,12 +85,31 @@
     {% endif %}
   </td>
   <td>
-    {% if object.is_locked != 1 %}
-      {% if user_feature_permissions|feature_allowed:'production.transfer_requests:edit_own' or user.is_superuser %}
-        <a href="{% url 'production:transfer_request_edit' object.pk %}" class="btn btn-sm btn-secondary">{% trans "Edit" %}</a>
+    {% if detail_url_name %}
+      {% can_view_object object feature_code|default:"" as can_view %}
+      {% if can_view %}
+        <a href="{% url detail_url_name object.pk %}" class="btn btn-sm btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+          {% trans "View" %}
+        </a>
       {% endif %}
-      {% if user_feature_permissions|feature_allowed:'production.transfer_requests:delete_own' or user.is_superuser %}
-        <a href="{% url 'production:transfer_request_delete' object.pk %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
+    {% endif %}
+    {% if object.is_locked != 1 %}
+      {% if edit_url_name %}
+        {% can_edit_object object feature_code|default:"" as can_edit %}
+        {% if can_edit %}
+          <a href="{% url edit_url_name object.pk %}" class="btn btn-sm btn-secondary">{% trans "Edit" %}</a>
+        {% endif %}
+      {% endif %}
+      {% if delete_url_name %}
+        {% if user_feature_permissions|feature_allowed:'production.transfer_requests:delete_own' or user.is_superuser %}
+          <a href="{% url delete_url_name object.pk %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
+        {% endif %}
+      {% endif %}
+    {% else %}
+      {% if user_feature_permissions|feature_allowed:'production.transfer_requests:unlock' or user.is_superuser %}
+        <button type="button" class="btn btn-sm btn-warning" onclick="unlockTransfer({{ object.pk }})" title="{% trans 'Unlock' %}">
+          {% trans "Unlock" %}
+        </button>
       {% endif %}
     {% endif %}
     {% if object.status == 'pending_approval' and object.approved_by == user %}
@@ -119,81 +157,204 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<!-- CSRF Token for AJAX requests -->
+{% csrf_token %}
 <script>
+function getCSRFToken() {
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (csrfToken) {
+    return csrfToken.value;
+  }
+  // Try to get from cookies (Django sets csrftoken cookie)
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'csrftoken') {
+      return decodeURIComponent(value);
+    }
+  }
+  return null;
+}
+
 function approveTransfer(transferId) {
   if (!confirm('{% trans "Are you sure you want to approve this transfer request?" %}')) {
     return;
   }
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = `{% url 'production:transfer_request_approve' 0 %}`.replace('0', transferId);
-  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-  if (csrfToken) {
-    const csrfInput = document.createElement('input');
-    csrfInput.type = 'hidden';
-    csrfInput.name = 'csrfmiddlewaretoken';
-    csrfInput.value = csrfToken.value;
-    form.appendChild(csrfInput);
-  }
-  document.body.appendChild(form);
-  form.submit();
+  
+  const url = `{% url 'production:transfer_request_approve' 0 %}`.replace('0', transferId);
+  const csrfToken = getCSRFToken();
+  
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': csrfToken,
+      'Content-Type': 'application/json',
+    },
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Reload page to show updated status
+      window.location.reload();
+    } else {
+      alert(data.error || '{% trans "An error occurred while approving the transfer request." %}');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('{% trans "An error occurred while approving the transfer request." %}');
+  });
 }
 
 function rejectTransfer(transferId) {
   if (!confirm('{% trans "Are you sure you want to reject this transfer request?" %}')) {
     return;
   }
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = `{% url 'production:transfer_request_reject' 0 %}`.replace('0', transferId);
-  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-  if (csrfToken) {
-    const csrfInput = document.createElement('input');
-    csrfInput.type = 'hidden';
-    csrfInput.name = 'csrfmiddlewaretoken';
-    csrfInput.value = csrfToken.value;
-    form.appendChild(csrfInput);
-  }
-  document.body.appendChild(form);
-  form.submit();
+  
+  const url = `{% url 'production:transfer_request_reject' 0 %}`.replace('0', transferId);
+  const csrfToken = getCSRFToken();
+  
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': csrfToken,
+      'Content-Type': 'application/json',
+    },
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Reload page to show updated status
+      window.location.reload();
+    } else {
+      alert(data.error || '{% trans "An error occurred while rejecting the transfer request." %}');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('{% trans "An error occurred while rejecting the transfer request." %}');
+  });
 }
 
 function approveQCTransfer(transferId) {
   if (!confirm('{% trans "Are you sure you want to approve QC for this transfer request?" %}')) {
     return;
   }
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = `{% url 'production:transfer_request_qc_approve' 0 %}`.replace('0', transferId);
-  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-  if (csrfToken) {
-    const csrfInput = document.createElement('input');
-    csrfInput.type = 'hidden';
-    csrfInput.name = 'csrfmiddlewaretoken';
-    csrfInput.value = csrfToken.value;
-    form.appendChild(csrfInput);
-  }
-  document.body.appendChild(form);
-  form.submit();
+  
+  const url = `{% url 'production:transfer_request_qc_approve' 0 %}`.replace('0', transferId);
+  const csrfToken = getCSRFToken();
+  
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': csrfToken,
+      'Content-Type': 'application/json',
+    },
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Reload page to show updated status
+      window.location.reload();
+    } else {
+      alert(data.error || '{% trans "An error occurred while approving QC for the transfer request." %}');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('{% trans "An error occurred while approving QC for the transfer request." %}');
+  });
 }
 
 function rejectQCTransfer(transferId) {
   if (!confirm('{% trans "Are you sure you want to reject QC for this transfer request?" %}')) {
     return;
   }
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = `{% url 'production:transfer_request_qc_reject' 0 %}`.replace('0', transferId);
-  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-  if (csrfToken) {
-    const csrfInput = document.createElement('input');
-    csrfInput.type = 'hidden';
-    csrfInput.name = 'csrfmiddlewaretoken';
-    csrfInput.value = csrfToken.value;
-    form.appendChild(csrfInput);
+  
+  const url = `{% url 'production:transfer_request_qc_reject' 0 %}`.replace('0', transferId);
+  const csrfToken = getCSRFToken();
+  
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': csrfToken,
+      'Content-Type': 'application/json',
+    },
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Reload page to show updated status
+      window.location.reload();
+    } else {
+      alert(data.error || '{% trans "An error occurred while rejecting QC for the transfer request." %}');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('{% trans "An error occurred while rejecting QC for the transfer request." %}');
+  });
+}
+
+function createWarehouseTransfer(transferId) {
+  if (!confirm('{% trans "Are you sure you want to create warehouse transfer for this transfer request?" %}')) {
+    return;
   }
-  document.body.appendChild(form);
-  form.submit();
+  
+  const url = `{% url 'production:transfer_request_create_warehouse_transfer' 0 %}`.replace('0', transferId);
+  const csrfToken = getCSRFToken();
+  
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': csrfToken,
+      'Content-Type': 'application/json',
+    },
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert(data.message || '{% trans "Warehouse transfer created successfully." %}');
+      // Reload page to show updated status
+      window.location.reload();
+    } else {
+      alert(data.error || '{% trans "An error occurred while creating warehouse transfer." %}');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('{% trans "An error occurred while creating warehouse transfer." %}');
+  });
+}
+
+function unlockTransfer(transferId) {
+  if (!confirm('{% trans "Are you sure you want to unlock this transfer request?" %}')) {
+    return;
+  }
+  
+  const url = `{% url 'production:transfer_request_unlock' 0 %}`.replace('0', transferId);
+  const csrfToken = getCSRFToken();
+  
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': csrfToken,
+      'Content-Type': 'application/json',
+    },
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Reload page to show updated status
+      window.location.reload();
+    } else {
+      alert(data.error || '{% trans "An error occurred while unlocking the transfer request." %}');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('{% trans "An error occurred while unlocking the transfer request." %}');
+  });
 }
 </script>
 {% endblock %}

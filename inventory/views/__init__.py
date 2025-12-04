@@ -133,7 +133,10 @@ from .issues import (
     # Warehouse Transfer Issues
     IssueWarehouseTransferListView,
     IssueWarehouseTransferCreateView,
+    IssueWarehouseTransferDetailView,
     IssueWarehouseTransferUpdateView,
+    IssueWarehouseTransferLockView,
+    IssueWarehouseTransferUnlockView,
 )
 
 # Import issue views from warehouse request (intermediate selection views)

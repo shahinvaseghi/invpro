@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 from django.contrib import messages
 from django.db import transaction
 from django.http import HttpResponseRedirect, JsonResponse
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
@@ -14,10 +14,10 @@ from django.views import View
 
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.views.base import EditLockProtectedMixin
-from inventory.utils.codes import generate_sequential_code
 from inventory.forms.base import generate_document_code
 from production.forms import TransferToLineForm, TransferToLineItemFormSet
 from production.models import TransferToLine, TransferToLineItem, ProductOrder
+from production.utils.transfer import generate_transfer_code
 
 
 class TransferToLineListView(FeaturePermissionRequiredMixin, ListView):
@@ -36,6 +36,9 @@ class TransferToLineListView(FeaturePermissionRequiredMixin, ListView):
         if not active_company_id:
             return TransferToLine.objects.none()
         
+        from django.db.models import Prefetch
+        from inventory.models import IssueWarehouseTransfer
+        
         queryset = TransferToLine.objects.filter(
             company_id=active_company_id
         ).select_related(
@@ -45,6 +48,11 @@ class TransferToLineListView(FeaturePermissionRequiredMixin, ListView):
             'approved_by',
         ).prefetch_related(
             'items',
+            Prefetch(
+                'warehouse_transfers',
+                queryset=IssueWarehouseTransfer.objects.filter(is_enabled=1),
+                to_attr='active_warehouse_transfers'
+            ),
         ).order_by('-transfer_date', 'transfer_code')
         
         return queryset
@@ -87,6 +95,11 @@ class TransferToLineCreateView(FeaturePermissionRequiredMixin, CreateView):
     feature_code = 'production.transfer_requests'
     required_action = 'create'
     
+    def get_success_url(self):
+        """Return URL to redirect to after successful form submission."""
+        # Since we create multiple transfers, always redirect to list
+        return self.success_url
+    
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
         kwargs = super().get_form_kwargs()
@@ -124,132 +137,111 @@ class TransferToLineCreateView(FeaturePermissionRequiredMixin, CreateView):
     
     @transaction.atomic
     def form_valid(self, form: TransferToLineForm) -> HttpResponseRedirect:
-        """Save transfer and create items from BOM."""
+        """Save transfer and create items from BOM - creates separate transfer for each operation."""
         active_company_id: Optional[int] = self.request.session.get('active_company_id')
         if not active_company_id:
             messages.error(self.request, _('Please select a company first.'))
             return self.form_invalid(form)
         
-        # Set company and created_by
-        form.instance.company_id = active_company_id
-        form.instance.created_by = self.request.user
-        form.instance.status = TransferToLine.Status.PENDING_APPROVAL
-        
-        # Generate transfer code
-        if not form.instance.transfer_code:
-            form.instance.transfer_code = generate_sequential_code(
-                TransferToLine,
-                company_id=active_company_id,
-                field='transfer_code',
-                prefix='TR',
-                width=8,
-            )
-        
-        # Save transfer header
-        response = super().form_valid(form)
-        
-        # Get formset
-        formset = TransferToLineItemFormSet(
-            self.request.POST,
-            instance=self.object,
-            form_kwargs={'company_id': active_company_id}
-        )
-        
-        if formset.is_valid():
-            # Save extra items (is_extra=1)
-            for item_form in formset:
-                if item_form.cleaned_data and not item_form.cleaned_data.get('DELETE', False):
-                    item = item_form.save(commit=False)
-                    item.transfer = self.object
-                    item.company_id = active_company_id
-                    item.is_extra = 1  # Mark as extra request
-                    item.created_by = self.request.user
-                    item.save()
-        
-        # Create items based on transfer type
         order = form.instance.order
         transfer_type = form.cleaned_data.get('transfer_type', 'full')
         selected_operations = form.cleaned_data.get('selected_operations', [])
         
-        if order and order.bom:
-            from inventory.models import ItemWarehouse
-            from production.utils.transfer import get_operation_materials
-            from production.models import ProcessOperation
+        # Validate that order has process (required for operations)
+        if not order.process:
+            messages.error(self.request, _('Product order must have an associated process.'))
+            return self.form_invalid(form)
+        
+        # Get formset for extra items (will be processed later)
+        formset = TransferToLineItemFormSet(
+            self.request.POST,
+            instance=None,  # Will be set later for each transfer
+            form_kwargs={'company_id': active_company_id}
+        )
+        
+        # Collect extra items data (will be processed in section 3)
+        extra_items_data = []
+        if formset.is_valid():
+            for item_form in formset:
+                if item_form.cleaned_data and not item_form.cleaned_data.get('DELETE', False):
+                    extra_items_data.append(item_form.cleaned_data)
+        
+        # Identify operations to process
+        from production.models import ProcessOperation
+        from production.utils.transfer import get_operation_materials
+        from inventory.models import ItemWarehouse
+        
+        if transfer_type == 'full':
+            # Get all operations from the process
+            operations = order.process.operations.filter(is_enabled=1).order_by('sequence_order', 'id')
+        elif transfer_type == 'operations' and selected_operations:
+            # Get only selected operations
+            operation_ids = [int(op_id) for op_id in selected_operations]
+            operations = ProcessOperation.objects.filter(
+                id__in=operation_ids,
+                process=order.process,
+                is_enabled=1,
+            ).order_by('sequence_order', 'id')
+        else:
+            operations = ProcessOperation.objects.none()
+        
+        if not operations.exists():
+            messages.error(self.request, _('No operations found to transfer.'))
+            return self.form_invalid(form)
+        
+        quantity_planned = order.quantity_planned
+        created_transfers = []
+        
+        # Create a separate transfer document for each operation
+        for operation in operations:
+            # Create transfer header for this operation
+            transfer = TransferToLine.objects.create(
+                company_id=active_company_id,
+                order=order,
+                order_code=order.order_code,
+                transfer_date=form.cleaned_data.get('transfer_date') or form.instance.transfer_date,
+                transfer_code=generate_transfer_code(
+                    company_id=active_company_id,
+                    prefix='TR',
+                    width=8,
+                ),
+                status=TransferToLine.Status.PENDING_APPROVAL,
+                approved_by=form.cleaned_data.get('approved_by') or form.instance.approved_by,
+                is_scrap_replacement=form.cleaned_data.get('is_scrap_replacement', False) or (form.instance.is_scrap_replacement == 1),
+                qc_approved_by=form.cleaned_data.get('qc_approved_by') or form.instance.qc_approved_by,
+                notes=form.cleaned_data.get('notes', '') or form.instance.notes,
+                created_by=self.request.user,
+            )
+            created_transfers.append(transfer)
             
-            quantity_planned = order.quantity_planned
+            # Get materials for this operation
+            operation_materials = get_operation_materials(operation, order)
             
-            # Collect materials to transfer
-            materials_to_transfer = []  # List of (material_item, quantity, unit, scrap_allowance, source_warehouse_from_bom)
+            if not operation_materials:
+                # Skip operations with no materials
+                continue
             
-            if transfer_type == 'full':
-                # Transfer all BOM materials
-                bom = order.bom
-                bom_materials = bom.materials.filter(is_enabled=1).select_related('material_item')
+            # Create transfer items for this operation
+            for op_material in operation_materials:
+                # Calculate quantity: quantity_planned × quantity_used (from ProcessOperationMaterial)
+                quantity_required = quantity_planned * op_material.quantity_used
                 
-                for bom_material in bom_materials:
-                    quantity_required = quantity_planned * bom_material.quantity_per_unit
+                # Get scrap allowance and source_warehouses from BOM material if available
+                scrap_allowance = Decimal('0.00')
+                source_warehouses_list = []
+                if op_material.bom_material:
+                    scrap_allowance = op_material.bom_material.scrap_allowance
+                    source_warehouses_list = op_material.bom_material.source_warehouses or []
                     
-                    # Get source_warehouses from JSONField, or fallback to source_warehouse (backward compatibility)
-                    source_warehouses_list = bom_material.source_warehouses or []
-                    
-                    # If source_warehouses is empty but source_warehouse is set, use it for backward compatibility
-                    if not source_warehouses_list and bom_material.source_warehouse:
+                    # Backward compatibility: if source_warehouses is empty but source_warehouse is set
+                    if not source_warehouses_list and op_material.bom_material.source_warehouse:
                         source_warehouses_list = [{
-                            'warehouse_id': bom_material.source_warehouse.id,
-                            'warehouse_code': bom_material.source_warehouse.public_code,
+                            'warehouse_id': op_material.bom_material.source_warehouse.id,
+                            'warehouse_code': op_material.bom_material.source_warehouse.public_code,
                             'priority': 1
                         }]
-                    
-                    materials_to_transfer.append((
-                        bom_material.material_item,
-                        quantity_required,
-                        bom_material.unit,
-                        bom_material.scrap_allowance,
-                        source_warehouses_list,  # Include source_warehouses list from BOM
-                    ))
-            
-            elif transfer_type == 'operations' and selected_operations:
-                # Transfer materials from selected operations
-                operation_ids = [int(op_id) for op_id in selected_operations]
-                operations = ProcessOperation.objects.filter(
-                    id__in=operation_ids,
-                    is_enabled=1,
-                ).select_related('process')
                 
-                for operation in operations:
-                    operation_materials = get_operation_materials(operation, order)
-                    
-                    for op_material in operation_materials:
-                        # Calculate quantity: quantity_planned × quantity_used (from ProcessOperationMaterial)
-                        quantity_required = quantity_planned * op_material.quantity_used
-                        
-                        # Get scrap allowance and source_warehouses from BOM material if available
-                        scrap_allowance = Decimal('0.00')
-                        source_warehouses_list = []
-                        if op_material.bom_material:
-                            scrap_allowance = op_material.bom_material.scrap_allowance
-                            source_warehouses_list = op_material.bom_material.source_warehouses or []
-                            
-                            # Backward compatibility: if source_warehouses is empty but source_warehouse is set
-                            if not source_warehouses_list and op_material.bom_material.source_warehouse:
-                                source_warehouses_list = [{
-                                    'warehouse_id': op_material.bom_material.source_warehouse.id,
-                                    'warehouse_code': op_material.bom_material.source_warehouse.public_code,
-                                    'priority': 1
-                                }]
-                        
-                        materials_to_transfer.append((
-                            op_material.material_item,
-                            quantity_required,
-                            op_material.unit,
-                            scrap_allowance,
-                            source_warehouses_list,  # Include source_warehouses list from BOM
-                        ))
-            
-            # Create transfer items
-            for material_item, quantity_required, unit, scrap_allowance, source_warehouses_list in materials_to_transfer:
-                # Priority 1: Use first warehouse from source_warehouses list (sorted by priority)
-                # Priority 2: Use first allowed warehouse from ItemWarehouse
+                # Select source warehouse based on priority
                 source_warehouse = None
                 
                 if source_warehouses_list and len(source_warehouses_list) > 0:
@@ -273,7 +265,7 @@ class TransferToLineCreateView(FeaturePermissionRequiredMixin, CreateView):
                 if not source_warehouse:
                     # Fallback: Get source warehouse from ItemWarehouse (first allowed warehouse)
                     item_warehouse = ItemWarehouse.objects.filter(
-                        item=material_item,
+                        item=op_material.material_item,
                         company_id=active_company_id,
                         is_enabled=1,
                     ).select_related('warehouse').first()
@@ -281,27 +273,93 @@ class TransferToLineCreateView(FeaturePermissionRequiredMixin, CreateView):
                     if not item_warehouse:
                         messages.warning(
                             self.request,
-                            _('No allowed warehouse found for item {item_code}. Please configure ItemWarehouse first.').format(
-                                item_code=material_item.item_code
+                            _('No allowed warehouse found for item {item_code} in operation {operation_name}. Please configure ItemWarehouse first.').format(
+                                item_code=op_material.material_item.item_code,
+                                operation_name=operation.name or f"Operation {operation.sequence_order}"
                             )
                         )
                         continue
                     
                     source_warehouse = item_warehouse.warehouse
                 
-                # Get destination work center from order's process if available
-                destination_work_center = None
-                if order.process:
-                    # Get first work line from process
-                    work_lines = order.process.work_lines.filter(is_enabled=1).first()
-                    if work_lines:
-                        # Get work center from work line (if available)
-                        # Note: WorkLine doesn't have work_center, so we'll leave it None for now
-                        pass
+                # Get destination work line from operation
+                destination_work_line = operation.work_line
                 
                 # Create transfer item
                 TransferToLineItem.objects.create(
-                    transfer=self.object,
+                    transfer=transfer,
+                    company_id=active_company_id,
+                    material_item=op_material.material_item,
+                    material_item_code=op_material.material_item_code,
+                    quantity_required=quantity_required,
+                    unit=op_material.unit,
+                    source_warehouse=source_warehouse,
+                    source_warehouse_code=source_warehouse.public_code,
+                    destination_work_center=destination_work_line,  # Now points to WorkLine
+                    material_scrap_allowance=scrap_allowance,
+                    is_extra=0,  # From BOM/Operations
+                    created_by=self.request.user,
+                )
+        
+        # Section 3: Process extra items grouped by WorkLine
+        # Group extra items by destination_work_center (WorkLine)
+        from collections import defaultdict
+        extra_items_by_workline = defaultdict(list)
+        
+        for extra_item_data in extra_items_data:
+            destination_work_line = extra_item_data.get('destination_work_center')
+            if destination_work_line:
+                extra_items_by_workline[destination_work_line].append(extra_item_data)
+            else:
+                # If no WorkLine specified, skip or show warning
+                messages.warning(
+                    self.request,
+                    _('Extra item {item_code} skipped: No destination work line specified.').format(
+                        item_code=extra_item_data.get('material_item').item_code if extra_item_data.get('material_item') else 'Unknown'
+                    )
+                )
+        
+        # Create a separate transfer document for each WorkLine group of extra items
+        for work_line, items_data in extra_items_by_workline.items():
+            # Create transfer header for this WorkLine group
+            transfer = TransferToLine.objects.create(
+                company_id=active_company_id,
+                order=order,
+                order_code=order.order_code,
+                transfer_date=form.cleaned_data.get('transfer_date') or form.instance.transfer_date,
+                transfer_code=generate_transfer_code(
+                    company_id=active_company_id,
+                    prefix='TR',
+                    width=8,
+                ),
+                status=TransferToLine.Status.PENDING_APPROVAL,
+                approved_by=form.cleaned_data.get('approved_by') or form.instance.approved_by,
+                is_scrap_replacement=form.cleaned_data.get('is_scrap_replacement', False) or (form.instance.is_scrap_replacement == 1),
+                qc_approved_by=form.cleaned_data.get('qc_approved_by') or form.instance.qc_approved_by,
+                notes=form.cleaned_data.get('notes', '') or form.instance.notes,
+                created_by=self.request.user,
+            )
+            created_transfers.append(transfer)
+            
+            # Create transfer items for this WorkLine group
+            for item_data in items_data:
+                material_item = item_data.get('material_item')
+                quantity_required = item_data.get('quantity_required')
+                unit = item_data.get('unit')
+                source_warehouse = item_data.get('source_warehouse')
+                scrap_allowance = item_data.get('material_scrap_allowance', Decimal('0.00'))
+                notes = item_data.get('notes', '')
+                
+                if not material_item or not quantity_required or not unit or not source_warehouse:
+                    messages.warning(
+                        self.request,
+                        _('Extra item skipped: Missing required fields.')
+                    )
+                    continue
+                
+                # Create transfer item
+                TransferToLineItem.objects.create(
+                    transfer=transfer,
                     company_id=active_company_id,
                     material_item=material_item,
                     material_item_code=material_item.item_code,
@@ -309,14 +367,25 @@ class TransferToLineCreateView(FeaturePermissionRequiredMixin, CreateView):
                     unit=unit,
                     source_warehouse=source_warehouse,
                     source_warehouse_code=source_warehouse.public_code,
-                    destination_work_center=destination_work_center,
+                    destination_work_center=work_line,  # WorkLine
                     material_scrap_allowance=scrap_allowance,
-                    is_extra=0,  # From BOM or Operations
+                    notes=notes,
+                    is_extra=1,  # Extra request
                     created_by=self.request.user,
                 )
         
-        messages.success(self.request, _('Transfer request created successfully.'))
-        return response
+        # Set response to redirect to list (since we created multiple transfers)
+        if created_transfers:
+            messages.success(
+                self.request,
+                _('Successfully created {count} transfer request(s).').format(count=len(created_transfers))
+            )
+            # Set self.object to first created transfer for compatibility with get_success_url
+            self.object = created_transfers[0]
+            return HttpResponseRedirect(self.get_success_url())
+        else:
+            messages.error(self.request, _('No transfer requests were created.'))
+            return self.form_invalid(form)
 
 
 class TransferToLineUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
@@ -577,10 +646,9 @@ class TransferToLineApproveView(FeaturePermissionRequiredMixin, View):
                     # Create IssueConsumptionLine for each TransferToLineItem
                     transfer_items = transfer.items.filter(is_enabled=1).order_by('id')
                     for idx, transfer_item in enumerate(transfer_items, start=1):
-                        # Note: destination_work_center is a WorkCenter, not WorkLine
-                        # WorkLine is optional and can be set manually later if needed
-                        work_line = None
-                        work_line_code = ''
+                        # Get work_line from destination_work_center (now points to WorkLine)
+                        work_line = transfer_item.destination_work_center
+                        work_line_code = work_line.public_code if work_line else ''
                         
                         IssueConsumptionLine.objects.create(
                             company_id=active_company_id,
@@ -615,8 +683,69 @@ class TransferToLineApproveView(FeaturePermissionRequiredMixin, View):
                         _('Transfer request approved, but failed to create consumption issue: %(error)s')
                         % {'error': str(e)}
                     )
+                
+                # Create warehouse transfer document (Section 2 & 4)
+                try:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.info(f'Attempting to create warehouse transfer for transfer {transfer.transfer_code}')
+                    
+                    from production.utils.transfer import create_warehouse_transfer_for_transfer_to_line
+                    
+                    warehouse_transfer, error_msg = create_warehouse_transfer_for_transfer_to_line(
+                        transfer=transfer,
+                        user=request.user,
+                    )
+                    
+                    if warehouse_transfer:
+                        logger.info(f'Warehouse transfer {warehouse_transfer.document_code} created successfully for transfer {transfer.transfer_code}')
+                        # Store warehouse transfer info for JSON response
+                        transfer._warehouse_transfer_created = warehouse_transfer
+                        messages.success(
+                            request,
+                            _('Warehouse transfer %(code)s created successfully.')
+                            % {'code': warehouse_transfer.document_code}
+                        )
+                    elif error_msg:
+                        logger.warning(f'Failed to create warehouse transfer for transfer {transfer.transfer_code}: {error_msg}')
+                        messages.warning(
+                            request,
+                            _('Failed to create warehouse transfer: %(error)s')
+                            % {'error': error_msg}
+                        )
+                    else:
+                        logger.warning(f'No warehouse transfer created and no error message for transfer {transfer.transfer_code}')
+                        messages.warning(
+                            request,
+                            _('Warehouse transfer was not created. Please check the logs for details.')
+                        )
+                except Exception as e:
+                    # Log error but don't fail the approval
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f'Error creating warehouse transfer for transfer {transfer.transfer_code}: {e}', exc_info=True)
+                    messages.warning(
+                        request,
+                        _('Transfer request approved, but failed to create warehouse transfer: %(error)s')
+                        % {'error': str(e)}
+                    )
         
-        return JsonResponse({'success': True, 'message': _('Transfer request approved successfully.')})
+        # Collect warehouse transfer info if created
+        warehouse_transfer_info = None
+        if hasattr(transfer, '_warehouse_transfer_created'):
+            warehouse_transfer_info = {
+                'document_code': transfer._warehouse_transfer_created.document_code,
+                'id': transfer._warehouse_transfer_created.id,
+            }
+        
+        response_data = {
+            'success': True,
+            'message': _('Transfer request approved successfully.'),
+        }
+        if warehouse_transfer_info:
+            response_data['warehouse_transfer'] = warehouse_transfer_info
+        
+        return JsonResponse(response_data)
 
 
 class TransferToLineRejectView(FeaturePermissionRequiredMixin, View):
@@ -725,8 +854,9 @@ class TransferToLineQCApproveView(FeaturePermissionRequiredMixin, View):
                 # Create IssueConsumptionLine for each TransferToLineItem
                 transfer_items = transfer.items.filter(is_enabled=1).order_by('id')
                 for idx, transfer_item in enumerate(transfer_items, start=1):
-                    work_line = None
-                    work_line_code = ''
+                    # Get work_line from destination_work_center (now points to WorkLine)
+                    work_line = transfer_item.destination_work_center
+                    work_line_code = work_line.public_code if work_line else ''
                     
                     IssueConsumptionLine.objects.create(
                         company_id=active_company_id,
@@ -759,6 +889,38 @@ class TransferToLineQCApproveView(FeaturePermissionRequiredMixin, View):
                 messages.warning(
                     request,
                     _('QC approval granted, but failed to create consumption issue: %(error)s')
+                    % {'error': str(e)}
+                )
+            
+            # Create warehouse transfer document (Section 2 & 4)
+            try:
+                from production.utils.transfer import create_warehouse_transfer_for_transfer_to_line
+                
+                warehouse_transfer, error_msg = create_warehouse_transfer_for_transfer_to_line(
+                    transfer=transfer,
+                    user=request.user,
+                )
+                
+                if warehouse_transfer:
+                    messages.success(
+                        request,
+                        _('Warehouse transfer %(code)s created successfully.')
+                        % {'code': warehouse_transfer.document_code}
+                    )
+                elif error_msg:
+                    messages.warning(
+                        request,
+                        _('Failed to create warehouse transfer: %(error)s')
+                        % {'error': error_msg}
+                    )
+            except Exception as e:
+                # Log error but don't fail the approval
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f'Error creating warehouse transfer for transfer {transfer.transfer_code}: {e}')
+                messages.warning(
+                    request,
+                    _('QC approval granted, but failed to create warehouse transfer: %(error)s')
                     % {'error': str(e)}
                 )
         
@@ -809,4 +971,112 @@ class TransferToLineQCRejectView(FeaturePermissionRequiredMixin, View):
         
         messages.success(request, _('QC approval rejected successfully.'))
         return JsonResponse({'success': True, 'message': _('QC approval rejected successfully.')})
+
+
+class TransferToLineCreateWarehouseTransferView(FeaturePermissionRequiredMixin, View):
+    """Create warehouse transfer manually for a transfer to line request."""
+    feature_code = 'production.transfer_requests'
+    required_action = 'approve'
+    
+    def post(self, request, *args, **kwargs):
+        """Create warehouse transfer for the transfer request."""
+        transfer_id = kwargs.get('pk')
+        active_company_id: Optional[int] = request.session.get('active_company_id')
+        
+        if not active_company_id:
+            return JsonResponse({'error': _('Please select a company first.')}, status=400)
+        
+        try:
+            transfer = TransferToLine.objects.get(
+                id=transfer_id,
+                company_id=active_company_id,
+            )
+        except TransferToLine.DoesNotExist:
+            return JsonResponse({'error': _('Transfer request not found.')}, status=404)
+        
+        # Check if transfer is approved
+        if transfer.status != TransferToLine.Status.APPROVED:
+            return JsonResponse({'error': _('Transfer request must be approved before creating warehouse transfer.')}, status=400)
+        
+        # Check if warehouse transfer already exists (only active ones)
+        existing_wt = transfer.warehouse_transfers.filter(is_enabled=1).first()
+        if existing_wt:
+            return JsonResponse({
+                'error': _('Warehouse transfer already exists: %(code)s') % {'code': existing_wt.document_code},
+                'warehouse_transfer_code': existing_wt.document_code,
+                'warehouse_transfer_url': reverse('inventory:issue_warehouse_transfer_detail', kwargs={'pk': existing_wt.pk}),
+            }, status=400)
+        
+        # Create warehouse transfer
+        try:
+            from production.utils.transfer import create_warehouse_transfer_for_transfer_to_line
+            
+            warehouse_transfer, error_msg = create_warehouse_transfer_for_transfer_to_line(
+                transfer=transfer,
+                user=request.user,
+            )
+            
+            if warehouse_transfer:
+                messages.success(
+                    request,
+                    _('Warehouse transfer %(code)s created successfully.')
+                    % {'code': warehouse_transfer.document_code}
+                )
+                return JsonResponse({
+                    'success': True,
+                    'message': _('Warehouse transfer created successfully.'),
+                    'warehouse_transfer_code': warehouse_transfer.document_code,
+                    'warehouse_transfer_url': reverse('inventory:issue_warehouse_transfer_detail', kwargs={'pk': warehouse_transfer.pk}),
+                })
+            elif error_msg:
+                return JsonResponse({
+                    'error': _('Failed to create warehouse transfer: %(error)s') % {'error': error_msg}
+                }, status=400)
+            else:
+                return JsonResponse({
+                    'error': _('Warehouse transfer was not created. Please check the logs for details.')
+                }, status=400)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'Error creating warehouse transfer for transfer {transfer.transfer_code}: {e}', exc_info=True)
+            return JsonResponse({
+                'error': _('Error creating warehouse transfer: %(error)s') % {'error': str(e)}
+            }, status=500)
+
+
+class TransferToLineUnlockView(FeaturePermissionRequiredMixin, View):
+    """Unlock a transfer to line request."""
+    feature_code = 'production.transfer_requests'
+    required_action = 'unlock'
+    
+    def post(self, request, *args, **kwargs):
+        """Unlock the transfer request."""
+        transfer_id = kwargs.get('pk')
+        active_company_id: Optional[int] = request.session.get('active_company_id')
+        
+        if not active_company_id:
+            return JsonResponse({'error': _('Please select a company first.')}, status=400)
+        
+        try:
+            transfer = TransferToLine.objects.get(
+                id=transfer_id,
+                company_id=active_company_id,
+            )
+        except TransferToLine.DoesNotExist:
+            return JsonResponse({'error': _('Transfer request not found.')}, status=404)
+        
+        # Check if transfer is locked
+        if transfer.is_locked != 1:
+            return JsonResponse({'error': _('Transfer request is not locked.')}, status=400)
+        
+        # Unlock transfer
+        with transaction.atomic():
+            transfer.is_locked = 0
+            transfer.unlocked_at = timezone.now()
+            transfer.unlocked_by = request.user
+            transfer.save()
+        
+        messages.success(request, _('Transfer request unlocked successfully.'))
+        return JsonResponse({'success': True, 'message': _('Transfer request unlocked successfully.')})
 
