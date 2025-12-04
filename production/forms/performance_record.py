@@ -19,6 +19,7 @@ from production.models import (
     Person,
     Machine,
     WorkLine,
+    ProcessOperation,
 )
 
 
@@ -34,7 +35,9 @@ class PerformanceRecordForm(forms.ModelForm):
     class Meta:
         model = PerformanceRecord
         fields = [
+            'document_type',
             'order',
+            'operation',
             'transfer',
             'performance_date',
             'quantity_planned',
@@ -43,7 +46,9 @@ class PerformanceRecordForm(forms.ModelForm):
             'notes',
         ]
         widgets = {
+            'document_type': forms.Select(attrs={'class': 'form-control', 'id': 'id_document_type'}),
             'order': forms.Select(attrs={'class': 'form-control', 'id': 'id_order'}),
+            'operation': forms.Select(attrs={'class': 'form-control', 'id': 'id_operation'}),
             'transfer': forms.Select(attrs={'class': 'form-control', 'id': 'id_transfer'}),
             'quantity_planned': forms.NumberInput(attrs={
                 'class': 'form-control',
@@ -60,7 +65,9 @@ class PerformanceRecordForm(forms.ModelForm):
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
         labels = {
+            'document_type': _('Document Type'),
             'order': _('Product Order'),
+            'operation': _('Process Operation'),
             'transfer': _('Transfer to Line (Optional)'),
             'performance_date': _('Performance Date'),
             'quantity_planned': _('Planned Quantity'),
@@ -69,10 +76,12 @@ class PerformanceRecordForm(forms.ModelForm):
             'notes': _('Notes'),
         }
         help_texts = {
+            'document_type': _('Select whether this is an operational (for specific operation) or general (for entire order) performance record'),
             'order': _('Select the product order for this performance record'),
+            'operation': _('Select the process operation (only for operational documents)'),
             'transfer': _('Select the transfer document used (optional, will auto-populate materials if selected)'),
-            'quantity_planned': _('Planned quantity from the order (read-only)'),
-            'quantity_actual': _('Enter the actual quantity produced'),
+            'quantity_planned': _('Planned quantity from the order (read-only, only for general documents)'),
+            'quantity_actual': _('Enter the actual quantity produced (only for general documents)'),
             'approved_by': _('Select the user who can approve this performance record'),
         }
     
@@ -133,8 +142,16 @@ class PerformanceRecordForm(forms.ModelForm):
             User = get_user_model()
             
             self.fields['order'].queryset = ProductOrder.objects.none()
+            self.fields['operation'].queryset = ProcessOperation.objects.none()
             self.fields['transfer'].queryset = TransferToLine.objects.none()
             self.fields['approved_by'].queryset = User.objects.none()
+        
+        # Set initial document_type if creating new record
+        if not self.instance.pk:
+            self.fields['document_type'].initial = PerformanceRecord.DocumentType.OPERATIONAL
+        
+        # Setup dynamic field visibility based on document_type
+        self._setup_field_visibility()
         
         # If editing, set readonly fields
         if self.instance and self.instance.pk:
@@ -145,10 +162,66 @@ class PerformanceRecordForm(forms.ModelForm):
                         self.fields[field_name].widget.attrs['readonly'] = True
                         self.fields[field_name].widget.attrs['disabled'] = True
     
+    def _setup_field_visibility(self):
+        """Setup field visibility based on document_type."""
+        # Get current document_type value
+        if self.is_bound:
+            document_type = self.data.get('document_type', self.initial.get('document_type'))
+        elif self.instance and self.instance.pk:
+            document_type = self.instance.document_type
+        else:
+            document_type = self.fields['document_type'].initial or PerformanceRecord.DocumentType.OPERATIONAL
+        
+        # Show/hide fields based on document_type
+        # Note: Actual visibility will be controlled by JavaScript in template
+        if document_type == PerformanceRecord.DocumentType.OPERATIONAL:
+            # For operational: show operation, hide quantity fields
+            self.fields['operation'].required = True
+            self.fields['quantity_planned'].required = False
+            self.fields['quantity_actual'].required = False
+        else:
+            # For general: hide operation, show quantity fields
+            self.fields['operation'].required = False
+            self.fields['quantity_planned'].required = True
+            self.fields['quantity_actual'].required = True
+        
+        # Update operation queryset based on selected order
+        if self.company_id:
+            # Get order from form data or instance
+            order_id = None
+            if self.is_bound:
+                order_id = self.data.get('order')
+            elif self.instance and self.instance.pk:
+                order_id = self.instance.order_id
+            
+            if order_id:
+                try:
+                    order = ProductOrder.objects.get(pk=order_id, company_id=self.company_id)
+                    if order.process:
+                        # Get operations that don't have performance records yet
+                        operations_with_performance = PerformanceRecord.objects.filter(
+                            company_id=self.company_id,
+                            order=order,
+                            document_type=PerformanceRecord.DocumentType.OPERATIONAL,
+                        ).values_list('operation_id', flat=True)
+                        
+                        self.fields['operation'].queryset = ProcessOperation.objects.filter(
+                            process=order.process,
+                            company_id=self.company_id,
+                        ).exclude(id__in=operations_with_performance).order_by('sequence_order', 'id')
+                    else:
+                        self.fields['operation'].queryset = ProcessOperation.objects.none()
+                except ProductOrder.DoesNotExist:
+                    self.fields['operation'].queryset = ProcessOperation.objects.none()
+            else:
+                self.fields['operation'].queryset = ProcessOperation.objects.none()
+    
     def clean(self) -> Dict[str, Any]:
         """Validate form data."""
         cleaned_data = super().clean()
+        document_type = cleaned_data.get('document_type')
         order = cleaned_data.get('order')
+        operation = cleaned_data.get('operation')
         quantity_planned = cleaned_data.get('quantity_planned')
         quantity_actual = cleaned_data.get('quantity_actual')
         
@@ -162,13 +235,55 @@ class PerformanceRecordForm(forms.ModelForm):
             self.add_error('order', _('Selected order must have a process assigned.'))
             return cleaned_data
         
-        # Set quantity_planned from order if not set
-        if not quantity_planned and order:
-            cleaned_data['quantity_planned'] = order.quantity_planned
-        
-        # Validate quantity_actual
-        if quantity_actual is not None and quantity_actual < 0:
-            self.add_error('quantity_actual', _('Actual quantity cannot be negative.'))
+        # Validate document_type and operation relationship
+        if document_type == PerformanceRecord.DocumentType.OPERATIONAL:
+            if not operation:
+                self.add_error('operation', _('Operation must be specified for operational performance records.'))
+            else:
+                # Validate operation belongs to order's process
+                if operation.process_id != order.process_id:
+                    self.add_error('operation', _('Selected operation must belong to the selected order\'s process.'))
+            
+            # For operational documents, quantity fields are not required
+            cleaned_data['quantity_planned'] = None
+            cleaned_data['quantity_actual'] = None
+        else:
+            # For general documents, operation must be null
+            if operation:
+                self.add_error('operation', _('Operation must be null for general performance records.'))
+            cleaned_data['operation'] = None
+            
+            # Validate that all operations have performance records
+            if not self.instance.pk:  # Only check when creating new record
+                all_operations = ProcessOperation.objects.filter(
+                    process=order.process,
+                    company_id=self.company_id,
+                )
+                operations_with_performance = PerformanceRecord.objects.filter(
+                    company_id=self.company_id,
+                    order=order,
+                    document_type=PerformanceRecord.DocumentType.OPERATIONAL,
+                ).values_list('operation_id', flat=True)
+                
+                missing_operations = all_operations.exclude(id__in=operations_with_performance)
+                if missing_operations.exists():
+                    missing_names = ', '.join([op.name or f"Operation {op.sequence_order}" for op in missing_operations[:5]])
+                    if missing_operations.count() > 5:
+                        missing_names += f" ... ({missing_operations.count()} total)"
+                    self.add_error(
+                        'document_type',
+                        _('Cannot create general performance record. The following operations still need performance records: {operations}').format(
+                            operations=missing_names
+                        )
+                    )
+            
+            # Set quantity_planned from order if not set
+            if not quantity_planned and order:
+                cleaned_data['quantity_planned'] = order.quantity_planned
+            
+            # Validate quantity_actual
+            if quantity_actual is not None and quantity_actual < 0:
+                self.add_error('quantity_actual', _('Actual quantity cannot be negative.'))
         
         # Validate transfer belongs to order if selected
         transfer = cleaned_data.get('transfer')

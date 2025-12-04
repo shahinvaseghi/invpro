@@ -240,6 +240,16 @@
             {% endif %}
           </div>
 
+          <div class="form-field">
+            <label for="{{ operation_form.requires_qc.id_for_label }}" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+              {{ operation_form.requires_qc }}
+              <span>{{ operation_form.requires_qc.label }}</span>
+            </label>
+            {% if operation_form.requires_qc.errors %}
+              <span class="error">{{ operation_form.requires_qc.errors.0 }}</span>
+            {% endif %}
+          </div>
+
           <div class="form-field full-width">
             <label for="{{ operation_form.description.id_for_label }}">{{ operation_form.description.label }}</label>
             {{ operation_form.description }}
@@ -881,6 +891,13 @@ function addOperation() {
             <option value="">---</option>
             ${workLinesData.map(wl => `<option value="${wl.id}">${wl.public_code} - ${wl.name}</option>`).join('')}
           </select>
+        </div>
+        
+        <div class="form-field">
+          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+            <input type="checkbox" name="operations-${formCount}-requires_qc" id="id_operations-${formCount}-requires_qc" class="form-check-input operation-requires-qc" />
+            <span>{% trans "نیاز به QC" %}</span>
+          </label>
         </div>
         
         <div class="form-field full-width">

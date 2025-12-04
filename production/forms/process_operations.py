@@ -129,6 +129,14 @@ ProcessOperationMaterialFormSet = forms.inlineformset_factory(
 class ProcessOperationForm(forms.ModelForm):
     """Form for Process Operation."""
     
+    # Override requires_qc to use BooleanField (checkbox) instead of IntegerField
+    requires_qc = forms.BooleanField(
+        required=False,
+        label=_('نیاز به QC'),
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input operation-requires-qc'}),
+        initial=False,
+    )
+    
     class Meta:
         model = ProcessOperation
         fields = [
@@ -138,6 +146,7 @@ class ProcessOperationForm(forms.ModelForm):
             'labor_minutes_per_unit',
             'machine_minutes_per_unit',
             'work_line',
+            'requires_qc',
             'notes',
         ]
         widgets = {
@@ -170,6 +179,16 @@ class ProcessOperationForm(forms.ModelForm):
             'notes': _('Notes'),
         }
     
+    def clean_requires_qc(self) -> int:
+        """Convert Boolean checkbox value to integer (0 or 1) for database storage."""
+        value = self.cleaned_data.get('requires_qc')
+        
+        # BooleanField returns True/False, convert to 1/0
+        if value is True:
+            return 1
+        else:
+            return 0
+    
     def __init__(self, *args: tuple, bom_id: Optional[int] = None, company_id: Optional[int] = None, **kwargs: dict):
         """Initialize form with BOM ID and company ID for nested formset and work line filtering."""
         super().__init__(*args, **kwargs)
@@ -183,6 +202,10 @@ class ProcessOperationForm(forms.ModelForm):
             ).order_by('name')
         else:
             self.fields['work_line'].queryset = WorkLine.objects.none()
+        
+        # Set initial value for requires_qc checkbox from instance
+        if self.instance.pk:
+            self.fields['requires_qc'].initial = bool(self.instance.requires_qc == 1)
 
 
 class ProcessOperationFormSetBase(forms.BaseFormSet):

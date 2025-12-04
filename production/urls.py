@@ -64,6 +64,7 @@ urlpatterns = [
     # Performance Records (سند عملکرد)
     path('performance-records/', views.PerformanceRecordListView.as_view(), name='performance_records'),
     path('performance-records/create/', views.PerformanceRecordCreateView.as_view(), name='performance_record_create'),
+    path('performance-records/get-operations/', views.PerformanceRecordGetOperationsView.as_view(), name='performance_record_get_operations'),
     path('performance-records/<int:pk>/', views.PerformanceRecordDetailView.as_view(), name='performance_record_detail'),
     path('performance-records/<int:pk>/edit/', views.PerformanceRecordUpdateView.as_view(), name='performance_record_edit'),
     path('performance-records/<int:pk>/delete/', views.PerformanceRecordDeleteView.as_view(), name='performance_record_delete'),

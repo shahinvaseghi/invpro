@@ -90,3 +90,4 @@ if __name__ == '__main__':
         file_path = sys.argv[1]
     update_permissions_file(file_path)
 
+

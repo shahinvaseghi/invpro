@@ -43,6 +43,19 @@
   
   <div class="form-row">
     <div class="form-field">
+      <label for="{{ form.document_type.id_for_label }}">{{ form.document_type.label }} *</label>
+      {{ form.document_type }}
+      {% if form.document_type.errors %}
+        <span class="error">{{ form.document_type.errors.0 }}</span>
+      {% endif %}
+      {% if form.document_type.help_text %}
+        <small class="form-text">{{ form.document_type.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field">
       <label for="{{ form.order.id_for_label }}">{{ form.order.label }} *</label>
       {{ form.order }}
       {% if form.order.errors %}
@@ -53,6 +66,19 @@
       {% endif %}
     </div>
     
+    <div class="form-field" id="operation-field-container">
+      <label for="{{ form.operation.id_for_label }}">{{ form.operation.label }} <span id="operation-required" style="display: none;">*</span></label>
+      {{ form.operation }}
+      {% if form.operation.errors %}
+        <span class="error">{{ form.operation.errors.0 }}</span>
+      {% endif %}
+      {% if form.operation.help_text %}
+        <small class="form-text">{{ form.operation.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row">
     <div class="form-field">
       <label for="{{ form.transfer.id_for_label }}">{{ form.transfer.label }}</label>
       {{ form.transfer }}
@@ -86,9 +112,9 @@
     </div>
   </div>
   
-  <div class="form-row">
+  <div class="form-row" id="quantity-fields-container">
     <div class="form-field">
-      <label for="{{ form.quantity_planned.id_for_label }}">{{ form.quantity_planned.label }} *</label>
+      <label for="{{ form.quantity_planned.id_for_label }}">{{ form.quantity_planned.label }} <span id="quantity-planned-required" style="display: none;">*</span></label>
       {{ form.quantity_planned }}
       {% if form.quantity_planned.errors %}
         <span class="error">{{ form.quantity_planned.errors.0 }}</span>
@@ -99,7 +125,7 @@
     </div>
     
     <div class="form-field">
-      <label for="{{ form.quantity_actual.id_for_label }}">{{ form.quantity_actual.label }} *</label>
+      <label for="{{ form.quantity_actual.id_for_label }}">{{ form.quantity_actual.label }} <span id="quantity-actual-required" style="display: none;">*</span></label>
       {{ form.quantity_actual }}
       {% if form.quantity_actual.errors %}
         <span class="error">{{ form.quantity_actual.errors.0 }}</span>
@@ -193,10 +219,14 @@
 </div>
 
 <!-- Persons Section -->
-<div class="form-section">
+<div class="form-section" id="persons-section">
   <header class="section-header">
     <h2>{% trans "Personnel (Labor Time)" %}</h2>
+    {% if is_general_document %}
+    <p>{% trans "Personnel data is automatically aggregated from operational performance records." %}</p>
+    {% else %}
     <p>{% trans "Add personnel who worked on this order and enter their work minutes." %}</p>
+    {% endif %}
   </header>
   
   {{ person_formset.management_form }}
@@ -249,7 +279,7 @@
             {% endif %}
           </td>
           <td>
-            {% if person_formset.can_delete %}
+            {% if not is_general_document and person_formset.can_delete %}
               {{ person_form.DELETE }}
               {% if person_form.DELETE %}
                 <label for="{{ person_form.DELETE.id_for_label }}" style="margin-left: 5px; cursor: pointer;">
@@ -264,14 +294,20 @@
     </table>
   </div>
   
+  {% if not is_general_document %}
   <button type="button" id="add-person-btn" class="btn btn-secondary">+ {% trans "Add Person" %}</button>
+  {% endif %}
 </div>
 
 <!-- Machines Section -->
-<div class="form-section">
+<div class="form-section" id="machines-section">
   <header class="section-header">
     <h2>{% trans "Machines (Machine Usage Time)" %}</h2>
+    {% if is_general_document %}
+    <p>{% trans "Machine data is automatically aggregated from operational performance records." %}</p>
+    {% else %}
     <p>{% trans "Add machines used in this order and enter their work minutes." %}</p>
+    {% endif %}
   </header>
   
   {{ machine_formset.management_form }}
@@ -324,7 +360,7 @@
             {% endif %}
           </td>
           <td>
-            {% if machine_formset.can_delete %}
+            {% if not is_general_document and machine_formset.can_delete %}
               {{ machine_form.DELETE }}
               {% if machine_form.DELETE %}
                 <label for="{{ machine_form.DELETE.id_for_label }}" style="margin-left: 5px; cursor: pointer;">
@@ -339,7 +375,9 @@
     </table>
   </div>
   
+  {% if not is_general_document %}
   <button type="button" id="add-machine-btn" class="btn btn-secondary">+ {% trans "Add Machine" %}</button>
+  {% endif %}
 </div>
 
 <!-- Create Receipt Section (only for approved and locked records) -->
@@ -443,11 +481,324 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Auto-populate materials when transfer is selected
+  // Get form elements
+  var documentTypeSelect = document.getElementById('id_document_type');
   var orderSelect = document.getElementById('id_order');
+  var operationSelect = document.getElementById('id_operation');
   var transferSelect = document.getElementById('id_transfer');
   var quantityPlannedInput = document.getElementById('id_quantity_planned');
   var quantityActualInput = document.getElementById('id_quantity_actual');
+  var quantityFieldsContainer = document.getElementById('quantity-fields-container');
+  var operationFieldContainer = document.getElementById('operation-field-container');
+  var operationRequired = document.getElementById('operation-required');
+  var quantityPlannedRequired = document.getElementById('quantity-planned-required');
+  var quantityActualRequired = document.getElementById('quantity-actual-required');
+
+  // Function to toggle fields based on document type
+  function toggleFieldsByDocumentType() {
+    var documentType = documentTypeSelect ? documentTypeSelect.value : '';
+    var isGeneral = (documentType === 'general');
+    
+    // Toggle operation and quantity fields
+    if (documentType === 'operational') {
+      // Show operation field, hide quantity fields
+      if (operationFieldContainer) {
+        operationFieldContainer.style.display = '';
+      }
+      if (operationSelect) {
+        operationSelect.required = true;
+        operationSelect.disabled = false;
+      }
+      if (operationRequired) {
+        operationRequired.style.display = 'inline';
+      }
+      
+      if (quantityFieldsContainer) {
+        quantityFieldsContainer.style.display = 'none';
+      }
+      if (quantityPlannedInput) {
+        quantityPlannedInput.required = false;
+        quantityPlannedInput.value = '';
+        quantityPlannedInput.disabled = false;
+      }
+      if (quantityActualInput) {
+        quantityActualInput.required = false;
+        quantityActualInput.value = '';
+        quantityActualInput.disabled = false;
+      }
+      if (quantityPlannedRequired) {
+        quantityPlannedRequired.style.display = 'none';
+      }
+      if (quantityActualRequired) {
+        quantityActualRequired.style.display = 'none';
+      }
+    } else if (documentType === 'general') {
+      // Hide operation field, show quantity fields
+      if (operationFieldContainer) {
+        operationFieldContainer.style.display = 'none';
+      }
+      if (operationSelect) {
+        operationSelect.required = false;
+        operationSelect.value = '';
+        operationSelect.disabled = false;
+      }
+      if (operationRequired) {
+        operationRequired.style.display = 'none';
+      }
+      
+      if (quantityFieldsContainer) {
+        quantityFieldsContainer.style.display = '';
+      }
+      if (quantityPlannedInput) {
+        quantityPlannedInput.required = true;
+        quantityPlannedInput.disabled = false;
+      }
+      if (quantityActualInput) {
+        quantityActualInput.required = true;
+        quantityActualInput.disabled = false;
+      }
+      if (quantityPlannedRequired) {
+        quantityPlannedRequired.style.display = 'inline';
+      }
+      if (quantityActualRequired) {
+        quantityActualRequired.style.display = 'inline';
+      }
+    }
+    
+    // Toggle persons and machines sections
+    var personsSection = document.getElementById('persons-section');
+    var machinesSection = document.getElementById('machines-section');
+    var addPersonBtn = document.getElementById('add-person-btn');
+    var addMachineBtn = document.getElementById('add-machine-btn');
+    
+    if (isGeneral) {
+      // Disable all person and machine inputs
+      if (personsSection) {
+        var personInputs = personsSection.querySelectorAll('input, select, textarea');
+        personInputs.forEach(function(input) {
+          if (input.type !== 'hidden' && !input.name.includes('DELETE')) {
+            input.disabled = true;
+            input.readOnly = true;
+          }
+        });
+      }
+      
+      if (machinesSection) {
+        var machineInputs = machinesSection.querySelectorAll('input, select, textarea');
+        machineInputs.forEach(function(input) {
+          if (input.type !== 'hidden' && !input.name.includes('DELETE')) {
+            input.disabled = true;
+            input.readOnly = true;
+          }
+        });
+      }
+      
+      // Hide add buttons
+      if (addPersonBtn) {
+        addPersonBtn.style.display = 'none';
+      }
+      if (addMachineBtn) {
+        addMachineBtn.style.display = 'none';
+      }
+    } else {
+      // Enable all person and machine inputs
+      if (personsSection) {
+        var personInputs = personsSection.querySelectorAll('input, select, textarea');
+        personInputs.forEach(function(input) {
+          input.disabled = false;
+          input.readOnly = false;
+        });
+      }
+      
+      if (machinesSection) {
+        var machineInputs = machinesSection.querySelectorAll('input, select, textarea');
+        machineInputs.forEach(function(input) {
+          input.disabled = false;
+          input.readOnly = false;
+        });
+      }
+      
+      // Show add buttons
+      if (addPersonBtn) {
+        addPersonBtn.style.display = '';
+      }
+      if (addMachineBtn) {
+        addMachineBtn.style.display = '';
+      }
+    }
+  }
+
+  // Initialize field visibility on page load
+  toggleFieldsByDocumentType();
+
+  // Load operations on page load if order is already selected
+  if (orderSelect && orderSelect.value && documentTypeSelect && documentTypeSelect.value === 'operational') {
+    loadOperationsForOrder(orderSelect.value);
+  }
+
+  // Update fields when document type changes
+  if (documentTypeSelect) {
+    documentTypeSelect.addEventListener('change', function() {
+      toggleFieldsByDocumentType();
+      // Clear operation when switching to general
+      if (this.value === 'general' && operationSelect) {
+        operationSelect.value = '';
+        operationSelect.innerHTML = '<option value="">--------</option>';
+      }
+      // Reload operations when switching to operational
+      if (this.value === 'operational' && orderSelect && orderSelect.value) {
+        loadOperationsForOrder(orderSelect.value);
+      }
+    });
+  }
+
+  // Function to load operations for selected order
+  function loadOperationsForOrder(orderId) {
+    console.log('loadOperationsForOrder called with orderId:', orderId);
+    
+    if (!orderId || !operationSelect) {
+      console.log('No orderId or operationSelect, clearing options');
+      if (operationSelect) {
+        operationSelect.innerHTML = '<option value="">--------</option>';
+      }
+      return;
+    }
+
+    // Only fetch operations if document type is operational
+    if (documentTypeSelect && documentTypeSelect.value !== 'operational') {
+      console.log('Document type is not operational, skipping');
+      if (operationSelect) {
+        operationSelect.innerHTML = '<option value="">--------</option>';
+      }
+      return;
+    }
+
+    // Show loading state
+    if (operationSelect) {
+      operationSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
+      operationSelect.disabled = true;
+    }
+
+    // Build URL - ensure it includes language prefix
+    var baseUrl = '{% url "production:performance_record_get_operations" %}';
+    // If baseUrl doesn't start with /fa/, add it
+    if (!baseUrl.startsWith('/fa/') && !baseUrl.startsWith('http')) {
+      baseUrl = '/fa' + baseUrl;
+    }
+    var url = baseUrl + '?order_id=' + orderId;
+    console.log('Fetching operations from:', url);
+    console.log('Base URL:', baseUrl);
+    console.log('Order ID:', orderId);
+
+    // Fetch operations for the selected order's process via AJAX
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+      },
+      credentials: 'same-origin',  // Include cookies for session
+    })
+      .then(function(response) {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+          throw new Error('Network response was not ok: ' + response.status);
+        }
+        return response.json();
+      })
+      .then(function(data) {
+        console.log('Received data:', data);
+        
+        if (data.error) {
+          console.error('Error fetching operations:', data.error);
+          if (operationSelect) {
+            operationSelect.innerHTML = '<option value="">--------</option>';
+            operationSelect.disabled = false;
+          }
+          return;
+        }
+        
+        // Clear existing options
+        if (operationSelect) {
+          operationSelect.innerHTML = '<option value="">--------</option>';
+          
+          // Add new options
+          if (data.operations && data.operations.length > 0) {
+            console.log('Adding', data.operations.length, 'operations');
+            data.operations.forEach(function(op) {
+              var option = document.createElement('option');
+              option.value = op.id;
+              option.textContent = op.name || ('Operation ' + op.sequence_order);
+              operationSelect.appendChild(option);
+            });
+          } else {
+            console.log('No operations available');
+            // No operations available
+            var option = document.createElement('option');
+            option.value = '';
+            option.textContent = '{% trans "No operations available" %}';
+            option.disabled = true;
+            operationSelect.appendChild(option);
+          }
+          operationSelect.disabled = false;
+        }
+      })
+      .catch(function(error) {
+        console.error('Error fetching operations:', error);
+        if (operationSelect) {
+          operationSelect.innerHTML = '<option value="">--------</option>';
+          operationSelect.disabled = false;
+        }
+      });
+  }
+
+  // Update operation options when order changes
+  if (orderSelect && operationSelect) {
+    console.log('Setting up order change listener');
+    
+    // Use both change and input events to ensure it works
+    function handleOrderChange() {
+      var orderId = orderSelect.value;
+      console.log('Order changed/input to:', orderId);
+      if (orderId) {
+        loadOperationsForOrder(orderId);
+      } else {
+        if (operationSelect) {
+          operationSelect.innerHTML = '<option value="">--------</option>';
+        }
+      }
+    }
+    
+    orderSelect.addEventListener('change', handleOrderChange);
+    orderSelect.addEventListener('input', handleOrderChange);
+    
+    // Also check if order is already selected on page load
+    // Use multiple timeouts to ensure DOM is ready
+    setTimeout(function() {
+      console.log('Checking for pre-selected order...');
+      console.log('orderSelect:', orderSelect);
+      console.log('orderSelect.value:', orderSelect ? orderSelect.value : 'N/A');
+      console.log('documentTypeSelect:', documentTypeSelect);
+      console.log('documentTypeSelect.value:', documentTypeSelect ? documentTypeSelect.value : 'N/A');
+      
+      if (orderSelect && orderSelect.value && documentTypeSelect && documentTypeSelect.value === 'operational') {
+        console.log('Order already selected on page load:', orderSelect.value);
+        loadOperationsForOrder(orderSelect.value);
+      }
+    }, 500);
+    
+    // Also try after a longer delay
+    setTimeout(function() {
+      if (orderSelect && orderSelect.value && documentTypeSelect && documentTypeSelect.value === 'operational') {
+        console.log('Second check - Order already selected:', orderSelect.value);
+        loadOperationsForOrder(orderSelect.value);
+      }
+    }, 1000);
+  } else {
+    console.error('orderSelect or operationSelect not found!');
+    console.log('orderSelect:', orderSelect);
+    console.log('operationSelect:', operationSelect);
+  }
 
   if (orderSelect && transferSelect) {
     function updateTransferOptions() {
@@ -470,10 +821,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     orderSelect.addEventListener('change', function() {
       updateTransferOptions();
-      // Auto-populate quantity_planned from order
-      if (orderSelect.options[orderSelect.selectedIndex]) {
-        var orderText = orderSelect.options[orderSelect.selectedIndex].text;
-        // Extract quantity from order text if available, or make API call
+      // Auto-populate quantity_planned from order (only for general documents)
+      if (documentTypeSelect && documentTypeSelect.value === 'general') {
+        if (orderSelect.options[orderSelect.selectedIndex]) {
+          var orderText = orderSelect.options[orderSelect.selectedIndex].text;
+          // Extract quantity from order text if available, or make API call
+        }
       }
     });
 

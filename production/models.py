@@ -739,6 +739,11 @@ class ProcessOperation(ProductionBaseModel):
         blank=True,
         help_text=_("Work line where this operation is performed"),
     )
+    requires_qc = models.PositiveSmallIntegerField(
+        default=0,
+        help_text=_("Whether this operation requires QC inspection"),
+        verbose_name=_("Requires QC"),
+    )
     notes = models.TextField(
         blank=True,
         help_text=_("Additional notes for this operation"),
@@ -1155,8 +1160,19 @@ class PerformanceRecord(ProductionBaseModel, LockableModel):
         PENDING_APPROVAL = "pending_approval", _("Pending Approval")
         APPROVED = "approved", _("Approved")
         REJECTED = "rejected", _("Rejected")
+    
+    class DocumentType(models.TextChoices):
+        OPERATIONAL = "operational", _("Operational")  # عملیاتی
+        GENERAL = "general", _("General")  # کلی
 
     performance_code = models.CharField(max_length=30, unique=True)
+    document_type = models.CharField(
+        max_length=20,
+        choices=DocumentType.choices,
+        default=DocumentType.OPERATIONAL,
+        verbose_name=_("Document Type"),
+        help_text=_("Type of performance record: Operational (for specific operation) or General (for entire order)"),
+    )
     order = models.ForeignKey(
         ProductOrder,
         on_delete=models.PROTECT,
@@ -1165,6 +1181,15 @@ class PerformanceRecord(ProductionBaseModel, LockableModel):
         help_text=_("The product order this performance record is for"),
     )
     order_code = models.CharField(max_length=30)
+    operation = models.ForeignKey(
+        "ProcessOperation",
+        on_delete=models.PROTECT,
+        related_name="performance_records",
+        null=True,
+        blank=True,
+        verbose_name=_("Process Operation"),
+        help_text=_("The process operation this performance record is for (only for operational documents)"),
+    )
     transfer = models.ForeignKey(
         TransferToLine,
         on_delete=models.PROTECT,
@@ -1213,6 +1238,20 @@ class PerformanceRecord(ProductionBaseModel, LockableModel):
         verbose_name = _("Performance Record")
         verbose_name_plural = _("Performance Records")
         ordering = ("-performance_date", "performance_code")
+        constraints = [
+            # Constraint: Only one operational performance record per operation per order
+            models.UniqueConstraint(
+                fields=("company", "order", "operation"),
+                condition=models.Q(document_type="operational", operation__isnull=False),
+                name="production_performance_operational_unique",
+            ),
+            # Constraint: Only one general performance record per order
+            models.UniqueConstraint(
+                fields=("company", "order"),
+                condition=models.Q(document_type="general"),
+                name="production_performance_general_unique",
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.performance_code
@@ -1232,6 +1271,13 @@ class PerformanceRecord(ProductionBaseModel, LockableModel):
             self.unit = self.order.unit
         if self.transfer and not self.transfer_code:
             self.transfer_code = self.transfer.transfer_code
+        
+        # Validate document_type and operation relationship
+        if self.document_type == self.DocumentType.OPERATIONAL and not self.operation_id:
+            raise ValueError("Operation must be specified for operational performance records.")
+        if self.document_type == self.DocumentType.GENERAL and self.operation_id:
+            raise ValueError("Operation must be null for general performance records.")
+        
         super().save(*args, **kwargs)
 
 

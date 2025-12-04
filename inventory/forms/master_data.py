@@ -474,6 +474,10 @@ class ItemForm(forms.ModelForm):
         label=_('ورود از طریق رسید موقت'),
         widget=IntegerCheckboxInput(attrs={'class': 'form-check-input'}),
     )
+    serial_in_qc = IntegerCheckboxField(
+        label=_('سریال در QC'),
+        widget=IntegerCheckboxInput(attrs={'class': 'form-check-input'}),
+    )
     is_enabled = IntegerCheckboxField(
         label=_('فعال باشد'),
         widget=IntegerCheckboxInput(attrs={'class': 'form-check-input'}),
@@ -503,7 +507,8 @@ class ItemForm(forms.ModelForm):
             'type', 'category', 'subcategory',
             'user_segment', 'name', 'name_en',
             'secondary_batch_number',
-            'is_sellable', 'has_lot_tracking', 'requires_temporary_receipt',
+            'is_sellable', 'has_lot_tracking', 'requires_temporary_receipt', 'serial_in_qc',
+            'supply_type', 'planning_type', 'lead_time',
             'tax_id', 'tax_title', 'min_stock',
             'default_unit', 'primary_unit',
             'description', 'notes',
@@ -517,6 +522,9 @@ class ItemForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'name_en': forms.TextInput(attrs={'class': 'form-control'}),
             'secondary_batch_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '50'}),
+            'supply_type': forms.Select(attrs={'class': 'form-control'}),
+            'planning_type': forms.Select(attrs={'class': 'form-control'}),
+            'lead_time': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '1'}),
             'tax_id': forms.TextInput(attrs={'class': 'form-control'}),
             'tax_title': forms.TextInput(attrs={'class': 'form-control'}),
             'min_stock': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
@@ -532,6 +540,9 @@ class ItemForm(forms.ModelForm):
             'name': _('نام (فارسی)'),
             'name_en': _('نام (English)'),
             'secondary_batch_number': _('بچ نامبر ثانویه'),
+            'supply_type': _('نوع تامین'),
+            'planning_type': _('نوع برنامه ریزی'),
+            'lead_time': _('زمان تامین (روز)'),
             'tax_id': _('شناسه مالیاتی'),
             'tax_title': _('عنوان مالیاتی'),
             'min_stock': _('حداقل موجودی'),
@@ -574,6 +585,7 @@ class ItemForm(forms.ModelForm):
             self.fields['is_sellable'].initial = self.instance.is_sellable
             self.fields['has_lot_tracking'].initial = self.instance.has_lot_tracking
             self.fields['requires_temporary_receipt'].initial = self.instance.requires_temporary_receipt
+            self.fields['serial_in_qc'].initial = self.instance.serial_in_qc
             self.fields['is_enabled'].initial = self.instance.is_enabled
 
         self.fields['type'].label_from_instance = lambda obj: obj.name
@@ -613,7 +625,7 @@ class ItemForm(forms.ModelForm):
         # But we need to ensure fields are ALWAYS in cleaned_data, even if not in POST
         # IntegerCheckboxInput.value_from_datadict returns '0' or '1' as string
         # IntegerCheckboxField.clean() will convert to int 0 or 1
-        checkbox_fields = ['is_sellable', 'has_lot_tracking', 'requires_temporary_receipt', 'is_enabled']
+        checkbox_fields = ['is_sellable', 'has_lot_tracking', 'requires_temporary_receipt', 'serial_in_qc', 'is_enabled']
         for field_name in checkbox_fields:
             # Ensure field is always in cleaned_data
             if field_name not in cleaned_data:

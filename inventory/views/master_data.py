@@ -837,7 +837,7 @@ class ItemCreateView(ItemUnitFormsetMixin, InventoryBaseView, CreateView):
         
         # Explicitly set checkbox values BEFORE saving form
         # IntegerCheckboxField should handle this, but we ensure values are set correctly
-        checkbox_fields = ['is_sellable', 'has_lot_tracking', 'requires_temporary_receipt', 'is_enabled']
+        checkbox_fields = ['is_sellable', 'has_lot_tracking', 'requires_temporary_receipt', 'serial_in_qc', 'is_enabled']
         for field_name in checkbox_fields:
             # First try to get from cleaned_data (processed by IntegerCheckboxField)
             value = form.cleaned_data.get(field_name)
@@ -932,7 +932,7 @@ class ItemUpdateView(EditLockProtectedMixin, ItemUnitFormsetMixin, InventoryBase
         
         # Explicitly update checkbox values BEFORE saving form
         # IntegerCheckboxField should handle this, but we ensure values are set correctly
-        checkbox_fields = ['is_sellable', 'has_lot_tracking', 'requires_temporary_receipt', 'is_enabled']
+        checkbox_fields = ['is_sellable', 'has_lot_tracking', 'requires_temporary_receipt', 'serial_in_qc', 'is_enabled']
         for field_name in checkbox_fields:
             # First try to get from cleaned_data (processed by IntegerCheckboxField)
             value = form.cleaned_data.get(field_name)

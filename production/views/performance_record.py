@@ -32,6 +32,7 @@ from production.models import (
     TransferToLine,
     TransferToLineItem,
     Process,
+    ProcessOperation,
 )
 
 
@@ -150,6 +151,18 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
         
         active_company_id = self.request.session.get('active_company_id')
         
+        # Get document_type from form data or default
+        document_type = None
+        if self.request.POST:
+            document_type = self.request.POST.get('document_type', PerformanceRecord.DocumentType.OPERATIONAL)
+        elif hasattr(self, 'form') and self.form and hasattr(self.form, 'cleaned_data') and self.form.cleaned_data.get('document_type'):
+            document_type = self.form.cleaned_data.get('document_type')
+        else:
+            document_type = PerformanceRecord.DocumentType.OPERATIONAL
+        
+        context['document_type'] = document_type
+        context['is_general_document'] = (document_type == PerformanceRecord.DocumentType.GENERAL)
+        
         if self.request.POST:
             context['material_formset'] = PerformanceRecordMaterialFormSet(
                 self.request.POST,
@@ -157,34 +170,62 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
                 form_kwargs={'company_id': active_company_id},
                 prefix='materials',
             )
-            context['person_formset'] = PerformanceRecordPersonFormSet(
-                self.request.POST,
-                instance=instance,
-                form_kwargs={'company_id': active_company_id, 'process_id': None},  # Will be set from order if available
-                prefix='persons',
-            )
-            context['machine_formset'] = PerformanceRecordMachineFormSet(
-                self.request.POST,
-                instance=instance,
-                form_kwargs={'company_id': active_company_id},
-                prefix='machines',
-            )
+            # For general documents, disable person and machine formsets (they will be auto-populated)
+            if document_type == PerformanceRecord.DocumentType.GENERAL:
+                context['person_formset'] = PerformanceRecordPersonFormSet(
+                    self.request.POST,
+                    instance=instance,
+                    form_kwargs={'company_id': active_company_id, 'process_id': None},
+                    prefix='persons',
+                )
+                context['machine_formset'] = PerformanceRecordMachineFormSet(
+                    self.request.POST,
+                    instance=instance,
+                    form_kwargs={'company_id': active_company_id},
+                    prefix='machines',
+                )
+            else:
+                context['person_formset'] = PerformanceRecordPersonFormSet(
+                    self.request.POST,
+                    instance=instance,
+                    form_kwargs={'company_id': active_company_id, 'process_id': None},
+                    prefix='persons',
+                )
+                context['machine_formset'] = PerformanceRecordMachineFormSet(
+                    self.request.POST,
+                    instance=instance,
+                    form_kwargs={'company_id': active_company_id},
+                    prefix='machines',
+                )
         else:
             context['material_formset'] = PerformanceRecordMaterialFormSet(
                 instance=instance,
                 form_kwargs={'company_id': active_company_id},
                 prefix='materials',
             )
-            context['person_formset'] = PerformanceRecordPersonFormSet(
-                instance=instance,
-                form_kwargs={'company_id': active_company_id, 'process_id': None},  # Will be set from order if available
-                prefix='persons',
-            )
-            context['machine_formset'] = PerformanceRecordMachineFormSet(
-                instance=instance,
-                form_kwargs={'company_id': active_company_id, 'process_id': None},  # Will be set from order if available
-                prefix='machines',
-            )
+            # For general documents, disable person and machine formsets (they will be auto-populated)
+            if document_type == PerformanceRecord.DocumentType.GENERAL:
+                context['person_formset'] = PerformanceRecordPersonFormSet(
+                    instance=instance,
+                    form_kwargs={'company_id': active_company_id, 'process_id': None},
+                    prefix='persons',
+                )
+                context['machine_formset'] = PerformanceRecordMachineFormSet(
+                    instance=instance,
+                    form_kwargs={'company_id': active_company_id, 'process_id': None},
+                    prefix='machines',
+                )
+            else:
+                context['person_formset'] = PerformanceRecordPersonFormSet(
+                    instance=instance,
+                    form_kwargs={'company_id': active_company_id, 'process_id': None},
+                    prefix='persons',
+                )
+                context['machine_formset'] = PerformanceRecordMachineFormSet(
+                    instance=instance,
+                    form_kwargs={'company_id': active_company_id, 'process_id': None},
+                    prefix='machines',
+                )
         
         return context
     
@@ -212,10 +253,15 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
         
         # Auto-populate from order
         order = form.cleaned_data.get('order')
+        document_type = form.cleaned_data.get('document_type')
+        
         if order:
-            form.instance.quantity_planned = order.quantity_planned
             form.instance.finished_item = order.finished_item
             form.instance.unit = order.unit
+            
+            # For general documents, set quantity_planned from order
+            if document_type == PerformanceRecord.DocumentType.GENERAL:
+                form.instance.quantity_planned = order.quantity_planned
         
         # Save performance record header
         response = super().form_valid(form)
@@ -240,46 +286,203 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
             prefix='machines',
         )
         
-        # Populate materials from transfer if transfer is selected
-        transfer = form.cleaned_data.get('transfer')
-        if transfer and material_formset.is_valid():
-            # Clear existing materials and populate from transfer
-            PerformanceRecordMaterial.objects.filter(performance=self.object).delete()
+        # Populate materials based on document type
+        document_type = form.cleaned_data.get('document_type')
+        order = form.cleaned_data.get('order')
+        operation = form.cleaned_data.get('operation')
+        
+        if document_type == PerformanceRecord.DocumentType.OPERATIONAL:
+            # For operational documents: get actual materials from transfer documents for this order
+            # Get all approved transfer documents for this order
+            transfers = TransferToLine.objects.filter(
+                company_id=active_company_id,
+                order=order,
+                status='approved',
+                is_enabled=1,
+            )
             
-            for transfer_item in transfer.items.all():
-                material = PerformanceRecordMaterial.objects.create(
+            # Collect all materials from all transfers (actual materials used)
+            # Group by material_item to handle duplicates
+            materials_dict = {}
+            for transfer in transfers:
+                for transfer_item in transfer.items.all():
+                    material_item_id = transfer_item.material_item_id
+                    if material_item_id not in materials_dict:
+                        materials_dict[material_item_id] = {
+                            'material_item': transfer_item.material_item,
+                            'material_item_code': transfer_item.material_item_code,
+                            'quantity_required': transfer_item.quantity_required,
+                            'unit': transfer_item.unit,
+                            'is_extra': transfer_item.is_extra,
+                        }
+                    else:
+                        # Sum quantities if same material appears in multiple transfers
+                        materials_dict[material_item_id]['quantity_required'] += transfer_item.quantity_required
+            
+            # Create performance record materials from actual transfer materials
+            PerformanceRecordMaterial.objects.filter(performance=self.object).delete()
+            for material_data in materials_dict.values():
+                PerformanceRecordMaterial.objects.create(
                     performance=self.object,
                     company_id=active_company_id,
-                    material_item=transfer_item.material_item,
-                    material_item_code=transfer_item.material_item_code,
-                    quantity_required=transfer_item.quantity_required,
+                    material_item=material_data['material_item'],
+                    material_item_code=material_data['material_item_code'],
+                    quantity_required=material_data['quantity_required'],
                     quantity_waste=Decimal('0'),
-                    unit=transfer_item.unit,
-                    is_extra=transfer_item.is_extra,
+                    unit=material_data['unit'],
+                    is_extra=material_data['is_extra'],
                     created_by=self.request.user,
                 )
-        elif material_formset.is_valid():
-            # Save materials from formset
-            material_formset.instance = self.object
-            material_formset.save()
         else:
-            messages.error(self.request, _('Error saving materials. Please check the form.'))
-            return self.form_invalid(form)
+            # For general documents: populate from transfer if selected, or use formset
+            transfer = form.cleaned_data.get('transfer')
+            if transfer and material_formset.is_valid():
+                # Clear existing materials and populate from transfer
+                PerformanceRecordMaterial.objects.filter(performance=self.object).delete()
+                
+                for transfer_item in transfer.items.all():
+                    material = PerformanceRecordMaterial.objects.create(
+                        performance=self.object,
+                        company_id=active_company_id,
+                        material_item=transfer_item.material_item,
+                        material_item_code=transfer_item.material_item_code,
+                        quantity_required=transfer_item.quantity_required,
+                        quantity_waste=Decimal('0'),
+                        unit=transfer_item.unit,
+                        is_extra=transfer_item.is_extra,
+                        created_by=self.request.user,
+                    )
+            elif material_formset.is_valid():
+                # Save materials from formset
+                material_formset.instance = self.object
+                material_formset.save()
+            else:
+                messages.error(self.request, _('Error saving materials. Please check the form.'))
+                return self.form_invalid(form)
         
-        # Save persons and machines
-        if person_formset.is_valid():
-            person_formset.instance = self.object
-            person_formset.save()
-        else:
-            messages.error(self.request, _('Error saving persons. Please check the form.'))
-            return self.form_invalid(form)
+        # Save persons and machines (only for operational documents)
+        # For general documents, persons and machines will be auto-populated from operational records
+        if document_type == PerformanceRecord.DocumentType.OPERATIONAL:
+            if person_formset.is_valid():
+                person_formset.instance = self.object
+                person_formset.save()
+            else:
+                messages.error(self.request, _('Error saving persons. Please check the form.'))
+                return self.form_invalid(form)
+            
+            if machine_formset.is_valid():
+                machine_formset.instance = self.object
+                machine_formset.save()
+            else:
+                messages.error(self.request, _('Error saving machines. Please check the form.'))
+                return self.form_invalid(form)
         
-        if machine_formset.is_valid():
-            machine_formset.instance = self.object
-            machine_formset.save()
-        else:
-            messages.error(self.request, _('Error saving machines. Please check the form.'))
-            return self.form_invalid(form)
+        # For general documents, aggregate data from all operational performance records
+        if document_type == PerformanceRecord.DocumentType.GENERAL:
+            # Get all operational performance records for this order
+            operational_records = PerformanceRecord.objects.filter(
+                company_id=active_company_id,
+                order=order,
+                document_type=PerformanceRecord.DocumentType.OPERATIONAL,
+            ).prefetch_related('persons', 'machines', 'materials')
+            
+            # Aggregate persons (sum work_minutes by person)
+            persons_dict = {}
+            for op_record in operational_records:
+                for person_record in op_record.persons.all():
+                    person_id = person_record.person_id
+                    if person_id not in persons_dict:
+                        persons_dict[person_id] = {
+                            'person': person_record.person,
+                            'person_code': person_record.person_code,
+                            'work_minutes': person_record.work_minutes,
+                            'work_line': person_record.work_line,
+                            'work_line_code': person_record.work_line_code,
+                            'notes': person_record.notes,
+                        }
+                    else:
+                        persons_dict[person_id]['work_minutes'] += person_record.work_minutes
+            
+            # Aggregate machines (sum work_minutes by machine)
+            machines_dict = {}
+            for op_record in operational_records:
+                for machine_record in op_record.machines.all():
+                    machine_id = machine_record.machine_id
+                    if machine_id not in machines_dict:
+                        machines_dict[machine_id] = {
+                            'machine': machine_record.machine,
+                            'machine_code': machine_record.machine_code,
+                            'work_minutes': machine_record.work_minutes,
+                            'work_line': machine_record.work_line,
+                            'work_line_code': machine_record.work_line_code,
+                            'notes': machine_record.notes,
+                        }
+                    else:
+                        machines_dict[machine_id]['work_minutes'] += machine_record.work_minutes
+            
+            # Aggregate materials (sum quantity_required and quantity_waste by material_item)
+            materials_dict = {}
+            for op_record in operational_records:
+                for material_record in op_record.materials.all():
+                    material_item_id = material_record.material_item_id
+                    if material_item_id not in materials_dict:
+                        materials_dict[material_item_id] = {
+                            'material_item': material_record.material_item,
+                            'material_item_code': material_record.material_item_code,
+                            'quantity_required': material_record.quantity_required,
+                            'quantity_waste': material_record.quantity_waste,
+                            'unit': material_record.unit,
+                            'is_extra': material_record.is_extra,
+                            'notes': material_record.notes,
+                        }
+                    else:
+                        materials_dict[material_item_id]['quantity_required'] += material_record.quantity_required
+                        materials_dict[material_item_id]['quantity_waste'] += material_record.quantity_waste
+            
+            # Update or create aggregated records
+            # Clear existing and create aggregated ones
+            PerformanceRecordPerson.objects.filter(performance=self.object).delete()
+            for person_data in persons_dict.values():
+                PerformanceRecordPerson.objects.create(
+                    performance=self.object,
+                    company_id=active_company_id,
+                    person=person_data['person'],
+                    person_code=person_data['person_code'],
+                    work_minutes=person_data['work_minutes'],
+                    work_line=person_data.get('work_line'),
+                    work_line_code=person_data.get('work_line_code', ''),
+                    notes=person_data.get('notes', ''),
+                    created_by=self.request.user,
+                )
+            
+            PerformanceRecordMachine.objects.filter(performance=self.object).delete()
+            for machine_data in machines_dict.values():
+                PerformanceRecordMachine.objects.create(
+                    performance=self.object,
+                    company_id=active_company_id,
+                    machine=machine_data['machine'],
+                    machine_code=machine_data['machine_code'],
+                    work_minutes=machine_data['work_minutes'],
+                    work_line=machine_data.get('work_line'),
+                    work_line_code=machine_data.get('work_line_code', ''),
+                    notes=machine_data.get('notes', ''),
+                    created_by=self.request.user,
+                )
+            
+            PerformanceRecordMaterial.objects.filter(performance=self.object).delete()
+            for material_data in materials_dict.values():
+                PerformanceRecordMaterial.objects.create(
+                    performance=self.object,
+                    company_id=active_company_id,
+                    material_item=material_data['material_item'],
+                    material_item_code=material_data['material_item_code'],
+                    quantity_required=material_data['quantity_required'],
+                    quantity_waste=material_data['quantity_waste'],
+                    unit=material_data['unit'],
+                    is_extra=material_data['is_extra'],
+                    notes=material_data.get('notes', ''),
+                    created_by=self.request.user,
+                )
         
         messages.success(self.request, _('Performance record created successfully.'))
         return response
@@ -337,6 +540,19 @@ class PerformanceRecordUpdateView(EditLockProtectedMixin, FeaturePermissionRequi
         order = self.object.order
         process_id = order.process_id if order and order.process else None
         
+        # Get document_type from instance or form data
+        document_type = self.object.document_type if self.object and self.object.pk else None
+        if self.request.POST:
+            document_type = self.request.POST.get('document_type', document_type or PerformanceRecord.DocumentType.OPERATIONAL)
+        elif hasattr(self, 'form') and self.form and hasattr(self.form, 'cleaned_data') and self.form.cleaned_data.get('document_type'):
+            document_type = self.form.cleaned_data.get('document_type')
+        
+        if not document_type:
+            document_type = PerformanceRecord.DocumentType.OPERATIONAL
+        
+        context['document_type'] = document_type
+        context['is_general_document'] = (document_type == PerformanceRecord.DocumentType.GENERAL)
+        
         if self.request.POST:
             context['material_formset'] = PerformanceRecordMaterialFormSet(
                 self.request.POST,
@@ -344,6 +560,7 @@ class PerformanceRecordUpdateView(EditLockProtectedMixin, FeaturePermissionRequi
                 form_kwargs={'company_id': active_company_id},
                 prefix='materials',
             )
+            # For general documents, disable person and machine formsets (they will be auto-populated)
             context['person_formset'] = PerformanceRecordPersonFormSet(
                 self.request.POST,
                 instance=self.object,
@@ -414,24 +631,148 @@ class PerformanceRecordUpdateView(EditLockProtectedMixin, FeaturePermissionRequi
             prefix='machines',
         )
         
-        # Save formsets
-        if material_formset.is_valid():
-            material_formset.save()
-        else:
-            messages.error(self.request, _('Error saving materials. Please check the form.'))
-            return self.form_invalid(form)
+        # Get document_type and order
+        document_type = form.cleaned_data.get('document_type', self.object.document_type)
+        order = form.cleaned_data.get('order', self.object.order)
         
-        if person_formset.is_valid():
-            person_formset.save()
+        # Handle materials based on document type
+        if document_type == PerformanceRecord.DocumentType.OPERATIONAL:
+            # For operational documents: get actual materials from transfer documents
+            transfers = TransferToLine.objects.filter(
+                company_id=active_company_id,
+                order=order,
+                status='approved',
+                is_enabled=1,
+            )
+            
+            # Collect all materials from all transfers
+            materials_dict = {}
+            for transfer in transfers:
+                for transfer_item in transfer.items.all():
+                    material_item_id = transfer_item.material_item_id
+                    if material_item_id not in materials_dict:
+                        materials_dict[material_item_id] = {
+                            'material_item': transfer_item.material_item,
+                            'material_item_code': transfer_item.material_item_code,
+                            'quantity_required': transfer_item.quantity_required,
+                            'unit': transfer_item.unit,
+                            'is_extra': transfer_item.is_extra,
+                        }
+                    else:
+                        materials_dict[material_item_id]['quantity_required'] += transfer_item.quantity_required
+            
+            # Update performance record materials
+            # Keep existing waste quantities if material already exists
+            existing_materials = {
+                mat.material_item_id: mat for mat in self.object.materials.all()
+            }
+            
+            PerformanceRecordMaterial.objects.filter(performance=self.object).delete()
+            for material_data in materials_dict.values():
+                existing_material = existing_materials.get(material_data['material_item'].id)
+                PerformanceRecordMaterial.objects.create(
+                    performance=self.object,
+                    company_id=active_company_id,
+                    material_item=material_data['material_item'],
+                    material_item_code=material_data['material_item_code'],
+                    quantity_required=material_data['quantity_required'],
+                    quantity_waste=existing_material.quantity_waste if existing_material else Decimal('0'),
+                    unit=material_data['unit'],
+                    is_extra=material_data['is_extra'],
+                    created_by=self.request.user,
+                )
         else:
-            messages.error(self.request, _('Error saving persons. Please check the form.'))
-            return self.form_invalid(form)
+            # For general documents: use formset or recalculate from operational records
+            if material_formset.is_valid():
+                material_formset.save()
+            else:
+                messages.error(self.request, _('Error saving materials. Please check the form.'))
+                return self.form_invalid(form)
         
-        if machine_formset.is_valid():
-            machine_formset.save()
+        # Handle persons and machines
+        if document_type == PerformanceRecord.DocumentType.GENERAL:
+            # For general documents: recalculate from operational records
+            operational_records = PerformanceRecord.objects.filter(
+                company_id=active_company_id,
+                order=order,
+                document_type=PerformanceRecord.DocumentType.OPERATIONAL,
+            ).prefetch_related('persons', 'machines')
+            
+            # Aggregate persons
+            persons_dict = {}
+            for op_record in operational_records:
+                for person_record in op_record.persons.all():
+                    person_id = person_record.person_id
+                    if person_id not in persons_dict:
+                        persons_dict[person_id] = {
+                            'person': person_record.person,
+                            'person_code': person_record.person_code,
+                            'work_minutes': person_record.work_minutes,
+                            'work_line': person_record.work_line,
+                            'work_line_code': person_record.work_line_code,
+                            'notes': person_record.notes,
+                        }
+                    else:
+                        persons_dict[person_id]['work_minutes'] += person_record.work_minutes
+            
+            # Aggregate machines
+            machines_dict = {}
+            for op_record in operational_records:
+                for machine_record in op_record.machines.all():
+                    machine_id = machine_record.machine_id
+                    if machine_id not in machines_dict:
+                        machines_dict[machine_id] = {
+                            'machine': machine_record.machine,
+                            'machine_code': machine_record.machine_code,
+                            'work_minutes': machine_record.work_minutes,
+                            'work_line': machine_record.work_line,
+                            'work_line_code': machine_record.work_line_code,
+                            'notes': machine_record.notes,
+                        }
+                    else:
+                        machines_dict[machine_id]['work_minutes'] += machine_record.work_minutes
+            
+            # Update aggregated records
+            PerformanceRecordPerson.objects.filter(performance=self.object).delete()
+            for person_data in persons_dict.values():
+                PerformanceRecordPerson.objects.create(
+                    performance=self.object,
+                    company_id=active_company_id,
+                    person=person_data['person'],
+                    person_code=person_data['person_code'],
+                    work_minutes=person_data['work_minutes'],
+                    work_line=person_data.get('work_line'),
+                    work_line_code=person_data.get('work_line_code', ''),
+                    notes=person_data.get('notes', ''),
+                    created_by=self.request.user,
+                )
+            
+            PerformanceRecordMachine.objects.filter(performance=self.object).delete()
+            for machine_data in machines_dict.values():
+                PerformanceRecordMachine.objects.create(
+                    performance=self.object,
+                    company_id=active_company_id,
+                    machine=machine_data['machine'],
+                    machine_code=machine_data['machine_code'],
+                    work_minutes=machine_data['work_minutes'],
+                    work_line=machine_data.get('work_line'),
+                    work_line_code=machine_data.get('work_line_code', ''),
+                    notes=machine_data.get('notes', ''),
+                    created_by=self.request.user,
+                )
         else:
-            messages.error(self.request, _('Error saving machines. Please check the form.'))
-            return self.form_invalid(form)
+            # For operational documents: use formsets
+            if person_formset.is_valid():
+                person_formset.save()
+            else:
+                messages.error(self.request, _('Error saving persons. Please check the form.'))
+                return self.form_invalid(form)
+            
+            if machine_formset.is_valid():
+                machine_formset.save()
+            else:
+                messages.error(self.request, _('Error saving machines. Please check the form.'))
+                return self.form_invalid(form)
         
         messages.success(self.request, _('Performance record updated successfully.'))
         return response
@@ -753,4 +1094,68 @@ class PerformanceRecordCreateReceiptView(FeaturePermissionRequiredMixin, View):
         except Exception as e:
             messages.error(request, _('Error creating receipt: {error}').format(error=str(e)))
             return redirect('production:performance_records')
+
+
+class PerformanceRecordGetOperationsView(FeaturePermissionRequiredMixin, View):
+    """AJAX view to get operations for an order (for operational performance records)."""
+    feature_code = 'production.performance_records'
+    required_action = 'view_own'  # Use view_own instead of create for AJAX requests
+    
+    def get(self, request, *args, **kwargs):
+        """Return operations for the selected order."""
+        active_company_id = request.session.get('active_company_id')
+        if not active_company_id:
+            return JsonResponse({'error': _('Please select a company first.')}, status=400)
+        
+        order_id = request.GET.get('order_id')
+        if not order_id:
+            return JsonResponse({'error': _('Order ID is required.')}, status=400)
+        
+        try:
+            order = ProductOrder.objects.get(
+                pk=order_id,
+                company_id=active_company_id,
+                is_enabled=1,
+            )
+        except ProductOrder.DoesNotExist:
+            return JsonResponse({'error': _('Order not found.')}, status=404)
+        
+        if not order.process:
+            return JsonResponse({'operations': []})
+        
+        # Get operations that don't have performance records yet
+        # Filter out None values from operation_id
+        operations_with_performance = list(PerformanceRecord.objects.filter(
+            company_id=active_company_id,
+            order=order,
+            document_type=PerformanceRecord.DocumentType.OPERATIONAL,
+        ).exclude(operation__isnull=True).values_list('operation_id', flat=True))
+        
+        operations = ProcessOperation.objects.filter(
+            process=order.process,
+            company_id=active_company_id,
+        )
+        
+        # Only exclude if there are operations with performance records
+        if operations_with_performance:
+            operations = operations.exclude(id__in=operations_with_performance)
+        
+        operations = operations.order_by('sequence_order', 'id')
+        
+        operations_data = [
+            {
+                'id': op.id,
+                'name': op.name or f"Operation {op.sequence_order}",
+                'sequence_order': op.sequence_order,
+                'description': op.description or '',
+            }
+            for op in operations
+        ]
+        
+        return JsonResponse({
+            'operations': operations_data,
+            'total': len(operations_data),
+            'order_id': order_id,
+            'process_id': order.process_id if order.process else None,
+        })
 

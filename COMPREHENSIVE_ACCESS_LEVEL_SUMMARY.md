@@ -189,3 +189,4 @@
 
 **وضعیت نهایی**: ✅ سیستم دسترسی‌ها به طور کامل بررسی و تنظیم شده است. تمام ماژول‌های فعال (Shared, Production, Inventory, QC, Accounting, Ticketing) کاملاً بررسی شده‌اند و feature_code های آنها در `FEATURE_PERMISSION_MAP` تعریف شده‌اند.
 
+

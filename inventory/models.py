@@ -342,6 +342,31 @@ class Item(InventorySortableModel):
     is_sellable = models.PositiveSmallIntegerField(default=0)
     has_lot_tracking = models.PositiveSmallIntegerField(default=0)
     requires_temporary_receipt = models.PositiveSmallIntegerField(default=0)
+    serial_in_qc = models.PositiveSmallIntegerField(default=0, help_text=_("Serial tracking in QC"))
+    supply_type = models.CharField(
+        max_length=20,
+        choices=(
+            ('buy', _('Purchasable')),
+            ('make', _('Manufacturable')),
+        ),
+        default='buy',
+        help_text=_("Supply type: Purchasable or Manufacturable"),
+    )
+    planning_type = models.CharField(
+        max_length=20,
+        choices=(
+            ('none', _('No Planning')),
+            ('mrp', _('MRP-based')),
+            ('reorder_point', _('Reorder Point-based')),
+        ),
+        default='none',
+        help_text=_("Planning type: No Planning, MRP-based, or Reorder Point-based"),
+    )
+    lead_time = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text=_("Lead time in days"),
+    )
     tax_id = models.CharField(max_length=30, blank=True)
     tax_title = models.CharField(max_length=120, blank=True)
     min_stock = models.DecimalField(

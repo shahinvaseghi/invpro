@@ -291,8 +291,13 @@
                                         </div>
                                       </div>
                                     </td>
-                                    <td class="text-center">
-                                      {{ alt_form.is_combinable }}
+                                    <td class="text-center" style="vertical-align: middle; padding: 8px;">
+                                      <label for="{{ alt_form.is_combinable.id_for_label }}" style="margin: 0; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                        {{ alt_form.is_combinable }}
+                                      </label>
+                                      {% if alt_form.is_combinable.errors %}
+                                        <span class="error">{{ alt_form.is_combinable.errors.0 }}</span>
+                                      {% endif %}
                                     </td>
                                     <td class="text-center">
                                       {% if alt_form.instance.pk %}
@@ -348,8 +353,13 @@
                                         </div>
                                       </div>
                                     </td>
-                                    <td class="text-center">
-                                      <input type="checkbox" name="alternatives_{{ form.instance.pk }}-0-is_combinable" id="id_alternatives_{{ form.instance.pk }}-0-is_combinable" class="form-check-input">
+                                    <td class="text-center" style="vertical-align: middle; padding: 8px;">
+                                      <input type="checkbox" 
+                                             name="alternatives_{{ form.instance.pk }}-0-is_combinable" 
+                                             id="id_alternatives_{{ form.instance.pk }}-0-is_combinable" 
+                                             class="form-check-input" 
+                                             value="1"
+                                             style="width: 1.25rem !important; height: 1.25rem !important; cursor: pointer; display: inline-block !important; margin: 0 !important; min-width: 1.25rem !important; min-height: 1.25rem !important; opacity: 1 !important; visibility: visible !important; position: relative !important; z-index: 1 !important;">
                                     </td>
                                     <td class="text-center">
                                       <button type="button" class="btn-remove-alt-line" onclick="removeAltLine(this)">×</button>
@@ -542,9 +552,16 @@
   font-size: 0.875rem;
 }
 
-.materials-table input[type="checkbox"] {
-  width: auto;
-  height: 1.25rem;
+.materials-table input[type="checkbox"],
+.alternatives-table input[type="checkbox"] {
+  width: auto !important;
+  height: 1.25rem !important;
+  cursor: pointer;
+  display: inline-block;
+  margin: 0;
+  padding: 0;
+  min-width: 1.25rem;
+  min-height: 1.25rem;
 }
 
 .btn-remove-line {

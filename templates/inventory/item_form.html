@@ -31,7 +31,7 @@
   {% endif %}
 
   {% for field in form.visible_fields %}
-    {% if field.name != 'allowed_warehouses' %}
+    {% if field.name != 'allowed_warehouses' and field.name != 'is_sellable' and field.name != 'has_lot_tracking' and field.name != 'requires_temporary_receipt' and field.name != 'serial_in_qc' %}
     <div class="form-field">
       <label for="{{ field.id_for_label }}">
         {{ field.label }}
@@ -47,6 +47,60 @@
     </div>
     {% endif %}
   {% endfor %}
+  
+  <!-- Checkbox fields section -->
+  <div class="form-field full-width checkbox-section">
+    <label>{% trans "Options" %}</label>
+    <div class="checkbox-group">
+      {% if form.is_sellable %}
+      <div class="checkbox-item">
+        <label for="{{ form.is_sellable.id_for_label }}">
+          {{ form.is_sellable }}
+          <span>{{ form.is_sellable.label }}</span>
+        </label>
+        {% if form.is_sellable.errors %}
+          <span class="error">{{ form.is_sellable.errors.0 }}</span>
+        {% endif %}
+      </div>
+      {% endif %}
+      
+      {% if form.has_lot_tracking %}
+      <div class="checkbox-item">
+        <label for="{{ form.has_lot_tracking.id_for_label }}">
+          {{ form.has_lot_tracking }}
+          <span>{{ form.has_lot_tracking.label }}</span>
+        </label>
+        {% if form.has_lot_tracking.errors %}
+          <span class="error">{{ form.has_lot_tracking.errors.0 }}</span>
+        {% endif %}
+      </div>
+      {% endif %}
+      
+      {% if form.requires_temporary_receipt %}
+      <div class="checkbox-item">
+        <label for="{{ form.requires_temporary_receipt.id_for_label }}">
+          {{ form.requires_temporary_receipt }}
+          <span>{{ form.requires_temporary_receipt.label }}</span>
+        </label>
+        {% if form.requires_temporary_receipt.errors %}
+          <span class="error">{{ form.requires_temporary_receipt.errors.0 }}</span>
+        {% endif %}
+      </div>
+      {% endif %}
+      
+      {% if form.serial_in_qc %}
+      <div class="checkbox-item">
+        <label for="{{ form.serial_in_qc.id_for_label }}">
+          {{ form.serial_in_qc }}
+          <span>{{ form.serial_in_qc.label }}</span>
+        </label>
+        {% if form.serial_in_qc.errors %}
+          <span class="error">{{ form.serial_in_qc.errors.0 }}</span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
 </div>
 {% endblock %}
 
@@ -186,6 +240,51 @@
 }
 
 .checkbox-item input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  cursor: pointer;
+}
+
+.checkbox-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.checkbox-group .checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.checkbox-group .checkbox-item:hover {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.checkbox-group .checkbox-item label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  margin: 0;
+  width: 100%;
+}
+
+.checkbox-group .checkbox-item input[type="checkbox"] {
   width: 1.1rem;
   height: 1.1rem;
   cursor: pointer;
