@@ -205,6 +205,170 @@
                     {% endif %}
                   </td>
                 </tr>
+                {% if form.instance.pk %}
+                  {% for material_pk, alt_formset in alternative_formsets.items %}
+                    {% if material_pk == form.instance.pk %}
+                      <tr class="alternatives-row" data-material-pk="{{ form.instance.pk }}" style="display: none;">
+                        <td colspan="11" style="padding: 0; background: #f9fafb;">
+                          <div class="alternatives-container" style="padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                              <h4 style="margin: 0; font-size: 1rem; font-weight: 600;">{% trans "Alternative Items" %}</h4>
+                              <button type="button" class="btn-toggle-alternatives" onclick="toggleAlternatives(this)" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; background: #f3f4f6; cursor: pointer;">
+                                <span class="toggle-text">{% trans "Hide" %}</span>
+                              </button>
+                            </div>
+                            {{ alt_formset.management_form }}
+                            {% if alt_formset.non_form_errors %}
+                              <div class="alert alert-error">
+                                {{ alt_formset.non_form_errors }}
+                              </div>
+                            {% endif %}
+                            <table class="alternatives-table" style="width: 100%; border-collapse: collapse;">
+                              <thead>
+                                <tr style="background: #f3f4f6;">
+                                  <th style="padding: 8px; text-align: left; font-size: 0.875rem;">{% trans "Alternative Item" %}</th>
+                                  <th style="padding: 8px; text-align: left; font-size: 0.875rem;">{% trans "Quantity" %}</th>
+                                  <th style="padding: 8px; text-align: left; font-size: 0.875rem;">{% trans "Unit" %}</th>
+                                  <th style="padding: 8px; text-align: left; font-size: 0.875rem;">{% trans "Priority" %}</th>
+                                  <th style="padding: 8px; text-align: left; font-size: 0.875rem;">{% trans "Source Warehouses" %}</th>
+                                  <th style="padding: 8px; text-align: center; font-size: 0.875rem;">{% trans "Delete" %}</th>
+                                </tr>
+                              </thead>
+                              <tbody class="alternatives-tbody-{{ form.instance.pk }}">
+                                {% for alt_form in alt_formset %}
+                                  <tr class="alternative-row {% if not alt_form.instance.pk %}empty-form-template{% endif %}" {% if not alt_form.instance.pk %}style="display: none;"{% endif %}>
+                                    <td>
+                                      {{ alt_form.id }}
+                                      <div class="item-select-wrapper">
+                                        <div class="item-filters">
+                                          <input type="text" class="form-control alternative-filter-search-input" 
+                                                 placeholder="{% trans 'Search by name or code...' %}" 
+                                                 data-material-pk="{{ form.instance.pk }}"
+                                                 data-alt-index="{{ forloop.counter0 }}"
+                                                 style="flex: 1; min-width: 150px; font-size: 0.7rem; padding: 0.3rem 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; background-color: #f9fafb; color: #6b7280;">
+                                        </div>
+                                        {{ alt_form.alternative_item }}
+                                      </div>
+                                      {% if alt_form.alternative_item.errors %}
+                                        <span class="error">{{ alt_form.alternative_item.errors.0 }}</span>
+                                      {% endif %}
+                                    </td>
+                                    <td>
+                                      {{ alt_form.quantity }}
+                                      {% if alt_form.quantity.errors %}
+                                        <span class="error">{{ alt_form.quantity.errors.0 }}</span>
+                                      {% endif %}
+                                    </td>
+                                    <td>
+                                      {{ alt_form.unit }}
+                                      {% if alt_form.unit.errors %}
+                                        <span class="error">{{ alt_form.unit.errors.0 }}</span>
+                                      {% endif %}
+                                    </td>
+                                    <td>
+                                      {{ alt_form.priority }}
+                                      {% if alt_form.priority.errors %}
+                                        <span class="error">{{ alt_form.priority.errors.0 }}</span>
+                                      {% endif %}
+                                    </td>
+                                    <td>
+                                      {{ alt_form.source_warehouses }}
+                                      {% if alt_form.instance.pk and alt_form.instance.source_warehouses %}
+                                        <script type="application/json" id="existing-alt-warehouses-{{ form.instance.pk }}-{{ forloop.counter0 }}">{{ alt_form.instance.source_warehouses|safe }}</script>
+                                      {% endif %}
+                                      <div class="alternative-warehouses-container" data-material-pk="{{ form.instance.pk }}" data-alt-index="{{ forloop.counter0 }}">
+                                        <button type="button" class="btn-manage-alt-warehouses" onclick="toggleAltWarehousesManager(this)" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; background: #f3f4f6; cursor: pointer;">
+                                          <span class="warehouses-count">0</span> {% trans "warehouses" %}
+                                        </button>
+                                        <div class="warehouses-manager" style="display: none; margin-top: 0.5rem; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 4px; background: #f9fafb;">
+                                          <div class="warehouses-list" style="margin-bottom: 0.5rem;">
+                                            <!-- Will be populated by JavaScript -->
+                                          </div>
+                                          <button type="button" class="btn-add-warehouse" onclick="addAltWarehouseRow(this)" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid #3b82f6; border-radius: 4px; background: #3b82f6; color: white; cursor: pointer;">
+                                            + {% trans "Add Warehouse" %}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td class="text-center">
+                                      {% if alt_form.instance.pk %}
+                                        {{ alt_form.DELETE }}
+                                        <label for="{{ alt_form.DELETE.id_for_label }}" class="delete-label">🗑️</label>
+                                      {% else %}
+                                        <button type="button" class="btn-remove-alt-line" onclick="removeAltLine(this)">×</button>
+                                      {% endif %}
+                                    </td>
+                                  </tr>
+                                {% empty %}
+                                  <!-- Empty form template for cloning - hidden by default -->
+                                  <tr class="alternative-row empty-form-template" style="display: none;">
+                                    <td>
+                                      <input type="hidden" name="alternatives_{{ form.instance.pk }}-0-id" id="id_alternatives_{{ form.instance.pk }}-0-id">
+                                      <div class="item-select-wrapper">
+                                        <div class="item-filters">
+                                          <input type="text" class="form-control alternative-filter-search-input" 
+                                                 placeholder="{% trans 'Search by name or code...' %}" 
+                                                 data-material-pk="{{ form.instance.pk }}"
+                                                 data-alt-index="0"
+                                                 style="flex: 1; min-width: 150px; font-size: 0.7rem; padding: 0.3rem 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; background-color: #f9fafb; color: #6b7280;">
+                                        </div>
+                                        <select name="alternatives_{{ form.instance.pk }}-0-alternative_item" id="id_alternatives_{{ form.instance.pk }}-0-alternative_item" class="form-control alternative-item">
+                                          <option value="">--------</option>
+                                        </select>
+                                      </div>
+                                    </td>
+                                    <td>
+                                      <input type="number" name="alternatives_{{ form.instance.pk }}-0-quantity" id="id_alternatives_{{ form.instance.pk }}-0-quantity" class="form-control" step="0.000001" min="0">
+                                    </td>
+                                    <td>
+                                      <select name="alternatives_{{ form.instance.pk }}-0-unit" id="id_alternatives_{{ form.instance.pk }}-0-unit" class="form-control alternative-unit">
+                                        <option value="">{% trans "Select Unit" %}</option>
+                                      </select>
+                                    </td>
+                                    <td>
+                                      <input type="number" name="alternatives_{{ form.instance.pk }}-0-priority" id="id_alternatives_{{ form.instance.pk }}-0-priority" class="form-control" min="1" max="10">
+                                    </td>
+                                    <td>
+                                      <input type="hidden" name="alternatives_{{ form.instance.pk }}-0-source_warehouses" id="id_alternatives_{{ form.instance.pk }}-0-source_warehouses">
+                                      <div class="alternative-warehouses-container" data-material-pk="{{ form.instance.pk }}" data-alt-index="0">
+                                        <button type="button" class="btn-manage-alt-warehouses" onclick="toggleAltWarehousesManager(this)" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; background: #f3f4f6; cursor: pointer;">
+                                          <span class="warehouses-count">0</span> {% trans "warehouses" %}
+                                        </button>
+                                        <div class="warehouses-manager" style="display: none; margin-top: 0.5rem; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 4px; background: #f9fafb;">
+                                          <div class="warehouses-list" style="margin-bottom: 0.5rem;">
+                                            <!-- Will be populated by JavaScript -->
+                                          </div>
+                                          <button type="button" class="btn-add-warehouse" onclick="addAltWarehouseRow(this)" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid #3b82f6; border-radius: 4px; background: #3b82f6; color: white; cursor: pointer;">
+                                            + {% trans "Add Warehouse" %}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td class="text-center">
+                                      <button type="button" class="btn-remove-alt-line" onclick="removeAltLine(this)">×</button>
+                                    </td>
+                                  </tr>
+                                {% endfor %}
+                              </tbody>
+                            </table>
+                            <div style="margin-top: 1rem;">
+                              <button type="button" class="btn-add-alternative" onclick="addAlternativeLine({{ form.instance.pk }})" style="padding: 0.5rem 1rem; font-size: 0.875rem; border: 1px solid #3b82f6; border-radius: 4px; background: #3b82f6; color: white; cursor: pointer;">
+                                ➕ {% trans "Add Alternative" %}
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr class="alternatives-toggle-row" data-material-pk="{{ form.instance.pk }}">
+                        <td colspan="11" style="padding: 0.5rem; background: #f3f4f6; border-top: 2px solid #e5e7eb;">
+                          <button type="button" class="btn-show-alternatives" onclick="showAlternatives({{ form.instance.pk }})" data-material-pk="{{ form.instance.pk }}" style="padding: 0.5rem 1rem; font-size: 0.875rem; border: 1px solid #3b82f6; border-radius: 4px; background: #3b82f6; color: white; cursor: pointer;">
+                            ➕ {% trans "Manage Alternatives" %} (<span class="alternatives-count-{{ form.instance.pk }}">0</span>)
+                          </button>
+                        </td>
+                      </tr>
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
               {% endfor %}
             </tbody>
           </table>
@@ -1243,7 +1407,23 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize filters on page load
   initializeCascadingFilters();
   
+  // Initialize alternative items search for all existing rows
+  const allAlternativeRows = document.querySelectorAll('.alternative-row:not(.empty-form-template)');
+  allAlternativeRows.forEach(function(row) {
+    const materialPkElement = row.querySelector('[data-material-pk]');
+    if (materialPkElement) {
+      const materialPk = materialPkElement.getAttribute('data-material-pk');
+      setupAlternativeRowCascading(row, materialPk);
+    }
+  });
   
+  // Update alternatives count for each material (only count real alternatives with instance.pk)
+  document.querySelectorAll('.btn-show-alternatives').forEach(function(btn) {
+    const materialPk = btn.dataset.materialPk;
+    if (materialPk) {
+      updateAlternativesCount(materialPk);
+    }
+  });
   
   // ====================================================================
   // Form Validation
@@ -1266,6 +1446,16 @@ document.addEventListener('DOMContentLoaded', function() {
       const allWarehousesContainers = form.querySelectorAll('.source-warehouses-container');
       allWarehousesContainers.forEach(function(container) {
         updateWarehousesJSON(container);
+      });
+      
+      // CRITICAL: Update all alternative warehouses JSON before submission
+      const allAltWarehousesContainers = form.querySelectorAll('.alternative-warehouses-container');
+      allAltWarehousesContainers.forEach(function(container) {
+        const materialPk = container.dataset.materialPk;
+        const altIndex = container.dataset.altIndex;
+        if (materialPk && altIndex !== undefined) {
+          updateAltWarehousesJSON(container, materialPk, altIndex);
+        }
       });
       
       // Check if at least one material is added
@@ -1591,5 +1781,604 @@ function removeLine(button) {
     }
   }
 }
+
+
+// ====================================================================
+// Alternatives Management Functions (Global)
+// ====================================================================
+
+function updateAlternativesCount(materialPk) {
+  const btn = document.querySelector(`.btn-show-alternatives[data-material-pk="${materialPk}"]`);
+  if (!btn) return;
+  
+  const alternativesRow = document.querySelector(`.alternatives-row[data-material-pk="${materialPk}"]`);
+  if (alternativesRow) {
+    // Count only alternatives that have an ID (exist in database)
+    const existingAlternatives = alternativesRow.querySelectorAll('.alternative-row:not(.empty-form-template)');
+    let count = 0;
+    existingAlternatives.forEach(function(row) {
+      const idInput = row.querySelector('input[type="hidden"][name*="-id"]');
+      if (idInput && idInput.value && idInput.value !== '') {
+        count++;
+      }
+    });
+    const countSpan = btn.querySelector('.alternatives-count-' + materialPk);
+    if (countSpan) {
+      countSpan.textContent = count;
+    }
+  } else {
+    const countSpan = btn.querySelector('.alternatives-count-' + materialPk);
+    if (countSpan) {
+      countSpan.textContent = '0';
+    }
+  }
+}
+
+function showAlternatives(materialPk) {
+  const toggleRow = document.querySelector(`.alternatives-toggle-row[data-material-pk="${materialPk}"]`);
+  const alternativesRow = document.querySelector(`.alternatives-row[data-material-pk="${materialPk}"]`);
+  
+  if (toggleRow && alternativesRow) {
+    toggleRow.style.display = 'none';
+    alternativesRow.style.display = '';
+    
+    // Setup search for all alternative rows in this section
+    const allAlternativeRowsInSection = alternativesRow.querySelectorAll('.alternative-row:not(.empty-form-template)');
+    allAlternativeRowsInSection.forEach(function(row) {
+      setupAlternativeRowCascading(row, materialPk);
+    });
+  }
+}
+
+function toggleAlternatives(button) {
+  const materialPk = button.closest('.alternatives-container').closest('[data-material-pk]').dataset.materialPk;
+  const toggleRow = document.querySelector(`.alternatives-toggle-row[data-material-pk="${materialPk}"]`);
+  const alternativesRow = document.querySelector(`.alternatives-row[data-material-pk="${materialPk}"]`);
+  
+  if (alternativesRow.style.display === 'none') {
+    alternativesRow.style.display = '';
+    button.querySelector('.toggle-text').textContent = '{% trans "Hide" %}';
+  } else {
+    alternativesRow.style.display = 'none';
+    if (toggleRow) {
+      toggleRow.style.display = '';
+    }
+    button.querySelector('.toggle-text').textContent = '{% trans "Show" %}';
+  }
+}
+
+function addAlternativeLine(materialPk) {
+  const tbody = document.querySelector(`.alternatives-tbody-${materialPk}`);
+  const totalFormsInput = document.querySelector(`#id_alternatives_${materialPk}-TOTAL_FORMS`);
+  
+  if (!tbody || !totalFormsInput) {
+    console.error('Could not find alternatives tbody or total forms input for material:', materialPk);
+    console.error('tbody:', tbody);
+    console.error('totalFormsInput:', totalFormsInput);
+    return;
+  }
+  
+  const currentCount = parseInt(totalFormsInput.value) || 0;
+  
+  // Find template row (empty form template or last existing row)
+  let templateRow = tbody.querySelector('.empty-form-template');
+  if (!templateRow) {
+    const rows = tbody.querySelectorAll('.alternative-row:not(.empty-form-template)');
+    templateRow = rows[rows.length - 1];
+  }
+  
+  if (!templateRow) {
+    console.error('No template row found for material:', materialPk);
+    return;
+  }
+  
+  const newRow = templateRow.cloneNode(true);
+  newRow.classList.remove('empty-form-template');
+  newRow.style.display = '';
+  
+  // Update form index in all fields
+  newRow.querySelectorAll('[name],[id],[for]').forEach(function(elem) {
+    ['name', 'id', 'for'].forEach(function(attr) {
+      if (elem.hasAttribute(attr)) {
+        const val = elem.getAttribute(attr);
+        // Replace pattern: alternatives_PK-INDEX- or alternatives_PK-INDEX_
+        // Match: alternatives_123-0-field or alternatives_123-0_field
+        const regex = new RegExp(`(alternatives_${materialPk}-)\\d+([-_])`, 'g');
+        const newVal = val.replace(regex, `$1${currentCount}$2`);
+        elem.setAttribute(attr, newVal);
+      }
+    });
+  });
+  
+  // Update data attributes
+  newRow.querySelectorAll('[data-alt-index]').forEach(function(elem) {
+    elem.setAttribute('data-alt-index', currentCount);
+  });
+  
+  // Update data-material-pk attributes
+  newRow.querySelectorAll('[data-material-pk]').forEach(function(elem) {
+    elem.setAttribute('data-material-pk', materialPk);
+  });
+  
+  // Clear values
+  newRow.querySelectorAll('select').forEach(function(field) {
+    field.selectedIndex = 0;
+    field.value = '';
+  });
+  
+  newRow.querySelectorAll('input[type="text"], input[type="number"]').forEach(function(field) {
+    if (field.type !== 'hidden') {
+      field.value = '';
+    }
+  });
+  
+  newRow.querySelectorAll('input[type="checkbox"]').forEach(function(field) {
+    field.checked = false;
+  });
+  
+  // Clear error messages
+  newRow.querySelectorAll('.error').forEach(function(error) {
+    error.remove();
+  });
+  
+  // Update delete button
+  const deleteCell = newRow.querySelector('td:last-child');
+  if (deleteCell) {
+    deleteCell.innerHTML = '<button type="button" class="btn-remove-alt-line" onclick="removeAltLine(this)">×</button>';
+  }
+  
+  // Add to table
+  tbody.appendChild(newRow);
+  
+  // Update total forms count
+  totalFormsInput.value = currentCount + 1;
+  
+  // Setup cascading filters for new alternative row
+  setupAlternativeRowCascading(newRow, materialPk);
+  
+  // Update alternatives count (new row doesn't have ID yet, so count stays same, but update anyway)
+  updateAlternativesCount(materialPk);
+}
+
+function removeAltLine(button) {
+  const row = button.closest('.alternative-row');
+  const tbody = row.closest('tbody');
+  const materialPkAttr = row.querySelector('[data-material-pk]');
+  let materialPk = materialPkAttr ? materialPkAttr.getAttribute('data-material-pk') : null;
+  
+  if (!materialPk) {
+    // Try to extract from tbody class
+    const tbodyClass = Array.from(tbody.classList).find(cls => cls.startsWith('alternatives-tbody-'));
+    if (tbodyClass) {
+      materialPk = tbodyClass.replace('alternatives-tbody-', '');
+    }
+  }
+  
+  const totalFormsInput = materialPk ? document.querySelector(`#id_alternatives_${materialPk}-TOTAL_FORMS`) : null;
+  
+  row.remove();
+  
+  if (totalFormsInput) {
+    totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
+  }
+  
+  // Update alternatives count
+  if (materialPk) {
+    updateAlternativesCount(materialPk);
+  }
+}
+
+function setupAlternativeRowCascading(row, materialPk) {
+  // Setup search and filtering for alternative items
+  const itemSelect = row.querySelector('select[name*="alternative_item"]');
+  const unitSelect = row.querySelector('select[name*="-unit"]');
+  const searchInput = row.querySelector('.alternative-filter-search-input');
+  const altIndex = row.querySelector('[data-alt-index]')?.dataset.altIndex || '0';
+  
+  if (!itemSelect) {
+    return;
+  }
+  
+  // Function to filter items based on search
+  function filterAlternativeItems() {
+    const searchTerm = (searchInput && searchInput.value && searchInput.value.trim()) || '';
+    const currentValue = itemSelect.value;
+    
+    // Build API URL with search filter
+    let apiUrl = '/inventory/api/filtered-items/';
+    const params = new URLSearchParams();
+    if (searchTerm) params.append('search', searchTerm);
+    
+    if (params.toString()) {
+      apiUrl += '?' + params.toString();
+    }
+    
+    // Show loading
+    itemSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
+    itemSelect.disabled = true;
+    
+    // Fetch filtered items
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        itemSelect.innerHTML = '<option value="">--------</option>';
+        
+        if (data.items && data.items.length > 0) {
+          data.items.forEach(function(item) {
+            const option = document.createElement('option');
+            option.value = item.value;
+            option.textContent = item.label;
+            itemSelect.appendChild(option);
+          });
+          
+          // Restore selection if it's still in filtered list
+          if (currentValue && data.items.some(item => item.value === currentValue)) {
+            itemSelect.value = currentValue;
+          }
+        } else {
+          itemSelect.innerHTML = '<option value="">{% trans "No items found" %}</option>';
+        }
+        
+        itemSelect.disabled = false;
+      })
+      .catch(error => {
+        console.error('Error loading alternative items:', error);
+        itemSelect.innerHTML = '<option value="">{% trans "Error loading items" %}</option>';
+        itemSelect.disabled = false;
+      });
+  }
+  
+  // Setup search input with debounce
+  if (searchInput) {
+    let searchTimeout;
+    searchInput.addEventListener('input', function() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(function() {
+        filterAlternativeItems();
+      }, 300); // Debounce 300ms
+    });
+  }
+  
+  // Load all items initially
+  filterAlternativeItems();
+  
+  // Setup unit loading and warehouses manager when item is selected
+  if (itemSelect && unitSelect) {
+    itemSelect.addEventListener('change', function() {
+      const itemId = this.value;
+      const altRow = this.closest('.alternative-row');
+      const warehousesContainer = altRow ? altRow.querySelector('.alternative-warehouses-container') : null;
+      
+      if (!itemId) {
+        unitSelect.disabled = true;
+        unitSelect.innerHTML = '<option value="">{% trans "Please select item first" %}</option>';
+        if (warehousesContainer) {
+          warehousesContainer.querySelector('.btn-manage-alt-warehouses').disabled = true;
+        }
+        return;
+      }
+      
+      unitSelect.disabled = false;
+      unitSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
+      
+      fetch('/inventory/api/item-units/?item_id=' + itemId)
+        .then(response => response.json())
+        .then(data => {
+          unitSelect.innerHTML = '<option value="">{% trans "Select Unit" %}</option>';
+          
+          if (data.units && data.units.length > 0) {
+            data.units.forEach(function(unit) {
+              const option = document.createElement('option');
+              option.value = unit.unit_name;
+              option.textContent = unit.label;
+              unitSelect.appendChild(option);
+            });
+          }
+          
+          // Initialize warehouses manager for this alternative item
+          if (warehousesContainer) {
+            const materialPk = warehousesContainer.dataset.materialPk;
+            const altIndex = warehousesContainer.dataset.altIndex;
+            if (materialPk && altIndex !== undefined) {
+              initializeAltWarehousesManager(warehousesContainer, materialPk, altIndex, itemId);
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error loading units:', error);
+          unitSelect.innerHTML = '<option value="">{% trans "Error loading units" %}</option>';
+        });
+    });
+  }
+  
+  // Initialize warehouses manager if item is already selected
+  const altRow = itemSelect ? itemSelect.closest('.alternative-row') : null;
+  if (altRow && itemSelect && itemSelect.value) {
+    const warehousesContainer = altRow.querySelector('.alternative-warehouses-container');
+    if (warehousesContainer) {
+      const materialPk = warehousesContainer.dataset.materialPk;
+      const altIndex = warehousesContainer.dataset.altIndex;
+      const itemId = itemSelect.value;
+      if (materialPk && altIndex !== undefined && itemId) {
+        initializeAltWarehousesManager(warehousesContainer, materialPk, altIndex, itemId);
+      }
+    }
+  }
+}
+
+
+// ====================================================================
+// Alternative Items Warehouses Management Functions (Global)
+// ====================================================================
+
+// Store warehouses data for alternative items
+const altWarehousesData = {};
+
+function getAltWarehouseKey(materialPk, altIndex) {
+  return `${materialPk}_${altIndex}`;
+}
+
+function toggleAltWarehousesManager(button) {
+  const container = button.closest('.alternative-warehouses-container');
+  const manager = container.querySelector('.warehouses-manager');
+  
+  if (manager.style.display === 'none') {
+    manager.style.display = 'block';
+    const materialPk = container.dataset.materialPk;
+    const altIndex = container.dataset.altIndex;
+    const itemSelect = container.closest('.alternative-row').querySelector('select[name*="alternative_item"]');
+    const itemId = itemSelect ? itemSelect.value : null;
+    
+    if (itemId) {
+      initializeAltWarehousesManager(container, materialPk, altIndex, itemId);
+    }
+    renderAltWarehousesList(container, materialPk, altIndex);
+  } else {
+    manager.style.display = 'none';
+  }
+}
+
+function initializeAltWarehousesManager(container, materialPk, altIndex, itemId) {
+  const key = getAltWarehouseKey(materialPk, altIndex);
+  const row = container.closest('.alternative-row');
+  const hiddenField = row.querySelector('input[name*="source_warehouses"]');
+  
+  if (!itemId) {
+    container.querySelector('.btn-manage-alt-warehouses').disabled = true;
+    container.querySelector('.btn-add-warehouse').disabled = true;
+    return;
+  }
+  
+  // Initialize data structure for this alternative row
+  if (!altWarehousesData[key]) {
+    altWarehousesData[key] = {
+      itemId: itemId,
+      warehouses: [],
+      availableWarehouses: []
+    };
+  } else {
+    altWarehousesData[key].itemId = itemId;
+  }
+  
+  // Load existing warehouses from script tag or hidden field
+  let existingWarehouses = null;
+  
+  // First try script tag (from instance)
+  const scriptTag = document.getElementById(`existing-alt-warehouses-${materialPk}-${altIndex}`);
+  if (scriptTag) {
+    try {
+      existingWarehouses = JSON.parse(scriptTag.textContent);
+    } catch (e) {
+      console.error('Error parsing existing warehouses from script tag:', e);
+    }
+  }
+  
+  // If not found in script tag, try hidden field
+  if (!existingWarehouses && hiddenField && hiddenField.value) {
+    try {
+      existingWarehouses = JSON.parse(hiddenField.value);
+    } catch (e) {
+      console.error('Error parsing existing warehouses from hidden field:', e);
+    }
+  }
+  
+  if (existingWarehouses && Array.isArray(existingWarehouses)) {
+    altWarehousesData[key].warehouses = existingWarehouses;
+    updateAltWarehousesCount(container, materialPk, altIndex);
+  }
+  
+  // Load available warehouses for this alternative item
+  fetch('/inventory/api/item-allowed-warehouses/?item_id=' + itemId)
+    .then(response => response.json())
+    .then(data => {
+      if (data.warehouses && data.warehouses.length > 0) {
+        altWarehousesData[key].availableWarehouses = data.warehouses;
+        renderAltWarehousesList(container, materialPk, altIndex);
+      }
+      container.querySelector('.btn-manage-alt-warehouses').disabled = false;
+    })
+    .catch(error => {
+      console.error('Error loading warehouses:', error);
+      container.querySelector('.btn-manage-alt-warehouses').disabled = true;
+    });
+}
+
+function renderAltWarehousesList(container, materialPk, altIndex) {
+  const key = getAltWarehouseKey(materialPk, altIndex);
+  const data = altWarehousesData[key];
+  const listContainer = container.querySelector('.warehouses-list');
+  
+  if (!data || !listContainer) return;
+  
+  listContainer.innerHTML = '';
+  
+  if (data.warehouses.length === 0) {
+    listContainer.innerHTML = '<div style="padding: 0.5rem; color: #6b7280; font-size: 0.875rem;">{% trans "No warehouses added yet." %}</div>';
+    updateAltWarehousesCount(container, materialPk, altIndex);
+    updateAltWarehousesJSON(container, materialPk, altIndex);
+    return;
+  }
+  
+  // Sort by priority
+  const sorted = [...data.warehouses].sort((a, b) => (a.priority || 999) - (b.priority || 999));
+  
+  sorted.forEach((warehouse, originalIndex) => {
+    const row = document.createElement('div');
+    row.className = 'warehouse-row';
+    row.style.cssText = 'display: flex; gap: 0.5rem; align-items: center; padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 4px; margin-bottom: 0.5rem; background: white;';
+    
+    // Get currently selected warehouse IDs (excluding current one)
+    const selectedIds = data.warehouses
+      .map((w, idx) => idx !== originalIndex && w.warehouse_id ? String(w.warehouse_id) : null)
+      .filter(id => id);
+    
+    // Filter available warehouses
+    const availableOptions = data.availableWarehouses.filter(w => {
+      if (warehouse.warehouse_id && String(w.value) === String(warehouse.warehouse_id)) {
+        return true;
+      }
+      return !selectedIds.includes(String(w.value));
+    });
+    
+    row.innerHTML = `
+      <select class="warehouse-select" style="flex: 1; padding: 0.375rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.875rem;" onchange="updateAltWarehouseSelect(this, '${materialPk}', ${altIndex}, ${originalIndex})">
+        <option value="">---</option>
+        ${availableOptions.map(w => {
+          const labelParts = w.label.split(' - ');
+          const code = labelParts[0] || '';
+          return `
+          <option value="${w.value}" data-code="${code}" ${String(w.value) === String(warehouse.warehouse_id) ? 'selected' : ''}>
+            ${w.label}
+          </option>
+        `;
+        }).join('')}
+      </select>
+      <input type="number" class="warehouse-priority" min="1" max="5" value="${warehouse.priority || originalIndex + 1}" 
+             style="width: 60px; padding: 0.375rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.875rem;"
+             onchange="updateAltWarehousePriority(this, '${materialPk}', ${altIndex}, ${originalIndex})" />
+      <button type="button" class="btn-remove-warehouse" onclick="removeAltWarehouseRow(this, '${materialPk}', ${altIndex}, ${originalIndex})" 
+              style="padding: 0.25rem 0.5rem; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        ×
+      </button>
+    `;
+    
+    listContainer.appendChild(row);
+  });
+  
+  updateAltWarehousesCount(container, materialPk, altIndex);
+  updateAltWarehousesJSON(container, materialPk, altIndex);
+}
+
+function addAltWarehouseRow(button) {
+  const container = button.closest('.alternative-warehouses-container');
+  const materialPk = container.dataset.materialPk;
+  const altIndex = container.dataset.altIndex;
+  const key = getAltWarehouseKey(materialPk, altIndex);
+  const data = altWarehousesData[key];
+  
+  if (!data) {
+    alert('{% trans "Please select an alternative item first." %}');
+    return;
+  }
+  
+  // Check if already 5 warehouses
+  if (data.warehouses.length >= 5) {
+    alert('{% trans "Maximum 5 warehouses allowed per alternative item." %}');
+    return;
+  }
+  
+  // Check if there are available warehouses
+  const selectedIds = data.warehouses.map(w => String(w.warehouse_id)).filter(id => id);
+  const availableOptions = data.availableWarehouses.filter(w => !selectedIds.includes(String(w.value)));
+  
+  if (availableOptions.length === 0) {
+    alert('{% trans "No more warehouses available for this alternative item." %}');
+    return;
+  }
+  
+  // Add new warehouse with next priority
+  const nextPriority = data.warehouses.length + 1;
+  data.warehouses.push({
+    warehouse_id: null,
+    warehouse_code: '',
+    priority: nextPriority
+  });
+  
+  renderAltWarehousesList(container, materialPk, altIndex);
+}
+
+function removeAltWarehouseRow(button, materialPk, altIndex, index) {
+  const container = button.closest('.alternative-warehouses-container');
+  const key = getAltWarehouseKey(materialPk, altIndex);
+  const data = altWarehousesData[key];
+  
+  if (data && data.warehouses[index]) {
+    data.warehouses.splice(index, 1);
+    renderAltWarehousesList(container, materialPk, altIndex);
+  }
+}
+
+function updateAltWarehouseSelect(select, materialPk, altIndex, index) {
+  const container = select.closest('.alternative-warehouses-container');
+  const key = getAltWarehouseKey(materialPk, altIndex);
+  const data = altWarehousesData[key];
+  
+  if (data && data.warehouses[index]) {
+    const selectedOption = select.options[select.selectedIndex];
+    if (selectedOption && selectedOption.value) {
+      const labelParts = selectedOption.textContent.split(' - ');
+      data.warehouses[index].warehouse_id = parseInt(selectedOption.value);
+      data.warehouses[index].warehouse_code = labelParts[0] || '';
+    } else {
+      data.warehouses[index].warehouse_id = null;
+      data.warehouses[index].warehouse_code = '';
+    }
+    renderAltWarehousesList(container, materialPk, altIndex);
+  }
+}
+
+function updateAltWarehousePriority(input, materialPk, altIndex, index) {
+  const container = input.closest('.alternative-warehouses-container');
+  const key = getAltWarehouseKey(materialPk, altIndex);
+  const data = altWarehousesData[key];
+  
+  if (data && data.warehouses[index]) {
+    const priority = parseInt(input.value) || 1;
+    data.warehouses[index].priority = Math.max(1, Math.min(5, priority));
+    renderAltWarehousesList(container, materialPk, altIndex);
+  }
+}
+
+function updateAltWarehousesCount(container, materialPk, altIndex) {
+  const key = getAltWarehouseKey(materialPk, altIndex);
+  const data = altWarehousesData[key];
+  const countElement = container.querySelector('.warehouses-count');
+  
+  if (countElement && data) {
+    const validCount = data.warehouses.filter(w => w.warehouse_id).length;
+    countElement.textContent = validCount;
+  }
+}
+
+function updateAltWarehousesJSON(container, materialPk, altIndex) {
+  const key = getAltWarehouseKey(materialPk, altIndex);
+  const row = container.closest('.alternative-row');
+  const hiddenField = row.querySelector('input[name*="source_warehouses"]');
+  const data = altWarehousesData[key];
+  
+  if (hiddenField && data) {
+    // Filter out warehouses without warehouse_id
+    const validWarehouses = data.warehouses
+      .filter(w => w.warehouse_id)
+      .map(w => ({
+        warehouse_id: w.warehouse_id,
+        warehouse_code: w.warehouse_code,
+        priority: w.priority || 999
+      }));
+    
+    hiddenField.value = JSON.stringify(validWarehouses);
+  }
+}
+
 </script>
 {% endblock %}

@@ -477,6 +477,83 @@ class BOMMaterial(ProductionBaseModel):
         super().save(*args, **kwargs)
 
 
+class BOMMaterialAlternative(ProductionBaseModel):
+    """
+    BOM Material Alternative Item - کالای جایگزین برای ردیف BOM
+    هر ردیف BOMMaterial می‌تواند بین 1 تا 10 کالای جایگزین داشته باشد
+    """
+    
+    bom_material = models.ForeignKey(
+        BOMMaterial,
+        on_delete=models.CASCADE,
+        related_name="alternatives",
+        verbose_name=_("BOM Material"),
+        help_text=_("The BOM material line this alternative belongs to"),
+    )
+    alternative_item = models.ForeignKey(
+        "inventory.Item",
+        on_delete=models.PROTECT,
+        related_name="bom_material_alternatives",
+        verbose_name=_("Alternative Item"),
+        help_text=_("The alternative item that can replace the main material"),
+    )
+    alternative_item_code = models.CharField(
+        max_length=16,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        verbose_name=_("Alternative Item Code"),
+    )
+    quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        verbose_name=_("Quantity"),
+        help_text=_("Required quantity of the alternative item (can differ from main material quantity)"),
+    )
+    unit = models.CharField(
+        max_length=50,
+        verbose_name=_("Unit"),
+        help_text=_("Unit of measurement for this alternative item (must be from alternative item's allowed units)"),
+    )
+    priority = models.PositiveSmallIntegerField(
+        verbose_name=_("Priority"),
+        help_text=_("Priority order for using this alternative (1 = highest priority, must be unique per BOM material)"),
+    )
+    source_warehouses = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=_("List of source warehouses with priorities (1-5 warehouses). Format: [{'warehouse_id': 1, 'warehouse_code': '001', 'priority': 1}, ...]"),
+        verbose_name=_("Source Warehouses"),
+    )
+    description = models.CharField(max_length=255, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = _("BOM Material Alternative")
+        verbose_name_plural = _("BOM Material Alternatives")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("bom_material", "priority"),
+                name="production_bom_material_alternative_priority_unique",
+            ),
+            models.UniqueConstraint(
+                fields=("bom_material", "alternative_item"),
+                name="production_bom_material_alternative_item_unique",
+            ),
+        ]
+        ordering = ("bom_material", "priority")
+
+    def __str__(self) -> str:
+        return f"{self.bom_material} · Alt {self.priority}: {self.alternative_item}"
+
+    def save(self, *args, **kwargs):
+        if not self.alternative_item_code and self.alternative_item_id:
+            self.alternative_item_code = self.alternative_item.item_code
+        # Auto-assign company from bom_material
+        if not self.company_id and self.bom_material_id:
+            self.company_id = self.bom_material.company_id
+        super().save(*args, **kwargs)
+
+
 class Process(ProductionSortableModel):
     process_code = models.CharField(
         max_length=16,

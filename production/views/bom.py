@@ -11,7 +11,7 @@ from django.views.generic import CreateView, DeleteView, DetailView, ListView, U
 
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.views.base import EditLockProtectedMixin
-from production.forms import BOMForm, BOMMaterialLineFormSet
+from production.forms import BOMForm, BOMMaterialLineFormSet, BOMMaterialAlternativeFormSet
 from production.models import BOM, BOMMaterial
 
 
@@ -141,6 +141,9 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
                 prefix='materials',
                 form_kwargs={'company_id': company_id}
             )
+        
+        # Initialize alternative formsets dictionary (will be populated after materials are saved)
+        context['alternative_formsets'] = {}
         return context
     
     def form_valid(self, form: BOMForm) -> HttpResponseRedirect:
@@ -247,6 +250,35 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
             # Delete any forms marked for deletion
             for obj in formset.deleted_objects:
                 obj.delete()
+            
+            # Save alternative formsets for each saved material line
+            for line_instance in instances:
+                if line_instance.pk and line_instance.material_item:
+                    prefix = f'alternatives_{line_instance.pk}'
+                    alt_formset = BOMMaterialAlternativeFormSet(
+                        self.request.POST,
+                        instance=line_instance,
+                        prefix=prefix,
+                        form_kwargs={
+                            'company_id': active_company_id,
+                            'bom_material_id': line_instance.pk
+                        }
+                    )
+                    if alt_formset.is_valid():
+                        try:
+                            alt_formset.save()
+                        except Exception as e:
+                            messages.warning(self.request, _('Error saving alternatives for material line: %(error)s') % {'error': str(e)})
+                    else:
+                        # Show errors for alternative formset
+                        for error in alt_formset.non_form_errors():
+                            messages.warning(self.request, f"⚠️ {error}")
+                        for i, alt_form in enumerate(alt_formset):
+                            if alt_form.errors:
+                                for field, errors in alt_form.errors.items():
+                                    for error in errors:
+                                        field_label = alt_form.fields[field].label if field in alt_form.fields else field
+                                        messages.warning(self.request, f"⚠️ Material {line_instance.pk} - Alternative {i + 1} - {field_label}: {error}")
                 
         except Exception as e:
             messages.error(self.request, f"Error saving material lines: {str(e)}")
@@ -308,6 +340,33 @@ class BOMUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, Upda
                 instance=self.object,
                 form_kwargs={'company_id': self.object.company_id}
             )
+        
+        # Create alternative formsets for each material line
+        alternative_formsets = {}
+        if self.object.pk:
+            for material in self.object.materials.all():
+                prefix = f'alternatives_{material.pk}'
+                if self.request.POST:
+                    alternative_formsets[material.pk] = BOMMaterialAlternativeFormSet(
+                        self.request.POST,
+                        instance=material,
+                        prefix=prefix,
+                        form_kwargs={
+                            'company_id': self.object.company_id,
+                            'bom_material_id': material.pk
+                        }
+                    )
+                else:
+                    alternative_formsets[material.pk] = BOMMaterialAlternativeFormSet(
+                        instance=material,
+                        prefix=prefix,
+                        form_kwargs={
+                            'company_id': self.object.company_id,
+                            'bom_material_id': material.pk
+                        }
+                    )
+        
+        context['alternative_formsets'] = alternative_formsets
         return context
     
     def form_valid(self, form: BOMForm) -> HttpResponseRedirect:
@@ -393,6 +452,25 @@ class BOMUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, Upda
         except Exception as e:
             messages.error(self.request, f"Error saving material lines: {str(e)}")
             return self.form_invalid(form)
+        
+        # Save alternative formsets for each material line
+        alternative_formsets = context.get('alternative_formsets', {})
+        for material_pk, alt_formset in alternative_formsets.items():
+            if alt_formset.is_valid():
+                try:
+                    alt_formset.save()
+                except Exception as e:
+                    messages.warning(self.request, _('Error saving alternatives for material line: %(error)s') % {'error': str(e)})
+            else:
+                # Show errors for alternative formset
+                for error in alt_formset.non_form_errors():
+                    messages.warning(self.request, f"⚠️ {error}")
+                for i, alt_form in enumerate(alt_formset):
+                    if alt_form.errors:
+                        for field, errors in alt_form.errors.items():
+                            for error in errors:
+                                field_label = alt_form.fields[field].label if field in alt_form.fields else field
+                                messages.warning(self.request, f"⚠️ Material {material_pk} - Alternative {i + 1} - {field_label}: {error}")
         
         messages.success(self.request, _('BOM updated successfully.'))
         return super().form_valid(form)
