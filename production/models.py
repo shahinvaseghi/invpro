@@ -524,6 +524,11 @@ class BOMMaterialAlternative(ProductionBaseModel):
         help_text=_("List of source warehouses with priorities (1-5 warehouses). Format: [{'warehouse_id': 1, 'warehouse_code': '001', 'priority': 1}, ...]"),
         verbose_name=_("Source Warehouses"),
     )
+    is_combinable = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name=_("Combinable"),
+        help_text=_("Whether this alternative item can be combined with other alternatives (0 = No, 1 = Yes)"),
+    )
     description = models.CharField(max_length=255, blank=True)
     notes = models.TextField(blank=True)
 

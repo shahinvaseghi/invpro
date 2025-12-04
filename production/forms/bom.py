@@ -351,6 +351,14 @@ class BOMMaterialAlternativeForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-control alternative-unit'}),
     )
     
+    # Override is_combinable to use BooleanField (checkbox) instead of IntegerField
+    is_combinable = forms.BooleanField(
+        required=False,
+        label=_('Combinable'),
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        initial=False,
+    )
+    
     class Meta:
         model = BOMMaterialAlternative
         fields = [
@@ -359,6 +367,7 @@ class BOMMaterialAlternativeForm(forms.ModelForm):
             'unit',
             'priority',
             'source_warehouses',
+            'is_combinable',
             'description',
         ]
         widgets = {
@@ -382,6 +391,7 @@ class BOMMaterialAlternativeForm(forms.ModelForm):
             'unit': _('Unit'),
             'priority': _('Priority'),
             'source_warehouses': _('Source Warehouses'),
+            'is_combinable': _('Combinable'),
             'description': _('Description'),
         }
         help_texts = {
@@ -417,6 +427,16 @@ class BOMMaterialAlternativeForm(forms.ModelForm):
             self.fields['alternative_category_filter'].choices = [('', '--------')]
             self.fields['alternative_subcategory_filter'].choices = [('', '--------')]
             self.fields['alternative_item'].queryset = Item.objects.none()
+    
+    def clean_is_combinable(self) -> int:
+        """Convert Boolean checkbox value to integer (0 or 1) for database storage."""
+        value = self.cleaned_data.get('is_combinable')
+        
+        # BooleanField returns True/False, convert to 1/0
+        if value is True:
+            return 1
+        else:
+            return 0
     
     def clean(self) -> dict:
         """Clean form data and validate."""
@@ -482,6 +502,10 @@ class BOMMaterialAlternativeForm(forms.ModelForm):
                     if isinstance(wh, dict) and 'warehouse_id' in wh:
                         if wh['warehouse_id'] not in allowed_warehouse_ids:
                             self.add_error('source_warehouses', _('One or more selected warehouses are not valid for this alternative item.'))
+        
+        # Ensure is_combinable is set (should already be set by clean_is_combinable, but just in case)
+        if 'is_combinable' not in cleaned_data or cleaned_data.get('is_combinable') is None:
+            cleaned_data['is_combinable'] = 0
         
         # If no alternative_item, don't require other fields (empty form)
         if not alternative_item:

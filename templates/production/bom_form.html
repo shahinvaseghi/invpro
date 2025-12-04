@@ -231,6 +231,7 @@
                                   <th style="padding: 8px; text-align: left; font-size: 0.875rem;">{% trans "Unit" %}</th>
                                   <th style="padding: 8px; text-align: left; font-size: 0.875rem;">{% trans "Priority" %}</th>
                                   <th style="padding: 8px; text-align: left; font-size: 0.875rem;">{% trans "Source Warehouses" %}</th>
+                                  <th style="padding: 8px; text-align: center; font-size: 0.875rem;">{% trans "Combinable" %}</th>
                                   <th style="padding: 8px; text-align: center; font-size: 0.875rem;">{% trans "Delete" %}</th>
                                 </tr>
                               </thead>
@@ -291,6 +292,9 @@
                                       </div>
                                     </td>
                                     <td class="text-center">
+                                      {{ alt_form.is_combinable }}
+                                    </td>
+                                    <td class="text-center">
                                       {% if alt_form.instance.pk %}
                                         {{ alt_form.DELETE }}
                                         <label for="{{ alt_form.DELETE.id_for_label }}" class="delete-label">🗑️</label>
@@ -343,6 +347,9 @@
                                           </button>
                                         </div>
                                       </div>
+                                    </td>
+                                    <td class="text-center">
+                                      <input type="checkbox" name="alternatives_{{ form.instance.pk }}-0-is_combinable" id="id_alternatives_{{ form.instance.pk }}-0-is_combinable" class="form-check-input">
                                     </td>
                                     <td class="text-center">
                                       <button type="button" class="btn-remove-alt-line" onclick="removeAltLine(this)">×</button>
