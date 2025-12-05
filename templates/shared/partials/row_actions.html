@@ -34,10 +34,19 @@
     {# Fallback to standard actions if get_available_actions is not available #}
     
     {# View button #}
-    {% if detail_url_name or view_url_name %}
+    {% if detail_url_name %}
       {% can_action object 'view' feature_code|default:"" as can_view %}
       {% if can_view %}
-        <a href="{% url detail_url_name|default:view_url_name object.pk %}" 
+        <a href="{% url detail_url_name object.pk %}" 
+           class="btn btn-action btn-view"
+           style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #0dcaf0; color: #000; border: 1px solid #0dcaf0; border-radius: 4px; text-decoration: none; white-space: nowrap;">
+          {% if show_icons %}👁️ {% endif %}{% trans "View" %}
+        </a>
+      {% endif %}
+    {% elif view_url_name %}
+      {% can_action object 'view' feature_code|default:"" as can_view %}
+      {% if can_view %}
+        <a href="{% url view_url_name object.pk %}" 
            class="btn btn-action btn-view"
            style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #0dcaf0; color: #000; border: 1px solid #0dcaf0; border-radius: 4px; text-decoration: none; white-space: nowrap;">
           {% if show_icons %}👁️ {% endif %}{% trans "View" %}

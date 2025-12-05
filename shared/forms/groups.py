@@ -8,36 +8,33 @@ from django.contrib.auth.models import Group
 from django.utils.translation import gettext_lazy as _
 
 from shared.models import AccessLevel, GroupProfile, ENABLED_FLAG_CHOICES
+from shared.forms.base import BaseModelForm
 
 
-class GroupForm(forms.ModelForm):
+class GroupForm(BaseModelForm):
     """Form for creating/editing groups."""
     
     description = forms.CharField(
         label=_('Description'),
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        widget=forms.Textarea(attrs={'rows': 3}),
         required=False,
     )
     is_enabled = forms.ChoiceField(
         choices=ENABLED_FLAG_CHOICES,
         label=_('Status'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
         initial=1,
     )
     access_levels = forms.ModelMultipleChoiceField(
         queryset=AccessLevel.objects.none(),
         required=False,
         label=_('Access Levels'),
-        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+        widget=forms.CheckboxSelectMultiple(),
         help_text=_('Select one or more access levels for this group.'),
     )
 
     class Meta:
         model = Group
         fields = ['name']
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-        }
         labels = {
             'name': _('Group Name'),
         }

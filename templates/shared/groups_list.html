@@ -5,7 +5,7 @@
 <div class="form-group">
   <label for="search">{% trans "Search" %}</label>
   <input type="text" name="search" id="search" 
-         placeholder="{% trans 'Group name' %}" 
+         placeholder="{{ search_placeholder|default:'Group name' }}" 
          value="{{ request.GET.search }}"
          class="form-control">
 </div>
@@ -13,8 +13,8 @@
   <label for="status">{% trans "Status" %}</label>
   <select name="status" id="status" class="form-control">
     <option value="">-- {% trans "All" %} --</option>
-    <option value="active" {% if status_filter_value == "active" %}selected{% endif %}>{% trans "Active" %}</option>
-    <option value="inactive" {% if status_filter_value == "inactive" %}selected{% endif %}>{% trans "Inactive" %}</option>
+    <option value="active" {% if request.GET.status == "active" %}selected{% endif %}>{% trans "Active" %}</option>
+    <option value="inactive" {% if request.GET.status == "inactive" %}selected{% endif %}>{% trans "Inactive" %}</option>
   </select>
 </div>
 {% endblock %}
@@ -72,12 +72,7 @@
   </td>
   {% if show_actions %}
   <td>
-    <a href="{% url edit_url_name group.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
-      {% trans "Edit" %}
-    </a>
-    <a href="{% url delete_url_name group.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
-      {% trans "Delete" %}
-    </a>
+    {% include 'shared/partials/row_actions.html' with object=group feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
   </td>
   {% endif %}
 </tr>

@@ -102,7 +102,7 @@
           {% if show_actions %}
             <td>
               {% block action_buttons %}
-                {% include 'shared/partials/row_actions.html' with object=object feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name view_url_name=view_url_name %}
+                {% include 'shared/partials/row_actions.html' with object=object feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
               {% endblock %}
             </td>
           {% endif %}

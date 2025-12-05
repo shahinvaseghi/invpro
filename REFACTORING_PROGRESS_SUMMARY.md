@@ -2,7 +2,7 @@
 
 **تاریخ شروع**: 2024-12-05  
 **وضعیت فعلی**: Pilot Implementation (ماژول `shared`) - در حال انجام  
-**آخرین به‌روزرسانی**: 2024-12-05 (شامل فیلتر Active Company)
+**آخرین به‌روزرسانی**: 2024-12-05 (شامل Groups refactoring)
 
 ---
 
@@ -217,11 +217,60 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 
 ---
 
+#### ماژول `shared` - Groups ✅ تکمیل شده
+
+**فایل**: `shared/views/groups.py`
+
+- ✅ `GroupListView` → `BaseListView`
+  - استفاده از `search_fields` برای جستجو در name
+  - Override `get_base_queryset()` برای prefetch related (user_set, profile__access_levels)
+  - Override `get_queryset()` برای فیلتر status بر اساس `profile.is_enabled` و skip کردن `CompanyScopedViewMixin`
+  - Groups global هستند (company-scoped نیستند)
+  - استفاده از `template_name = 'shared/groups_list.html'` که از `generic_list.html` extend می‌کند
+  - استفاده از partials مشترک: `row_actions.html`
+  - `permission_field = ''` برای skip کردن permission filtering (چون Group model از Django auth.Group است)
+  - Skip company scoping (`auto_set_company = False`, `require_active_company = False`)
+
+- ✅ `GroupCreateView` → `BaseCreateView`
+  - استفاده از `success_message` attribute
+  - Skip company scoping (`auto_set_company = False`, `require_active_company = False`)
+  - استفاده از `group_form.html` که از `generic_form.html` extend می‌کند
+  - `required_action = 'create'` برای permission checking
+
+- ✅ `GroupUpdateView` → `BaseUpdateView`
+  - استفاده از `success_message` attribute
+  - Override `get_queryset()` برای skip کردن company filtering
+  - Skip company scoping (`auto_set_company = False`, `require_active_company = False`)
+  - Skip permission filtering (`permission_field = ''`)
+  - `required_action = 'edit_own'` برای permission checking
+
+- ✅ `GroupDetailView` → `BaseDetailView`
+  - استفاده از `generic_detail.html` (default)
+  - Override `get_queryset()` برای prefetch related
+  - تنظیم context variables برای `detail_sections`, `info_banner`
+  - Skip company scoping و permission filtering
+  - `required_action = 'view_own'` برای permission checking
+
+- ✅ `GroupDeleteView` → `BaseDeleteView`
+  - استفاده از `generic_confirm_delete.html` (default)
+  - Override `get_queryset()` برای skip کردن company filtering
+  - استفاده از hook methods برای object details
+  - Skip company scoping و permission filtering
+  - `required_action = 'delete_own'` برای permission checking
+
+**فایل**: `shared/forms/groups.py`
+
+- ✅ `GroupForm` → `BaseModelForm`
+  - حذف widgets تکراری (فقط attributes خاص باقی مانده)
+  - BaseModelForm به صورت خودکار 'form-control' و 'form-check-input' را اعمال می‌کند
+  - حفظ منطق save() برای GroupProfile
+
+---
+
 ### 3. کارهای باقی‌مانده
 
 #### ماژول `shared` (ادامه Pilot):
 - ⏳ `shared/views/access_levels.py` - 5 view
-- ⏳ `shared/views/groups.py` - 5 view
 
 #### سایر ماژول‌ها:
 - ⏳ ماژول `inventory` - 81+ view
@@ -239,14 +288,16 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 - ✅ **Pilot - Companies**: 100% (5 view + 1 form)
 - ✅ **Pilot - Company Units**: 100% (5 view + 1 form)
 - ✅ **Pilot - Users**: 100% (5 view + 1 form)
-- ⏳ **Pilot - سایر**: 0% (access_levels, groups)
+- ✅ **Pilot - Groups**: 100% (5 view + 1 form)
+- ⏳ **Pilot - سایر**: 0% (access_levels)
 
-**پیشرفت Pilot**: 60% (3/5 فایل)
+**پیشرفت Pilot**: 80% (4/5 فایل)
 
 ### کاهش کد:
 - **Companies**: از ~227 خط به ~331 خط (اما کد تمیزتر و قابل نگهداری‌تر)
 - **Company Units**: از ~223 خط به ~293 خط (اما کد تمیزتر و قابل نگهداری‌تر)
 - **Users**: از ~240 خط به ~329 خط (اما کد تمیزتر و قابل نگهداری‌تر)
+- **Groups**: از ~190 خط به ~326 خط (اما کد تمیزتر و قابل نگهداری‌تر)
 
 ---
 
@@ -299,7 +350,58 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 - ✅ `UserUpdateView`: فیلتر بر اساس `UserCompanyAccess` برای active company
 - ✅ `UserDeleteView`: فیلتر بر اساس `UserCompanyAccess` برای active company
 
-**نکته مهم**: اگر active company انتخاب نشده باشد، همه viewها queryset خالی برمی‌گردانند (به جز Superuserها در Users).
+### Groups:
+- ✅ `GroupListView`: Groups global هستند (company-scoped نیستند)
+- ✅ `GroupDetailView`: Groups global هستند
+- ✅ `GroupUpdateView`: Groups global هستند
+- ✅ `GroupDeleteView`: Groups global هستند
+
+**نکته مهم**: اگر active company انتخاب نشده باشد، همه viewها queryset خالی برمی‌گردانند (به جز Superuserها در Users و Groups که global هستند).
+
+---
+
+## 🔐 سیستم Permission Checking
+
+همه viewها از `FeaturePermissionRequiredMixin` استفاده می‌کنند که قبل از dispatch، دسترسی کاربر را بررسی می‌کند:
+
+### نحوه کار:
+
+1. **Feature Permission Checking** (همیشه فعال):
+   - همه Base classes (`BaseListView`, `BaseCreateView`, `BaseUpdateView`, `BaseDetailView`, `BaseDeleteView`) از `FeaturePermissionRequiredMixin` استفاده می‌کنند
+   - قبل از اجرای view، بررسی می‌شود که آیا کاربر به feature دسترسی دارد یا نه
+   - اگر دسترسی نداشته باشد، `PermissionDenied` exception رخ می‌دهد
+
+2. **Permission Filtering** (اختیاری):
+   - برای فیلتر کردن queryset بر اساس `view_all`, `view_own`, `view_same_group`
+   - فقط زمانی فعال می‌شود که `permission_field` تنظیم شده باشد
+   - برای Group و User skip شده چون منطق فیلتر خاص خودشان را دارند
+
+### مثال:
+
+```python
+class GroupListView(BaseListView):
+    feature_code = 'shared.groups'
+    required_action = 'view'  # Default action for ListView
+    permission_field = ''  # Skip permission filtering
+    
+    # ✅ Feature permission checking فعال است
+    # ✅ قبل از dispatch بررسی می‌شود که آیا کاربر به 'shared.groups' دسترسی دارد
+    # ❌ Permission filtering (view_all/view_own) skip شده
+```
+
+### تفاوت دو نوع Permission:
+
+| نوع | Mixin | زمان اجرا | هدف |
+|-----|-------|-----------|-----|
+| **Feature Permission** | `FeaturePermissionRequiredMixin` | قبل از dispatch | بررسی دسترسی به feature |
+| **Permission Filtering** | `PermissionFilterMixin` | در `get_queryset()` | فیلتر کردن queryset |
+
+### گروه‌های refactored شده:
+
+- ✅ **Companies**: Feature permission فعال، Permission filtering skip (منطق خاص)
+- ✅ **Company Units**: هر دو فعال
+- ✅ **Users**: Feature permission فعال، Permission filtering skip (منطق خاص)
+- ✅ **Groups**: Feature permission فعال، Permission filtering skip (Groups global هستند)
 
 ---
 
@@ -362,7 +464,6 @@ class MyForm(BaseModelForm):
 
 1. **تکمیل Pilot - ماژول `shared`**:
    - Refactor `access_levels.py`
-   - Refactor `groups.py`
 
 2. **Rollout به سایر ماژول‌ها**:
    - ماژول `inventory` (اولویت بالا)
@@ -381,5 +482,5 @@ class MyForm(BaseModelForm):
 
 ---
 
-**وضعیت کلی**: ✅ Infrastructure کامل | ✅ Pilot 60% (3/5 فایل) | ⏳ Rollout 0%
+**وضعیت کلی**: ✅ Infrastructure کامل | ✅ Pilot 80% (4/5 فایل) | ⏳ Rollout 0%
 
