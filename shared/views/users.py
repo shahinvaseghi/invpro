@@ -143,17 +143,6 @@ class UserListView(BaseListView):
         context['status_filter'] = True  # Enable status filter
         context['status_filter_value'] = self.request.GET.get('status', '')
         
-        # Table headers for custom table display
-        context['table_headers'] = [
-            {'label': _('Username')},
-            {'label': _('Name')},
-            {'label': _('Email')},
-            {'label': _('Default Company')},
-            {'label': _('Groups')},
-            {'label': _('Company Access')},
-            {'label': _('Status')},
-        ]
-        
         return context
 
 

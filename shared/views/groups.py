@@ -226,6 +226,7 @@ class GroupDetailView(BaseDetailView):
         # Basic Information
         basic_info = {
             'title': _('Basic Information'),
+            'type': 'fields',
             'fields': [
                 {'label': _('Group Name'), 'value': group.name},
             ]
@@ -245,6 +246,7 @@ class GroupDetailView(BaseDetailView):
             ])
             detail_sections.append({
                 'title': _('Members') + f' ({group.user_set.count()})',
+                'type': 'fields',
                 'fields': [
                     {'label': _('Members'), 'value': members}
                 ]
@@ -257,6 +259,7 @@ class GroupDetailView(BaseDetailView):
             ])
             detail_sections.append({
                 'title': _('Access Levels'),
+                'type': 'fields',
                 'fields': [
                     {'label': _('Access Levels'), 'value': access_levels}
                 ]

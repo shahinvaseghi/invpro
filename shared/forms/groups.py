@@ -41,6 +41,8 @@ class GroupForm(BaseModelForm):
 
     def __init__(self, *args, **kwargs):
         """Initialize form with profile data."""
+        # Groups are not company-scoped, remove company_id if passed
+        kwargs.pop('company_id', None)
         super().__init__(*args, **kwargs)
         self.profile: Optional[GroupProfile] = getattr(self.instance, 'profile', None)
         self.fields['access_levels'].queryset = AccessLevel.objects.filter(is_enabled=1).order_by('code')

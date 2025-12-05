@@ -1,8 +1,8 @@
 # خلاصه پیشرفت Refactoring - معماری مشترک
 
 **تاریخ شروع**: 2024-12-05  
-**وضعیت فعلی**: Pilot Implementation (ماژول `shared`) - در حال انجام  
-**آخرین به‌روزرسانی**: 2024-12-05 (شامل Groups refactoring)
+**وضعیت فعلی**: Pilot Implementation (ماژول `shared`) - ✅ تکمیل شده  
+**آخرین به‌روزرسانی**: 2024-12-05 (شامل Access Levels refactoring - Pilot 100%)
 
 ---
 
@@ -267,10 +267,65 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 
 ---
 
+#### ماژول `shared` - Access Levels ✅ تکمیل شده
+
+**فایل**: `shared/views/access_levels.py`
+
+- ✅ `AccessLevelListView` → `BaseListView`
+  - استفاده از `search_fields` برای جستجو در code, name
+  - Override `get_base_queryset()` برای prefetch related (permissions)
+  - Override `get_queryset()` برای فیلتر status بر اساس `is_enabled` و skip کردن `CompanyScopedViewMixin`
+  - AccessLevels global هستند (company-scoped نیستند)
+  - استفاده از `template_name = 'shared/access_levels_list.html'` که از `generic_list.html` extend می‌کند
+  - استفاده از partials مشترک: `row_actions.html`
+  - `permission_field = ''` برای skip کردن permission filtering
+  - Skip company scoping (`auto_set_company = False`, `require_active_company = False`)
+
+- ✅ `AccessLevelCreateView` → `BaseCreateView` + `AccessLevelPermissionMixin`
+  - استفاده از `success_message` attribute
+  - استفاده از `AccessLevelPermissionMixin` برای مدیریت feature permissions
+  - Override `form_valid()` برای ذخیره permissions
+  - Skip company scoping (`auto_set_company = False`, `require_active_company = False`)
+  - استفاده از `access_level_form.html` که template خاص است (برای permission management)
+  - `required_action = 'create'` برای permission checking
+
+- ✅ `AccessLevelUpdateView` → `BaseUpdateView` + `AccessLevelPermissionMixin`
+  - استفاده از `success_message` attribute
+  - استفاده از `AccessLevelPermissionMixin` برای مدیریت feature permissions
+  - Override `form_valid()` برای ذخیره permissions
+  - Override `get_queryset()` برای skip کردن company filtering
+  - Skip company scoping و permission filtering
+  - استفاده از `access_level_form.html` که template خاص است (برای permission management)
+  - `required_action = 'edit_own'` برای permission checking
+
+- ✅ `AccessLevelDetailView` → `BaseDetailView`
+  - استفاده از `generic_detail.html` (default)
+  - Override `get_queryset()` برای prefetch related
+  - تنظیم context variables برای `detail_sections`, `info_banner`
+  - نمایش permissions به صورت table در detail_sections
+  - Skip company scoping و permission filtering
+  - `required_action = 'view_own'` برای permission checking
+
+- ✅ `AccessLevelDeleteView` → `BaseDeleteView`
+  - استفاده از `generic_confirm_delete.html` (default)
+  - Override `get_queryset()` برای skip کردن company filtering
+  - استفاده از hook methods برای object details
+  - Skip company scoping و permission filtering
+  - `required_action = 'delete_own'` برای permission checking
+
+**فایل**: `shared/forms/access_levels.py`
+
+- ✅ `AccessLevelForm` → `BaseModelForm`
+  - حذف widgets تکراری (فقط attributes خاص باقی مانده)
+  - BaseModelForm به صورت خودکار 'form-control' و 'form-check-input' را اعمال می‌کند
+  - حفظ منطق code field (read-only در edit mode)
+
+---
+
 ### 3. کارهای باقی‌مانده
 
 #### ماژول `shared` (ادامه Pilot):
-- ⏳ `shared/views/access_levels.py` - 5 view
+- ✅ همه فایل‌ها refactor شده‌اند!
 
 #### سایر ماژول‌ها:
 - ⏳ ماژول `inventory` - 81+ view
@@ -289,15 +344,16 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 - ✅ **Pilot - Company Units**: 100% (5 view + 1 form)
 - ✅ **Pilot - Users**: 100% (5 view + 1 form)
 - ✅ **Pilot - Groups**: 100% (5 view + 1 form)
-- ⏳ **Pilot - سایر**: 0% (access_levels)
+- ✅ **Pilot - Access Levels**: 100% (5 view + 1 form)
 
-**پیشرفت Pilot**: 80% (4/5 فایل)
+**پیشرفت Pilot**: 100% (5/5 فایل) ✅
 
 ### کاهش کد:
 - **Companies**: از ~227 خط به ~331 خط (اما کد تمیزتر و قابل نگهداری‌تر)
 - **Company Units**: از ~223 خط به ~293 خط (اما کد تمیزتر و قابل نگهداری‌تر)
 - **Users**: از ~240 خط به ~329 خط (اما کد تمیزتر و قابل نگهداری‌تر)
 - **Groups**: از ~190 خط به ~326 خط (اما کد تمیزتر و قابل نگهداری‌تر)
+- **Access Levels**: از ~205 خط به ~380 خط (اما کد تمیزتر و قابل نگهداری‌تر - شامل AccessLevelPermissionMixin)
 
 ---
 
@@ -356,7 +412,13 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 - ✅ `GroupUpdateView`: Groups global هستند
 - ✅ `GroupDeleteView`: Groups global هستند
 
-**نکته مهم**: اگر active company انتخاب نشده باشد، همه viewها queryset خالی برمی‌گردانند (به جز Superuserها در Users و Groups که global هستند).
+### Access Levels:
+- ✅ `AccessLevelListView`: AccessLevels global هستند (company-scoped نیستند)
+- ✅ `AccessLevelDetailView`: AccessLevels global هستند
+- ✅ `AccessLevelUpdateView`: AccessLevels global هستند
+- ✅ `AccessLevelDeleteView`: AccessLevels global هستند
+
+**نکته مهم**: اگر active company انتخاب نشده باشد، همه viewها queryset خالی برمی‌گردانند (به جز Superuserها در Users و Groups/AccessLevels که global هستند).
 
 ---
 
@@ -402,6 +464,7 @@ class GroupListView(BaseListView):
 - ✅ **Company Units**: هر دو فعال
 - ✅ **Users**: Feature permission فعال، Permission filtering skip (منطق خاص)
 - ✅ **Groups**: Feature permission فعال، Permission filtering skip (Groups global هستند)
+- ✅ **Access Levels**: Feature permission فعال، Permission filtering skip (AccessLevels global هستند)
 
 ---
 
@@ -462,8 +525,7 @@ class MyForm(BaseModelForm):
 
 ## 🎯 مراحل بعدی
 
-1. **تکمیل Pilot - ماژول `shared`**:
-   - Refactor `access_levels.py`
+1. ✅ **تکمیل Pilot - ماژول `shared`**: همه فایل‌ها refactor شده‌اند!
 
 2. **Rollout به سایر ماژول‌ها**:
    - ماژول `inventory` (اولویت بالا)
@@ -482,5 +544,5 @@ class MyForm(BaseModelForm):
 
 ---
 
-**وضعیت کلی**: ✅ Infrastructure کامل | ✅ Pilot 80% (4/5 فایل) | ⏳ Rollout 0%
+**وضعیت کلی**: ✅ Infrastructure کامل | ✅ Pilot 100% (5/5 فایل) | ⏳ Rollout 0%
 

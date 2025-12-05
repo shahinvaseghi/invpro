@@ -38,39 +38,40 @@ class AccessLevelPermissionMixin:
     """Mixin to handle access level permissions management."""
     template_name = 'shared/access_level_form.html'
 
-    action_labels: Dict[str, str] = {}
+    _action_labels_cache: Optional[Dict[str, str]] = None
 
-    def __init__(self, *args: Any, **kwargs: Any):
-        """Initialize action labels."""
-        super().__init__(*args, **kwargs)
-        from django.utils.translation import gettext_lazy as _
-        from shared.permissions import PermissionAction
-        
-        self.action_labels = {
-            PermissionAction.VIEW_OWN.value: _('View own records'),
-            PermissionAction.VIEW_ALL.value: _('View all records'),
-            PermissionAction.VIEW_SAME_GROUP.value: _('View same group records'),
-            PermissionAction.CREATE.value: _('Create'),
-            PermissionAction.EDIT_OWN.value: _('Edit own records'),
-            PermissionAction.EDIT_OTHER.value: _('Edit others records'),
-            PermissionAction.EDIT_SAME_GROUP.value: _('Edit same group records'),
-            PermissionAction.DELETE_OWN.value: _('Delete own records'),
-            PermissionAction.DELETE_OTHER.value: _('Delete others records'),
-            PermissionAction.DELETE_SAME_GROUP.value: _('Delete same group records'),
-            PermissionAction.LOCK_OWN.value: _('Lock own documents'),
-            PermissionAction.LOCK_OTHER.value: _('Lock others documents'),
-            PermissionAction.LOCK_SAME_GROUP.value: _('Lock same group documents'),
-            PermissionAction.UNLOCK_OWN.value: _('Unlock own documents'),
-            PermissionAction.UNLOCK_OTHER.value: _('Unlock others documents'),
-            PermissionAction.UNLOCK_SAME_GROUP.value: _('Unlock same group documents'),
-            PermissionAction.APPROVE.value: _('Approve'),
-            PermissionAction.REJECT.value: _('Reject'),
-            PermissionAction.CANCEL.value: _('Cancel'),
-            PermissionAction.CREATE_TRANSFER_FROM_ORDER.value: _('Create Transfer from Order'),
-            PermissionAction.CREATE_RECEIPT.value: _('Create Receipt'),
-            PermissionAction.CREATE_RECEIPT_FROM_PURCHASE_REQUEST.value: _('Create Receipt from Purchase Request'),
-            PermissionAction.CREATE_ISSUE_FROM_WAREHOUSE_REQUEST.value: _('Create Issue from Warehouse Request'),
-        }
+    def get_action_labels(self) -> Dict[str, str]:
+        """Get action labels dictionary (cached)."""
+        if self._action_labels_cache is None:
+            from django.utils.translation import gettext_lazy as _
+            from shared.permissions import PermissionAction
+            
+            self._action_labels_cache = {
+                PermissionAction.VIEW_OWN.value: _('View own records'),
+                PermissionAction.VIEW_ALL.value: _('View all records'),
+                PermissionAction.VIEW_SAME_GROUP.value: _('View same group records'),
+                PermissionAction.CREATE.value: _('Create'),
+                PermissionAction.EDIT_OWN.value: _('Edit own records'),
+                PermissionAction.EDIT_OTHER.value: _('Edit others records'),
+                PermissionAction.EDIT_SAME_GROUP.value: _('Edit same group records'),
+                PermissionAction.DELETE_OWN.value: _('Delete own records'),
+                PermissionAction.DELETE_OTHER.value: _('Delete others records'),
+                PermissionAction.DELETE_SAME_GROUP.value: _('Delete same group records'),
+                PermissionAction.LOCK_OWN.value: _('Lock own documents'),
+                PermissionAction.LOCK_OTHER.value: _('Lock others documents'),
+                PermissionAction.LOCK_SAME_GROUP.value: _('Lock same group documents'),
+                PermissionAction.UNLOCK_OWN.value: _('Unlock own documents'),
+                PermissionAction.UNLOCK_OTHER.value: _('Unlock others documents'),
+                PermissionAction.UNLOCK_SAME_GROUP.value: _('Unlock same group documents'),
+                PermissionAction.APPROVE.value: _('Approve'),
+                PermissionAction.REJECT.value: _('Reject'),
+                PermissionAction.CANCEL.value: _('Cancel'),
+                PermissionAction.CREATE_TRANSFER_FROM_ORDER.value: _('Create Transfer from Order'),
+                PermissionAction.CREATE_RECEIPT.value: _('Create Receipt'),
+                PermissionAction.CREATE_RECEIPT_FROM_PURCHASE_REQUEST.value: _('Create Receipt from Purchase Request'),
+                PermissionAction.CREATE_ISSUE_FROM_WAREHOUSE_REQUEST.value: _('Create Issue from Warehouse Request'),
+            }
+        return self._action_labels_cache
 
     def _feature_key(self, code: str) -> str:
         """Convert feature code to HTML-safe key."""
@@ -122,10 +123,12 @@ class AccessLevelPermissionMixin:
                     checked = feature_state.get('fallback_can_delete', False)
                 if not feature_state and action == PermissionAction.APPROVE:
                     checked = feature_state.get('fallback_can_approve', False)
+                action_labels = self.get_action_labels()
+                label = action_labels.get(action.value, action.value.replace('_', ' ').title())
                 data_actions.append(
                     {
                         'code': action.value,
-                        'label': self.action_labels[action.value],
+                        'label': label,
                         'checked': checked,
                     }
                 )
