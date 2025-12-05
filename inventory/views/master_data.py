@@ -11,7 +11,7 @@ This module contains CRUD views for:
 - Supplier Categories
 """
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List
 from django.contrib import messages
 from django.db.models import Q
 from django.db.models.deletion import ProtectedError
@@ -22,7 +22,14 @@ from django.utils.translation import gettext_lazy as _
 from .base import InventoryBaseView, ItemUnitFormsetMixin
 from .receipts import DocumentDeleteViewBase
 from shared.mixins import FeaturePermissionRequiredMixin
-from shared.views.base import EditLockProtectedMixin
+from shared.views.base import (
+    EditLockProtectedMixin,
+    BaseListView,
+    BaseCreateView,
+    BaseUpdateView,
+    BaseDeleteView,
+    BaseDetailView,
+)
 from .. import models
 from .. import forms
 
@@ -643,75 +650,100 @@ class ItemSubcategoryDeleteView(DocumentDeleteViewBase):
 # Item Views
 # ============================================================================
 
-class ItemListView(InventoryBaseView, ListView):
+class ItemListView(BaseListView):
     """List view for items."""
     model = models.Item
     template_name = 'inventory/items.html'
-    context_object_name = 'object_list'
-    paginate_by = 50
+    feature_code = 'inventory.master.items'
+    search_fields = ['item_code', 'name', 'name_en']
+    filter_fields = ['is_enabled']
+    default_status_filter = True
+    default_order_by = ['-created_at', '-id']
+    permission_field = 'created_by'
     
-    def get_queryset(self):
-        """Return items with filters and search, ordered by newest first."""
-        queryset = super().get_queryset()
-        queryset = queryset.select_related('type', 'category', 'subcategory')
-        
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.items', 'created_by')
-        
-        # Search by item code or name (Persian or English)
-        search = (self.request.GET.get('search') or '').strip()
-        if search:
-            queryset = queryset.filter(
-                Q(item_code__icontains=search) |
-                Q(name__icontains=search) |
-                Q(name_en__icontains=search)
-            )
+    def get_select_related(self) -> List[str]:
+        """Return list of fields to select_related."""
+        return ['type', 'category', 'subcategory']
+    
+    def apply_custom_filters(self, queryset):
+        """Apply custom filters for item type and category."""
+        queryset = super().apply_custom_filters(queryset)
         
         # Filter by item type
         item_type_id = self.request.GET.get('type')
         if item_type_id:
-            queryset = queryset.filter(type_id=item_type_id)
+            try:
+                queryset = queryset.filter(type_id=int(item_type_id))
+            except (ValueError, TypeError):
+                pass
         
         # Filter by category
         category_id = self.request.GET.get('category')
         if category_id:
-            queryset = queryset.filter(category_id=category_id)
+            try:
+                queryset = queryset.filter(category_id=int(category_id))
+            except (ValueError, TypeError):
+                pass
         
-        # Filter by status (is_enabled)
-        status = self.request.GET.get('status')
-        if status == '1':
-            queryset = queryset.filter(is_enabled=1)
-        elif status == '0':
-            queryset = queryset.filter(is_enabled=0)
-        
-        # Order by created_at descending (newest first), then by id descending as fallback
-        return queryset.order_by('-created_at', '-id')
+        return queryset
     
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic list template."""
-        context = super().get_context_data(**kwargs)
-        from shared.utils.permissions import get_user_feature_permissions
-        
-        context['page_title'] = _('Items')
-        context['breadcrumbs'] = [
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Items')
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Items'), 'url': None},
         ]
-        context['create_url'] = reverse_lazy('inventory:item_create')
-        context['create_button_text'] = _('Create New Item')
-        context['table_headers'] = []  # Overridden in template
-        context['show_actions'] = True
-        context['feature_code'] = 'inventory.master.items'
-        context['detail_url_name'] = 'inventory:item_detail'
-        context['edit_url_name'] = 'inventory:item_edit'
-        context['delete_url_name'] = 'inventory:item_delete'
-        context['empty_state_title'] = _('No Items Found')
-        context['empty_state_message'] = _('Start by creating your first item.')
-        context['empty_state_icon'] = '📦'
-        context['show_filters'] = True
-        context['status_filter'] = True
-        context['search_placeholder'] = _('Search by code or name')
+    
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:item_create')
+    
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create New Item')
+    
+    def get_search_placeholder(self) -> str:
+        """Return search placeholder."""
+        return _('Search by code or name')
+    
+    def get_clear_filter_url(self):
+        """Return clear filter URL."""
+        return reverse_lazy('inventory:items')
+    
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:item_detail'
+    
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:item_edit'
+    
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'inventory:item_delete'
+    
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Items Found')
+    
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by creating your first item.')
+    
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📦'
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add additional context variables."""
+        context = super().get_context_data(**kwargs)
+        from shared.utils.permissions import get_user_feature_permissions
+        
         context['print_enabled'] = True
         
         # Add item types and categories for filter dropdown
@@ -727,7 +759,6 @@ class ItemListView(InventoryBaseView, ListView):
             ).order_by('name')
         
         # Add user feature permissions for conditional rendering
-        company_id = self.request.session.get('active_company_id')
         context['user_feature_permissions'] = get_user_feature_permissions(self.request.user, company_id)
         
         return context
@@ -780,12 +811,15 @@ class ItemSerialListView(FeaturePermissionRequiredMixin, InventoryBaseView, List
         return context
 
 
-class ItemCreateView(ItemUnitFormsetMixin, InventoryBaseView, CreateView):
+class ItemCreateView(ItemUnitFormsetMixin, BaseCreateView):
     """Create view for items with unit formset."""
     model = models.Item
     form_class = forms.ItemForm
     template_name = 'inventory/item_form.html'
     success_url = reverse_lazy('inventory:items')
+    feature_code = 'inventory.master.items'
+    required_action = 'create'
+    success_message = _('کالا با موفقیت ایجاد شد.')
     
     def get_form_kwargs(self):
         """Pass company_id to form."""
@@ -801,8 +835,7 @@ class ItemCreateView(ItemUnitFormsetMixin, InventoryBaseView, CreateView):
         
         company_id = self.request.session.get('active_company_id')
         
-        form.instance.company_id = company_id
-        form.instance.created_by = self.request.user
+        # company_id and created_by are set by AutoSetFieldsMixin
         form.instance.edited_by = self.request.user
         
         # Build formset with instance=None for new items
@@ -873,7 +906,6 @@ class ItemCreateView(ItemUnitFormsetMixin, InventoryBaseView, CreateView):
         ordered = self._get_ordered_warehouses(form)
         self._sync_item_warehouses(self.object, ordered, self.request.user)
         
-        messages.success(self.request, _('کالا با موفقیت ایجاد شد.'))
         return HttpResponseRedirect(self.get_success_url())
     
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
@@ -886,15 +918,24 @@ class ItemCreateView(ItemUnitFormsetMixin, InventoryBaseView, CreateView):
             temp_instance = models.Item(company_id=company_id) if company_id else models.Item()
             context['units_formset'] = self.build_unit_formset(instance=temp_instance, company_id=company_id)
         
-        context['form_title'] = _('Create New Item')
-        context['breadcrumbs'] = [
+        return context
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Items'), 'url': reverse_lazy('inventory:items')},
             {'label': _('Create'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('inventory:items')
-        return context
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Create New Item')
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:items')
 
 
 class ItemUpdateView(EditLockProtectedMixin, ItemUnitFormsetMixin, InventoryBaseView, UpdateView):
@@ -1085,68 +1126,97 @@ class ItemDeleteView(InventoryBaseView, DeleteView):
 # Warehouse Views
 # ============================================================================
 
-class WarehouseListView(InventoryBaseView, ListView):
+
+class WarehouseListView(BaseListView):
     """List view for warehouses."""
     model = models.Warehouse
     template_name = 'inventory/warehouses.html'
-    context_object_name = 'object_list'
-    paginate_by = 50
+    feature_code = 'inventory.master.warehouses'
+    search_fields = ['public_code', 'name', 'name_en']
+    filter_fields = ['is_enabled']
+    default_status_filter = True
+    default_order_by = ['sort_order', 'public_code']
+    permission_field = 'created_by'
     
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.warehouses', 'created_by')
-        return queryset
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Warehouses')
     
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic list template."""
-        context = super().get_context_data(**kwargs)
-        context['page_title'] = _('Warehouses')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Warehouses'), 'url': None},
         ]
-        context['create_url'] = reverse_lazy('inventory:warehouse_create')
-        context['create_button_text'] = _('Create Warehouse')
-        context['table_headers'] = []  # Overridden in template
-        context['show_actions'] = True
-        context['feature_code'] = 'inventory.master.warehouses'
-        context['detail_url_name'] = 'inventory:warehouse_detail'
-        context['edit_url_name'] = 'inventory:warehouse_edit'
-        context['delete_url_name'] = 'inventory:warehouse_delete'
-        context['empty_state_title'] = _('No Warehouses Found')
-        context['empty_state_message'] = _('Start by creating your first warehouse.')
-        context['empty_state_icon'] = '🏬'
-        return context
+    
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:warehouse_create')
+    
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Warehouse')
+    
+    def get_search_placeholder(self) -> str:
+        """Return search placeholder."""
+        return _('Search by code or name')
+    
+    def get_clear_filter_url(self):
+        """Return clear filter URL."""
+        return reverse_lazy('inventory:warehouses')
+    
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:warehouse_detail'
+    
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:warehouse_edit'
+    
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'inventory:warehouse_delete'
+    
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Warehouses Found')
+    
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by creating your first warehouse.')
+    
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '🏬'
 
 
-class WarehouseCreateView(InventoryBaseView, CreateView):
+class WarehouseCreateView(BaseCreateView):
     """Create view for warehouses."""
     model = models.Warehouse
     form_class = forms.WarehouseForm
     template_name = 'inventory/warehouse_form.html'
     success_url = reverse_lazy('inventory:warehouses')
+    feature_code = 'inventory.master.warehouses'
+    required_action = 'create'
+    success_message = _('Warehouse created successfully.')
     
-    def form_valid(self, form):
-        """Set company and created_by before saving."""
-        form.instance.company_id = self.request.session.get('active_company_id')
-        form.instance.created_by = self.request.user
-        messages.success(self.request, _('Warehouse created successfully.'))
-        return super().form_valid(form)
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic form template."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Create Warehouse')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Warehouses'), 'url': reverse_lazy('inventory:warehouses')},
             {'label': _('Create'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('inventory:warehouses')
-        return context
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Create Warehouse')
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:warehouses')
 
 
 class WarehouseUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView):

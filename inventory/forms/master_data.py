@@ -224,20 +224,21 @@ class ItemSubcategoryForm(forms.ModelForm):
         }
 
 
-class WarehouseForm(forms.ModelForm):
+from shared.forms.base import BaseModelForm
+
+
+class WarehouseForm(BaseModelForm):
     """Form for creating/editing warehouses."""
+    
+    def __init__(self, *args, **kwargs):
+        """Initialize form and remove company_id if not needed."""
+        # company_id is set automatically by AutoSetFieldsMixin in view
+        kwargs.pop('company_id', None)
+        super().__init__(*args, **kwargs)
     
     class Meta:
         model = Warehouse
         fields = ['name', 'name_en', 'description', 'notes', 'sort_order', 'is_enabled']
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.TextInput(attrs={'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'sort_order': forms.NumberInput(attrs={'class': 'form-control'}),
-            'is_enabled': forms.Select(attrs={'class': 'form-control'}),
-        }
         labels = {
             'name': _('Name (Persian)'),
             'name_en': _('Name (English)'),
@@ -459,7 +460,7 @@ class SupplierCategoryForm(forms.ModelForm):
         return cleaned_data
 
 
-class ItemForm(forms.ModelForm):
+class ItemForm(BaseModelForm):
     """Form for creating/editing items."""
 
     is_sellable = IntegerCheckboxField(
@@ -486,12 +487,12 @@ class ItemForm(forms.ModelForm):
     default_unit = forms.ChoiceField(
         choices=UNIT_CHOICES,
         label=_('واحد اصلی'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
+        # BaseModelForm automatically applies 'form-control' class
     )
     primary_unit = forms.ChoiceField(
         choices=UNIT_CHOICES,
         label=_('واحد گزارش (برای گزارش‌گیری)'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
+        # BaseModelForm automatically applies 'form-control' class
     )
     allowed_warehouses = forms.ModelMultipleChoiceField(
         queryset=Warehouse.objects.none(),
@@ -515,22 +516,12 @@ class ItemForm(forms.ModelForm):
             'sort_order', 'is_enabled',
         ]
         widgets = {
-            'type': forms.Select(attrs={'class': 'form-control'}),
-            'category': forms.Select(attrs={'class': 'form-control'}),
-            'subcategory': forms.Select(attrs={'class': 'form-control'}),
-            'user_segment': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '2'}),
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'secondary_batch_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '50'}),
-            'supply_type': forms.Select(attrs={'class': 'form-control'}),
-            'planning_type': forms.Select(attrs={'class': 'form-control'}),
-            'lead_time': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '1'}),
-            'tax_id': forms.TextInput(attrs={'class': 'form-control'}),
-            'tax_title': forms.TextInput(attrs={'class': 'form-control'}),
-            'min_stock': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'description': forms.TextInput(attrs={'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'sort_order': forms.NumberInput(attrs={'class': 'form-control'}),
+            # BaseModelForm automatically applies 'form-control' class, but we can add extra attributes
+            'user_segment': forms.TextInput(attrs={'maxlength': '2'}),
+            'secondary_batch_number': forms.TextInput(attrs={'maxlength': '50'}),
+            'lead_time': forms.NumberInput(attrs={'min': '0', 'step': '1'}),
+            'min_stock': forms.NumberInput(attrs={'step': '0.001'}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
         }
         labels = {
             'type': _('نوع کالا'),

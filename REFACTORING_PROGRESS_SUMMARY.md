@@ -1,8 +1,8 @@
 # خلاصه پیشرفت Refactoring - معماری مشترک
 
 **تاریخ شروع**: 2024-12-05  
-**وضعیت فعلی**: Pilot Implementation (ماژول `shared`) - ✅ تکمیل شده  
-**آخرین به‌روزرسانی**: 2024-12-05 (شامل Access Levels refactoring - Pilot 100%)
+**وضعیت فعلی**: Rollout Implementation (ماژول `inventory`) - در حال انجام  
+**آخرین به‌روزرسانی**: 2024-12-05 (شامل Warehouses refactoring - شروع Rollout)
 
 ---
 
@@ -322,13 +322,45 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 
 ---
 
+#### ماژول `inventory` - Warehouses ✅ تکمیل شده
+
+**فایل**: `inventory/views/master_data.py`
+
+- ✅ `WarehouseListView` → `BaseListView`
+  - استفاده از `search_fields`, `filter_fields`, `default_status_filter`
+  - استفاده از `permission_field = 'created_by'` برای permission filtering
+  - استفاده از `generic_list.html` (از طریق template `warehouses.html`)
+  - استفاده از partials مشترک: `row_actions.html`
+  - Override hook methods برای customization
+
+- ✅ `WarehouseCreateView` → `BaseCreateView`
+  - استفاده از `success_message` attribute
+  - استفاده از `warehouse_form.html` که از `generic_form.html` extend می‌کند
+  - Auto-set `company_id` و `created_by` توسط `AutoSetFieldsMixin`
+
+**فایل**: `inventory/forms/master_data.py`
+
+- ✅ `WarehouseForm` → `BaseModelForm`
+  - حذف widgets تکراری (فقط attributes خاص باقی مانده)
+  - BaseModelForm به صورت خودکار 'form-control' و 'form-check-input' را اعمال می‌کند
+  - اضافه کردن `__init__` برای pop کردن `company_id` (چون توسط view تنظیم می‌شود)
+
+**Template Files**:
+- ✅ `templates/inventory/warehouses.html` - به‌روزرسانی برای استفاده از `row_actions.html`
+- ✅ `templates/inventory/warehouse_form.html` - ایجاد template جدید که از `generic_form.html` extend می‌کند
+
+**مشکلات حل شده**:
+- ✅ رفع TypeError در `WarehouseForm` (استفاده از `BaseModelForm` و pop کردن `company_id`)
+
+---
+
 ### 3. کارهای باقی‌مانده
 
 #### ماژول `shared` (ادامه Pilot):
 - ✅ همه فایل‌ها refactor شده‌اند!
 
 #### سایر ماژول‌ها:
-- ⏳ ماژول `inventory` - 81+ view
+- ⏳ ماژول `inventory` - 81+ view (شروع شده: Warehouses ✅)
 - ⏳ ماژول `production` - 41+ view
 - ⏳ ماژول `accounting` - 28+ view
 - ⏳ ماژول `ticketing` - 19+ view
@@ -345,8 +377,10 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 - ✅ **Pilot - Users**: 100% (5 view + 1 form)
 - ✅ **Pilot - Groups**: 100% (5 view + 1 form)
 - ✅ **Pilot - Access Levels**: 100% (5 view + 1 form)
+- ✅ **Inventory - Warehouses**: 100% (2 view + 1 form) - شروع Rollout
 
-**پیشرفت Pilot**: 100% (5/5 فایل) ✅
+**پیشرفت Pilot**: 100% (5/5 فایل) ✅  
+**پیشرفت Rollout**: شروع شده (1/81+ view در inventory)
 
 ### کاهش کد:
 - **Companies**: از ~227 خط به ~331 خط (اما کد تمیزتر و قابل نگهداری‌تر)
@@ -406,6 +440,12 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
    - **علت**: استفاده از `', '.join()` روی لیستی از `gettext_lazy` objects (proxy objects)
    - **راه‌حل**: استفاده از `force_str()` برای تبدیل proxy objects به string
    - **فایل تغییر یافته**: `shared/views/access_levels.py`
+
+8. **مشکل ایجاد Warehouse** ✅ حل شد
+   - **خطا**: `TypeError: BaseModelForm.__init__() got an unexpected keyword argument 'company_id'`
+   - **علت**: `BaseCreateView` به صورت خودکار `company_id` را به form می‌فرستد، اما `BaseModelForm` این argument را قبول نمی‌کند
+   - **راه‌حل**: اضافه کردن `kwargs.pop('company_id', None)` در `__init__` از `WarehouseForm` (چون `company_id` توسط `AutoSetFieldsMixin` در view تنظیم می‌شود)
+   - **فایل تغییر یافته**: `inventory/forms/master_data.py`
 
 ---
 
@@ -579,11 +619,12 @@ class MyForm(BaseModelForm):
 
 1. ✅ **تکمیل Pilot - ماژول `shared`**: همه فایل‌ها refactor شده‌اند!
 
-2. **Rollout به سایر ماژول‌ها**:
-   - ماژول `inventory` (اولویت بالا)
-   - ماژول `production` (اولویت بالا)
-   - ماژول `accounting` (اولویت متوسط)
-   - ماژول `ticketing` و `qc` (اولویت پایین)
+2. **Rollout به سایر ماژول‌ها** (در حال انجام):
+   - ⏳ ماژول `inventory` (اولویت بالا) - شروع شده: Warehouses ✅
+     - باقی‌مانده: Item Types, Item Categories, Item Subcategories, Items, Suppliers, Supplier Categories, و سایر viewها
+   - ⏳ ماژول `production` (اولویت بالا)
+   - ⏳ ماژول `accounting` (اولویت متوسط)
+   - ⏳ ماژول `ticketing` و `qc` (اولویت پایین)
 
 ---
 
@@ -596,5 +637,5 @@ class MyForm(BaseModelForm):
 
 ---
 
-**وضعیت کلی**: ✅ Infrastructure کامل | ✅ Pilot 100% (5/5 فایل) | ⏳ Rollout 0%
+**وضعیت کلی**: ✅ Infrastructure کامل | ✅ Pilot 100% (5/5 فایل) | ⏳ Rollout شروع شده (1 view در inventory)
 

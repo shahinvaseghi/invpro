@@ -7,7 +7,7 @@
 <span class="separator">/</span>
 <span>{% trans "Master Data" %}</span>
 <span class="separator">/</span>
-<a href="{% url 'inventory:item_types' %}">{% trans "Item Types" %}</a>
+<a href="{% url 'inventory:warehouses' %}">{% trans "Warehouses" %}</a>
 <span class="separator">/</span>
 <span>{{ form_title }}</span>
 {% endblock %}
@@ -38,4 +38,4 @@
     </div>
   {% endfor %}
 </div>
-  {% endblock %}
+{% endblock %}
