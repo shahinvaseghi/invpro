@@ -2,7 +2,7 @@
 
 **تاریخ شروع**: 2024-12-05  
 **وضعیت فعلی**: Pilot Implementation (ماژول `shared`) - در حال انجام  
-**آخرین به‌روزرسانی**: 2024-12-05
+**آخرین به‌روزرسانی**: 2024-12-05 (شامل فیلتر Active Company)
 
 ---
 
@@ -109,6 +109,7 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 
 - ✅ `CompanyUpdateView` → `BaseUpdateView`
   - استفاده از `success_message` attribute
+  - Override `get_queryset()` برای فیلتر بر اساس `UserCompanyAccess`
   - استفاده از `company_form.html` که از `generic_form.html` extend می‌کند
 
 - ✅ `CompanyDetailView` → `BaseDetailView`
@@ -118,6 +119,7 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 
 - ✅ `CompanyDeleteView` → `BaseDeleteView`
   - استفاده از `generic_confirm_delete.html` (default)
+  - Override `get_queryset()` برای فیلتر بر اساس `UserCompanyAccess`
   - استفاده از hook methods برای object details
 
 **فایل**: `shared/forms/companies.py`
@@ -147,6 +149,7 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
   - استفاده از `company_unit_form.html` که از `generic_form.html` extend می‌کند
 
 - ✅ `CompanyUnitUpdateView` → `BaseUpdateView`
+  - Override `get_queryset()` برای فیلتر بر اساس `active_company_id`
   - Override `get_form_kwargs()` برای `company_id` (برای parent_unit filtering)
   - استفاده از `success_message` attribute
 
@@ -157,6 +160,7 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 
 - ✅ `CompanyUnitDeleteView` → `BaseDeleteView`
   - استفاده از `generic_confirm_delete.html` (default)
+  - Override `get_queryset()` برای فیلتر بر اساس `active_company_id`
   - استفاده از hook methods
 
 **فایل**: `shared/forms/companies.py`
@@ -168,12 +172,56 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 
 ---
 
+#### ماژول `shared` - Users ✅ تکمیل شده
+
+**فایل**: `shared/views/users.py`
+
+- ✅ `UserListView` → `BaseListView`
+  - استفاده از `search_fields` برای جستجو در username, email, first_name, last_name
+  - Override `get_base_queryset()` برای فیلتر بر اساس active company (از طریق `UserCompanyAccess`)
+  - Override `get_queryset()` برای فیلتر status (is_active) و skip کردن `CompanyScopedViewMixin`
+  - Superuserها همه کاربران را می‌بینند، کاربران عادی فقط کاربرانی که به active company دسترسی دارند
+  - استفاده از `template_name = 'shared/users_list.html'` که از `generic_list.html` extend می‌کند
+  - استفاده از partials مشترک
+  - `permission_field = ''` برای skip کردن permission filtering
+
+- ✅ `UserCreateView` → `BaseCreateView`
+  - استفاده از `UserAccessFormsetMixin` برای مدیریت company access
+  - استفاده از `success_message` attribute
+  - Override `form_valid()` برای ذخیره formset
+  - Skip company scoping (`auto_set_company = False`, `require_active_company = False`)
+  - استفاده از `user_form.html` که از `generic_form.html` extend می‌کند
+
+- ✅ `UserUpdateView` → `BaseUpdateView`
+  - استفاده از `UserAccessFormsetMixin` برای مدیریت company access
+  - استفاده از `success_message` attribute
+  - Override `form_valid()` برای ذخیره formset
+  - Override `get_queryset()` برای فیلتر بر اساس active company
+  - Skip company scoping (`auto_set_company = False`, `require_active_company = False`)
+
+- ✅ `UserDetailView` → `BaseDetailView`
+  - استفاده از `generic_detail.html` (default)
+  - Override `get_queryset()` برای فیلتر بر اساس active company و prefetch related
+  - Skip permission filtering (`permission_field = ''`)
+
+- ✅ `UserDeleteView` → `BaseDeleteView`
+  - استفاده از `generic_confirm_delete.html` (default)
+  - Override `get_queryset()` برای فیلتر بر اساس active company
+  - استفاده از hook methods برای object details
+
+**فایل**: `shared/forms/users.py`
+
+- ✅ `UserBaseForm` → `BaseModelForm`
+  - حذف widgets تکراری (فقط attributes خاص باقی مانده)
+  - BaseModelForm به صورت خودکار 'form-control' و 'form-check-input' را اعمال می‌کند
+
+---
+
 ### 3. کارهای باقی‌مانده
 
 #### ماژول `shared` (ادامه Pilot):
 - ⏳ `shared/views/access_levels.py` - 5 view
 - ⏳ `shared/views/groups.py` - 5 view
-- ⏳ `shared/views/users.py` - 5 view
 
 #### سایر ماژول‌ها:
 - ⏳ ماژول `inventory` - 81+ view
@@ -190,13 +238,15 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 - ✅ **Infrastructure**: 100% (تمام Base classes و فایل‌های مشترک)
 - ✅ **Pilot - Companies**: 100% (5 view + 1 form)
 - ✅ **Pilot - Company Units**: 100% (5 view + 1 form)
-- ⏳ **Pilot - سایر**: 0% (access_levels, groups, users)
+- ✅ **Pilot - Users**: 100% (5 view + 1 form)
+- ⏳ **Pilot - سایر**: 0% (access_levels, groups)
 
-**پیشرفت Pilot**: 40% (2/5 فایل)
+**پیشرفت Pilot**: 60% (3/5 فایل)
 
 ### کاهش کد:
 - **Companies**: از ~227 خط به ~331 خط (اما کد تمیزتر و قابل نگهداری‌تر)
 - **Company Units**: از ~223 خط به ~293 خط (اما کد تمیزتر و قابل نگهداری‌تر)
+- **Users**: از ~240 خط به ~329 خط (اما کد تمیزتر و قابل نگهداری‌تر)
 
 ---
 
@@ -213,6 +263,43 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 3. ✅ **کامنت در خروجی HTML**
    - مشکل: کامنت Django در خروجی HTML نمایش داده می‌شد
    - راه‌حل: حذف کامنت‌های چندخطی که شامل template tags بودند
+
+4. ✅ **لیست کاربران خالی بود**
+   - مشکل: `UserListView` لیست خالی برمی‌گرداند
+   - راه‌حل: Override `get_queryset()` برای skip کردن `CompanyScopedViewMixin` و استفاده مستقیم از `get_base_queryset()`
+   - اضافه کردن `permission_field = ''` برای skip کردن permission filtering
+   - اضافه کردن `template_name = 'shared/users_list.html'`
+
+5. ✅ **فیلتر Active Company در Companies و Company Units**
+   - مشکل: `CompanyUpdateView` و `CompanyDeleteView` فیلتر active company نداشتند
+   - راه‌حل: اضافه کردن `get_queryset()` برای فیلتر بر اساس `UserCompanyAccess` در `CompanyUpdateView` و `CompanyDeleteView`
+   - اضافه کردن `get_queryset()` برای فیلتر بر اساس `active_company_id` در `CompanyUnitUpdateView` و `CompanyUnitDeleteView`
+
+---
+
+## 🔒 فیلتر Active Company
+
+همه viewها فیلتر active company را رعایت می‌کنند:
+
+### Companies:
+- ✅ `CompanyListView`: فیلتر بر اساس `UserCompanyAccess` (فقط شرکت‌هایی که کاربر به آن‌ها دسترسی دارد)
+- ✅ `CompanyDetailView`: فیلتر بر اساس `UserCompanyAccess`
+- ✅ `CompanyUpdateView`: فیلتر بر اساس `UserCompanyAccess`
+- ✅ `CompanyDeleteView`: فیلتر بر اساس `UserCompanyAccess`
+
+### Company Units:
+- ✅ `CompanyUnitListView`: فیلتر خودکار بر اساس `active_company_id` (از طریق `CompanyScopedViewMixin`)
+- ✅ `CompanyUnitDetailView`: فیلتر بر اساس `active_company_id`
+- ✅ `CompanyUnitUpdateView`: فیلتر بر اساس `active_company_id`
+- ✅ `CompanyUnitDeleteView`: فیلتر بر اساس `active_company_id`
+
+### Users:
+- ✅ `UserListView`: فیلتر بر اساس `UserCompanyAccess` برای active company (Superuserها همه کاربران را می‌بینند)
+- ✅ `UserDetailView`: فیلتر بر اساس `UserCompanyAccess` برای active company
+- ✅ `UserUpdateView`: فیلتر بر اساس `UserCompanyAccess` برای active company
+- ✅ `UserDeleteView`: فیلتر بر اساس `UserCompanyAccess` برای active company
+
+**نکته مهم**: اگر active company انتخاب نشده باشد، همه viewها queryset خالی برمی‌گردانند (به جز Superuserها در Users).
 
 ---
 
@@ -276,7 +363,6 @@ class MyForm(BaseModelForm):
 1. **تکمیل Pilot - ماژول `shared`**:
    - Refactor `access_levels.py`
    - Refactor `groups.py`
-   - Refactor `users.py`
 
 2. **Rollout به سایر ماژول‌ها**:
    - ماژول `inventory` (اولویت بالا)
@@ -295,5 +381,5 @@ class MyForm(BaseModelForm):
 
 ---
 
-**وضعیت کلی**: ✅ Infrastructure کامل | ✅ Pilot 40% (2/5 فایل) | ⏳ Rollout 0%
+**وضعیت کلی**: ✅ Infrastructure کامل | ✅ Pilot 60% (3/5 فایل) | ⏳ Rollout 0%
 

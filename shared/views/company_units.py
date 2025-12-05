@@ -125,6 +125,14 @@ class CompanyUnitUpdateView(BaseUpdateView):
     feature_code = 'shared.company_units'
     required_action = 'edit_own'
     success_message = _('Company unit updated successfully.')
+    
+    def get_queryset(self) -> QuerySet:
+        """Filter by active company."""
+        queryset = super().get_queryset()
+        active_company_id: Optional[int] = self.request.session.get('active_company_id')
+        if not active_company_id:
+            return CompanyUnit.objects.none()
+        return queryset.filter(company_id=active_company_id)
 
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
@@ -261,6 +269,14 @@ class CompanyUnitDeleteView(BaseDeleteView):
     feature_code = 'shared.company_units'
     required_action = 'delete_own'
     success_message = _('Company unit deleted successfully.')
+    
+    def get_queryset(self) -> QuerySet:
+        """Filter by active company."""
+        queryset = super().get_queryset()
+        active_company_id: Optional[int] = self.request.session.get('active_company_id')
+        if not active_company_id:
+            return CompanyUnit.objects.none()
+        return queryset.filter(company_id=active_company_id)
 
     def get_breadcrumbs(self) -> List[Dict[str, Any]]:
         """Return breadcrumbs list."""

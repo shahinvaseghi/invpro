@@ -10,11 +10,12 @@ from django.forms import BaseInlineFormSet, inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
 from shared.models import Company, AccessLevel, UserCompanyAccess, ENABLED_FLAG_CHOICES
+from shared.forms.base import BaseModelForm
 
 User = get_user_model()
 
 
-class UserBaseForm(forms.ModelForm):
+class UserBaseForm(BaseModelForm):
     """Base form for user creation and update."""
     
     groups = forms.ModelMultipleChoiceField(
@@ -48,17 +49,7 @@ class UserBaseForm(forms.ModelForm):
             'is_superuser',
             'default_company',
         ]
-        widgets = {
-            'username': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'first_name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'mobile_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'default_company': forms.Select(attrs={'class': 'form-control'}),
-        }
+        # BaseModelForm automatically applies 'form-control' class to widgets
         labels = {
             'username': _('Username'),
             'email': _('Email'),
@@ -91,19 +82,19 @@ class UserBaseForm(forms.ModelForm):
             required=False,
             initial=getattr(self.instance, 'is_active', True),
             label=_('Active'),
-            widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            widget=forms.CheckboxInput(),  # BaseModelForm applies 'form-check-input' automatically
         )
         self.fields['is_staff'] = forms.BooleanField(
             required=False,
             initial=getattr(self.instance, 'is_staff', False),
             label=_('Staff User'),
-            widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            widget=forms.CheckboxInput(),  # BaseModelForm applies 'form-check-input' automatically
         )
         self.fields['is_superuser'] = forms.BooleanField(
             required=False,
             initial=getattr(self.instance, 'is_superuser', False),
             label=_('Superuser'),
-            widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            widget=forms.CheckboxInput(),  # BaseModelForm applies 'form-check-input' automatically
         )
 
     def _store_groups(self) -> None:
@@ -156,12 +147,12 @@ class UserCreateForm(UserBaseForm):
     password1 = forms.CharField(
         label=_('Password'),
         strip=False,
-        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        widget=forms.PasswordInput(),  # BaseModelForm applies 'form-control' automatically
     )
     password2 = forms.CharField(
         label=_('Password confirmation'),
         strip=False,
-        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        widget=forms.PasswordInput(),  # BaseModelForm applies 'form-control' automatically
         help_text=_('Enter the same password as before, for verification.'),
     )
 
@@ -193,13 +184,13 @@ class UserUpdateForm(UserBaseForm):
     new_password1 = forms.CharField(
         label=_('New password'),
         strip=False,
-        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        widget=forms.PasswordInput(),  # BaseModelForm applies 'form-control' automatically
         required=False,
     )
     new_password2 = forms.CharField(
         label=_('Confirm new password'),
         strip=False,
-        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        widget=forms.PasswordInput(),  # BaseModelForm applies 'form-control' automatically
         required=False,
     )
 
@@ -255,12 +246,7 @@ class UserCompanyAccessForm(forms.ModelForm):
     class Meta:
         model = UserCompanyAccess
         fields = ['company', 'access_level', 'is_primary', 'is_enabled']
-        widgets = {
-            'company': forms.Select(attrs={'class': 'form-control'}),
-            'access_level': forms.Select(attrs={'class': 'form-control'}),
-            'is_primary': forms.Select(attrs={'class': 'form-control'}),
-            'is_enabled': forms.Select(attrs={'class': 'form-control'}),
-        }
+        # BaseModelForm automatically applies 'form-control' class to widgets
         labels = {
             'company': _('Company'),
             'access_level': _('Access Level'),

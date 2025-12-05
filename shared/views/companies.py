@@ -149,6 +149,14 @@ class CompanyUpdateView(BaseUpdateView):
     required_action = 'edit_own'
     success_message = _('Company updated successfully.')
     
+    def get_queryset(self) -> QuerySet:
+        """Filter companies based on user access."""
+        user_company_ids = UserCompanyAccess.objects.filter(
+            user=self.request.user,
+            is_enabled=1
+        ).values_list('company_id', flat=True)
+        return Company.objects.filter(id__in=user_company_ids)
+    
     def get_breadcrumbs(self) -> List[Dict[str, Any]]:
         """Return breadcrumbs list."""
         return [
@@ -299,6 +307,14 @@ class CompanyDeleteView(BaseDeleteView):
     feature_code = 'shared.companies'
     required_action = 'delete_own'
     success_message = _('Company deleted successfully.')
+    
+    def get_queryset(self) -> QuerySet:
+        """Filter companies based on user access."""
+        user_company_ids = UserCompanyAccess.objects.filter(
+            user=self.request.user,
+            is_enabled=1
+        ).values_list('company_id', flat=True)
+        return Company.objects.filter(id__in=user_company_ids)
     
     def get_breadcrumbs(self) -> List[Dict[str, Any]]:
         """Return breadcrumbs list."""

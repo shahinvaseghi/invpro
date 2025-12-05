@@ -1,83 +1,149 @@
 """
 User CRUD views for shared module.
 """
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import QuerySet, Q
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
-from shared.views.base import UserAccessFormsetMixin, EditLockProtectedMixin
-from shared.mixins import FeaturePermissionRequiredMixin
+from shared.views.base import (
+    BaseListView,
+    BaseCreateView,
+    BaseUpdateView,
+    BaseDeleteView,
+    BaseDetailView,
+    UserAccessFormsetMixin,
+    EditLockProtectedMixin,
+)
 from shared.forms import UserCreateForm, UserUpdateForm
+from shared.models import UserCompanyAccess
 
 User = get_user_model()
 
 
-class UserListView(FeaturePermissionRequiredMixin, ListView):
+class UserListView(BaseListView):
     """List all users."""
     model = User
     template_name = 'shared/users_list.html'
-    context_object_name = 'object_list'
-    paginate_by = 20
     feature_code = 'shared.users'
-
-    def get_queryset(self):
-        """Filter users by search and status."""
-        queryset = (
-            User.objects.all()
-            .order_by('username')
-            .prefetch_related('groups', 'company_accesses__company', 'company_accesses__access_level')
+    search_fields = ['username', 'email', 'first_name', 'last_name']
+    filter_fields = []
+    default_status_filter = False  # We handle status filter manually
+    default_order_by = ['username']
+    paginate_by = 20
+    permission_field = ''  # Skip permission filtering for User model
+    
+    def get_base_queryset(self) -> QuerySet:
+        """Get base queryset filtered by active company."""
+        company_id = self.request.session.get('active_company_id')
+        
+        # Superusers can see all users
+        if self.request.user.is_superuser:
+            queryset = User.objects.all()
+        elif company_id:
+            # Filter users who have access to the active company
+            user_ids = UserCompanyAccess.objects.filter(
+                company_id=company_id,
+                is_enabled=1
+            ).values_list('user_id', flat=True)
+            
+            queryset = User.objects.filter(id__in=user_ids)
+        else:
+            # No active company selected - return empty queryset
+            queryset = User.objects.none()
+        
+        return queryset.prefetch_related(
+            'groups', 
+            'company_accesses__company', 
+            'company_accesses__access_level'
         )
-        search: Optional[str] = self.request.GET.get('search')
+    
+    def get_queryset(self) -> QuerySet:
+        """Filter users by search and status."""
+        # Skip CompanyScopedViewMixin and BaseListView.get_queryset()
+        # and use our custom logic directly
+        queryset = self.get_base_queryset()
+        
+        # Apply search
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query and self.search_fields:
+            from shared.filters import apply_search
+            queryset = apply_search(queryset, search_query, self.search_fields)
+        
+        # Apply custom status filter (is_active field)
         status: Optional[str] = self.request.GET.get('status')
-        if search:
-            queryset = queryset.filter(
-                Q(username__icontains=search)
-                | Q(email__icontains=search)
-                | Q(first_name__icontains=search)
-                | Q(last_name__icontains=search)
-            )
         if status in {'active', 'inactive'}:
             queryset = queryset.filter(is_active=(status == 'active'))
         
+        # Apply ordering
+        if self.default_order_by:
+            queryset = queryset.order_by(*self.default_order_by)
+        
         return queryset
-
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context variables for generic_list template."""
-        context = super().get_context_data(**kwargs)
-        
-        # Ensure object_list is properly set from page_obj if pagination is used
-        if 'page_obj' in context and hasattr(context['page_obj'], 'object_list'):
-            context['object_list'] = context['page_obj'].object_list
-        elif 'object_list' in context and hasattr(context['object_list'], 'query'):
-            # If object_list is a queryset, evaluate it to ensure it's accessible in template
-            context['object_list'] = list(context['object_list'])
-        
-        context['active_module'] = 'shared'
-        context['page_title'] = _('Users')
-        context['breadcrumbs'] = [
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Users')
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
-            {'label': _('Users')},
+            {'label': _('Users'), 'url': None},
         ]
-        context['create_url'] = reverse('shared:user_create')
-        context['create_button_text'] = _('Create User')
-        context['show_filters'] = True
-        context['status_filter'] = False  # We override filter_fields block instead
+    
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse('shared:user_create')
+    
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create User')
+    
+    def get_search_placeholder(self) -> str:
+        """Return search placeholder."""
+        return _('Username, email or name')
+    
+    def get_clear_filter_url(self):
+        """Return clear filter URL."""
+        return reverse('shared:users')
+    
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'shared:user_detail'
+    
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'shared:user_edit'
+    
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'shared:user_delete'
+    
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Users Found')
+    
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by adding your first user to the system.')
+    
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '👤'
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add additional context variables."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'shared'
+        context['status_filter'] = True  # Enable status filter
         context['status_filter_value'] = self.request.GET.get('status', '')
-        context['search_placeholder'] = _('Username, email or name')
-        context['clear_filter_url'] = reverse('shared:users')
-        context['show_actions'] = True
-        context['feature_code'] = 'shared.users'
-        context['detail_url_name'] = 'shared:user_detail'
-        context['edit_url_name'] = 'shared:user_edit'
-        context['delete_url_name'] = 'shared:user_delete'
         
-        # Table headers are not used since we override table_rows block
+        # Table headers for custom table display
         context['table_headers'] = [
             {'label': _('Username')},
             {'label': _('Name')},
@@ -87,14 +153,11 @@ class UserListView(FeaturePermissionRequiredMixin, ListView):
             {'label': _('Company Access')},
             {'label': _('Status')},
         ]
-        context['empty_state_title'] = _('No Users Found')
-        context['empty_state_message'] = _('Start by adding your first user to the system.')
-        context['empty_state_icon'] = '👤'
         
         return context
 
 
-class UserCreateView(FeaturePermissionRequiredMixin, UserAccessFormsetMixin, CreateView):
+class UserCreateView(BaseCreateView, UserAccessFormsetMixin):
     """Create a new user."""
     model = User
     form_class = UserCreateForm
@@ -102,20 +165,18 @@ class UserCreateView(FeaturePermissionRequiredMixin, UserAccessFormsetMixin, Cre
     success_url = reverse_lazy('shared:users')
     feature_code = 'shared.users'
     required_action = 'create'
+    success_message = _('User created successfully.')
+    
+    # Skip company scoping for User model
+    auto_set_company = False
+    require_active_company = False
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add access formset and active module to context."""
         context = super().get_context_data(**kwargs)
         context.setdefault('access_formset', self.get_access_formset(context.get('form')))
         context['active_module'] = 'shared'
-        context['form_title'] = _('Create User')
-        context['page_title'] = _('Create User')
         context['is_create'] = True
-        context['breadcrumbs'] = [
-            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
-            {'label': _('Users'), 'url': reverse('shared:users')},
-        ]
-        context['cancel_url'] = reverse('shared:users')
         return context
 
     def form_valid(self, form: UserCreateForm) -> HttpResponseRedirect:
@@ -130,11 +191,27 @@ class UserCreateView(FeaturePermissionRequiredMixin, UserAccessFormsetMixin, Cre
             # Persist company access rows
             access_formset.instance = self.object
             access_formset.save()
-        messages.success(self.request, _('User created successfully.'))
-        return HttpResponseRedirect(self.get_success_url())
+        
+        return super().form_valid(form)
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Create User')
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Users'), 'url': reverse('shared:users')},
+            {'label': _('Create'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse('shared:users')
 
 
-class UserUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UserAccessFormsetMixin, UpdateView):
+class UserUpdateView(BaseUpdateView, UserAccessFormsetMixin):
     """Update an existing user."""
     model = User
     form_class = UserUpdateForm
@@ -142,20 +219,39 @@ class UserUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, Use
     success_url = reverse_lazy('shared:users')
     feature_code = 'shared.users'
     required_action = 'edit_own'
+    success_message = _('User updated successfully.')
+    
+    # Skip company scoping for User model
+    auto_set_company = False
+    require_active_company = False
+    
+    def get_queryset(self) -> QuerySet:
+        """Get users filtered by active company."""
+        company_id = self.request.session.get('active_company_id')
+        
+        # Superusers can see all users
+        if self.request.user.is_superuser:
+            queryset = User.objects.all()
+        elif company_id:
+            # Filter users who have access to the active company
+            user_ids = UserCompanyAccess.objects.filter(
+                company_id=company_id,
+                is_enabled=1
+            ).values_list('user_id', flat=True)
+            
+            queryset = User.objects.filter(id__in=user_ids)
+        else:
+            # No active company selected - return empty queryset
+            queryset = User.objects.none()
+        
+        return queryset
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add access formset and active module to context."""
         context = super().get_context_data(**kwargs)
         context.setdefault('access_formset', self.get_access_formset(context.get('form')))
         context['active_module'] = 'shared'
-        context['form_title'] = _('Edit User')
-        context['page_title'] = _('Edit User')
         context['is_create'] = False
-        context['breadcrumbs'] = [
-            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
-            {'label': _('Users'), 'url': reverse('shared:users')},
-        ]
-        context['cancel_url'] = reverse('shared:users')
         return context
 
     def form_valid(self, form: UserUpdateForm) -> HttpResponseRedirect:
@@ -169,11 +265,27 @@ class UserUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, Use
             self.object = form.save()
             access_formset.instance = self.object
             access_formset.save()
-        messages.success(self.request, _('User updated successfully.'))
-        return HttpResponseRedirect(self.get_success_url())
+        
+        return super().form_valid(form)
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Edit User')
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Users'), 'url': reverse('shared:users')},
+            {'label': _('Edit'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse('shared:users')
 
 
-class UserDetailView(FeaturePermissionRequiredMixin, DetailView):
+class UserDetailView(BaseDetailView):
     """Detail view for viewing users (read-only)."""
     model = User
     template_name = 'shared/user_detail.html'
@@ -181,9 +293,25 @@ class UserDetailView(FeaturePermissionRequiredMixin, DetailView):
     feature_code = 'shared.users'
     required_action = 'view_own'
     
-    def get_queryset(self):
-        """Get all users."""
-        queryset = User.objects.all()
+    def get_queryset(self) -> QuerySet:
+        """Get users filtered by active company with prefetch related."""
+        company_id = self.request.session.get('active_company_id')
+        
+        # Superusers can see all users
+        if self.request.user.is_superuser:
+            queryset = User.objects.all()
+        elif company_id:
+            # Filter users who have access to the active company
+            user_ids = UserCompanyAccess.objects.filter(
+                company_id=company_id,
+                is_enabled=1
+            ).values_list('user_id', flat=True)
+            
+            queryset = User.objects.filter(id__in=user_ids)
+        else:
+            # No active company selected - return empty queryset
+            queryset = User.objects.none()
+        
         queryset = queryset.select_related(
             'default_company',
         ).prefetch_related(
@@ -198,42 +326,94 @@ class UserDetailView(FeaturePermissionRequiredMixin, DetailView):
         """Add context for detail template."""
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'shared'
-        context['list_url'] = reverse_lazy('shared:users')
-        context['edit_url'] = reverse_lazy('shared:user_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        context['feature_code'] = 'shared.users'
         return context
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return str(self.object)
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Users'), 'url': reverse('shared:users')},
+            {'label': _('View'), 'url': None},
+        ]
+    
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse('shared:users')
+    
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse('shared:user_edit', kwargs={'pk': self.object.pk})
+    
+    @property
+    def permission_field(self) -> str:
+        """Skip permission filtering for User model."""
+        return ''
 
 
-class UserDeleteView(FeaturePermissionRequiredMixin, DeleteView):
+class UserDeleteView(BaseDeleteView):
     """Delete a user."""
     model = User
-    template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('shared:users')
     feature_code = 'shared.users'
     required_action = 'delete_own'
-
-    def delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect:
-        """Delete user and show success message."""
-        messages.success(self.request, _('User deleted successfully.'))
-        return super().delete(request, *args, **kwargs)
+    success_message = _('User deleted successfully.')
+    
+    def get_queryset(self) -> QuerySet:
+        """Get users filtered by active company."""
+        company_id = self.request.session.get('active_company_id')
+        
+        # Superusers can see all users
+        if self.request.user.is_superuser:
+            queryset = User.objects.all()
+        elif company_id:
+            # Filter users who have access to the active company
+            user_ids = UserCompanyAccess.objects.filter(
+                company_id=company_id,
+                is_enabled=1
+            ).values_list('user_id', flat=True)
+            
+            queryset = User.objects.filter(id__in=user_ids)
+        else:
+            # No active company selected - return empty queryset
+            queryset = User.objects.none()
+        
+        return queryset
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context for generic delete template."""
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'shared'
-        context['delete_title'] = _('Delete User')
-        context['confirmation_message'] = _('Do you really want to delete user "{username}"?').format(username=self.object.username)
-        context['breadcrumbs'] = [
+        return context
+    
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete User')
+    
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Do you really want to delete user "{username}"?').format(username=self.object.username)
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Users'), 'url': reverse('shared:users')},
-            {'label': _('Delete')},
+            {'label': _('Delete'), 'url': None},
         ]
-        context['object_details'] = [
+    
+    def get_object_details(self) -> List[Dict[str, Any]]:
+        """Return object details for display."""
+        return [
             {'label': _('Username'), 'value': self.object.username},
             {'label': _('Email'), 'value': self.object.email or '-'},
             {'label': _('Name'), 'value': self.object.get_full_name() or '-'},
         ]
-        context['cancel_url'] = reverse('shared:users')
-        return context
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse('shared:users')
 
