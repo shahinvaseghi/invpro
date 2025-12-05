@@ -389,13 +389,38 @@ class PurchaseRequestUpdateView(EditLockProtectedMixin, LineFormsetMixin, Purcha
     form_title = _('ویرایش درخواست خرید')
 
     def get_queryset(self):
-        """Filter to only draft requests created by current user."""
+        """Get queryset with proper filtering and permissions."""
         queryset = super().get_queryset()
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            queryset = queryset.filter(company_id=company_id)
+        queryset = queryset.filter(is_enabled=1)
+        # Apply permission filtering
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.requests.purchase', 'requested_by')
         queryset = queryset.select_related('requested_by', 'approver').prefetch_related('lines__item')
-        return queryset.filter(
-            status=models.PurchaseRequest.Status.DRAFT,
-            requested_by=self.request.user,
-        )
+        return queryset
+    
+    def get_object(self, queryset=None):
+        """Get object and check if it can be edited."""
+        obj = super().get_object(queryset)
+        # Check if request is in draft status
+        if obj.status != models.PurchaseRequest.Status.DRAFT:
+            from django.http import Http404
+            raise Http404(_('فقط درخواست‌های پیش‌نویس قابل ویرایش هستند.'))
+        # Check if user has permission to edit this request
+        # Only the creator can edit draft requests (unless they have edit_other permission)
+        if obj.requested_by_id != self.request.user.id:
+            from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+            company_id = self.request.session.get('active_company_id')
+            permissions = get_user_feature_permissions(self.request.user, company_id)
+            can_edit_other = self.request.user.is_superuser or has_feature_permission(
+                permissions, 'inventory.requests.purchase', 'edit_other', allow_own_scope=False,
+                current_user=self.request.user, resource_owner=obj.requested_by
+            )
+            if not can_edit_other:
+                from django.http import Http404
+                raise Http404(_('شما اجازه ویرایش این درخواست را ندارید.'))
+        return obj
 
     def form_valid(self, form):
         """Set company_id before saving."""

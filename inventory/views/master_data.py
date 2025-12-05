@@ -104,12 +104,14 @@ class ItemTypeCreateView(InventoryBaseView, CreateView):
         return context
 
 
-class ItemTypeUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView):
+class ItemTypeUpdateView(InventoryBaseView, BaseUpdateView):
     """Update view for item types."""
     model = models.ItemType
     form_class = forms.ItemTypeForm
     template_name = 'inventory/itemtype_form.html'
     success_url = reverse_lazy('inventory:item_types')
+    feature_code = 'inventory.master.item_types'
+    success_message = _('Item Type updated successfully.')
     
     def get_queryset(self):
         """Filter queryset by user permissions."""
@@ -117,24 +119,22 @@ class ItemTypeUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView):
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_types', 'created_by')
         return queryset
     
-    def form_valid(self, form):
-        """Set edited_by before saving."""
-        form.instance.edited_by = self.request.user
-        messages.success(self.request, _('Item Type updated successfully.'))
-        return super().form_valid(form)
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Edit Item Type')
     
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic form template."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Edit Item Type')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Item Types'), 'url': reverse_lazy('inventory:item_types')},
             {'label': _('Edit'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('inventory:item_types')
-        return context
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:item_types')
 
 
 class ItemTypeDetailView(InventoryBaseView, DetailView):
@@ -308,12 +308,14 @@ class ItemCategoryCreateView(InventoryBaseView, CreateView):
         return context
 
 
-class ItemCategoryUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView):
+class ItemCategoryUpdateView(InventoryBaseView, BaseUpdateView):
     """Update view for item categories."""
     model = models.ItemCategory
     form_class = forms.ItemCategoryForm
     template_name = 'inventory/itemcategory_form.html'
     success_url = reverse_lazy('inventory:item_categories')
+    feature_code = 'inventory.master.item_categories'
+    success_message = _('Item Category updated successfully.')
     
     def get_queryset(self):
         """Filter queryset by user permissions."""
@@ -321,24 +323,22 @@ class ItemCategoryUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateVi
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_categories', 'created_by')
         return queryset
     
-    def form_valid(self, form):
-        """Set edited_by before saving."""
-        form.instance.edited_by = self.request.user
-        messages.success(self.request, _('Item Category updated successfully.'))
-        return super().form_valid(form)
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Edit Item Category')
     
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic form template."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Edit Item Category')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Item Categories'), 'url': reverse_lazy('inventory:item_categories')},
             {'label': _('Edit'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('inventory:item_categories')
-        return context
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:item_categories')
 
 
 class ItemCategoryDetailView(InventoryBaseView, DetailView):
@@ -513,12 +513,14 @@ class ItemSubcategoryCreateView(InventoryBaseView, CreateView):
         return context
 
 
-class ItemSubcategoryUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView):
+class ItemSubcategoryUpdateView(InventoryBaseView, BaseUpdateView):
     """Update view for item subcategories."""
     model = models.ItemSubcategory
     form_class = forms.ItemSubcategoryForm
     template_name = 'inventory/itemsubcategory_form.html'
     success_url = reverse_lazy('inventory:item_subcategories')
+    feature_code = 'inventory.master.item_subcategories'
+    success_message = _('Item Subcategory updated successfully.')
     
     def get_queryset(self):
         """Filter queryset by user permissions."""
@@ -526,24 +528,22 @@ class ItemSubcategoryUpdateView(EditLockProtectedMixin, InventoryBaseView, Updat
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_subcategories', 'created_by')
         return queryset
     
-    def form_valid(self, form):
-        """Set edited_by before saving."""
-        form.instance.edited_by = self.request.user
-        messages.success(self.request, _('Item Subcategory updated successfully.'))
-        return super().form_valid(form)
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Edit Item Subcategory')
     
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic form template."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Edit Item Subcategory')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Item Subcategories'), 'url': reverse_lazy('inventory:item_subcategories')},
             {'label': _('Edit'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('inventory:item_subcategories')
-        return context
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:item_subcategories')
 
 
 class ItemSubcategoryDetailView(InventoryBaseView, DetailView):
@@ -1262,12 +1262,14 @@ class WarehouseCreateView(BaseCreateView):
         return reverse_lazy('inventory:warehouses')
 
 
-class WarehouseUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView):
+class WarehouseUpdateView(InventoryBaseView, BaseUpdateView):
     """Update view for warehouses."""
     model = models.Warehouse
     form_class = forms.WarehouseForm
     template_name = 'inventory/warehouse_form.html'
     success_url = reverse_lazy('inventory:warehouses')
+    feature_code = 'inventory.master.warehouses'
+    success_message = _('Warehouse updated successfully.')
     
     def get_queryset(self):
         """Filter queryset by user permissions."""
@@ -1275,24 +1277,22 @@ class WarehouseUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView)
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.warehouses', 'created_by')
         return queryset
     
-    def form_valid(self, form):
-        """Set edited_by before saving."""
-        form.instance.edited_by = self.request.user
-        messages.success(self.request, _('Warehouse updated successfully.'))
-        return super().form_valid(form)
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Edit Warehouse')
     
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic form template."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Edit Warehouse')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Warehouses'), 'url': reverse_lazy('inventory:warehouses')},
             {'label': _('Edit'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('inventory:warehouses')
-        return context
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:warehouses')
 
 
 class WarehouseDetailView(InventoryBaseView, DetailView):
@@ -1747,12 +1747,14 @@ class SupplierCreateView(InventoryBaseView, CreateView):
         return context
 
 
-class SupplierUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView):
+class SupplierUpdateView(InventoryBaseView, BaseUpdateView):
     """Update view for suppliers."""
     model = models.Supplier
     form_class = forms.SupplierForm
     template_name = 'inventory/supplier_form.html'
     success_url = reverse_lazy('inventory:suppliers')
+    feature_code = 'inventory.suppliers.list'
+    success_message = _('Supplier updated successfully.')
     
     def get_queryset(self):
         """Filter queryset by user permissions."""
@@ -1760,24 +1762,22 @@ class SupplierUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView):
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.suppliers.list', 'created_by')
         return queryset
     
-    def form_valid(self, form):
-        """Set edited_by before saving."""
-        form.instance.edited_by = self.request.user
-        messages.success(self.request, _('Supplier updated successfully.'))
-        return super().form_valid(form)
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Edit Supplier')
     
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic form template."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Edit Supplier')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Suppliers'), 'url': reverse_lazy('inventory:suppliers')},
             {'label': _('Edit'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('inventory:suppliers')
-        return context
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:suppliers')
 
 
 class SupplierDetailView(InventoryBaseView, DetailView):
