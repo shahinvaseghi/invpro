@@ -1,0 +1,51 @@
+{% extends "shared/generic/generic_list.html" %}
+{% load i18n %}
+{% load jalali_tags %}
+
+{% block table_headers %}
+<th>{% trans "Order Code" %}</th>
+<th>{% trans "Finished Item" %}</th>
+<th>{% trans "Process" %}</th>
+<th>{% trans "Quantity" %}</th>
+<th>{% trans "Unit" %}</th>
+<th>{% trans "Status" %}</th>
+<th>{% trans "Order Date" %}</th>
+<th>{% trans "Actions" %}</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for order in orders %}
+<tr>
+  <td><code>{{ order.order_code }}</code></td>
+  <td>
+    {% if order.finished_item %}
+      <strong>{{ order.finished_item.item_code }}</strong><br>
+      <small>{{ order.finished_item.name }}</small>
+    {% else %}
+      <span class="muted-text">–</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if order.process %}
+      {{ order.process_code }}
+    {% else %}
+      <span class="muted-text">–</span>
+    {% endif %}
+  </td>
+  <td>{{ order.quantity_planned }}</td>
+  <td>{{ order.unit }}</td>
+  <td>
+    <span class="badge badge-{{ order.status }}">
+      {{ order.get_status_display }}
+    </span>
+  </td>
+  <td>{{ order.order_date|jalali_date }}</td>
+  <td>
+    <a href="{% url 'production:rework_operations' order.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+      {% trans "View Operations" %}
+    </a>
+  </td>
+</tr>
+{% endfor %}
+{% endblock %}
+

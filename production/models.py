@@ -1453,3 +1453,159 @@ class PerformanceRecordMachine(ProductionBaseModel):
         if self.work_line and not self.work_line_code:
             self.work_line_code = self.work_line.public_code
         super().save(*args, **kwargs)
+
+
+class OperationQCStatus(ProductionBaseModel):
+    """
+    Operation QC Status - وضعیت QC عملیات
+    Tracks QC approval/rejection status for operations that require QC.
+    Only operations with requires_qc=1 and having a performance document are eligible.
+    """
+    class QCStatus(models.TextChoices):
+        PENDING = "pending", _("Pending")
+        APPROVED = "approved", _("Approved")
+        REJECTED = "rejected", _("Rejected")
+    
+    order = models.ForeignKey(
+        ProductOrder,
+        on_delete=models.CASCADE,
+        related_name="operation_qc_statuses",
+        verbose_name=_("Product Order"),
+        help_text=_("The production order this QC status belongs to"),
+    )
+    order_code = models.CharField(max_length=30)
+    operation = models.ForeignKey(
+        ProcessOperation,
+        on_delete=models.CASCADE,
+        related_name="qc_statuses",
+        verbose_name=_("Process Operation"),
+        help_text=_("The operation this QC status is for"),
+    )
+    performance = models.ForeignKey(
+        PerformanceRecord,
+        on_delete=models.CASCADE,
+        related_name="qc_statuses",
+        verbose_name=_("Performance Record"),
+        help_text=_("The performance document for this operation"),
+    )
+    performance_code = models.CharField(max_length=30)
+    qc_status = models.CharField(
+        max_length=20,
+        choices=QCStatus.choices,
+        default=QCStatus.PENDING,
+        verbose_name=_("QC Status"),
+        help_text=_("Current QC approval status"),
+    )
+    qc_approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="qc_approved_operations",
+        null=True,
+        blank=True,
+        verbose_name=_("QC Approver"),
+        help_text=_("User who approved/rejected this operation"),
+    )
+    qc_status_date = models.DateTimeField(null=True, blank=True, verbose_name=_("QC Status Date"))
+    qc_notes = models.TextField(blank=True, verbose_name=_("QC Notes"), help_text=_("Notes from QC reviewer"))
+    
+    class Meta:
+        verbose_name = _("Operation QC Status")
+        verbose_name_plural = _("Operation QC Statuses")
+        ordering = ("-qc_status_date", "order", "operation")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "order", "operation", "performance"),
+                name="production_operation_qc_status_unique",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["order", "operation", "qc_status"]),
+            models.Index(fields=["qc_status", "qc_status_date"]),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.order_code} · {self.operation} · {self.get_qc_status_display()}"
+    
+    def save(self, *args, **kwargs):
+        if not self.order_code:
+            self.order_code = self.order.order_code
+        if not self.performance_code:
+            self.performance_code = self.performance.performance_code
+        if self.qc_status != self.QCStatus.PENDING and not self.qc_status_date:
+            self.qc_status_date = timezone.now()
+        super().save(*args, **kwargs)
+
+
+class ReworkDocument(ProductionBaseModel, LockableModel):
+    """
+    Rework Document - سند دوباره کاری
+    Records rework operations for orders when operations don't have performance documents
+    or when performance documents are rejected by QC.
+    """
+    class Status(models.TextChoices):
+        PENDING_APPROVAL = "pending_approval", _("Pending Approval")
+        APPROVED = "approved", _("Approved")
+        REJECTED = "rejected", _("Rejected")
+    
+    rework_code = models.CharField(max_length=30, unique=True, verbose_name=_("Rework Code"))
+    order = models.ForeignKey(
+        ProductOrder,
+        on_delete=models.PROTECT,
+        related_name="rework_documents",
+        verbose_name=_("Product Order"),
+        help_text=_("The production order this rework document belongs to"),
+    )
+    order_code = models.CharField(max_length=30)
+    rework_date = models.DateField(default=timezone.now, verbose_name=_("Rework Date"))
+    operation = models.ForeignKey(
+        ProcessOperation,
+        on_delete=models.PROTECT,
+        related_name="rework_documents",
+        null=True,
+        blank=True,
+        verbose_name=_("Process Operation"),
+        help_text=_("The operation this rework is for (null if rework is for operations without performance documents)"),
+    )
+    original_performance = models.ForeignKey(
+        PerformanceRecord,
+        on_delete=models.SET_NULL,
+        related_name="rework_documents",
+        null=True,
+        blank=True,
+        verbose_name=_("Original Performance Record"),
+        help_text=_("The original performance record that was rejected by QC (null if operation had no performance document)"),
+    )
+    reason = models.TextField(verbose_name=_("Rework Reason"), help_text=_("Reason for rework"))
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING_APPROVAL,
+        verbose_name=_("Status"),
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="approved_rework_documents",
+        null=True,
+        blank=True,
+        verbose_name=_("Approver"),
+        help_text=_("User who approved this rework document"),
+    )
+    notes = models.TextField(blank=True, verbose_name=_("Notes"))
+    
+    class Meta:
+        verbose_name = _("Rework Document")
+        verbose_name_plural = _("Rework Documents")
+        ordering = ("-rework_date", "rework_code")
+        indexes = [
+            models.Index(fields=["order", "rework_date"]),
+            models.Index(fields=["status", "rework_date"]),
+        ]
+    
+    def __str__(self) -> str:
+        return self.rework_code
+    
+    def save(self, *args, **kwargs):
+        if not self.order_code:
+            self.order_code = self.order.order_code
+        super().save(*args, **kwargs)

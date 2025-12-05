@@ -1,0 +1,130 @@
+{% extends "shared/generic/generic_list.html" %}
+{% load i18n %}
+{% load jalali_tags %}
+{% load access_tags %}
+
+{% block table_headers %}
+<th>{% trans "Rework Code" %}</th>
+<th>{% trans "Product Order" %}</th>
+<th>{% trans "Operation" %}</th>
+<th>{% trans "Rework Date" %}</th>
+<th>{% trans "Status" %}</th>
+<th>{% trans "Approver" %}</th>
+<th>{% trans "Lock Status" %}</th>
+{% if show_actions %}
+  <th>{% trans "Actions" %}</th>
+{% endif %}
+{% endblock %}
+
+{% block table_rows %}
+{% for document in object_list %}
+<tr>
+  <td><code>{{ document.rework_code }}</code></td>
+  <td>{{ document.order_code }}</td>
+  <td>
+    {% if document.operation %}
+      {{ document.operation.name|default:"—" }} (Seq: {{ document.operation.sequence_order }})
+    {% else %}
+      <span class="muted-text">–</span>
+    {% endif %}
+  </td>
+  <td>{{ document.rework_date|jalali_date }}</td>
+  <td>
+    <span class="badge badge-{{ document.status }}">
+      {{ document.get_status_display }}
+    </span>
+  </td>
+  <td>
+    {% if document.approved_by %}
+      {{ document.approved_by.get_full_name|default:document.approved_by.username }}
+    {% else %}
+      <span class="muted-text">–</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if document.is_locked == 1 %}
+      <span class="badge badge-locked">{% trans "Locked" %}</span>
+    {% else %}
+      <span class="badge badge-unlocked">{% trans "Editable" %}</span>
+    {% endif %}
+  </td>
+  {% if show_actions %}
+  <td>
+    {% if document.is_locked != 1 %}
+      {% if user_feature_permissions|feature_allowed:'production.rework:edit_own' or user.is_superuser %}
+        <a href="{% url edit_url_name document.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+          {% trans "Edit" %}
+        </a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'production.rework:delete_own' or user.is_superuser %}
+        <a href="{% url delete_url_name document.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+          {% trans "Delete" %}
+        </a>
+      {% endif %}
+    {% endif %}
+    {% if document.status == 'pending_approval' and document.approved_by == user %}
+      {% if user_feature_permissions|feature_allowed:'production.rework:approve' or user.is_superuser %}
+        <button type="button" class="btn btn-sm btn-success" onclick="approveDocument({{ document.pk }})" style="padding: 4px 12px; font-size: 0.85rem;">
+          {% trans "Approve" %}
+        </button>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'production.rework:reject' or user.is_superuser %}
+        <button type="button" class="btn btn-sm btn-warning" onclick="rejectDocument({{ document.pk }})" style="padding: 4px 12px; font-size: 0.85rem;">
+          {% trans "Reject" %}
+        </button>
+      {% endif %}
+    {% endif %}
+  </td>
+  {% endif %}
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block after_table %}
+<script>
+function approveDocument(documentId) {
+  if (!confirm('{% trans "Are you sure you want to approve this rework document?" %}')) {
+    return;
+  }
+  
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = `{% url 'production:rework_document_approve' 0 %}`.replace('0', documentId);
+  
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (csrfToken) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'csrfmiddlewaretoken';
+    input.value = csrfToken.value;
+    form.appendChild(input);
+  }
+  
+  document.body.appendChild(form);
+  form.submit();
+}
+
+function rejectDocument(documentId) {
+  if (!confirm('{% trans "Are you sure you want to reject this rework document?" %}')) {
+    return;
+  }
+  
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = `{% url 'production:rework_document_reject' 0 %}`.replace('0', documentId);
+  
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (csrfToken) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'csrfmiddlewaretoken';
+    input.value = csrfToken.value;
+    form.appendChild(input);
+  }
+  
+  document.body.appendChild(form);
+  form.submit();
+}
+</script>
+{% endblock %}
+

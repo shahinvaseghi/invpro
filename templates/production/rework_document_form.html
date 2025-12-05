@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load jalali_tags %}
+
+{% block title %}{{ form_title|default:"Create Rework Document" }} · invproj{% endblock %}
+
+{% block content %}
+<section class="page-section">
+  <header class="section-header">
+    <h1>{{ form_title|default:"Create Rework Document" }}</h1>
+  </header>
+
+  <form method="post" id="{{ form_id|default:'rework-form' }}" class="rework-form">
+    {% csrf_token %}
+    
+    <!-- Order Selection -->
+    <div class="form-section" style="background: #f9f9f9; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #ddd;">
+      <h3 style="margin-top: 0; margin-bottom: 1rem;">{% trans "Select Production Order" %}</h3>
+      <div class="form-group">
+        <label for="{{ form.order.id_for_label }}">{{ form.order.label }}</label>
+        {{ form.order }}
+        {% if form.order.errors %}
+          <div class="error-message" style="color: #d00; margin-top: 0.5rem;">
+            {{ form.order.errors }}
+          </div>
+        {% endif %}
+        <button type="button" id="load-operations-btn" class="btn btn-primary" style="margin-top: 1rem;">
+          {% trans "Load Operations" %}
+        </button>
+      </div>
+    </div>
+
+    {% if selected_order %}
+      <!-- Operations Lists -->
+      <div class="operations-section" style="margin-bottom: 2rem;">
+        <!-- List 1: Operations without performance documents -->
+        <div class="operations-list-section" style="background: #f9f9f9; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #ddd;">
+          <h3 style="margin-top: 0; margin-bottom: 1rem;">{% trans "Operations Without Performance Documents" %}</h3>
+          {% if list1_operations %}
+            <div class="operations-list">
+              {% for operation in list1_operations %}
+              <div class="operation-item" style="padding: 1rem; margin-bottom: 0.5rem; background: white; border: 1px solid #ddd; border-radius: 4px;">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                  <input type="radio" name="operation" value="{{ operation.pk }}" style="margin-right: 0.5rem;">
+                  <div>
+                    <strong>{% trans "Sequence" %}: {{ operation.sequence_order }}</strong> - 
+                    {{ operation.name|default:"—" }}
+                    {% if operation.work_line %}
+                      <br><small>{% trans "Work Line" %}: {{ operation.work_line.name }}</small>
+                    {% endif %}
+                  </div>
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p style="color: #666;">{% trans "All operations have performance documents." %}</p>
+          {% endif %}
+        </div>
+
+        <!-- List 2: Operations with QC-rejected performance documents -->
+        <div class="operations-list-section" style="background: #f9f9f9; padding: 1.5rem; border-radius: 8px; border: 1px solid #ddd;">
+          <h3 style="margin-top: 0; margin-bottom: 1rem;">{% trans "Operations with QC-Rejected Performance Documents" %}</h3>
+          {% if list2_operations %}
+            <div class="operations-list">
+              {% for item in list2_operations %}
+              <div class="operation-item" style="padding: 1rem; margin-bottom: 0.5rem; background: white; border: 1px solid #ddd; border-radius: 4px;">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                  <input type="radio" name="operation" value="{{ item.operation.pk }}" data-performance-id="{{ item.performance.pk }}" style="margin-right: 0.5rem;">
+                  <div>
+                    <strong>{% trans "Sequence" %}: {{ item.operation.sequence_order }}</strong> - 
+                    {{ item.operation.name|default:"—" }}
+                    <br><small>
+                      {% trans "Performance Code" %}: <code>{{ item.performance.performance_code }}</code>
+                      {% if item.qc_status.qc_notes %}
+                        <br>{% trans "QC Notes" %}: {{ item.qc_status.qc_notes|truncatewords:10 }}
+                      {% endif %}
+                    </small>
+                  </div>
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p style="color: #666;">{% trans "No operations with QC-rejected performance documents." %}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Form Fields -->
+      <div class="form-section" style="background: #f9f9f9; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #ddd;">
+        <h3 style="margin-top: 0; margin-bottom: 1rem;">{% trans "Rework Document Details" %}</h3>
+        
+        <div class="form-group" style="display: none;">
+          {{ form.operation }}
+        </div>
+        
+        <div class="form-group" style="display: none;">
+          {{ form.original_performance }}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.reason.id_for_label }}">{{ form.reason.label }}</label>
+          {{ form.reason }}
+          {% if form.reason.errors %}
+            <div class="error-message" style="color: #d00; margin-top: 0.5rem;">
+              {{ form.reason.errors }}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+          {{ form.notes }}
+          {% if form.notes.errors %}
+            <div class="error-message" style="color: #d00; margin-top: 0.5rem;">
+              {{ form.notes.errors }}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.approved_by.id_for_label }}">{{ form.approved_by.label }}</label>
+          {{ form.approved_by }}
+          {% if form.approved_by.errors %}
+            <div class="error-message" style="color: #d00; margin-top: 0.5rem;">
+              {{ form.approved_by.errors }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Form Actions -->
+    <div class="form-actions" style="display: flex; gap: 1rem; margin-top: 2rem;">
+      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+      <a href="{{ cancel_url|default:'#' }}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const orderSelect = document.getElementById('{{ form.order.id_for_label }}');
+  const loadOperationsBtn = document.getElementById('load-operations-btn');
+  const operationInputs = document.querySelectorAll('input[name="operation"]');
+  const originalPerformanceField = document.getElementById('{{ form.original_performance.id_for_label }}');
+  
+  // Load operations when button is clicked
+  if (loadOperationsBtn && orderSelect) {
+    loadOperationsBtn.addEventListener('click', function() {
+      const orderId = orderSelect.value;
+      if (orderId) {
+        // Reload page with order parameter
+        const url = new URL(window.location.href);
+        url.searchParams.set('order', orderId);
+        window.location.href = url.toString();
+      } else {
+        alert('{% trans "Please select an order first." %}');
+      }
+    });
+  }
+  
+  // Auto-select original_performance when operation from list 2 is selected
+  operationInputs.forEach(function(input) {
+    input.addEventListener('change', function() {
+      const performanceId = this.getAttribute('data-performance-id');
+      if (performanceId && originalPerformanceField) {
+        originalPerformanceField.value = performanceId;
+      } else if (originalPerformanceField) {
+        originalPerformanceField.value = '';
+      }
+    });
+  });
+  
+  // Form validation
+  const form = document.getElementById('{{ form_id|default:"rework-form" }}');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      const selectedOperation = document.querySelector('input[name="operation"]:checked');
+      if (!selectedOperation) {
+        e.preventDefault();
+        alert('{% trans "Please select an operation." %}');
+        return false;
+      }
+      
+      const orderValue = orderSelect ? orderSelect.value : '';
+      if (!orderValue) {
+        e.preventDefault();
+        alert('{% trans "Please select an order." %}');
+        return false;
+      }
+    });
+  }
+});
+</script>
+
+<style>
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-group textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0056b3;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #545b62;
+}
+</style>
+{% endblock %}
+

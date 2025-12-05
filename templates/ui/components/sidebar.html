@@ -191,6 +191,12 @@
         {% if request.user.is_superuser %}
           <a href="{% url 'production:performance_records' %}" class="nav-link">{% trans "Performance Records" %}</a>
         {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.qc_operations' or request.user.is_superuser %}
+          <a href="{% url 'production:qc_operations' %}" class="nav-link">{% trans "QC Operations" %}</a>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.rework' or request.user.is_superuser %}
+          <a href="{% url 'production:rework_document_list' %}" class="nav-link">{% trans "Rework" %}</a>
+        {% endif %}
         {% if user_feature_permissions|feature_allowed:'production.tracking_identification' or request.user.is_superuser %}
           <a href="{% url 'production:tracking_identification' %}" class="nav-link">{% trans "شناسایی و ردیابی" %}</a>
         {% endif %}

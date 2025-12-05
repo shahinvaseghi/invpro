@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load jalali_tags %}
+
+{% block title %}{% trans "Rework Operations" %} · invproj{% endblock %}
+
+{% block content %}
+<section class="page-section">
+  <header class="section-header">
+    <h1>{% trans "Rework Operations" %}</h1>
+    {% if order %}
+      <p class="section-subtitle">
+        {% trans "Order" %}: <code>{{ order.order_code }}</code> - 
+        {% trans "Finished Item" %}: {{ order.finished_item.item_code }} - {{ order.finished_item.name }}
+      </p>
+    {% endif %}
+  </header>
+
+  {% if order %}
+    <div class="rework-lists-container">
+      <!-- List 1: Operations without performance documents -->
+      <div class="rework-list-section">
+        <h2 class="list-section-title">{% trans "Operations Without Performance Documents" %}</h2>
+        {% if list1_operations %}
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>{% trans "Sequence" %}</th>
+                  <th>{% trans "Operation Name" %}</th>
+                  <th>{% trans "Work Line" %}</th>
+                  <th>{% trans "Actions" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for operation in list1_operations %}
+                <tr>
+                  <td>{{ operation.sequence_order }}</td>
+                  <td>{{ operation.name|default:"—" }}</td>
+                  <td>
+                    {% if operation.work_line %}
+                      {{ operation.work_line.name }}
+                    {% else %}
+                      <span class="muted-text">–</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if can_create %}
+                      <a href="{% url 'production:rework_document_create_for_operation' order.pk operation.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+                        {% trans "Create Rework Document" %}
+                      </a>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <p class="empty-state-message">{% trans "All operations have performance documents." %}</p>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- List 2: Operations with QC-rejected performance documents -->
+      <div class="rework-list-section" style="margin-top: 2rem;">
+        <h2 class="list-section-title">{% trans "Operations with QC-Rejected Performance Documents" %}</h2>
+        {% if list2_operations %}
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>{% trans "Sequence" %}</th>
+                  <th>{% trans "Operation Name" %}</th>
+                  <th>{% trans "Performance Code" %}</th>
+                  <th>{% trans "QC Rejection Date" %}</th>
+                  <th>{% trans "QC Notes" %}</th>
+                  <th>{% trans "Actions" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in list2_operations %}
+                <tr>
+                  <td>{{ item.operation.sequence_order }}</td>
+                  <td>{{ item.operation.name|default:"—" }}</td>
+                  <td><code>{{ item.performance.performance_code }}</code></td>
+                  <td>
+                    {% if item.qc_status.qc_status_date %}
+                      {{ item.qc_status.qc_status_date|date:"Y-m-d H:i" }}
+                    {% else %}
+                      <span class="muted-text">–</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if item.qc_status.qc_notes %}
+                      <button type="button" class="btn btn-sm btn-info" onclick="showNotes('{{ item.qc_status.qc_notes|escapejs }}')" style="padding: 4px 12px; font-size: 0.85rem;">
+                        {% trans "View Notes" %}
+                      </button>
+                    {% else %}
+                      <span class="muted-text">–</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if can_create %}
+                      <a href="{% url 'production:rework_document_create_for_operation' order.pk item.operation.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+                        {% trans "Create Rework Document" %}
+                      </a>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <p class="empty-state-message">{% trans "No operations with QC-rejected performance documents." %}</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p class="empty-state-message">{% trans "Order not found." %}</p>
+    </div>
+  {% endif %}
+</section>
+
+<script>
+function showNotes(notes) {
+  alert('{% trans "QC Rejection Notes:" %}\n\n' + notes);
+}
+</script>
+
+<style>
+.rework-lists-container {
+  margin-top: 2rem;
+}
+
+.rework-list-section {
+  background: #f9f9f9;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.list-section-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #333;
+}
+</style>
+{% endblock %}
+

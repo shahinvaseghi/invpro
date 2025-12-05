@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load jalali_tags %}
+
+{% block title %}{% trans "Rework" %} · invproj{% endblock %}
+
+{% block content %}
+<section class="page-section">
+  <header class="section-header">
+    <h1>{% trans "Rework" %}</h1>
+    <p class="section-subtitle">{% trans "Select an order and view operations that need rework" %}</p>
+  </header>
+
+  <!-- Order Selection Form -->
+  <div class="form-container" style="background: #f9f9f9; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #ddd;">
+    <form method="get" action="{% url 'production:rework' %}" id="order-select-form">
+      <div class="form-group" style="display: flex; gap: 1rem; align-items: flex-end;">
+        <div style="flex: 1;">
+          <label for="{{ form.order.id_for_label }}" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+            {{ form.order.label }}
+          </label>
+          {{ form.order }}
+          {% if form.order.errors %}
+            <div class="error-message" style="color: #d00; margin-top: 0.5rem;">
+              {{ form.order.errors }}
+            </div>
+          {% endif %}
+        </div>
+        <div>
+          <button type="submit" class="btn btn-primary" style="padding: 8px 20px;">
+            {% trans "Select Order" %}
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  {% if selected_order %}
+    <div class="selected-order-info" style="background: #e8f4f8; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; border-left: 4px solid #2196F3;">
+      <h3 style="margin: 0 0 0.5rem 0; font-size: 1.1rem;">
+        {% trans "Selected Order" %}: <code>{{ selected_order.order_code }}</code>
+      </h3>
+      <p style="margin: 0; color: #666;">
+        {% trans "Finished Item" %}: {{ selected_order.finished_item.item_code }} - {{ selected_order.finished_item.name }}
+      </p>
+    </div>
+
+    <div class="rework-lists-container">
+      <!-- List 1: Operations without performance documents -->
+      <div class="rework-list-section" style="background: #f9f9f9; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #ddd;">
+        <h2 class="list-section-title" style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem; color: #333;">
+          {% trans "Operations Without Performance Documents" %}
+        </h2>
+        {% if list1_operations %}
+          <div class="table-container">
+            <table class="data-table" style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #f0f0f0;">
+                  <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">{% trans "Sequence" %}</th>
+                  <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">{% trans "Operation Name" %}</th>
+                  <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">{% trans "Work Line" %}</th>
+                  <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">{% trans "Actions" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for operation in list1_operations %}
+                <tr>
+                  <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ operation.sequence_order }}</td>
+                  <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ operation.name|default:"—" }}</td>
+                  <td style="padding: 0.75rem; border: 1px solid #ddd;">
+                    {% if operation.work_line %}
+                      {{ operation.work_line.name }}
+                    {% else %}
+                      <span class="muted-text">–</span>
+                    {% endif %}
+                  </td>
+                  <td style="padding: 0.75rem; border: 1px solid #ddd;">
+                    {% if can_create %}
+                      <a href="{% url 'production:rework_document_create_for_operation' selected_order.pk operation.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem; text-decoration: none; display: inline-block;">
+                        {% trans "Create Rework Document" %}
+                      </a>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state" style="padding: 2rem; text-align: center; color: #666;">
+            <p style="margin: 0;">{% trans "All operations have performance documents." %}</p>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- List 2: Operations with QC-rejected performance documents -->
+      <div class="rework-list-section" style="background: #f9f9f9; padding: 1.5rem; border-radius: 8px; border: 1px solid #ddd;">
+        <h2 class="list-section-title" style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem; color: #333;">
+          {% trans "Operations with QC-Rejected Performance Documents" %}
+        </h2>
+        {% if list2_operations %}
+          <div class="table-container">
+            <table class="data-table" style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #f0f0f0;">
+                  <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">{% trans "Sequence" %}</th>
+                  <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">{% trans "Operation Name" %}</th>
+                  <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">{% trans "Performance Code" %}</th>
+                  <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">{% trans "QC Rejection Date" %}</th>
+                  <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">{% trans "QC Notes" %}</th>
+                  <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">{% trans "Actions" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in list2_operations %}
+                <tr>
+                  <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ item.operation.sequence_order }}</td>
+                  <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ item.operation.name|default:"—" }}</td>
+                  <td style="padding: 0.75rem; border: 1px solid #ddd;"><code>{{ item.performance.performance_code }}</code></td>
+                  <td style="padding: 0.75rem; border: 1px solid #ddd;">
+                    {% if item.qc_status.qc_status_date %}
+                      {{ item.qc_status.qc_status_date|date:"Y-m-d H:i" }}
+                    {% else %}
+                      <span class="muted-text">–</span>
+                    {% endif %}
+                  </td>
+                  <td style="padding: 0.75rem; border: 1px solid #ddd;">
+                    {% if item.qc_status.qc_notes %}
+                      <button type="button" class="btn btn-sm btn-info" onclick="showNotes('{{ item.qc_status.qc_notes|escapejs }}')" style="padding: 4px 12px; font-size: 0.85rem; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        {% trans "View Notes" %}
+                      </button>
+                    {% else %}
+                      <span class="muted-text">–</span>
+                    {% endif %}
+                  </td>
+                  <td style="padding: 0.75rem; border: 1px solid #ddd;">
+                    {% if can_create %}
+                      <a href="{% url 'production:rework_document_create_for_operation' selected_order.pk item.operation.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem; text-decoration: none; display: inline-block; background: #007bff; color: white; border-radius: 4px;">
+                        {% trans "Create Rework Document" %}
+                      </a>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state" style="padding: 2rem; text-align: center; color: #666;">
+            <p style="margin: 0;">{% trans "No operations with QC-rejected performance documents." %}</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% else %}
+    <div class="empty-state" style="padding: 2rem; text-align: center; color: #666;">
+      <p style="margin: 0;">{% trans "Please select an order to view operations that need rework." %}</p>
+    </div>
+  {% endif %}
+</section>
+
+<script>
+function showNotes(notes) {
+  alert('{% trans "QC Rejection Notes:" %}\n\n' + notes);
+}
+
+// Auto-submit form when order is selected (optional enhancement)
+document.addEventListener('DOMContentLoaded', function() {
+  const orderSelect = document.getElementById('{{ form.order.id_for_label }}');
+  if (orderSelect) {
+    // Optional: auto-submit on change
+    // orderSelect.addEventListener('change', function() {
+    //   document.getElementById('order-select-form').submit();
+    // });
+  }
+});
+</script>
+
+<style>
+.form-container .form-group input[type="text"],
+.form-container .form-group select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0056b3;
+}
+
+.muted-text {
+  color: #999;
+  font-style: italic;
+}
+</style>
+{% endblock %}
+

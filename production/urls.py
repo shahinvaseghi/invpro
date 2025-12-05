@@ -75,6 +75,20 @@ urlpatterns = [
     # Tracking and Identification (شناسایی و ردیابی)
     path('tracking-identification/', views.TrackingIdentificationView.as_view(), name='tracking_identification'),
     
+    # QC Operations (عملیات QC)
+    path('qc-operations/', views.QCOperationsListView.as_view(), name='qc_operations'),
+    path('qc-operations/<int:pk>/approve/', views.QCOperationApproveView.as_view(), name='qc_operation_approve'),
+    path('qc-operations/<int:pk>/reject/', views.QCOperationRejectView.as_view(), name='qc_operation_reject'),
+    
+    # Rework Documents (دوباره کاری)
+    path('rework/', views.ReworkDocumentListView.as_view(), name='rework_document_list'),
+    path('rework/create/', views.ReworkDocumentCreateView.as_view(), name='rework_document_create'),
+    path('rework/<int:pk>/', views.ReworkDocumentDetailView.as_view(), name='rework_document_detail'),
+    path('rework/<int:pk>/edit/', views.ReworkDocumentUpdateView.as_view(), name='rework_document_edit'),
+    path('rework/<int:pk>/delete/', views.ReworkDocumentDeleteView.as_view(), name='rework_document_delete'),
+    path('rework/<int:pk>/approve/', views.ReworkDocumentApproveView.as_view(), name='rework_document_approve'),
+    path('rework/<int:pk>/reject/', views.ReworkDocumentRejectView.as_view(), name='rework_document_reject'),
+    
     # API endpoints
     path('api/bom/<int:bom_id>/materials/', api.get_bom_materials, name='api_bom_materials'),
     path('api/order/<int:order_id>/operations/', api.get_order_operations, name='api_order_operations'),

@@ -98,6 +98,24 @@ from production.views.performance_record import (
     PerformanceRecordCreateReceiptView,
 )
 
+# Import QC operations views
+from production.views.qc_operations import (
+    QCOperationsListView,
+    QCOperationApproveView,
+    QCOperationRejectView,
+)
+
+# Import rework views
+from production.views.rework import (
+    ReworkDocumentListView,
+    ReworkDocumentCreateView,
+    ReworkDocumentDetailView,
+    ReworkDocumentUpdateView,
+    ReworkDocumentDeleteView,
+    ReworkDocumentApproveView,
+    ReworkDocumentRejectView,
+)
+
 __all__ = [
     # Personnel views
     'PersonnelListView',
@@ -157,6 +175,18 @@ __all__ = [
     'PerformanceRecordRejectView',
     'PerformanceRecordCreateReceiptView',
     'PerformanceRecordGetOperationsView',
+    # QC Operations views
+    'QCOperationsListView',
+    'QCOperationApproveView',
+    'QCOperationRejectView',
+    # Rework views
+    'ReworkDocumentListView',
+    'ReworkDocumentCreateView',
+    'ReworkDocumentDetailView',
+    'ReworkDocumentUpdateView',
+    'ReworkDocumentDeleteView',
+    'ReworkDocumentApproveView',
+    'ReworkDocumentRejectView',
     # Placeholder views
     'TrackingIdentificationView',
 ]

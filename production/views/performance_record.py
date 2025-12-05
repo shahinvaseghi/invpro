@@ -33,6 +33,7 @@ from production.models import (
     TransferToLineItem,
     Process,
     ProcessOperation,
+    OperationQCStatus,
 )
 
 
@@ -254,6 +255,46 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
         # Auto-populate from order
         order = form.cleaned_data.get('order')
         document_type = form.cleaned_data.get('document_type')
+        
+        # Check if creating general performance document is allowed
+        # General documents can only be created if all operations requiring QC are approved
+        if order and document_type == PerformanceRecord.DocumentType.GENERAL:
+            if order.process:
+                # Get all operations that require QC for this order's process
+                qc_required_operations = order.process.operations.filter(
+                    company_id=active_company_id,
+                    requires_qc=1,
+                    is_enabled=1,
+                )
+                
+                # Check if all QC-required operations have approved QC status
+                for qc_op in qc_required_operations:
+                    # Check if performance record exists for this operation
+                    has_performance = PerformanceRecord.objects.filter(
+                        company_id=active_company_id,
+                        order=order,
+                        operation=qc_op,
+                        document_type=PerformanceRecord.DocumentType.OPERATIONAL,
+                    ).exists()
+                    
+                    if has_performance:
+                        # Check QC status
+                        qc_status = OperationQCStatus.objects.filter(
+                            company_id=active_company_id,
+                            order=order,
+                            operation=qc_op,
+                        ).first()
+                        
+                        if not qc_status or qc_status.qc_status != OperationQCStatus.QCStatus.APPROVED:
+                            operation_name = qc_op.name or f"Operation {qc_op.sequence_order}"
+                            messages.error(
+                                self.request,
+                                _(
+                                    'Cannot create general performance document. '
+                                    'Operation "%(operation)s" requires QC approval first.'
+                                ) % {'operation': operation_name}
+                            )
+                            return self.form_invalid(form)
         
         if order:
             form.instance.finished_item = order.finished_item
@@ -483,6 +524,24 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
                     notes=material_data.get('notes', ''),
                     created_by=self.request.user,
                 )
+        
+        # Create OperationQCStatus if this is an operational document for an operation that requires QC
+        if document_type == PerformanceRecord.DocumentType.OPERATIONAL and operation:
+            if operation.requires_qc == 1:
+                # Check if OperationQCStatus already exists (shouldn't, but check to be safe)
+                qc_status, created = OperationQCStatus.objects.get_or_create(
+                    company_id=active_company_id,
+                    order=order,
+                    operation=operation,
+                    performance=self.object,
+                    defaults={
+                        'qc_status': OperationQCStatus.QCStatus.PENDING,
+                        'created_by': self.request.user,
+                    }
+                )
+                if created:
+                    # QC status created successfully
+                    pass
         
         messages.success(self.request, _('Performance record created successfully.'))
         return response

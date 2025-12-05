@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load jalali_tags %}
+
+{% block title %}{% trans "QC Operations" %} · invproj{% endblock %}
+
+{% block content %}
+<section class="page-section">
+  <header class="section-header">
+    <h1>{% trans "QC Operations" %}</h1>
+    <p class="section-subtitle">{% trans "Review and approve/reject operations requiring quality control" %}</p>
+  </header>
+
+  {% if qc_operations %}
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{% trans "Order Code" %}</th>
+            <th>{% trans "Operation" %}</th>
+            <th>{% trans "Process" %}</th>
+            <th>{% trans "Performance Code" %}</th>
+            <th>{% trans "QC Status" %}</th>
+            <th>{% trans "QC Reviewer" %}</th>
+            <th>{% trans "QC Date" %}</th>
+            {% if can_approve or can_reject %}
+              <th>{% trans "Actions" %}</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for qc_op in qc_operations %}
+          <tr>
+            <td><code>{{ qc_op.order_code }}</code></td>
+            <td>
+              {% if qc_op.operation %}
+                {{ qc_op.operation.name|default:"—" }} (Seq: {{ qc_op.operation.sequence_order }})
+              {% else %}
+                <span class="muted-text">–</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if qc_op.operation.process %}
+                {{ qc_op.operation.process.process_code }}
+              {% else %}
+                <span class="muted-text">–</span>
+              {% endif %}
+            </td>
+            <td><code>{{ qc_op.performance_code }}</code></td>
+            <td>
+              {% if qc_op.qc_status == 'pending' %}
+                <span class="badge badge-warning">{% trans "Pending" %}</span>
+              {% elif qc_op.qc_status == 'approved' %}
+                <span class="badge badge-success">{% trans "Approved" %}</span>
+              {% elif qc_op.qc_status == 'rejected' %}
+                <span class="badge badge-danger">{% trans "Rejected" %}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if qc_op.qc_approved_by %}
+                {{ qc_op.qc_approved_by.get_full_name|default:qc_op.qc_approved_by.username }}
+              {% else %}
+                <span class="muted-text">–</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if qc_op.qc_status_date %}
+                {{ qc_op.qc_status_date|date:"Y-m-d H:i" }}
+              {% else %}
+                <span class="muted-text">–</span>
+              {% endif %}
+            </td>
+            {% if can_approve or can_reject %}
+              <td>
+                {% if qc_op.qc_status == 'pending' %}
+                  {% if can_approve %}
+                    <button type="button" class="btn btn-sm btn-success" onclick="approveOperation({{ qc_op.pk }})" style="padding: 4px 12px; font-size: 0.85rem;">
+                      {% trans "Approve" %}
+                    </button>
+                  {% endif %}
+                  {% if can_reject %}
+                    <button type="button" class="btn btn-sm btn-danger" onclick="rejectOperation({{ qc_op.pk }})" style="padding: 4px 12px; font-size: 0.85rem;">
+                      {% trans "Reject" %}
+                    </button>
+                  {% endif %}
+                {% endif %}
+                {% if qc_op.qc_notes %}
+                  <button type="button" class="btn btn-sm btn-info" onclick="showNotes('{{ qc_op.qc_notes|escapejs }}')" style="padding: 4px 12px; font-size: 0.85rem;" title="{% trans 'View QC Notes' %}">
+                    {% trans "Notes" %}
+                  </button>
+                {% endif %}
+              </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if is_paginated %}
+      <div class="pagination">
+        {% if page_obj.has_previous %}
+          <a href="?page=1">&laquo; {% trans "first" %}</a>
+          <a href="?page={{ page_obj.previous_page_number }}">{% trans "previous" %}</a>
+        {% endif %}
+        <span class="current">
+          {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+        </span>
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}">{% trans "next" %}</a>
+          <a href="?page={{ page_obj.paginator.num_pages }}">{% trans "last" %} &raquo;</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="empty-state">
+      <p class="empty-state-message">{% trans "No QC operations found." %}</p>
+      <p class="empty-state-subtitle">{% trans "Operations requiring QC will appear here after performance documents are created." %}</p>
+    </div>
+  {% endif %}
+</section>
+
+<script>
+function approveOperation(qcOperationId) {
+  if (!confirm('{% trans "Are you sure you want to approve this operation?" %}')) {
+    return;
+  }
+  
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = `{% url 'production:qc_operation_approve' 0 %}`.replace('0', qcOperationId);
+  
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (csrfToken) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'csrfmiddlewaretoken';
+    input.value = csrfToken.value;
+    form.appendChild(input);
+  }
+  
+  document.body.appendChild(form);
+  form.submit();
+}
+
+function rejectOperation(qcOperationId) {
+  const notes = prompt('{% trans "Please provide a reason for rejection:" %}');
+  if (notes === null) {
+    return;
+  }
+  
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = `{% url 'production:qc_operation_reject' 0 %}`.replace('0', qcOperationId);
+  
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (csrfToken) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'csrfmiddlewaretoken';
+    input.value = csrfToken.value;
+    form.appendChild(input);
+  }
+  
+  const notesInput = document.createElement('input');
+  notesInput.type = 'hidden';
+  notesInput.name = 'qc_notes';
+  notesInput.value = notes;
+  form.appendChild(notesInput);
+  
+  document.body.appendChild(form);
+  form.submit();
+}
+
+function showNotes(notes) {
+  alert('{% trans "QC Notes:" %}\n\n' + notes);
+}
+</script>
+{% endblock %}
+
