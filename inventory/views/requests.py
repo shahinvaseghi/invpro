@@ -231,6 +231,9 @@ class PurchaseRequestListView(BaseListView):
         """Add additional context variables."""
         context = super().get_context_data(**kwargs)
         
+        # Stats labels for stats cards partial
+        context['stats_labels'] = self.get_stats_labels()
+        
         context['print_enabled'] = True
         context['approve_url_name'] = 'inventory:purchase_request_approve'
         
