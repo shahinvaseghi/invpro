@@ -1,75 +1,81 @@
 """
 CompanyUnit CRUD views for shared module.
 """
-from typing import Any, Dict, Optional
-from django.contrib import messages
-from django.db.models import Q
+from typing import Any, Dict, List, Optional
+from django.db.models import QuerySet
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
-from shared.mixins import FeaturePermissionRequiredMixin
 from shared.models import CompanyUnit
 from shared.forms import CompanyUnitForm
-from shared.views.base import EditLockProtectedMixin
+from shared.views.base import (
+    BaseListView,
+    BaseCreateView,
+    BaseUpdateView,
+    BaseDeleteView,
+    BaseDetailView,
+)
 
 
-class CompanyUnitListView(FeaturePermissionRequiredMixin, ListView):
+class CompanyUnitListView(BaseListView):
     """
     List all company units for the active company.
     """
     model = CompanyUnit
-    template_name = 'shared/generic/generic_list.html'
-    context_object_name = 'object_list'
-    paginate_by = 50
     feature_code = 'shared.company_units'
-
-    def get_queryset(self):
-        """Filter company units by active company and search/filter criteria."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        if not active_company_id:
-            return CompanyUnit.objects.none()
-
-        queryset = CompanyUnit.objects.filter(
-            company_id=active_company_id,
-        ).select_related('parent_unit').order_by('public_code')
-
-        search: str = self.request.GET.get('search', '').strip()
-        status: Optional[str] = self.request.GET.get('status')
-
-        if search:
-            queryset = queryset.filter(
-                Q(public_code__icontains=search) |
-                Q(name__icontains=search)
-            )
-
-        if status in ('0', '1'):
-            queryset = queryset.filter(is_enabled=status)
-
-        return queryset
-
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context variables for generic_list template."""
-        context = super().get_context_data(**kwargs)
-        context['active_module'] = 'shared'
-        context['page_title'] = _('Company Units')
-        context['breadcrumbs'] = [
+    search_fields = ['public_code', 'name']
+    filter_fields = ['is_enabled']
+    default_status_filter = True
+    default_order_by = ['public_code']
+    
+    def get_select_related(self) -> List[str]:
+        """Return list of fields to select_related."""
+        return ['parent_unit']
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Company Units')
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
-            {'label': _('Company Units')},
+            {'label': _('Company Units'), 'url': None},
         ]
-        context['create_url'] = reverse('shared:company_unit_create')
-        context['create_button_text'] = _('Create Unit')
-        context['show_filters'] = True
-        context['status_filter'] = True
-        context['search_placeholder'] = _('Search by code or name')
-        context['clear_filter_url'] = reverse('shared:company_units')
+    
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse('shared:company_unit_create')
+    
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Unit')
+    
+    def get_search_placeholder(self) -> str:
+        """Return search placeholder."""
+        return _('Search by code or name')
+    
+    def get_clear_filter_url(self):
+        """Return clear filter URL."""
+        return reverse('shared:company_units')
+    
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'shared:company_unit_detail'
+    
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'shared:company_unit_edit'
+    
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'shared:company_unit_delete'
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add additional context variables."""
+        context = super().get_context_data(**kwargs)
         context['print_enabled'] = True
-        context['show_actions'] = True
-        context['feature_code'] = 'shared.company_units'
-        context['detail_url_name'] = 'shared:company_unit_detail'
-        context['edit_url_name'] = 'shared:company_unit_edit'
-        context['delete_url_name'] = 'shared:company_unit_delete'
         context['table_headers'] = [
             {'label': _('CODE'), 'field': 'public_code', 'type': 'code'},
             {'label': _('Unit Name'), 'field': 'name'},
@@ -83,7 +89,7 @@ class CompanyUnitListView(FeaturePermissionRequiredMixin, ListView):
         return context
 
 
-class CompanyUnitCreateView(FeaturePermissionRequiredMixin, CreateView):
+class CompanyUnitCreateView(BaseCreateView):
     """Create a new company unit."""
     model = CompanyUnit
     form_class = CompanyUnitForm
@@ -91,38 +97,26 @@ class CompanyUnitCreateView(FeaturePermissionRequiredMixin, CreateView):
     success_url = reverse_lazy('shared:company_units')
     feature_code = 'shared.company_units'
     required_action = 'create'
+    success_message = _('Company unit created successfully.')
 
-    def get_form_kwargs(self) -> Dict[str, Any]:
-        """Add company_id to form kwargs."""
-        kwargs = super().get_form_kwargs()
-        kwargs['company_id'] = self.request.session.get('active_company_id')
-        return kwargs
-
-    def form_valid(self, form: CompanyUnitForm) -> HttpResponseRedirect:
-        """Set company_id and show success message."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        if not active_company_id:
-            messages.error(self.request, _('Please select a company first.'))
-            return self.form_invalid(form)
-
-        form.instance.company_id = active_company_id
-        messages.success(self.request, 'واحد سازمانی با موفقیت ایجاد شد.')
-        return super().form_valid(form)
-
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and form title to context."""
-        context = super().get_context_data(**kwargs)
-        context['active_module'] = 'shared'
-        context['form_title'] = _('Create Company Unit')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Company Units'), 'url': reverse('shared:company_units')},
+            {'label': _('Create'), 'url': None},
         ]
-        context['cancel_url'] = reverse('shared:company_units')
-        return context
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Create Company Unit')
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse('shared:company_units')
 
 
-class CompanyUnitUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
+class CompanyUnitUpdateView(BaseUpdateView):
     """Update existing company unit."""
     model = CompanyUnit
     form_class = CompanyUnitForm
@@ -130,93 +124,169 @@ class CompanyUnitUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMix
     success_url = reverse_lazy('shared:company_units')
     feature_code = 'shared.company_units'
     required_action = 'edit_own'
+    success_message = _('Company unit updated successfully.')
 
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
         kwargs = super().get_form_kwargs()
-        kwargs['company_id'] = self.object.company_id
+        # Use object's company_id for parent_unit filtering
+        if self.object:
+            kwargs['company_id'] = self.object.company_id
         return kwargs
 
-    def form_valid(self, form: CompanyUnitForm) -> HttpResponseRedirect:
-        """Show success message."""
-        messages.success(self.request, 'واحد سازمانی با موفقیت ویرایش شد.')
-        return super().form_valid(form)
-
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and form title to context."""
-        context = super().get_context_data(**kwargs)
-        context['active_module'] = 'shared'
-        context['form_title'] = _('Edit Company Unit')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Company Units'), 'url': reverse('shared:company_units')},
+            {'label': _('Edit'), 'url': None},
         ]
-        context['cancel_url'] = reverse('shared:company_units')
-        return context
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Edit Company Unit')
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse('shared:company_units')
 
 
-class CompanyUnitDetailView(FeaturePermissionRequiredMixin, DetailView):
+class CompanyUnitDetailView(BaseDetailView):
     """Detail view for viewing company units (read-only)."""
     model = CompanyUnit
-    template_name = 'shared/company_unit_detail.html'
+    # Use generic_detail.html (default in BaseDetailView)
     context_object_name = 'unit'
     feature_code = 'shared.company_units'
     required_action = 'view_own'
     
-    def get_queryset(self):
+    def get_select_related(self) -> List[str]:
+        """Return list of fields to select_related."""
+        return ['parent_unit', 'company', 'created_by', 'edited_by']
+    
+    def get_prefetch_related(self) -> List[str]:
+        """Return list of fields to prefetch_related."""
+        return ['child_units']
+    
+    def get_queryset(self) -> QuerySet:
         """Filter by active company."""
+        queryset = super().get_queryset()
         active_company_id: Optional[int] = self.request.session.get('active_company_id')
         if not active_company_id:
             return CompanyUnit.objects.none()
-        queryset = CompanyUnit.objects.filter(company_id=active_company_id)
-        queryset = queryset.select_related(
-            'parent_unit',
-            'company',
-            'created_by',
-            'edited_by',
-        ).prefetch_related('child_units')
-        return queryset
+        return queryset.filter(company_id=active_company_id)
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Company Unit')
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Company Units'), 'url': reverse('shared:company_units')},
+            {'label': _('View'), 'url': None},
+        ]
+    
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('shared:company_units')
+    
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('shared:company_unit_edit', kwargs={'pk': self.object.pk})
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail template."""
+        """Add detail sections for generic_detail.html."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'shared'
-        context['list_url'] = reverse_lazy('shared:company_units')
-        context['edit_url'] = reverse_lazy('shared:company_unit_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        context['feature_code'] = 'shared.company_units'
+        
+        # Set detail_title (used by generic_detail.html)
+        context['detail_title'] = self.get_page_title()
+        
+        # Set info_banner (used by generic_detail.html)
+        context['info_banner'] = [
+            {'label': _('Code'), 'value': self.object.public_code, 'type': 'code'},
+            {'label': _('Status'), 'value': self.object.is_enabled, 'type': 'badge',
+             'true_label': _('Active'), 'false_label': _('Inactive')},
+        ]
+        
+        # Set detail_sections (used by generic_detail.html)
+        context['detail_sections'] = [
+            {
+                'title': _('Basic Information'),
+                'type': 'fields',
+                'fields': [
+                    {'label': _('Unit Name'), 'value': self.object.name},
+                    {'label': _('Unit Name (English)'), 'value': self.object.name_en or '-'},
+                    {'label': _('Parent Unit'), 'value': self.object.parent_unit.name if self.object.parent_unit else '-'},
+                    {'label': _('Description'), 'value': self.object.description or '-'},
+                ],
+            },
+        ]
+        
+        # Add notes section if exists
+        if self.object.notes:
+            context['detail_sections'].append({
+                'title': _('Notes'),
+                'type': 'fields',
+                'fields': [
+                    {'label': _('Notes'), 'value': self.object.notes},
+                ],
+            })
+        
+        # Add audit information
+        audit_fields = []
+        if self.object.created_by:
+            audit_fields.append({'label': _('Created By'), 'value': self.object.created_by.get_full_name() or self.object.created_by.username})
+        if self.object.created_at:
+            audit_fields.append({'label': _('Created At'), 'value': self.object.created_at, 'type': 'date'})
+        if self.object.edited_by:
+            audit_fields.append({'label': _('Edited By'), 'value': self.object.edited_by.get_full_name() or self.object.edited_by.username})
+        if self.object.edited_at:
+            audit_fields.append({'label': _('Last Updated'), 'value': self.object.edited_at, 'type': 'date'})
+        
+        if audit_fields:
+            context['detail_sections'].append({
+                'title': _('Audit Information'),
+                'type': 'fields',
+                'fields': audit_fields,
+            })
+        
         return context
 
 
-class CompanyUnitDeleteView(FeaturePermissionRequiredMixin, DeleteView):
+class CompanyUnitDeleteView(BaseDeleteView):
     """Delete a company unit."""
     model = CompanyUnit
-    template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('shared:company_units')
     feature_code = 'shared.company_units'
     required_action = 'delete_own'
+    success_message = _('Company unit deleted successfully.')
 
-    def delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect:
-        """Delete company unit and show success message."""
-        messages.success(self.request, _('Company unit deleted successfully.'))
-        return super().delete(request, *args, **kwargs)
-
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['active_module'] = 'shared'
-        context['delete_title'] = _('Delete Company Unit')
-        context['confirmation_message'] = _('Are you sure you want to delete unit "{name}"?').format(name=self.object.name)
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Company Units'), 'url': reverse('shared:company_units')},
-            {'label': _('Delete')},
+            {'label': _('Delete'), 'url': None},
         ]
-        context['object_details'] = [
+    
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Company Unit')
+    
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Are you sure you want to delete unit "{name}"?').format(name=self.object.name)
+    
+    def get_object_details(self) -> List[Dict[str, Any]]:
+        """Return object details for display."""
+        return [
             {'label': _('Code'), 'value': self.object.public_code, 'type': 'code'},
             {'label': _('Name'), 'value': self.object.name},
             {'label': _('Parent Unit'), 'value': self.object.parent_unit.name if self.object.parent_unit else '-'},
         ]
-        context['cancel_url'] = reverse('shared:company_units')
-        return context
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse('shared:company_units')
 

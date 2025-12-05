@@ -7,10 +7,17 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from shared.models import Company, CompanyUnit
+from shared.forms.base import BaseModelForm
 
 
-class CompanyForm(forms.ModelForm):
+class CompanyForm(BaseModelForm):
     """Form for creating/editing companies."""
+    
+    def __init__(self, *args, **kwargs):
+        """Initialize form and remove company_id if not needed."""
+        # Company model doesn't need company_id (it IS the company)
+        kwargs.pop('company_id', None)
+        super().__init__(*args, **kwargs)
     
     class Meta:
         model = Company
@@ -31,20 +38,10 @@ class CompanyForm(forms.ModelForm):
             'is_enabled',
         ]
         widgets = {
-            'public_code': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '3'}),
-            'legal_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'display_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'display_name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'registration_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'tax_id': forms.TextInput(attrs={'class': 'form-control'}),
-            'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'website': forms.URLInput(attrs={'class': 'form-control'}),
-            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'city': forms.TextInput(attrs={'class': 'form-control'}),
-            'state': forms.TextInput(attrs={'class': 'form-control'}),
-            'country': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '3'}),
-            'is_enabled': forms.Select(attrs={'class': 'form-control'}),
+            # BaseModelForm automatically applies 'form-control' class, but we can add extra attributes
+            'public_code': forms.TextInput(attrs={'maxlength': '3'}),
+            'address': forms.Textarea(attrs={'rows': 3}),
+            'country': forms.TextInput(attrs={'maxlength': '3'}),
         }
         labels = {
             'public_code': _('Code'),
@@ -64,14 +61,14 @@ class CompanyForm(forms.ModelForm):
         }
 
 
-class CompanyUnitForm(forms.ModelForm):
+class CompanyUnitForm(BaseModelForm):
     """Form for creating/editing company units (organizational units)."""
 
     parent_unit = forms.ModelChoiceField(
         queryset=CompanyUnit.objects.none(),
         required=False,
         label=_('Parent Unit'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
+        # BaseModelForm automatically applies 'form-control' class
     )
 
     class Meta:
@@ -86,21 +83,18 @@ class CompanyUnitForm(forms.ModelForm):
             'is_enabled',
         ]
         widgets = {
-            'public_code': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '5'}),
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.TextInput(attrs={'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'is_enabled': forms.Select(attrs={'class': 'form-control'}),
+            # BaseModelForm automatically applies 'form-control' class, but we can add extra attributes
+            'public_code': forms.TextInput(attrs={'maxlength': '5'}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
         }
         labels = {
-            'public_code': 'کد',
-            'name': 'نام واحد',
-            'name_en': 'نام واحد (انگلیسی)',
-            'parent_unit': 'واحد بالادست',
-            'description': 'توضیح',
-            'notes': 'یادداشت‌ها',
-            'is_enabled': 'وضعیت',
+            'public_code': _('Code'),
+            'name': _('Unit Name'),
+            'name_en': _('Unit Name (English)'),
+            'parent_unit': _('Parent Unit'),
+            'description': _('Description'),
+            'notes': _('Notes'),
+            'is_enabled': _('Status'),
         }
 
     def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
@@ -116,8 +110,8 @@ class CompanyUnitForm(forms.ModelForm):
 
         self.fields['parent_unit'].queryset = queryset
         self.fields['is_enabled'].choices = (
-            (1, 'فعال'),
-            (0, 'غیرفعال'),
+            (1, _('Active')),
+            (0, _('Inactive')),
         )
 
     def clean_parent_unit(self) -> Optional[CompanyUnit]:
