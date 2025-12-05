@@ -26,6 +26,7 @@ from shared.views.base import (
     BaseFormsetUpdateView,
     BaseListView,
     BaseCreateView,
+    BaseDetailView,
 )
 from .. import models
 from .. import forms
@@ -359,28 +360,42 @@ class PurchaseRequestCreateView(LineFormsetMixin, PurchaseRequestFormMixin, Base
         ]
 
 
-class PurchaseRequestDetailView(InventoryBaseView, DetailView):
+class PurchaseRequestDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing purchase requests (read-only)."""
     model = models.PurchaseRequest
     template_name = 'inventory/purchase_request_detail.html'
     context_object_name = 'purchase_request'
-    
-    def get_queryset(self):
+    feature_code = 'inventory.requests.purchase'
+    permission_field = 'requested_by'
+
+    def get_prefetch_related(self):
         """Prefetch related objects for efficient display."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.requests.purchase', 'requested_by')
-        queryset = queryset.prefetch_related(
-            'lines__item'
-        ).select_related('requested_by', 'approver')
-        return queryset
-    
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail view."""
-        context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse('inventory:purchase_requests')
-        context['edit_url'] = reverse('inventory:purchase_request_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
-        return context
+        return ['lines__item']
+
+    def get_select_related(self):
+        """Select related objects."""
+        return ['requested_by', 'approver']
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Purchase Request')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Requests'), 'url': None},
+            {'label': _('Purchase Requests'), 'url': reverse_lazy('inventory:purchase_requests')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:purchase_requests')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('inventory:purchase_request_edit', kwargs={'pk': self.object.pk})
 
 
 class PurchaseRequestUpdateView(LineFormsetMixin, PurchaseRequestFormMixin, BaseFormsetUpdateView):
@@ -632,22 +647,31 @@ class WarehouseRequestFormMixin(InventoryBaseView):
         return []
 
 
-class WarehouseRequestListView(InventoryBaseView, ListView):
+class WarehouseRequestListView(InventoryBaseView, BaseListView):
     """List view for warehouse requests."""
     model = models.WarehouseRequest
     template_name = 'inventory/warehouse_requests.html'
-    context_object_name = 'object_list'
+    feature_code = 'inventory.requests.warehouse'
+    permission_field = 'requester'
     paginate_by = 50
+    stats_enabled = True
 
-    def get_queryset(self):
-        """Filter and search warehouse requests."""
-        queryset = super().get_queryset()
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.requests.warehouse', 'requester')
-        queryset = queryset.select_related('item', 'warehouse', 'requester', 'approver').prefetch_related('lines__item', 'lines__warehouse')
+    def get_select_related(self):
+        """Select related objects."""
+        return ['item', 'warehouse', 'requester', 'approver']
+
+    def get_prefetch_related(self):
+        """Prefetch related objects."""
+        return ['lines__item', 'lines__warehouse']
+
+    def apply_custom_filters(self, queryset):
+        """Apply status, priority, and search filters."""
+        queryset = super().apply_custom_filters(queryset)
+        
         status = self.request.GET.get('status')
         priority = self.request.GET.get('priority')
         search = self.request.GET.get('search')
+        
         if status:
             queryset = queryset.filter(request_status=status)
         if priority:
@@ -660,9 +684,10 @@ class WarehouseRequestListView(InventoryBaseView, ListView):
                     | Q(lines__item__name__icontains=value)
                     | Q(lines__item__item_code__icontains=value)
                 ).distinct()
+        
         return queryset
 
-    def _get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> Dict[str, int]:
         """Return aggregate stats for summary cards."""
         stats = {
             'total': 0,
@@ -680,44 +705,66 @@ class WarehouseRequestListView(InventoryBaseView, ListView):
         stats['issued'] = stats_queryset.filter(request_status='issued').count()
         return stats
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic list template."""
-        context = super().get_context_data(**kwargs)
-        
-        # Generic list context
-        context['page_title'] = _('Warehouse Requests')
-        context['breadcrumbs'] = [
-            {'label': _('Inventory'), 'url': None},
-        ]
-        context['create_url'] = reverse_lazy('inventory:warehouse_request_create')
-        context['create_button_text'] = _('Create Warehouse Request')
-        context['show_filters'] = True
-        context['print_enabled'] = True
-        context['show_actions'] = True
-        
-        # Warehouse Request-specific context
-        context['feature_code'] = 'inventory.requests.warehouse'
-        context['detail_url_name'] = 'inventory:warehouse_request_detail'
-        context['edit_url_name'] = 'inventory:warehouse_request_edit'
-        context['approve_url_name'] = 'inventory:warehouse_request_approve'
-        context['empty_state_title'] = _('No Requests Found')
-        context['empty_state_message'] = _('Start by creating your first warehouse request.')
-        context['empty_state_icon'] = '📋'
-        
-        # Filters
-        context['status_filter'] = self.request.GET.get('status', '')
-        context['priority_filter'] = self.request.GET.get('priority', '')
-        context['search_query'] = self.request.GET.get('search', '')
-        
-        # Stats
-        context['stats'] = self._get_stats()
-        # Stats labels for Persian display
-        context['stats_labels'] = {
+    def get_stats_labels(self) -> Dict[str, str]:
+        """Return stats labels for Persian display."""
+        return {
             'total': _('Total'),
             'draft': _('Pending Approval'),
             'approved': _('Approved'),
             'issued': _('Issued'),
         }
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Warehouse Requests')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+        ]
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:warehouse_request_create')
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Warehouse Request')
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:warehouse_request_detail'
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:warehouse_request_edit'
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Requests Found')
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by creating your first warehouse request.')
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📋'
+
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add warehouse request specific context."""
+        context = super().get_context_data(**kwargs)
+        
+        # Additional context
+        context['approve_url_name'] = 'inventory:warehouse_request_approve'
+        context['show_filters'] = True
+        context['print_enabled'] = True
+        
+        # Filters
+        context['status_filter'] = self.request.GET.get('status', '')
+        context['priority_filter'] = self.request.GET.get('priority', '')
+        context['search_query'] = self.request.GET.get('search', '')
         
         # Permissions and approver logic
         company_id: Optional[int] = self.request.session.get('active_company_id')
@@ -835,30 +882,42 @@ class WarehouseRequestCreateView(LineFormsetMixin, WarehouseRequestFormMixin, Ba
         ]
 
 
-class WarehouseRequestDetailView(InventoryBaseView, DetailView):
+class WarehouseRequestDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing warehouse requests (read-only)."""
     model = models.WarehouseRequest
     template_name = 'inventory/warehouse_request_detail.html'
     context_object_name = 'warehouse_request'
-    
-    def get_queryset(self):
+    feature_code = 'inventory.requests.warehouse'
+    permission_field = 'requester'
+
+    def get_prefetch_related(self):
         """Prefetch related objects for efficient display."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.requests.warehouse', 'requester')
-        queryset = queryset.prefetch_related(
-            'lines__item',
-            'lines__warehouse',
-            'lines__unit'
-        ).select_related('item', 'warehouse', 'requester', 'approver')
-        return queryset
-    
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail view."""
-        context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse('inventory:warehouse_requests')
-        context['edit_url'] = reverse('inventory:warehouse_request_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
-        return context
+        return ['lines__item', 'lines__warehouse', 'lines__unit']
+
+    def get_select_related(self):
+        """Select related objects."""
+        return ['item', 'warehouse', 'requester', 'approver']
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Warehouse Request')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Requests'), 'url': None},
+            {'label': _('Warehouse Requests'), 'url': reverse_lazy('inventory:warehouse_requests')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:warehouse_requests')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('inventory:warehouse_request_edit', kwargs={'pk': self.object.pk})
 
 
 class WarehouseRequestUpdateView(LineFormsetMixin, WarehouseRequestFormMixin, BaseFormsetUpdateView):

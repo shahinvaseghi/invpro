@@ -16,8 +16,15 @@ from django.utils.safestring import mark_safe
 import json
 
 from .base import InventoryBaseView, DocumentLockProtectedMixin, DocumentLockView, LineFormsetMixin
-from shared.views.base import EditLockProtectedMixin, BaseUpdateView, BaseDocumentUpdateView
-from .receipts import DocumentDeleteViewBase
+from shared.views.base import (
+    EditLockProtectedMixin,
+    BaseUpdateView,
+    BaseDocumentUpdateView,
+    BaseDocumentListView,
+    BaseDocumentCreateView,
+    BaseDetailView,
+    BaseDeleteView,
+)
 from .. import models
 from .. import forms
 
@@ -115,125 +122,184 @@ class StocktakingFormMixin(InventoryBaseView):
 # Stocktaking Deficit Views
 # ============================================================================
 
-class StocktakingDeficitListView(InventoryBaseView, ListView):
+class StocktakingDeficitListView(InventoryBaseView, BaseDocumentListView):
     """List view for stocktaking deficit records."""
     model = models.StocktakingDeficit
     template_name = 'inventory/stocktaking_deficit.html'
-    context_object_name = 'object_list'
+    feature_code = 'inventory.stocktaking.deficit'
+    permission_field = 'created_by'
     paginate_by = 50
 
-    def get_queryset(self):
-        """Prefetch related objects for efficient display."""
-        queryset = super().get_queryset()
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.deficit', 'created_by')
-        queryset = queryset.prefetch_related(
-            'lines__item',
-            'lines__warehouse'
-        ).select_related('created_by')
-        return queryset
+    def get_prefetch_related(self):
+        """Prefetch related objects."""
+        return ['lines__item', 'lines__warehouse']
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic list template."""
-        context = super().get_context_data(**kwargs)
-        
-        # Generic list context
-        context['page_title'] = _('Deficit Records')
-        context['breadcrumbs'] = [
+    def get_select_related(self):
+        """Select related objects."""
+        return ['created_by']
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Deficit Records')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Stocktaking'), 'url': None},
         ]
-        context['create_url'] = reverse_lazy('inventory:stocktaking_deficit_create')
-        context['create_button_text'] = _('Create Deficit Record')
-        context['show_actions'] = True
-        
-        # Stocktaking Deficit-specific context
-        context['feature_code'] = 'inventory.stocktaking.deficit'
-        context['detail_url_name'] = 'inventory:stocktaking_deficit_detail'
-        context['edit_url_name'] = 'inventory:stocktaking_deficit_edit'
-        context['delete_url_name'] = 'inventory:stocktaking_deficit_delete'
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:stocktaking_deficit_create')
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Deficit Record')
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:stocktaking_deficit_detail'
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:stocktaking_deficit_edit'
+
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'inventory:stocktaking_deficit_delete'
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Deficit Records Found')
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Deficit records are created during stocktaking when counted quantity is less than expected.')
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📉'
+
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add stocktaking deficit specific context."""
+        context = super().get_context_data(**kwargs)
         context['lock_url_name'] = 'inventory:stocktaking_deficit_lock'
-        context['empty_state_title'] = _('No Deficit Records Found')
-        context['empty_state_message'] = _('Deficit records are created during stocktaking when counted quantity is less than expected.')
-        context['empty_state_icon'] = '📉'
-        
         # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.stocktaking.deficit')
-        
         # User for permission checks in template
         context['user'] = self.request.user
-        
         return context
 
 
-class StocktakingDeficitCreateView(LineFormsetMixin, StocktakingFormMixin, CreateView):
+class StocktakingDeficitCreateView(LineFormsetMixin, StocktakingFormMixin, BaseDocumentCreateView):
     """Create view for stocktaking deficit records."""
     model = models.StocktakingDeficit
     form_class = forms.StocktakingDeficitForm
     formset_class = forms.StocktakingDeficitLineFormSet
+    formset_prefix = 'lines'
     success_url = reverse_lazy('inventory:stocktaking_deficit')
+    feature_code = 'inventory.stocktaking.deficit'
+    success_message = _('سند کسری انبارگردانی با موفقیت ایجاد شد.')
     form_title = _('ایجاد سند کسری انبارگردانی')
     list_url_name = 'inventory:stocktaking_deficit'
     lock_url_name = 'inventory:stocktaking_deficit_lock'
 
     def form_valid(self, form):
-        """Save document and line formset."""
-        form.instance.company_id = self.request.session.get('active_company_id')
-        form.instance.created_by = self.request.user
+        """Save document and line formset with custom validation."""
+        from django.db import transaction
+        from shared.views.base import BaseCreateView
         
-        # Save document first
-        self.object = form.save()
+        with transaction.atomic():
+            # Save document first (AutoSetFieldsMixin handles company_id and created_by)
+            # Call BaseCreateView.form_valid directly to skip BaseFormsetCreateView's formset.save()
+            response = BaseCreateView.form_valid(self, form)
+            
+            # Handle line formset with custom validation
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            if not lines_formset.is_valid():
+                # If formset is invalid, delete the main object and re-render
+                self.object.delete()
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Check if we have at least one valid line before saving
+            valid_lines = []
+            for form in lines_formset.forms:
+                if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                    valid_lines.append(form)
+            
+            if not valid_lines:
+                self.object.delete()
+                form.add_error(None, _('حداقل یک ردیف کالا الزامی است.'))
+                lines_formset = self.build_line_formset(instance=None)
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Save formset using LineFormsetMixin's _save_line_formset
+            self._save_line_formset(lines_formset)
         
-        # Handle line formset
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
-        if not lines_formset.is_valid():
-            # If formset is invalid, delete the main object and re-render
-            self.object.delete()
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        # Check if we have at least one valid line before saving
-        valid_lines = []
-        for form in lines_formset.forms:
-            if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
-                valid_lines.append(form)
-        
-        if not valid_lines:
-            self.object.delete()
-            form.add_error(None, _('حداقل یک ردیف کالا الزامی است.'))
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        self._save_line_formset(lines_formset)
-        messages.success(self.request, _('سند کسری انبارگردانی با موفقیت ایجاد شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        return response
+
+    def get_fieldsets(self) -> list:
+        """Return fieldsets configuration."""
+        # Use StocktakingFormMixin's get_fieldsets if available
+        if hasattr(StocktakingFormMixin, 'get_fieldsets'):
+            return super(StocktakingFormMixin, self).get_fieldsets()
+        return []
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Stocktaking'), 'url': None},
+            {'label': _('Deficit Records'), 'url': reverse_lazy('inventory:stocktaking_deficit')},
+            {'label': _('Create'), 'url': None},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:stocktaking_deficit')
 
 
-class StocktakingDeficitDetailView(InventoryBaseView, DetailView):
+class StocktakingDeficitDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing stocktaking deficit records (read-only)."""
     model = models.StocktakingDeficit
     template_name = 'inventory/stocktaking_deficit_detail.html'
     context_object_name = 'deficit'
-    
-    def get_queryset(self):
-        """Prefetch related objects for efficient display."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.deficit', 'created_by')
-        queryset = queryset.prefetch_related(
-            'lines__item',
-            'lines__warehouse'
-        ).select_related('created_by')
-        return queryset
-    
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail view."""
-        context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse('inventory:stocktaking_deficit')
-        context['edit_url'] = reverse('inventory:stocktaking_deficit_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
-        return context
+    feature_code = 'inventory.stocktaking.deficit'
+    permission_field = 'created_by'
+
+    def get_prefetch_related(self):
+        """Prefetch related objects."""
+        return ['lines__item', 'lines__warehouse']
+
+    def get_select_related(self):
+        """Select related objects."""
+        return ['created_by']
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Deficit Record')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Stocktaking'), 'url': None},
+            {'label': _('Deficit Records'), 'url': reverse_lazy('inventory:stocktaking_deficit')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:stocktaking_deficit')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('inventory:stocktaking_deficit_edit', kwargs={'pk': self.object.pk})
 
 
 class StocktakingDeficitUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, BaseDocumentUpdateView):
@@ -294,34 +360,70 @@ class StocktakingDeficitUpdateView(LineFormsetMixin, DocumentLockProtectedMixin,
         return super().form_valid(form)
 
 
-class StocktakingDeficitDeleteView(DocumentDeleteViewBase):
+class StocktakingDeficitDeleteView(InventoryBaseView, BaseDeleteView):
     """Delete view for stocktaking deficit records."""
     model = models.StocktakingDeficit
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:stocktaking_deficit')
     feature_code = 'inventory.stocktaking.deficit'
-    required_action = 'delete_own'
-    allow_own_scope = True
     success_message = _('سند کسری موجودی با موفقیت حذف شد.')
-    
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Deficit Record')
-        context['confirmation_message'] = _('Do you really want to delete this deficit record?')
-        context['object_details'] = [
-            {'label': _('Document Code'), 'value': self.object.document_code},
-            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
-            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
-        ]
-        context['cancel_url'] = reverse_lazy('inventory:stocktaking_deficit')
-        context['breadcrumbs'] = [
+    owner_field = 'created_by'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check permissions before allowing delete."""
+        from django.core.exceptions import PermissionDenied
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        
+        # Superuser bypass
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        
+        obj = self.get_object()
+        
+        # Check permissions
+        company_id: Optional[int] = request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(request.user, company_id)
+        
+        # Check if user is owner and has DELETE_OWN permission
+        is_owner = obj.created_by == request.user if obj.created_by else False
+        can_delete_own = has_feature_permission(permissions, self.feature_code, 'delete_own', allow_own_scope=True)
+        can_delete_other = has_feature_permission(permissions, self.feature_code, 'delete_other', allow_own_scope=False)
+        
+        if is_owner and not can_delete_own:
+            raise PermissionDenied(_('شما اجازه حذف اسناد خود را ندارید.'))
+        elif not is_owner and not can_delete_other:
+            raise PermissionDenied(_('شما اجازه حذف اسناد سایر کاربران را ندارید.'))
+        
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Deficit Record')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Do you really want to delete this deficit record?')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Stocktaking'), 'url': None},
             {'label': _('Deficit Records'), 'url': reverse_lazy('inventory:stocktaking_deficit')},
             {'label': _('Delete'), 'url': None},
         ]
-        return context
+
+    def get_object_details(self):
+        """Return object details."""
+        return [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:stocktaking_deficit')
 
 
 class StocktakingDeficitLockView(DocumentLockView):
@@ -335,125 +437,184 @@ class StocktakingDeficitLockView(DocumentLockView):
 # Stocktaking Surplus Views
 # ============================================================================
 
-class StocktakingSurplusListView(InventoryBaseView, ListView):
+class StocktakingSurplusListView(InventoryBaseView, BaseDocumentListView):
     """List view for stocktaking surplus records."""
     model = models.StocktakingSurplus
     template_name = 'inventory/stocktaking_surplus.html'
-    context_object_name = 'object_list'
+    feature_code = 'inventory.stocktaking.surplus'
+    permission_field = 'created_by'
     paginate_by = 50
 
-    def get_queryset(self):
-        """Prefetch related objects for efficient display."""
-        queryset = super().get_queryset()
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.surplus', 'created_by')
-        queryset = queryset.prefetch_related(
-            'lines__item',
-            'lines__warehouse'
-        ).select_related('created_by')
-        return queryset
+    def get_prefetch_related(self):
+        """Prefetch related objects."""
+        return ['lines__item', 'lines__warehouse']
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic list template."""
-        context = super().get_context_data(**kwargs)
-        
-        # Generic list context
-        context['page_title'] = _('Surplus Records')
-        context['breadcrumbs'] = [
+    def get_select_related(self):
+        """Select related objects."""
+        return ['created_by']
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Surplus Records')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Stocktaking'), 'url': None},
         ]
-        context['create_url'] = reverse_lazy('inventory:stocktaking_surplus_create')
-        context['create_button_text'] = _('Create Surplus Record')
-        context['show_actions'] = True
-        
-        # Stocktaking Surplus-specific context
-        context['feature_code'] = 'inventory.stocktaking.surplus'
-        context['detail_url_name'] = 'inventory:stocktaking_surplus_detail'
-        context['edit_url_name'] = 'inventory:stocktaking_surplus_edit'
-        context['delete_url_name'] = 'inventory:stocktaking_surplus_delete'
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:stocktaking_surplus_create')
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Surplus Record')
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:stocktaking_surplus_detail'
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:stocktaking_surplus_edit'
+
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'inventory:stocktaking_surplus_delete'
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Surplus Records Found')
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Surplus records are created during stocktaking when counted quantity is more than expected.')
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📈'
+
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add stocktaking surplus specific context."""
+        context = super().get_context_data(**kwargs)
         context['lock_url_name'] = 'inventory:stocktaking_surplus_lock'
-        context['empty_state_title'] = _('No Surplus Records Found')
-        context['empty_state_message'] = _('Surplus records are created during stocktaking when counted quantity is more than expected.')
-        context['empty_state_icon'] = '📈'
-        
         # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.stocktaking.surplus')
-        
         # User for permission checks in template
         context['user'] = self.request.user
-        
         return context
 
 
-class StocktakingSurplusCreateView(LineFormsetMixin, StocktakingFormMixin, CreateView):
+class StocktakingSurplusCreateView(LineFormsetMixin, StocktakingFormMixin, BaseDocumentCreateView):
     """Create view for stocktaking surplus records."""
     model = models.StocktakingSurplus
     form_class = forms.StocktakingSurplusForm
     formset_class = forms.StocktakingSurplusLineFormSet
+    formset_prefix = 'lines'
     success_url = reverse_lazy('inventory:stocktaking_surplus')
+    feature_code = 'inventory.stocktaking.surplus'
+    success_message = _('سند مازاد انبارگردانی با موفقیت ایجاد شد.')
     form_title = _('ایجاد سند مازاد انبارگردانی')
     list_url_name = 'inventory:stocktaking_surplus'
     lock_url_name = 'inventory:stocktaking_surplus_lock'
 
     def form_valid(self, form):
-        """Save document and line formset."""
-        form.instance.company_id = self.request.session.get('active_company_id')
-        form.instance.created_by = self.request.user
+        """Save document and line formset with custom validation."""
+        from django.db import transaction
+        from shared.views.base import BaseCreateView
         
-        # Save document first
-        self.object = form.save()
+        with transaction.atomic():
+            # Save document first (AutoSetFieldsMixin handles company_id and created_by)
+            # Call BaseCreateView.form_valid directly to skip BaseFormsetCreateView's formset.save()
+            response = BaseCreateView.form_valid(self, form)
+            
+            # Handle line formset with custom validation
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            if not lines_formset.is_valid():
+                # If formset is invalid, delete the main object and re-render
+                self.object.delete()
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Check if we have at least one valid line before saving
+            valid_lines = []
+            for form in lines_formset.forms:
+                if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                    valid_lines.append(form)
+            
+            if not valid_lines:
+                self.object.delete()
+                form.add_error(None, _('حداقل یک ردیف کالا الزامی است.'))
+                lines_formset = self.build_line_formset(instance=None)
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Save formset using LineFormsetMixin's _save_line_formset
+            self._save_line_formset(lines_formset)
         
-        # Handle line formset
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
-        if not lines_formset.is_valid():
-            # If formset is invalid, delete the main object and re-render
-            self.object.delete()
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        # Check if we have at least one valid line before saving
-        valid_lines = []
-        for form in lines_formset.forms:
-            if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
-                valid_lines.append(form)
-        
-        if not valid_lines:
-            self.object.delete()
-            form.add_error(None, _('حداقل یک ردیف کالا الزامی است.'))
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        self._save_line_formset(lines_formset)
-        messages.success(self.request, _('سند مازاد انبارگردانی با موفقیت ایجاد شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        return response
+
+    def get_fieldsets(self) -> list:
+        """Return fieldsets configuration."""
+        # Use StocktakingFormMixin's get_fieldsets if available
+        if hasattr(StocktakingFormMixin, 'get_fieldsets'):
+            return super(StocktakingFormMixin, self).get_fieldsets()
+        return []
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Stocktaking'), 'url': None},
+            {'label': _('Surplus Records'), 'url': reverse_lazy('inventory:stocktaking_surplus')},
+            {'label': _('Create'), 'url': None},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:stocktaking_surplus')
 
 
-class StocktakingSurplusDetailView(InventoryBaseView, DetailView):
+class StocktakingSurplusDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing stocktaking surplus records (read-only)."""
     model = models.StocktakingSurplus
     template_name = 'inventory/stocktaking_surplus_detail.html'
     context_object_name = 'surplus'
-    
-    def get_queryset(self):
-        """Prefetch related objects for efficient display."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.surplus', 'created_by')
-        queryset = queryset.prefetch_related(
-            'lines__item',
-            'lines__warehouse'
-        ).select_related('created_by')
-        return queryset
-    
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail view."""
-        context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse('inventory:stocktaking_surplus')
-        context['edit_url'] = reverse('inventory:stocktaking_surplus_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
-        return context
+    feature_code = 'inventory.stocktaking.surplus'
+    permission_field = 'created_by'
+
+    def get_prefetch_related(self):
+        """Prefetch related objects."""
+        return ['lines__item', 'lines__warehouse']
+
+    def get_select_related(self):
+        """Select related objects."""
+        return ['created_by']
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Surplus Record')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Stocktaking'), 'url': None},
+            {'label': _('Surplus Records'), 'url': reverse_lazy('inventory:stocktaking_surplus')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:stocktaking_surplus')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('inventory:stocktaking_surplus_edit', kwargs={'pk': self.object.pk})
 
 
 class StocktakingSurplusUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, BaseDocumentUpdateView):
@@ -514,34 +675,70 @@ class StocktakingSurplusUpdateView(LineFormsetMixin, DocumentLockProtectedMixin,
         return super().form_valid(form)
 
 
-class StocktakingSurplusDeleteView(DocumentDeleteViewBase):
+class StocktakingSurplusDeleteView(InventoryBaseView, BaseDeleteView):
     """Delete view for stocktaking surplus records."""
     model = models.StocktakingSurplus
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:stocktaking_surplus')
     feature_code = 'inventory.stocktaking.surplus'
-    required_action = 'delete_own'
-    allow_own_scope = True
     success_message = _('سند مازاد موجودی با موفقیت حذف شد.')
-    
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Surplus Record')
-        context['confirmation_message'] = _('Do you really want to delete this surplus record?')
-        context['object_details'] = [
-            {'label': _('Document Code'), 'value': self.object.document_code},
-            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
-            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
-        ]
-        context['cancel_url'] = reverse_lazy('inventory:stocktaking_surplus')
-        context['breadcrumbs'] = [
+    owner_field = 'created_by'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check permissions before allowing delete."""
+        from django.core.exceptions import PermissionDenied
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        
+        # Superuser bypass
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        
+        obj = self.get_object()
+        
+        # Check permissions
+        company_id: Optional[int] = request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(request.user, company_id)
+        
+        # Check if user is owner and has DELETE_OWN permission
+        is_owner = obj.created_by == request.user if obj.created_by else False
+        can_delete_own = has_feature_permission(permissions, self.feature_code, 'delete_own', allow_own_scope=True)
+        can_delete_other = has_feature_permission(permissions, self.feature_code, 'delete_other', allow_own_scope=False)
+        
+        if is_owner and not can_delete_own:
+            raise PermissionDenied(_('شما اجازه حذف اسناد خود را ندارید.'))
+        elif not is_owner and not can_delete_other:
+            raise PermissionDenied(_('شما اجازه حذف اسناد سایر کاربران را ندارید.'))
+        
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Surplus Record')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Do you really want to delete this surplus record?')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Stocktaking'), 'url': None},
             {'label': _('Surplus Records'), 'url': reverse_lazy('inventory:stocktaking_surplus')},
             {'label': _('Delete'), 'url': None},
         ]
-        return context
+
+    def get_object_details(self):
+        """Return object details."""
+        return [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:stocktaking_surplus')
 
 
 class StocktakingSurplusLockView(DocumentLockView):
@@ -555,71 +752,82 @@ class StocktakingSurplusLockView(DocumentLockView):
 # Stocktaking Record Views
 # ============================================================================
 
-class StocktakingRecordListView(InventoryBaseView, ListView):
+class StocktakingRecordListView(InventoryBaseView, BaseListView):
     """List view for stocktaking records."""
     model = models.StocktakingRecord
     template_name = 'inventory/stocktaking_records.html'
-    context_object_name = 'object_list'
+    feature_code = 'inventory.stocktaking.records'
+    permission_field = 'created_by'
     paginate_by = 50
 
-    def get_queryset(self):
-        """Prefetch related objects for efficient display."""
-        queryset = super().get_queryset()
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.records', 'created_by')
-        queryset = queryset.select_related('confirmed_by', 'created_by')
-        return queryset
+    def get_select_related(self):
+        """Select related objects."""
+        return ['confirmed_by', 'created_by']
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic list template."""
-        context = super().get_context_data(**kwargs)
-        
-        # Generic list context
-        context['page_title'] = _('Stocktaking Records')
-        context['breadcrumbs'] = [
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Stocktaking Records')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Stocktaking'), 'url': None},
         ]
-        context['create_url'] = reverse_lazy('inventory:stocktaking_record_create')
-        context['create_button_text'] = _('Create Stocktaking Record')
-        context['show_actions'] = True
-        
-        # Stocktaking Record-specific context
-        context['feature_code'] = 'inventory.stocktaking.records'
-        context['detail_url_name'] = 'inventory:stocktaking_record_detail'
-        context['edit_url_name'] = 'inventory:stocktaking_record_edit'
-        context['delete_url_name'] = 'inventory:stocktaking_record_delete'
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:stocktaking_record_create')
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Stocktaking Record')
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:stocktaking_record_detail'
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:stocktaking_record_edit'
+
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'inventory:stocktaking_record_delete'
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Stocktaking Records Found')
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Stocktaking records confirm the accuracy of inventory counts.')
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📋'
+
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add stocktaking record specific context."""
+        context = super().get_context_data(**kwargs)
         context['lock_url_name'] = 'inventory:stocktaking_record_lock'
-        context['empty_state_title'] = _('No Stocktaking Records Found')
-        context['empty_state_message'] = _('Stocktaking records confirm the accuracy of inventory counts.')
-        context['empty_state_icon'] = '📋'
-        
         # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.stocktaking.records')
-        
         # User for permission checks in template
         context['user'] = self.request.user
-        
         return context
 
 
-class StocktakingRecordCreateView(StocktakingFormMixin, CreateView):
+class StocktakingRecordCreateView(StocktakingFormMixin, BaseCreateView):
     """Create view for stocktaking records."""
     model = models.StocktakingRecord
     form_class = forms.StocktakingRecordForm
     success_url = reverse_lazy('inventory:stocktaking_records')
+    feature_code = 'inventory.stocktaking.records'
+    success_message = _('سند نهایی انبارگردانی با موفقیت ایجاد شد.')
     form_title = _('ایجاد سند نهایی انبارگردانی')
     list_url_name = 'inventory:stocktaking_records'
     lock_url_name = 'inventory:stocktaking_record_lock'
-
-    def form_valid(self, form):
-        """Set company and created_by before saving."""
-        company_id: Optional[int] = self.request.session.get('active_company_id')
-        form.instance.company_id = company_id
-        form.instance.created_by = self.request.user
-        response = super().form_valid(form)
-        messages.success(self.request, _('سند نهایی انبارگردانی با موفقیت ایجاد شد.'))
-        return response
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
@@ -630,27 +838,52 @@ class StocktakingRecordCreateView(StocktakingFormMixin, CreateView):
             (_('خلاصه موجودی'), ['final_inventory_value']),
         ]
 
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Stocktaking'), 'url': None},
+            {'label': _('Stocktaking Records'), 'url': reverse_lazy('inventory:stocktaking_records')},
+            {'label': _('Create'), 'url': None},
+        ]
 
-class StocktakingRecordDetailView(InventoryBaseView, DetailView):
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:stocktaking_records')
+
+
+class StocktakingRecordDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing stocktaking records (read-only)."""
     model = models.StocktakingRecord
     template_name = 'inventory/stocktaking_record_detail.html'
     context_object_name = 'record'
-    
-    def get_queryset(self):
-        """Prefetch related objects for efficient display."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.records', 'created_by')
-        queryset = queryset.select_related('confirmed_by', 'created_by')
-        return queryset
-    
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail view."""
-        context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse('inventory:stocktaking_records')
-        context['edit_url'] = reverse('inventory:stocktaking_record_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
-        return context
+    feature_code = 'inventory.stocktaking.records'
+    permission_field = 'created_by'
+
+    def get_select_related(self):
+        """Select related objects."""
+        return ['confirmed_by', 'created_by']
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Stocktaking Record')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Stocktaking'), 'url': None},
+            {'label': _('Stocktaking Records'), 'url': reverse_lazy('inventory:stocktaking_records')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:stocktaking_records')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('inventory:stocktaking_record_edit', kwargs={'pk': self.object.pk})
 
 
 class StocktakingRecordUpdateView(DocumentLockProtectedMixin, StocktakingFormMixin, BaseUpdateView):
@@ -687,35 +920,71 @@ class StocktakingRecordUpdateView(DocumentLockProtectedMixin, StocktakingFormMix
         ]
 
 
-class StocktakingRecordDeleteView(DocumentDeleteViewBase):
+class StocktakingRecordDeleteView(InventoryBaseView, BaseDeleteView):
     """Delete view for stocktaking records."""
     model = models.StocktakingRecord
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:stocktaking_records')
     feature_code = 'inventory.stocktaking.records'
-    required_action = 'delete_own'
-    allow_own_scope = True
     success_message = _('سند شمارش موجودی با موفقیت حذف شد.')
-    
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Stocktaking Record')
-        context['confirmation_message'] = _('Do you really want to delete this stocktaking record?')
-        context['object_details'] = [
-            {'label': _('Document Code'), 'value': self.object.document_code},
-            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
-            {'label': _('Session ID'), 'value': str(self.object.stocktaking_session_id) if self.object.stocktaking_session_id else '-'},
-            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
-        ]
-        context['cancel_url'] = reverse_lazy('inventory:stocktaking_records')
-        context['breadcrumbs'] = [
+    owner_field = 'created_by'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check permissions before allowing delete."""
+        from django.core.exceptions import PermissionDenied
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        
+        # Superuser bypass
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        
+        obj = self.get_object()
+        
+        # Check permissions
+        company_id: Optional[int] = request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(request.user, company_id)
+        
+        # Check if user is owner and has DELETE_OWN permission
+        is_owner = obj.created_by == request.user if obj.created_by else False
+        can_delete_own = has_feature_permission(permissions, self.feature_code, 'delete_own', allow_own_scope=True)
+        can_delete_other = has_feature_permission(permissions, self.feature_code, 'delete_other', allow_own_scope=False)
+        
+        if is_owner and not can_delete_own:
+            raise PermissionDenied(_('شما اجازه حذف اسناد خود را ندارید.'))
+        elif not is_owner and not can_delete_other:
+            raise PermissionDenied(_('شما اجازه حذف اسناد سایر کاربران را ندارید.'))
+        
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Stocktaking Record')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Do you really want to delete this stocktaking record?')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Stocktaking'), 'url': None},
             {'label': _('Stocktaking Records'), 'url': reverse_lazy('inventory:stocktaking_records')},
             {'label': _('Delete'), 'url': None},
         ]
-        return context
+
+    def get_object_details(self):
+        """Return object details."""
+        return [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Session ID'), 'value': str(self.object.stocktaking_session_id) if self.object.stocktaking_session_id else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:stocktaking_records')
 
 
 class StocktakingRecordLockView(DocumentLockView):

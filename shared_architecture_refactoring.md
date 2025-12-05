@@ -3006,7 +3006,7 @@ class TemporaryReceiptQCApproveView(FeaturePermissionRequiredMixin, QCBaseView, 
 
 **تاریخ ایجاد**: 2024  
 **آخرین به‌روزرسانی**: 2024-12-05  
-**وضعیت**: در حال پیاده‌سازی - ماژول `shared` تکمیل شد ✅ (25/25 view) - ماژول `inventory` (Receipts) تکمیل شد ✅ (15/15 view) - ماژول `inventory` (Issues) تکمیل شد ✅ (19/19 view) - ماژول `inventory` (Master Data) در حال انجام 🔄 (36/36 view - 16/36 refactor شده)
+**وضعیت**: در حال پیاده‌سازی - ماژول `shared` تکمیل شد ✅ (25/25 view) - ماژول `inventory` تکمیل شد ✅ (89/89 view) - ماژول‌های باقی‌مانده: `production` (68 view), `accounting` (34 view), `ticketing` (22 view), `qc` (6 view) - **جمع کل باقی‌مانده: 130 view**
 
 ---
 
@@ -3114,92 +3114,249 @@ class TemporaryReceiptQCApproveView(FeaturePermissionRequiredMixin, QCBaseView, 
       - ✅ `IssueWarehouseTransferCreateView` → `BaseDocumentCreateView` + `LineFormsetMixin` + `ReceiptFormMixin`
       - ✅ `IssueWarehouseTransferUpdateView` → `BaseDocumentUpdateView` + `LineFormsetMixin` + `ReceiptFormMixin`
       - ✅ `IssueWarehouseTransferDetailView` → `BaseDetailView`
-  - 🔄 **`inventory/views/master_data.py`** - Master Data (در حال انجام):
+  - ✅ **`inventory/views/master_data.py`** - Master Data (کامل ✅):
     - ✅ **ItemType** (5/5 view) - کامل ✅:
       - ✅ `ItemTypeListView` → `BaseListView`
       - ✅ `ItemTypeCreateView` → `BaseCreateView`
       - ✅ `ItemTypeUpdateView` → `BaseUpdateView` (قبلاً refactor شده)
       - ✅ `ItemTypeDetailView` → `BaseDetailView`
       - ✅ `ItemTypeDeleteView` → `BaseDeleteView`
-    - ⏳ **ItemCategory** (5/5 view) - در انتظار:
-      - ⏳ `ItemCategoryListView` → `BaseListView`
-      - ⏳ `ItemCategoryCreateView` → `BaseCreateView`
+    - ✅ **ItemCategory** (5/5 view) - کامل ✅:
+      - ✅ `ItemCategoryListView` → `BaseListView`
+      - ✅ `ItemCategoryCreateView` → `BaseCreateView`
       - ✅ `ItemCategoryUpdateView` → `BaseUpdateView` (قبلاً refactor شده)
-      - ⏳ `ItemCategoryDetailView` → `BaseDetailView`
-      - ⏳ `ItemCategoryDeleteView` → `BaseDeleteView`
-    - ⏳ **ItemSubcategory** (5/5 view) - در انتظار:
-      - ⏳ `ItemSubcategoryListView` → `BaseListView`
-      - ⏳ `ItemSubcategoryCreateView` → `BaseCreateView`
+      - ✅ `ItemCategoryDetailView` → `BaseDetailView`
+      - ✅ `ItemCategoryDeleteView` → `BaseDeleteView`
+    - ✅ **ItemSubcategory** (5/5 view) - کامل ✅:
+      - ✅ `ItemSubcategoryListView` → `BaseListView`
+      - ✅ `ItemSubcategoryCreateView` → `BaseCreateView`
       - ✅ `ItemSubcategoryUpdateView` → `BaseUpdateView` (قبلاً refactor شده)
-      - ⏳ `ItemSubcategoryDetailView` → `BaseDetailView`
-      - ⏳ `ItemSubcategoryDeleteView` → `BaseDeleteView`
-    - 🔄 **Item** (6/6 view) - نیمه refactor شده:
+      - ✅ `ItemSubcategoryDetailView` → `BaseDetailView`
+      - ✅ `ItemSubcategoryDeleteView` → `BaseDeleteView`
+    - ✅ **Item** (6/6 view) - کامل ✅:
       - ✅ `ItemListView` → `BaseListView` (refactor شده)
       - ✅ `ItemSerialListView` → `BaseListView` (refactor شده)
       - ✅ `ItemCreateView` → `BaseCreateView` (refactor شده)
       - ✅ `ItemUpdateView` → `BaseFormsetUpdateView` (refactor شده)
-      - ⏳ `ItemDetailView` → `BaseDetailView`
-      - ⏳ `ItemDeleteView` → `BaseDeleteView`
-    - 🔄 **Warehouse** (5/5 view) - نیمه refactor شده:
+      - ✅ `ItemDetailView` → `BaseDetailView`
+      - ✅ `ItemDeleteView` → `BaseDeleteView`
+    - ✅ **Warehouse** (5/5 view) - کامل ✅:
       - ✅ `WarehouseListView` → `BaseListView` (refactor شده)
       - ✅ `WarehouseCreateView` → `BaseCreateView` (refactor شده)
       - ✅ `WarehouseUpdateView` → `BaseUpdateView` (refactor شده)
-      - ⏳ `WarehouseDetailView` → `BaseDetailView`
-      - ⏳ `WarehouseDeleteView` → `BaseDeleteView`
-    - ⏳ **SupplierCategory** (5/5 view) - در انتظار:
-      - ⏳ `SupplierCategoryListView` → `BaseListView`
-      - ⏳ `SupplierCategoryCreateView` → `BaseCreateView`
+      - ✅ `WarehouseDetailView` → `BaseDetailView`
+      - ✅ `WarehouseDeleteView` → `BaseDeleteView`
+    - ✅ **SupplierCategory** (5/5 view) - کامل ✅:
+      - ✅ `SupplierCategoryListView` → `BaseListView`
+      - ✅ `SupplierCategoryCreateView` → `BaseCreateView`
       - ✅ `SupplierCategoryUpdateView` → `BaseUpdateView` (قبلاً refactor شده)
-      - ⏳ `SupplierCategoryDetailView` → `BaseDetailView`
-      - ⏳ `SupplierCategoryDeleteView` → `BaseDeleteView`
-    - ⏳ **Supplier** (5/5 view) - در انتظار:
-      - ⏳ `SupplierListView` → `BaseListView`
-      - ⏳ `SupplierCreateView` → `BaseCreateView`
+      - ✅ `SupplierCategoryDetailView` → `BaseDetailView`
+      - ✅ `SupplierCategoryDeleteView` → `BaseDeleteView`
+    - ✅ **Supplier** (5/5 view) - کامل ✅:
+      - ✅ `SupplierListView` → `BaseListView`
+      - ✅ `SupplierCreateView` → `BaseCreateView`
       - ✅ `SupplierUpdateView` → `BaseUpdateView` (قبلاً refactor شده)
-      - ⏳ `SupplierDetailView` → `BaseDetailView`
-      - ⏳ `SupplierDeleteView` → `BaseDeleteView`
-  - ⏳ **`inventory/views/requests.py`** - Requests (در انتظار):
-    - 🔄 **PurchaseRequest** (5/5 view) - نیمه refactor شده:
+      - ✅ `SupplierDetailView` → `BaseDetailView`
+      - ✅ `SupplierDeleteView` → `BaseDeleteView`
+  - ✅ **`inventory/views/requests.py`** - Requests (کامل ✅):
+    - ✅ **PurchaseRequest** (5/5 view) - کامل ✅:
       - ✅ `PurchaseRequestListView` → `BaseListView` (refactor شده)
       - ✅ `PurchaseRequestCreateView` → `BaseCreateView` (refactor شده)
-      - ⏳ `PurchaseRequestDetailView` → `BaseDetailView`
+      - ✅ `PurchaseRequestDetailView` → `BaseDetailView`
       - ✅ `PurchaseRequestUpdateView` → `BaseFormsetUpdateView` (refactor شده)
       - ⏳ `PurchaseRequestApproveView` → `View` (view خاص، نیازی به refactor ندارد)
-    - 🔄 **WarehouseRequest** (5/5 view) - نیمه refactor شده:
-      - ⏳ `WarehouseRequestListView` → `BaseListView`
+    - ✅ **WarehouseRequest** (5/5 view) - کامل ✅:
+      - ✅ `WarehouseRequestListView` → `BaseListView`
       - ✅ `WarehouseRequestCreateView` → `BaseFormsetCreateView` (refactor شده)
-      - ⏳ `WarehouseRequestDetailView` → `BaseDetailView`
+      - ✅ `WarehouseRequestDetailView` → `BaseDetailView`
       - ✅ `WarehouseRequestUpdateView` → `BaseFormsetUpdateView` (refactor شده)
       - ⏳ `WarehouseRequestApproveView` → `View` (view خاص، نیازی به refactor ندارد)
-  - ⏳ **`inventory/views/stocktaking.py`** - Stocktaking (در انتظار):
-    - ⏳ **StocktakingDeficit** (6/6 view) - در انتظار:
-      - ⏳ `StocktakingDeficitListView` → `BaseDocumentListView`
-      - ⏳ `StocktakingDeficitCreateView` → `BaseDocumentCreateView`
-      - ⏳ `StocktakingDeficitDetailView` → `BaseDetailView`
+  - ✅ **`inventory/views/stocktaking.py`** - Stocktaking (کامل ✅):
+    - ✅ **StocktakingDeficit** (6/6 view) - کامل ✅:
+      - ✅ `StocktakingDeficitListView` → `BaseDocumentListView`
+      - ✅ `StocktakingDeficitCreateView` → `BaseDocumentCreateView`
+      - ✅ `StocktakingDeficitDetailView` → `BaseDetailView`
       - ✅ `StocktakingDeficitUpdateView` → `BaseDocumentUpdateView` (refactor شده)
-      - ⏳ `StocktakingDeficitDeleteView` → `BaseDeleteView`
+      - ✅ `StocktakingDeficitDeleteView` → `BaseDeleteView`
       - ⏳ `StocktakingDeficitLockView` → `DocumentLockView` (view خاص)
-    - ⏳ **StocktakingSurplus** (6/6 view) - در انتظار:
-      - ⏳ `StocktakingSurplusListView` → `BaseDocumentListView`
-      - ⏳ `StocktakingSurplusCreateView` → `BaseDocumentCreateView`
-      - ⏳ `StocktakingSurplusDetailView` → `BaseDetailView`
+    - ✅ **StocktakingSurplus** (6/6 view) - کامل ✅:
+      - ✅ `StocktakingSurplusListView` → `BaseDocumentListView`
+      - ✅ `StocktakingSurplusCreateView` → `BaseDocumentCreateView`
+      - ✅ `StocktakingSurplusDetailView` → `BaseDetailView`
       - ✅ `StocktakingSurplusUpdateView` → `BaseDocumentUpdateView` (refactor شده)
-      - ⏳ `StocktakingSurplusDeleteView` → `BaseDeleteView`
+      - ✅ `StocktakingSurplusDeleteView` → `BaseDeleteView`
       - ⏳ `StocktakingSurplusLockView` → `DocumentLockView` (view خاص)
-    - ⏳ **StocktakingRecord** (6/6 view) - در انتظار:
-      - ⏳ `StocktakingRecordListView` → `BaseDocumentListView`
-      - ⏳ `StocktakingRecordCreateView` → `BaseDocumentCreateView`
-      - ⏳ `StocktakingRecordDetailView` → `BaseDetailView`
+    - ✅ **StocktakingRecord** (6/6 view) - کامل ✅:
+      - ✅ `StocktakingRecordListView` → `BaseListView`
+      - ✅ `StocktakingRecordCreateView` → `BaseCreateView`
+      - ✅ `StocktakingRecordDetailView` → `BaseDetailView`
       - ✅ `StocktakingRecordUpdateView` → `BaseUpdateView` (refactor شده)
-      - ⏳ `StocktakingRecordDeleteView` → `BaseDeleteView`
+      - ✅ `StocktakingRecordDeleteView` → `BaseDeleteView`
       - ⏳ `StocktakingRecordLockView` → `DocumentLockView` (view خاص)
   - ⏳ **`inventory/views/issues_from_warehouse_request.py`** - در انتظار بررسی
   - ⏳ **`inventory/views/balance.py`** - TemplateView (view خاص، نیازی به refactor ندارد)
   - ⏳ **`inventory/views/item_import.py`** - View/TemplateView (view خاص، نیازی به refactor ندارد)
-- ⏳ ماژول `production` - در انتظار
-- ⏳ ماژول `accounting` - در انتظار
-- ⏳ ماژول `ticketing` - در انتظار
-- ⏳ ماژول `qc` - در انتظار
+- ⏳ **ماژول `production`** - در انتظار (68 view):
+  - ⏳ **`production/views/personnel.py`** - Personnel (5/5 view) - در انتظار:
+    - ⏳ `PersonnelListView` → `BaseListView`
+    - ⏳ `PersonCreateView` → `BaseCreateView`
+    - ⏳ `PersonUpdateView` → `BaseUpdateView`
+    - ⏳ `PersonDetailView` → `BaseDetailView`
+    - ⏳ `PersonDeleteView` → `BaseDeleteView`
+  - ⏳ **`production/views/machine.py`** - Machine (5/5 view) - در انتظار:
+    - ⏳ `MachineListView` → `BaseListView`
+    - ⏳ `MachineCreateView` → `BaseCreateView`
+    - ⏳ `MachineUpdateView` → `BaseUpdateView`
+    - ⏳ `MachineDetailView` → `BaseDetailView`
+    - ⏳ `MachineDeleteView` → `BaseDeleteView`
+  - ⏳ **`production/views/work_line.py`** - WorkLine (5/5 view) - در انتظار:
+    - ⏳ `WorkLineListView` → `BaseListView`
+    - ⏳ `WorkLineCreateView` → `BaseCreateView`
+    - ⏳ `WorkLineUpdateView` → `BaseUpdateView`
+    - ⏳ `WorkLineDetailView` → `BaseDetailView`
+    - ⏳ `WorkLineDeleteView` → `BaseDeleteView`
+  - ⏳ **`production/views/process.py`** - Process (5/5 view) - در انتظار:
+    - ⏳ `ProcessListView` → `BaseListView`
+    - ⏳ `ProcessCreateView` → `BaseCreateView`
+    - ⏳ `ProcessUpdateView` → `BaseUpdateView`
+    - ⏳ `ProcessDetailView` → `BaseDetailView`
+    - ⏳ `ProcessDeleteView` → `BaseDeleteView`
+  - ⏳ **`production/views/bom.py`** - BOM (5/5 view) - در انتظار:
+    - ⏳ `BOMListView` → `BaseListView`
+    - ⏳ `BOMCreateView` → `BaseFormsetCreateView`
+    - ⏳ `BOMUpdateView` → `BaseFormsetUpdateView`
+    - ⏳ `BOMDetailView` → `BaseDetailView`
+    - ⏳ `BOMDeleteView` → `BaseDeleteView`
+  - ⏳ **`production/views/product_order.py`** - ProductOrder (5/5 view) - در انتظار:
+    - ⏳ `ProductOrderListView` → `BaseListView`
+    - ⏳ `ProductOrderCreateView` → `BaseCreateView`
+    - ⏳ `ProductOrderUpdateView` → `BaseUpdateView`
+    - ⏳ `ProductOrderDetailView` → `BaseDetailView`
+    - ⏳ `ProductOrderDeleteView` → `BaseDeleteView`
+  - ⏳ **`production/views/transfer_to_line.py`** - TransferToLine (11/11 view) - در انتظار:
+    - ⏳ `TransferToLineListView` → `BaseDocumentListView`
+    - ⏳ `TransferToLineCreateView` → `BaseDocumentCreateView`
+    - ⏳ `TransferToLineUpdateView` → `BaseDocumentUpdateView`
+    - ⏳ `TransferToLineDetailView` → `BaseDetailView`
+    - ⏳ `TransferToLineDeleteView` → `BaseDeleteView`
+    - ⏳ `TransferToLineApproveView` → `View` (view خاص)
+    - ⏳ `TransferToLineRejectView` → `View` (view خاص)
+    - ⏳ `TransferToLineQCApproveView` → `View` (view خاص)
+    - ⏳ `TransferToLineQCRejectView` → `View` (view خاص)
+    - ⏳ `TransferToLineCreateWarehouseTransferView` → `View` (view خاص)
+    - ⏳ `TransferToLineUnlockView` → `View` (view خاص)
+  - ⏳ **`production/views/performance_record.py`** - PerformanceRecord (9/9 view) - در انتظار:
+    - ⏳ `PerformanceRecordListView` → `BaseDocumentListView`
+    - ⏳ `PerformanceRecordCreateView` → `BaseDocumentCreateView`
+    - ⏳ `PerformanceRecordUpdateView` → `BaseDocumentUpdateView`
+    - ⏳ `PerformanceRecordDetailView` → `BaseDetailView`
+    - ⏳ `PerformanceRecordDeleteView` → `BaseDeleteView`
+    - ⏳ `PerformanceRecordApproveView` → `View` (view خاص)
+    - ⏳ `PerformanceRecordRejectView` → `View` (view خاص)
+    - ⏳ `PerformanceRecordCreateReceiptView` → `View` (view خاص)
+    - ⏳ `PerformanceRecordGetOperationsView` → `View` (view خاص)
+  - ⏳ **`production/views/rework.py`** - ReworkDocument (7/7 view) - در انتظار:
+    - ⏳ `ReworkDocumentListView` → `BaseDocumentListView`
+    - ⏳ `ReworkDocumentCreateView` → `BaseDocumentCreateView`
+    - ⏳ `ReworkDocumentUpdateView` → `BaseDocumentUpdateView`
+    - ⏳ `ReworkDocumentDetailView` → `BaseDetailView`
+    - ⏳ `ReworkDocumentDeleteView` → `BaseDeleteView`
+    - ⏳ `ReworkDocumentApproveView` → `View` (view خاص)
+    - ⏳ `ReworkDocumentRejectView` → `View` (view خاص)
+  - ⏳ **`production/views/qc_operations.py`** - QCOperations (3/3 view) - در انتظار:
+    - ⏳ `QCOperationsListView` → `BaseListView`
+    - ⏳ `QCOperationApproveView` → `View` (view خاص)
+    - ⏳ `QCOperationRejectView` → `View` (view خاص)
+  - ⏳ **`production/views/placeholders.py`** - Placeholders (3/3 view) - viewهای خاص، نیازی به refactor ندارد:
+    - ⏳ `TransferToLineRequestListView` → `ListView` (view خاص)
+    - ⏳ `PerformanceRecordListView` → `ListView` (view خاص)
+    - ⏳ `TrackingIdentificationView` → `TemplateView` (view خاص)
+
+- ⏳ **ماژول `accounting`** - در انتظار (34 view):
+  - ⏳ **`accounting/views/accounts.py`** - Account (5/5 view) - در انتظار:
+    - ⏳ `AccountListView` → `BaseListView`
+    - ⏳ `AccountCreateView` → `BaseCreateView`
+    - ⏳ `AccountUpdateView` → `BaseUpdateView`
+    - ⏳ `AccountDetailView` → `BaseDetailView`
+    - ⏳ `AccountDeleteView` → `BaseDeleteView`
+  - ⏳ **`accounting/views/fiscal_years.py`** - FiscalYear (5/5 view) - در انتظار:
+    - ⏳ `FiscalYearListView` → `BaseListView`
+    - ⏳ `FiscalYearCreateView` → `BaseCreateView`
+    - ⏳ `FiscalYearUpdateView` → `BaseUpdateView`
+    - ⏳ `FiscalYearDetailView` → `BaseDetailView`
+    - ⏳ `FiscalYearDeleteView` → `BaseDeleteView`
+  - ⏳ **`accounting/views/tafsili_accounts.py`** - TafsiliAccount (5/5 view) - در انتظار:
+    - ⏳ `TafsiliAccountListView` → `BaseListView`
+    - ⏳ `TafsiliAccountCreateView` → `BaseCreateView`
+    - ⏳ `TafsiliAccountUpdateView` → `BaseUpdateView`
+    - ⏳ `TafsiliAccountDetailView` → `BaseDetailView`
+    - ⏳ `TafsiliAccountDeleteView` → `BaseDeleteView`
+  - ⏳ **`accounting/views/sub_accounts.py`** - SubAccount (5/5 view) - در انتظار:
+    - ⏳ `SubAccountListView` → `BaseListView`
+    - ⏳ `SubAccountCreateView` → `BaseCreateView`
+    - ⏳ `SubAccountUpdateView` → `BaseUpdateView`
+    - ⏳ `SubAccountDetailView` → `BaseDetailView`
+    - ⏳ `SubAccountDeleteView` → `BaseDeleteView`
+  - ⏳ **`accounting/views/tafsili_hierarchy.py`** - TafsiliHierarchy (5/5 view) - در انتظار:
+    - ⏳ `TafsiliHierarchyListView` → `BaseListView`
+    - ⏳ `TafsiliHierarchyCreateView` → `BaseCreateView`
+    - ⏳ `TafsiliHierarchyUpdateView` → `BaseUpdateView`
+    - ⏳ `TafsiliHierarchyDetailView` → `BaseDetailView`
+    - ⏳ `TafsiliHierarchyDeleteView` → `BaseDeleteView`
+  - ⏳ **`accounting/views/gl_accounts.py`** - GLAccount (5/5 view) - در انتظار:
+    - ⏳ `GLAccountListView` → `BaseListView`
+    - ⏳ `GLAccountCreateView` → `BaseCreateView`
+    - ⏳ `GLAccountUpdateView` → `BaseUpdateView`
+    - ⏳ `GLAccountDetailView` → `BaseDetailView`
+    - ⏳ `GLAccountDeleteView` → `BaseDeleteView`
+  - ⏳ **`accounting/views/document_attachments.py`** - DocumentAttachment (4/4 view) - در انتظار:
+    - ⏳ `DocumentAttachmentUploadView` → `FormView` (view خاص)
+    - ⏳ `DocumentAttachmentListView` → `BaseListView`
+    - ⏳ `DocumentAttachmentDownloadSingleView` → `View` (view خاص)
+    - ⏳ `DocumentAttachmentDownloadBulkView` → `View` (view خاص)
+
+- ⏳ **ماژول `ticketing`** - در انتظار (22 view):
+  - ⏳ **`ticketing/views/categories.py`** - TicketCategory (5/5 view) - در انتظار:
+    - ⏳ `TicketCategoryListView` → `BaseListView`
+    - ⏳ `TicketCategoryCreateView` → `BaseCreateView`
+    - ⏳ `TicketCategoryUpdateView` → `BaseUpdateView`
+    - ⏳ `TicketCategoryDetailView` → `BaseDetailView`
+    - ⏳ `TicketCategoryDeleteView` → `BaseDeleteView`
+  - ⏳ **`ticketing/views/subcategories.py`** - TicketSubcategory (5/5 view) - در انتظار:
+    - ⏳ `TicketSubcategoryListView` → `BaseListView`
+    - ⏳ `TicketSubcategoryCreateView` → `BaseCreateView`
+    - ⏳ `TicketSubcategoryUpdateView` → `BaseUpdateView`
+    - ⏳ `TicketSubcategoryDetailView` → `BaseDetailView`
+    - ⏳ `TicketSubcategoryDeleteView` → `BaseDeleteView`
+  - ⏳ **`ticketing/views/templates.py`** - TicketTemplate (5/5 view) - در انتظار:
+    - ⏳ `TicketTemplateListView` → `BaseListView`
+    - ⏳ `TicketTemplateCreateView` → `BaseCreateView`
+    - ⏳ `TicketTemplateUpdateView` → `BaseUpdateView`
+    - ⏳ `TicketTemplateDetailView` → `BaseDetailView`
+    - ⏳ `TicketTemplateDeleteView` → `BaseDeleteView`
+  - ⏳ **`ticketing/views/tickets.py`** - Ticket (4/4 view) - در انتظار:
+    - ⏳ `TicketListView` → `BaseListView`
+    - ⏳ `TicketCreateView` → `BaseCreateView`
+    - ⏳ `TicketDetailView` → `BaseDetailView`
+    - ⏳ `TicketEditView` → `BaseUpdateView`
+  - ⏳ **`ticketing/views/entity_reference.py`** - EntityReference (3/3 view) - viewهای خاص:
+    - ⏳ `EntityReferenceSectionsView` → `View` (view خاص)
+    - ⏳ `EntityReferenceActionsView` → `View` (view خاص)
+    - ⏳ `EntityReferenceParameterValuesView` → `View` (view خاص)
+  - ⏳ **`ticketing/views/placeholders.py`** - Placeholders (4/4 view) - viewهای خاص:
+    - ⏳ `TicketRespondView` → `TemplateView` (view خاص)
+    - ⏳ `TemplateCreateView` → `TemplateView` (view خاص)
+    - ⏳ `CategoriesView` → `TemplateView` (view خاص)
+    - ⏳ `AutoResponseView` → `TemplateView` (view خاص)
+
+- ⏳ **ماژول `qc`** - در انتظار (6 view):
+  - ⏳ **`qc/views/inspections.py`** - QC Inspections (6/6 view) - در انتظار:
+    - ⏳ `TemporaryReceiptQCListView` → `BaseListView`
+    - ⏳ `TemporaryReceiptQCLineSelectionView` → `TemplateView` (view خاص)
+    - ⏳ `TemporaryReceiptQCApproveView` → `View` (view خاص)
+    - ⏳ `TemporaryReceiptQCRejectView` → `View` (view خاص)
+    - ⏳ `TemporaryReceiptQCRejectionManagementView` → `TemplateView` (view خاص)
+    - ⏳ `TemporaryReceiptQCRejectionManagementSaveView` → `View` (view خاص)
 
 **موارد پوشش داده شده**:
 - ✅ View Layer (ListView, CreateView, UpdateView, DeleteView, DetailView)
@@ -3211,4 +3368,22 @@ class TemporaryReceiptQCApproveView(FeaturePermissionRequiredMixin, QCBaseView, 
 - ✅ Common Utilities (success messages, company/user field setting, widget styling)
 
 **نتیجه**: سند کامل و آماده برای استفاده تیم است.
+
+---
+
+## 📋 لیست کامل Refactorهای باقی‌مانده
+
+### خلاصه آماری
+
+| ماژول | تعداد View | تعداد فایل | وضعیت |
+|-------|-----------|-----------|--------|
+| `shared` | 25 | 5 | ✅ تکمیل شده |
+| `inventory` | 89 | 7 | ✅ تکمیل شده |
+| `production` | 68 | 11 | ⏳ در انتظار |
+| `accounting` | 34 | 7 | ⏳ در انتظار |
+| `ticketing` | 22 | 6 | ⏳ در انتظار |
+| `qc` | 6 | 1 | ⏳ در انتظار |
+| **جمع کل** | **244** | **37** | **114 تکمیل / 130 باقی‌مانده** |
+
+**نکته**: Viewهای خاص (مثل `ApproveView`, `RejectView`, `TemplateView` و غیره) که نیازی به refactor ندارند در لیست مشخص شده‌اند.
 

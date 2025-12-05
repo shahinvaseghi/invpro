@@ -11,7 +11,7 @@ This module contains CRUD views for:
 - Supplier Categories
 """
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from django.contrib import messages
 from django.db.models import Q
 from django.db.models.deletion import ProtectedError
@@ -283,68 +283,90 @@ class ItemTypeDeleteView(InventoryBaseView, BaseDeleteView):
 # Item Category Views
 # ============================================================================
 
-class ItemCategoryListView(InventoryBaseView, ListView):
+class ItemCategoryListView(InventoryBaseView, BaseListView):
     """List view for item categories."""
     model = models.ItemCategory
     template_name = 'inventory/item_categories.html'
-    context_object_name = 'object_list'
+    feature_code = 'inventory.master.item_categories'
+    permission_field = 'created_by'
     paginate_by = 50
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_categories', 'created_by')
-        return queryset
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic list template."""
-        context = super().get_context_data(**kwargs)
-        context['page_title'] = _('Item Categories')
-        context['breadcrumbs'] = [
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Item Categories')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Item Categories'), 'url': None},
         ]
-        context['create_url'] = reverse_lazy('inventory:itemcategory_create')
-        context['create_button_text'] = _('Create Item Category')
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:itemcategory_create')
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Item Category')
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:itemcategory_detail'
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:itemcategory_edit'
+
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'inventory:itemcategory_delete'
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Item Categories Found')
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by creating your first item category.')
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📦'
+
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add item category specific context."""
+        context = super().get_context_data(**kwargs)
         context['table_headers'] = []  # Overridden in template
-        context['show_actions'] = True
-        context['feature_code'] = 'inventory.master.item_categories'
-        context['detail_url_name'] = 'inventory:itemcategory_detail'
-        context['edit_url_name'] = 'inventory:itemcategory_edit'
-        context['delete_url_name'] = 'inventory:itemcategory_delete'
-        context['empty_state_title'] = _('No Item Categories Found')
-        context['empty_state_message'] = _('Start by creating your first item category.')
-        context['empty_state_icon'] = '📦'
         return context
 
 
-class ItemCategoryCreateView(InventoryBaseView, CreateView):
+class ItemCategoryCreateView(InventoryBaseView, BaseCreateView):
     """Create view for item categories."""
     model = models.ItemCategory
     form_class = forms.ItemCategoryForm
     template_name = 'inventory/itemcategory_form.html'
     success_url = reverse_lazy('inventory:item_categories')
-    
-    def form_valid(self, form):
-        """Set company and created_by before saving."""
-        form.instance.company_id = self.request.session.get('active_company_id')
-        form.instance.created_by = self.request.user
-        messages.success(self.request, _('Item Category created successfully.'))
-        return super().form_valid(form)
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic form template."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Create Item Category')
-        context['breadcrumbs'] = [
+    feature_code = 'inventory.master.item_categories'
+    success_message = _('Item Category created successfully.')
+
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Create Item Category')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Item Categories'), 'url': reverse_lazy('inventory:item_categories')},
             {'label': _('Create'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('inventory:item_categories')
-        return context
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:item_categories')
 
 
 class ItemCategoryUpdateView(InventoryBaseView, BaseUpdateView):
@@ -380,39 +402,45 @@ class ItemCategoryUpdateView(InventoryBaseView, BaseUpdateView):
         return reverse_lazy('inventory:item_categories')
 
 
-class ItemCategoryDetailView(InventoryBaseView, DetailView):
+class ItemCategoryDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing item categories (read-only)."""
     model = models.ItemCategory
     template_name = 'inventory/itemcategory_detail.html'
     context_object_name = 'itemcategory'
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_categories', 'created_by')
-        return queryset
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for detail view."""
-        context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse_lazy('inventory:item_categories')
-        context['edit_url'] = reverse_lazy('inventory:itemcategory_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        return context
+    feature_code = 'inventory.master.item_categories'
+    permission_field = 'created_by'
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Item Category')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Master Data'), 'url': None},
+            {'label': _('Item Categories'), 'url': reverse_lazy('inventory:item_categories')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:item_categories')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('inventory:itemcategory_edit', kwargs={'pk': self.object.pk})
 
 
-class ItemCategoryDeleteView(InventoryBaseView, DeleteView):
+class ItemCategoryDeleteView(InventoryBaseView, BaseDeleteView):
     """Delete view for item categories."""
     model = models.ItemCategory
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:item_categories')
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_categories', 'created_by')
-        return queryset
-    
+    feature_code = 'inventory.master.item_categories'
+    success_message = _('Item Category deleted successfully.')
+    owner_field = 'created_by'
+
     def delete(self, request, *args, **kwargs):
         """Handle deletion with ProtectedError handling."""
         self.object = self.get_object()
@@ -422,7 +450,7 @@ class ItemCategoryDeleteView(InventoryBaseView, DeleteView):
         try:
             self.object.delete()
             logger.info(f"Item Category {self.object.pk} deleted successfully")
-            messages.success(self.request, _('Item Category deleted successfully.'))
+            messages.success(self.request, self.success_message)
             from django.http import HttpResponseRedirect
             return HttpResponseRedirect(self.get_success_url())
         except ProtectedError as e:
@@ -461,95 +489,130 @@ class ItemCategoryDeleteView(InventoryBaseView, DeleteView):
             # Redirect to list page with error message
             from django.http import HttpResponseRedirect
             return HttpResponseRedirect(self.get_success_url())
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Item Category')
-        context['confirmation_message'] = _('Are you sure you want to delete this item category?')
-        context['object_details'] = [
-            {'label': _('Code'), 'value': self.object.public_code},
-            {'label': _('Name'), 'value': self.object.name},
-            {'label': _('Name (EN)'), 'value': self.object.name_en or '-'},
-            {'label': _('Item Type'), 'value': self.object.item_type.name if self.object.item_type else '-'},
-        ]
-        context['cancel_url'] = reverse_lazy('inventory:item_categories')
-        context['breadcrumbs'] = [
+
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Item Category')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Are you sure you want to delete this item category?')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Item Categories'), 'url': reverse_lazy('inventory:item_categories')},
             {'label': _('Delete'), 'url': None},
         ]
-        return context
+
+    def get_object_details(self):
+        """Return object details."""
+        return [
+            {'label': _('Code'), 'value': self.object.public_code},
+            {'label': _('Name'), 'value': self.object.name},
+            {'label': _('Name (EN)'), 'value': self.object.name_en or '-'},
+            {'label': _('Item Type'), 'value': self.object.item_type.name if self.object.item_type else '-'},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:item_categories')
 
 
 # ============================================================================
 # Item Subcategory Views
 # ============================================================================
 
-class ItemSubcategoryListView(InventoryBaseView, ListView):
+class ItemSubcategoryListView(InventoryBaseView, BaseListView):
     """List view for item subcategories."""
     model = models.ItemSubcategory
     template_name = 'inventory/item_subcategories.html'
-    context_object_name = 'object_list'
+    feature_code = 'inventory.master.item_subcategories'
+    permission_field = 'created_by'
     paginate_by = 50
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_subcategories', 'created_by')
-        queryset = queryset.select_related('category')
-        return queryset
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic list template."""
-        context = super().get_context_data(**kwargs)
-        context['page_title'] = _('Item Subcategories')
-        context['breadcrumbs'] = [
+
+    def get_select_related(self):
+        """Select related category."""
+        return ['category']
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Item Subcategories')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Item Subcategories'), 'url': None},
         ]
-        context['create_url'] = reverse_lazy('inventory:itemsubcategory_create')
-        context['create_button_text'] = _('Create Item Subcategory')
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:itemsubcategory_create')
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Item Subcategory')
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:itemsubcategory_detail'
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:itemsubcategory_edit'
+
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'inventory:itemsubcategory_delete'
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Item Subcategories Found')
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by creating your first item subcategory.')
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📋'
+
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add item subcategory specific context."""
+        context = super().get_context_data(**kwargs)
         context['table_headers'] = []  # Overridden in template
-        context['show_actions'] = True
-        context['feature_code'] = 'inventory.master.item_subcategories'
-        context['detail_url_name'] = 'inventory:itemsubcategory_detail'
-        context['edit_url_name'] = 'inventory:itemsubcategory_edit'
-        context['delete_url_name'] = 'inventory:itemsubcategory_delete'
-        context['empty_state_title'] = _('No Item Subcategories Found')
-        context['empty_state_message'] = _('Start by creating your first item subcategory.')
-        context['empty_state_icon'] = '📋'
         return context
 
 
-class ItemSubcategoryCreateView(InventoryBaseView, CreateView):
+class ItemSubcategoryCreateView(InventoryBaseView, BaseCreateView):
     """Create view for item subcategories."""
     model = models.ItemSubcategory
     form_class = forms.ItemSubcategoryForm
     template_name = 'inventory/itemsubcategory_form.html'
     success_url = reverse_lazy('inventory:item_subcategories')
-    
-    def form_valid(self, form):
-        """Set company and created_by before saving."""
-        form.instance.company_id = self.request.session.get('active_company_id')
-        form.instance.created_by = self.request.user
-        messages.success(self.request, _('Item Subcategory created successfully.'))
-        return super().form_valid(form)
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic form template."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Create Item Subcategory')
-        context['breadcrumbs'] = [
+    feature_code = 'inventory.master.item_subcategories'
+    success_message = _('Item Subcategory created successfully.')
+
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Create Item Subcategory')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Item Subcategories'), 'url': reverse_lazy('inventory:item_subcategories')},
             {'label': _('Create'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('inventory:item_subcategories')
-        return context
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:item_subcategories')
 
 
 class ItemSubcategoryUpdateView(InventoryBaseView, BaseUpdateView):
@@ -585,57 +648,76 @@ class ItemSubcategoryUpdateView(InventoryBaseView, BaseUpdateView):
         return reverse_lazy('inventory:item_subcategories')
 
 
-class ItemSubcategoryDetailView(InventoryBaseView, DetailView):
+class ItemSubcategoryDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing item subcategories (read-only)."""
     model = models.ItemSubcategory
     template_name = 'inventory/itemsubcategory_detail.html'
     context_object_name = 'itemsubcategory'
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_subcategories', 'created_by')
-        queryset = queryset.select_related('category')
-        return queryset
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for detail view."""
-        context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse_lazy('inventory:item_subcategories')
-        context['edit_url'] = reverse_lazy('inventory:itemsubcategory_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        return context
+    feature_code = 'inventory.master.item_subcategories'
+    permission_field = 'created_by'
+
+    def get_select_related(self):
+        """Select related category."""
+        return ['category']
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Item Subcategory')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Master Data'), 'url': None},
+            {'label': _('Item Subcategories'), 'url': reverse_lazy('inventory:item_subcategories')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:item_subcategories')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('inventory:itemsubcategory_edit', kwargs={'pk': self.object.pk})
 
 
-class ItemSubcategoryDeleteView(DocumentDeleteViewBase):
+class ItemSubcategoryDeleteView(InventoryBaseView, BaseDeleteView):
     """Delete view for item subcategories."""
     model = models.ItemSubcategory
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:item_subcategories')
     feature_code = 'inventory.master.item_subcategories'
-    required_action = 'delete_own'
-    allow_own_scope = True
     success_message = _('زیردسته کالا با موفقیت حذف شد.')
-    
-    def get_context_data(self, **kwargs):
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Item Subcategory')
-        context['confirmation_message'] = _('Do you really want to delete this item subcategory?')
-        context['object_details'] = [
-            {'label': _('Name'), 'value': self.object.name},
-            {'label': _('Category'), 'value': str(self.object.category) if self.object.category else '-'},
-            {'label': _('Item Type'), 'value': str(self.object.item_type) if self.object.item_type else '-'},
-        ]
-        context['cancel_url'] = reverse_lazy('inventory:item_subcategories')
-        context['breadcrumbs'] = [
-            {'label': _('Inventory'), 'url': None},
-            {'label': _('Master Data'), 'url': None},
-            {'label': _('Item Subcategories'), 'url': reverse_lazy('inventory:item_subcategories')},
-            {'label': _('Delete'), 'url': None},
-        ]
-        return context
-    
+    owner_field = 'created_by'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check permissions before allowing delete."""
+        from django.core.exceptions import PermissionDenied
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        
+        # Superuser bypass
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        
+        obj = self.get_object()
+        
+        # Check permissions
+        company_id: Optional[int] = request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(request.user, company_id)
+        
+        # Check if user is owner and has DELETE_OWN permission
+        is_owner = obj.created_by == request.user if obj.created_by else False
+        can_delete_own = has_feature_permission(permissions, self.feature_code, 'delete_own', allow_own_scope=True)
+        can_delete_other = has_feature_permission(permissions, self.feature_code, 'delete_other', allow_own_scope=False)
+        
+        if is_owner and not can_delete_own:
+            raise PermissionDenied(_('شما اجازه حذف اسناد خود را ندارید.'))
+        elif not is_owner and not can_delete_other:
+            raise PermissionDenied(_('شما اجازه حذف اسناد سایر کاربران را ندارید.'))
+        
+        return super().dispatch(request, *args, **kwargs)
+
     def delete(self, request, *args, **kwargs):
         """Handle deletion with ProtectedError handling."""
         self.object = self.get_object()
@@ -645,7 +727,7 @@ class ItemSubcategoryDeleteView(DocumentDeleteViewBase):
         try:
             self.object.delete()
             logger.info(f"Item Subcategory {self.object.pk} deleted successfully")
-            messages.success(self.request, _('زیر دسته‌بندی کالا با موفقیت حذف شد.'))
+            messages.success(self.request, self.success_message)
             from django.http import HttpResponseRedirect
             return HttpResponseRedirect(self.get_success_url())
         except ProtectedError as e:
@@ -683,6 +765,35 @@ class ItemSubcategoryDeleteView(DocumentDeleteViewBase):
             # Redirect to list page with error message
             from django.http import HttpResponseRedirect
             return HttpResponseRedirect(self.get_success_url())
+
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Item Subcategory')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Do you really want to delete this item subcategory?')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Master Data'), 'url': None},
+            {'label': _('Item Subcategories'), 'url': reverse_lazy('inventory:item_subcategories')},
+            {'label': _('Delete'), 'url': None},
+        ]
+
+    def get_object_details(self):
+        """Return object details."""
+        return [
+            {'label': _('Name'), 'value': self.object.name},
+            {'label': _('Category'), 'value': str(self.object.category) if self.object.category else '-'},
+            {'label': _('Item Type'), 'value': str(self.object.item_type) if self.object.item_type else '-'},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:item_subcategories')
 
 
 # ============================================================================
@@ -1137,40 +1248,56 @@ class ItemUpdateView(ItemUnitFormsetMixin, InventoryBaseView, BaseFormsetUpdateV
         return reverse_lazy('inventory:items')
 
 
-class ItemDetailView(InventoryBaseView, DetailView):
+class ItemDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing items (read-only)."""
     model = models.Item
     template_name = 'inventory/item_detail.html'
     context_object_name = 'item'
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.items', 'created_by')
-        queryset = queryset.select_related('type', 'category', 'subcategory').prefetch_related('warehouses__warehouse', 'units')
-        return queryset
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for detail view."""
-        context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse_lazy('inventory:items')
-        context['edit_url'] = reverse_lazy('inventory:item_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        return context
+    feature_code = 'inventory.master.items'
+    permission_field = 'created_by'
+
+    def get_select_related(self):
+        """Select related objects."""
+        return ['type', 'category', 'subcategory']
+
+    def get_prefetch_related(self):
+        """Prefetch related objects."""
+        return ['warehouses__warehouse', 'units']
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Item')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Master Data'), 'url': None},
+            {'label': _('Items'), 'url': reverse_lazy('inventory:items')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:items')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('inventory:item_edit', kwargs={'pk': self.object.pk})
 
 
-class ItemDeleteView(InventoryBaseView, DeleteView):
+class ItemDeleteView(InventoryBaseView, BaseDeleteView):
     """Delete view for items."""
     model = models.Item
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:items')
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.items', 'created_by')
-        queryset = queryset.select_related('type', 'category', 'subcategory')
-        return queryset
+    feature_code = 'inventory.master.items'
+    success_message = _('Item deleted successfully.')
+    owner_field = 'created_by'
+
+    def get_select_related(self):
+        """Select related objects."""
+        return ['type', 'category', 'subcategory']
     
     def delete(self, request, *args, **kwargs):
         """Handle deletion with ProtectedError handling."""
@@ -1181,7 +1308,7 @@ class ItemDeleteView(InventoryBaseView, DeleteView):
         try:
             self.object.delete()
             logger.info(f"Item {self.object.pk} deleted successfully")
-            messages.success(self.request, _('Item deleted successfully.'))
+            messages.success(self.request, self.success_message)
             from django.http import HttpResponseRedirect
             return HttpResponseRedirect(self.get_success_url())
         except ProtectedError as e:
@@ -1212,26 +1339,36 @@ class ItemDeleteView(InventoryBaseView, DeleteView):
             from django.http import HttpResponseRedirect
             return HttpResponseRedirect(self.get_success_url())
     
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Item')
-        context['confirmation_message'] = _('Are you sure you want to delete this item?')
-        context['object_details'] = [
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Item')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Are you sure you want to delete this item?')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Master Data'), 'url': None},
+            {'label': _('Items'), 'url': reverse_lazy('inventory:items')},
+            {'label': _('Delete'), 'url': None},
+        ]
+
+    def get_object_details(self):
+        """Return object details."""
+        return [
             {'label': _('Item Code'), 'value': self.object.item_code},
             {'label': _('Name'), 'value': self.object.name},
             {'label': _('Name (EN)'), 'value': self.object.name_en or '-'},
             {'label': _('Type'), 'value': self.object.type.name if self.object.type else '-'},
             {'label': _('Category'), 'value': self.object.category.name if self.object.category else '-'},
         ]
-        context['cancel_url'] = reverse_lazy('inventory:items')
-        context['breadcrumbs'] = [
-            {'label': _('Inventory'), 'url': None},
-            {'label': _('Master Data'), 'url': None},
-            {'label': _('Items'), 'url': reverse_lazy('inventory:items')},
-            {'label': _('Delete'), 'url': None},
-        ]
-        return context
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:items')
 
 
 # ============================================================================
@@ -1364,39 +1501,45 @@ class WarehouseUpdateView(InventoryBaseView, BaseUpdateView):
         return reverse_lazy('inventory:warehouses')
 
 
-class WarehouseDetailView(InventoryBaseView, DetailView):
+class WarehouseDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing warehouses (read-only)."""
     model = models.Warehouse
     template_name = 'inventory/warehouse_detail.html'
     context_object_name = 'warehouse'
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.warehouses', 'created_by')
-        return queryset
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for detail view."""
-        context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse_lazy('inventory:warehouses')
-        context['edit_url'] = reverse_lazy('inventory:warehouse_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        return context
+    feature_code = 'inventory.master.warehouses'
+    permission_field = 'created_by'
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Warehouse')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Master Data'), 'url': None},
+            {'label': _('Warehouses'), 'url': reverse_lazy('inventory:warehouses')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:warehouses')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('inventory:warehouse_edit', kwargs={'pk': self.object.pk})
 
 
-class WarehouseDeleteView(InventoryBaseView, DeleteView):
+class WarehouseDeleteView(InventoryBaseView, BaseDeleteView):
     """Delete view for warehouses."""
     model = models.Warehouse
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:warehouses')
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.warehouses', 'created_by')
-        return queryset
-    
+    feature_code = 'inventory.master.warehouses'
+    success_message = _('Warehouse deleted successfully.')
+    owner_field = 'created_by'
+
     def delete(self, request, *args, **kwargs):
         """Handle deletion with ProtectedError handling."""
         self.object = self.get_object()
@@ -1406,7 +1549,7 @@ class WarehouseDeleteView(InventoryBaseView, DeleteView):
         try:
             self.object.delete()
             logger.info(f"Warehouse {self.object.pk} deleted successfully")
-            messages.success(self.request, _('Warehouse deleted successfully.'))
+            messages.success(self.request, self.success_message)
             from django.http import HttpResponseRedirect
             return HttpResponseRedirect(self.get_success_url())
         except ProtectedError as e:
@@ -1445,74 +1588,112 @@ class WarehouseDeleteView(InventoryBaseView, DeleteView):
             # Redirect to list page with error message
             from django.http import HttpResponseRedirect
             return HttpResponseRedirect(self.get_success_url())
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Warehouse')
-        context['confirmation_message'] = _('Are you sure you want to delete this warehouse?')
-        context['object_details'] = [
-            {'label': _('Code'), 'value': self.object.public_code},
-            {'label': _('Name'), 'value': self.object.name},
-            {'label': _('Name (EN)'), 'value': self.object.name_en or '-'},
-        ]
-        context['cancel_url'] = reverse_lazy('inventory:warehouses')
-        context['breadcrumbs'] = [
+
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Warehouse')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Are you sure you want to delete this warehouse?')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Warehouses'), 'url': reverse_lazy('inventory:warehouses')},
             {'label': _('Delete'), 'url': None},
         ]
-        return context
+
+    def get_object_details(self):
+        """Return object details."""
+        return [
+            {'label': _('Code'), 'value': self.object.public_code},
+            {'label': _('Name'), 'value': self.object.name},
+            {'label': _('Name (EN)'), 'value': self.object.name_en or '-'},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:warehouses')
 
 
 # ============================================================================
 # Supplier Category Views
 # ============================================================================
 
-class SupplierCategoryListView(InventoryBaseView, ListView):
+class SupplierCategoryListView(InventoryBaseView, BaseListView):
     """List view for supplier categories."""
     model = models.SupplierCategory
     template_name = 'inventory/supplier_categories.html'
-    context_object_name = 'object_list'
+    feature_code = 'inventory.suppliers.categories'
+    permission_field = 'created_by'
     paginate_by = 50
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.suppliers.categories', 'created_by')
-        queryset = queryset.select_related('supplier', 'category')
-        return queryset
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic list template."""
-        context = super().get_context_data(**kwargs)
-        context['page_title'] = _('Supplier Categories')
-        context['breadcrumbs'] = [
+
+    def get_select_related(self):
+        """Select related objects."""
+        return ['supplier', 'category']
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Supplier Categories')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Supplier Categories'), 'url': None},
         ]
-        context['create_url'] = reverse_lazy('inventory:suppliercategory_create')
-        context['create_button_text'] = _('Create Supplier Category')
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:suppliercategory_create')
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Supplier Category')
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:suppliercategory_detail'
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:suppliercategory_edit'
+
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'inventory:suppliercategory_delete'
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Supplier Categories Found')
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by creating your first supplier category.')
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '🏷️'
+
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add supplier category specific context."""
+        context = super().get_context_data(**kwargs)
         context['table_headers'] = []  # Overridden in template
-        context['show_actions'] = True
-        context['feature_code'] = 'inventory.suppliers.categories'
-        context['detail_url_name'] = 'inventory:suppliercategory_detail'
-        context['edit_url_name'] = 'inventory:suppliercategory_edit'
-        context['delete_url_name'] = 'inventory:suppliercategory_delete'
-        context['empty_state_title'] = _('No Supplier Categories Found')
-        context['empty_state_message'] = _('Start by creating your first supplier category.')
-        context['empty_state_icon'] = '🏷️'
         return context
 
 
-class SupplierCategoryCreateView(InventoryBaseView, CreateView):
+class SupplierCategoryCreateView(InventoryBaseView, BaseCreateView):
     """Create view for supplier categories."""
     model = models.SupplierCategory
     form_class = forms.SupplierCategoryForm
     template_name = 'inventory/suppliercategory_form.html'
     success_url = reverse_lazy('inventory:supplier_categories')
+    feature_code = 'inventory.suppliers.categories'
+    success_message = _('دسته‌بندی تأمین‌کننده با موفقیت ایجاد شد.')
 
     def get_form_kwargs(self):
         """Pass company_id to form."""
@@ -1521,17 +1702,20 @@ class SupplierCategoryCreateView(InventoryBaseView, CreateView):
         return kwargs
 
     def form_valid(self, form):
-        """Set company and created_by before saving."""
+        """Save form and sync supplier links."""
         from django.http import HttpResponseRedirect
         
-        company_id = self.request.session.get('active_company_id')
-        form.instance.company_id = company_id
-        form.instance.created_by = self.request.user
+        # AutoSetFieldsMixin handles company_id and created_by
+        # But we need to set edited_by manually
         form.instance.edited_by = self.request.user
-        self.object = form.save()
+        
+        # Save the object
+        response = super().form_valid(form)
+        
+        # Sync supplier links after saving
         self._sync_supplier_links(form)
-        messages.success(self.request, _('دسته‌بندی تأمین‌کننده با موفقیت ایجاد شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        
+        return response
 
     def _sync_supplier_links(self, form):
         """Sync supplier subcategories and items."""
@@ -1581,18 +1765,22 @@ class SupplierCategoryCreateView(InventoryBaseView, CreateView):
                 obj.edited_by = self.request.user
                 obj.save(update_fields=['edited_by'])
 
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic form template."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Create Supplier Category')
-        context['breadcrumbs'] = [
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Create Supplier Category')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Supplier Categories'), 'url': reverse_lazy('inventory:supplier_categories')},
             {'label': _('Create'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('inventory:supplier_categories')
-        return context
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:supplier_categories')
 
 
 class SupplierCategoryUpdateView(InventoryBaseView, BaseUpdateView):
@@ -1682,134 +1870,177 @@ class SupplierCategoryUpdateView(InventoryBaseView, BaseUpdateView):
         return reverse_lazy('inventory:supplier_categories')
 
 
-class SupplierCategoryDetailView(InventoryBaseView, DetailView):
+class SupplierCategoryDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing supplier categories (read-only)."""
     model = models.SupplierCategory
     template_name = 'inventory/suppliercategory_detail.html'
     context_object_name = 'suppliercategory'
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.suppliers.categories', 'created_by')
-        queryset = queryset.select_related('supplier', 'category')
-        return queryset
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for detail view."""
-        context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse_lazy('inventory:supplier_categories')
-        context['edit_url'] = reverse_lazy('inventory:suppliercategory_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        return context
+    feature_code = 'inventory.suppliers.categories'
+    permission_field = 'created_by'
+
+    def get_select_related(self):
+        """Select related objects."""
+        return ['supplier', 'category']
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Supplier Category')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Master Data'), 'url': None},
+            {'label': _('Supplier Categories'), 'url': reverse_lazy('inventory:supplier_categories')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:supplier_categories')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('inventory:suppliercategory_edit', kwargs={'pk': self.object.pk})
 
 
-class SupplierCategoryDeleteView(InventoryBaseView, DeleteView):
+class SupplierCategoryDeleteView(InventoryBaseView, BaseDeleteView):
     """Delete view for supplier categories."""
     model = models.SupplierCategory
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:supplier_categories')
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.suppliers.categories', 'created_by')
-        queryset = queryset.select_related('supplier', 'category')
-        return queryset
-    
-    def delete(self, request, *args, **kwargs):
-        """Show success message after deletion."""
-        self.object = self.get_object()
-        messages.success(self.request, _('Supplier category deleted successfully.'))
-        return super().delete(request, *args, **kwargs)
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Supplier Category')
-        context['confirmation_message'] = _('Are you sure you want to delete this supplier category?')
-        context['object_details'] = [
-            {'label': _('Supplier'), 'value': self.object.supplier.name if self.object.supplier else '-'},
-            {'label': _('Category'), 'value': self.object.category.name if self.object.category else '-'},
-            {'label': _('Is Primary'), 'value': _('Yes') if self.object.is_primary else _('No')},
-        ]
-        context['cancel_url'] = reverse_lazy('inventory:supplier_categories')
-        context['breadcrumbs'] = [
+    feature_code = 'inventory.suppliers.categories'
+    success_message = _('Supplier category deleted successfully.')
+    owner_field = 'created_by'
+
+    def get_select_related(self):
+        """Select related objects."""
+        return ['supplier', 'category']
+
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Supplier Category')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Are you sure you want to delete this supplier category?')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Supplier Categories'), 'url': reverse_lazy('inventory:supplier_categories')},
             {'label': _('Delete'), 'url': None},
         ]
-        return context
+
+    def get_object_details(self):
+        """Return object details."""
+        return [
+            {'label': _('Supplier'), 'value': self.object.supplier.name if self.object.supplier else '-'},
+            {'label': _('Category'), 'value': self.object.category.name if self.object.category else '-'},
+            {'label': _('Is Primary'), 'value': _('Yes') if self.object.is_primary else _('No')},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:supplier_categories')
 
 
 # ============================================================================
 # Supplier Views
 # ============================================================================
 
-class SupplierListView(InventoryBaseView, ListView):
+class SupplierListView(InventoryBaseView, BaseListView):
     """List view for suppliers."""
     model = models.Supplier
     template_name = 'inventory/suppliers.html'
-    context_object_name = 'object_list'
+    feature_code = 'inventory.suppliers.list'
+    permission_field = 'created_by'
     paginate_by = 50
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.suppliers.list', 'created_by')
-        return queryset
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic list template."""
-        context = super().get_context_data(**kwargs)
-        context['page_title'] = _('Suppliers')
-        context['breadcrumbs'] = [
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Suppliers')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Suppliers'), 'url': None},
         ]
-        context['create_url'] = reverse_lazy('inventory:supplier_create')
-        context['create_button_text'] = _('Create Supplier')
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:supplier_create')
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Supplier')
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:supplier_detail'
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:supplier_edit'
+
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'inventory:supplier_delete'
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Suppliers Found')
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by creating your first supplier.')
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '🏢'
+
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add supplier specific context."""
+        context = super().get_context_data(**kwargs)
         context['table_headers'] = []  # Overridden in template
-        context['show_actions'] = True
-        context['feature_code'] = 'inventory.suppliers.list'
-        context['detail_url_name'] = 'inventory:supplier_detail'
-        context['edit_url_name'] = 'inventory:supplier_edit'
-        context['delete_url_name'] = 'inventory:supplier_delete'
-        context['empty_state_title'] = _('No Suppliers Found')
-        context['empty_state_message'] = _('Start by creating your first supplier.')
-        context['empty_state_icon'] = '🏢'
         return context
 
 
-class SupplierCreateView(InventoryBaseView, CreateView):
+class SupplierCreateView(InventoryBaseView, BaseCreateView):
     """Create view for suppliers."""
     model = models.Supplier
     form_class = forms.SupplierForm
     template_name = 'inventory/supplier_form.html'
     success_url = reverse_lazy('inventory:suppliers')
-    
+    feature_code = 'inventory.suppliers.list'
+    success_message = _('Supplier created successfully.')
+
     def form_valid(self, form):
-        """Set company and created_by before saving."""
-        form.instance.company_id = self.request.session.get('active_company_id')
-        form.instance.created_by = self.request.user
+        """Set edited_by before saving."""
+        # AutoSetFieldsMixin handles company_id and created_by
         form.instance.edited_by = self.request.user
-        messages.success(self.request, _('Supplier created successfully.'))
         return super().form_valid(form)
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic form template."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Create Supplier')
-        context['breadcrumbs'] = [
+
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Create Supplier')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Suppliers'), 'url': reverse_lazy('inventory:suppliers')},
             {'label': _('Create'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('inventory:suppliers')
-        return context
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:suppliers')
 
 
 class SupplierUpdateView(InventoryBaseView, BaseUpdateView):
@@ -1845,39 +2076,45 @@ class SupplierUpdateView(InventoryBaseView, BaseUpdateView):
         return reverse_lazy('inventory:suppliers')
 
 
-class SupplierDetailView(InventoryBaseView, DetailView):
+class SupplierDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing suppliers (read-only)."""
     model = models.Supplier
     template_name = 'inventory/supplier_detail.html'
     context_object_name = 'supplier'
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.suppliers.list', 'created_by')
-        return queryset
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for detail view."""
-        context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse_lazy('inventory:suppliers')
-        context['edit_url'] = reverse_lazy('inventory:supplier_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        return context
+    feature_code = 'inventory.suppliers.list'
+    permission_field = 'created_by'
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Supplier')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Master Data'), 'url': None},
+            {'label': _('Suppliers'), 'url': reverse_lazy('inventory:suppliers')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:suppliers')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('inventory:supplier_edit', kwargs={'pk': self.object.pk})
 
 
-class SupplierDeleteView(InventoryBaseView, DeleteView):
+class SupplierDeleteView(InventoryBaseView, BaseDeleteView):
     """Delete view for suppliers."""
     model = models.Supplier
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:suppliers')
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.suppliers.list', 'created_by')
-        return queryset
-    
+    feature_code = 'inventory.suppliers.list'
+    success_message = _('Supplier deleted successfully.')
+    owner_field = 'created_by'
+
     def delete(self, request, *args, **kwargs):
         """Handle deletion with ProtectedError handling."""
         self.object = self.get_object()
@@ -1887,7 +2124,7 @@ class SupplierDeleteView(InventoryBaseView, DeleteView):
         try:
             self.object.delete()
             logger.info(f"Supplier {self.object.pk} deleted successfully")
-            messages.success(self.request, _('Supplier deleted successfully.'))
+            messages.success(self.request, self.success_message)
             from django.http import HttpResponseRedirect
             return HttpResponseRedirect(self.get_success_url())
         except ProtectedError as e:
@@ -1926,23 +2163,33 @@ class SupplierDeleteView(InventoryBaseView, DeleteView):
             # Redirect to list page with error message
             from django.http import HttpResponseRedirect
             return HttpResponseRedirect(self.get_success_url())
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Supplier')
-        context['confirmation_message'] = _('Are you sure you want to delete this supplier?')
-        context['object_details'] = [
-            {'label': _('Code'), 'value': self.object.public_code},
-            {'label': _('Name'), 'value': self.object.name},
-            {'label': _('City'), 'value': self.object.city or '-'},
-        ]
-        context['cancel_url'] = reverse_lazy('inventory:suppliers')
-        context['breadcrumbs'] = [
+
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Supplier')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Are you sure you want to delete this supplier?')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Suppliers'), 'url': reverse_lazy('inventory:suppliers')},
             {'label': _('Delete'), 'url': None},
         ]
-        return context
+
+    def get_object_details(self):
+        """Return object details."""
+        return [
+            {'label': _('Code'), 'value': self.object.public_code},
+            {'label': _('Name'), 'value': self.object.name},
+            {'label': _('City'), 'value': self.object.city or '-'},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:suppliers')
 
