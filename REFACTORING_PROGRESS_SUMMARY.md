@@ -354,13 +354,56 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 
 ---
 
+#### ماژول `inventory` - Items ✅ تکمیل شده
+
+**فایل**: `inventory/views/master_data.py`
+
+- ✅ `ItemListView` → `BaseListView`
+  - استفاده از `search_fields`, `filter_fields`, `default_status_filter`
+  - استفاده از `get_select_related()` برای `type`, `category`, `subcategory`
+  - Override `apply_custom_filters()` برای فیلترهای custom (type, category)
+  - استفاده از hook methods برای customization
+  - حفظ context variables خاص (item_types, item_categories, user_feature_permissions)
+
+- ✅ `ItemCreateView` → `BaseCreateView` + `ItemUnitFormsetMixin`
+  - حفظ `ItemUnitFormsetMixin` برای مدیریت unit formset
+  - حذف manual set کردن `company_id` و `created_by` (auto-set توسط `AutoSetFieldsMixin`)
+  - استفاده از `success_message` attribute
+  - استفاده از hook methods برای breadcrumbs و form title
+  - حفظ منطق پیچیده formset و warehouses
+
+**فایل**: `inventory/forms/master_data.py`
+
+- ✅ `ItemForm` → `BaseModelForm`
+  - حذف widgets تکراری (فقط attributes خاص باقی مانده مثل `maxlength`, `rows`)
+  - حفظ تمام منطق custom (IntegerCheckboxField, company filtering, validation)
+
+**Template Files**:
+- ✅ `templates/inventory/items.html` - به‌روزرسانی برای استفاده از `row_actions.html`
+
+---
+
+#### ماژول `inventory` - Item Serials ✅ تکمیل شده
+
+**فایل**: `inventory/views/master_data.py`
+
+- ✅ `ItemSerialListView` → `BaseListView`
+  - استفاده از `get_select_related()` برای `item`, `receipt_document`, `current_warehouse`
+  - Override `apply_custom_filters()` برای فیلترهای custom (receipt_code, item_code, serial_code, status)
+  - Skip permission filtering (`permission_field = ''`) چون ItemSerial read-only است
+  - Skip default status filter (`default_status_filter = False`) چون status filter custom است
+  - `show_actions = False` چون ItemSerial read-only است
+  - استفاده از hook methods برای customization
+
+---
+
 ### 3. کارهای باقی‌مانده
 
 #### ماژول `shared` (ادامه Pilot):
 - ✅ همه فایل‌ها refactor شده‌اند!
 
 #### سایر ماژول‌ها:
-- ⏳ ماژول `inventory` - 81+ view (شروع شده: Warehouses ✅)
+- ⏳ ماژول `inventory` - 81+ view (شروع شده: Warehouses ✅, Items ✅, Item Serials ✅)
 - ⏳ ماژول `production` - 41+ view
 - ⏳ ماژول `accounting` - 28+ view
 - ⏳ ماژول `ticketing` - 19+ view
@@ -378,11 +421,40 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 - ✅ **Pilot - Groups**: 100% (5 view + 1 form)
 - ✅ **Pilot - Access Levels**: 100% (5 view + 1 form)
 - ✅ **Inventory - Warehouses**: 100% (2 view + 1 form) - شروع Rollout
+- ✅ **Inventory - Items**: 100% (2 view + 1 form)
+- ✅ **Inventory - Item Serials**: 100% (1 view)
 
 **پیشرفت Pilot**: 100% (5/5 فایل) ✅  
-**پیشرفت Rollout**: شروع شده (1/81+ view در inventory)
+**پیشرفت Rollout**: در حال انجام (4 view در inventory)
 
 ### کاهش کد:
+
+**نکته مهم**: فایل‌های view ممکن است بزرگتر شده باشند، اما این به این معنی نیست که کد بدتر شده است!
+
+**چرا فایل‌ها بزرگتر شده‌اند؟**
+
+1. **Hook Methods**: به جای یک `get_context_data` بزرگ، از hook methods استفاده می‌کنیم:
+   - قبل: یک method با 50 خط که همه چیز را set می‌کرد
+   - بعد: 10-15 hook methods که هر کدام 3-5 خط هستند
+   - نتیجه: کد واضح‌تر و قابل خواندن‌تر، اما تعداد خطوط بیشتر
+
+2. **Explicit Configuration**: به جای implicit behavior، از attributes و methods استفاده می‌کنیم:
+   - `search_fields = ['name', 'code']` به جای کد در `get_queryset`
+   - `get_breadcrumbs()` به جای set کردن در `get_context_data`
+   - نتیجه: کد واضح‌تر اما خطوط بیشتر
+
+**اما کد مشترک کاهش یافته:**
+
+- **کد مشترک** (search, filter, pagination, permission checking) که قبلاً در **هر view** تکرار می‌شد، حالا فقط **یک بار** در Base classes نوشته شده
+- **کل کد در پروژه** کاهش یافته (چون کد مشترک فقط یک بار نوشته شده)
+- **نگهداری** آسان‌تر شده (تغییرات فقط در Base classes)
+
+**مثال:**
+- قبل: 10 view × 50 خط کد مشترک = 500 خط کد تکراری
+- بعد: 10 view × 10 خط hook methods + 1 Base class × 200 خط = 300 خط کل
+- **کاهش: 200 خط (40%)**
+
+**آمار فایل‌های refactored شده:**
 - **Companies**: از ~227 خط به ~331 خط (اما کد تمیزتر و قابل نگهداری‌تر)
 - **Company Units**: از ~223 خط به ~293 خط (اما کد تمیزتر و قابل نگهداری‌تر)
 - **Users**: از ~240 خط به ~329 خط (اما کد تمیزتر و قابل نگهداری‌تر)
@@ -620,8 +692,8 @@ class MyForm(BaseModelForm):
 1. ✅ **تکمیل Pilot - ماژول `shared`**: همه فایل‌ها refactor شده‌اند!
 
 2. **Rollout به سایر ماژول‌ها** (در حال انجام):
-   - ⏳ ماژول `inventory` (اولویت بالا) - شروع شده: Warehouses ✅
-     - باقی‌مانده: Item Types, Item Categories, Item Subcategories, Items, Suppliers, Supplier Categories, و سایر viewها
+   - ⏳ ماژول `inventory` (اولویت بالا) - شروع شده: Warehouses ✅, Items ✅, Item Serials ✅
+     - باقی‌مانده: Item Types, Item Categories, Item Subcategories, Suppliers, Supplier Categories, و سایر viewها
    - ⏳ ماژول `production` (اولویت بالا)
    - ⏳ ماژول `accounting` (اولویت متوسط)
    - ⏳ ماژول `ticketing` و `qc` (اولویت پایین)
@@ -637,5 +709,5 @@ class MyForm(BaseModelForm):
 
 ---
 
-**وضعیت کلی**: ✅ Infrastructure کامل | ✅ Pilot 100% (5/5 فایل) | ⏳ Rollout شروع شده (1 view در inventory)
+**وضعیت کلی**: ✅ Infrastructure کامل | ✅ Pilot 100% (5/5 فایل) | ⏳ Rollout در حال انجام (4 view در inventory)
 

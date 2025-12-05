@@ -764,23 +764,30 @@ class ItemListView(BaseListView):
         return context
 
 
-class ItemSerialListView(FeaturePermissionRequiredMixin, InventoryBaseView, ListView):
+class ItemSerialListView(BaseListView):
     """List view for item serials."""
-    feature_code = 'inventory.master.item_serials'
     model = models.ItemSerial
     template_name = 'inventory/item_serials.html'
     context_object_name = 'serials'
+    feature_code = 'inventory.master.item_serials'
     paginate_by = 100
-
-    def get_queryset(self):
-        """Filter and search serials."""
-        queryset = super().get_queryset()
-        queryset = queryset.select_related('item', 'receipt_document', 'current_warehouse')
+    default_order_by = ['-created_at', '-id']
+    permission_field = ''  # Skip permission filtering (ItemSerial is read-only)
+    default_status_filter = False  # Custom status filter
+    
+    def get_select_related(self) -> List[str]:
+        """Return list of fields to select_related."""
+        return ['item', 'receipt_document', 'current_warehouse']
+    
+    def apply_custom_filters(self, queryset):
+        """Apply custom filters for receipt_code, item_code, serial_code, and status."""
+        queryset = super().apply_custom_filters(queryset)
+        
         receipt_code = (self.request.GET.get('receipt_code') or '').strip()
         item_code = (self.request.GET.get('item_code') or '').strip()
         serial_code = (self.request.GET.get('serial_code') or '').strip()
         status = (self.request.GET.get('status') or '').strip()
-
+        
         if receipt_code:
             queryset = queryset.filter(receipt_document_code__icontains=receipt_code)
         if item_code:
@@ -789,12 +796,49 @@ class ItemSerialListView(FeaturePermissionRequiredMixin, InventoryBaseView, List
             queryset = queryset.filter(serial_code__icontains=serial_code)
         if status:
             queryset = queryset.filter(current_status=status)
-
-        return queryset.order_by('-created_at', '-id')
-
+        
+        return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Item Serials')
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Master Data'), 'url': None},
+            {'label': _('Item Serials'), 'url': None},
+        ]
+    
+    def get_search_placeholder(self) -> str:
+        """Return search placeholder."""
+        return _('Search by receipt code, item code, or serial code')
+    
+    def get_clear_filter_url(self):
+        """Return clear filter URL."""
+        return reverse_lazy('inventory:item_serials')
+    
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Item Serials Found')
+    
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('No item serials found matching your criteria.')
+    
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '🔢'
+    
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add search filters to context."""
+        """Add additional context variables."""
         context = super().get_context_data(**kwargs)
+        
+        # ItemSerial is read-only, no view/edit buttons needed
+        context['show_actions'] = False
+        
+        # Add filter values to context for template
         context['receipt_code'] = (self.request.GET.get('receipt_code') or '').strip()
         context['item_code'] = (self.request.GET.get('item_code') or '').strip()
         context['serial_code'] = (self.request.GET.get('serial_code') or '').strip()
@@ -806,8 +850,7 @@ class ItemSerialListView(FeaturePermissionRequiredMixin, InventoryBaseView, List
             context['serial_code'],
             context['status'],
         ])
-        # ItemSerial is read-only, no view/edit buttons needed
-        context['show_actions'] = False
+        
         return context
 
 
