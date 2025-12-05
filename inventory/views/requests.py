@@ -20,7 +20,7 @@ import json
 
 from .base import InventoryBaseView, LineFormsetMixin
 from shared.mixins import FeaturePermissionRequiredMixin
-from shared.views.base import EditLockProtectedMixin
+from shared.views.base import EditLockProtectedMixin, BaseFormsetCreateView, BaseFormsetUpdateView
 from .. import models
 from .. import forms
 from ..models import Item, ItemUnit
@@ -501,6 +501,16 @@ class WarehouseRequestFormMixin(InventoryBaseView):
         context['list_url'] = reverse_lazy('inventory:warehouse_requests')
         context['is_edit'] = bool(getattr(self, 'object', None))
         context['warehouse_request'] = getattr(self, 'object', None)
+        
+        # Add formset to context (for BaseFormsetCreateView compatibility)
+        # Use LineFormsetMixin's build_line_formset method
+        if hasattr(self, 'formset_class') and self.formset_class and hasattr(self, 'build_line_formset'):
+            if self.request.method == 'POST':
+                formset = self.build_line_formset(data=self.request.POST, request=self.request)
+            else:
+                formset = self.build_line_formset(request=self.request)
+            context['lines_formset'] = formset
+            context['formset'] = formset  # Also add as 'formset' for generic_form compatibility
 
         if form and 'item' in form.fields:
             unit_map: Dict[str, list] = {}
@@ -619,6 +629,13 @@ class WarehouseRequestListView(InventoryBaseView, ListView):
         
         # Stats
         context['stats'] = self._get_stats()
+        # Stats labels for Persian display
+        context['stats_labels'] = {
+            'total': _('Total'),
+            'draft': _('Pending Approval'),
+            'approved': _('Approved'),
+            'issued': _('Issued'),
+        }
         
         # Permissions and approver logic
         company_id: Optional[int] = self.request.session.get('active_company_id')
@@ -641,13 +658,15 @@ class WarehouseRequestListView(InventoryBaseView, ListView):
         return context
 
 
-class WarehouseRequestCreateView(LineFormsetMixin, WarehouseRequestFormMixin, CreateView):
+class WarehouseRequestCreateView(LineFormsetMixin, WarehouseRequestFormMixin, BaseFormsetCreateView):
     """Create view for warehouse requests."""
     model = models.WarehouseRequest
     form_class = forms.WarehouseRequestForm
     formset_class = forms.WarehouseRequestLineFormSet
+    formset_prefix = 'lines'
     success_url = reverse_lazy('inventory:warehouse_requests')
     form_title = _('ایجاد درخواست انبار')
+    feature_code = 'inventory.requests.warehouse'
 
     def form_valid(self, form):
         """Set company, requester, and status before saving."""
@@ -760,13 +779,15 @@ class WarehouseRequestDetailView(InventoryBaseView, DetailView):
         return context
 
 
-class WarehouseRequestUpdateView(EditLockProtectedMixin, LineFormsetMixin, WarehouseRequestFormMixin, UpdateView):
+class WarehouseRequestUpdateView(LineFormsetMixin, WarehouseRequestFormMixin, BaseFormsetUpdateView):
     """Update view for warehouse requests."""
     model = models.WarehouseRequest
     form_class = forms.WarehouseRequestForm
     formset_class = forms.WarehouseRequestLineFormSet
+    formset_prefix = 'lines'
     success_url = reverse_lazy('inventory:warehouse_requests')
     form_title = _('ویرایش درخواست انبار')
+    feature_code = 'inventory.requests.warehouse'
 
     def get_queryset(self):
         """Filter to only draft requests created by current user."""

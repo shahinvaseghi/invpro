@@ -603,11 +603,16 @@
 
 ### Frontend Files
 
-- **JavaScript Files**: 4 فایل
+- **JavaScript Files**: 6 فایل
 - [x] `static/js/formset.js` - 5 تابع ✅
 - [x] `static/js/cascading-dropdowns.js` - 3 تابع + initCascadingDropdowns ✅
 - [x] `static/js/table-export.js` - 3 تابع ✅
 - [x] `static/js/form-helpers.js` - 5 تابع ✅
+- [x] `static/js/item-filters.js` - 6 تابع ✅
+- [x] `static/js/formset-table.js` - 3 تابع ✅
+
+- **CSS Files**: 1 فایل
+- [x] `static/css/formset-table.css` - استایل‌های formset table layout ✅
 
 - **Template Partials**: 5 فایل
 - [x] `templates/shared/partials/row_actions.html` - بهبود ✅
@@ -627,9 +632,9 @@
 
 ---
 
-**مجموع فایل‌ها**: 20 فایل
+**مجموع فایل‌ها**: 23 فایل
 - **Backend**: 6 فایل (3 موجود + 3 جدید)
-- **Frontend**: 14 فایل (4 JS + 5 partials + 1 template tags + 4 templates)
+- **Frontend**: 17 فایل (6 JS + 1 CSS + 5 partials + 1 template tags + 4 templates)
 
 ---
 
@@ -674,18 +679,32 @@
 2. ✅ `static/js/cascading-dropdowns.js` - تمام توابع ساخته شد
 3. ✅ `static/js/table-export.js` - تمام 3 تابع ساخته شد
 4. ✅ `static/js/form-helpers.js` - تمام 5 تابع ساخته شد
-5. ✅ Template partials - تمام 4 partial ساخته شد:
+5. ✅ `static/js/item-filters.js` - تمام توابع فیلتر کردن آیتم‌ها ساخته شد:
+   - filterItemsForRow
+   - loadCategoriesForRow
+   - loadSubcategoriesForRow
+   - refreshLineUnitOptions
+   - refreshLineWarehouseOptions
+   - initializeItemFiltersForRow
+6. ✅ Template partials - تمام 4 partial ساخته شد:
    - filter_panel.html
    - stats_cards.html
    - pagination.html
    - empty_state.html
-6. ✅ Template tags - `view_tags.py` با 5 tag ساخته شد
+7. ✅ Template tags - `view_tags.py` با 5 tag ساخته شد
 
 ### ⏳ کارهای باقی‌مانده:
 
 **Frontend:**
 - [x] بهبود `templates/shared/partials/row_actions.html` ✅
 - [x] بهبود templateهای generic موجود ✅
+- [x] ریفکتور و تکمیل `warehouse_request_form.html` برای استفاده از generic_form.html ✅
+  - [x] اصلاح template_name در WarehouseRequestFormMixin ✅
+  - [x] حذف duplicate JavaScript initialization ✅
+  - [x] بررسی و اصلاح منطق formset در get_context_data ✅
+  - [x] انتقال منطق فیلتر کردن آیتم‌ها به فایل اشتراکی `item-filters.js` ✅
+  - [x] انتقال CSS formset table layout به فایل اشتراکی `formset-table.css` ✅
+  - [x] انتقال JavaScript grid layout management به فایل اشتراکی `formset-table.js` ✅
 - [ ] تست‌های manual برای JavaScript functions
 - [ ] تست‌های manual برای template partials
 
