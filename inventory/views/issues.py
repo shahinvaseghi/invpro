@@ -18,7 +18,14 @@ from django.utils.translation import gettext_lazy as _
 from decimal import Decimal, InvalidOperation
 
 from .base import InventoryBaseView, DocumentLockProtectedMixin, DocumentLockView, DocumentUnlockView, LineFormsetMixin
-from shared.views.base import EditLockProtectedMixin, BaseDocumentUpdateView
+from shared.views.base import (
+    EditLockProtectedMixin, 
+    BaseDocumentUpdateView,
+    BaseDocumentListView,
+    BaseDocumentCreateView,
+    BaseDeleteView,
+    BaseDetailView,
+)
 from .receipts import DocumentDeleteViewBase, ReceiptFormMixin
 from shared.mixins import FeaturePermissionRequiredMixin
 from .. import models
@@ -30,31 +37,38 @@ from ..services import serials as serial_service
 # Permanent Issue Views
 # ============================================================================
 
-class IssuePermanentListView(InventoryBaseView, ListView):
+class IssuePermanentListView(InventoryBaseView, BaseDocumentListView):
     """List view for permanent issues."""
     model = models.IssuePermanent
     template_name = 'inventory/issue_permanent.html'
-    context_object_name = 'object_list'
+    feature_code = 'inventory.issues.permanent'
+    permission_field = 'created_by'
+    search_fields = ['document_code']
+    default_status_filter = False  # We handle status filtering manually
+    default_order_by = ['-id']
     paginate_by = 50
-    ordering = ['-id']  # Show newest documents first
+    stats_enabled = True
 
-    def get_queryset(self):
-        """Prefetch related objects for efficient display and apply filters."""
-        queryset = super().get_queryset()
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.permanent', 'created_by')
-        queryset = queryset.select_related('created_by', 'department_unit', 'warehouse_request').prefetch_related(
-            'lines__item',
-            'lines__warehouse',
-        )
+    def get_select_related(self):
+        """Select related objects."""
+        return ['created_by', 'department_unit', 'warehouse_request']
+
+    def get_prefetch_related(self):
+        """Prefetch lines with related objects."""
+        return ['lines__item', 'lines__warehouse']
+
+    def apply_custom_filters(self, queryset):
+        """Apply posted status and search filters."""
+        queryset = super().apply_custom_filters(queryset)
         
-        # Apply filters
+        # Posted status filter
         posted_param = self.request.GET.get('posted')
         if posted_param == '1':
             queryset = queryset.filter(is_locked=1)
         elif posted_param == '0':
             queryset = queryset.filter(is_locked=0)
         
+        # Search in lines (item name and code)
         search_query = self.request.GET.get('search', '').strip()
         if search_query:
             from django.db.models import Q
@@ -62,11 +76,54 @@ class IssuePermanentListView(InventoryBaseView, ListView):
                 Q(document_code__icontains=search_query) |
                 Q(lines__item__name__icontains=search_query) |
                 Q(lines__item__item_code__icontains=search_query)
-            ).distinct()
+            )
         
-        return queryset
+        return queryset.distinct()
 
-    def _get_stats(self) -> Dict[str, int]:
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Permanent Issues')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': None},
+        ]
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:issue_permanent_create')
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Permanent Issue')
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:issue_permanent_detail'
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:issue_permanent_edit'
+
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'inventory:issue_permanent_delete'
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Issues Found')
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by creating your first issue document.')
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📤'
+
+    def get_stats(self) -> Dict[str, int]:
         """Return aggregate stats for summary cards."""
         stats = {
             'total': 0,
@@ -82,155 +139,171 @@ class IssuePermanentListView(InventoryBaseView, ListView):
         stats['draft'] = base_qs.filter(is_locked=0).count()
         return stats
 
+    def get_stats_labels(self) -> Dict[str, str]:
+        """Return stats labels."""
+        return {
+            'total': _('Total'),
+            'posted': _('Posted'),
+            'draft': _('Draft'),
+        }
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic list template."""
+        """Add issue-specific context."""
         context = super().get_context_data(**kwargs)
         
-        # Generic list context
-        context['page_title'] = _('Permanent Issues')
-        context['breadcrumbs'] = [
-            {'label': _('Inventory'), 'url': None},
-            {'label': _('Issues'), 'url': None},
-        ]
-        context['create_url'] = reverse_lazy('inventory:issue_permanent_create')
-        context['create_button_text'] = _('Create Permanent Issue')
-        context['create_label'] = _('Permanent Issue')
-        context['show_filters'] = True
-        context['print_enabled'] = True
-        context['show_actions'] = True
-        
         # Issue-specific context
-        context['feature_code'] = 'inventory.issues.permanent'
-        context['view_url_name'] = 'inventory:issue_permanent_detail'  # Use detail view
-        context['edit_url_name'] = 'inventory:issue_permanent_edit'
-        context['delete_url_name'] = 'inventory:issue_permanent_delete'
+        context['create_label'] = _('Permanent Issue')
+        context['print_enabled'] = True
+        context['view_url_name'] = 'inventory:issue_permanent_detail'
         context['lock_url_name'] = 'inventory:issue_permanent_lock'
-        context['detail_url_name'] = 'inventory:issue_permanent_detail'
         context['show_warehouse_request'] = True
         context['warehouse_request_url_name'] = 'inventory:warehouse_request_edit'
-        context['empty_state_title'] = _('No Issues Found')
-        context['empty_state_message'] = _('Start by creating your first issue document.')
-        context['empty_state_icon'] = '📤'
+        context['empty_heading'] = _('No Issues Found')
+        context['empty_text'] = _('Start by creating your first issue document.')
         
         # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.issues.permanent')
         
-        # Filters
+        # Filters (for template)
         context['search_query'] = self.request.GET.get('search', '').strip()
-        
-        # Stats
-        context['stats'] = self._get_stats()
-        
-        # User for permission checks in template
-        context['user'] = self.request.user
         
         return context
 
 
-class IssuePermanentDetailView(InventoryBaseView, DetailView):
+class IssuePermanentDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing permanent issues (read-only)."""
     model = models.IssuePermanent
     template_name = 'inventory/issue_detail.html'
     context_object_name = 'issue'
-    
+    feature_code = 'inventory.issues.permanent'
+    permission_field = 'created_by'
+
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
-        # Filter by company_id (from InventoryBaseView)
-        company_id = self.request.session.get('active_company_id')
-        if company_id:
-            queryset = queryset.filter(company_id=company_id)
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.permanent', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse'
         ).select_related('created_by', 'warehouse_request', 'department_unit')
         return queryset
-    
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Permanent Issue')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': None},
+            {'label': _('Permanent Issues'), 'url': reverse_lazy('inventory:issue_permanent')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:issue_permanent')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse('inventory:issue_permanent_edit', kwargs={'pk': self.object.pk})
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail view."""
+        """Add issue-specific context."""
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'inventory'
         context['issue_variant'] = 'permanent'
-        context['list_url'] = reverse('inventory:issue_permanent')
-        context['edit_url'] = reverse('inventory:issue_permanent_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
         return context
 
 
-class IssuePermanentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
+class IssuePermanentCreateView(LineFormsetMixin, ReceiptFormMixin, BaseDocumentCreateView):
     """Create view for permanent issues."""
     model = models.IssuePermanent
     form_class = forms.IssuePermanentForm
     formset_class = forms.IssuePermanentLineFormSet
     success_url = reverse_lazy('inventory:issue_permanent')
+    feature_code = 'inventory.issues.permanent'
     form_title = _('ایجاد حواله دائم')
     receipt_variant = 'issue_permanent'
     list_url_name = 'inventory:issue_permanent'
     lock_url_name = 'inventory:issue_permanent_lock'
+    formset_prefix = 'lines'
+    success_message = _('حواله دائم با موفقیت ایجاد شد.')
 
     def form_valid(self, form):
-        """Save document and line formset."""
-        form.instance.company_id = self.request.session.get('active_company_id')
-        form.instance.created_by = self.request.user
-        form.instance.edited_by = self.request.user
+        """Save document and line formset with custom validation."""
+        from django.db import transaction
+        from shared.views.base import BaseCreateView
         
-        # Create a temporary instance for formset validation (don't save yet)
-        # We need to set the instance temporarily to validate the formset
-        temp_instance = form.save(commit=False)
-        temp_instance.pk = None  # Ensure it's treated as new
+        with transaction.atomic():
+            # Create a temporary instance for formset validation (don't save yet)
+            # We need to set the instance temporarily to validate the formset
+            temp_instance = form.save(commit=False)
+            temp_instance.pk = None  # Ensure it's treated as new
+            
+            # Validate formset BEFORE saving the document
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=temp_instance)
+            if not lines_formset.is_valid():
+                # Formset is invalid, don't save the document
+                # Rebuild formset with None instance to show errors properly
+                lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Check if there are any valid lines
+            valid_lines = 0
+            for line_form in lines_formset.forms:
+                if (line_form.cleaned_data and 
+                    not line_form.errors and
+                    line_form.cleaned_data.get('item') and 
+                    not line_form.cleaned_data.get('DELETE', False)):
+                    valid_lines += 1
+            
+            if valid_lines == 0:
+                # No valid lines, don't save the document
+                lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+                lines_formset.add_error(None, _('Please add at least one line with an item.'))
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Save document first (AutoSetFieldsMixin handles company_id and created_by)
+            # Call BaseCreateView.form_valid directly to skip BaseFormsetCreateView's formset.save()
+            response = BaseCreateView.form_valid(self, form)
+            
+            # Rebuild formset with the saved instance
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            # Formset should still be valid, but validate again to be safe
+            if not lines_formset.is_valid():
+                # This should not happen, but if it does, delete the document
+                self.object.delete()
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Save formset using LineFormsetMixin's _save_line_formset
+            self._save_line_formset(lines_formset)
         
-        # Validate formset BEFORE saving the document
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=temp_instance)
-        if not lines_formset.is_valid():
-            # Formset is invalid, don't save the document
-            # Rebuild formset with None instance to show errors properly
-            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        # Check if there are any valid lines
-        valid_lines = 0
-        for line_form in lines_formset.forms:
-            if (line_form.cleaned_data and 
-                not line_form.errors and
-                line_form.cleaned_data.get('item') and 
-                not line_form.cleaned_data.get('DELETE', False)):
-                valid_lines += 1
-        
-        if valid_lines == 0:
-            # No valid lines, don't save the document
-            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
-            lines_formset.add_error(None, _('Please add at least one line with an item.'))
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        # All validations passed, now save the document
-        self.object = form.save()
-        
-        # Rebuild formset with the saved instance
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
-        # Formset should still be valid, but validate again to be safe
-        if not lines_formset.is_valid():
-            # This should not happen, but if it does, delete the document
-            self.object.delete()
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        self._save_line_formset(lines_formset)
-        
-        messages.success(self.request, _('حواله دائم با موفقیت ایجاد شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        return response
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
             (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
         ]
+    
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': reverse_lazy('inventory:issue_permanent')},
+            {'label': _('Create Permanent Issue'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:issue_permanent')
 
 
 class IssuePermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, BaseDocumentUpdateView):
@@ -249,13 +322,8 @@ class IssuePermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, Rec
     lock_redirect_url_name = 'inventory:issue_permanent'
 
     def get_queryset(self):
-        """Prefetch related objects for efficient display."""
+        """Prefetch related objects and filter by permissions."""
         queryset = super().get_queryset()
-        # Filter by company_id (from InventoryBaseView)
-        company_id = self.request.session.get('active_company_id')
-        if company_id:
-            queryset = queryset.filter(company_id=company_id)
-        # Filter by user permissions (own vs all)
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.permanent', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
@@ -276,75 +344,132 @@ class IssuePermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, Rec
         return kwargs
 
     def form_valid(self, form):
-        """Save document and line formset."""
-        if not form.instance.created_by_id:
-            form.instance.created_by = self.request.user
+        """Save document and line formset with custom validation."""
+        from django.db import transaction
+        from shared.views.base import BaseUpdateView
         
-        # Save document first
-        self.object = form.save()
+        with transaction.atomic():
+            # Save document first (AutoSetFieldsMixin handles edited_by)
+            # Call BaseUpdateView.form_valid directly to skip BaseFormsetUpdateView's formset.save()
+            response = BaseUpdateView.form_valid(self, form)
+
+            # Handle line formset with custom validation
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            if not lines_formset.is_valid():
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Check if there are any valid lines
+            valid_lines = 0
+            for line_form in lines_formset.forms:
+                if (line_form.cleaned_data and 
+                    not line_form.errors and
+                    line_form.cleaned_data.get('item') and 
+                    not line_form.cleaned_data.get('DELETE', False)):
+                    valid_lines += 1
+            
+            if valid_lines == 0:
+                lines_formset.add_error(None, _('Please add at least one line with an item.'))
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+
+            # Save formset using LineFormsetMixin's _save_line_formset
+            self._save_line_formset(lines_formset)
         
-        # Handle line formset
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
-        if not lines_formset.is_valid():
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        # Check if there are any valid lines
-        valid_lines = 0
-        for line_form in lines_formset.forms:
-            if (line_form.cleaned_data and 
-                not line_form.errors and
-                line_form.cleaned_data.get('item') and 
-                not line_form.cleaned_data.get('DELETE', False)):
-                valid_lines += 1
-        
-        if valid_lines == 0:
-            lines_formset.add_error(None, _('Please add at least one line with an item.'))
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        self._save_line_formset(lines_formset)
-        
-        # Call parent to handle success message and redirect
-        return super().form_valid(form)
+        return response
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
             (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
         ]
+    
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': reverse_lazy('inventory:issue_permanent')},
+            {'label': _('Edit Permanent Issue'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:issue_permanent')
 
 
-class IssuePermanentDeleteView(DocumentDeleteViewBase):
+class IssuePermanentDeleteView(DocumentLockProtectedMixin, InventoryBaseView, BaseDeleteView):
     """Delete view for permanent issues."""
     model = models.IssuePermanent
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:issue_permanent')
     feature_code = 'inventory.issues.permanent'
-    required_action = 'delete_own'
-    allow_own_scope = True
     success_message = _('حواله دائم با موفقیت حذف شد.')
-    
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Permanent Issue')
-        context['confirmation_message'] = _('Do you really want to delete this permanent issue?')
-        context['object_details'] = [
-            {'label': _('Document Code'), 'value': self.object.document_code},
-            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
-            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
-        ]
-        context['cancel_url'] = reverse_lazy('inventory:issue_permanent')
-        context['breadcrumbs'] = [
+    lock_redirect_url_name = 'inventory:issue_permanent'
+    owner_field = 'created_by'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check permissions before allowing delete."""
+        from django.core.exceptions import PermissionDenied
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        
+        # Superuser bypass
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        
+        obj = self.get_object()
+        
+        # Check permissions
+        company_id: Optional[int] = request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(request.user, company_id)
+        
+        # Check if user is owner and has DELETE_OWN permission
+        is_owner = obj.created_by == request.user if obj.created_by else False
+        can_delete_own = has_feature_permission(permissions, self.feature_code, 'delete_own', allow_own_scope=True)
+        can_delete_other = has_feature_permission(permissions, self.feature_code, 'delete_other', allow_own_scope=False)
+        
+        if is_owner and not can_delete_own:
+            raise PermissionDenied(_('شما اجازه حذف اسناد خود را ندارید.'))
+        elif not is_owner and not can_delete_other:
+            raise PermissionDenied(_('شما اجازه حذف اسناد سایر کاربران را ندارید.'))
+        
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        """Filter by permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.permanent', 'created_by')
+        return queryset
+
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Permanent Issue')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Do you really want to delete this permanent issue?')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Issues'), 'url': None},
             {'label': _('Permanent Issues'), 'url': reverse_lazy('inventory:issue_permanent')},
             {'label': _('Delete'), 'url': None},
         ]
-        return context
+
+    def get_object_details(self):
+        """Return object details."""
+        return [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:issue_permanent')
 
 
 class IssuePermanentLockView(DocumentLockView):
@@ -398,31 +523,38 @@ class IssuePermanentLockView(DocumentLockView):
 # Consumption Issue Views
 # ============================================================================
 
-class IssueConsumptionListView(InventoryBaseView, ListView):
+class IssueConsumptionListView(InventoryBaseView, BaseDocumentListView):
     """List view for consumption issues."""
     model = models.IssueConsumption
     template_name = 'inventory/issue_consumption.html'
-    context_object_name = 'object_list'
+    feature_code = 'inventory.issues.consumption'
+    permission_field = 'created_by'
+    search_fields = ['document_code']
+    default_status_filter = False  # We handle status filtering manually
+    default_order_by = ['-id']
     paginate_by = 50
-    ordering = ['-id']  # Show newest documents first
+    stats_enabled = True
 
-    def get_queryset(self):
-        """Prefetch related objects for efficient display and apply filters."""
-        queryset = super().get_queryset()
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.consumption', 'created_by')
-        queryset = queryset.select_related('created_by', 'department_unit').prefetch_related(
-            'lines__item',
-            'lines__warehouse',
-        )
+    def get_select_related(self):
+        """Select related objects."""
+        return ['created_by', 'department_unit']
+
+    def get_prefetch_related(self):
+        """Prefetch lines with related objects."""
+        return ['lines__item', 'lines__warehouse']
+
+    def apply_custom_filters(self, queryset):
+        """Apply posted status and search filters."""
+        queryset = super().apply_custom_filters(queryset)
         
-        # Apply filters
+        # Posted status filter
         posted_param = self.request.GET.get('posted')
         if posted_param == '1':
             queryset = queryset.filter(is_locked=1)
         elif posted_param == '0':
             queryset = queryset.filter(is_locked=0)
         
+        # Search in lines (item name and code)
         search_query = self.request.GET.get('search', '').strip()
         if search_query:
             from django.db.models import Q
@@ -430,11 +562,54 @@ class IssueConsumptionListView(InventoryBaseView, ListView):
                 Q(document_code__icontains=search_query) |
                 Q(lines__item__name__icontains=search_query) |
                 Q(lines__item__item_code__icontains=search_query)
-            ).distinct()
+            )
         
-        return queryset
+        return queryset.distinct()
 
-    def _get_stats(self) -> Dict[str, int]:
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Consumption Issues')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': None},
+        ]
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:issue_consumption_create')
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Consumption Issue')
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:issue_consumption_detail'
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:issue_consumption_edit'
+
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'inventory:issue_consumption_delete'
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Issues Found')
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by creating your first consumption issue document.')
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📤'
+
+    def get_stats(self) -> Dict[str, int]:
         """Return aggregate stats for summary cards."""
         stats = {
             'total': 0,
@@ -450,193 +625,173 @@ class IssueConsumptionListView(InventoryBaseView, ListView):
         stats['draft'] = base_qs.filter(is_locked=0).count()
         return stats
 
+    def get_stats_labels(self) -> Dict[str, str]:
+        """Return stats labels."""
+        return {
+            'total': _('Total'),
+            'posted': _('Posted'),
+            'draft': _('Draft'),
+        }
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic list template."""
+        """Add issue-specific context."""
         context = super().get_context_data(**kwargs)
         
-        # Generic list context
-        context['page_title'] = _('Consumption Issues')
-        context['breadcrumbs'] = [
-            {'label': _('Inventory'), 'url': None},
-            {'label': _('Issues'), 'url': None},
-        ]
-        context['create_url'] = reverse_lazy('inventory:issue_consumption_create')
-        context['create_button_text'] = _('Create Consumption Issue')
-        context['create_label'] = _('Consumption Issue')
-        context['show_filters'] = True
-        context['print_enabled'] = True
-        context['show_actions'] = True
-        
         # Issue-specific context
-        context['feature_code'] = 'inventory.issues.consumption'
-        context['view_url_name'] = 'inventory:issue_consumption_detail'  # Use detail view
-        context['edit_url_name'] = 'inventory:issue_consumption_edit'
-        context['delete_url_name'] = 'inventory:issue_consumption_delete'
+        context['create_label'] = _('Consumption Issue')
+        context['print_enabled'] = True
+        context['view_url_name'] = 'inventory:issue_consumption_detail'
         context['lock_url_name'] = 'inventory:issue_consumption_lock'
-        context['detail_url_name'] = 'inventory:issue_consumption_detail'
-        context['empty_state_title'] = _('No Issues Found')
-        context['empty_state_message'] = _('Start by creating your first issue document.')
-        context['empty_state_icon'] = '📤'
+        context['empty_heading'] = _('No Issues Found')
+        context['empty_text'] = _('Start by creating your first consumption issue document.')
         
         # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.issues.consumption')
         
-        # Filters
+        # Filters (for template)
         context['search_query'] = self.request.GET.get('search', '').strip()
-        
-        # Stats
-        context['stats'] = self._get_stats()
-        
-        # User for permission checks in template
-        context['user'] = self.request.user
         
         return context
 
 
-class IssueConsumptionDetailView(InventoryBaseView, DetailView):
+class IssueConsumptionDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing consumption issues (read-only)."""
     model = models.IssueConsumption
     template_name = 'inventory/issue_detail.html'
     context_object_name = 'issue'
-    
+    feature_code = 'inventory.issues.consumption'
+    permission_field = 'created_by'
+
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
-        # Filter by company_id (from InventoryBaseView)
-        company_id = self.request.session.get('active_company_id')
-        if company_id:
-            queryset = queryset.filter(company_id=company_id)
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.consumption', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse'
         ).select_related('created_by', 'department_unit')
         return queryset
-    
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Consumption Issue')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': None},
+            {'label': _('Consumption Issues'), 'url': reverse_lazy('inventory:issue_consumption')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:issue_consumption')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse('inventory:issue_consumption_edit', kwargs={'pk': self.object.pk})
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail view."""
+        """Add issue-specific context."""
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'inventory'
         context['issue_variant'] = 'consumption'
-        context['list_url'] = reverse('inventory:issue_consumption')
-        context['edit_url'] = reverse('inventory:issue_consumption_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
         return context
 
 
-class IssueConsumptionCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
+class IssueConsumptionCreateView(LineFormsetMixin, ReceiptFormMixin, BaseDocumentCreateView):
     """Create view for consumption issues."""
     model = models.IssueConsumption
     form_class = forms.IssueConsumptionForm
     formset_class = forms.IssueConsumptionLineFormSet
     success_url = reverse_lazy('inventory:issue_consumption')
+    feature_code = 'inventory.issues.consumption'
     form_title = _('ایجاد حواله مصرف')
     receipt_variant = 'issue_consumption'
     list_url_name = 'inventory:issue_consumption'
     lock_url_name = 'inventory:issue_consumption_lock'
+    formset_prefix = 'lines'
+    success_message = _('حواله مصرف با موفقیت ایجاد شد.')
     
     def form_invalid(self, form):
         """Handle invalid form submission."""
         return super().form_invalid(form)
 
     def form_valid(self, form):
-        """Save document and line formset."""
-        form.instance.company_id = self.request.session.get('active_company_id')
-        form.instance.created_by = self.request.user
-        form.instance.edited_by = self.request.user
+        """Save document and line formset with custom validation."""
+        from django.db import transaction
+        from shared.views.base import BaseCreateView
         
-        # Create a temporary instance for formset validation (don't save yet)
-        # We need to set the instance temporarily to validate the formset
-        temp_instance = form.save(commit=False)
-        temp_instance.pk = None  # Ensure it's treated as new
+        with transaction.atomic():
+            # Create a temporary instance for formset validation (don't save yet)
+            # We need to set the instance temporarily to validate the formset
+            temp_instance = form.save(commit=False)
+            temp_instance.pk = None  # Ensure it's treated as new
+            
+            # Validate formset BEFORE saving the document
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=temp_instance)
+            if not lines_formset.is_valid():
+                # Formset is invalid, don't save the document
+                # Rebuild formset with None instance to show errors properly
+                lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Check if we have at least one valid line before saving
+            valid_lines = 0
+            for line_form in lines_formset.forms:
+                if (line_form.cleaned_data and 
+                    not line_form.errors and
+                    line_form.cleaned_data.get('item') and 
+                    not line_form.cleaned_data.get('DELETE', False)):
+                    valid_lines += 1
+            
+            if valid_lines == 0:
+                # No valid lines, don't save the document
+                form.add_error(None, _('Please add at least one line with an item.'))
+                lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Save document first (AutoSetFieldsMixin handles company_id and created_by)
+            # Call BaseCreateView.form_valid directly to skip BaseFormsetCreateView's formset.save()
+            response = BaseCreateView.form_valid(self, form)
+            
+            # Rebuild formset with the saved instance
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            # Formset should still be valid, but validate again to be safe
+            if not lines_formset.is_valid():
+                # This should not happen, but if it does, delete the document
+                self.object.delete()
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Save formset using LineFormsetMixin's _save_line_formset
+            self._save_line_formset(lines_formset)
         
-        # Validate formset BEFORE saving the document
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=temp_instance)
-        if not lines_formset.is_valid():
-            # Formset is invalid, don't save the document
-            # Add formset errors to form for display
-            if lines_formset.non_form_errors():
-                for error in lines_formset.non_form_errors():
-                    form.add_error(None, error)
-            # Also add individual form errors for better debugging
-            for idx, line_form in enumerate(lines_formset.forms):
-                if line_form.errors:
-                    for field, errors in line_form.errors.items():
-                        for error in errors:
-                            error_msg = _('Line %(line)d - %(field)s: %(error)s') % {
-                                'line': idx + 1,
-                                'field': field,
-                                'error': error
-                            }
-                            form.add_error(None, error_msg)
-            # Rebuild formset with None instance to show errors properly
-            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        # Check if we have at least one valid line before saving
-        valid_lines = []
-        form_errors = []
-        for idx, line_form in enumerate(lines_formset.forms):
-            # Skip empty forms (no item)
-            if not line_form.cleaned_data:
-                continue
-            # Skip deleted forms
-            if line_form.cleaned_data.get('DELETE', False):
-                continue
-            # Skip forms without item
-            if not line_form.cleaned_data.get('item'):
-                continue
-            # Check if form has validation errors
-            if line_form.errors:
-                # Collect error messages for display
-                item_name = str(line_form.cleaned_data.get('item', 'Item'))
-                for field, errors in line_form.errors.items():
-                    for error in errors:
-                        form_errors.append(f"{item_name}: {field}: {error}")
-                # Form has errors, don't count it as valid but keep the formset to show errors
-                continue
-            # This form is valid
-            valid_lines.append(line_form)
-        
-        if not valid_lines:
-            # No valid lines, don't save the document
-            if form_errors:
-                for error_msg in form_errors:
-                    form.add_error(None, error_msg)
-            else:
-                form.add_error(None, _('Please add at least one line with an item and complete all required fields.'))
-            # Rebuild formset with POST data to preserve user input and show errors
-            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        # All validations passed, now save the document
-        self.object = form.save()
-        
-        # Rebuild formset with the saved instance
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
-        # Formset should still be valid, but validate again to be safe
-        if not lines_formset.is_valid():
-            # This should not happen, but if it does, delete the document
-            self.object.delete()
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        self._save_line_formset(lines_formset)
-        
-        messages.success(self.request, _('حواله مصرف با موفقیت ایجاد شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        return response
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
             (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
         ]
+    
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': reverse_lazy('inventory:issue_consumption')},
+            {'label': _('Create Consumption Issue'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:issue_consumption')
 
 
 class IssueConsumptionUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, BaseDocumentUpdateView):
@@ -655,13 +810,8 @@ class IssueConsumptionUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
     lock_redirect_url_name = 'inventory:issue_consumption'
 
     def get_queryset(self):
-        """Prefetch related objects for efficient display."""
+        """Prefetch related objects and filter by permissions."""
         queryset = super().get_queryset()
-        # Filter by company_id (from InventoryBaseView)
-        company_id = self.request.session.get('active_company_id')
-        if company_id:
-            queryset = queryset.filter(company_id=company_id)
-        # Filter by user permissions (own vs all)
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.consumption', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
@@ -682,59 +832,117 @@ class IssueConsumptionUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
         return kwargs
 
     def form_valid(self, form):
-        """Save document and line formset."""
-        if not form.instance.created_by_id:
-            form.instance.created_by = self.request.user
+        """Save document and line formset with custom validation."""
+        from django.db import transaction
+        from shared.views.base import BaseUpdateView
         
-        # Save document first
-        self.object = form.save()
+        with transaction.atomic():
+            # Save document first (AutoSetFieldsMixin handles edited_by)
+            # Call BaseUpdateView.form_valid directly to skip BaseFormsetUpdateView's formset.save()
+            response = BaseUpdateView.form_valid(self, form)
+
+            # Handle line formset with custom validation
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            if not lines_formset.is_valid():
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+
+            # Save formset using LineFormsetMixin's _save_line_formset
+            self._save_line_formset(lines_formset)
         
-        # Handle line formset
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
-        if not lines_formset.is_valid():
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        self._save_line_formset(lines_formset)
-        
-        # Call parent to handle success message and redirect
-        return super().form_valid(form)
+        return response
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
             (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
         ]
+    
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': reverse_lazy('inventory:issue_consumption')},
+            {'label': _('Edit Consumption Issue'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:issue_consumption')
 
 
-class IssueConsumptionDeleteView(DocumentDeleteViewBase):
+class IssueConsumptionDeleteView(DocumentLockProtectedMixin, InventoryBaseView, BaseDeleteView):
     """Delete view for consumption issues."""
     model = models.IssueConsumption
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:issue_consumption')
     feature_code = 'inventory.issues.consumption'
-    required_action = 'delete_own'
-    allow_own_scope = True
     success_message = _('حواله مصرفی با موفقیت حذف شد.')
-    
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Consumption Issue')
-        context['confirmation_message'] = _('Do you really want to delete this consumption issue?')
-        context['object_details'] = [
-            {'label': _('Document Code'), 'value': self.object.document_code},
-            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
-            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
-        ]
-        context['cancel_url'] = reverse_lazy('inventory:issue_consumption')
-        context['breadcrumbs'] = [
+    lock_redirect_url_name = 'inventory:issue_consumption'
+    owner_field = 'created_by'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check permissions before allowing delete."""
+        from django.core.exceptions import PermissionDenied
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        
+        # Superuser bypass
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        
+        obj = self.get_object()
+        
+        # Check permissions
+        company_id: Optional[int] = request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(request.user, company_id)
+        
+        # Check if user is owner and has DELETE_OWN permission
+        is_owner = obj.created_by == request.user if obj.created_by else False
+        can_delete_own = has_feature_permission(permissions, self.feature_code, 'delete_own', allow_own_scope=True)
+        can_delete_other = has_feature_permission(permissions, self.feature_code, 'delete_other', allow_own_scope=False)
+        
+        if is_owner and not can_delete_own:
+            raise PermissionDenied(_('شما اجازه حذف اسناد خود را ندارید.'))
+        elif not is_owner and not can_delete_other:
+            raise PermissionDenied(_('شما اجازه حذف اسناد سایر کاربران را ندارید.'))
+        
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        """Filter by permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.consumption', 'created_by')
+        return queryset
+
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Consumption Issue')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Do you really want to delete this consumption issue?')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Issues'), 'url': None},
             {'label': _('Consumption Issues'), 'url': reverse_lazy('inventory:issue_consumption')},
             {'label': _('Delete'), 'url': None},
         ]
-        return context
+
+    def get_object_details(self):
+        """Return object details."""
+        return [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:issue_consumption')
 
 
 class IssueConsumptionLockView(DocumentLockView):
@@ -788,32 +996,38 @@ class IssueConsumptionLockView(DocumentLockView):
 # Consignment Issue Views
 # ============================================================================
 
-class IssueConsignmentListView(InventoryBaseView, ListView):
+class IssueConsignmentListView(InventoryBaseView, BaseDocumentListView):
     """List view for consignment issues."""
     model = models.IssueConsignment
     template_name = 'inventory/issue_consignment.html'
-    context_object_name = 'object_list'
+    feature_code = 'inventory.issues.consignment'
+    permission_field = 'created_by'
+    search_fields = ['document_code']
+    default_status_filter = False  # We handle status filtering manually
+    default_order_by = ['-id']
     paginate_by = 50
-    ordering = ['-id']  # Show newest documents first
+    stats_enabled = True
 
-    def get_queryset(self):
-        """Prefetch related objects for efficient display and apply filters."""
-        queryset = super().get_queryset()
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.consignment', 'created_by')
-        queryset = queryset.select_related('created_by', 'department_unit').prefetch_related(
-            'lines__item',
-            'lines__warehouse',
-            'lines__supplier',
-        )
+    def get_select_related(self):
+        """Select related objects."""
+        return ['created_by', 'department_unit']
+
+    def get_prefetch_related(self):
+        """Prefetch lines with related objects."""
+        return ['lines__item', 'lines__warehouse', 'lines__supplier']
+
+    def apply_custom_filters(self, queryset):
+        """Apply posted status and search filters."""
+        queryset = super().apply_custom_filters(queryset)
         
-        # Apply filters
+        # Posted status filter
         posted_param = self.request.GET.get('posted')
         if posted_param == '1':
             queryset = queryset.filter(is_locked=1)
         elif posted_param == '0':
             queryset = queryset.filter(is_locked=0)
         
+        # Search in lines (item name and code)
         search_query = self.request.GET.get('search', '').strip()
         if search_query:
             from django.db.models import Q
@@ -821,11 +1035,54 @@ class IssueConsignmentListView(InventoryBaseView, ListView):
                 Q(document_code__icontains=search_query) |
                 Q(lines__item__name__icontains=search_query) |
                 Q(lines__item__item_code__icontains=search_query)
-            ).distinct()
+            )
         
-        return queryset
+        return queryset.distinct()
 
-    def _get_stats(self) -> Dict[str, int]:
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Consignment Issues')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': None},
+        ]
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:issue_consignment_create')
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Consignment Issue')
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:issue_consignment_detail'
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:issue_consignment_edit'
+
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'inventory:issue_consignment_delete'
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Issues Found')
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by creating your first consignment issue document.')
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📤'
+
+    def get_stats(self) -> Dict[str, int]:
         """Return aggregate stats for summary cards."""
         stats = {
             'total': 0,
@@ -841,153 +1098,169 @@ class IssueConsignmentListView(InventoryBaseView, ListView):
         stats['draft'] = base_qs.filter(is_locked=0).count()
         return stats
 
+    def get_stats_labels(self) -> Dict[str, str]:
+        """Return stats labels."""
+        return {
+            'total': _('Total'),
+            'posted': _('Posted'),
+            'draft': _('Draft'),
+        }
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic list template."""
+        """Add issue-specific context."""
         context = super().get_context_data(**kwargs)
         
-        # Generic list context
-        context['page_title'] = _('Consignment Issues')
-        context['breadcrumbs'] = [
-            {'label': _('Inventory'), 'url': None},
-            {'label': _('Issues'), 'url': None},
-        ]
-        context['create_url'] = reverse_lazy('inventory:issue_consignment_create')
-        context['create_button_text'] = _('Create Consignment Issue')
-        context['create_label'] = _('Consignment Issue')
-        context['show_filters'] = True
-        context['print_enabled'] = True
-        context['show_actions'] = True
-        
         # Issue-specific context
-        context['feature_code'] = 'inventory.issues.consignment'
-        context['view_url_name'] = 'inventory:issue_consignment_detail'  # Use detail view
-        context['edit_url_name'] = 'inventory:issue_consignment_edit'
-        context['delete_url_name'] = 'inventory:issue_consignment_delete'
+        context['create_label'] = _('Consignment Issue')
+        context['print_enabled'] = True
+        context['view_url_name'] = 'inventory:issue_consignment_detail'
         context['lock_url_name'] = 'inventory:issue_consignment_lock'
-        context['detail_url_name'] = 'inventory:issue_consignment_detail'
-        context['empty_state_title'] = _('No Issues Found')
-        context['empty_state_message'] = _('Start by creating your first issue document.')
-        context['empty_state_icon'] = '📤'
+        context['empty_heading'] = _('No Issues Found')
+        context['empty_text'] = _('Start by creating your first consignment issue document.')
         
         # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.issues.consignment')
         
-        # Filters
+        # Filters (for template)
         context['search_query'] = self.request.GET.get('search', '').strip()
-        
-        # Stats
-        context['stats'] = self._get_stats()
-        
-        # User for permission checks in template
-        context['user'] = self.request.user
         
         return context
 
 
-class IssueConsignmentDetailView(InventoryBaseView, DetailView):
+class IssueConsignmentDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing consignment issues (read-only)."""
     model = models.IssueConsignment
     template_name = 'inventory/issue_detail.html'
     context_object_name = 'issue'
-    
+    feature_code = 'inventory.issues.consignment'
+    permission_field = 'created_by'
+
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
-        # Filter by company_id (from InventoryBaseView)
-        company_id = self.request.session.get('active_company_id')
-        if company_id:
-            queryset = queryset.filter(company_id=company_id)
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.consignment', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse'
         ).select_related('created_by', 'department_unit')
         return queryset
-    
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Consignment Issue')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': None},
+            {'label': _('Consignment Issues'), 'url': reverse_lazy('inventory:issue_consignment')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:issue_consignment')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse('inventory:issue_consignment_edit', kwargs={'pk': self.object.pk})
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail view."""
+        """Add issue-specific context."""
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'inventory'
         context['issue_variant'] = 'consignment'
-        context['list_url'] = reverse('inventory:issue_consignment')
-        context['edit_url'] = reverse('inventory:issue_consignment_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
         return context
 
 
-class IssueConsignmentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
+class IssueConsignmentCreateView(LineFormsetMixin, ReceiptFormMixin, BaseDocumentCreateView):
     """Create view for consignment issues."""
     model = models.IssueConsignment
     form_class = forms.IssueConsignmentForm
     formset_class = forms.IssueConsignmentLineFormSet
     success_url = reverse_lazy('inventory:issue_consignment')
+    feature_code = 'inventory.issues.consignment'
     form_title = _('ایجاد حواله امانی')
     receipt_variant = 'issue_consignment'
     list_url_name = 'inventory:issue_consignment'
     lock_url_name = 'inventory:issue_consignment_lock'
+    formset_prefix = 'lines'
+    success_message = _('حواله امانی با موفقیت ایجاد شد.')
 
     def form_valid(self, form):
-        """Save document and line formset."""
-        form.instance.company_id = self.request.session.get('active_company_id')
-        form.instance.created_by = self.request.user
-        form.instance.edited_by = self.request.user
+        """Save document and line formset with custom validation."""
+        from django.db import transaction
+        from shared.views.base import BaseCreateView
         
-        # Create a temporary instance for formset validation (don't save yet)
-        # We need to set the instance temporarily to validate the formset
-        temp_instance = form.save(commit=False)
-        temp_instance.pk = None  # Ensure it's treated as new
+        with transaction.atomic():
+            # Create a temporary instance for formset validation (don't save yet)
+            # We need to set the instance temporarily to validate the formset
+            temp_instance = form.save(commit=False)
+            temp_instance.pk = None  # Ensure it's treated as new
+            
+            # Validate formset BEFORE saving the document
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=temp_instance)
+            if not lines_formset.is_valid():
+                # Formset is invalid, don't save the document
+                # Rebuild formset with None instance to show errors properly
+                lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Check if there are any valid lines
+            valid_lines = 0
+            for line_form in lines_formset.forms:
+                if (line_form.cleaned_data and 
+                    not line_form.errors and
+                    line_form.cleaned_data.get('item') and 
+                    not line_form.cleaned_data.get('DELETE', False)):
+                    valid_lines += 1
+            
+            if valid_lines == 0:
+                # No valid lines, don't save the document
+                form.add_error(None, _('Please add at least one line with an item.'))
+                lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Save document first (AutoSetFieldsMixin handles company_id and created_by)
+            # Call BaseCreateView.form_valid directly to skip BaseFormsetCreateView's formset.save()
+            response = BaseCreateView.form_valid(self, form)
+            
+            # Rebuild formset with the saved instance
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            # Formset should still be valid, but validate again to be safe
+            if not lines_formset.is_valid():
+                # This should not happen, but if it does, delete the document
+                self.object.delete()
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Save formset using LineFormsetMixin's _save_line_formset
+            self._save_line_formset(lines_formset)
         
-        # Validate formset BEFORE saving the document
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=temp_instance)
-        if not lines_formset.is_valid():
-            # Formset is invalid, don't save the document
-            # Rebuild formset with None instance to show errors properly
-            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        # Check if there are any valid lines
-        valid_lines = 0
-        for line_form in lines_formset.forms:
-            if (line_form.cleaned_data and 
-                not line_form.errors and
-                line_form.cleaned_data.get('item') and 
-                not line_form.cleaned_data.get('DELETE', False)):
-                valid_lines += 1
-        
-        if valid_lines == 0:
-            # No valid lines, don't save the document
-            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
-            lines_formset.add_error(None, _('Please add at least one line with an item.'))
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        # All validations passed, now save the document
-        self.object = form.save()
-        
-        # Rebuild formset with the saved instance
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
-        # Formset should still be valid, but validate again to be safe
-        if not lines_formset.is_valid():
-            # This should not happen, but if it does, delete the document
-            self.object.delete()
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        self._save_line_formset(lines_formset)
-        
-        messages.success(self.request, _('حواله امانی با موفقیت ایجاد شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        return response
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
             (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
         ]
+    
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': reverse_lazy('inventory:issue_consignment')},
+            {'label': _('Create Consignment Issue'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:issue_consignment')
 
 
 class IssueConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, BaseDocumentUpdateView):
@@ -1006,13 +1279,8 @@ class IssueConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
     lock_redirect_url_name = 'inventory:issue_consignment'
 
     def get_queryset(self):
-        """Prefetch related objects for efficient display."""
+        """Prefetch related objects and filter by permissions."""
         queryset = super().get_queryset()
-        # Filter by company_id (from InventoryBaseView)
-        company_id = self.request.session.get('active_company_id')
-        if company_id:
-            queryset = queryset.filter(company_id=company_id)
-        # Filter by user permissions (own vs all)
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.consignment', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
@@ -1033,59 +1301,117 @@ class IssueConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
         return kwargs
 
     def form_valid(self, form):
-        """Save document and line formset."""
-        if not form.instance.created_by_id:
-            form.instance.created_by = self.request.user
+        """Save document and line formset with custom validation."""
+        from django.db import transaction
+        from shared.views.base import BaseUpdateView
         
-        # Save document first
-        self.object = form.save()
+        with transaction.atomic():
+            # Save document first (AutoSetFieldsMixin handles edited_by)
+            # Call BaseUpdateView.form_valid directly to skip BaseFormsetUpdateView's formset.save()
+            response = BaseUpdateView.form_valid(self, form)
+
+            # Handle line formset with custom validation
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            if not lines_formset.is_valid():
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+
+            # Save formset using LineFormsetMixin's _save_line_formset
+            self._save_line_formset(lines_formset)
         
-        # Handle line formset
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
-        if not lines_formset.is_valid():
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        self._save_line_formset(lines_formset)
-        
-        # Call parent to handle success message and redirect
-        return super().form_valid(form)
+        return response
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
             (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
         ]
+    
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': reverse_lazy('inventory:issue_consignment')},
+            {'label': _('Edit Consignment Issue'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:issue_consignment')
 
 
-class IssueConsignmentDeleteView(DocumentDeleteViewBase):
+class IssueConsignmentDeleteView(DocumentLockProtectedMixin, InventoryBaseView, BaseDeleteView):
     """Delete view for consignment issues."""
     model = models.IssueConsignment
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:issue_consignment')
     feature_code = 'inventory.issues.consignment'
-    required_action = 'delete_own'
-    allow_own_scope = True
     success_message = _('حواله امانی با موفقیت حذف شد.')
-    
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Consignment Issue')
-        context['confirmation_message'] = _('Do you really want to delete this consignment issue?')
-        context['object_details'] = [
-            {'label': _('Document Code'), 'value': self.object.document_code},
-            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
-            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
-        ]
-        context['cancel_url'] = reverse_lazy('inventory:issue_consignment')
-        context['breadcrumbs'] = [
+    lock_redirect_url_name = 'inventory:issue_consignment'
+    owner_field = 'created_by'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check permissions before allowing delete."""
+        from django.core.exceptions import PermissionDenied
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        
+        # Superuser bypass
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        
+        obj = self.get_object()
+        
+        # Check permissions
+        company_id: Optional[int] = request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(request.user, company_id)
+        
+        # Check if user is owner and has DELETE_OWN permission
+        is_owner = obj.created_by == request.user if obj.created_by else False
+        can_delete_own = has_feature_permission(permissions, self.feature_code, 'delete_own', allow_own_scope=True)
+        can_delete_other = has_feature_permission(permissions, self.feature_code, 'delete_other', allow_own_scope=False)
+        
+        if is_owner and not can_delete_own:
+            raise PermissionDenied(_('شما اجازه حذف اسناد خود را ندارید.'))
+        elif not is_owner and not can_delete_other:
+            raise PermissionDenied(_('شما اجازه حذف اسناد سایر کاربران را ندارید.'))
+        
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        """Filter by permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.consignment', 'created_by')
+        return queryset
+
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Consignment Issue')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Do you really want to delete this consignment issue?')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Issues'), 'url': None},
             {'label': _('Consignment Issues'), 'url': reverse_lazy('inventory:issue_consignment')},
             {'label': _('Delete'), 'url': None},
         ]
-        return context
+
+    def get_object_details(self):
+        """Return object details."""
+        return [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:issue_consignment')
 
 
 class IssueConsignmentLockView(DocumentLockView):
@@ -1252,17 +1578,21 @@ class IssueConsignmentLineSerialAssignmentView(IssueLineSerialAssignmentBaseView
 # Warehouse Transfer Issue Views
 # ============================================================================
 
-class IssueWarehouseTransferListView(InventoryBaseView, ListView):
+class IssueWarehouseTransferListView(InventoryBaseView, BaseDocumentListView):
     """List view for warehouse transfer issues."""
     model = models.IssueWarehouseTransfer
     template_name = 'inventory/issue_warehouse_transfer.html'
-    context_object_name = 'object_list'
+    feature_code = 'inventory.issues.warehouse_transfer'
+    permission_field = 'created_by'
+    search_fields = ['document_code']
+    default_status_filter = False  # We handle status filtering manually
+    default_order_by = ['-id']
     paginate_by = 50
-    ordering = ['-id']  # Show newest documents first
+    stats_enabled = True
 
-    def get_queryset(self):
-        """Prefetch related objects for efficient display and apply filters."""
-        queryset = super().get_queryset()
+    def get_base_queryset(self):
+        """Get base queryset including production transfers."""
+        queryset = super().get_base_queryset()
         
         # Filter by user permissions (own vs all)
         # But also include warehouse transfers created from TransferToLine
@@ -1285,30 +1615,79 @@ class IssueWarehouseTransferListView(InventoryBaseView, ListView):
         else:
             queryset = base_queryset
         
-        queryset = queryset.select_related('created_by', 'production_transfer').prefetch_related(
-            'lines__item',
-            'lines__source_warehouse',
-            'lines__destination_warehouse',
-        )
+        return queryset
+
+    def get_select_related(self):
+        """Select related objects."""
+        return ['created_by', 'production_transfer']
+
+    def get_prefetch_related(self):
+        """Prefetch lines with related objects."""
+        return ['lines__item', 'lines__source_warehouse', 'lines__destination_warehouse']
+
+    def apply_custom_filters(self, queryset):
+        """Apply posted status and search filters."""
+        queryset = super().apply_custom_filters(queryset)
         
-        # Apply filters
+        # Posted status filter
         posted_param = self.request.GET.get('posted')
         if posted_param == '1':
             queryset = queryset.filter(is_locked=1)
         elif posted_param == '0':
             queryset = queryset.filter(is_locked=0)
         
+        # Search in lines (item name and code)
         search_query = self.request.GET.get('search', '').strip()
         if search_query:
+            from django.db.models import Q
             queryset = queryset.filter(
                 Q(document_code__icontains=search_query) |
                 Q(lines__item__name__icontains=search_query) |
                 Q(lines__item__item_code__icontains=search_query)
-            ).distinct()
+            )
         
-        return queryset
+        return queryset.distinct()
 
-    def _get_stats(self) -> Dict[str, int]:
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Warehouse Transfer Issues')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': None},
+        ]
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:issue_warehouse_transfer_create')
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Warehouse Transfer Issue')
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:issue_warehouse_transfer_detail'
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:issue_warehouse_transfer_edit'
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Issues Found')
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by creating your first warehouse transfer issue document.')
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📤'
+
+    def get_stats(self) -> Dict[str, int]:
         """Return aggregate stats for summary cards."""
         stats = {
             'total': 0,
@@ -1324,108 +1703,114 @@ class IssueWarehouseTransferListView(InventoryBaseView, ListView):
         stats['draft'] = base_qs.filter(is_locked=0).count()
         return stats
 
+    def get_stats_labels(self) -> Dict[str, str]:
+        """Return stats labels."""
+        return {
+            'total': _('Total'),
+            'posted': _('Posted'),
+            'draft': _('Draft'),
+        }
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic list template."""
+        """Add issue-specific context."""
         context = super().get_context_data(**kwargs)
         
-        context['page_title'] = _('حواله انتقال بین انبارها')
-        context['breadcrumbs'] = [
-            {'label': _('Inventory'), 'url': None},
-            {'label': _('Issues'), 'url': None},
-        ]
-        context['create_url'] = reverse_lazy('inventory:issue_warehouse_transfer_create')
-        context['create_button_text'] = _('ایجاد حواله انتقال بین انبارها')
-        context['create_label'] = _('حواله انتقال بین انبارها')
-        context['show_filters'] = True
+        # Issue-specific context
+        context['create_label'] = _('Warehouse Transfer Issue')
         context['print_enabled'] = True
-        context['show_actions'] = True
-        context['edit_url_name'] = 'inventory:issue_warehouse_transfer_edit'
         context['delete_url_name'] = None  # Delete not implemented yet
-        context['detail_url_name'] = 'inventory:issue_warehouse_transfer_detail'
-        context['feature_code'] = 'inventory.issues.warehouse_transfer'
-        context['stats'] = self._get_stats()
-        
-        # Add user_feature_permissions for template
-        active_company_id = self.request.session.get('active_company_id')
-        if active_company_id:
-            from shared.utils.permissions import get_user_feature_permissions
-            context['user_feature_permissions'] = get_user_feature_permissions(self.request.user, active_company_id)
         
         return context
 
 
-class IssueWarehouseTransferCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
+class IssueWarehouseTransferCreateView(LineFormsetMixin, ReceiptFormMixin, BaseDocumentCreateView):
     """Create view for warehouse transfer issues."""
     model = models.IssueWarehouseTransfer
     form_class = forms.IssueWarehouseTransferForm
     formset_class = forms.IssueWarehouseTransferLineFormSet
     success_url = reverse_lazy('inventory:issue_warehouse_transfer')
+    feature_code = 'inventory.issues.warehouse_transfer'
     form_title = _('ایجاد حواله انتقال بین انبارها')
     receipt_variant = 'issue_warehouse_transfer'
     list_url_name = 'inventory:issue_warehouse_transfer'
     lock_url_name = 'inventory:issue_warehouse_transfer_lock'
+    formset_prefix = 'lines'
+    success_message = _('حواله انتقال بین انبارها با موفقیت ایجاد شد.')
 
     def form_valid(self, form):
-        """Save document and line formset."""
-        form.instance.company_id = self.request.session.get('active_company_id')
-        form.instance.created_by = self.request.user
-        form.instance.edited_by = self.request.user
+        """Save document and line formset with custom validation."""
+        from django.db import transaction
+        from shared.views.base import BaseCreateView
         
-        # Create a temporary instance for formset validation (don't save yet)
-        # We need to set the instance temporarily to validate the formset
-        temp_instance = form.save(commit=False)
-        temp_instance.pk = None  # Ensure it's treated as new
+        with transaction.atomic():
+            # Create a temporary instance for formset validation (don't save yet)
+            # We need to set the instance temporarily to validate the formset
+            temp_instance = form.save(commit=False)
+            temp_instance.pk = None  # Ensure it's treated as new
+            
+            # Validate formset BEFORE saving the document
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=temp_instance)
+            if not lines_formset.is_valid():
+                # Formset is invalid, don't save the document
+                # Rebuild formset with None instance to show errors properly
+                lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Check if there are any valid lines
+            valid_lines = 0
+            for line_form in lines_formset.forms:
+                if (line_form.cleaned_data and 
+                    not line_form.errors and
+                    line_form.cleaned_data.get('item') and 
+                    not line_form.cleaned_data.get('DELETE', False)):
+                    valid_lines += 1
+            
+            if valid_lines == 0:
+                # No valid lines, don't save the document
+                form.add_error(None, _('Please add at least one line with an item.'))
+                lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Save document first (AutoSetFieldsMixin handles company_id and created_by)
+            # Call BaseCreateView.form_valid directly to skip BaseFormsetCreateView's formset.save()
+            response = BaseCreateView.form_valid(self, form)
+            
+            # Rebuild formset with the saved instance
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            # Formset should still be valid, but validate again to be safe
+            if not lines_formset.is_valid():
+                # This should not happen, but if it does, delete the document
+                self.object.delete()
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Save formset using LineFormsetMixin's _save_line_formset
+            self._save_line_formset(lines_formset)
         
-        # Validate formset BEFORE saving the document
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=temp_instance)
-        if not lines_formset.is_valid():
-            # Formset is invalid, don't save the document
-            # Rebuild formset with None instance to show errors properly
-            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        # Check if there are any valid lines
-        valid_lines = 0
-        for line_form in lines_formset.forms:
-            if (line_form.cleaned_data and 
-                not line_form.errors and
-                line_form.cleaned_data.get('item') and 
-                not line_form.cleaned_data.get('DELETE', False)):
-                valid_lines += 1
-        
-        if valid_lines == 0:
-            # No valid lines, don't save the document
-            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
-            lines_formset.add_error(None, _('Please add at least one line with an item.'))
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        # All validations passed, now save the document
-        self.object = form.save()
-        
-        # Rebuild formset with the saved instance
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
-        # Formset should still be valid, but validate again to be safe
-        if not lines_formset.is_valid():
-            # This should not happen, but if it does, delete the document
-            self.object.delete()
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        self._save_line_formset(lines_formset)
-        
-        messages.success(self.request, _('حواله انتقال بین انبارها با موفقیت ایجاد شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        return response
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
             (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
         ]
+    
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': reverse_lazy('inventory:issue_warehouse_transfer')},
+            {'label': _('Create Warehouse Transfer Issue'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:issue_warehouse_transfer')
 
 
 class IssueWarehouseTransferUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, BaseDocumentUpdateView):
@@ -1454,67 +1839,139 @@ class IssueWarehouseTransferUpdateView(LineFormsetMixin, DocumentLockProtectedMi
         kwargs['request'] = self.request
         return kwargs
 
+    def get_queryset(self):
+        """Prefetch related objects and filter by permissions."""
+        queryset = super().get_queryset()
+        # Include production transfers
+        from django.db.models import Q
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            base_queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.warehouse_transfer', 'created_by')
+            production_transfer_queryset = queryset.filter(
+                production_transfer__isnull=False,
+                company_id=company_id,
+            )
+            queryset = (base_queryset | production_transfer_queryset).distinct()
+        else:
+            queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.warehouse_transfer', 'created_by')
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__source_warehouse',
+            'lines__destination_warehouse'
+        ).select_related('created_by', 'production_transfer')
+        return queryset
+
     def form_valid(self, form):
-        """Save document and line formset."""
-        # Save document first
-        self.object = form.save()
+        """Save document and line formset with custom validation."""
+        from django.db import transaction
+        from shared.views.base import BaseUpdateView
         
-        # Handle line formset
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
-        if not lines_formset.is_valid():
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
+        with transaction.atomic():
+            # Save document first (AutoSetFieldsMixin handles edited_by)
+            # Call BaseUpdateView.form_valid directly to skip BaseFormsetUpdateView's formset.save()
+            response = BaseUpdateView.form_valid(self, form)
+
+            # Handle line formset with custom validation
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            if not lines_formset.is_valid():
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+
+            # Check if there are any valid lines
+            valid_lines = 0
+            for line_form in lines_formset.forms:
+                if (line_form.cleaned_data and 
+                    not line_form.errors and
+                    line_form.cleaned_data.get('item') and 
+                    not line_form.cleaned_data.get('DELETE', False)):
+                    valid_lines += 1
+
+            if valid_lines == 0:
+                lines_formset.add_error(None, _('Please add at least one line with an item.'))
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+
+            # Save formset using LineFormsetMixin's _save_line_formset
+            self._save_line_formset(lines_formset)
         
-        # Check if there are any valid lines
-        valid_lines = 0
-        for line_form in lines_formset.forms:
-            if (line_form.cleaned_data and 
-                not line_form.errors and
-                line_form.cleaned_data.get('item') and 
-                not line_form.cleaned_data.get('DELETE', False)):
-                valid_lines += 1
-        
-        if valid_lines == 0:
-            lines_formset.add_error(None, _('Please add at least one line with an item.'))
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        self._save_line_formset(lines_formset)
-        
-        # Call parent to handle success message and redirect
-        return super().form_valid(form)
+        return response
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
             (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
         ]
+    
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': reverse_lazy('inventory:issue_warehouse_transfer')},
+            {'label': _('Edit Warehouse Transfer Issue'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:issue_warehouse_transfer')
 
 
 
 
-class IssueWarehouseTransferDetailView(InventoryBaseView, DetailView):
+class IssueWarehouseTransferDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for warehouse transfer issues (read-only)."""
     model = models.IssueWarehouseTransfer
     template_name = 'inventory/issue_warehouse_transfer_detail.html'
     context_object_name = 'warehouse_transfer'
-    
+    feature_code = 'inventory.issues.warehouse_transfer'
+    permission_field = 'created_by'
+
     def get_queryset(self):
-        """Filter by active company."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        if not active_company_id:
-            return models.IssueWarehouseTransfer.objects.none()
-        return models.IssueWarehouseTransfer.objects.filter(company_id=active_company_id)
-    
+        """Filter by active company and include production transfers."""
+        from django.db.models import Q
+        queryset = super().get_queryset()
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            base_queryset = self.filter_queryset_by_permissions(queryset, 'inventory.issues.warehouse_transfer', 'created_by')
+            production_transfer_queryset = queryset.filter(
+                production_transfer__isnull=False,
+                company_id=company_id,
+            )
+            queryset = (base_queryset | production_transfer_queryset).distinct()
+        else:
+            queryset = models.IssueWarehouseTransfer.objects.none()
+        queryset = queryset.prefetch_related(
+            'lines__item',
+            'lines__source_warehouse',
+            'lines__destination_warehouse'
+        ).select_related('created_by', 'production_transfer')
+        return queryset
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Warehouse Transfer Issue')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': None},
+            {'label': _('Warehouse Transfer Issues'), 'url': reverse_lazy('inventory:issue_warehouse_transfer')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:issue_warehouse_transfer')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('inventory:issue_warehouse_transfer_edit', kwargs={'pk': self.object.pk})
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail template."""
+        """Add issue-specific context."""
         context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse_lazy('inventory:issue_warehouse_transfer')
-        context['edit_url'] = reverse_lazy('inventory:issue_warehouse_transfer_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        context['feature_code'] = 'inventory.issues.warehouse_transfer'
         return context
 
 

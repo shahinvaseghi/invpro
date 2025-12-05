@@ -41,68 +41,90 @@ logger = logging.getLogger('inventory.views.master_data')
 # Item Type Views
 # ============================================================================
 
-class ItemTypeListView(InventoryBaseView, ListView):
+class ItemTypeListView(InventoryBaseView, BaseListView):
     """List view for item types."""
     model = models.ItemType
     template_name = 'inventory/item_types.html'
-    context_object_name = 'object_list'
+    feature_code = 'inventory.master.item_types'
+    permission_field = 'created_by'
     paginate_by = 50
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_types', 'created_by')
-        return queryset
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic list template."""
-        context = super().get_context_data(**kwargs)
-        context['page_title'] = _('Item Types')
-        context['breadcrumbs'] = [
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Item Types')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Item Types'), 'url': None},
         ]
-        context['create_url'] = reverse_lazy('inventory:itemtype_create')
-        context['create_button_text'] = _('Create Item Type')
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:itemtype_create')
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Item Type')
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:itemtype_detail'
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:itemtype_edit'
+
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'inventory:itemtype_delete'
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Item Types Found')
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by creating your first item type.')
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '🏷️'
+
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add item type specific context."""
+        context = super().get_context_data(**kwargs)
         context['table_headers'] = []  # Overridden in template
-        context['show_actions'] = True
-        context['feature_code'] = 'inventory.master.item_types'
-        context['detail_url_name'] = 'inventory:itemtype_detail'
-        context['edit_url_name'] = 'inventory:itemtype_edit'
-        context['delete_url_name'] = 'inventory:itemtype_delete'
-        context['empty_state_title'] = _('No Item Types Found')
-        context['empty_state_message'] = _('Start by creating your first item type.')
-        context['empty_state_icon'] = '🏷️'
         return context
 
 
-class ItemTypeCreateView(InventoryBaseView, CreateView):
+class ItemTypeCreateView(InventoryBaseView, BaseCreateView):
     """Create view for item types."""
     model = models.ItemType
     form_class = forms.ItemTypeForm
     template_name = 'inventory/itemtype_form.html'
     success_url = reverse_lazy('inventory:item_types')
-    
-    def form_valid(self, form):
-        """Set company and created_by before saving."""
-        form.instance.company_id = self.request.session.get('active_company_id')
-        form.instance.created_by = self.request.user
-        messages.success(self.request, _('Item Type created successfully.'))
-        return super().form_valid(form)
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic form template."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Create Item Type')
-        context['breadcrumbs'] = [
+    feature_code = 'inventory.master.item_types'
+    success_message = _('Item Type created successfully.')
+
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Create Item Type')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Item Types'), 'url': reverse_lazy('inventory:item_types')},
             {'label': _('Create'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('inventory:item_types')
-        return context
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:item_types')
 
 
 class ItemTypeUpdateView(InventoryBaseView, BaseUpdateView):
@@ -138,39 +160,45 @@ class ItemTypeUpdateView(InventoryBaseView, BaseUpdateView):
         return reverse_lazy('inventory:item_types')
 
 
-class ItemTypeDetailView(InventoryBaseView, DetailView):
+class ItemTypeDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing item types (read-only)."""
     model = models.ItemType
     template_name = 'inventory/itemtype_detail.html'
     context_object_name = 'itemtype'
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_types', 'created_by')
-        return queryset
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for detail view."""
-        context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse_lazy('inventory:item_types')
-        context['edit_url'] = reverse_lazy('inventory:itemtype_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        return context
+    feature_code = 'inventory.master.item_types'
+    permission_field = 'created_by'
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Item Type')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Master Data'), 'url': None},
+            {'label': _('Item Types'), 'url': reverse_lazy('inventory:item_types')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:item_types')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('inventory:itemtype_edit', kwargs={'pk': self.object.pk})
 
 
-class ItemTypeDeleteView(InventoryBaseView, DeleteView):
+class ItemTypeDeleteView(InventoryBaseView, BaseDeleteView):
     """Delete view for item types."""
     model = models.ItemType
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:item_types')
-    
-    def get_queryset(self):
-        """Filter queryset by user permissions."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.master.item_types', 'created_by')
-        return queryset
-    
+    feature_code = 'inventory.master.item_types'
+    success_message = _('Item Type deleted successfully.')
+    owner_field = 'created_by'
+
     def delete(self, request, *args, **kwargs):
         """Handle deletion with ProtectedError handling."""
         self.object = self.get_object()
@@ -180,7 +208,7 @@ class ItemTypeDeleteView(InventoryBaseView, DeleteView):
         try:
             self.object.delete()
             logger.info(f"Item Type {self.object.pk} deleted successfully")
-            messages.success(self.request, _('Item Type deleted successfully.'))
+            messages.success(self.request, self.success_message)
             from django.http import HttpResponseRedirect
             return HttpResponseRedirect(self.get_success_url())
         except ProtectedError as e:
@@ -220,25 +248,35 @@ class ItemTypeDeleteView(InventoryBaseView, DeleteView):
             # Redirect to list page with error message
             from django.http import HttpResponseRedirect
             return HttpResponseRedirect(self.get_success_url())
-    
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Item Type')
-        context['confirmation_message'] = _('Are you sure you want to delete this item type?')
-        context['object_details'] = [
-            {'label': _('Code'), 'value': self.object.public_code},
-            {'label': _('Name'), 'value': self.object.name},
-            {'label': _('Name (EN)'), 'value': self.object.name_en or '-'},
-        ]
-        context['cancel_url'] = reverse_lazy('inventory:item_types')
-        context['breadcrumbs'] = [
+
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Item Type')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Are you sure you want to delete this item type?')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Item Types'), 'url': reverse_lazy('inventory:item_types')},
             {'label': _('Delete'), 'url': None},
         ]
-        return context
+
+    def get_object_details(self):
+        """Return object details."""
+        return [
+            {'label': _('Code'), 'value': self.object.public_code},
+            {'label': _('Name'), 'value': self.object.name},
+            {'label': _('Name (EN)'), 'value': self.object.name_en or '-'},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:item_types')
 
 
 # ============================================================================
