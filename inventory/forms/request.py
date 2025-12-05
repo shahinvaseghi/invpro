@@ -33,7 +33,10 @@ from inventory.widgets import JalaliDateInput
 User = get_user_model()
 
 
-class PurchaseRequestForm(forms.ModelForm):
+from shared.forms.base import BaseModelForm
+
+
+class PurchaseRequestForm(BaseModelForm):
     """Header-only form for purchase requests with multi-line support."""
     
     class Meta:
@@ -45,10 +48,9 @@ class PurchaseRequestForm(forms.ModelForm):
             'approver',
         ]
         widgets = {
-            'needed_by_date': JalaliDateInput(attrs={'class': 'form-control'}),
-            'priority': forms.Select(attrs={'class': 'form-control'}),
-            'reason_code': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'approver': forms.Select(attrs={'class': 'form-control'}),
+            # BaseModelForm automatically applies 'form-control' class, but we can add extra attributes
+            'needed_by_date': JalaliDateInput(),  # JalaliDateInput has its own styling
+            'reason_code': forms.Textarea(attrs={'rows': 3}),
         }
         labels = {
             'needed_by_date': _('Needed By Date'),

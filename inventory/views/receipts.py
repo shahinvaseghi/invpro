@@ -294,6 +294,12 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
         
         # Stats
         context['stats'] = self._get_stats()
+        context['stats_labels'] = {
+            'total': _('Total'),
+            'awaiting_qc': _('Awaiting QC'),
+            'qc_passed': _('QC Passed'),
+            'converted': _('Converted'),
+        }
         
         # User for permission checks in template
         context['user'] = self.request.user

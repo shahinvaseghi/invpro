@@ -7,12 +7,14 @@ all inventory views.
 from typing import Optional, Dict, Any
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import View
-from django.http import HttpResponseRedirect
+from django.views.generic import View, TemplateView
+from django.http import HttpResponseRedirect, Http404
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.shortcuts import get_object_or_404
+from decimal import Decimal, InvalidOperation
+from shared.mixins import FeaturePermissionRequiredMixin
 from .. import models
 from .. import forms
 from ..services import serials as serial_service
@@ -807,4 +809,246 @@ class ItemUnitFormsetMixin:
             if warehouse not in ordered:
                 ordered.append(warehouse)
         return ordered
+
+
+class BaseCreateDocumentFromRequestView(FeaturePermissionRequiredMixin, InventoryBaseView, TemplateView):
+    """
+    Base view for creating documents (receipts/issues) from requests (purchase/warehouse).
+    
+    This base class handles the common flow of:
+    1. Getting the request object (PurchaseRequest or WarehouseRequest)
+    2. Displaying a selection form (for multi-line requests) or quantity form (for single-line requests)
+    3. Processing the form submission and storing data in session
+    4. Redirecting to the document creation view
+    
+    Subclasses should define:
+    - `document_type`: 'receipt' or 'issue'
+    - `document_subtype`: 'temporary', 'permanent', 'consignment', 'consumption'
+    - `request_model`: The request model class (PurchaseRequest or WarehouseRequest)
+    - `is_multi_line`: True for PurchaseRequest (has lines), False for WarehouseRequest (single line)
+    - `template_name`: Template to render
+    - `feature_code`: Feature code for permissions
+    - `required_action`: Required action for permissions
+    
+    Hook methods:
+    - `get_request_object(pk)`: Get and validate the request object
+    - `get_request_status_filter()`: Get the status filter for the request (e.g., 'approved')
+    - `get_context_data(**kwargs)`: Add context data (can override)
+    - `process_multi_line_post(request, request_obj)`: Process POST for multi-line requests
+    - `process_single_line_post(request, request_obj)`: Process POST for single-line requests
+    - `get_redirect_url(request_obj)`: Get the redirect URL after processing
+    - `get_session_key(request_obj)`: Get the session key for storing data
+    - `get_type_name()`: Get the display name for the document type
+    """
+    
+    document_type = None  # 'receipt' or 'issue'
+    document_subtype = None  # 'temporary', 'permanent', 'consignment', 'consumption'
+    request_model = None  # PurchaseRequest or WarehouseRequest
+    is_multi_line = None  # True for PurchaseRequest, False for WarehouseRequest
+    template_name = None
+    required_action = None
+    
+    def get_company_id(self):
+        """Get active company ID from session."""
+        company_id = self.request.session.get('active_company_id')
+        if not company_id:
+            raise Http404(_('شرکت فعال مشخص نشده است.'))
+        return company_id
+    
+    def get_request_status_filter(self):
+        """Get the status filter for the request. Override in subclasses."""
+        return 'approved'
+    
+    def get_request_object(self, pk: int):
+        """Get request object and check permissions. Override for custom logic."""
+        company_id = self.get_company_id()
+        status_filter = self.get_request_status_filter()
+        
+        filter_kwargs = {
+            'pk': pk,
+            'company_id': company_id,
+            'is_enabled': 1
+        }
+        
+        if status_filter:
+            if hasattr(self.request_model, 'Status'):
+                # For PurchaseRequest with Status enum
+                filter_kwargs['status'] = getattr(self.request_model.Status, status_filter.upper())
+            else:
+                # For WarehouseRequest with string status
+                filter_kwargs['request_status'] = status_filter
+        
+        return get_object_or_404(self.request_model, **filter_kwargs)
+    
+    def get_type_name(self):
+        """Get display name for document type. Override in subclasses."""
+        type_names = {
+            'receipt': {
+                'temporary': _('رسید موقت'),
+                'permanent': _('رسید دائم'),
+                'consignment': _('رسید امانی'),
+            },
+            'issue': {
+                'permanent': _('حواله دائم'),
+                'consumption': _('حواله مصرف'),
+                'consignment': _('حواله امانی'),
+            },
+        }
+        return type_names.get(self.document_type, {}).get(self.document_subtype, '')
+    
+    def get_session_key(self, request_obj):
+        """Get session key for storing data. Override in subclasses."""
+        if self.document_type == 'receipt':
+            return f'purchase_request_{request_obj.pk}_receipt_{self.document_subtype}_lines'
+        elif self.document_type == 'issue':
+            return f'warehouse_request_{request_obj.pk}_issue_{self.document_subtype}_data'
+        return None
+    
+    def get_redirect_url(self, request_obj):
+        """Get redirect URL after processing. Override in subclasses."""
+        if self.document_type == 'receipt':
+            url_names = {
+                'temporary': 'inventory:receipt_temporary_create_from_request',
+                'permanent': 'inventory:receipt_permanent_create_from_request',
+                'consignment': 'inventory:receipt_consignment_create_from_request',
+            }
+        elif self.document_type == 'issue':
+            url_names = {
+                'permanent': 'inventory:issue_permanent_create_from_warehouse_request',
+                'consumption': 'inventory:issue_consumption_create_from_warehouse_request',
+                'consignment': 'inventory:issue_consignment_create_from_warehouse_request',
+            }
+        else:
+            return None
+        
+        url_name = url_names.get(self.document_subtype)
+        if url_name:
+            return reverse(url_name, kwargs={'pk': request_obj.pk})
+        return None
+    
+    def get_context_data(self, **kwargs):
+        """Display form to select lines/quantity from request."""
+        context = super().get_context_data(**kwargs)
+        request_obj = self.get_request_object(kwargs['pk'])
+        
+        context[f'{self.document_type}_type'] = self.document_subtype
+        context[f'{self.document_type}_type_name'] = self.get_type_name()
+        
+        if self.is_multi_line:
+            # For PurchaseRequest: get lines
+            lines = request_obj.lines.filter(is_enabled=1).order_by('sort_order', 'id')
+            context['lines'] = lines
+            context['purchase_request'] = request_obj
+        else:
+            # For WarehouseRequest: calculate remaining quantity
+            context['warehouse_request'] = request_obj
+            remaining_quantity = request_obj.quantity_requested
+            if hasattr(request_obj, 'quantity_issued') and request_obj.quantity_issued:
+                remaining_quantity = request_obj.quantity_requested - request_obj.quantity_issued
+            context['remaining_quantity'] = remaining_quantity
+            context['default_quantity'] = remaining_quantity
+        
+        return context
+    
+    def process_multi_line_post(self, request, request_obj):
+        """Process POST for multi-line requests (PurchaseRequest)."""
+        selected_lines = []
+        for line in request_obj.lines.filter(is_enabled=1):
+            line_id = str(line.pk)
+            quantity_key = f'quantity_{line_id}'
+            selected_key = f'selected_{line_id}'
+            
+            if request.POST.get(selected_key) == 'on':
+                quantity = request.POST.get(quantity_key, '0')
+                try:
+                    quantity = Decimal(str(quantity))
+                    if quantity > 0:
+                        remaining = getattr(line, 'quantity_remaining', line.quantity_requested)
+                        if quantity > remaining:
+                            quantity = remaining
+                        selected_lines.append({
+                            'line': line,
+                            'quantity': quantity,
+                        })
+                except (ValueError, InvalidOperation):
+                    pass
+        
+        if not selected_lines:
+            messages.error(request, _('لطفاً حداقل یک ردیف را انتخاب کنید.'))
+            return None
+        
+        # Store in session
+        session_key = self.get_session_key(request_obj)
+        session_data = [
+            {
+                'line_id': item['line'].pk,
+                'quantity': str(item['quantity']),
+            }
+            for item in selected_lines
+        ]
+        request.session[session_key] = session_data
+        return True
+    
+    def process_single_line_post(self, request, request_obj):
+        """Process POST for single-line requests (WarehouseRequest)."""
+        quantity_key = 'quantity'
+        quantity_value = request.POST.get(quantity_key, '0')
+        
+        try:
+            quantity = Decimal(str(quantity_value))
+            
+            # Calculate remaining quantity
+            remaining_quantity = request_obj.quantity_requested
+            if hasattr(request_obj, 'quantity_issued') and request_obj.quantity_issued:
+                remaining_quantity = request_obj.quantity_requested - request_obj.quantity_issued
+            
+            if quantity <= 0:
+                messages.error(request, _('مقدار باید بیشتر از صفر باشد.'))
+                return None
+            
+            if quantity > remaining_quantity:
+                quantity = remaining_quantity
+                messages.warning(request, _('مقدار بیشتر از مقدار باقیمانده بود و به مقدار باقیمانده تنظیم شد.'))
+            
+            # Get optional notes
+            notes = request.POST.get('notes', '').strip()
+            
+            # Store in session
+            session_key = self.get_session_key(request_obj)
+            session_data = {
+                'warehouse_request_id': request_obj.pk,
+                'quantity': str(quantity),
+                'notes': notes,
+            }
+            request.session[session_key] = session_data
+            return True
+            
+        except (ValueError, InvalidOperation):
+            messages.error(request, _('مقدار وارد شده معتبر نیست.'))
+            return None
+    
+    def post(self, request, *args, **kwargs):
+        """Process selected lines/quantity and redirect to document creation."""
+        request_obj = self.get_request_object(kwargs['pk'])
+        
+        if self.is_multi_line:
+            result = self.process_multi_line_post(request, request_obj)
+        else:
+            result = self.process_single_line_post(request, request_obj)
+        
+        if result is None:
+            # Error occurred, re-render form
+            return self.get(request, *args, **kwargs)
+        
+        # Redirect to document creation
+        redirect_url = self.get_redirect_url(request_obj)
+        if redirect_url:
+            return HttpResponseRedirect(redirect_url)
+        
+        # Fallback: redirect to request list
+        if self.document_type == 'receipt':
+            return HttpResponseRedirect(reverse('inventory:purchase_requests'))
+        elif self.document_type == 'issue':
+            return HttpResponseRedirect(reverse('inventory:warehouse_requests'))
+        return HttpResponseRedirect(reverse('inventory:index'))
 

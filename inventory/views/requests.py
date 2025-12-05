@@ -5,7 +5,7 @@ This module contains views for:
 - Purchase Requests
 - Warehouse Requests
 """
-from typing import Dict, Any, Set, Optional
+from typing import Dict, Any, Set, Optional, List
 from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
@@ -18,9 +18,15 @@ from django.utils.safestring import mark_safe
 from django.db.models import Q
 import json
 
-from .base import InventoryBaseView, LineFormsetMixin
+from .base import InventoryBaseView, LineFormsetMixin, BaseCreateDocumentFromRequestView
 from shared.mixins import FeaturePermissionRequiredMixin
-from shared.views.base import EditLockProtectedMixin, BaseFormsetCreateView, BaseFormsetUpdateView
+from shared.views.base import (
+    EditLockProtectedMixin,
+    BaseFormsetCreateView,
+    BaseFormsetUpdateView,
+    BaseListView,
+    BaseCreateView,
+)
 from .. import models
 from .. import forms
 from ..models import Item, ItemUnit
@@ -114,87 +120,124 @@ class PurchaseRequestFormMixin(InventoryBaseView):
         return []
 
 
-class PurchaseRequestListView(InventoryBaseView, ListView):
+class PurchaseRequestListView(BaseListView):
     """List view for purchase requests."""
     model = models.PurchaseRequest
     template_name = 'inventory/purchase_requests.html'
-    context_object_name = 'object_list'
-    paginate_by = 50
-
-    def get_queryset(self):
-        """Filter and search purchase requests."""
-        queryset = super().get_queryset()
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.requests.purchase', 'requested_by')
-        queryset = queryset.select_related('requested_by', 'approver').prefetch_related('lines__item')
-        # Order by newest first (by id descending, then by request_date)
-        queryset = queryset.order_by('-id', '-request_date', 'request_code')
-        status = self.request.GET.get('status')
-        priority = self.request.GET.get('priority')
-        search = self.request.GET.get('search')
-        if status:
-            queryset = queryset.filter(status=status)
-        if priority:
-            queryset = queryset.filter(priority=priority)
+    feature_code = 'inventory.requests.purchase'
+    search_fields = ['request_code']  # Custom search in apply_custom_filters
+    filter_fields = ['status', 'priority']
+    default_status_filter = False  # Custom status filter
+    default_order_by = ['-id', '-request_date', 'request_code']
+    permission_field = 'requested_by'
+    
+    def get_select_related(self) -> List[str]:
+        """Return list of fields to select_related."""
+        return ['requested_by', 'approver']
+    
+    def get_prefetch_related(self) -> List[str]:
+        """Return list of fields to prefetch_related."""
+        return ['lines__item']
+    
+    def apply_custom_filters(self, queryset):
+        """Apply custom filters for status, priority, and search."""
+        queryset = super().apply_custom_filters(queryset)
+        
+        # Custom search in request_code and item name/code
+        search = self.request.GET.get('search', '').strip()
         if search:
-            value = search.strip()
-            if value:
-                queryset = queryset.filter(
-                    Q(request_code__icontains=value)
-                    | Q(lines__item__name__icontains=value)
-                    | Q(lines__item__item_code__icontains=value)
-                ).distinct()
+            queryset = queryset.filter(
+                Q(request_code__icontains=search)
+                | Q(lines__item__name__icontains=search)
+                | Q(lines__item__item_code__icontains=search)
+            ).distinct()
+        
         return queryset
-
-    def _get_stats(self) -> Dict[str, int]:
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Purchase Requests')
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Purchase Requests'), 'url': None},
+        ]
+    
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:purchase_request_create')
+    
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Purchase Request')
+    
+    def get_search_placeholder(self) -> str:
+        """Return search placeholder."""
+        return _('Search by code or name')
+    
+    def get_clear_filter_url(self):
+        """Return clear filter URL."""
+        return reverse_lazy('inventory:purchase_requests')
+    
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:purchase_request_detail'
+    
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:purchase_request_edit'
+    
+    def get_delete_url_name(self) -> Optional[str]:
+        """Return delete URL name."""
+        return None  # Purchase Request doesn't have delete
+    
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Purchase Requests Found')
+    
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by creating your first purchase request.')
+    
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '🛒'
+    
+    def get_stats(self) -> Optional[Dict[str, int]]:
         """Return aggregate stats for summary cards."""
-        stats = {
-            'total': 0,
-            'draft': 0,
-            'approved': 0,
-            'fulfilled': 0,
-        }
         company_id: Optional[int] = self.request.session.get('active_company_id')
         if not company_id:
-            return stats
+            return None
         stats_queryset = models.PurchaseRequest.objects.filter(company_id=company_id)
-        stats['total'] = stats_queryset.count()
-        stats['draft'] = stats_queryset.filter(status=models.PurchaseRequest.Status.DRAFT).count()
-        stats['approved'] = stats_queryset.filter(status=models.PurchaseRequest.Status.APPROVED).count()
-        stats['fulfilled'] = stats_queryset.filter(status=models.PurchaseRequest.Status.FULFILLED).count()
-        return stats
-
+        return {
+            'total': stats_queryset.count(),
+            'draft': stats_queryset.filter(status=models.PurchaseRequest.Status.DRAFT).count(),
+            'approved': stats_queryset.filter(status=models.PurchaseRequest.Status.APPROVED).count(),
+            'fulfilled': stats_queryset.filter(status=models.PurchaseRequest.Status.FULFILLED).count(),
+        }
+    
+    def get_stats_labels(self) -> Dict[str, str]:
+        """Return stats labels dictionary."""
+        return {
+            'total': _('Total'),
+            'draft': _('Draft'),
+            'approved': _('Approved'),
+            'fulfilled': _('Fulfilled'),
+        }
+    
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic list template."""
+        """Add additional context variables."""
         context = super().get_context_data(**kwargs)
         
-        # Generic list context
-        context['page_title'] = _('Purchase Requests')
-        context['breadcrumbs'] = [
-            {'label': _('Inventory'), 'url': None},
-        ]
-        context['create_url'] = reverse_lazy('inventory:purchase_request_create')
-        context['create_button_text'] = _('Create Purchase Request')
-        context['show_filters'] = True
         context['print_enabled'] = True
-        context['show_actions'] = True
-        
-        # Purchase Request-specific context
-        context['feature_code'] = 'inventory.requests.purchase'
-        context['detail_url_name'] = 'inventory:purchase_request_detail'
-        context['edit_url_name'] = 'inventory:purchase_request_edit'
         context['approve_url_name'] = 'inventory:purchase_request_approve'
-        context['empty_state_title'] = _('No Purchase Requests Found')
-        context['empty_state_message'] = _('Start by creating your first purchase request.')
-        context['empty_state_icon'] = '🛒'
         
         # Filters
         context['status_filter'] = self.request.GET.get('status', '')
         context['priority_filter'] = self.request.GET.get('priority', '')
         context['search_query'] = self.request.GET.get('search', '')
-        
-        # Stats
-        context['stats'] = self._get_stats()
         
         # Permissions and approver logic
         company_id: Optional[int] = self.request.session.get('active_company_id')
@@ -217,21 +260,26 @@ class PurchaseRequestListView(InventoryBaseView, ListView):
         return context
 
 
-class PurchaseRequestCreateView(LineFormsetMixin, PurchaseRequestFormMixin, CreateView):
+class PurchaseRequestCreateView(LineFormsetMixin, PurchaseRequestFormMixin, BaseCreateView):
     """Create view for purchase requests."""
     model = models.PurchaseRequest
     form_class = forms.PurchaseRequestForm
     formset_class = forms.PurchaseRequestLineFormSet
     success_url = reverse_lazy('inventory:purchase_requests')
+    feature_code = 'inventory.requests.purchase'
+    required_action = 'create'
+    success_message = _('درخواست خرید با موفقیت ثبت شد.')
     form_title = _('ایجاد درخواست خرید')
-
+    
     def form_valid(self, form):
         """Set company, requested_by, and status before saving."""
         company_id: Optional[int] = self.request.session.get('active_company_id')
         if not company_id:
             form.add_error(None, _('شرکت فعال مشخص نشده است.'))
             return self.form_invalid(form)
-        form.instance.company_id = company_id
+        
+        # company_id and created_by are set by AutoSetFieldsMixin
+        # But we need to set requested_by and status manually
         form.instance.requested_by = self.request.user
         form.instance.request_date = timezone.now().date()
         form.instance.status = models.PurchaseRequest.Status.DRAFT
@@ -298,7 +346,6 @@ class PurchaseRequestCreateView(LineFormsetMixin, PurchaseRequestFormMixin, Crea
         self.object._skip_legacy_sync = False
         self.object.save()
         
-        messages.success(self.request, _('درخواست خرید با موفقیت ثبت شد.'))
         return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self) -> list:
@@ -320,8 +367,7 @@ class PurchaseRequestDetailView(InventoryBaseView, DetailView):
         queryset = super().get_queryset()
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.requests.purchase', 'requested_by')
         queryset = queryset.prefetch_related(
-            'lines__item',
-            'lines__unit'
+            'lines__item'
         ).select_related('requested_by', 'approver')
         return queryset
     
@@ -923,137 +969,37 @@ class WarehouseRequestApproveView(InventoryBaseView, View):
 # Create Receipt from Purchase Request Views
 # ============================================================================
 
-class CreateReceiptFromPurchaseRequestView(FeaturePermissionRequiredMixin, InventoryBaseView, TemplateView):
+class CreateReceiptFromPurchaseRequestView(BaseCreateDocumentFromRequestView):
     """Base view for selecting lines from purchase request to create receipt."""
-    receipt_type = None  # 'temporary', 'permanent', 'consignment'
+    document_type = 'receipt'
+    request_model = models.PurchaseRequest
+    is_multi_line = True
     template_name = 'inventory/create_receipt_from_purchase_request.html'
     required_action = 'create_receipt_from_purchase_request'
-    
-    def get_purchase_request(self, pk: int):
-        """Get purchase request and check permissions."""
-        company_id = self.request.session.get('active_company_id')
-        if not company_id:
-            raise Http404(_('شرکت فعال مشخص نشده است.'))
-        
-        purchase_request = get_object_or_404(
-            models.PurchaseRequest,
-            pk=pk,
-            company_id=company_id,
-            status=models.PurchaseRequest.Status.APPROVED,
-            is_enabled=1
-        )
-        return purchase_request
     
     def get_context_data(self, **kwargs):
         """Display form to select lines from purchase request."""
         context = super().get_context_data(**kwargs)
-        purchase_request = self.get_purchase_request(kwargs['pk'])
-        lines = purchase_request.lines.filter(is_enabled=1).order_by('sort_order', 'id')
-        
-        context['purchase_request'] = purchase_request
-        context['lines'] = lines
-        context['receipt_type'] = self.receipt_type
-        
-        receipt_type_names = {
-            'temporary': _('رسید موقت'),
-            'permanent': _('رسید دائم'),
-            'consignment': _('رسید امانی'),
-        }
-        context['receipt_type_name'] = receipt_type_names.get(self.receipt_type, '')
-        
+        # Add receipt_type for backward compatibility with templates
+        context['receipt_type'] = self.document_subtype
+        context['receipt_type_name'] = context.get('receipt_type_name', '')
         return context
-    
-    def post(self, request, *args, **kwargs):
-        """Process selected lines and redirect to receipt creation."""
-        import logging
-        logger = logging.getLogger('inventory.views.requests')
-        logger.info("=" * 80)
-        logger.info(f"POST request received for CreateReceiptFromPurchaseRequestView (receipt_type={self.receipt_type})")
-        logger.info(f"URL kwargs: {kwargs}")
-        logger.info(f"POST data keys: {list(request.POST.keys())}")
-        
-        purchase_request = self.get_purchase_request(kwargs['pk'])
-        logger.info(f"Purchase request found: {purchase_request.request_code} (pk={purchase_request.pk})")
-        
-        # Get selected lines with quantities
-        selected_lines = []
-        for line in purchase_request.lines.filter(is_enabled=1):
-            line_id = str(line.pk)
-            quantity_key = f'quantity_{line_id}'
-            selected_key = f'selected_{line_id}'
-            
-            logger.info(f"Processing line {line_id}: item={line.item.name if line.item else 'None'}, "
-                       f"selected_key={selected_key}, quantity_key={quantity_key}")
-            logger.info(f"  POST.get('{selected_key}') = {request.POST.get(selected_key)}")
-            logger.info(f"  POST.get('{quantity_key}') = {request.POST.get(quantity_key)}")
-            
-            if request.POST.get(selected_key) == 'on':
-                quantity = request.POST.get(quantity_key, '0')
-                logger.info(f"  Line {line_id} is selected with quantity={quantity}")
-                try:
-                    quantity = Decimal(str(quantity))
-                    if quantity > 0:
-                        remaining = line.quantity_remaining
-                        logger.info(f"  Line {line_id} remaining quantity: {remaining}")
-                        if quantity > remaining:
-                            logger.warning(f"  Line {line_id} quantity {quantity} > remaining {remaining}, adjusting to {remaining}")
-                            quantity = remaining
-                        selected_lines.append({
-                            'line': line,
-                            'quantity': quantity,
-                        })
-                        logger.info(f"  Line {line_id} added to selected_lines: quantity={quantity}")
-                except (ValueError, InvalidOperation) as e:
-                    logger.error(f"  Error parsing quantity for line {line_id}: {e}")
-                    pass
-            else:
-                logger.info(f"  Line {line_id} is NOT selected (checkbox not checked)")
-        
-        logger.info(f"Total selected_lines count: {len(selected_lines)}")
-        if not selected_lines:
-            logger.warning("No lines selected, showing error message")
-            messages.error(request, _('لطفاً حداقل یک ردیف را انتخاب کنید.'))
-            return self.get(request, *args, **kwargs)
-        
-        # Store selected lines in session for receipt creation
-        session_key = f'purchase_request_{purchase_request.pk}_receipt_{self.receipt_type}_lines'
-        session_data = [
-            {
-                'line_id': item['line'].pk,
-                'quantity': str(item['quantity']),
-            }
-            for item in selected_lines
-        ]
-        logger.info(f"Storing in session with key: {session_key}")
-        logger.info(f"Session data to store: {session_data}")
-        request.session[session_key] = session_data
-        logger.info(f"Session data stored successfully. Session keys: {list(request.session.keys())}")
-        
-        # Redirect to receipt creation
-        if self.receipt_type == 'temporary':
-            return HttpResponseRedirect(reverse('inventory:receipt_temporary_create_from_request', kwargs={'pk': purchase_request.pk}))
-        elif self.receipt_type == 'permanent':
-            return HttpResponseRedirect(reverse('inventory:receipt_permanent_create_from_request', kwargs={'pk': purchase_request.pk}))
-        elif self.receipt_type == 'consignment':
-            return HttpResponseRedirect(reverse('inventory:receipt_consignment_create_from_request', kwargs={'pk': purchase_request.pk}))
-        
-        return HttpResponseRedirect(reverse('inventory:purchase_requests'))
 
 
 class CreateTemporaryReceiptFromPurchaseRequestView(CreateReceiptFromPurchaseRequestView):
     """View to select lines from purchase request for temporary receipt."""
-    receipt_type = 'temporary'
+    document_subtype = 'temporary'
     feature_code = 'inventory.receipts.temporary'
 
 
 class CreatePermanentReceiptFromPurchaseRequestView(CreateReceiptFromPurchaseRequestView):
     """View to select lines from purchase request for permanent receipt."""
-    receipt_type = 'permanent'
+    document_subtype = 'permanent'
     feature_code = 'inventory.receipts.permanent'
 
 
 class CreateConsignmentReceiptFromPurchaseRequestView(CreateReceiptFromPurchaseRequestView):
     """View to select lines from purchase request for consignment receipt."""
-    receipt_type = 'consignment'
+    document_subtype = 'consignment'
     feature_code = 'inventory.receipts.consignment'
 

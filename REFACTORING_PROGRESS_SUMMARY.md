@@ -385,6 +385,61 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 
 #### ماژول `inventory` - Item Serials ✅ تکمیل شده
 
+#### ماژول `inventory` - Create Document From Request ✅ تکمیل شده
+
+**تاریخ**: 1404/09/15
+
+**هدف**: Refactor کردن viewهای ایجاد رسید از درخواست خرید و ایجاد حواله از درخواست انبار برای کاهش کد تکراری.
+
+**فایل‌های تغییر یافته**:
+- `inventory/views/base.py`: اضافه شدن `BaseCreateDocumentFromRequestView`
+- `inventory/views/requests.py`: Refactor کردن `CreateReceiptFromPurchaseRequestView` و subclasses
+- `inventory/views/create_issue_from_warehouse_request.py`: Refactor کردن `CreateIssueFromWarehouseRequestView` و subclasses
+
+**تغییرات انجام شده**:
+
+1. **ایجاد `BaseCreateDocumentFromRequestView`**:
+   - Base class مشترک برای ایجاد document (receipt/issue) از request (purchase/warehouse)
+   - پشتیبانی از multi-line requests (PurchaseRequest) و single-line requests (WarehouseRequest)
+   - Hook methods برای customize کردن:
+     - `get_request_object(pk)`: Get و validate کردن request object
+     - `get_request_status_filter()`: Get status filter برای request
+     - `get_context_data(**kwargs)`: Add context data
+     - `process_multi_line_post(request, request_obj)`: Process POST برای multi-line requests
+     - `process_single_line_post(request, request_obj)`: Process POST برای single-line requests
+     - `get_redirect_url(request_obj)`: Get redirect URL
+     - `get_session_key(request_obj)`: Get session key برای storing data
+     - `get_type_name()`: Get display name برای document type
+
+2. **Refactor `CreateReceiptFromPurchaseRequestView`**:
+   - استفاده از `BaseCreateDocumentFromRequestView`
+   - حذف کد تکراری (get_purchase_request, post method)
+   - تنظیم `document_type = 'receipt'`, `is_multi_line = True`
+   - حفظ backward compatibility با templates (receipt_type, receipt_type_name)
+
+3. **Refactor `CreateIssueFromWarehouseRequestView`**:
+   - استفاده از `BaseCreateDocumentFromRequestView`
+   - حذف کد تکراری (get_warehouse_request, post method)
+   - تنظیم `document_type = 'issue'`, `is_multi_line = False`
+   - حفظ backward compatibility با templates (issue_type, issue_type_name)
+
+**کاهش کد**:
+- حذف ~150 خط کد تکراری از `CreateReceiptFromPurchaseRequestView`
+- حذف ~115 خط کد تکراری از `CreateIssueFromWarehouseRequestView`
+- اضافه شدن ~250 خط کد مشترک در `BaseCreateDocumentFromRequestView`
+- **نتیجه**: کاهش ~15 خط کد خالص + بهبود maintainability
+
+**مزایا**:
+- کد مشترک در یک جا (DRY principle)
+- آسان‌تر شدن اضافه کردن انواع جدید document/request
+- یکسان شدن رفتار بین receipt و issue flows
+- بهبود testability با hook methods
+
+**نکات**:
+- Backward compatibility با templates حفظ شده (receipt_type, issue_type)
+- Logging در base class حذف شده (می‌تواند در subclasses اضافه شود اگر نیاز باشد)
+- Session key format حفظ شده برای compatibility با existing code
+
 **فایل**: `inventory/views/master_data.py`
 
 - ✅ `ItemSerialListView` → `BaseListView`
@@ -403,7 +458,7 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 - ✅ همه فایل‌ها refactor شده‌اند!
 
 #### سایر ماژول‌ها:
-- ⏳ ماژول `inventory` - 81+ view (شروع شده: Warehouses ✅, Items ✅, Item Serials ✅)
+- ⏳ ماژول `inventory` - 81+ view (شروع شده: Warehouses ✅, Items ✅, Item Serials ✅, Purchase Requests ✅, Create Document From Request ✅)
 - ⏳ ماژول `production` - 41+ view
 - ⏳ ماژول `accounting` - 28+ view
 - ⏳ ماژول `ticketing` - 19+ view
@@ -423,9 +478,11 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 - ✅ **Inventory - Warehouses**: 100% (2 view + 1 form) - شروع Rollout
 - ✅ **Inventory - Items**: 100% (2 view + 1 form)
 - ✅ **Inventory - Item Serials**: 100% (1 view)
+- ✅ **Inventory - Purchase Requests**: 100% (2 view + 1 form)
+- ✅ **Inventory - Create Document From Request**: 100% (6 view + 1 base class)
 
 **پیشرفت Pilot**: 100% (5/5 فایل) ✅  
-**پیشرفت Rollout**: در حال انجام (4 view در inventory)
+**پیشرفت Rollout**: در حال انجام (12 view در inventory)
 
 ### کاهش کد:
 
@@ -692,8 +749,8 @@ class MyForm(BaseModelForm):
 1. ✅ **تکمیل Pilot - ماژول `shared`**: همه فایل‌ها refactor شده‌اند!
 
 2. **Rollout به سایر ماژول‌ها** (در حال انجام):
-   - ⏳ ماژول `inventory` (اولویت بالا) - شروع شده: Warehouses ✅, Items ✅, Item Serials ✅
-     - باقی‌مانده: Item Types, Item Categories, Item Subcategories, Suppliers, Supplier Categories, و سایر viewها
+   - ⏳ ماژول `inventory` (اولویت بالا) - شروع شده: Warehouses ✅, Items ✅, Item Serials ✅, Purchase Requests ✅
+     - باقی‌مانده: Item Types, Item Categories, Item Subcategories, Suppliers, Supplier Categories, Warehouse Requests, و سایر viewها
    - ⏳ ماژول `production` (اولویت بالا)
    - ⏳ ماژول `accounting` (اولویت متوسط)
    - ⏳ ماژول `ticketing` و `qc` (اولویت پایین)
@@ -709,5 +766,5 @@ class MyForm(BaseModelForm):
 
 ---
 
-**وضعیت کلی**: ✅ Infrastructure کامل | ✅ Pilot 100% (5/5 فایل) | ⏳ Rollout در حال انجام (4 view در inventory)
+**وضعیت کلی**: ✅ Infrastructure کامل | ✅ Pilot 100% (5/5 فایل) | ⏳ Rollout در حال انجام (6 view در inventory)
 

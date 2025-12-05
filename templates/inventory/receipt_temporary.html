@@ -24,31 +24,7 @@
 {% endblock %}
 
 {% block before_table %}
-<!-- Stats Summary -->
 <style>
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
-  }
-  .stat-card {
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 1.5rem;
-    text-align: center;
-  }
-  .stat-label {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin-bottom: 0.5rem;
-  }
-  .stat-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #111827;
-  }
   .action-buttons {
     display: flex;
     align-items: center;
@@ -71,24 +47,6 @@
     display: block;
   }
 </style>
-<div class="stats-grid">
-  <div class="stat-card">
-    <div class="stat-label">{% trans "Total" %}</div>
-    <div class="stat-value">{{ stats.total }}</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Awaiting QC</div>
-    <div class="stat-value" style="color: #f59e0b;">{{ stats.awaiting_qc }}</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">QC Passed</div>
-    <div class="stat-value" style="color: #10b981;">{{ stats.qc_passed }}</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Converted</div>
-    <div class="stat-value" style="color: #3b82f6;">{{ stats.converted }}</div>
-  </div>
-</div>
 {% endblock %}
 
 {% block filter_fields %}
