@@ -1,0 +1,56 @@
+{% load i18n %}
+
+<div class="filter-panel" style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #dee2e6;">
+  <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">{% trans "Filter & Search" %}</h3>
+  <form method="get" action="" class="filter-form" style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start;">
+    
+    {% block filter_fields %}
+    {# Default search field #}
+    <div class="form-group" style="flex: 1; min-width: 200px;">
+      <label for="search" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">{% trans "Search" %}</label>
+      <input type="text" name="search" id="search" 
+             placeholder="{{ search_placeholder|default:'Search by code or name' }}" 
+             value="{{ request.GET.search }}"
+             class="form-control"
+             style="width: 100%; padding: 0.5rem; border: 1px solid #ced4da; border-radius: 4px;">
+    </div>
+    {% endblock %}
+
+    {% if status_filter %}
+    <div class="form-group" style="flex: 0 0 auto; min-width: 150px;">
+      <label for="status" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">{% trans "Status" %}</label>
+      <select name="status" id="status" class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid #ced4da; border-radius: 4px;">
+        <option value="">-- {% trans "All" %} --</option>
+        <option value="1" {% if request.GET.status == '1' %}selected{% endif %}>{% trans "Active" %}</option>
+        <option value="0" {% if request.GET.status == '0' %}selected{% endif %}>{% trans "Inactive" %}</option>
+      </select>
+    </div>
+    {% endif %}
+
+    {% block extra_filters %}
+    {# Additional filters can be added here #}
+    {% endblock %}
+
+    {# Preserve other query parameters #}
+    {% for key, value in request.GET.items %}
+      {% if key != 'search' and key != 'status' and key != 'page' %}
+        <input type="hidden" name="{{ key }}" value="{{ value }}">
+      {% endif %}
+    {% endfor %}
+
+    <div class="form-group" style="flex: 0 0 auto; align-self: flex-end;">
+      <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1.5rem; background-color: #0d6efd; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">
+        {% trans "Apply Filter" %}
+      </button>
+    </div>
+    
+    {% if request.GET.search or request.GET.status %}
+    <div class="form-group" style="flex: 0 0 auto; align-self: flex-end;">
+      <a href="{{ request.path }}" class="btn btn-secondary" style="padding: 0.5rem 1.5rem; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; font-weight: 500;">
+        {% trans "Clear Filter" %}
+      </a>
+    </div>
+    {% endif %}
+  </form>
+</div>
+

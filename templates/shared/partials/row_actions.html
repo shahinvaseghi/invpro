@@ -1,0 +1,119 @@
+{% load i18n %}
+{% load view_tags %}
+{% load access_tags %}
+
+{# 
+  Row Actions Partial
+  
+  Usage:
+    {% include 'shared/partials/row_actions.html' with object=item feature_code='inventory.master.items' %}
+  
+  Parameters:
+    - object: The model instance
+    - feature_code: Feature code for permission checking (optional)
+    - detail_url_name: URL name for detail view (optional)
+    - edit_url_name: URL name for edit view (optional)
+    - delete_url_name: URL name for delete view (optional)
+    - view_url_name: Alternative URL name for view (optional)
+    - custom_actions: List of custom action dicts with 'name', 'label', 'url', 'class' (optional)
+    - button_size: Size of buttons ('sm', 'md', 'lg') - default: 'sm'
+    - show_icons: Show icons in buttons (default: false)
+#}
+
+{% with button_size=button_size|default:'sm' show_icons=show_icons|default:False %}
+<div class="row-actions" style="display: flex; gap: 0.25rem; flex-wrap: wrap; align-items: center;">
+  
+  {# Check if object has get_available_actions method #}
+  {% if object.get_available_actions %}
+    {% get_object_actions object feature_code|default:"" as available_actions %}
+    
+    {% for action in available_actions %}
+      {% if action.url %}
+        <a href="{{ action.url }}" 
+           class="btn btn-action {{ action.class }}"
+           style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px; text-decoration: none; white-space: nowrap;
+                  {% if action.name == 'view' %}background-color: #0dcaf0; color: #000; border: 1px solid #0dcaf0;
+                  {% elif action.name == 'edit' %}background-color: #6c757d; color: white; border: 1px solid #6c757d;
+                  {% elif action.name == 'delete' %}background-color: #dc3545; color: white; border: 1px solid #dc3545;
+                  {% else %}background-color: #0d6efd; color: white; border: 1px solid #0d6efd;{% endif %}">
+          {% if show_icons %}
+            {% if action.name == 'view' %}👁️
+            {% elif action.name == 'edit' %}✏️
+            {% elif action.name == 'delete' %}🗑️
+            {% endif %}
+          {% endif %}
+          {{ action.label }}
+        </a>
+      {% endif %}
+    {% endfor %}
+    
+  {% else %}
+    {# Fallback to standard actions if get_available_actions is not available #}
+    
+    {# View button #}
+    {% if detail_url_name or view_url_name %}
+      {% can_action object 'view' feature_code|default:"" as can_view %}
+      {% if can_view %}
+        <a href="{% url detail_url_name|default:view_url_name object.pk %}" 
+           class="btn btn-action btn-view"
+           style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #0dcaf0; color: #000; border: 1px solid #0dcaf0; border-radius: 4px; text-decoration: none; white-space: nowrap;">
+          {% if show_icons %}👁️ {% endif %}{% trans "View" %}
+        </a>
+      {% endif %}
+    {% endif %}
+    
+    {# Edit button #}
+    {% if edit_url_name %}
+      {% can_action object 'edit' feature_code|default:"" as can_edit %}
+      {% if can_edit %}
+        {# Check if object is locked (if EditLockProtectedMixin is used) #}
+        {% if object.is_locked %}
+          <span class="btn btn-action btn-edit btn-disabled"
+                style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #e9ecef; color: #6c757d; border: 1px solid #dee2e6; border-radius: 4px; cursor: not-allowed; white-space: nowrap;"
+                title="{% trans 'This record is locked and cannot be edited' %}">
+            {% if show_icons %}🔒 {% endif %}{% trans "Locked" %}
+          </span>
+        {% else %}
+          <a href="{% url edit_url_name object.pk %}" 
+             class="btn btn-action btn-edit"
+             style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #6c757d; color: white; border: 1px solid #6c757d; border-radius: 4px; text-decoration: none; white-space: nowrap;">
+            {% if show_icons %}✏️ {% endif %}{% trans "Edit" %}
+          </a>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+    
+    {# Delete button #}
+    {% if delete_url_name %}
+      {% can_action object 'delete' feature_code|default:"" as can_delete %}
+      {% if can_delete %}
+        <a href="{% url delete_url_name object.pk %}" 
+           class="btn btn-action btn-delete"
+           style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #dc3545; color: white; border: 1px solid #dc3545; border-radius: 4px; text-decoration: none; white-space: nowrap;"
+           onclick="return confirm('{% trans 'Are you sure you want to delete this item?' %}');">
+          {% if show_icons %}🗑️ {% endif %}{% trans "Delete" %}
+        </a>
+      {% endif %}
+    {% endif %}
+    
+  {% endif %}
+  
+  {# Custom actions #}
+  {% if custom_actions %}
+    {% for action in custom_actions %}
+      {% if action.url %}
+        <a href="{{ action.url }}" 
+           class="btn btn-action {{ action.class|default:'btn-custom' }}"
+           style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: {{ action.color|default:'#0d6efd' }}; color: white; border: 1px solid {{ action.color|default:'#0d6efd' }}; border-radius: 4px; text-decoration: none; white-space: nowrap;">
+          {% if action.icon %}{{ action.icon|safe }} {% endif %}{{ action.label }}
+        </a>
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+  
+  {# Allow extending with additional actions #}
+  {% block row_actions_extra %}{% endblock %}
+  
+</div>
+{% endwith %}
+

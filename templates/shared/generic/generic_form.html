@@ -40,7 +40,8 @@
     {% endif %}
 
     {% if form.non_field_errors %}
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" role="alert">
+        <strong>{% trans "Error" %}:</strong>
         {% for error in form.non_field_errors %}
           <div>{{ error }}</div>
         {% endfor %}
@@ -85,7 +86,11 @@
               </label>
               {{ field }}
               {% if field.errors %}
-                <span class="error">{{ field.errors.0 }}</span>
+                <div class="error-message" role="alert">
+                  {% for error in field.errors %}
+                    <span class="error">{{ error }}</span>
+                  {% endfor %}
+                </div>
               {% endif %}
               {% if field.help_text %}
                 <small class="form-text">{{ field.help_text }}</small>
@@ -142,6 +147,25 @@
   gap: 1.5rem;
 }
 
+@media (max-width: 768px) {
+  .entity-form .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-container {
+    padding: 1rem;
+    margin: 1rem;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions .btn {
+    width: 100%;
+  }
+}
+
 .entity-form .form-field label {
   display: block;
   font-weight: 500;
@@ -179,11 +203,33 @@
   min-height: 100px;
 }
 
+.entity-form .error-message {
+  display: block;
+  margin-top: 0.25rem;
+}
+
 .entity-form .error {
   display: block;
   color: #dc2626;
   font-size: 0.875rem;
-  margin-top: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+}
+
+.entity-form .form-field input.is-invalid,
+.entity-form .form-field select.is-invalid,
+.entity-form .form-field textarea.is-invalid {
+  border-color: #dc2626;
+  background-color: #fef2f2;
+}
+
+.entity-form .form-field input.is-invalid:focus,
+.entity-form .form-field select.is-invalid:focus,
+.entity-form .form-field textarea.is-invalid:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
 .form-text {

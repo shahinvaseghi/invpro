@@ -2,6 +2,7 @@
 {% load i18n %}
 {% load generic_tags %}
 {% load access_tags %}
+{% load view_tags %}
 
 {% block title %}{{ page_title|default:"List" }} - {{ block.super }}{% endblock %}
 
@@ -47,41 +48,11 @@
   {% endif %}
 
   {% if show_filters %}
-  <div class="filter-panel">
-    <h3>{% trans "Filter & Search" %}</h3>
-    <form method="get" action="" class="filter-form">
-      {% block filter_fields %}
-      <div class="form-group">
-        <label for="search">{% trans "Search" %}</label>
-        <input type="text" name="search" id="search" 
-               placeholder="{{ search_placeholder|default:'Search by code or name' }}" 
-               value="{{ request.GET.search }}"
-               class="form-control">
-      </div>
-      {% endblock %}
+    {% include 'shared/partials/filter_panel.html' %}
+  {% endif %}
 
-      {% if status_filter %}
-      <div class="form-group">
-        <label for="status">{% trans "Status" %}</label>
-        <select name="status" id="status" class="form-control">
-          <option value="">-- {% trans "All" %} --</option>
-          <option value="1" {% if request.GET.status == '1' %}selected{% endif %}>{% trans "Active" %}</option>
-          <option value="0" {% if request.GET.status == '0' %}selected{% endif %}>{% trans "Inactive" %}</option>
-        </select>
-      </div>
-      {% endif %}
-
-      <div class="form-group" style="align-self: flex-end;">
-        <button type="submit" class="btn btn-primary" style="width: 100%;">{% trans "Apply Filter" %}</button>
-      </div>
-      
-      {% if clear_filter_url %}
-      <div class="form-group" style="align-self: flex-end;">
-        <a href="{{ clear_filter_url }}" class="btn btn-secondary" style="width: 100%;">{% trans "Clear Filter" %}</a>
-      </div>
-      {% endif %}
-    </form>
-  </div>
+  {% if stats %}
+    {% include 'shared/partials/stats_cards.html' %}
   {% endif %}
 
   {% block before_table %}{% endblock %}
@@ -131,37 +102,7 @@
           {% if show_actions %}
             <td>
               {% block action_buttons %}
-              {# View button - always show if user has view permission and detail_url_name exists #}
-              {% if detail_url_name %}
-                {% can_view_object object feature_code|default:"" as can_view %}
-                {% if can_view %}
-                  <a href="{% url detail_url_name object.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
-                    {% trans "View" %}
-                  </a>
-                {% endif %}
-              {% elif view_url_name %}
-                {% can_view_object object feature_code|default:"" as can_view %}
-                {% if can_view %}
-                  <a href="{% url view_url_name object.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
-                    {% trans "View" %}
-                  </a>
-                {% endif %}
-              {% endif %}
-              {# Edit button - only show if object is not locked and user has edit permission #}
-              {% if edit_url_name %}
-                {% can_edit_object object feature_code|default:"" as can_edit %}
-                {% if can_edit %}
-                  <a href="{% url edit_url_name object.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
-                    {% trans "Edit" %}
-                  </a>
-                {% endif %}
-              {% endif %}
-              {# Delete button - keep existing logic #}
-              {% if delete_url_name %}
-                <a href="{% url delete_url_name object.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
-                  {% trans "Delete" %}
-                </a>
-              {% endif %}
+                {% include 'shared/partials/row_actions.html' with object=object feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name view_url_name=view_url_name %}
               {% endblock %}
             </td>
           {% endif %}
@@ -173,34 +114,11 @@
   </div>
 
   {% if is_paginated %}
-  <div class="pagination">
-    {% if page_obj.has_previous %}
-      <a href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">&laquo; {% trans "First" %}</a>
-      <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{% trans "Previous" %}</a>
-    {% endif %}
-
-    <span class="current">
-      {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
-    </span>
-
-    {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{% trans "Next" %}</a>
-      <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{% trans "Last" %} &raquo;</a>
-    {% endif %}
-  </div>
+    {% include 'shared/partials/pagination.html' %}
   {% endif %}
 
   {% else %}
-  <div class="empty-state">
-    <div class="empty-state-icon">{{ empty_state_icon|default:"📋" }}</div>
-    <h3>{{ empty_state_title|default:"No items found" }}</h3>
-    <p>{{ empty_state_message|default:"Start by adding your first item." }}</p>
-    {% if create_url %}
-      <a href="{{ create_url }}" class="btn btn-primary">
-        + {{ create_button_text|default:"Create New" }}
-      </a>
-    {% endif %}
-  </div>
+    {% include 'shared/partials/empty_state.html' with title=empty_state_title message=empty_state_message icon=empty_state_icon create_url=create_url create_button_text=create_button_text %}
   {% endif %}
 
   {% block after_table %}{% endblock %}
