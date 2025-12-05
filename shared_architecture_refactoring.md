@@ -348,9 +348,14 @@ class ItemType(models.Model):
 - تست در این ماژول اعتماد‌سازی می‌کند
 
 **Viewهای Pilot در ماژول `shared`**:
-- `shared/views/access_levels.py`: `AccessLevelListView` → `BaseListView`
-- `shared/views/groups.py`: `GroupListView` → `BaseListView`
-- `shared/views/companies.py`: `CompanyListView` → `BaseListView`
+- ✅ `shared/views/companies.py`: تمام 5 view به Base classes منتقل شد
+  - ✅ `CompanyListView` → `BaseListView`
+  - ✅ `CompanyCreateView` → `BaseCreateView`
+  - ✅ `CompanyUpdateView` → `BaseUpdateView`
+  - ✅ `CompanyDetailView` → `BaseDetailView`
+  - ✅ `CompanyDeleteView` → `BaseDeleteView`
+- ⏳ `shared/views/access_levels.py`: `AccessLevelListView` → `BaseListView` (در انتظار)
+- ⏳ `shared/views/groups.py`: `GroupListView` → `BaseListView` (در انتظار)
 
 **هدف**: 
 - تست معماری در محیط واقعی
@@ -358,7 +363,7 @@ class ItemType(models.Model):
 - دریافت بازخورد از تیم
 - اطمینان از اینکه Base classes در ماژول `shared` به درستی کار می‌کنند
 
-**خروجی**: 3-5 view در ماژول `shared` که با معماری جدید کار می‌کنند
+**خروجی**: ✅ 5 view در ماژول `shared` (companies) که با معماری جدید کار می‌کنند
 
 ---
 
@@ -3000,14 +3005,46 @@ class TemporaryReceiptQCApproveView(FeaturePermissionRequiredMixin, QCBaseView, 
 ---
 
 **تاریخ ایجاد**: 2024  
-**آخرین به‌روزرسانی**: 2024  
-**وضعیت**: در انتظار تأیید تیم
+**آخرین به‌روزرسانی**: 2024-12-05  
+**وضعیت**: در حال پیاده‌سازی - Pilot (companies) تکمیل شد ✅
 
 ---
 
 ## خلاصه نهایی
 
 این سند شامل بررسی کامل **6 ماژول** (`shared`, `inventory`, `production`, `accounting`, `ticketing`, `qc`) و شناسایی **~18,055 خط کد تکراری** است که با پیاده‌سازی معماری مشترک به **~2,600 خط** کاهش می‌یابد (**86% کاهش**).
+
+---
+
+## پیشرفت پیاده‌سازی (Implementation Progress)
+
+### ✅ فاز ۱: Infrastructure (تکمیل شده)
+- ✅ تمام Base View Classes ساخته شد
+- ✅ تمام Filter Functions ساخته شد
+- ✅ تمام Mixins ساخته شد
+- ✅ تمام JavaScript مشترک ساخته شد
+- ✅ تمام Template Partials ساخته شد
+
+### ✅ فاز ۲: Pilot Implementation - ماژول `shared` (در حال انجام)
+- ✅ **`shared/views/companies.py`** - تمام 5 view به Base classes منتقل شد:
+  - ✅ `CompanyListView` → `BaseListView` (استفاده از `generic_list.html`)
+  - ✅ `CompanyCreateView` → `BaseCreateView` (استفاده از `generic_form.html`)
+  - ✅ `CompanyUpdateView` → `BaseUpdateView` (استفاده از `generic_form.html`)
+  - ✅ `CompanyDetailView` → `BaseDetailView` (استفاده از `generic_detail.html`)
+  - ✅ `CompanyDeleteView` → `BaseDeleteView` (استفاده از `generic_confirm_delete.html`)
+  - ✅ استفاده از partials مشترک: `row_actions.html`, `filter_panel.html`, `pagination.html`, `empty_state.html`
+  - ✅ رفع مشکل RecursionError در `row_actions.html`
+- ⏳ `shared/views/access_levels.py` - در انتظار
+- ⏳ `shared/views/groups.py` - در انتظار
+- ⏳ `shared/views/users.py` - در انتظار
+- ⏳ `shared/views/company_units.py` - در انتظار
+
+### ⏳ فاز ۳: Rollout به سایر ماژول‌ها (در انتظار)
+- ⏳ ماژول `inventory`
+- ⏳ ماژول `production`
+- ⏳ ماژول `accounting`
+- ⏳ ماژول `ticketing`
+- ⏳ ماژول `qc`
 
 **موارد پوشش داده شده**:
 - ✅ View Layer (ListView, CreateView, UpdateView, DeleteView, DetailView)

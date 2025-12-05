@@ -2,31 +2,14 @@
 {% load view_tags %}
 {% load access_tags %}
 
-{# 
-  Row Actions Partial
-  
-  Usage:
-    {% include 'shared/partials/row_actions.html' with object=item feature_code='inventory.master.items' %}
-  
-  Parameters:
-    - object: The model instance
-    - feature_code: Feature code for permission checking (optional)
-    - detail_url_name: URL name for detail view (optional)
-    - edit_url_name: URL name for edit view (optional)
-    - delete_url_name: URL name for delete view (optional)
-    - view_url_name: Alternative URL name for view (optional)
-    - custom_actions: List of custom action dicts with 'name', 'label', 'url', 'class' (optional)
-    - button_size: Size of buttons ('sm', 'md', 'lg') - default: 'sm'
-    - show_icons: Show icons in buttons (default: false)
-#}
-
 {% with button_size=button_size|default:'sm' show_icons=show_icons|default:False %}
 <div class="row-actions" style="display: flex; gap: 0.25rem; flex-wrap: wrap; align-items: center;">
   
-  {# Check if object has get_available_actions method #}
-  {% if object.get_available_actions %}
-    {% get_object_actions object feature_code|default:"" as available_actions %}
-    
+  {# Get available actions using template tag #}
+  {% get_object_actions object feature_code|default:"" as available_actions %}
+  
+  {% if available_actions %}
+    {# Use actions from get_object_actions template tag #}
     {% for action in available_actions %}
       {% if action.url %}
         <a href="{{ action.url }}" 

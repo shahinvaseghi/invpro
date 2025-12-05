@@ -639,8 +639,8 @@
 ---
 
 **تاریخ ایجاد**: 2024  
-**آخرین به‌روزرسانی**: 2024  
-**وضعیت**: در حال پیاده‌سازی
+**آخرین به‌روزرسانی**: 2024-12-05  
+**وضعیت**: در حال پیاده‌سازی - Pilot (companies) تکمیل شد ✅
 
 ---
 
@@ -693,7 +693,29 @@
    - empty_state.html
 7. ✅ Template tags - `view_tags.py` با 5 tag ساخته شد
 
+### ✅ کارهای انجام شده (Migration ماژول‌ها):
+
+**ماژول `shared` (Pilot):**
+- [x] Refactor `shared/views/companies.py` - تمام 5 view به Base classes منتقل شد ✅
+  - [x] `CompanyListView` → `BaseListView` ✅
+  - [x] `CompanyCreateView` → `BaseCreateView` ✅
+  - [x] `CompanyUpdateView` → `BaseUpdateView` ✅
+  - [x] `CompanyDetailView` → `BaseDetailView` (با استفاده از `generic_detail.html`) ✅
+  - [x] `CompanyDeleteView` → `BaseDeleteView` ✅
+  - [x] استفاده از `generic_list.html` برای ListView ✅
+  - [x] استفاده از `generic_detail.html` برای DetailView ✅
+  - [x] استفاده از `generic_confirm_delete.html` برای DeleteView ✅
+  - [x] استفاده از partials مشترک: `row_actions.html`, `filter_panel.html`, `pagination.html`, `empty_state.html` ✅
+  - [x] رفع مشکل RecursionError در `row_actions.html` ✅
+
 ### ⏳ کارهای باقی‌مانده:
+
+**Migration سایر ماژول‌ها:**
+- [ ] Refactor `shared/views/access_levels.py` - 5 view
+- [ ] Refactor `shared/views/groups.py` - 5 view
+- [ ] Refactor `shared/views/users.py` - 5 view
+- [ ] Refactor `shared/views/company_units.py` - 5 view
+- [ ] سپس ماژول‌های دیگر (inventory, production, accounting, etc.)
 
 **Frontend:**
 - [x] بهبود `templates/shared/partials/row_actions.html` ✅
