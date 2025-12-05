@@ -21,7 +21,14 @@ from decimal import Decimal, InvalidOperation
 import json
 
 from .base import InventoryBaseView, DocumentLockProtectedMixin, DocumentLockView, DocumentUnlockView, LineFormsetMixin
-from shared.views.base import EditLockProtectedMixin, BaseDocumentUpdateView
+from shared.views.base import (
+    EditLockProtectedMixin, 
+    BaseDocumentUpdateView, 
+    BaseDocumentListView,
+    BaseDocumentCreateView,
+    BaseDeleteView,
+    BaseDetailView,
+)
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
 from .. import models
@@ -211,103 +218,42 @@ class ReceiptFormMixin(InventoryBaseView):
 # Temporary Receipt Views
 # ============================================================================
 
-class ReceiptTemporaryListView(InventoryBaseView, ListView):
+class ReceiptTemporaryListView(InventoryBaseView, BaseDocumentListView):
     """List view for temporary receipts."""
     model = models.ReceiptTemporary
     template_name = 'inventory/receipt_temporary.html'
-    context_object_name = 'object_list'
+    feature_code = 'inventory.receipts.temporary'
+    permission_field = 'created_by'
+    search_fields = ['document_code']
+    default_status_filter = False  # We handle status filtering manually
+    default_order_by = ['-id']
     paginate_by = 50
+    stats_enabled = True
 
-    def get_queryset(self):
-        """Prefetch related objects for efficient display and apply filters."""
-        queryset = super().get_queryset()
-        company_id = self.request.session.get('active_company_id')
-        if company_id:
-            queryset = queryset.filter(company_id=company_id)
-        queryset = queryset.filter(is_enabled=1)
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.temporary', 'created_by')
-        # Prefetch lines with related items, warehouses, and suppliers for efficient display
-        # Also prefetch converted_receipt for linking
-        # Use Prefetch to filter only enabled lines
+    def get_base_queryset(self):
+        """Filter by is_enabled=1."""
+        return super().get_base_queryset().filter(is_enabled=1)
+
+    def get_prefetch_related(self):
+        """Prefetch lines with related objects."""
         from django.db.models import Prefetch
-        queryset = queryset.prefetch_related(
+        return [
             Prefetch(
                 'lines',
                 queryset=models.ReceiptTemporaryLine.objects.filter(is_enabled=1).select_related('item', 'warehouse', 'supplier'),
                 to_attr='enabled_lines'
             )
-        ).select_related('created_by', 'converted_receipt')
-        queryset = self._apply_filters(queryset)
-        return queryset.distinct()
-
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic list template."""
-        context = super().get_context_data(**kwargs)
-        
-        # Generic list context
-        context['page_title'] = _('Temporary Receipts')
-        context['breadcrumbs'] = [
-            {'label': _('Inventory'), 'url': None},
-            {'label': _('Receipts'), 'url': None},
         ]
-        context['create_url'] = reverse_lazy('inventory:receipt_temporary_create')
-        context['create_button_text'] = _('Create Temporary Receipt')
-        context['create_label'] = _('Temporary Receipt')
-        context['show_filters'] = True
-        context['print_enabled'] = True
-        context['show_actions'] = True
-        
-        # Receipt-specific context
-        context['feature_code'] = 'inventory.receipts.temporary'
-        context['view_url_name'] = 'inventory:receipt_temporary_detail'  # Use detail view
-        context['detail_url_name'] = 'inventory:receipt_temporary_detail'
-        context['edit_url_name'] = 'inventory:receipt_temporary_edit'
-        context['delete_url_name'] = 'inventory:receipt_temporary_delete'
-        context['lock_url_name'] = 'inventory:receipt_temporary_lock'
-        context['unlock_url_name'] = 'inventory:receipt_temporary_unlock'
-        context['show_qc'] = True
-        context['show_conversion'] = True
-        context['permanent_receipt_url_name'] = 'inventory:receipt_permanent_edit'
-        context['empty_heading'] = _('No Temporary Receipts Found')
-        context['empty_text'] = _('Start by creating your first temporary receipt.')
-        context['empty_state_title'] = _('No Temporary Receipts Found')
-        context['empty_state_message'] = _('Start by creating your first temporary receipt.')
-        context['empty_state_icon'] = '📥'
-        
-        # Permissions
-        self.add_delete_permissions_to_context(context, 'inventory.receipts.temporary')
-        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
-        company_id = self.request.session.get('active_company_id')
-        permissions = get_user_feature_permissions(self.request.user, company_id)
-        context['can_unlock_own'] = self.request.user.is_superuser or has_feature_permission(
-            permissions, 'inventory.receipts.temporary', 'unlock_own', allow_own_scope=True
-        )
-        context['can_unlock_other'] = self.request.user.is_superuser or has_feature_permission(
-            permissions, 'inventory.receipts.temporary', 'unlock_other', allow_own_scope=False
-        )
-        
-        # Filters
-        context['status_filter'] = self.request.GET.get('status', '')
-        context['converted_filter'] = self.request.GET.get('converted', '')
-        context['search_query'] = self.request.GET.get('search', '').strip()
-        
-        # Stats
-        context['stats'] = self._get_stats()
-        context['stats_labels'] = {
-            'total': _('Total'),
-            'awaiting_qc': _('Awaiting QC'),
-            'qc_passed': _('QC Passed'),
-            'converted': _('Converted'),
-        }
-        
-        # User for permission checks in template
-        context['user'] = self.request.user
-        
-        return context
 
-    def _apply_filters(self, queryset):
+    def get_select_related(self):
+        """Select related objects."""
+        return ['created_by', 'converted_receipt']
+
+    def apply_custom_filters(self, queryset):
         """Apply status, conversion, and search filters."""
+        queryset = super().apply_custom_filters(queryset)
+        
+        # Status filter
         status_param = self.request.GET.get('status')
         status_map = {
             'draft': models.ReceiptTemporary.Status.DRAFT,
@@ -318,12 +264,14 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
         if status_param in status_map:
             queryset = queryset.filter(status=status_map[status_param])
         
+        # Conversion filter
         converted_param = self.request.GET.get('converted')
         if converted_param == '1':
             queryset = queryset.filter(is_converted=1)
         elif converted_param == '0':
             queryset = queryset.filter(is_converted=0)
         
+        # Search in lines (item name and code)
         search_query = self.request.GET.get('search', '').strip()
         if search_query:
             queryset = queryset.filter(
@@ -331,9 +279,53 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
                 Q(lines__item__name__icontains=search_query) |
                 Q(lines__item__item_code__icontains=search_query)
             )
-        return queryset
+        
+        return queryset.distinct()
 
-    def _get_stats(self) -> Dict[str, int]:
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Temporary Receipts')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Receipts'), 'url': None},
+        ]
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:receipt_temporary_create')
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Temporary Receipt')
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:receipt_temporary_detail'
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:receipt_temporary_edit'
+
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'inventory:receipt_temporary_delete'
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Temporary Receipts Found')
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by creating your first temporary receipt.')
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📥'
+
+    def get_stats(self) -> Dict[str, int]:
         """Return aggregate stats for summary cards."""
         stats = {
             'total': 0,
@@ -351,157 +343,260 @@ class ReceiptTemporaryListView(InventoryBaseView, ListView):
         stats['converted'] = base_qs.filter(is_converted=1).count()
         return stats
 
+    def get_stats_labels(self) -> Dict[str, str]:
+        """Return stats labels."""
+        return {
+            'total': _('Total'),
+            'awaiting_qc': _('Awaiting QC'),
+            'qc_passed': _('QC Passed'),
+            'converted': _('Converted'),
+        }
 
-class ReceiptTemporaryCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add receipt-specific context."""
+        context = super().get_context_data(**kwargs)
+        
+        # Receipt-specific context
+        context['create_label'] = _('Temporary Receipt')
+        context['print_enabled'] = True
+        context['view_url_name'] = 'inventory:receipt_temporary_detail'
+        context['lock_url_name'] = 'inventory:receipt_temporary_lock'
+        context['unlock_url_name'] = 'inventory:receipt_temporary_unlock'
+        context['show_qc'] = True
+        context['show_conversion'] = True
+        context['permanent_receipt_url_name'] = 'inventory:receipt_permanent_edit'
+        context['empty_heading'] = _('No Temporary Receipts Found')
+        context['empty_text'] = _('Start by creating your first temporary receipt.')
+        
+        # Permissions
+        self.add_delete_permissions_to_context(context, 'inventory.receipts.temporary')
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        company_id = self.request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(self.request.user, company_id)
+        context['can_unlock_own'] = self.request.user.is_superuser or has_feature_permission(
+            permissions, 'inventory.receipts.temporary', 'unlock_own', allow_own_scope=True
+        )
+        context['can_unlock_other'] = self.request.user.is_superuser or has_feature_permission(
+            permissions, 'inventory.receipts.temporary', 'unlock_other', allow_own_scope=False
+        )
+        
+        # Filters (for template)
+        context['status_filter'] = self.request.GET.get('status', '')
+        context['converted_filter'] = self.request.GET.get('converted', '')
+        context['search_query'] = self.request.GET.get('search', '').strip()
+        
+        return context
+
+
+class ReceiptTemporaryCreateView(LineFormsetMixin, ReceiptFormMixin, BaseDocumentCreateView):
     """Create view for temporary receipts."""
     model = models.ReceiptTemporary
     form_class = forms.ReceiptTemporaryForm
     formset_class = forms.ReceiptTemporaryLineFormSet
     success_url = reverse_lazy('inventory:receipt_temporary')
+    feature_code = 'inventory.receipts.temporary'
     form_title = _('ایجاد رسید موقت')
     receipt_variant = 'temporary'
     list_url_name = 'inventory:receipt_temporary'
     lock_url_name = 'inventory:receipt_temporary_lock'
+    formset_prefix = 'lines'  # Override BaseFormsetCreateView's default 'formset' prefix
+    success_message = _('رسید موقت با موفقیت ایجاد شد. برای ارسال به QC از دکمه‌ی "ارسال به QC" استفاده کنید.')
 
     def form_valid(self, form):
-        """Save document and line formset."""
-        form.instance.company_id = self.request.session.get('active_company_id')
-        form.instance.created_by = self.request.user
+        """Save document and line formset with custom validation."""
+        from django.db import transaction
+        from shared.views.base import BaseCreateView
         
-        # Save document first
-        self.object = form.save()
+        with transaction.atomic():
+            # Save document first (AutoSetFieldsMixin handles company_id and created_by)
+            # Call BaseCreateView.form_valid directly to skip BaseFormsetCreateView's formset.save()
+            response = BaseCreateView.form_valid(self, form)
+            
+            # Handle line formset with custom validation
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            if not lines_formset.is_valid():
+                # If formset is invalid, delete the main object and re-render
+                self.object.delete()
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Check if we have at least one valid line before saving
+            valid_lines = []
+            for form in lines_formset.forms:
+                if form.cleaned_data and form.cleaned_data.get('item') and not form.cleaned_data.get('DELETE', False):
+                    valid_lines.append(form)
+            
+            if not valid_lines:
+                self.object.delete()
+                form.add_error(None, _('Please add at least one line with an item.'))
+                lines_formset = self.build_line_formset(instance=None)
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
 
-        # Handle line formset
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
-        if not lines_formset.is_valid():
-            # If formset is invalid, delete the main object and re-render
-            self.object.delete()
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
+            # Save formset using LineFormsetMixin's _save_line_formset
+            self._save_line_formset(lines_formset)
         
-        # Check if we have at least one valid line before saving
-        valid_lines = []
-        for form in lines_formset.forms:
-            if form.cleaned_data and form.cleaned_data.get('item') and not form.cleaned_data.get('DELETE', False):
-                valid_lines.append(form)
-        
-        if not valid_lines:
-            self.object.delete()
-            form.add_error(None, _('Please add at least one line with an item.'))
-            lines_formset = self.build_line_formset(instance=None)
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-
-        self._save_line_formset(lines_formset)
-        
-        messages.success(self.request, _('رسید موقت با موفقیت ایجاد شد. برای ارسال به QC از دکمه‌ی "ارسال به QC" استفاده کنید.'))
-        return HttpResponseRedirect(self.get_success_url())
+        return response
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
             (_('Document Info'), ['expected_receipt_date', 'source_document_type', 'source_document_code', 'qc_approval_notes']),
         ]
+    
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Receipts'), 'url': reverse_lazy('inventory:receipt_temporary')},
+            {'label': _('Create Temporary Receipt'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:receipt_temporary')
 
 
-class ReceiptTemporaryDetailView(InventoryBaseView, DetailView):
+class ReceiptTemporaryDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing temporary receipts (read-only)."""
     model = models.ReceiptTemporary
     template_name = 'inventory/receipt_detail.html'
     context_object_name = 'receipt'
-    
+    feature_code = 'inventory.receipts.temporary'
+    permission_field = 'created_by'
+
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
-        # Filter by company_id (from InventoryBaseView)
-        company_id = self.request.session.get('active_company_id')
-        if company_id:
-            queryset = queryset.filter(company_id=company_id)
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.temporary', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse',
             'lines__supplier'
         ).select_related('created_by')
         return queryset
-    
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Temporary Receipt')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Receipts'), 'url': None},
+            {'label': _('Temporary Receipts'), 'url': reverse_lazy('inventory:receipt_temporary')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:receipt_temporary')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse('inventory:receipt_temporary_edit', kwargs={'pk': self.object.pk})
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail view."""
+        """Add receipt-specific context."""
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'inventory'
         context['receipt_variant'] = 'temporary'
-        context['list_url'] = reverse('inventory:receipt_temporary')
-        context['edit_url'] = reverse('inventory:receipt_temporary_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
         return context
 
 
-class ReceiptPermanentDetailView(InventoryBaseView, DetailView):
+class ReceiptPermanentDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing permanent receipts (read-only)."""
     model = models.ReceiptPermanent
     template_name = 'inventory/receipt_detail.html'
     context_object_name = 'receipt'
-    
+    feature_code = 'inventory.receipts.permanent'
+    permission_field = 'created_by'
+
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
-        # Filter by company_id (from InventoryBaseView)
-        company_id = self.request.session.get('active_company_id')
-        if company_id:
-            queryset = queryset.filter(company_id=company_id)
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.permanent', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse',
             'lines__supplier'
         ).select_related('created_by', 'temporary_receipt', 'purchase_request')
         return queryset
-    
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Permanent Receipt')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Receipts'), 'url': None},
+            {'label': _('Permanent Receipts'), 'url': reverse_lazy('inventory:receipt_permanent')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:receipt_permanent')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse('inventory:receipt_permanent_edit', kwargs={'pk': self.object.pk})
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail view."""
+        """Add receipt-specific context."""
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'inventory'
         context['receipt_variant'] = 'permanent'
-        context['list_url'] = reverse('inventory:receipt_permanent')
-        context['edit_url'] = reverse('inventory:receipt_permanent_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
         return context
 
 
-class ReceiptConsignmentDetailView(InventoryBaseView, DetailView):
+class ReceiptConsignmentDetailView(InventoryBaseView, BaseDetailView):
     """Detail view for viewing consignment receipts (read-only)."""
     model = models.ReceiptConsignment
     template_name = 'inventory/receipt_detail.html'
     context_object_name = 'receipt'
-    
+    feature_code = 'inventory.receipts.consignment'
+    permission_field = 'created_by'
+
     def get_queryset(self):
         """Prefetch related objects for efficient display."""
         queryset = super().get_queryset()
-        # Filter by company_id (from InventoryBaseView)
-        company_id = self.request.session.get('active_company_id')
-        if company_id:
-            queryset = queryset.filter(company_id=company_id)
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.consignment', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse',
             'lines__supplier'
         ).select_related('created_by')
         return queryset
-    
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Consignment Receipt')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Receipts'), 'url': None},
+            {'label': _('Consignment Receipts'), 'url': reverse_lazy('inventory:receipt_consignment')},
+            {'label': _('View'), 'url': None},
+        ]
+
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('inventory:receipt_consignment')
+
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse('inventory:receipt_consignment_edit', kwargs={'pk': self.object.pk})
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail view."""
+        """Add receipt-specific context."""
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'inventory'
         context['receipt_variant'] = 'consignment'
-        context['list_url'] = reverse('inventory:receipt_consignment')
-        context['edit_url'] = reverse('inventory:receipt_consignment_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0)
         return context
 
 
@@ -521,11 +616,7 @@ class ReceiptTemporaryUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
     lock_redirect_url_name = 'inventory:receipt_temporary'
 
     def get_queryset(self):
-        """Prefetch related objects for efficient display."""
-        logger.info("=" * 80)
-        logger.info("ReceiptTemporaryUpdateView.get_queryset() called")
-        logger.info(f"Request method: {self.request.method}")
-        logger.info(f"Request path: {self.request.path}")
+        """Prefetch related objects and filter by permissions."""
         queryset = super().get_queryset()
         # Filter by user permissions (own vs all)
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.temporary', 'created_by')
@@ -534,19 +625,7 @@ class ReceiptTemporaryUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
             'lines__warehouse',
             'lines__supplier'
         ).select_related('created_by')
-        logger.info(f"Queryset count: {queryset.count()}")
         return queryset
-    
-    def get(self, request, *args, **kwargs):
-        """Handle GET request."""
-        logger.info("=" * 80)
-        logger.info("ReceiptTemporaryUpdateView.get() called")
-        logger.info(f"Request method: {request.method}")
-        logger.info(f"Request path: {request.path}")
-        logger.info(f"URL kwargs: {kwargs}")
-        result = super().get(request, *args, **kwargs)
-        logger.info(f"Response status code: {result.status_code}")
-        return result
 
     def get_formset_kwargs(self) -> Dict[str, Any]:
         """Return kwargs for formset."""
@@ -561,72 +640,126 @@ class ReceiptTemporaryUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
         return kwargs
 
     def form_valid(self, form):
-        """Save document and line formset."""
-        if not form.instance.created_by_id:
-            form.instance.created_by = self.request.user
+        """Save document and line formset with custom validation."""
+        from django.db import transaction
+        from shared.views.base import BaseUpdateView
         
-        # Save document first
-        self.object = form.save()
+        with transaction.atomic():
+            # Save document first (AutoSetFieldsMixin handles edited_by)
+            # Call BaseUpdateView.form_valid directly to skip BaseFormsetUpdateView's formset.save()
+            response = BaseUpdateView.form_valid(self, form)
 
-        # Handle line formset
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
-        if not lines_formset.is_valid():
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        # Check if we have at least one valid line before saving
-        valid_lines = []
-        for form in lines_formset.forms:
-            if form.cleaned_data and form.cleaned_data.get('item') and not form.cleaned_data.get('DELETE', False):
-                valid_lines.append(form)
-        
-        if not valid_lines:
-            lines_formset.add_error(None, _('Please add at least one line with an item.'))
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
+            # Handle line formset with custom validation
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            if not lines_formset.is_valid():
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Check if we have at least one valid line before saving
+            valid_lines = []
+            for form in lines_formset.forms:
+                if form.cleaned_data and form.cleaned_data.get('item') and not form.cleaned_data.get('DELETE', False):
+                    valid_lines.append(form)
+            
+            if not valid_lines:
+                lines_formset.add_error(None, _('Please add at least one line with an item.'))
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
 
-        self._save_line_formset(lines_formset)
+            # Save formset using LineFormsetMixin's _save_line_formset
+            self._save_line_formset(lines_formset)
         
-        # Call parent to handle success message and redirect
-        return super().form_valid(form)
+        return response
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
             (_('Document Info'), ['expected_receipt_date', 'source_document_type', 'source_document_code', 'qc_approval_notes']),
         ]
+    
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Receipts'), 'url': reverse_lazy('inventory:receipt_temporary')},
+            {'label': _('Edit Temporary Receipt'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:receipt_temporary')
 
 
-class ReceiptTemporaryDeleteView(DocumentDeleteViewBase):
+class ReceiptTemporaryDeleteView(DocumentLockProtectedMixin, InventoryBaseView, BaseDeleteView):
     """Delete view for temporary receipts."""
     model = models.ReceiptTemporary
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:receipt_temporary')
     feature_code = 'inventory.receipts.temporary'
-    required_action = 'delete_own'
-    allow_own_scope = True
     success_message = _('رسید موقت با موفقیت حذف شد.')
-    
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Temporary Receipt')
-        context['confirmation_message'] = _('Do you really want to delete this temporary receipt?')
-        context['object_details'] = [
-            {'label': _('Document Code'), 'value': self.object.document_code},
-            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
-            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
-        ]
-        context['cancel_url'] = reverse_lazy('inventory:receipt_temporary')
-        context['breadcrumbs'] = [
+    lock_redirect_url_name = 'inventory:receipt_temporary'
+    owner_field = 'created_by'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check permissions before allowing delete."""
+        # Superuser bypass
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        
+        obj = self.get_object()
+        
+        # Check permissions
+        company_id: Optional[int] = request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(request.user, company_id)
+        
+        # Check if user is owner and has DELETE_OWN permission
+        is_owner = obj.created_by == request.user if obj.created_by else False
+        can_delete_own = has_feature_permission(permissions, self.feature_code, 'delete_own', allow_own_scope=True)
+        can_delete_other = has_feature_permission(permissions, self.feature_code, 'delete_other', allow_own_scope=False)
+        
+        if is_owner and not can_delete_own:
+            raise PermissionDenied(_('شما اجازه حذف اسناد خود را ندارید.'))
+        elif not is_owner and not can_delete_other:
+            raise PermissionDenied(_('شما اجازه حذف اسناد سایر کاربران را ندارید.'))
+        
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        """Filter by permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.temporary', 'created_by')
+        return queryset
+
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Temporary Receipt')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Do you really want to delete this temporary receipt?')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Receipts'), 'url': None},
             {'label': _('Temporary Receipts'), 'url': reverse_lazy('inventory:receipt_temporary')},
             {'label': _('Delete'), 'url': None},
         ]
-        return context
+
+    def get_object_details(self):
+        """Return object details."""
+        return [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:receipt_temporary')
 
 
 class ReceiptTemporaryLockView(DocumentLockView):
@@ -697,52 +830,84 @@ class ReceiptTemporarySendToQCView(FeaturePermissionRequiredMixin, InventoryBase
 # Permanent Receipt Views
 # ============================================================================
 
-class ReceiptPermanentListView(InventoryBaseView, ListView):
+class ReceiptPermanentListView(InventoryBaseView, BaseDocumentListView):
     """List view for permanent receipts."""
     model = models.ReceiptPermanent
     template_name = 'inventory/receipt_permanent.html'
-    context_object_name = 'object_list'
+    feature_code = 'inventory.receipts.permanent'
+    permission_field = 'created_by'
+    search_fields = ['document_code']
+    default_status_filter = False
+    default_order_by = ['-id']
     paginate_by = 50
+    stats_enabled = False
 
-    def get_queryset(self):
-        """Prefetch related objects for efficient display."""
-        queryset = super().get_queryset()
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.permanent', 'created_by')
-        # Use Prefetch to filter only enabled lines
+    def get_prefetch_related(self):
+        """Prefetch lines with related objects."""
         from django.db.models import Prefetch
-        queryset = queryset.prefetch_related(
+        return [
             Prefetch(
                 'lines',
                 queryset=models.ReceiptPermanentLine.objects.filter(is_enabled=1).select_related('item', 'warehouse', 'supplier'),
                 to_attr='enabled_lines'
             )
-        ).select_related('created_by', 'temporary_receipt', 'purchase_request')
-        return queryset
+        ]
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic list template."""
-        context = super().get_context_data(**kwargs)
-        
-        # Generic list context
-        context['page_title'] = _('Permanent Receipts')
-        context['breadcrumbs'] = [
+    def get_select_related(self):
+        """Select related objects."""
+        return ['created_by', 'temporary_receipt', 'purchase_request']
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Permanent Receipts')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Receipts'), 'url': None},
         ]
-        context['create_url'] = reverse_lazy('inventory:receipt_permanent_create')
-        context['create_button_text'] = _('Create Permanent Receipt')
-        context['create_label'] = _('Permanent Receipt')
-        context['show_filters'] = True
-        context['print_enabled'] = True
-        context['show_actions'] = True
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:receipt_permanent_create')
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Permanent Receipt')
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:receipt_permanent_detail'
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:receipt_permanent_edit'
+
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'inventory:receipt_permanent_delete'
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Permanent Receipts Found')
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by creating your first permanent receipt.')
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📥'
+
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add receipt-specific context."""
+        context = super().get_context_data(**kwargs)
         
         # Receipt-specific context
-        context['feature_code'] = 'inventory.receipts.permanent'
-        context['view_url_name'] = 'inventory:receipt_permanent_detail'  # Use detail view
-        context['detail_url_name'] = 'inventory:receipt_permanent_detail'
-        context['edit_url_name'] = 'inventory:receipt_permanent_edit'
-        context['delete_url_name'] = 'inventory:receipt_permanent_delete'
+        context['create_label'] = _('Permanent Receipt')
+        context['print_enabled'] = True
+        context['view_url_name'] = 'inventory:receipt_permanent_detail'
         context['lock_url_name'] = 'inventory:receipt_permanent_lock'
         context['unlock_url_name'] = 'inventory:receipt_permanent_unlock'
         context['show_qc'] = False
@@ -751,9 +916,6 @@ class ReceiptPermanentListView(InventoryBaseView, ListView):
         context['show_purchase_request'] = True
         context['empty_heading'] = _('No Permanent Receipts Found')
         context['empty_text'] = _('Start by creating your first permanent receipt.')
-        context['empty_state_title'] = _('No Permanent Receipts Found')
-        context['empty_state_message'] = _('Start by creating your first permanent receipt.')
-        context['empty_state_icon'] = '📥'
         
         # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.receipts.permanent')
@@ -771,99 +933,113 @@ class ReceiptPermanentListView(InventoryBaseView, ListView):
         context['temporary_receipt_url_name'] = 'inventory:receipt_temporary_edit'
         context['purchase_request_url_name'] = 'inventory:purchase_request_edit'
         
-        # Filters
+        # Filters (for template)
         context['search_query'] = self.request.GET.get('search', '').strip()
-        
-        # User for permission checks in template
-        context['user'] = self.request.user
         
         return context
 
 
-class ReceiptPermanentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
+class ReceiptPermanentCreateView(LineFormsetMixin, ReceiptFormMixin, BaseDocumentCreateView):
     """Create view for permanent receipts."""
     model = models.ReceiptPermanent
     form_class = forms.ReceiptPermanentForm
     formset_class = forms.ReceiptPermanentLineFormSet
     success_url = reverse_lazy('inventory:receipt_permanent')
+    feature_code = 'inventory.receipts.permanent'
     form_title = _('ایجاد رسید دائم')
     receipt_variant = 'permanent'
     list_url_name = 'inventory:receipt_permanent'
     lock_url_name = 'inventory:receipt_permanent_lock'
+    formset_prefix = 'lines'
+    success_message = _('رسید دائم با موفقیت ایجاد شد.')
 
     def form_valid(self, form):
-        """Save document and line formset."""
-        form.instance.company_id = self.request.session.get('active_company_id')
-        form.instance.created_by = self.request.user
+        """Save document and line formset with custom validation."""
+        from django.db import transaction
+        from shared.views.base import BaseCreateView
         
-        # Save document first
-        self.object = form.save()
-        
-        # Get temporary_receipt from form to pass to formset forms
-        temp_receipt = form.cleaned_data.get('temporary_receipt') if hasattr(form, 'cleaned_data') else None
-        
-        # Also check POST data directly in case cleaned_data is not available
-        if not temp_receipt:
-            temp_receipt_id = self.request.POST.get('temporary_receipt', '')
-            if temp_receipt_id:
-                try:
-                    temp_receipt = models.ReceiptTemporary.objects.get(pk=temp_receipt_id, company_id=self.object.company_id)
-                except (models.ReceiptTemporary.DoesNotExist, ValueError):
-                    pass
-        
-        # Also check if temporary_receipt is set on the saved object
-        if not temp_receipt and self.object.temporary_receipt_id:
-            temp_receipt = self.object.temporary_receipt
-        
-        # Handle line formset
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
-        
-        # Pass temporary_receipt to all forms in formset for validation BEFORE validation
-        # Also set document on all instances so they can access it in clean_item
-        if temp_receipt:
+        with transaction.atomic():
+            # Save document first (AutoSetFieldsMixin handles company_id and created_by)
+            # Call BaseCreateView.form_valid directly to skip BaseFormsetCreateView's formset.save()
+            response = BaseCreateView.form_valid(self, form)
+            
+            # Get temporary_receipt from form to pass to formset forms
+            temp_receipt = form.cleaned_data.get('temporary_receipt') if hasattr(form, 'cleaned_data') else None
+            
+            # Also check POST data directly in case cleaned_data is not available
+            if not temp_receipt:
+                temp_receipt_id = self.request.POST.get('temporary_receipt', '')
+                if temp_receipt_id:
+                    try:
+                        temp_receipt = models.ReceiptTemporary.objects.get(pk=temp_receipt_id, company_id=self.object.company_id)
+                    except (models.ReceiptTemporary.DoesNotExist, ValueError):
+                        pass
+            
+            # Also check if temporary_receipt is set on the saved object
+            if not temp_receipt and self.object.temporary_receipt_id:
+                temp_receipt = self.object.temporary_receipt
+            
+            # Handle line formset
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            
+            # Pass temporary_receipt to all forms in formset for validation BEFORE validation
+            # Also set document on all instances so they can access it in clean_item
+            if temp_receipt:
+                for form in lines_formset.forms:
+                    form._temp_receipt = temp_receipt
+                    # Set document on instance so clean_item can access it
+                    if hasattr(form, 'instance') and form.instance:
+                        form.instance.document = self.object
+            
+            if not lines_formset.is_valid():
+                # Delete the document since formset validation failed
+                self.object.delete()
+                # Reset form.instance to None so template renders in create mode
+                form.instance = self.model()
+                form.instance.pk = None
+                # Rebuild formset with None instance but keep the same POST data to preserve validation errors
+                lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Check if we have at least one valid line before saving
+            valid_lines = []
             for form in lines_formset.forms:
-                form._temp_receipt = temp_receipt
-                # Set document on instance so clean_item can access it
-                if hasattr(form, 'instance') and form.instance:
-                    form.instance.document = self.object
+                if form.cleaned_data and form.cleaned_data.get('item') and not form.cleaned_data.get('DELETE', False):
+                    valid_lines.append(form)
+            
+            if not valid_lines:
+                # No valid lines, show error and delete the document
+                self.object.delete()
+                form.add_error(None, _('Please add at least one line with an item.'))
+                lines_formset = self.build_line_formset(instance=None)
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Save formset using LineFormsetMixin's _save_line_formset
+            self._save_line_formset(lines_formset)
         
-        if not lines_formset.is_valid():
-            # Delete the document since formset validation failed
-            self.object.delete()
-            # Reset form.instance to None so template renders in create mode
-            form.instance = self.model()
-            form.instance.pk = None
-            # Rebuild formset with None instance but keep the same POST data to preserve validation errors
-            lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        # Check if we have at least one valid line before saving
-        valid_lines = []
-        for form in lines_formset.forms:
-            if form.cleaned_data and form.cleaned_data.get('item') and not form.cleaned_data.get('DELETE', False):
-                valid_lines.append(form)
-        
-        if not valid_lines:
-            # No valid lines, show error and delete the document
-            self.object.delete()
-            form.add_error(None, _('Please add at least one line with an item.'))
-            lines_formset = self.build_line_formset(instance=None)
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        self._save_line_formset(lines_formset)
-        
-        messages.success(self.request, _('رسید دائم با موفقیت ایجاد شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        return response
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
             (_('Document Info'), ['document_code', 'document_date', 'requires_temporary_receipt', 'temporary_receipt', 'purchase_request', 'warehouse_request']),
         ]
+    
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Receipts'), 'url': reverse_lazy('inventory:receipt_permanent')},
+            {'label': _('Create Permanent Receipt'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:receipt_permanent')
 
 
 class ReceiptPermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, BaseDocumentUpdateView):
@@ -906,73 +1082,126 @@ class ReceiptPermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
         return kwargs
 
     def form_valid(self, form):
-        """Save document and line formset."""
-        if not form.instance.created_by_id:
-            form.instance.created_by = self.request.user
+        """Save document and line formset with custom validation."""
+        from django.db import transaction
+        from shared.views.base import BaseUpdateView
         
-        # Save document first
-        self.object = form.save()
+        with transaction.atomic():
+            # Save document first (AutoSetFieldsMixin handles edited_by)
+            # Call BaseUpdateView.form_valid directly to skip BaseFormsetUpdateView's formset.save()
+            response = BaseUpdateView.form_valid(self, form)
+
+            # Handle line formset with custom validation
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            if not lines_formset.is_valid():
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Check if we have at least one valid line before saving
+            valid_lines = []
+            for form in lines_formset.forms:
+                if form.cleaned_data and form.cleaned_data.get('item') and not form.cleaned_data.get('DELETE', False):
+                    valid_lines.append(form)
+            
+            if not valid_lines:
+                lines_formset.add_error(None, _('Please add at least one line with an item.'))
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+
+            # Save formset using LineFormsetMixin's _save_line_formset
+            self._save_line_formset(lines_formset)
         
-        # Handle line formset
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
-        if not lines_formset.is_valid():
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        # Check if we have at least one valid line before saving
-        valid_lines = []
-        for form in lines_formset.forms:
-            if form.cleaned_data and form.cleaned_data.get('item') and not form.cleaned_data.get('DELETE', False):
-                valid_lines.append(form)
-        
-        if not valid_lines:
-            # No valid lines, show error
-            lines_formset.add_error(None, _('Please add at least one line with an item.'))
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        
-        self._save_line_formset(lines_formset)
-        
-        # Call parent to handle success message and redirect
-        return super().form_valid(form)
+        return response
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
             (_('Document Info'), ['document_code', 'document_date', 'requires_temporary_receipt', 'temporary_receipt', 'purchase_request', 'warehouse_request']),
         ]
+    
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Receipts'), 'url': reverse_lazy('inventory:receipt_permanent')},
+            {'label': _('Edit Permanent Receipt'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:receipt_permanent')
 
 
-class ReceiptPermanentDeleteView(DocumentDeleteViewBase):
+class ReceiptPermanentDeleteView(DocumentLockProtectedMixin, InventoryBaseView, BaseDeleteView):
     """Delete view for permanent receipts."""
     model = models.ReceiptPermanent
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:receipt_permanent')
     feature_code = 'inventory.receipts.permanent'
-    required_action = 'delete_own'
-    allow_own_scope = True
     success_message = _('رسید دائم با موفقیت حذف شد.')
-    
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Permanent Receipt')
-        context['confirmation_message'] = _('Do you really want to delete this permanent receipt?')
-        context['object_details'] = [
-            {'label': _('Document Code'), 'value': self.object.document_code},
-            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
-            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
-        ]
-        context['cancel_url'] = reverse_lazy('inventory:receipt_permanent')
-        context['breadcrumbs'] = [
+    lock_redirect_url_name = 'inventory:receipt_permanent'
+    owner_field = 'created_by'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check permissions before allowing delete."""
+        # Superuser bypass
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        
+        obj = self.get_object()
+        
+        # Check permissions
+        company_id: Optional[int] = request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(request.user, company_id)
+        
+        # Check if user is owner and has DELETE_OWN permission
+        is_owner = obj.created_by == request.user if obj.created_by else False
+        can_delete_own = has_feature_permission(permissions, self.feature_code, 'delete_own', allow_own_scope=True)
+        can_delete_other = has_feature_permission(permissions, self.feature_code, 'delete_other', allow_own_scope=False)
+        
+        if is_owner and not can_delete_own:
+            raise PermissionDenied(_('شما اجازه حذف اسناد خود را ندارید.'))
+        elif not is_owner and not can_delete_other:
+            raise PermissionDenied(_('شما اجازه حذف اسناد سایر کاربران را ندارید.'))
+        
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        """Filter by permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.permanent', 'created_by')
+        return queryset
+
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Permanent Receipt')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Do you really want to delete this permanent receipt?')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Receipts'), 'url': None},
             {'label': _('Permanent Receipts'), 'url': reverse_lazy('inventory:receipt_permanent')},
             {'label': _('Delete'), 'url': None},
         ]
-        return context
+
+    def get_object_details(self):
+        """Return object details."""
+        return [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:receipt_permanent')
 
 
 class ReceiptPermanentLockView(DocumentLockView):
@@ -995,61 +1224,90 @@ class ReceiptPermanentUnlockView(DocumentUnlockView):
 # Consignment Receipt Views
 # ============================================================================
 
-class ReceiptConsignmentListView(InventoryBaseView, ListView):
+class ReceiptConsignmentListView(InventoryBaseView, BaseDocumentListView):
     """List view for consignment receipts."""
     model = models.ReceiptConsignment
     template_name = 'inventory/receipt_consignment.html'
-    context_object_name = 'object_list'
+    feature_code = 'inventory.receipts.consignment'
+    permission_field = 'created_by'
+    search_fields = ['document_code']
+    default_status_filter = False
+    default_order_by = ['-id']
     paginate_by = 50
+    stats_enabled = False
 
-    def get_queryset(self):
-        """Prefetch related objects for efficient display."""
-        queryset = super().get_queryset()
-        # Filter by user permissions (own vs all)
-        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.consignment', 'created_by')
-        # Use Prefetch to filter only enabled lines
+    def get_prefetch_related(self):
+        """Prefetch lines with related objects."""
         from django.db.models import Prefetch
-        queryset = queryset.prefetch_related(
+        return [
             Prefetch(
                 'lines',
                 queryset=models.ReceiptConsignmentLine.objects.filter(is_enabled=1).select_related('item', 'warehouse', 'supplier'),
                 to_attr='enabled_lines'
             )
-        ).select_related('created_by')
-        return queryset
+        ]
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic list template."""
-        context = super().get_context_data(**kwargs)
-        
-        # Generic list context
-        context['page_title'] = _('Consignment Receipts')
-        context['breadcrumbs'] = [
+    def get_select_related(self):
+        """Select related objects."""
+        return ['created_by']
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Consignment Receipts')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Receipts'), 'url': None},
         ]
-        context['create_url'] = reverse_lazy('inventory:receipt_consignment_create')
-        context['create_button_text'] = _('Create Consignment Receipt')
-        context['create_label'] = _('Consignment Receipt')
-        context['show_filters'] = True
-        context['print_enabled'] = True
-        context['show_actions'] = True
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('inventory:receipt_consignment_create')
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Consignment Receipt')
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'inventory:receipt_consignment_detail'
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'inventory:receipt_consignment_edit'
+
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'inventory:receipt_consignment_delete'
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Consignment Receipts Found')
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by creating your first consignment receipt.')
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📥'
+
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add receipt-specific context."""
+        context = super().get_context_data(**kwargs)
         
         # Receipt-specific context
-        context['feature_code'] = 'inventory.receipts.consignment'
-        context['view_url_name'] = 'inventory:receipt_consignment_detail'  # Use detail view
-        context['detail_url_name'] = 'inventory:receipt_consignment_detail'
-        context['edit_url_name'] = 'inventory:receipt_consignment_edit'
-        context['delete_url_name'] = 'inventory:receipt_consignment_delete'
+        context['create_label'] = _('Consignment Receipt')
+        context['print_enabled'] = True
+        context['view_url_name'] = 'inventory:receipt_consignment_detail'
         context['lock_url_name'] = 'inventory:receipt_consignment_lock'
         context['unlock_url_name'] = 'inventory:receipt_consignment_unlock'
         context['show_qc'] = False
         context['show_conversion'] = False
         context['empty_heading'] = _('No Consignment Receipts Found')
         context['empty_text'] = _('Start by creating your first consignment receipt.')
-        context['empty_state_title'] = _('No Consignment Receipts Found')
-        context['empty_state_message'] = _('Start by creating your first consignment receipt.')
-        context['empty_state_icon'] = '📥'
         
         # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.receipts.consignment')
@@ -1067,44 +1325,67 @@ class ReceiptConsignmentListView(InventoryBaseView, ListView):
         context['temporary_receipt_url_name'] = 'inventory:receipt_temporary_edit'
         context['purchase_request_url_name'] = 'inventory:purchase_request_edit'
         
-        # Filters
+        # Filters (for template)
         context['search_query'] = self.request.GET.get('search', '').strip()
-        
-        # User for permission checks in template
-        context['user'] = self.request.user
         
         return context
 
 
-class ReceiptConsignmentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
+class ReceiptConsignmentCreateView(LineFormsetMixin, ReceiptFormMixin, BaseDocumentCreateView):
     """Create view for consignment receipts."""
     model = models.ReceiptConsignment
     form_class = forms.ReceiptConsignmentForm
     formset_class = forms.ReceiptConsignmentLineFormSet
     success_url = reverse_lazy('inventory:receipt_consignment')
+    feature_code = 'inventory.receipts.consignment'
     form_title = _('ایجاد رسید امانی')
     receipt_variant = 'consignment'
     list_url_name = 'inventory:receipt_consignment'
     lock_url_name = 'inventory:receipt_consignment_lock'
+    formset_prefix = 'lines'
+    success_message = _('رسید امانی با موفقیت ایجاد شد.')
 
     def form_valid(self, form):
         """Save document and line formset."""
-        form.instance.company_id = self.request.session.get('active_company_id')
-        form.instance.created_by = self.request.user
+        from django.db import transaction
+        from shared.views.base import BaseCreateView
         
-        # Save document first
-        self.object = form.save()
+        with transaction.atomic():
+            # Save document first (AutoSetFieldsMixin handles company_id and created_by)
+            # Call BaseCreateView.form_valid directly to skip BaseFormsetCreateView's formset.save()
+            response = BaseCreateView.form_valid(self, form)
+            
+            # Handle line formset
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            if not lines_formset.is_valid():
+                # If formset is invalid, delete the main object and re-render
+                self.object.delete()
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Save formset using LineFormsetMixin's _save_line_formset
+            self._save_line_formset(lines_formset)
         
-        # Handle line formset
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
-        if not lines_formset.is_valid():
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        self._save_line_formset(lines_formset)
-        
-        messages.success(self.request, _('رسید امانی با موفقیت ایجاد شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        return response
+
+    def get_fieldsets(self) -> list:
+        """Return fieldsets configuration."""
+        return [
+            (_('Document Info'), ['document_date', 'supplier']),
+        ]
+    
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Receipts'), 'url': reverse_lazy('inventory:receipt_consignment')},
+            {'label': _('Create Consignment Receipt'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:receipt_consignment')
 
 
 # ============================================================================
@@ -1893,19 +2174,14 @@ class ReceiptConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin,
     lock_redirect_url_name = 'inventory:receipt_consignment'
 
     def get_queryset(self):
-        """Prefetch related objects for efficient display."""
+        """Prefetch related objects and filter by permissions."""
         queryset = super().get_queryset()
-        # Filter by company_id (from InventoryBaseView)
-        company_id = self.request.session.get('active_company_id')
-        if company_id:
-            queryset = queryset.filter(company_id=company_id)
-        # Filter by user permissions (own vs all)
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.consignment', 'created_by')
         queryset = queryset.prefetch_related(
             'lines__item',
             'lines__warehouse',
             'lines__supplier'
-        ).select_related('created_by', 'temporary_receipt', 'purchase_request', 'warehouse_request')
+        ).select_related('created_by')
         return queryset
 
     def get_formset_kwargs(self) -> Dict[str, Any]:
@@ -1921,23 +2197,44 @@ class ReceiptConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin,
         return kwargs
 
     def form_valid(self, form):
-        """Save document and line formset."""
-        if not form.instance.created_by_id:
-            form.instance.created_by = self.request.user
+        """Save document and line formset with custom validation."""
+        from django.db import transaction
+        from shared.views.base import BaseUpdateView
         
-        # Save document first
-        self.object = form.save()
+        with transaction.atomic():
+            # Save document first (AutoSetFieldsMixin handles edited_by)
+            # Call BaseUpdateView.form_valid directly to skip BaseFormsetUpdateView's formset.save()
+            response = BaseUpdateView.form_valid(self, form)
+
+            # Handle line formset
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            if not lines_formset.is_valid():
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+
+            # Save formset using LineFormsetMixin's _save_line_formset
+            self._save_line_formset(lines_formset)
         
-        # Handle line formset
-        lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
-        if not lines_formset.is_valid():
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        self._save_line_formset(lines_formset)
-        
-        # Call parent to handle success message and redirect
-        return super().form_valid(form)
+        return response
+
+    def get_fieldsets(self) -> list:
+        """Return fieldsets configuration."""
+        return [
+            (_('Document Info'), ['document_date', 'supplier']),
+        ]
+    
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Receipts'), 'url': reverse_lazy('inventory:receipt_consignment')},
+            {'label': _('Edit Consignment Receipt'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:receipt_consignment')
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
@@ -1946,34 +2243,74 @@ class ReceiptConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin,
         ]
 
 
-class ReceiptConsignmentDeleteView(DocumentDeleteViewBase):
+class ReceiptConsignmentDeleteView(DocumentLockProtectedMixin, InventoryBaseView, BaseDeleteView):
     """Delete view for consignment receipts."""
     model = models.ReceiptConsignment
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('inventory:receipt_consignment')
     feature_code = 'inventory.receipts.consignment'
-    required_action = 'delete_own'
-    allow_own_scope = True
     success_message = _('رسید امانی با موفقیت حذف شد.')
-    
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Consignment Receipt')
-        context['confirmation_message'] = _('Do you really want to delete this consignment receipt?')
-        context['object_details'] = [
-            {'label': _('Document Code'), 'value': self.object.document_code},
-            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
-            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
-        ]
-        context['cancel_url'] = reverse_lazy('inventory:receipt_consignment')
-        context['breadcrumbs'] = [
+    lock_redirect_url_name = 'inventory:receipt_consignment'
+    owner_field = 'created_by'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check permissions before allowing delete."""
+        # Superuser bypass
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        
+        obj = self.get_object()
+        
+        # Check permissions
+        company_id: Optional[int] = request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(request.user, company_id)
+        
+        # Check if user is owner and has DELETE_OWN permission
+        is_owner = obj.created_by == request.user if obj.created_by else False
+        can_delete_own = has_feature_permission(permissions, self.feature_code, 'delete_own', allow_own_scope=True)
+        can_delete_other = has_feature_permission(permissions, self.feature_code, 'delete_other', allow_own_scope=False)
+        
+        if is_owner and not can_delete_own:
+            raise PermissionDenied(_('شما اجازه حذف اسناد خود را ندارید.'))
+        elif not is_owner and not can_delete_other:
+            raise PermissionDenied(_('شما اجازه حذف اسناد سایر کاربران را ندارید.'))
+        
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        """Filter by permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.receipts.consignment', 'created_by')
+        return queryset
+
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Consignment Receipt')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Do you really want to delete this consignment receipt?')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Receipts'), 'url': None},
             {'label': _('Consignment Receipts'), 'url': reverse_lazy('inventory:receipt_consignment')},
             {'label': _('Delete'), 'url': None},
         ]
-        return context
+
+    def get_object_details(self):
+        """Return object details."""
+        return [
+            {'label': _('Document Code'), 'value': self.object.document_code},
+            {'label': _('Document Date'), 'value': self.object.document_date.strftime('%Y-%m-%d') if self.object.document_date else '-'},
+            {'label': _('Created By'), 'value': self.object.created_by.get_full_name() if self.object.created_by else '-'},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:receipt_consignment')
 
 
 class ReceiptConsignmentLockView(DocumentLockView):

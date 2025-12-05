@@ -3006,7 +3006,7 @@ class TemporaryReceiptQCApproveView(FeaturePermissionRequiredMixin, QCBaseView, 
 
 **تاریخ ایجاد**: 2024  
 **آخرین به‌روزرسانی**: 2024-12-05  
-**وضعیت**: در حال پیاده‌سازی - Pilot (companies) تکمیل شد ✅
+**وضعیت**: در حال پیاده‌سازی - Pilot (companies) تکمیل شد ✅ - Receipts (15/15 view) تکمیل شد ✅
 
 ---
 
@@ -3039,12 +3039,37 @@ class TemporaryReceiptQCApproveView(FeaturePermissionRequiredMixin, QCBaseView, 
 - ⏳ `shared/views/users.py` - در انتظار
 - ⏳ `shared/views/company_units.py` - در انتظار
 
-### ⏳ فاز ۳: Rollout به سایر ماژول‌ها (در انتظار)
-- ⏳ ماژول `inventory`
-- ⏳ ماژول `production`
-- ⏳ ماژول `accounting`
-- ⏳ ماژول `ticketing`
-- ⏳ ماژول `qc`
+### 🔄 فاز ۳: Rollout به سایر ماژول‌ها (در حال انجام)
+- 🔄 **ماژول `inventory`** - در حال refactor:
+  - ✅ **`inventory/views/receipts.py`** - Receipts (کامل ✅):
+    - ✅ **ReceiptTemporary** (5/5 view):
+      - ✅ `ReceiptTemporaryListView` → `BaseDocumentListView`
+      - ✅ `ReceiptTemporaryCreateView` → `BaseDocumentCreateView` + `LineFormsetMixin` + `ReceiptFormMixin`
+      - ✅ `ReceiptTemporaryUpdateView` → `BaseDocumentUpdateView` + `LineFormsetMixin` + `ReceiptFormMixin`
+      - ✅ `ReceiptTemporaryDeleteView` → `BaseDeleteView` + `DocumentLockProtectedMixin`
+      - ✅ `ReceiptTemporaryDetailView` → `BaseDetailView`
+    - ✅ **ReceiptPermanent** (5/5 view):
+      - ✅ `ReceiptPermanentListView` → `BaseDocumentListView`
+      - ✅ `ReceiptPermanentCreateView` → `BaseDocumentCreateView` + `LineFormsetMixin` + `ReceiptFormMixin`
+      - ✅ `ReceiptPermanentUpdateView` → `BaseDocumentUpdateView` + `LineFormsetMixin` + `ReceiptFormMixin`
+      - ✅ `ReceiptPermanentDeleteView` → `BaseDeleteView` + `DocumentLockProtectedMixin`
+      - ✅ `ReceiptPermanentDetailView` → `BaseDetailView`
+    - ✅ **ReceiptConsignment** (5/5 view):
+      - ✅ `ReceiptConsignmentListView` → `BaseDocumentListView`
+      - ✅ `ReceiptConsignmentCreateView` → `BaseDocumentCreateView` + `LineFormsetMixin` + `ReceiptFormMixin`
+      - ✅ `ReceiptConsignmentUpdateView` → `BaseDocumentUpdateView` + `LineFormsetMixin` + `ReceiptFormMixin`
+      - ✅ `ReceiptConsignmentDeleteView` → `BaseDeleteView` + `DocumentLockProtectedMixin`
+      - ✅ `ReceiptConsignmentDetailView` → `BaseDetailView`
+    - **نکات مهم**:
+      - تمام viewها از Base classes استفاده می‌کنند
+      - `LineFormsetMixin` و `ReceiptFormMixin` برای حفظ قابلیت‌های خاص receipts حفظ شده‌اند
+      - `form_valid()` override شده تا از `_save_line_formset()` استفاده کند
+      - تمام hook methods (get_breadcrumbs, get_page_title, etc.) override شده‌اند
+      - Permission checking و lock protection حفظ شده‌اند
+- ⏳ ماژول `production` - در انتظار
+- ⏳ ماژول `accounting` - در انتظار
+- ⏳ ماژول `ticketing` - در انتظار
+- ⏳ ماژول `qc` - در انتظار
 
 **موارد پوشش داده شده**:
 - ✅ View Layer (ListView, CreateView, UpdateView, DeleteView, DetailView)
