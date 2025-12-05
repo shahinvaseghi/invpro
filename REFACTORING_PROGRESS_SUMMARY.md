@@ -359,6 +359,58 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 
 ## 🔧 مشکلات حل شده
 
+### مشکلات پس از Refactoring Pilot:
+
+1. **مشکل ایجاد Groups و Access Levels** ✅ حل شد
+   - **خطا**: `TypeError: BaseModelForm.__init__() got an unexpected keyword argument 'company_id'`
+   - **علت**: `BaseCreateView` به صورت خودکار `company_id` را به form می‌فرستد، اما Groups و AccessLevels company-scoped نیستند
+   - **راه‌حل**: اضافه کردن `kwargs.pop('company_id', None)` در `__init__` از `GroupForm` و `AccessLevelForm`
+   - **فایل‌های تغییر یافته**: `shared/forms/groups.py`, `shared/forms/access_levels.py`
+
+2. **مشکل ایجاد Users** ✅ حل شد
+   - **خطا**: `TypeError: BaseModelForm.__init__() got an unexpected keyword argument 'company_id'`
+   - **علت**: مشابه Groups و AccessLevels، Users هم company-scoped نیستند
+   - **راه‌حل**: اضافه کردن `kwargs.pop('company_id', None)` در `__init__` از `UserBaseForm`
+   - **فایل تغییر یافته**: `shared/forms/users.py`
+
+3. **مشکل مشاهده Detail Views (Groups و Access Levels)** ✅ حل شد
+   - **مشکل**: بخش‌های "اطلاعات اولیه" و "Assigned Groups" در Detail View خالی بودند
+   - **علت**: Template برای نمایش `fields` بررسی می‌کرد که `section.type == 'fields'` باشد، اما در views این `type` تنظیم نشده بود
+   - **راه‌حل**: 
+     - اضافه کردن `type: 'fields'` به تمام بخش‌های fields در views
+     - بهبود template برای fallback به `section.fields` اگر `type` تنظیم نشده باشد
+   - **فایل‌های تغییر یافته**: `shared/views/groups.py`, `shared/views/access_levels.py`, `templates/shared/generic/generic_detail.html`
+
+4. **مشکل نمایش دکمه View در لیست کاربران** ✅ حل شد
+   - **مشکل**: دکمه "مشاهده" در لیست کاربران وجود نداشت
+   - **علت**: در template `users_list.html` دکمه‌ها به صورت دستی نوشته شده بودند و از partial `row_actions.html` استفاده نمی‌شد
+   - **راه‌حل**: 
+     - اضافه کردن block `table_headers`
+     - جایگزینی دکمه‌های دستی با `row_actions.html`
+   - **فایل‌های تغییر یافته**: `templates/shared/users_list.html`, `shared/views/users.py`
+
+5. **مشکل نمایش دکمه Edit در لیست کاربران** ✅ حل شد
+   - **مشکل**: دکمه "ویرایش" در لیست کاربران نمایش داده نمی‌شد
+   - **علت**: در `row_actions.html` ابتدا از template tag `get_object_actions` استفاده می‌شد که گاهی URL درست را پیدا نمی‌کرد
+   - **راه‌حل**: تغییر منطق `row_actions.html` تا اول از URL name‌های explicit که از view پاس داده می‌شوند استفاده کند
+   - **فایل تغییر یافته**: `templates/shared/partials/row_actions.html`
+
+6. **مشکل KeyError در AccessLevelCreateView** ✅ حل شد
+   - **خطا**: `KeyError: 'view_same_group'` در `_prepare_feature_context`
+   - **علت**: `action_labels` در `__init__` initialize می‌شد اما ممکن بود قبل از استفاده initialize نشده باشد
+   - **راه‌حل**: تبدیل `action_labels` به method `get_action_labels()` با cache
+   - **فایل تغییر یافته**: `shared/views/base.py` (AccessLevelPermissionMixin)
+
+7. **مشکل TypeError در AccessLevelDetailView** ✅ حل شد
+   - **خطا**: `TypeError: sequence item 0: expected str instance, _proxy_found`
+   - **علت**: استفاده از `', '.join()` روی لیستی از `gettext_lazy` objects (proxy objects)
+   - **راه‌حل**: استفاده از `force_str()` برای تبدیل proxy objects به string
+   - **فایل تغییر یافته**: `shared/views/access_levels.py`
+
+---
+
+## 🔧 مشکلات حل شده (قبلی)
+
 1. ✅ **RecursionError در `row_actions.html`**
    - مشکل: کامنت Django با `{% include %}` باعث recursion می‌شد
    - راه‌حل: حذف کامنت یا تبدیل به متن ساده

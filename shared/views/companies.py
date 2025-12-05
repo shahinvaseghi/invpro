@@ -253,8 +253,6 @@ class CompanyDetailView(BaseDetailView):
                 address_fields.append({'label': _('State/Province'), 'value': self.object.state})
             if self.object.country:
                 address_fields.append({'label': _('Country'), 'value': self.object.country})
-            if self.object.postal_code:
-                address_fields.append({'label': _('Postal Code'), 'value': self.object.postal_code})
             
             if address_fields:
                 context['detail_sections'].append({
