@@ -18,7 +18,7 @@ from django.utils.translation import gettext_lazy as _
 from decimal import Decimal, InvalidOperation
 
 from .base import InventoryBaseView, DocumentLockProtectedMixin, DocumentLockView, DocumentUnlockView, LineFormsetMixin
-from shared.views.base import EditLockProtectedMixin
+from shared.views.base import EditLockProtectedMixin, BaseDocumentUpdateView
 from .receipts import DocumentDeleteViewBase, ReceiptFormMixin
 from shared.mixins import FeaturePermissionRequiredMixin
 from .. import models
@@ -233,12 +233,15 @@ class IssuePermanentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView):
         ]
 
 
-class IssuePermanentUpdateView(EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
+class IssuePermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, BaseDocumentUpdateView):
     """Update view for permanent issues."""
     model = models.IssuePermanent
     form_class = forms.IssuePermanentForm
     formset_class = forms.IssuePermanentLineFormSet
+    formset_prefix = 'lines'
     success_url = reverse_lazy('inventory:issue_permanent')
+    feature_code = 'inventory.issues.permanent'
+    success_message = _('حواله دائم با موفقیت ویرایش شد.')
     form_title = _('ویرایش حواله دائم')
     receipt_variant = 'issue_permanent'
     list_url_name = 'inventory:issue_permanent'
@@ -260,11 +263,22 @@ class IssuePermanentUpdateView(EditLockProtectedMixin, LineFormsetMixin, Documen
         ).select_related('created_by', 'warehouse_request', 'department_unit')
         return queryset
 
+    def get_formset_kwargs(self) -> Dict[str, Any]:
+        """Return kwargs for formset."""
+        kwargs = super().get_formset_kwargs()
+        instance = getattr(self, 'object', None)
+        if instance:
+            company_id = instance.company_id
+        else:
+            company_id = self.request.session.get('active_company_id')
+        kwargs['company_id'] = company_id
+        kwargs['request'] = self.request
+        return kwargs
+
     def form_valid(self, form):
         """Save document and line formset."""
         if not form.instance.created_by_id:
             form.instance.created_by = self.request.user
-        form.instance.edited_by = self.request.user
         
         # Save document first
         self.object = form.save()
@@ -293,8 +307,8 @@ class IssuePermanentUpdateView(EditLockProtectedMixin, LineFormsetMixin, Documen
         
         self._save_line_formset(lines_formset)
         
-        messages.success(self.request, _('حواله دائم با موفقیت ویرایش شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        # Call parent to handle success message and redirect
+        return super().form_valid(form)
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
@@ -625,12 +639,15 @@ class IssueConsumptionCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
         ]
 
 
-class IssueConsumptionUpdateView(EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
+class IssueConsumptionUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, BaseDocumentUpdateView):
     """Update view for consumption issues."""
     model = models.IssueConsumption
     form_class = forms.IssueConsumptionForm
     formset_class = forms.IssueConsumptionLineFormSet
+    formset_prefix = 'lines'
     success_url = reverse_lazy('inventory:issue_consumption')
+    feature_code = 'inventory.issues.consumption'
+    success_message = _('حواله مصرف با موفقیت ویرایش شد.')
     form_title = _('ویرایش حواله مصرف')
     receipt_variant = 'issue_consumption'
     list_url_name = 'inventory:issue_consumption'
@@ -652,11 +669,22 @@ class IssueConsumptionUpdateView(EditLockProtectedMixin, LineFormsetMixin, Docum
         ).select_related('created_by', 'department_unit')
         return queryset
 
+    def get_formset_kwargs(self) -> Dict[str, Any]:
+        """Return kwargs for formset."""
+        kwargs = super().get_formset_kwargs()
+        instance = getattr(self, 'object', None)
+        if instance:
+            company_id = instance.company_id
+        else:
+            company_id = self.request.session.get('active_company_id')
+        kwargs['company_id'] = company_id
+        kwargs['request'] = self.request
+        return kwargs
+
     def form_valid(self, form):
         """Save document and line formset."""
         if not form.instance.created_by_id:
             form.instance.created_by = self.request.user
-        form.instance.edited_by = self.request.user
         
         # Save document first
         self.object = form.save()
@@ -669,8 +697,8 @@ class IssueConsumptionUpdateView(EditLockProtectedMixin, LineFormsetMixin, Docum
             )
         self._save_line_formset(lines_formset)
         
-        messages.success(self.request, _('حواله مصرف با موفقیت ویرایش شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        # Call parent to handle success message and redirect
+        return super().form_valid(form)
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
@@ -962,12 +990,15 @@ class IssueConsignmentCreateView(LineFormsetMixin, ReceiptFormMixin, CreateView)
         ]
 
 
-class IssueConsignmentUpdateView(EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
+class IssueConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, BaseDocumentUpdateView):
     """Update view for consignment issues."""
     model = models.IssueConsignment
     form_class = forms.IssueConsignmentForm
     formset_class = forms.IssueConsignmentLineFormSet
+    formset_prefix = 'lines'
     success_url = reverse_lazy('inventory:issue_consignment')
+    feature_code = 'inventory.issues.consignment'
+    success_message = _('حواله امانی با موفقیت ویرایش شد.')
     form_title = _('ویرایش حواله امانی')
     receipt_variant = 'issue_consignment'
     list_url_name = 'inventory:issue_consignment'
@@ -989,11 +1020,22 @@ class IssueConsignmentUpdateView(EditLockProtectedMixin, LineFormsetMixin, Docum
         ).select_related('created_by', 'department_unit')
         return queryset
 
+    def get_formset_kwargs(self) -> Dict[str, Any]:
+        """Return kwargs for formset."""
+        kwargs = super().get_formset_kwargs()
+        instance = getattr(self, 'object', None)
+        if instance:
+            company_id = instance.company_id
+        else:
+            company_id = self.request.session.get('active_company_id')
+        kwargs['company_id'] = company_id
+        kwargs['request'] = self.request
+        return kwargs
+
     def form_valid(self, form):
         """Save document and line formset."""
         if not form.instance.created_by_id:
             form.instance.created_by = self.request.user
-        form.instance.edited_by = self.request.user
         
         # Save document first
         self.object = form.save()
@@ -1006,8 +1048,8 @@ class IssueConsignmentUpdateView(EditLockProtectedMixin, LineFormsetMixin, Docum
             )
         self._save_line_formset(lines_formset)
         
-        messages.success(self.request, _('حواله امانی با موفقیت ویرایش شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        # Call parent to handle success message and redirect
+        return super().form_valid(form)
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
@@ -1386,21 +1428,34 @@ class IssueWarehouseTransferCreateView(LineFormsetMixin, ReceiptFormMixin, Creat
         ]
 
 
-class IssueWarehouseTransferUpdateView(EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, UpdateView):
+class IssueWarehouseTransferUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, ReceiptFormMixin, BaseDocumentUpdateView):
     """Update view for warehouse transfer issues."""
     model = models.IssueWarehouseTransfer
     form_class = forms.IssueWarehouseTransferForm
     formset_class = forms.IssueWarehouseTransferLineFormSet
+    formset_prefix = 'lines'
     success_url = reverse_lazy('inventory:issue_warehouse_transfer')
+    feature_code = 'inventory.issues.warehouse_transfer'
+    success_message = _('حواله انتقال بین انبارها با موفقیت به‌روزرسانی شد.')
     form_title = _('ویرایش حواله انتقال بین انبارها')
     receipt_variant = 'issue_warehouse_transfer'
     list_url_name = 'inventory:issue_warehouse_transfer'
     lock_url_name = 'inventory:issue_warehouse_transfer_lock'
 
+    def get_formset_kwargs(self) -> Dict[str, Any]:
+        """Return kwargs for formset."""
+        kwargs = super().get_formset_kwargs()
+        instance = getattr(self, 'object', None)
+        if instance:
+            company_id = instance.company_id
+        else:
+            company_id = self.request.session.get('active_company_id')
+        kwargs['company_id'] = company_id
+        kwargs['request'] = self.request
+        return kwargs
+
     def form_valid(self, form):
         """Save document and line formset."""
-        form.instance.edited_by = self.request.user
-        
         # Save document first
         self.object = form.save()
         
@@ -1428,8 +1483,8 @@ class IssueWarehouseTransferUpdateView(EditLockProtectedMixin, LineFormsetMixin,
         
         self._save_line_formset(lines_formset)
         
-        messages.success(self.request, _('حواله انتقال بین انبارها با موفقیت به‌روزرسانی شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        # Call parent to handle success message and redirect
+        return super().form_valid(form)
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""

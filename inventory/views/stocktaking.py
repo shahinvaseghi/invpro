@@ -16,7 +16,7 @@ from django.utils.safestring import mark_safe
 import json
 
 from .base import InventoryBaseView, DocumentLockProtectedMixin, DocumentLockView, LineFormsetMixin
-from shared.views.base import EditLockProtectedMixin
+from shared.views.base import EditLockProtectedMixin, BaseUpdateView, BaseDocumentUpdateView
 from .receipts import DocumentDeleteViewBase
 from .. import models
 from .. import forms
@@ -236,12 +236,15 @@ class StocktakingDeficitDetailView(InventoryBaseView, DetailView):
         return context
 
 
-class StocktakingDeficitUpdateView(EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView):
+class StocktakingDeficitUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, BaseDocumentUpdateView):
     """Update view for stocktaking deficit records."""
     model = models.StocktakingDeficit
     form_class = forms.StocktakingDeficitForm
     formset_class = forms.StocktakingDeficitLineFormSet
+    formset_prefix = 'lines'
     success_url = reverse_lazy('inventory:stocktaking_deficit')
+    feature_code = 'inventory.stocktaking.deficit'
+    success_message = _('سند کسری انبارگردانی با موفقیت بروزرسانی شد.')
     form_title = _('ویرایش سند کسری انبارگردانی')
     list_url_name = 'inventory:stocktaking_deficit'
     lock_url_name = 'inventory:stocktaking_deficit_lock'
@@ -258,11 +261,22 @@ class StocktakingDeficitUpdateView(EditLockProtectedMixin, LineFormsetMixin, Doc
         ).select_related('created_by')
         return queryset
 
+    def get_formset_kwargs(self) -> Dict[str, Any]:
+        """Return kwargs for formset."""
+        kwargs = super().get_formset_kwargs()
+        instance = getattr(self, 'object', None)
+        if instance:
+            company_id = instance.company_id
+        else:
+            company_id = self.request.session.get('active_company_id')
+        kwargs['company_id'] = company_id
+        kwargs['request'] = self.request
+        return kwargs
+
     def form_valid(self, form):
         """Save document and line formset."""
         if not form.instance.created_by_id:
             form.instance.created_by = self.request.user
-        form.instance.edited_by = self.request.user
         
         # Save document first
         self.object = form.save()
@@ -275,8 +289,9 @@ class StocktakingDeficitUpdateView(EditLockProtectedMixin, LineFormsetMixin, Doc
             )
         
         self._save_line_formset(lines_formset)
-        messages.success(self.request, _('سند کسری انبارگردانی با موفقیت بروزرسانی شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        
+        # Call parent to handle success message and redirect
+        return super().form_valid(form)
 
 
 class StocktakingDeficitDeleteView(DocumentDeleteViewBase):
@@ -441,12 +456,15 @@ class StocktakingSurplusDetailView(InventoryBaseView, DetailView):
         return context
 
 
-class StocktakingSurplusUpdateView(EditLockProtectedMixin, LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView):
+class StocktakingSurplusUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, BaseDocumentUpdateView):
     """Update view for stocktaking surplus records."""
     model = models.StocktakingSurplus
     form_class = forms.StocktakingSurplusForm
     formset_class = forms.StocktakingSurplusLineFormSet
+    formset_prefix = 'lines'
     success_url = reverse_lazy('inventory:stocktaking_surplus')
+    feature_code = 'inventory.stocktaking.surplus'
+    success_message = _('سند مازاد انبارگردانی با موفقیت بروزرسانی شد.')
     form_title = _('ویرایش سند مازاد انبارگردانی')
     list_url_name = 'inventory:stocktaking_surplus'
     lock_url_name = 'inventory:stocktaking_surplus_lock'
@@ -463,11 +481,22 @@ class StocktakingSurplusUpdateView(EditLockProtectedMixin, LineFormsetMixin, Doc
         ).select_related('created_by')
         return queryset
 
+    def get_formset_kwargs(self) -> Dict[str, Any]:
+        """Return kwargs for formset."""
+        kwargs = super().get_formset_kwargs()
+        instance = getattr(self, 'object', None)
+        if instance:
+            company_id = instance.company_id
+        else:
+            company_id = self.request.session.get('active_company_id')
+        kwargs['company_id'] = company_id
+        kwargs['request'] = self.request
+        return kwargs
+
     def form_valid(self, form):
         """Save document and line formset."""
         if not form.instance.created_by_id:
             form.instance.created_by = self.request.user
-        form.instance.edited_by = self.request.user
         
         # Save document first
         self.object = form.save()
@@ -480,8 +509,9 @@ class StocktakingSurplusUpdateView(EditLockProtectedMixin, LineFormsetMixin, Doc
             )
         
         self._save_line_formset(lines_formset)
-        messages.success(self.request, _('سند مازاد انبارگردانی با موفقیت بروزرسانی شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        
+        # Call parent to handle success message and redirect
+        return super().form_valid(form)
 
 
 class StocktakingSurplusDeleteView(DocumentDeleteViewBase):
@@ -623,11 +653,13 @@ class StocktakingRecordDetailView(InventoryBaseView, DetailView):
         return context
 
 
-class StocktakingRecordUpdateView(EditLockProtectedMixin, DocumentLockProtectedMixin, StocktakingFormMixin, UpdateView):
+class StocktakingRecordUpdateView(DocumentLockProtectedMixin, StocktakingFormMixin, BaseUpdateView):
     """Update view for stocktaking records."""
     model = models.StocktakingRecord
     form_class = forms.StocktakingRecordForm
     success_url = reverse_lazy('inventory:stocktaking_records')
+    feature_code = 'inventory.stocktaking.records'
+    success_message = _('سند نهایی انبارگردانی با موفقیت بروزرسانی شد.')
     form_title = _('ویرایش سند نهایی انبارگردانی')
     list_url_name = 'inventory:stocktaking_records'
     lock_url_name = 'inventory:stocktaking_record_lock'
@@ -640,13 +672,10 @@ class StocktakingRecordUpdateView(EditLockProtectedMixin, DocumentLockProtectedM
         return queryset
 
     def form_valid(self, form):
-        """Set edited_by before saving."""
-        form.instance.edited_by = self.request.user
+        """Set created_by if not set."""
         if not form.instance.created_by_id:
             form.instance.created_by = self.request.user
-        response = super().form_valid(form)
-        messages.success(self.request, _('سند نهایی انبارگردانی با موفقیت بروزرسانی شد.'))
-        return response
+        return super().form_valid(form)
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""

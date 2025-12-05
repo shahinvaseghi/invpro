@@ -11,7 +11,7 @@ from django.views.generic import CreateView, DeleteView, DetailView, ListView, U
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.models import SMTPServer
 from shared.forms import SMTPServerForm
-from shared.views.base import EditLockProtectedMixin
+from shared.views.base import BaseUpdateView
 
 
 class SMTPServerListView(FeaturePermissionRequiredMixin, ListView):
@@ -87,36 +87,43 @@ class SMTPServerCreateView(FeaturePermissionRequiredMixin, CreateView):
         return context
 
 
-class SMTPServerUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
+class SMTPServerUpdateView(BaseUpdateView):
     """Update an existing SMTP server configuration."""
     model = SMTPServer
     form_class = SMTPServerForm
     template_name = 'shared/smtp_server_form.html'
     success_url = reverse_lazy('shared:smtp_servers')
     feature_code = 'shared.smtp_servers'
-    required_action = 'edit_own'
+    success_message = _('SMTP server configuration updated successfully.')
     
     def form_valid(self, form: SMTPServerForm) -> HttpResponseRedirect:
-        """Auto-set edited_by and handle password."""
-        form.instance.edited_by = self.request.user
-        
+        """Handle password if empty."""
         # If password is empty and editing, keep existing password
         if not form.cleaned_data.get('password'):
             form.instance.password = self.object.password
         
-        messages.success(self.request, _('SMTP server configuration updated successfully.'))
         return super().form_valid(form)
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and form title to context."""
-        context = super().get_context_data(**kwargs)
-        context['active_module'] = 'shared'
-        context['form_title'] = _('Edit SMTP Server')
-        context['breadcrumbs'] = [
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Edit SMTP Server')
+    
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Dashboard'), 'url': reverse_lazy('ui:dashboard')},
             {'label': _('SMTP Servers'), 'url': reverse_lazy('shared:smtp_servers')},
+            {'label': _('Edit'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('shared:smtp_servers')
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('shared:smtp_servers')
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add active module to context."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'shared'
         return context
 
 

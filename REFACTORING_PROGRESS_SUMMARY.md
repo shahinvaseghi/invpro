@@ -1,8 +1,8 @@
 # خلاصه پیشرفت Refactoring - معماری مشترک
 
 **تاریخ شروع**: 2024-12-05  
-**وضعیت فعلی**: Rollout Implementation (ماژول `inventory`) - در حال انجام  
-**آخرین به‌روزرسانی**: 2024-12-05 (شامل Warehouses refactoring - شروع Rollout)
+**وضعیت فعلی**: ✅ **در حال انجام - Refactoring قفل ویرایش تکمیل شده**  
+**آخرین به‌روزرسانی**: 2024-12-05
 
 ---
 
@@ -387,6 +387,57 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 
 #### ماژول `inventory` - Create Document From Request ✅ تکمیل شده
 
+#### Refactoring قفل ویرایش (Edit Lock) ✅ تکمیل شده
+
+**تاریخ**: 1404/09/15
+
+**هدف**: حذف کد تکراری `EditLockProtectedMixin` از UpdateViewها و استفاده از Base Classes که به صورت خودکار Edit Lock را فراهم می‌کنند.
+
+**مکانیزم**: `EditLockProtectedMixin` در `shared/views/base.py` یک بار نوشته شده و همه Base Classes (`BaseUpdateView`, `BaseFormsetUpdateView`, `BaseDocumentUpdateView`) از آن استفاده می‌کنند.
+
+**فایل‌های تغییر یافته - ماژول `inventory`**:
+- `inventory/views/master_data.py`: 2 view (ItemUpdateView, SupplierCategoryUpdateView)
+- `inventory/views/requests.py`: 1 view (PurchaseRequestUpdateView)
+- `inventory/views/receipts.py`: 2 view (ReceiptPermanentUpdateView, ReceiptConsignmentUpdateView)
+- `inventory/views/issues.py`: 4 view (IssuePermanentUpdateView, IssueConsumptionUpdateView, IssueConsignmentUpdateView, IssueWarehouseTransferUpdateView)
+- `inventory/views/stocktaking.py`: 3 view (StocktakingDeficitUpdateView, StocktakingSurplusUpdateView, StocktakingRecordUpdateView)
+
+**فایل‌های تغییر یافته - ماژول `shared`**:
+- `shared/views/smtp_server.py`: 1 view (SMTPServerUpdateView)
+
+**تغییرات انجام شده**:
+
+1. **حذف `EditLockProtectedMixin` تکراری**:
+   - همه UpdateViewها از Base Classes استفاده می‌کنند که به صورت خودکار Edit Lock را فراهم می‌کنند
+   - `BaseUpdateView`: برای UpdateViewهای ساده (7 view در inventory + 1 view در shared)
+   - `BaseFormsetUpdateView`: برای UpdateViewهای با formset (2 view در inventory)
+   - `BaseDocumentUpdateView`: برای UpdateViewهای با DocumentLockProtectedMixin (9 view در inventory)
+
+2. **حفظ Mixins خاص**:
+   - `DocumentLockProtectedMixin` حفظ شده (برای قفل document بعد از QC)
+   - `LineFormsetMixin` و `ItemUnitFormsetMixin` حفظ شده (برای مدیریت formsets)
+   - Custom logic در `form_valid` حفظ شده
+
+3. **استفاده از Hook Methods**:
+   - تبدیل `get_context_data` به hook methods (`get_form_title`, `get_breadcrumbs`, `get_cancel_url`)
+   - تبدیل `form_valid` به `success_message` attribute (در صورت امکان)
+
+**کاهش کد**:
+- حذف `EditLockProtectedMixin` تکراری از 19 view (18 در inventory + 1 در shared)
+- حذف کد تکراری در `form_valid` و `get_context_data`
+- بهبود maintainability با استفاده از Base Classes
+
+**مزایا**:
+- Edit Lock به صورت خودکار در همه UpdateViewها فعال است
+- کد واضح‌تر و قابل خواندن‌تر
+- تغییرات فقط در Base Classes (DRY principle)
+- کاهش خطاهای احتمالی
+- مکانیزم Edit Lock یک بار نوشته شده و همه از آن استفاده می‌کنند
+
+**وضعیت**: ✅ 19/19 view refactor شده (100%)
+- ✅ **inventory**: 18 view
+- ✅ **shared**: 1 view
+
 **تاریخ**: 1404/09/15
 
 **هدف**: Refactor کردن viewهای ایجاد رسید از درخواست خرید و ایجاد حواله از درخواست انبار برای کاهش کد تکراری.
@@ -454,11 +505,13 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 
 ### 3. کارهای باقی‌مانده
 
+---
+
 #### ماژول `shared` (ادامه Pilot):
 - ✅ همه فایل‌ها refactor شده‌اند!
 
 #### سایر ماژول‌ها:
-- ⏳ ماژول `inventory` - 81+ view (شروع شده: Warehouses ✅, Items ✅, Item Serials ✅, Purchase Requests ✅, Create Document From Request ✅)
+- 🟡 ماژول `inventory` - 81+ view (شروع شده: Warehouses ✅, Items ✅, Item Serials ✅, Purchase Requests ✅, Create Document From Request ✅, Refactoring قفل ویرایش ✅)
 - ⏳ ماژول `production` - 41+ view
 - ⏳ ماژول `accounting` - 28+ view
 - ⏳ ماژول `ticketing` - 19+ view
@@ -480,9 +533,10 @@ Refactoring تمام viewها و formهای پروژه برای استفاده �
 - ✅ **Inventory - Item Serials**: 100% (1 view)
 - ✅ **Inventory - Purchase Requests**: 100% (2 view + 1 form)
 - ✅ **Inventory - Create Document From Request**: 100% (6 view + 1 base class)
+- ✅ **Refactoring قفل ویرایش**: 100% (19 UpdateView - 18 در inventory + 1 در shared)
 
 **پیشرفت Pilot**: 100% (5/5 فایل) ✅  
-**پیشرفت Rollout**: در حال انجام (12 view در inventory)
+**پیشرفت Rollout**: در حال انجام (30+ view در inventory)
 
 ### کاهش کد:
 
@@ -766,5 +820,5 @@ class MyForm(BaseModelForm):
 
 ---
 
-**وضعیت کلی**: ✅ Infrastructure کامل | ✅ Pilot 100% (5/5 فایل) | ⏳ Rollout در حال انجام (6 view در inventory)
+**وضعیت کلی**: ✅ Infrastructure کامل | ✅ Pilot 100% (5/5 فایل) | ✅ Refactoring قفل ویرایش 100% (19/19 view) | 🟡 Rollout در حال انجام (30+ view در inventory)
 

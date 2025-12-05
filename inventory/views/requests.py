@@ -383,12 +383,15 @@ class PurchaseRequestDetailView(InventoryBaseView, DetailView):
         return context
 
 
-class PurchaseRequestUpdateView(EditLockProtectedMixin, LineFormsetMixin, PurchaseRequestFormMixin, UpdateView):
+class PurchaseRequestUpdateView(LineFormsetMixin, PurchaseRequestFormMixin, BaseFormsetUpdateView):
     """Update view for purchase requests."""
     model = models.PurchaseRequest
     form_class = forms.PurchaseRequestForm
     formset_class = forms.PurchaseRequestLineFormSet
+    formset_prefix = 'lines'
     success_url = reverse_lazy('inventory:purchase_requests')
+    feature_code = 'inventory.requests.purchase'
+    success_message = _('درخواست خرید با موفقیت بروزرسانی شد.')
     form_title = _('ویرایش درخواست خرید')
 
     def get_queryset(self):
@@ -425,14 +428,19 @@ class PurchaseRequestUpdateView(EditLockProtectedMixin, LineFormsetMixin, Purcha
                 raise Http404(_('شما اجازه ویرایش این درخواست را ندارید.'))
         return obj
 
+    def get_formset_kwargs(self) -> Dict[str, Any]:
+        """Return kwargs for formset."""
+        kwargs = super().get_formset_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
+
     def form_valid(self, form):
-        """Set company_id before saving."""
+        """Save form and formset with legacy fields sync."""
         company_id: Optional[int] = self.request.session.get('active_company_id')
         if not company_id:
             form.add_error(None, _('شرکت فعال مشخص نشده است.'))
             return self.form_invalid(form)
         form.instance.company_id = company_id
-        form.instance.edited_by = self.request.user
         
         # Save document first
         self.object = form.save()
@@ -466,8 +474,8 @@ class PurchaseRequestUpdateView(EditLockProtectedMixin, LineFormsetMixin, Purcha
         self.object.quantity_requested = total_quantity
         self.object.save()
         
-        messages.success(self.request, _('درخواست خرید با موفقیت بروزرسانی شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        # Call parent to handle success message and redirect
+        return super().form_valid(form)
 
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""

@@ -27,6 +27,7 @@ from shared.views.base import (
     BaseListView,
     BaseCreateView,
     BaseUpdateView,
+    BaseFormsetUpdateView,
     BaseDeleteView,
     BaseDetailView,
 )
@@ -981,12 +982,16 @@ class ItemCreateView(ItemUnitFormsetMixin, BaseCreateView):
         return reverse_lazy('inventory:items')
 
 
-class ItemUpdateView(EditLockProtectedMixin, ItemUnitFormsetMixin, InventoryBaseView, UpdateView):
+class ItemUpdateView(ItemUnitFormsetMixin, InventoryBaseView, BaseFormsetUpdateView):
     """Update view for items with unit formset."""
     model = models.Item
     form_class = forms.ItemForm
+    formset_class = forms.ItemUnitFormSet
+    formset_prefix = 'units'
     template_name = 'inventory/item_form.html'
     success_url = reverse_lazy('inventory:items')
+    feature_code = 'inventory.master.items'
+    success_message = _('اطلاعات کالا با موفقیت ویرایش شد.')
     
     def get_queryset(self):
         """Filter queryset by user permissions."""
@@ -1002,18 +1007,19 @@ class ItemUpdateView(EditLockProtectedMixin, ItemUnitFormsetMixin, InventoryBase
         kwargs['company_id'] = company_id
         return kwargs
     
+    def get_formset_kwargs(self) -> Dict[str, Any]:
+        """Return kwargs for formset."""
+        kwargs = super().get_formset_kwargs()
+        instance = getattr(self, 'object', None)
+        if instance:
+            company_id = instance.company_id
+        else:
+            company_id = self.request.session.get('active_company_id')
+        kwargs['company_id'] = company_id
+        return kwargs
+    
     def form_valid(self, form):
-        """Save item and unit formset."""
-        from django.http import HttpResponseRedirect
-        
-        company_id = form.instance.company_id
-        units_formset = self.build_unit_formset(data=self.request.POST, instance=form.instance)
-        if not units_formset.is_valid():
-            return self.render_to_response(
-                self.get_context_data(form=form, units_formset=units_formset)
-            )
-        form.instance.edited_by = self.request.user
-        
+        """Save item and unit formset with custom checkbox logic."""
         # Explicitly update checkbox values BEFORE saving form
         # IntegerCheckboxField should handle this, but we ensure values are set correctly
         checkbox_fields = ['is_sellable', 'has_lot_tracking', 'requires_temporary_receipt', 'serial_in_qc', 'is_enabled']
@@ -1042,30 +1048,55 @@ class ItemUpdateView(EditLockProtectedMixin, ItemUnitFormsetMixin, InventoryBase
         
         # Save form (now with correct checkbox values)
         self.object = form.save()
+        
+        # Build and validate formset
+        units_formset = self.build_unit_formset(data=self.request.POST, instance=self.object)
+        if not units_formset.is_valid():
+            return self.render_to_response(
+                self.get_context_data(form=form, units_formset=units_formset)
+            )
+        
+        # Save formset
         units_formset.instance = self.object
         self._save_unit_formset(units_formset)
+        
+        # Sync warehouses
         ordered = self._get_ordered_warehouses(form)
         self._sync_item_warehouses(self.object, ordered, self.request.user)
-        messages.success(self.request, _('اطلاعات کالا با موفقیت ویرایش شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        
+        # Call parent to handle success message and redirect
+        return super().form_valid(form)
     
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
         """Add unit formset to context."""
         context = super().get_context_data(**kwargs)
         
-        # Build unit formset for existing items
+        # Override formset from BaseFormsetUpdateView with ItemUnitFormsetMixin formset
         if 'units_formset' not in context:
             context['units_formset'] = self.build_unit_formset(instance=self.object)
         
-        context['form_title'] = _('Edit Item')
-        context['breadcrumbs'] = [
+        # Add empty form for JavaScript
+        if 'units_formset' in context:
+            context['units_formset_empty'] = context['units_formset'].empty_form
+        
+        return context
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Edit Item')
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Items'), 'url': reverse_lazy('inventory:items')},
             {'label': _('Edit'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('inventory:items')
-        return context
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:items')
 
 
 class ItemDetailView(InventoryBaseView, DetailView):
@@ -1526,12 +1557,14 @@ class SupplierCategoryCreateView(InventoryBaseView, CreateView):
         return context
 
 
-class SupplierCategoryUpdateView(EditLockProtectedMixin, InventoryBaseView, UpdateView):
+class SupplierCategoryUpdateView(InventoryBaseView, BaseUpdateView):
     """Update view for supplier categories."""
     model = models.SupplierCategory
     form_class = forms.SupplierCategoryForm
     template_name = 'inventory/suppliercategory_form.html'
     success_url = reverse_lazy('inventory:supplier_categories')
+    feature_code = 'inventory.suppliers.categories'
+    success_message = _('دسته‌بندی تأمین‌کننده با موفقیت ویرایش شد.')
 
     def get_queryset(self):
         """Filter queryset by user permissions."""
@@ -1539,21 +1572,11 @@ class SupplierCategoryUpdateView(EditLockProtectedMixin, InventoryBaseView, Upda
         queryset = self.filter_queryset_by_permissions(queryset, 'inventory.suppliers.categories', 'created_by')
         return queryset
 
-    def get_form_kwargs(self):
-        """Pass company_id to form."""
-        kwargs = super().get_form_kwargs()
-        kwargs['company_id'] = self.request.session.get('active_company_id')
-        return kwargs
-
     def form_valid(self, form):
-        """Set edited_by before saving."""
-        from django.http import HttpResponseRedirect
-        
-        form.instance.edited_by = self.request.user
-        self.object = form.save()
+        """Save form and sync supplier links."""
+        response = super().form_valid(form)
         self._sync_supplier_links(form)
-        messages.success(self.request, _('دسته‌بندی تأمین‌کننده با موفقیت ویرایش شد.'))
-        return HttpResponseRedirect(self.get_success_url())
+        return response
 
     def _sync_supplier_links(self, form):
         """Sync supplier subcategories and items."""
@@ -1603,18 +1626,22 @@ class SupplierCategoryUpdateView(EditLockProtectedMixin, InventoryBaseView, Upda
                 obj.edited_by = self.request.user
                 obj.save(update_fields=['edited_by'])
 
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """Add context for generic form template."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Edit Supplier Category')
-        context['breadcrumbs'] = [
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Edit Supplier Category')
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Inventory'), 'url': None},
             {'label': _('Master Data'), 'url': None},
             {'label': _('Supplier Categories'), 'url': reverse_lazy('inventory:supplier_categories')},
             {'label': _('Edit'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('inventory:supplier_categories')
-        return context
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('inventory:supplier_categories')
 
 
 class SupplierCategoryDetailView(InventoryBaseView, DetailView):
