@@ -229,10 +229,6 @@ class MachineDetailView(BaseDetailView):
             basic_fields.append({'label': _('Model Number'), 'value': machine.model_number})
         if machine.serial_number:
             basic_fields.append({'label': _('Serial Number'), 'value': machine.serial_number})
-        if machine.purchase_date:
-            basic_fields.append({'label': _('Purchase Date'), 'value': machine.purchase_date})
-        if machine.installation_date:
-            basic_fields.append({'label': _('Installation Date'), 'value': machine.installation_date})
         if machine.description:
             basic_fields.append({'label': _('Description'), 'value': machine.description})
         
@@ -242,25 +238,6 @@ class MachineDetailView(BaseDetailView):
                 'fields': basic_fields,
             },
         ]
-        
-        # Maintenance Information section
-        if machine.last_maintenance_date or machine.next_maintenance_date:
-            maintenance_fields = []
-            if machine.last_maintenance_date:
-                maintenance_fields.append({
-                    'label': _('Last Maintenance Date'),
-                    'value': machine.last_maintenance_date,
-                })
-            if machine.next_maintenance_date:
-                maintenance_fields.append({
-                    'label': _('Next Maintenance Date'),
-                    'value': machine.next_maintenance_date,
-                })
-            if maintenance_fields:
-                detail_sections.append({
-                    'title': _('Maintenance Information'),
-                    'fields': maintenance_fields,
-                })
         
         # Notes section
         if machine.notes:
