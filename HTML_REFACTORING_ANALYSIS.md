@@ -824,14 +824,14 @@
 | نوع Refactor | تعداد فایل | اولویت | وضعیت |
 |-------------|-----------|--------|--------|
 | Detail Views → Generic | 39 | 🔴 بالا | ✅ **39 فایل تکمیل شد (100%)** |
-| JavaScript Inline → Shared Files | 40+ | 🔴 بالا | ⏳ **11 فایل refactor شد (27%)** - فاز 4.1، 4.2 و 4.3 در حال انجام |
+| JavaScript Inline → Shared Files | 40+ | 🔴 بالا | ⏳ **12 فایل refactor شد (30%)** - فاز 4.1، 4.2 و 4.3 در حال انجام |
 | List Views → Generic | 8 | 🟡 متوسط | ⏳ در انتظار |
 | Form Views → Generic | 4-5 | 🟡 متوسط | ⏳ در انتظار |
 | Inline CSS → Shared CSS | 25+ | 🟡 متوسط | ⏳ در انتظار |
 | Inline Event Handlers → JS Files | 10+ | 🟡 متوسط | ⏳ در انتظار |
 | Row Actions → Partial | 10+ | 🟢 پایین | ⏳ در انتظار |
 | Pagination → Partial | 5+ | 🟢 پایین | ⏳ در انتظار |
-| **جمع کل** | **110+ فایل** | | **49 فایل تکمیل شد (45%)** |
+| **جمع کل** | **110+ فایل** | | **50 فایل تکمیل شد (45%)** |
 
 ---
 
@@ -863,11 +863,11 @@
    - استفاده از `static/js/cascading-dropdowns.js` و `static/js/item-filters.js`
    - ✅ **تکمیل شده**: `production/bom_form.html`, `accounting/treasury/account_form.html`, `inventory/item_form.html`, `production/transfer_to_line_form.html`, `inventory/purchase_request_form.html` (استفاده از item-filters.js)
    - ⏳ **باقی مانده**: `production/process_form.html`, `inventory/receipt_form.html`, `inventory/issue_form.html`, `accounting/parties/party_account_form.html` (بررسی شد - JavaScript ندارد), `inventory/create_receipt_from_purchase_request.html`
-3. ⏳ Refactor Table Export JavaScript (17+ فایل) - **2 فایل refactor شد**
+3. ⏳ Refactor Table Export JavaScript (17+ فایل) - **3 فایل refactor شد**
    - استفاده از `static/js/table-export.js`
-   - ✅ **تکمیل شده**: `shared/generic/generic_report.html`, `inventory/inventory_balance.html`
-   - ⏳ **باقی مانده**: `inventory/inventory_balance_details.html`, `inventory/item_serials.html`, `inventory/purchase_requests.html`, `inventory/receipt_temporary.html`, `inventory/receipt_permanent.html`, `inventory/receipt_consignment.html`, `inventory/warehouse_requests.html`, `inventory/issue_permanent.html`, `inventory/issue_consumption.html`, `inventory/issue_consignment.html`, `inventory/stocktaking_deficit.html`, `inventory/stocktaking_surplus.html`, `inventory/stocktaking_records.html`, `production/performance_record_list.html`, `production/transfer_to_line_list.html`
-   - **نکته**: برخی از این فایل‌ها ممکن است export function نداشته باشند و نیاز به بررسی دارند
+   - ✅ **تکمیل شده**: `shared/generic/generic_report.html`, `inventory/inventory_balance.html`, `inventory/inventory_balance_details.html`
+   - ⏳ **باقی مانده**: `inventory/item_serials.html`, `inventory/purchase_requests.html`, `inventory/receipt_temporary.html`, `inventory/receipt_permanent.html`, `inventory/receipt_consignment.html`, `inventory/warehouse_requests.html`, `inventory/issue_permanent.html`, `inventory/issue_consumption.html`, `inventory/issue_consignment.html`, `inventory/stocktaking_deficit.html`, `inventory/stocktaking_surplus.html`, `inventory/stocktaking_records.html`, `production/performance_record_list.html`, `production/transfer_to_line_list.html`
+   - **نکته**: بسیاری از این فایل‌ها export function ندارند و نیاز به بررسی دارند. فقط فایل‌هایی که واقعاً export function دارند refactor می‌شوند.
 4. Refactor Approval/Reject Functions (3+ فایل)
    - ایجاد `static/js/approval-actions.js`
    - لیست کامل: `production/rework_document_list.html`, `production/qc_operations_list.html`, `production/rework_operations_list.html`
@@ -1036,13 +1036,14 @@ document.addEventListener('DOMContentLoaded', function() {
     - ✅ `inventory/item_form.html` - Category → Subcategory
     - ✅ `production/transfer_to_line_form.html` - Type → Category → Subcategory → Item → Unit/Warehouse
     - ✅ `inventory/purchase_request_form.html` - استفاده از item-filters.js (که cascading dropdowns را handle می‌کند)
-  - ⏳ فاز 4.3: Table Export JavaScript (17+ فایل) - **2 فایل refactor شدند** (12%)
+  - ⏳ فاز 4.3: Table Export JavaScript (17+ فایل) - **3 فایل refactor شدند** (18%)
     - ✅ `shared/generic/generic_report.html`
     - ✅ `inventory/inventory_balance.html`
+    - ✅ `inventory/inventory_balance_details.html`
   - ⏳ فاز 4.4: Approval/Reject Functions (3+ فایل) - در انتظار
   - ⏳ فاز 4.5: Modal Dialogs (3+ فایل) - در انتظار
 
 **پیشرفت کلی**: 
 - ✅ Detail Views: 39 از 39 فایل (100%)
-- ⏳ JavaScript Refactoring: 11 از 40+ فایل (~27%)
+- ⏳ JavaScript Refactoring: 12 از 40+ فایل (~30%)
 

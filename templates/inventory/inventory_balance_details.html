@@ -1,5 +1,6 @@
 {% extends "inventory/base.html" %}
 {% load i18n jalali_tags %}
+{% load static %}
 
 {% block page_title %}{% trans "Inventory Balance Details" %}{% endblock %}
 
@@ -17,6 +18,9 @@
   </a>
   <button onclick="window.print()" class="btn btn-secondary">
     {% trans "Print" %}
+  </button>
+  <button type="button" id="export-excel-btn" class="btn btn-success" data-table-id="balanceDetailsTable">
+    {% trans "Export" %} Excel
   </button>
 </div>
 {% endblock %}
@@ -72,7 +76,7 @@
 <!-- Transactions Table -->
 <div class="data-table-container">
   <h3 style="margin-bottom: 16px;">{% trans "Transaction History" %}</h3>
-  <table class="data-table">
+  <table class="data-table" id="balanceDetailsTable">
     <thead>
       <tr>
         <th>{% trans "Date" %}</th>
@@ -210,5 +214,21 @@
     padding: 0;
   }
 </style>
+{% endblock %}
+
+{% block inventory_scripts %}
+<script src="{% static 'js/table-export.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const exportBtn = document.getElementById('export-excel-btn');
+  if (exportBtn && typeof exportTableToExcel === 'function') {
+    exportBtn.addEventListener('click', function() {
+      const tableId = this.getAttribute('data-table-id');
+      const filename = 'inventory_balance_details_' + '{{ item.item_code }}' + '_' + new Date().toISOString().split('T')[0];
+      exportTableToExcel(tableId, filename);
+    });
+  }
+});
+</script>
 {% endblock %}
 
