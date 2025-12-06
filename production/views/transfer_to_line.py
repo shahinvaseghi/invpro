@@ -580,15 +580,10 @@ class TransferToLineDetailView(BaseDetailView):
                 'label': _('Approved By'),
                 'value': transfer.approved_by.get_full_name() or transfer.approved_by.username,
             })
-        if transfer.approved_at:
+        if transfer.notes:
             request_fields.append({
-                'label': _('Approved At'),
-                'value': transfer.approved_at,
-            })
-        if transfer.description:
-            request_fields.append({
-                'label': _('Description'),
-                'value': transfer.description,
+                'label': _('Notes'),
+                'value': transfer.notes,
             })
         
         detail_sections = [

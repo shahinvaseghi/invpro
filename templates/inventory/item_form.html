@@ -293,127 +293,148 @@
 {% endblock %}
 
 {% block form_scripts %}
+{% load static %}
+<script src="{% static 'js/formset.js' %}"></script>
+<script src="{% static 'js/cascading-dropdowns.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Unit formset handling
+  // Unit formset handling - use formset.js
   const formsetContainer = document.getElementById('unit-formset');
-  const addButton = document.getElementById('add-unit-row');
-  const managementForm = document.querySelector('[name="units-TOTAL_FORMS"]');
+  const emptyFormTemplate = document.getElementById('empty-unit-form');
   
-  if (formsetContainer && addButton && managementForm) {
-    const emptyFormTemplate = document.getElementById('empty-unit-form');
+  if (formsetContainer && emptyFormTemplate) {
+    // Make template visible for cloning
+    emptyFormTemplate.style.display = 'block';
+    emptyFormTemplate.id = 'units-formset-template';
+    emptyFormTemplate.classList.add('formset-template');
     
-    addButton.addEventListener('click', function() {
-      const totalForms = parseInt(managementForm.value);
-      
-      // Clone the empty form template
-      const newForm = emptyFormTemplate.cloneNode(true);
-      newForm.style.display = 'block';
-      newForm.id = '';
-      
-      // Update all form field names and IDs to use the new index
-      const formFields = newForm.querySelectorAll('input, select, textarea, label');
-      formFields.forEach(function(field) {
-        if (field.name) {
-          field.name = field.name.replace(/__prefix__/g, totalForms);
-        }
-        if (field.id) {
-          field.id = field.id.replace(/__prefix__/g, totalForms);
-        }
-        if (field.getAttribute('for')) {
-          field.setAttribute('for', field.getAttribute('for').replace(/__prefix__/g, totalForms));
-        }
-      });
-      
-      // Add the new form to the formset container
-      formsetContainer.appendChild(newForm);
-      
-      // Update the total forms count
-      managementForm.value = totalForms + 1;
+    // Initialize formset using formset.js
+    initFormset('units', '#units-formset-template', {
+      minRows: 0,
+      maxRows: null,
+      addButtonSelector: '#add-unit-row',
+      removeButtonSelector: 'input[name*="-DELETE"]'
     });
     
-    // Handle delete checkboxes
+    // Handle delete checkboxes visual feedback
     formsetContainer.addEventListener('change', function(e) {
       if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('DELETE')) {
         const form = e.target.closest('.unit-form');
-        if (form && e.target.checked) {
-          form.style.opacity = '0.5';
-        } else if (form) {
-          form.style.opacity = '1';
+        if (form) {
+          form.style.opacity = e.target.checked ? '0.5' : '1';
         }
       }
     });
   }
   
-  // Category/Subcategory cascading
+  // Category/Subcategory cascading - use cascading-dropdowns.js
   const categorySelect = document.getElementById('id_category');
   const subcategorySelect = document.getElementById('id_subcategory');
   const typeSelect = document.getElementById('id_type');
   
-  function loadSubcategories(categoryId, typeId, selectedSubcategoryId = null) {
-    if (!subcategorySelect) return;
+  // Initialize Type → Category cascading
+  if (typeSelect && categorySelect) {
+    // Note: This requires a custom API endpoint that accepts type_id
+    // For now, we'll use the existing filtered_categories endpoint
+    const categoryApiUrl = '{% url "inventory:filtered_categories" %}';
     
-    subcategorySelect.innerHTML = '<option value="">--- {% trans "Please select" %} ---</option>';
-    subcategorySelect.disabled = true;
+    // Custom handler for Type → Category
+    typeSelect.addEventListener('change', function() {
+      const typeId = this.value;
+      if (!typeId) {
+        clearDropdown(categorySelect, '--- {% trans "Please select" %} ---');
+        if (subcategorySelect) {
+          clearDropdown(subcategorySelect, '--- {% trans "Please select" %} ---');
+        }
+        return;
+      }
+      
+      categorySelect.disabled = true;
+      const url = new URL(categoryApiUrl, window.location.origin);
+      url.searchParams.set('type_id', typeId);
+      
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          if (data.categories) {
+            updateDropdownOptions(categorySelect, data.categories, '--- {% trans "Please select" %} ---', 'value', 'label');
+            categorySelect.disabled = false;
+            // Trigger category change to update subcategories
+            if (categorySelect.value) {
+              categorySelect.dispatchEvent(new Event('change'));
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error loading categories:', error);
+          categorySelect.disabled = false;
+        });
+    });
+  }
+  
+  // Initialize Category → Subcategory cascading
+  if (categorySelect && subcategorySelect) {
+    const subcategoryApiUrl = '{% url "inventory:filtered_subcategories" %}';
     
-    if (!categoryId) {
-      return;
-    }
+    initCascadingDropdown(categorySelect, subcategorySelect, subcategoryApiUrl, {
+      parentField: 'category_id',
+      placeholder: '--- {% trans "Please select" %} ---',
+      valueField: 'value',
+      labelField: 'label',
+      onChange: function(value, element) {
+        // Additional handling if needed
+      }
+    });
     
-    const url = new URL('{% url "inventory:filtered_subcategories" %}', window.location.origin);
-    if (typeId) url.searchParams.set('type_id', typeId);
-    if (categoryId) url.searchParams.set('category_id', categoryId);
-    
-    fetch(url)
-      .then(response => response.json())
-      .then(data => {
-        if (data.error) {
+    // Also handle type_id parameter if type is selected
+    if (typeSelect) {
+      const originalChangeHandler = categorySelect.onchange;
+      categorySelect.addEventListener('change', function() {
+        const categoryId = this.value;
+        const typeId = typeSelect.value;
+        
+        if (!categoryId) {
+          clearDropdown(subcategorySelect, '--- {% trans "Please select" %} ---');
           return;
         }
         
-        subcategorySelect.innerHTML = '<option value="">--- {% trans "Please select" %} ---</option>';
-        if (data.subcategories && data.subcategories.length > 0) {
-          data.subcategories.forEach(sub => {
-            const option = document.createElement('option');
-            option.value = sub.value;
-            option.textContent = sub.label;
-            if (selectedSubcategoryId && sub.value === selectedSubcategoryId.toString()) {
-              option.selected = true;
-            }
-            subcategorySelect.appendChild(option);
-          });
+        subcategorySelect.disabled = true;
+        const url = new URL(subcategoryApiUrl, window.location.origin);
+        url.searchParams.set('category_id', categoryId);
+        if (typeId) {
+          url.searchParams.set('type_id', typeId);
         }
-        subcategorySelect.disabled = false;
-      })
-      .catch(error => {
-        subcategorySelect.disabled = false;
+        
+        fetch(url)
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              subcategorySelect.disabled = false;
+              return;
+            }
+            
+            const options = data.subcategories || [];
+            const selectedSubcategoryId = subcategorySelect.value;
+            updateDropdownOptions(subcategorySelect, options, '--- {% trans "Please select" %} ---', 'value', 'label');
+            
+            // Restore selected value if it exists
+            if (selectedSubcategoryId && options.some(opt => opt.value === selectedSubcategoryId)) {
+              subcategorySelect.value = selectedSubcategoryId;
+            }
+            
+            subcategorySelect.disabled = false;
+          })
+          .catch(error => {
+            console.error('Error loading subcategories:', error);
+            subcategorySelect.disabled = false;
+          });
       });
+    }
   }
   
-  if (categorySelect) {
-    categorySelect.addEventListener('change', function() {
-      const categoryId = this.value;
-      const typeId = typeSelect ? typeSelect.value : null;
-      loadSubcategories(categoryId, typeId);
-    });
-  }
-  
-  if (typeSelect) {
-    typeSelect.addEventListener('change', function() {
-      const typeId = this.value;
-      const categoryId = categorySelect ? categorySelect.value : null;
-      if (categoryId) {
-        loadSubcategories(categoryId, typeId);
-      }
-    });
-  }
-  
-  // Load subcategories on page load if category is already selected
-  if (categorySelect && categorySelect.value) {
-    const categoryId = categorySelect.value;
-    const typeId = typeSelect ? typeSelect.value : null;
-    const subcategoryId = subcategorySelect ? subcategorySelect.value : null;
-    loadSubcategories(categoryId, typeId, subcategoryId);
+  // Load initial values on page load
+  if (categorySelect && categorySelect.value && typeSelect) {
+    typeSelect.dispatchEvent(new Event('change'));
   }
 });
 </script>

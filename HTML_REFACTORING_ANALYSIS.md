@@ -5,9 +5,18 @@
 **هدف**: شناسایی الگوهای تکراری در فایل‌های HTML/Template و برنامه‌ریزی برای refactoring
 
 **وضعیت پیشرفت**:
-- ✅ فاز 1.1: Detail Views ماژول inventory (15 فایل) - **تکمیل شد**
-- ⏳ فاز 1.2-1.5: Detail Views سایر ماژول‌ها (24 فایل) - در انتظار
-- ⏳ فاز 4: JavaScript Refactoring (40+ فایل) - در انتظار
+- ✅ فاز 1: Detail Views (39 فایل) - **تکمیل شد!** همه 39 فایل refactor شدند
+  - ✅ فاز 1.1: Detail Views ماژول inventory (15 فایل)
+  - ✅ فاز 1.2: Detail Views ماژول production (8 فایل)
+  - ✅ فاز 1.3: Detail Views ماژول accounting (6 فایل)
+  - ✅ فاز 1.4: Detail Views ماژول ticketing (4 فایل)
+  - ✅ فاز 1.5: Detail Views ماژول shared (6 فایل)
+- ⏳ فاز 4: JavaScript Refactoring (40+ فایل) - در حال انجام
+  - ⏳ فاز 4.1: Formset Management JavaScript (18+ فایل) - **4 فایل refactor شدند** (item_form.html, purchase_request_form.html, performance_record_form.html, transfer_to_line_form.html)
+  - ⏳ فاز 4.2: Cascading Dropdowns JavaScript (10+ فایل) - در انتظار
+  - ⏳ فاز 4.3: Table Export JavaScript (17+ فایل) - در انتظار
+  - ⏳ فاز 4.4: Approval/Reject Functions (3+ فایل) - در انتظار
+  - ⏳ فاز 4.5: Modal Dialogs (3+ فایل) - در انتظار
 
 ---
 
@@ -454,16 +463,16 @@
 **ماژول `production`** (5 فایل):
 - `production/bom_form.html` - JavaScript inline برای formset management (~200 خط)
 - `production/process_form.html` - JavaScript inline برای formset management
-- `production/performance_record_form.html` - JavaScript inline برای formset management
-- `production/transfer_to_line_form.html` - JavaScript inline برای formset management
+- `production/performance_record_form.html` - ✅ **refactor شد** - استفاده از `formset.js`
+- `production/transfer_to_line_form.html` - ✅ **refactor شد** - استفاده از `formset.js`
 - `production/rework_document_form.html` - JavaScript inline برای formset management
 
 **ماژول `inventory`** (5 فایل):
-- `inventory/item_form.html` - JavaScript inline برای unit formset management
+- `inventory/item_form.html` - ✅ **refactor شد** - استفاده از `formset.js` و `cascading-dropdowns.js`
 - `inventory/receipt_form.html` - JavaScript inline برای line formset management
 - `inventory/issue_form.html` - JavaScript inline برای line formset management
 - `inventory/stocktaking_form.html` - JavaScript inline برای formset management
-- `inventory/purchase_request_form.html` - JavaScript inline برای formset management
+- `inventory/purchase_request_form.html` - ✅ **refactor شد** - استفاده از `formset.js`, `item-filters.js`, و `formset-table.js`
 - `inventory/warehouse_request_form.html` - استفاده از `formset.js` ✅ (مثال خوب)
 
 **ماژول `ticketing`** (3 فایل):
@@ -808,29 +817,29 @@
 
 | نوع Refactor | تعداد فایل | اولویت | وضعیت |
 |-------------|-----------|--------|--------|
-| Detail Views → Generic | 39 | 🔴 بالا | ✅ 15 فایل (inventory) تکمیل شد |
-| JavaScript Inline → Shared Files | 40+ | 🔴 بالا | ⏳ در انتظار |
+| Detail Views → Generic | 39 | 🔴 بالا | ✅ **39 فایل تکمیل شد (100%)** |
+| JavaScript Inline → Shared Files | 40+ | 🔴 بالا | ⏳ **4 فایل refactor شد (10%)** - فاز 4.1 در حال انجام |
 | List Views → Generic | 8 | 🟡 متوسط | ⏳ در انتظار |
 | Form Views → Generic | 4-5 | 🟡 متوسط | ⏳ در انتظار |
 | Inline CSS → Shared CSS | 25+ | 🟡 متوسط | ⏳ در انتظار |
 | Inline Event Handlers → JS Files | 10+ | 🟡 متوسط | ⏳ در انتظار |
 | Row Actions → Partial | 10+ | 🟢 پایین | ⏳ در انتظار |
 | Pagination → Partial | 5+ | 🟢 پایین | ⏳ در انتظار |
-| **جمع کل** | **110+ فایل** | | **15 فایل تکمیل شد (14%)** |
+| **جمع کل** | **110+ فایل** | | **43 فایل تکمیل شد (39%)** |
 
 ---
 
 ## 🚀 برنامه Refactoring پیشنهادی
 
-### فاز 1: Detail Views (اولویت بالا)
+### فاز 1: Detail Views (اولویت بالا) ✅ **تکمیل شد!**
 1. ✅ Refactor تمام Detail Views در ماژول `inventory` (15 فایل) - **تکمیل شد**
-2. Refactor تمام Detail Views در ماژول `production` (8 فایل)
-3. Refactor تمام Detail Views در ماژول `accounting` (6 فایل)
-4. Refactor تمام Detail Views در ماژول `ticketing` (4 فایل)
-5. Refactor تمام Detail Views در ماژول `shared` (6 فایل)
+2. ✅ Refactor تمام Detail Views در ماژول `production` (8 فایل) - **تکمیل شد**
+3. ✅ Refactor تمام Detail Views در ماژول `accounting` (6 فایل) - **تکمیل شد**
+4. ✅ Refactor تمام Detail Views در ماژول `ticketing` (4 فایل) - **تکمیل شد**
+5. ✅ Refactor تمام Detail Views در ماژول `shared` (6 فایل) - **تکمیل شد**
 
 **جمع کل**: 39 فایل Detail View
-**تکمیل شده**: 15 فایل (38%)
+**تکمیل شده**: 39 فایل (100%) ✅
 
 ### فاز 2: List Views (اولویت متوسط)
 1. Refactor List Views در ماژول `accounting` (6 فایل)
@@ -839,10 +848,11 @@
 ### فاز 3: Form Views (اولویت متوسط)
 1. Refactor Form Views در ماژول `accounting` (4-5 فایل)
 
-### فاز 4: JavaScript Refactoring (اولویت بالا)
-1. Refactor Formset Management JavaScript (18+ فایل)
+### فاز 4: JavaScript Refactoring (اولویت بالا) ⏳ **در حال انجام**
+1. ⏳ Refactor Formset Management JavaScript (18+ فایل) - **4 فایل refactor شد**
    - استفاده از `static/js/formset.js` و `static/js/formset-table.js`
-   - لیست کامل: `production/bom_form.html`, `production/process_form.html`, `production/performance_record_form.html`, `production/transfer_to_line_form.html`, `production/rework_document_form.html`, `inventory/item_form.html`, `inventory/receipt_form.html`, `inventory/issue_form.html`, `inventory/stocktaking_form.html`, `inventory/purchase_request_form.html`, `ticketing/category_form.html`, `ticketing/subcategory_form.html`, `ticketing/template_form.html`, `shared/user_form.html`, `accounting/treasury/account_form.html`, `accounting/parties/party_form.html`, `inventory/create_receipt_from_purchase_request.html`, `inventory/create_issue_from_warehouse_request.html`
+   - ✅ **تکمیل شده**: `inventory/item_form.html`, `inventory/purchase_request_form.html`, `production/performance_record_form.html`, `production/transfer_to_line_form.html`
+   - ⏳ **باقی مانده**: `production/bom_form.html`, `production/process_form.html`, `production/rework_document_form.html`, `inventory/receipt_form.html`, `inventory/issue_form.html`, `inventory/stocktaking_form.html`, `ticketing/category_form.html`, `ticketing/subcategory_form.html`, `ticketing/template_form.html`, `shared/user_form.html`, `accounting/treasury/account_form.html`, `accounting/parties/party_form.html`, `inventory/create_receipt_from_purchase_request.html`, `inventory/create_issue_from_warehouse_request.html`
 2. Refactor Cascading Dropdowns JavaScript (10+ فایل)
    - استفاده از `static/js/cascading-dropdowns.js`
    - لیست کامل: `production/bom_form.html`, `production/process_form.html`, `production/transfer_to_line_form.html`, `inventory/item_form.html`, `inventory/receipt_form.html`, `inventory/issue_form.html`, `inventory/purchase_request_form.html`, `accounting/parties/party_account_form.html`, `inventory/create_receipt_from_purchase_request.html`

@@ -501,8 +501,11 @@
 {% endblock %}
 
 {% block form_scripts %}
+{% load static %}
 <link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">
 <script src="{% static 'js/jalali-datepicker/jalali-datepicker.min.js' %}"></script>
+<script src="{% static 'js/formset.js' %}"></script>
+<script src="{% static 'js/item-filters.js' %}"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -545,57 +548,57 @@ document.addEventListener('DOMContentLoaded', function() {
     console.error('Jalali DatePicker library not loaded!');
   }
   
-  // Formset management for extra items
+  // Formset management for extra items - use formset.js
   var formsetContainer = document.getElementById('formset-container');
   var addBtn = document.getElementById('add-extra-item-btn');
   var totalFormsInput = document.querySelector('#id_items-TOTAL_FORMS');
-  var formCount = formsetContainer ? formsetContainer.children.length : 0;
   
   if (addBtn && formsetContainer && totalFormsInput) {
-    addBtn.addEventListener('click', function() {
-      var newForm = formsetContainer.lastElementChild.cloneNode(true);
-      var formIndex = formCount;
-      formCount++;
+    // Create template row from last row
+    var lastRow = formsetContainer.lastElementChild;
+    if (lastRow) {
+      var templateRow = lastRow.cloneNode(true);
+      templateRow.id = 'items-formset-template';
+      templateRow.style.display = 'none';
+      templateRow.classList.add('formset-template');
+      formsetContainer.appendChild(templateRow);
       
-      newForm.setAttribute('data-row-index', formIndex);
-      
-      newForm.querySelectorAll('input, select, textarea').forEach(function(field) {
-        if (field.name) {
-          field.name = field.name.replace(/items-\d+-/, 'items-' + formIndex + '-');
-        }
-        if (field.id) {
-          field.id = field.id.replace(/id_items-\d+-/, 'id_items-' + formIndex + '-');
-        }
-        if (field.type !== 'hidden' && field.type !== 'checkbox') {
-          field.value = '';
-        }
-        if (field.type === 'checkbox') {
-          field.checked = false;
-        }
+      // Initialize formset using formset.js
+      initFormset('items', '#items-formset-template', {
+        minRows: 0,
+        maxRows: null,
+        addButtonSelector: '#add-extra-item-btn',
+        removeButtonSelector: 'input[name*="-DELETE"]'
       });
       
-      newForm.querySelectorAll('label').forEach(function(label) {
-        if (label.getAttribute('for')) {
-          label.setAttribute('for', label.getAttribute('for').replace(/id_items-\d+-/, 'id_items-' + formIndex + '-'));
+      // After adding row, setup cascading and clear values
+      document.addEventListener('formset:row-added', function(e) {
+        if (e.detail.prefix === 'items') {
+          var newRow = e.detail.row;
+          if (newRow) {
+            // Clear values
+            newRow.querySelectorAll('input, select, textarea').forEach(function(field) {
+              if (field.type !== 'hidden' && field.type !== 'checkbox') {
+                field.value = '';
+              }
+              if (field.type === 'checkbox') {
+                field.checked = false;
+              }
+            });
+            
+            // Clear error messages
+            newRow.querySelectorAll('.field-error').forEach(function(error) {
+              error.textContent = '';
+            });
+            
+            // Setup cascading dropdowns for new row
+            setTimeout(function() {
+              setupRowCascading(newRow);
+            }, 100);
+          }
         }
       });
-      
-      var deleteCheckbox = newForm.querySelector('input[type="checkbox"][name$="-DELETE"]');
-      if (deleteCheckbox) {
-        deleteCheckbox.checked = false;
-      }
-      
-      newForm.querySelectorAll('.field-error').forEach(function(error) {
-        error.textContent = '';
-      });
-      
-      formsetContainer.appendChild(newForm);
-      totalFormsInput.value = formCount;
-      
-      setTimeout(function() {
-        setupRowCascading(newForm);
-      }, 100);
-    });
+    }
   }
   
   // Handle DELETE checkboxes

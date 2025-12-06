@@ -85,47 +85,34 @@
     {% endif %}
   </td>
   <td>
-    {% if detail_url_name %}
-      {% can_view_object object feature_code|default:"" as can_view %}
-      {% if can_view %}
-        <a href="{% url detail_url_name object.pk %}" class="btn btn-sm btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
-          {% trans "View" %}
-        </a>
-      {% endif %}
-    {% endif %}
+    {% include "shared/partials/row_actions.html" with object=object feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
     {% if object.is_locked != 1 %}
-      {% if edit_url_name %}
-        {% can_edit_object object feature_code|default:"" as can_edit %}
-        {% if can_edit %}
-          <a href="{% url edit_url_name object.pk %}" class="btn btn-sm btn-secondary">{% trans "Edit" %}</a>
-        {% endif %}
-      {% endif %}
       {% if delete_url_name %}
         {% if user_feature_permissions|feature_allowed:'production.transfer_requests:delete_own' or user.is_superuser %}
-          <a href="{% url delete_url_name object.pk %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
+          <a href="{% url delete_url_name object.pk %}" class="btn btn-sm btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #dc3545; color: white; border: 1px solid #dc3545; border-radius: 4px; text-decoration: none; white-space: nowrap; margin-left: 0.25rem;">{% trans "Delete" %}</a>
         {% endif %}
       {% endif %}
     {% else %}
       {% if user_feature_permissions|feature_allowed:'production.transfer_requests:unlock' or user.is_superuser %}
-        <button type="button" class="btn btn-sm btn-warning" onclick="unlockTransfer({{ object.pk }})" title="{% trans 'Unlock' %}">
+        <button type="button" class="btn btn-sm btn-warning" onclick="unlockTransfer({{ object.pk }})" title="{% trans 'Unlock' %}" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #ffc107; color: #000; border: 1px solid #ffc107; border-radius: 4px; white-space: nowrap; margin-left: 0.25rem;">
           {% trans "Unlock" %}
         </button>
       {% endif %}
     {% endif %}
     {% if object.status == 'pending_approval' and object.approved_by == user %}
       {% if user_feature_permissions|feature_allowed:'production.transfer_requests:approve' or user.is_superuser %}
-        <button type="button" class="btn btn-sm btn-success" onclick="approveTransfer({{ object.pk }})">{% trans "Approve" %}</button>
+        <button type="button" class="btn btn-sm btn-success" onclick="approveTransfer({{ object.pk }})" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #198754; color: white; border: 1px solid #198754; border-radius: 4px; white-space: nowrap; margin-left: 0.25rem;">{% trans "Approve" %}</button>
       {% endif %}
       {% if user_feature_permissions|feature_allowed:'production.transfer_requests:reject' or user.is_superuser %}
-        <button type="button" class="btn btn-sm btn-warning" onclick="rejectTransfer({{ object.pk }})">{% trans "Reject" %}</button>
+        <button type="button" class="btn btn-sm btn-warning" onclick="rejectTransfer({{ object.pk }})" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #ffc107; color: #000; border: 1px solid #ffc107; border-radius: 4px; white-space: nowrap; margin-left: 0.25rem;">{% trans "Reject" %}</button>
       {% endif %}
     {% endif %}
     {% if object.status == 'pending_qc_approval' and object.qc_approved_by == user %}
       {% if user_feature_permissions|feature_allowed:'production.transfer_requests:approve' or user.is_superuser %}
-        <button type="button" class="btn btn-sm btn-success" onclick="approveQCTransfer({{ object.pk }})">{% trans "Approve QC" %}</button>
+        <button type="button" class="btn btn-sm btn-success" onclick="approveQCTransfer({{ object.pk }})" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #198754; color: white; border: 1px solid #198754; border-radius: 4px; white-space: nowrap; margin-left: 0.25rem;">{% trans "Approve QC" %}</button>
       {% endif %}
       {% if user_feature_permissions|feature_allowed:'production.transfer_requests:reject' or user.is_superuser %}
-        <button type="button" class="btn btn-sm btn-warning" onclick="rejectQCTransfer({{ object.pk }})">{% trans "Reject QC" %}</button>
+        <button type="button" class="btn btn-sm btn-warning" onclick="rejectQCTransfer({{ object.pk }})" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #ffc107; color: #000; border: 1px solid #ffc107; border-radius: 4px; white-space: nowrap; margin-left: 0.25rem;">{% trans "Reject QC" %}</button>
       {% endif %}
     {% endif %}
   </td>

@@ -464,7 +464,9 @@
 {% endblock %}
 
 {% block form_scripts %}
+{% load static %}
 <script src="{% static 'js/jalali-datepicker/jalali-datepicker.min.js' %}"></script>
+<script src="{% static 'js/formset.js' %}"></script>
 <link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">
 
 <script>
@@ -836,78 +838,94 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Formset management for persons
+  // Formset management for persons - use formset.js
   var addPersonBtn = document.getElementById('add-person-btn');
   var personsFormsetContainer = document.getElementById('persons-formset-container');
   var totalPersonsInput = document.querySelector('#id_persons-TOTAL_FORMS');
 
   if (addPersonBtn && personsFormsetContainer && totalPersonsInput) {
-    addPersonBtn.addEventListener('click', function() {
-      var currentFormCount = parseInt(totalPersonsInput.value);
-      var newFormIndex = currentFormCount;
-
-      var newFormRow = personsFormsetContainer.lastElementChild.cloneNode(true);
-      newFormRow.setAttribute('data-row-index', newFormIndex);
-
-      newFormRow.querySelectorAll('input, select, textarea').forEach(function(field) {
-        if (field.name) {
-          field.name = field.name.replace(/persons-(\d+)-/, `persons-${newFormIndex}-`);
-        }
-        if (field.id) {
-          field.id = field.id.replace(/id_persons-(\d+)-/, `id_persons-${newFormIndex}-`);
-        }
-        if (field.type !== 'hidden' && field.type !== 'checkbox') {
-          field.value = '';
-        }
-        if (field.type === 'checkbox') {
-          field.checked = false;
+    // Create template row from last row
+    var lastPersonRow = personsFormsetContainer.lastElementChild;
+    if (lastPersonRow) {
+      var personTemplateRow = lastPersonRow.cloneNode(true);
+      personTemplateRow.id = 'persons-formset-template';
+      personTemplateRow.style.display = 'none';
+      personTemplateRow.classList.add('formset-template');
+      personsFormsetContainer.appendChild(personTemplateRow);
+      
+      // Initialize formset using formset.js
+      initFormset('persons', '#persons-formset-template', {
+        minRows: 0,
+        maxRows: null,
+        addButtonSelector: '#add-person-btn',
+        removeButtonSelector: 'input[name*="-DELETE"]'
+      });
+      
+      // After adding row, clear values
+      document.addEventListener('formset:row-added', function(e) {
+        if (e.detail.prefix === 'persons') {
+          var newRow = e.detail.row;
+          if (newRow) {
+            newRow.querySelectorAll('input, select, textarea').forEach(function(field) {
+              if (field.type !== 'hidden' && field.type !== 'checkbox') {
+                field.value = '';
+              }
+              if (field.type === 'checkbox') {
+                field.checked = false;
+              }
+            });
+            newRow.querySelectorAll('.field-error').forEach(function(error) {
+              error.textContent = '';
+            });
+          }
         }
       });
-
-      newFormRow.querySelectorAll('.field-error').forEach(function(error) {
-        error.textContent = '';
-      });
-
-      personsFormsetContainer.appendChild(newFormRow);
-      totalPersonsInput.value = newFormIndex + 1;
-    });
+    }
   }
 
-  // Formset management for machines
+  // Formset management for machines - use formset.js
   var addMachineBtn = document.getElementById('add-machine-btn');
   var machinesFormsetContainer = document.getElementById('machines-formset-container');
   var totalMachinesInput = document.querySelector('#id_machines-TOTAL_FORMS');
 
   if (addMachineBtn && machinesFormsetContainer && totalMachinesInput) {
-    addMachineBtn.addEventListener('click', function() {
-      var currentFormCount = parseInt(totalMachinesInput.value);
-      var newFormIndex = currentFormCount;
-
-      var newFormRow = machinesFormsetContainer.lastElementChild.cloneNode(true);
-      newFormRow.setAttribute('data-row-index', newFormIndex);
-
-      newFormRow.querySelectorAll('input, select, textarea').forEach(function(field) {
-        if (field.name) {
-          field.name = field.name.replace(/machines-(\d+)-/, `machines-${newFormIndex}-`);
-        }
-        if (field.id) {
-          field.id = field.id.replace(/id_machines-(\d+)-/, `id_machines-${newFormIndex}-`);
-        }
-        if (field.type !== 'hidden' && field.type !== 'checkbox') {
-          field.value = '';
-        }
-        if (field.type === 'checkbox') {
-          field.checked = false;
+    // Create template row from last row
+    var lastMachineRow = machinesFormsetContainer.lastElementChild;
+    if (lastMachineRow) {
+      var machineTemplateRow = lastMachineRow.cloneNode(true);
+      machineTemplateRow.id = 'machines-formset-template';
+      machineTemplateRow.style.display = 'none';
+      machineTemplateRow.classList.add('formset-template');
+      machinesFormsetContainer.appendChild(machineTemplateRow);
+      
+      // Initialize formset using formset.js
+      initFormset('machines', '#machines-formset-template', {
+        minRows: 0,
+        maxRows: null,
+        addButtonSelector: '#add-machine-btn',
+        removeButtonSelector: 'input[name*="-DELETE"]'
+      });
+      
+      // After adding row, clear values
+      document.addEventListener('formset:row-added', function(e) {
+        if (e.detail.prefix === 'machines') {
+          var newRow = e.detail.row;
+          if (newRow) {
+            newRow.querySelectorAll('input, select, textarea').forEach(function(field) {
+              if (field.type !== 'hidden' && field.type !== 'checkbox') {
+                field.value = '';
+              }
+              if (field.type === 'checkbox') {
+                field.checked = false;
+              }
+            });
+            newRow.querySelectorAll('.field-error').forEach(function(error) {
+              error.textContent = '';
+            });
+          }
         }
       });
-
-      newFormRow.querySelectorAll('.field-error').forEach(function(error) {
-        error.textContent = '';
-      });
-
-      machinesFormsetContainer.appendChild(newFormRow);
-      totalMachinesInput.value = newFormIndex + 1;
-    });
+    }
   }
 
   // Handle DELETE checkboxes

@@ -80,7 +80,7 @@
       {{ lines_formset.management_form }}
       {% for hidden in lines_formset.hidden_fields %}{{ hidden }}{% endfor %}
 
-      <div class="lines-formset" id="lines-formset">
+      <div class="lines-formset" id="lines-formset" data-can-delete="{% if lines_formset.can_delete %}true{% else %}false{% endif %}">image.png
         <div class="lines-table-header">
           <div class="line-cell line-number">#</div>
           <div class="line-cell line-item">{% trans "Item" %} *</div>
@@ -534,400 +534,96 @@
 }
 </style>
 
+{% load static %}
+<script src="{% static 'js/formset.js' %}"></script>
+<script src="{% static 'js/item-filters.js' %}"></script>
+<script src="{% static 'js/formset-table.js' %}"></script>
 <script>
-const unitMap = {{ unit_options_json|default:"{}" }};
-const unitPlaceholder = "{{ unit_placeholder|escapejs }}";
+// Configuration for item filters
+const filterOptions = {
+  placeholder: "{{ unit_placeholder|escapejs }}",
+  allCategoriesText: "{% trans 'All Categories' %}",
+  allSubcategoriesText: "{% trans 'All Subcategories' %}",
+};
 
-// Handle unit options for lines formset
-function refreshLineUnitOptions(itemSelect, unitSelect) {
-  if (!itemSelect || !unitSelect) return;
-  const selectedItem = itemSelect.value || "";
-  
-  // Fetch units from API
-  if (selectedItem) {
-    fetch(`/inventory/api/item-allowed-units/?item_id=${selectedItem}`)
-      .then(response => response.json())
-      .then(data => {
-        if (data.units) {
-          const currentValue = unitSelect.value;
-          unitSelect.innerHTML = "";
-          
-          const placeholderOption = document.createElement("option");
-          placeholderOption.value = "";
-          placeholderOption.textContent = unitPlaceholder;
-          unitSelect.appendChild(placeholderOption);
-          
-          data.units.forEach(function(option) {
-            const optionEl = document.createElement("option");
-            optionEl.value = option.value;
-            optionEl.textContent = option.label;
-            unitSelect.appendChild(optionEl);
-          });
-          
-          // Try to keep current value if it's still valid
-          if (currentValue && data.units.some(opt => opt.value === currentValue)) {
-            unitSelect.value = currentValue;
-          } else if (data.default_unit) {
-            unitSelect.value = data.default_unit;
-          }
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching units:', error);
-      });
-  } else {
-    unitSelect.innerHTML = "";
-    const placeholderOption = document.createElement("option");
-    placeholderOption.value = "";
-    placeholderOption.textContent = unitPlaceholder;
-    unitSelect.appendChild(placeholderOption);
-  }
-}
-
-// Filter items for a specific row based on type, category, subcategory, and search
-function filterItemsForRow(rowElement) {
-  if (!rowElement) return;
-  
-  const typeSelect = rowElement.querySelector('.filter-type-select');
-  const categorySelect = rowElement.querySelector('.filter-category-select');
-  const subcategorySelect = rowElement.querySelector('.filter-subcategory-select');
-  const searchInput = rowElement.querySelector('.filter-search-input');
-  const itemSelect = rowElement.querySelector('select[name*="-item"]');
-  
-  if (!itemSelect) return;
-  
-  const typeId = typeSelect?.value || '';
-  const categoryId = categorySelect?.value || '';
-  const subcategoryId = subcategorySelect?.value || '';
-  const searchTerm = searchInput?.value?.trim() || '';
-  
-  // Build API URL
-  let apiUrl = '/inventory/api/filtered-items/';
-  const params = new URLSearchParams();
-  if (typeId) params.append('type_id', typeId);
-  if (categoryId) params.append('category_id', categoryId);
-  if (subcategoryId) params.append('subcategory_id', subcategoryId);
-  if (searchTerm) params.append('search', searchTerm);
-  
-  // If no filters and no search, load all items
-  // Otherwise, apply filters
-  if (params.toString()) {
-    apiUrl += '?' + params.toString();
-  }
-  
-  // Fetch filtered items (or all items if no filters)
-  fetch(apiUrl)
-    .then(response => response.json())
-    .then(data => {
-      if (data.items) {
-        const itemMap = {};
-        data.items.forEach(function(item) {
-          itemMap[item.value] = item;
-        });
-        
-        const currentValue = itemSelect.value;
-        const placeholder = itemSelect.options[0];
-        
-        // Clear all options except placeholder
-        itemSelect.innerHTML = '';
-        if (placeholder && placeholder.value === '') {
-          itemSelect.appendChild(placeholder.cloneNode(true));
-        } else {
-          const emptyOption = document.createElement('option');
-          emptyOption.value = '';
-          emptyOption.textContent = '--- انتخاب کنید ---';
-          itemSelect.appendChild(emptyOption);
-        }
-        
-        // Add filtered items
-        data.items.forEach(function(item) {
-          const option = document.createElement('option');
-          option.value = item.value;
-          option.textContent = item.label;
-          itemSelect.appendChild(option);
-        });
-        
-        // Restore current value if it's in filtered list
-        if (currentValue && itemMap[currentValue]) {
-          itemSelect.value = currentValue;
-        } else if (currentValue) {
-          // Current value is not in filtered list, clear it
-          itemSelect.value = '';
-          const unitSelect = rowElement.querySelector('select[name*="-unit"]');
-          if (unitSelect) {
-            refreshLineUnitOptions(itemSelect, unitSelect);
-          }
-        }
-      }
-    })
-    .catch(error => {
-      console.error('Error filtering items:', error);
-    });
-}
-
-// Load categories for a specific row based on type
-function loadCategoriesForRow(rowElement, typeId) {
-  if (!rowElement) return;
-  
-  const categorySelect = rowElement.querySelector('.filter-category-select');
-  const subcategorySelect = rowElement.querySelector('.filter-subcategory-select');
-  
-  if (!categorySelect) return;
-  
-  categorySelect.innerHTML = '<option value="">{% trans "All Categories" %}</option>';
-  if (subcategorySelect) {
-    subcategorySelect.innerHTML = '<option value="">{% trans "All Subcategories" %}</option>';
-  }
-  
-  if (!typeId) {
-    // Load all categories
-    fetch('/inventory/api/filtered-categories/')
-      .then(response => response.json())
-      .then(data => {
-        if (data.categories) {
-          data.categories.forEach(function(cat) {
-            const option = document.createElement("option");
-            option.value = cat.value;
-            option.textContent = cat.label;
-            categorySelect.appendChild(option);
-          });
-        }
-        // Filter items after loading categories
-        filterItemsForRow(rowElement);
-      });
-    return;
-  }
-  
-  fetch(`/inventory/api/filtered-categories/?type_id=${typeId}`)
-    .then(response => response.json())
-    .then(data => {
-      if (data.categories) {
-        data.categories.forEach(function(cat) {
-          const option = document.createElement("option");
-          option.value = cat.value;
-          option.textContent = cat.label;
-          categorySelect.appendChild(option);
-        });
-      }
-      // Filter items after loading categories
-      filterItemsForRow(rowElement);
-    });
-}
-
-// Load subcategories for a specific row based on category
-function loadSubcategoriesForRow(rowElement, categoryId) {
-  if (!rowElement) return;
-  
-  const subcategorySelect = rowElement.querySelector('.filter-subcategory-select');
-  if (!subcategorySelect) return;
-  
-  subcategorySelect.innerHTML = '<option value="">{% trans "All Subcategories" %}</option>';
-  
-  if (!categoryId) {
-    // Filter items after clearing subcategory
-    filterItemsForRow(rowElement);
-    return;
-  }
-  
-  fetch(`/inventory/api/filtered-subcategories/?category_id=${categoryId}`)
-    .then(response => response.json())
-    .then(data => {
-      if (data.subcategories) {
-        data.subcategories.forEach(function(sub) {
-          const option = document.createElement("option");
-          option.value = sub.value;
-          option.textContent = sub.label;
-          subcategorySelect.appendChild(option);
-        });
-      }
-      // Filter items after loading subcategories
-      filterItemsForRow(rowElement);
-    });
-}
-
-// Initialize unit options for all line forms
+// Initialize line forms - update row numbers and setup filters
 function initializeLineForms() {
   const formsetContainer = document.getElementById('lines-formset');
   if (!formsetContainer) return;
   
-  formsetContainer.querySelectorAll('.line-row').forEach(function(lineRow, index) {
+  formsetContainer.querySelectorAll('.line-row:not(.formset-template)').forEach(function(lineRow, index) {
     // Update row number
     const lineNumber = lineRow.querySelector('.line-number');
     if (lineNumber) {
       lineNumber.textContent = index + 1;
     }
     
-    // Setup filter listeners for this row
-    const typeSelect = lineRow.querySelector('.filter-type-select');
-    const categorySelect = lineRow.querySelector('.filter-category-select');
-    const subcategorySelect = lineRow.querySelector('.filter-subcategory-select');
-    const itemSelect = lineRow.querySelector('select[name*="-item"]');
-    const unitSelect = lineRow.querySelector('select[name*="-unit"]');
-    
-    // Setup type filter
-    if (typeSelect) {
-      typeSelect.addEventListener('change', function() {
-        loadCategoriesForRow(lineRow, this.value);
-      });
-    }
-    
-    // Setup category filter
-    if (categorySelect) {
-      categorySelect.addEventListener('change', function() {
-        loadSubcategoriesForRow(lineRow, this.value);
-      });
-    }
-    
-    // Setup subcategory filter
-    if (subcategorySelect) {
-      subcategorySelect.addEventListener('change', function() {
-        filterItemsForRow(lineRow);
-      });
-    }
-    
-    // Setup search input with debounce
-    const searchInput = lineRow.querySelector('.filter-search-input');
-    let searchTimeout;
-    if (searchInput) {
-      searchInput.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(function() {
-          filterItemsForRow(lineRow);
-        }, 300); // Debounce 300ms
-      });
-    }
-    
-    // Setup item select
-    if (itemSelect && unitSelect) {
-      itemSelect.addEventListener("change", function() {
-        refreshLineUnitOptions(itemSelect, unitSelect);
-      });
-      
-      // Initialize units if item is already selected
-      if (itemSelect.value) {
-        refreshLineUnitOptions(itemSelect, unitSelect);
-      }
-    }
-    
-    // Initialize filters - load all categories initially and filter items
-    if (typeSelect) {
-      loadCategoriesForRow(lineRow, typeSelect.value);
-    } else {
-      // If no type filter, just load all items
-      filterItemsForRow(lineRow);
-    }
+    // Use shared item-filters.js function
+    initializeItemFiltersForRow(lineRow, filterOptions);
   });
 }
 
-// Handle add line button
+// Main initialization
 document.addEventListener('DOMContentLoaded', function() {
-  initializeLineForms();
-  
-  const addLineBtn = document.getElementById('add-line-btn');
   const formsetContainer = document.getElementById('lines-formset');
+  if (!formsetContainer) return;
+  
+  // Initialize formset table layout
+  initFormsetTableLayout(formsetContainer, {
+    columnsWithDelete: '50px 3fr 1.5fr 1.5fr 2fr 2fr 80px',
+    columnsWithoutDelete: '50px 3fr 1.5fr 1.5fr 2fr 2fr',
+  });
+  
+  // Initialize existing rows
+  setTimeout(function() {
+    initializeLineForms();
+  }, 100);
+  
+  // Setup formset management using formset.js
+  const addLineBtn = document.getElementById('add-line-btn');
   const totalFormsInput = document.querySelector('input[name="lines-TOTAL_FORMS"]');
   
   if (addLineBtn && formsetContainer && totalFormsInput) {
-    addLineBtn.addEventListener('click', function() {
-      const totalForms = parseInt(totalFormsInput.value);
-      const lastRow = formsetContainer.querySelector('.line-row:last-child');
-      if (!lastRow) return;
+    // Clone first row as template
+    const firstRow = formsetContainer.querySelector('.line-row:not(.formset-template)');
+    if (firstRow) {
+      const templateRow = firstRow.cloneNode(true);
+      templateRow.id = 'lines-formset-template';
+      templateRow.style.display = 'none';
+      templateRow.classList.add('formset-template');
+      formsetContainer.appendChild(templateRow);
       
-      const newRow = lastRow.cloneNode(true);
-      const newIndex = totalForms;
-      
-      // Update form indices
-      newRow.querySelectorAll('input, select, textarea').forEach(function(input) {
-        const name = input.getAttribute('name');
-        const id = input.getAttribute('id');
-        if (name) {
-          input.setAttribute('name', name.replace(/-\d+-/, '-' + newIndex + '-'));
-        }
-        if (id) {
-          input.setAttribute('id', id.replace(/-\d+-/, '-' + newIndex + '-'));
-        }
+      // Initialize formset
+      initFormset('lines', '#lines-formset-template', {
+        minRows: 1,
+        maxRows: null,
+        addButtonSelector: '#add-line-btn',
+        removeButtonSelector: 'input[name*="-DELETE"]'
       });
       
-      // Clear values
-      newRow.querySelectorAll('input[type="text"], input[type="number"], select, textarea').forEach(function(input) {
-        if (input.type !== 'checkbox' && input.type !== 'hidden') {
-          input.value = '';
+      // After adding row, initialize filters and update layout
+      document.addEventListener('formset:row-added', function(e) {
+        if (e.detail.prefix === 'lines') {
+          setTimeout(function() {
+            const newRow = e.detail.row;
+            if (newRow) {
+              // Update layout
+              updateFormsetTableLayout(formsetContainer, {
+                columnsWithDelete: '50px 3fr 1.5fr 1.5fr 2fr 2fr 80px',
+                columnsWithoutDelete: '50px 3fr 1.5fr 1.5fr 2fr 2fr',
+              });
+              // Initialize filters for new row
+              initializeItemFiltersForRow(newRow, filterOptions);
+              // Re-index all rows
+              initializeLineForms();
+            }
+          }, 50);
         }
       });
-      
-      // Update data-form-index
-      newRow.setAttribute('data-form-index', newIndex);
-      
-      // Remove DELETE checkbox if present
-      const deleteCheckbox = newRow.querySelector('input[name*="-DELETE"]');
-      if (deleteCheckbox) {
-        deleteCheckbox.checked = false;
-      }
-      
-      // Remove deleted class if present
-      newRow.classList.remove('deleted');
-      
-      formsetContainer.appendChild(newRow);
-      totalFormsInput.value = totalForms + 1;
-      
-      // Setup filters for new row
-      const typeSelect = newRow.querySelector('.filter-type-select');
-      const categorySelect = newRow.querySelector('.filter-category-select');
-      const subcategorySelect = newRow.querySelector('.filter-subcategory-select');
-      const itemSelect = newRow.querySelector('select[name*="-item"]');
-      const unitSelect = newRow.querySelector('select[name*="-unit"]');
-      
-      // Setup filter listeners for new row
-      if (typeSelect) {
-        typeSelect.addEventListener('change', function() {
-          loadCategoriesForRow(newRow, this.value);
-        });
-      }
-      
-      if (categorySelect) {
-        categorySelect.addEventListener('change', function() {
-          loadSubcategoriesForRow(newRow, this.value);
-        });
-      }
-      
-      if (subcategorySelect) {
-        subcategorySelect.addEventListener('change', function() {
-          filterItemsForRow(newRow);
-        });
-      }
-      
-      // Setup search input for new row
-      const searchInput = newRow.querySelector('.filter-search-input');
-      let searchTimeout;
-      if (searchInput) {
-        searchInput.addEventListener('input', function() {
-          clearTimeout(searchTimeout);
-          searchTimeout = setTimeout(function() {
-            filterItemsForRow(newRow);
-          }, 300); // Debounce 300ms
-        });
-      }
-      
-      if (itemSelect && unitSelect) {
-        itemSelect.addEventListener("change", function() {
-          refreshLineUnitOptions(itemSelect, unitSelect);
-        });
-      }
-      
-      // Initialize filters for new row
-      if (typeSelect) {
-        loadCategoriesForRow(newRow, typeSelect.value);
-      } else {
-        // If no type filter, just load all items
-        filterItemsForRow(newRow);
-      }
-      
-      // Reinitialize all line forms to update row numbers
-      initializeLineForms();
-    });
+    }
   }
   
-  // Handle delete checkboxes
+  // Handle delete checkboxes - update row numbers
   if (formsetContainer) {
     formsetContainer.addEventListener('change', function(e) {
       if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
