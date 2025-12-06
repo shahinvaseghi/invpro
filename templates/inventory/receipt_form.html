@@ -1,5 +1,6 @@
 {% extends "inventory/base.html" %}
 {% load i18n jalali_tags %}
+{% load static %}
 
 {% block page_title %}{{ form_title }}{% endblock %}
 
@@ -1711,6 +1712,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 </style>
 
+<script src="{% static 'js/cascading-dropdowns.js' %}"></script>
 <script>
 // Global error handler
 window.addEventListener('error', function(e) {
@@ -2470,114 +2472,90 @@ document.addEventListener('DOMContentLoaded', function() {
       delete itemSelect.dataset.handlersAttached;
     }
     
-    // Attach event handlers directly to itemSelect
-    // We'll re-attach after DOM manipulation if needed
-    if (unitSelect) {
-      // Always attach handler, even if item is not selected yet
-      // Create new handler
-      const unitChangeHandler = function(e) {
-        console.log('[setupItemSelectHandlers] Item changed event fired (direct), value:', this.value, 'event:', e);
-        // Get fresh reference to unitSelect in case DOM changed
-        const freshUnitSelect = lineForm.querySelector('select[name*="-unit"]');
-        if (freshUnitSelect) {
-          updateUnitChoices(this, freshUnitSelect);
+    // Use cascading-dropdowns.js for Item → Unit
+    if (unitSelect && typeof initCascadingDropdown === 'function') {
+      try {
+        initCascadingDropdown(itemSelect, unitSelect, unitChoicesUrl, {
+          parentField: 'item_id',
+          placeholder: '--- {% trans "Select Item First" %} ---',
+          valueField: 'value',
+          labelField: 'label'
+        });
+        console.log('[setupItemSelectHandlers] Cascading dropdown initialized for Item → Unit');
+      } catch (error) {
+        console.error('[setupItemSelectHandlers] Error initializing cascading dropdown for Unit:', error);
+        // Fallback to old method if initCascadingDropdown fails
+        if (itemSelect.value) {
+          updateUnitChoices(itemSelect, unitSelect);
         } else {
-          console.error('[setupItemSelectHandlers] Could not find unit select after item change');
-        }
-      };
-      // Remove old handler if exists (by cloning the node to remove all listeners)
-      if (itemSelect.dataset.handlersAttached === 'true') {
-        // Clone node to remove all event listeners
-        const newItemSelect = itemSelect.cloneNode(true);
-        itemSelect.parentNode.replaceChild(newItemSelect, itemSelect);
-        // Update reference
-        const updatedItemSelect = lineForm.querySelector('select[name*="-item"]');
-        if (updatedItemSelect) {
-          updatedItemSelect.addEventListener('change', unitChangeHandler);
-          updatedItemSelect.dataset.handlersAttached = 'true';
-        }
-      } else {
-        itemSelect.addEventListener('change', unitChangeHandler);
-        itemSelect.dataset.handlersAttached = 'true';
-      }
-      console.log('[setupItemSelectHandlers] Unit change handler attached (direct) to:', itemSelect.name);
-      
-      // If item is already selected, update units immediately
-      if (itemSelect.value) {
-        console.log('[setupItemSelectHandlers] Item has value, updating unit choices immediately:', itemSelect.value);
-        updateUnitChoices(itemSelect, unitSelect);
-      } else {
-        // If no item selected, disable unit select
-        unitSelect.disabled = true;
-        const placeholder = unitSelect.querySelector('option[value=""]');
-        if (!placeholder || placeholder.textContent.indexOf('Select Item') === -1) {
-          unitSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+          unitSelect.disabled = true;
+          const placeholder = unitSelect.querySelector('option[value=""]');
+          if (!placeholder || placeholder.textContent.indexOf('Select Item') === -1) {
+            unitSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+          }
         }
       }
     }
     
-    if (warehouseSelect) {
-      // Always attach handler, even if item is not selected yet
-      // Create new handler
-      const warehouseChangeHandler = function(e) {
-        console.log('[setupItemSelectHandlers] Item changed event fired (direct), value:', this.value, 'event:', e);
-        // Get fresh reference to warehouseSelect in case DOM changed
-        const freshWarehouseSelect = lineForm.querySelector('select[name*="-warehouse"]');
-        const freshSourceWarehouseSelect = lineForm.querySelector('select[name*="-source_warehouse"]');
-        const freshDestinationWarehouseSelect = lineForm.querySelector('select[name*="-destination_warehouse"]');
-        if (freshWarehouseSelect) {
-          updateWarehouseChoices(this, freshWarehouseSelect);
+    // Use cascading-dropdowns.js for Item → Warehouse
+    if (warehouseSelect && typeof initCascadingDropdown === 'function') {
+      try {
+        initCascadingDropdown(itemSelect, warehouseSelect, warehouseChoicesUrl, {
+          parentField: 'item_id',
+          placeholder: '--- {% trans "Select Item First" %} ---',
+          valueField: 'value',
+          labelField: 'label'
+        });
+        console.log('[setupItemSelectHandlers] Cascading dropdown initialized for Item → Warehouse');
+      } catch (error) {
+        console.error('[setupItemSelectHandlers] Error initializing cascading dropdown for Warehouse:', error);
+        // Fallback to old method if initCascadingDropdown fails
+        if (itemSelect.value) {
+          updateWarehouseChoices(itemSelect, warehouseSelect);
         } else {
-          console.error('[setupItemSelectHandlers] Could not find warehouse select after item change');
+          warehouseSelect.disabled = true;
+          const placeholder = warehouseSelect.querySelector('option[value=""]');
+          if (!placeholder || placeholder.textContent.indexOf('Select Item') === -1) {
+            warehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+          }
         }
-        if (freshSourceWarehouseSelect) {
-          updateWarehouseChoices(this, freshSourceWarehouseSelect);
-        }
-        if (freshDestinationWarehouseSelect) {
-          updateWarehouseChoices(this, freshDestinationWarehouseSelect);
-        }
-      };
-      // Use the same itemSelect (already cloned above if needed)
-      const currentItemSelect = lineForm.querySelector('select[name*="-item"]');
-      if (currentItemSelect) {
-        currentItemSelect.addEventListener('change', warehouseChangeHandler);
       }
-      console.log('[setupItemSelectHandlers] Warehouse change handler attached (direct) to:', itemSelect.name);
-      
-      // If item is already selected, update warehouses immediately
-      if (itemSelect.value) {
-        console.log('[setupItemSelectHandlers] Item has value, updating warehouse choices immediately:', itemSelect.value);
-        updateWarehouseChoices(itemSelect, warehouseSelect);
-        const sourceWarehouseSelect = lineForm.querySelector('select[name*="-source_warehouse"]');
-        const destinationWarehouseSelect = lineForm.querySelector('select[name*="-destination_warehouse"]');
-        if (sourceWarehouseSelect) {
+    }
+    
+    // Handle source_warehouse and destination_warehouse if they exist
+    const sourceWarehouseSelect = lineForm.querySelector('select[name*="-source_warehouse"]');
+    const destinationWarehouseSelect = lineForm.querySelector('select[name*="-destination_warehouse"]');
+    
+    if (sourceWarehouseSelect && typeof initCascadingDropdown === 'function') {
+      try {
+        initCascadingDropdown(itemSelect, sourceWarehouseSelect, warehouseChoicesUrl, {
+          parentField: 'item_id',
+          placeholder: '--- {% trans "Select Item First" %} ---',
+          valueField: 'value',
+          labelField: 'label'
+        });
+        console.log('[setupItemSelectHandlers] Cascading dropdown initialized for Item → Source Warehouse');
+      } catch (error) {
+        console.error('[setupItemSelectHandlers] Error initializing cascading dropdown for Source Warehouse:', error);
+        if (itemSelect.value) {
           updateWarehouseChoices(itemSelect, sourceWarehouseSelect);
         }
-        if (destinationWarehouseSelect) {
+      }
+    }
+    
+    if (destinationWarehouseSelect && typeof initCascadingDropdown === 'function') {
+      try {
+        initCascadingDropdown(itemSelect, destinationWarehouseSelect, warehouseChoicesUrl, {
+          parentField: 'item_id',
+          placeholder: '--- {% trans "Select Item First" %} ---',
+          valueField: 'value',
+          labelField: 'label'
+        });
+        console.log('[setupItemSelectHandlers] Cascading dropdown initialized for Item → Destination Warehouse');
+      } catch (error) {
+        console.error('[setupItemSelectHandlers] Error initializing cascading dropdown for Destination Warehouse:', error);
+        if (itemSelect.value) {
           updateWarehouseChoices(itemSelect, destinationWarehouseSelect);
-        }
-      } else {
-        // If no item selected, disable warehouse selects
-        warehouseSelect.disabled = true;
-        const placeholder = warehouseSelect.querySelector('option[value=""]');
-        if (!placeholder || placeholder.textContent.indexOf('Select Item') === -1) {
-          warehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
-        }
-        const sourceWarehouseSelect = lineForm.querySelector('select[name*="-source_warehouse"]');
-        const destinationWarehouseSelect = lineForm.querySelector('select[name*="-destination_warehouse"]');
-        if (sourceWarehouseSelect) {
-          sourceWarehouseSelect.disabled = true;
-          const sourcePlaceholder = sourceWarehouseSelect.querySelector('option[value=""]');
-          if (!sourcePlaceholder || sourcePlaceholder.textContent.indexOf('Select Item') === -1) {
-            sourceWarehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
-          }
-        }
-        if (destinationWarehouseSelect) {
-          destinationWarehouseSelect.disabled = true;
-          const destPlaceholder = destinationWarehouseSelect.querySelector('option[value=""]');
-          if (!destPlaceholder || destPlaceholder.textContent.indexOf('Select Item') === -1) {
-            destinationWarehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
-          }
         }
       }
     }

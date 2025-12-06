@@ -824,14 +824,14 @@
 | نوع Refactor | تعداد فایل | اولویت | وضعیت |
 |-------------|-----------|--------|--------|
 | Detail Views → Generic | 39 | 🔴 بالا | ✅ **39 فایل تکمیل شد (100%)** |
-| JavaScript Inline → Shared Files | 40+ | 🔴 بالا | ⏳ **12 فایل refactor شد (30%)** - فاز 4.1، 4.2 و 4.3 در حال انجام |
+| JavaScript Inline → Shared Files | 40+ | 🔴 بالا | ⏳ **13 فایل refactor شد (32%)** - فاز 4.1، 4.2 و 4.3 در حال انجام |
 | List Views → Generic | 8 | 🟡 متوسط | ⏳ در انتظار |
 | Form Views → Generic | 4-5 | 🟡 متوسط | ⏳ در انتظار |
 | Inline CSS → Shared CSS | 25+ | 🟡 متوسط | ⏳ در انتظار |
 | Inline Event Handlers → JS Files | 10+ | 🟡 متوسط | ⏳ در انتظار |
 | Row Actions → Partial | 10+ | 🟢 پایین | ⏳ در انتظار |
 | Pagination → Partial | 5+ | 🟢 پایین | ⏳ در انتظار |
-| **جمع کل** | **110+ فایل** | | **50 فایل تکمیل شد (45%)** |
+| **جمع کل** | **110+ فایل** | | **51 فایل تکمیل شد (46%)** |
 
 ---
 
@@ -861,8 +861,8 @@
    - ⏳ **باقی مانده**: `production/bom_form.html`, `production/process_form.html`, `production/rework_document_form.html`, `inventory/receipt_form.html`, `inventory/issue_form.html`, `inventory/stocktaking_form.html`, `ticketing/category_form.html`, `ticketing/subcategory_form.html`, `ticketing/template_form.html`, `shared/user_form.html`, `accounting/treasury/account_form.html`, `accounting/parties/party_form.html`, `inventory/create_receipt_from_purchase_request.html`, `inventory/create_issue_from_warehouse_request.html`
 2. ⏳ Refactor Cascading Dropdowns JavaScript (10+ فایل) - **5 فایل refactor شد**
    - استفاده از `static/js/cascading-dropdowns.js` و `static/js/item-filters.js`
-   - ✅ **تکمیل شده**: `production/bom_form.html`, `accounting/treasury/account_form.html`, `inventory/item_form.html`, `production/transfer_to_line_form.html`, `inventory/purchase_request_form.html` (استفاده از item-filters.js)
-   - ⏳ **باقی مانده**: `production/process_form.html`, `inventory/receipt_form.html`, `inventory/issue_form.html`, `accounting/parties/party_account_form.html` (بررسی شد - JavaScript ندارد), `inventory/create_receipt_from_purchase_request.html`
+   - ✅ **تکمیل شده**: `production/bom_form.html`, `accounting/treasury/account_form.html`, `inventory/item_form.html`, `production/transfer_to_line_form.html`, `inventory/purchase_request_form.html` (استفاده از item-filters.js), `inventory/receipt_form.html`
+   - ⏳ **باقی مانده**: `production/process_form.html` (بررسی شد - cascading dropdowns ندارد), `inventory/issue_form.html`, `accounting/parties/party_account_form.html` (بررسی شد - JavaScript ندارد), `inventory/create_receipt_from_purchase_request.html` (بررسی شد - cascading dropdowns ندارد)
 3. ⏳ Refactor Table Export JavaScript (17+ فایل) - **3 فایل refactor شد**
    - استفاده از `static/js/table-export.js`
    - ✅ **تکمیل شده**: `shared/generic/generic_report.html`, `inventory/inventory_balance.html`, `inventory/inventory_balance_details.html`
@@ -1030,12 +1030,13 @@ document.addEventListener('DOMContentLoaded', function() {
   - ✅ فاز 1.5: Detail Views ماژول shared (6 فایل)
 - ⏳ فاز 4: JavaScript Refactoring (40+ فایل) - در حال انجام
   - ⏳ فاز 4.1: Formset Management JavaScript (18+ فایل) - **4 فایل refactor شدند** (22%)
-  - ⏳ فاز 4.2: Cascading Dropdowns JavaScript (10+ فایل) - **5 فایل refactor شدند** (50%)
+  - ⏳ فاز 4.2: Cascading Dropdowns JavaScript (10+ فایل) - **6 فایل refactor شدند** (60%)
     - ✅ `production/bom_form.html` - Type → Category → Subcategory
     - ✅ `accounting/treasury/account_form.html` - Tafsili → Sub Account → GL Account
     - ✅ `inventory/item_form.html` - Category → Subcategory
     - ✅ `production/transfer_to_line_form.html` - Type → Category → Subcategory → Item → Unit/Warehouse
     - ✅ `inventory/purchase_request_form.html` - استفاده از item-filters.js (که cascading dropdowns را handle می‌کند)
+    - ✅ `inventory/receipt_form.html` - Item → Unit, Item → Warehouse (در formset)
   - ⏳ فاز 4.3: Table Export JavaScript (17+ فایل) - **3 فایل refactor شدند** (18%)
     - ✅ `shared/generic/generic_report.html`
     - ✅ `inventory/inventory_balance.html`
@@ -1045,5 +1046,5 @@ document.addEventListener('DOMContentLoaded', function() {
 
 **پیشرفت کلی**: 
 - ✅ Detail Views: 39 از 39 فایل (100%)
-- ⏳ JavaScript Refactoring: 12 از 40+ فایل (~30%)
+- ⏳ JavaScript Refactoring: 13 از 40+ فایل (~32%)
 
