@@ -1,137 +1,116 @@
-{% extends "inventory/base.html" %}
+{% extends "shared/generic/generic_detail.html" %}
 {% load i18n jalali_tags %}
 
-{% block page_title %}{% trans "View Purchase Request" %}{% endblock %}
+{% block title %}{% trans "View Purchase Request" %} - {{ block.super }}{% endblock %}
 
-{% block inventory_content %}
-<div class="form-container">
-  <div class="info-banner">
-    <div><strong>{% trans "Request Code" %}:</strong> {{ purchase_request.request_code }}</div>
-    <div><strong>{% trans "Request Date" %}:</strong> {{ purchase_request.request_date|jalali_date }}</div>
-    <div><strong>{% trans "Status" %}:</strong> {{ purchase_request.get_status_display }}</div>
-    <div class="lock-status">
-      <strong>{% trans "Lock Status" %}:</strong>
-      {% if purchase_request.is_locked %}
-        <span class="badge badge-locked">{% trans "Locked" %}</span>
-      {% else %}
-        <span class="badge badge-unlocked">{% trans "Editable" %}</span>
-      {% endif %}
-    </div>
-  </div>
-
+{% block info_banner_extra %}
+<div><strong>{% trans "Request Code" %}:</strong> {{ purchase_request.request_code }}</div>
+<div><strong>{% trans "Request Date" %}:</strong> {{ purchase_request.request_date|jalali_date }}</div>
+<div><strong>{% trans "Status" %}:</strong> {{ purchase_request.get_status_display }}</div>
+<div class="lock-status">
+  <strong>{% trans "Lock Status" %}:</strong>
   {% if purchase_request.is_locked %}
-  <div class="alert alert-info">
-    {% trans "This document is locked and can no longer be edited or deleted." %}
-  </div>
+    <span class="badge badge-locked">{% trans "Locked" %}</span>
+  {% else %}
+    <span class="badge badge-unlocked">{% trans "Editable" %}</span>
   {% endif %}
+</div>
+{% endblock %}
 
-  <div class="form-section">
-    <h3>{% trans "Request Information" %}</h3>
-    <div class="form-row">
-      <div class="form-field">
-        <label>{% trans "Requested By" %}</label>
-        <div class="readonly-field">{{ purchase_request.requested_by.get_full_name|default:purchase_request.requested_by.username }}</div>
-      </div>
-      {% if purchase_request.approver %}
-      <div class="form-field">
-        <label>{% trans "Approver" %}</label>
-        <div class="readonly-field">{{ purchase_request.approver.get_full_name|default:purchase_request.approver.username }}</div>
-      </div>
-      {% endif %}
-      {% if purchase_request.approved_at %}
-      <div class="form-field">
-        <label>{% trans "Approved At" %}</label>
-        <div class="readonly-field">{{ purchase_request.approved_at|jalali_date }}</div>
-      </div>
-      {% endif %}
-      <div class="form-field">
-        <label>{% trans "Priority" %}</label>
-        <div class="readonly-field">{{ purchase_request.get_priority_display }}</div>
-      </div>
-      {% if purchase_request.needed_by_date %}
-      <div class="form-field">
-        <label>{% trans "Needed By Date" %}</label>
-        <div class="readonly-field">{{ purchase_request.needed_by_date|jalali_date }}</div>
-      </div>
-      {% endif %}
-      {% if purchase_request.reason_code %}
-      <div class="form-field">
-        <label>{% trans "Reason Code" %}</label>
-        <div class="readonly-field">{{ purchase_request.reason_code }}</div>
-      </div>
-      {% endif %}
-      {% if purchase_request.reference_document_code %}
-      <div class="form-field">
-        <label>{% trans "Reference Document" %}</label>
-        <div class="readonly-field">{{ purchase_request.reference_document_type }} - {{ purchase_request.reference_document_code }}</div>
-      </div>
-      {% endif %}
+{% block detail_sections %}
+{% if purchase_request.is_locked %}
+<div class="alert alert-info">
+  {% trans "This document is locked and can no longer be edited or deleted." %}
+</div>
+{% endif %}
+
+<div class="form-section">
+  <h3>{% trans "Request Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Requested By" %}</label>
+      <div class="readonly-field">{{ purchase_request.requested_by.get_full_name|default:purchase_request.requested_by.username }}</div>
     </div>
-  </div>
-
-  {% if purchase_request.approval_notes %}
-  <div class="form-section">
-    <h3>{% trans "Approval Notes" %}</h3>
-    <div class="readonly-field">{{ purchase_request.approval_notes|linebreaks }}</div>
-  </div>
-  {% endif %}
-
-  <div class="form-section">
-    <h3>{% trans "Request Lines" %}</h3>
-    {% if purchase_request.lines.all %}
-    <div class="data-table-container">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>{% trans "Item" %}</th>
-            <th>{% trans "Unit" %}</th>
-            <th>{% trans "Quantity Requested" %}</th>
-            <th>{% trans "Quantity Fulfilled" %}</th>
-            <th>{% trans "Remaining" %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for line in purchase_request.lines.all %}
-          <tr>
-            <td>
-              <strong>{{ line.item.name }}</strong>
-              <br>
-              <small class="text-muted">{{ line.item.item_code }}</small>
-            </td>
-            <td>{{ line.unit }}</td>
-            <td style="text-align: right;">{{ line.quantity_requested|floatformat:2 }}</td>
-            <td style="text-align: right;">{{ line.quantity_fulfilled|floatformat:2 }}</td>
-            <td style="text-align: right;">{{ line.quantity_remaining|floatformat:2 }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <div class="alert alert-info">
-      {% trans "No lines found for this request." %}
+    {% if purchase_request.approver %}
+    <div class="form-field">
+      <label>{% trans "Approver" %}</label>
+      <div class="readonly-field">{{ purchase_request.approver.get_full_name|default:purchase_request.approver.username }}</div>
     </div>
     {% endif %}
-  </div>
-
-  <div class="form-actions" style="margin-top: 2rem;">
-    <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
-    {% if can_edit %}
-    <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+    {% if purchase_request.approved_at %}
+    <div class="form-field">
+      <label>{% trans "Approved At" %}</label>
+      <div class="readonly-field">{{ purchase_request.approved_at|jalali_date }}</div>
+    </div>
+    {% endif %}
+    <div class="form-field">
+      <label>{% trans "Priority" %}</label>
+      <div class="readonly-field">{{ purchase_request.get_priority_display }}</div>
+    </div>
+    {% if purchase_request.needed_by_date %}
+    <div class="form-field">
+      <label>{% trans "Needed By Date" %}</label>
+      <div class="readonly-field">{{ purchase_request.needed_by_date|jalali_date }}</div>
+    </div>
+    {% endif %}
+    {% if purchase_request.reason_code %}
+    <div class="form-field">
+      <label>{% trans "Reason Code" %}</label>
+      <div class="readonly-field">{{ purchase_request.reason_code }}</div>
+    </div>
+    {% endif %}
+    {% if purchase_request.reference_document_code %}
+    <div class="form-field">
+      <label>{% trans "Reference Document" %}</label>
+      <div class="readonly-field">{{ purchase_request.reference_document_type }} - {{ purchase_request.reference_document_code }}</div>
+    </div>
     {% endif %}
   </div>
 </div>
 
-<style>
-.readonly-field {
-  padding: 0.5rem;
-  background-color: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  min-height: 2.5rem;
-  display: flex;
-  align-items: center;
-}
-</style>
+{% if purchase_request.approval_notes %}
+<div class="form-section">
+  <h3>{% trans "Approval Notes" %}</h3>
+  <div class="readonly-field">{{ purchase_request.approval_notes|linebreaks }}</div>
+</div>
+{% endif %}
+
+<div class="form-section">
+  <h3>{% trans "Request Lines" %}</h3>
+  {% if purchase_request.lines.all %}
+  <div class="data-table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>{% trans "Item" %}</th>
+          <th>{% trans "Unit" %}</th>
+          <th>{% trans "Quantity Requested" %}</th>
+          <th>{% trans "Quantity Fulfilled" %}</th>
+          <th>{% trans "Remaining" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in purchase_request.lines.all %}
+        <tr>
+          <td>
+            <strong>{{ line.item.name }}</strong>
+            <br>
+            <small class="text-muted">{{ line.item.item_code }}</small>
+          </td>
+          <td>{{ line.unit }}</td>
+          <td style="text-align: right;">{{ line.quantity_requested|floatformat:2 }}</td>
+          <td style="text-align: right;">{{ line.quantity_fulfilled|floatformat:2 }}</td>
+          <td style="text-align: right;">{{ line.quantity_remaining|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    {% trans "No lines found for this request." %}
+  </div>
+  {% endif %}
+</div>
 {% endblock %}
 

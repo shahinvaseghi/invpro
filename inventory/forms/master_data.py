@@ -232,7 +232,7 @@ class WarehouseForm(BaseModelForm):
         }
 
 
-class SupplierForm(forms.ModelForm):
+class SupplierForm(BaseModelForm):
     """Form for creating/editing suppliers."""
     
     class Meta:
@@ -243,19 +243,8 @@ class SupplierForm(forms.ModelForm):
             'description', 'sort_order', 'is_enabled'
         ]
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'mobile_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'city': forms.TextInput(attrs={'class': 'form-control'}),
-            'state': forms.TextInput(attrs={'class': 'form-control'}),
-            'country': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '3'}),
-            'tax_id': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.TextInput(attrs={'class': 'form-control'}),
-            'sort_order': forms.NumberInput(attrs={'class': 'form-control'}),
-            'is_enabled': forms.Select(attrs={'class': 'form-control'}),
+            'address': forms.Textarea(attrs={'rows': 3}),
+            'country': forms.TextInput(attrs={'maxlength': '3'}),
         }
         labels = {
             'name': _('Name (Persian)'),
@@ -274,7 +263,7 @@ class SupplierForm(forms.ModelForm):
         }
 
 
-class SupplierCategoryForm(forms.ModelForm):
+class SupplierCategoryForm(BaseModelForm):
     """Form for creating/editing supplier categories with optional subcategories and items."""
 
     is_primary = forms.BooleanField(
@@ -301,9 +290,7 @@ class SupplierCategoryForm(forms.ModelForm):
         model = SupplierCategory
         fields = ['supplier', 'category', 'is_primary', 'notes']
         widgets = {
-            'supplier': forms.Select(attrs={'class': 'form-control'}),
-            'category': forms.Select(attrs={'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
         }
         labels = {
             'supplier': _('تأمین‌کننده'),
@@ -313,22 +300,23 @@ class SupplierCategoryForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         """Initialize form with company filtering."""
-        self.company_id = kwargs.pop('company_id', None)
         super().__init__(*args, **kwargs)
+        # company_id is now set by BaseModelForm
+        company_id = getattr(self, 'company_id', None)
 
-        if self.company_id:
+        if company_id:
             self.fields['supplier'].queryset = Supplier.objects.filter(
-                company_id=self.company_id,
+                company_id=company_id,
                 is_enabled=1,
             )
             self.fields['category'].queryset = ItemCategory.objects.filter(
-                company_id=self.company_id,
+                company_id=company_id,
                 is_enabled=1,
             )
 
             category_id = self._resolve_category_id()
             subcategory_qs = ItemSubcategory.objects.filter(
-                company_id=self.company_id,
+                company_id=company_id,
                 is_enabled=1,
             )
             if category_id:
@@ -336,7 +324,7 @@ class SupplierCategoryForm(forms.ModelForm):
             self.fields['subcategories'].queryset = subcategory_qs.order_by('category__name', 'name')
 
             item_qs = Item.objects.filter(
-                company_id=self.company_id,
+                company_id=company_id,
                 is_enabled=1,
             )
             if category_id:

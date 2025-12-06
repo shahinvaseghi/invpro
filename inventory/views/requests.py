@@ -397,6 +397,14 @@ class PurchaseRequestDetailView(InventoryBaseView, BaseDetailView):
         """Return edit URL."""
         return reverse_lazy('inventory:purchase_request_edit', kwargs={'pk': self.object.pk})
 
+    def get_context_data(self, **kwargs):
+        """Add detail_title and info_banner for generic_detail.html."""
+        context = super().get_context_data(**kwargs)
+        context['detail_title'] = self.get_page_title()
+        # Add empty info_banner list to enable info_banner_extra block
+        context['info_banner'] = []
+        return context
+
 
 class PurchaseRequestUpdateView(LineFormsetMixin, PurchaseRequestFormMixin, BaseFormsetUpdateView):
     """Update view for purchase requests."""
@@ -918,6 +926,14 @@ class WarehouseRequestDetailView(InventoryBaseView, BaseDetailView):
     def get_edit_url(self):
         """Return edit URL."""
         return reverse_lazy('inventory:warehouse_request_edit', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        """Add detail_title and info_banner for generic_detail.html."""
+        context = super().get_context_data(**kwargs)
+        context['detail_title'] = self.get_page_title()
+        # Add empty info_banner list to enable info_banner_extra block
+        context['info_banner'] = []
+        return context
 
 
 class WarehouseRequestUpdateView(LineFormsetMixin, WarehouseRequestFormMixin, BaseFormsetUpdateView):
