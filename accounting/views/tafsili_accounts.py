@@ -243,8 +243,8 @@ class TafsiliAccountUpdateView(BaseUpdateView, EditLockProtectedMixin):
 class TafsiliAccountDetailView(BaseDetailView):
     """Detail view for viewing Tafsili accounts (read-only)."""
     model = Account
-    template_name = 'accounting/tafsili_account_detail.html'
-    context_object_name = 'account'
+    template_name = 'shared/generic/generic_detail.html'
+    context_object_name = 'object'
     feature_code = 'accounting.accounts.tafsili'
     required_action = 'view_own'
     active_module = 'accounting'
@@ -263,6 +263,78 @@ class TafsiliAccountDetailView(BaseDetailView):
         ).prefetch_related('sub_account_relations_as_tafsili__sub_account')
         return queryset
     
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Tafsili Account')
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        account = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        info_banner = [
+            {'label': _('Account Code'), 'value': account.account_code, 'type': 'code'},
+            {'label': _('Status'), 'value': account.is_enabled, 'type': 'badge'},
+        ]
+        if account.current_balance:
+            info_banner.append({
+                'label': _('Current Balance'),
+                'value': f"{account.current_balance:.2f}",
+            })
+        context['info_banner'] = info_banner
+        
+        # Basic Information section
+        basic_fields = [
+            {'label': _('Account Name'), 'value': account.account_name},
+        ]
+        if account.account_name_en:
+            basic_fields.append({'label': _('Account Name (EN)'), 'value': account.account_name_en})
+        if account.parent_account:
+            basic_fields.append({
+                'label': _('Parent Account'),
+                'value': f"{account.parent_account.account_code} - {account.parent_account.account_name}",
+            })
+        basic_fields.append({
+            'label': _('Normal Balance'),
+            'value': account.get_normal_balance_display() or account.normal_balance,
+        })
+        if account.description:
+            basic_fields.append({'label': _('Description'), 'value': account.description})
+        
+        detail_sections = [
+            {
+                'title': _('Basic Information'),
+                'fields': basic_fields,
+            },
+        ]
+        
+        # Get related sub accounts
+        from accounting.models import TafsiliSubAccountRelation
+        company_id = self.request.session.get('active_company_id')
+        related_sub_accounts = []
+        if company_id:
+            relations = TafsiliSubAccountRelation.objects.filter(
+                tafsili_account=account,
+                company_id=company_id
+            ).select_related('sub_account')
+            related_sub_accounts = [rel.sub_account for rel in relations]
+        
+        # Related Sub Accounts section
+        if related_sub_accounts:
+            sub_accounts_text = '<br>'.join([
+                f"<code>{sub.account_code}</code> - {sub.account_name}"
+                for sub in related_sub_accounts
+            ])
+            detail_sections.append({
+                'title': _('Related Sub Accounts'),
+                'type': 'custom',
+                'content': f'<div class="readonly-field">{sub_accounts_text}</div>',
+            })
+        
+        context['detail_sections'] = detail_sections
+        return context
+    
     def get_list_url(self):
         """Return list URL."""
         return reverse_lazy('accounting:tafsili_accounts')
@@ -277,22 +349,6 @@ class TafsiliAccountDetailView(BaseDetailView):
         if hasattr(check_obj, 'is_locked'):
             return not bool(check_obj.is_locked)
         return True
-    
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail template."""
-        context = super().get_context_data(**kwargs)
-        
-        # Get related sub accounts
-        from accounting.models import TafsiliSubAccountRelation
-        company_id = self.request.session.get('active_company_id')
-        if company_id:
-            relations = TafsiliSubAccountRelation.objects.filter(
-                tafsili_account=self.object,
-                company_id=company_id
-            ).select_related('sub_account')
-            context['related_sub_accounts'] = [rel.sub_account for rel in relations]
-        
-        return context
 
 
 class TafsiliAccountDeleteView(BaseDeleteView):

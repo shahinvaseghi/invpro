@@ -213,8 +213,8 @@ class AccountUpdateView(BaseUpdateView, EditLockProtectedMixin):
 class AccountDetailView(BaseDetailView):
     """Detail view for viewing accounts (read-only)."""
     model = Account
-    template_name = 'accounting/account_detail.html'
-    context_object_name = 'account'
+    template_name = 'shared/generic/generic_detail.html'
+    context_object_name = 'object'
     feature_code = 'accounting.accounts'
     required_action = 'view_own'
     active_module = 'accounting'
@@ -232,6 +232,72 @@ class AccountDetailView(BaseDetailView):
             'edited_by',
         ).prefetch_related('child_accounts')
         return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Account')
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add detail view context data."""
+        context = super().get_context_data(**kwargs)
+        account = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        info_banner = [
+            {'label': _('Account Code'), 'value': account.account_code, 'type': 'code'},
+            {'label': _('Account Level'), 'value': str(account.account_level)},
+            {'label': _('Status'), 'value': account.is_enabled, 'type': 'badge'},
+        ]
+        if account.current_balance:
+            info_banner.append({
+                'label': _('Current Balance'),
+                'value': f"{account.current_balance:.2f}",
+            })
+        context['info_banner'] = info_banner
+        
+        # Basic Information section
+        basic_fields = [
+            {'label': _('Account Name'), 'value': account.account_name},
+        ]
+        if account.account_name_en:
+            basic_fields.append({'label': _('Account Name (EN)'), 'value': account.account_name_en})
+        basic_fields.append({
+            'label': _('Account Type'),
+            'value': account.get_account_type_display() or account.account_type,
+        })
+        basic_fields.append({
+            'label': _('Normal Balance'),
+            'value': account.get_normal_balance_display() or account.normal_balance,
+        })
+        if account.parent_account:
+            basic_fields.append({
+                'label': _('Parent Account'),
+                'value': f"{account.parent_account.account_code} - {account.parent_account.account_name}",
+            })
+        if account.description:
+            basic_fields.append({'label': _('Description'), 'value': account.description})
+        
+        detail_sections = [
+            {
+                'title': _('Basic Information'),
+                'fields': basic_fields,
+            },
+        ]
+        
+        # Child Accounts section
+        if account.child_accounts.exists():
+            child_accounts_text = '<br>'.join([
+                f"<code>{child.account_code}</code> - {child.account_name} ({_('Level')} {child.account_level})"
+                for child in account.child_accounts.all()
+            ])
+            detail_sections.append({
+                'title': _('Child Accounts'),
+                'type': 'custom',
+                'content': f'<div class="readonly-field">{child_accounts_text}</div>',
+            })
+        
+        context['detail_sections'] = detail_sections
+        return context
     
     def get_list_url(self):
         """Return list URL."""

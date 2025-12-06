@@ -302,8 +302,8 @@ class TicketTemplateUpdateView(BaseMultipleFormsetUpdateView, EditLockProtectedM
 class TicketTemplateDetailView(BaseDetailView):
     """Detail view for viewing ticket templates (read-only)."""
     model = models.TicketTemplate
-    template_name = "ticketing/template_detail.html"
-    context_object_name = "template"
+    template_name = "shared/generic/generic_detail.html"
+    context_object_name = "object"
     feature_code = "ticketing.management.templates"
     required_action = "view_all"
     active_module = "ticketing"
@@ -325,6 +325,77 @@ class TicketTemplateDetailView(BaseDetailView):
             'permissions',
         )
         return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Ticket Template')
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add detail view context data."""
+        context = super().get_context_data(**kwargs)
+        template = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        context['info_banner'] = [
+            {'label': _('Template Code'), 'value': template.template_code, 'type': 'code'},
+            {'label': _('Status'), 'value': template.is_enabled, 'type': 'badge'},
+        ]
+        
+        # Basic Information section
+        basic_fields = [
+            {'label': _('Name'), 'value': template.name},
+        ]
+        if template.category:
+            basic_fields.append({
+                'label': _('Category'),
+                'value': template.category.name,
+            })
+        if template.subcategory:
+            basic_fields.append({
+                'label': _('Subcategory'),
+                'value': template.subcategory.name,
+            })
+        if template.default_priority:
+            basic_fields.append({
+                'label': _('Default Priority'),
+                'value': template.default_priority.name,
+            })
+        if template.description:
+            basic_fields.append({'label': _('Description'), 'value': template.description})
+        
+        detail_sections = [
+            {
+                'title': _('Basic Information'),
+                'fields': basic_fields,
+            },
+        ]
+        
+        # Template Fields section (table)
+        if template.fields.exists():
+            headers = [
+                _('Field Name'),
+                _('Field Type'),
+                _('Required'),
+                _('Order'),
+            ]
+            data = []
+            for field in template.fields.all():
+                data.append([
+                    field.field_name,
+                    field.get_field_type_display(),
+                    _('Yes') if field.is_required else _('No'),
+                    str(field.field_order),
+                ])
+            
+            detail_sections.append({
+                'title': _('Template Fields'),
+                'type': 'table',
+                'headers': headers,
+                'data': data,
+            })
+        
+        context['detail_sections'] = detail_sections
+        return context
     
     def get_list_url(self):
         """Return list URL."""

@@ -300,8 +300,8 @@ class TicketCategoryUpdateView(BaseFormsetUpdateView, EditLockProtectedMixin):
 class TicketCategoryDetailView(BaseDetailView):
     """Detail view for viewing ticket categories (read-only)."""
     model = models.TicketCategory
-    template_name = "ticketing/category_detail.html"
-    context_object_name = "category"
+    template_name = "shared/generic/generic_detail.html"
+    context_object_name = "object"
     feature_code = "ticketing.management.categories"
     required_action = "view_all"
     active_module = "ticketing"
@@ -318,6 +318,55 @@ class TicketCategoryDetailView(BaseDetailView):
             'edited_by',
         ).prefetch_related('subcategories')
         return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Ticket Category')
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add detail view context data."""
+        context = super().get_context_data(**kwargs)
+        category = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        context['info_banner'] = [
+            {'label': _('Code'), 'value': category.public_code, 'type': 'code'},
+            {'label': _('Status'), 'value': category.is_enabled, 'type': 'badge'},
+        ]
+        
+        # Basic Information section
+        basic_fields = [
+            {'label': _('Name'), 'value': category.name},
+        ]
+        if category.name_en:
+            basic_fields.append({'label': _('Name (EN)'), 'value': category.name_en})
+        if category.parent_category:
+            basic_fields.append({
+                'label': _('Parent Category'),
+                'value': category.parent_category.name,
+            })
+        if category.description:
+            basic_fields.append({'label': _('Description'), 'value': category.description})
+        
+        detail_sections = [
+            {
+                'title': _('Basic Information'),
+                'fields': basic_fields,
+            },
+        ]
+        
+        # Subcategories section
+        if category.subcategories.exists():
+            subcategories_text = ', '.join([subcat.name for subcat in category.subcategories.all()])
+            detail_sections.append({
+                'title': _('Subcategories'),
+                'fields': [
+                    {'label': _('Subcategories'), 'value': subcategories_text},
+                ],
+            })
+        
+        context['detail_sections'] = detail_sections
+        return context
     
     def get_list_url(self):
         """Return list URL."""

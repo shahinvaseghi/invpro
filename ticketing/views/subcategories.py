@@ -335,8 +335,8 @@ class TicketSubcategoryUpdateView(BaseFormsetUpdateView, EditLockProtectedMixin)
 class TicketSubcategoryDetailView(BaseDetailView):
     """Detail view for viewing ticket subcategories (read-only)."""
     model = models.TicketCategory
-    template_name = "ticketing/subcategory_detail.html"
-    context_object_name = "subcategory"
+    template_name = "shared/generic/generic_detail.html"
+    context_object_name = "object"
     feature_code = "ticketing.management.subcategories"
     required_action = "view_all"
     active_module = "ticketing"
@@ -355,6 +355,43 @@ class TicketSubcategoryDetailView(BaseDetailView):
             'edited_by',
         )
         return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Ticket Subcategory')
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add detail view context data."""
+        context = super().get_context_data(**kwargs)
+        subcategory = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        context['info_banner'] = [
+            {'label': _('Code'), 'value': subcategory.public_code, 'type': 'code'},
+            {'label': _('Status'), 'value': subcategory.is_enabled, 'type': 'badge'},
+        ]
+        
+        # Basic Information section
+        basic_fields = [
+            {'label': _('Name'), 'value': subcategory.name},
+        ]
+        if subcategory.name_en:
+            basic_fields.append({'label': _('Name (EN)'), 'value': subcategory.name_en})
+        if subcategory.parent_category:
+            basic_fields.append({
+                'label': _('Parent Category'),
+                'value': subcategory.parent_category.name,
+            })
+        if subcategory.description:
+            basic_fields.append({'label': _('Description'), 'value': subcategory.description})
+        
+        context['detail_sections'] = [
+            {
+                'title': _('Basic Information'),
+                'fields': basic_fields,
+            },
+        ]
+        return context
     
     def get_list_url(self):
         """Return list URL."""

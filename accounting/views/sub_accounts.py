@@ -243,8 +243,8 @@ class SubAccountUpdateView(BaseUpdateView, EditLockProtectedMixin):
 class SubAccountDetailView(BaseDetailView):
     """Detail view for viewing Sub accounts (read-only)."""
     model = Account
-    template_name = 'accounting/sub_account_detail.html'
-    context_object_name = 'account'
+    template_name = 'shared/generic/generic_detail.html'
+    context_object_name = 'object'
     feature_code = 'accounting.accounts.sub'
     required_action = 'view_own'
     active_module = 'accounting'
@@ -266,6 +266,90 @@ class SubAccountDetailView(BaseDetailView):
         )
         return queryset
     
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Sub Account')
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for detail template."""
+        context = super().get_context_data(**kwargs)
+        account = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        info_banner = [
+            {'label': _('Account Code'), 'value': account.account_code, 'type': 'code'},
+            {'label': _('Status'), 'value': account.is_enabled, 'type': 'badge'},
+        ]
+        if account.current_balance:
+            info_banner.append({
+                'label': _('Current Balance'),
+                'value': f"{account.current_balance:.2f}",
+            })
+        context['info_banner'] = info_banner
+        
+        # Basic Information section
+        basic_fields = [
+            {'label': _('Account Name'), 'value': account.account_name},
+        ]
+        if account.account_name_en:
+            basic_fields.append({'label': _('Account Name (EN)'), 'value': account.account_name_en})
+        if account.parent_account:
+            basic_fields.append({
+                'label': _('Parent Account'),
+                'value': f"{account.parent_account.account_code} - {account.parent_account.account_name}",
+            })
+        basic_fields.append({
+            'label': _('Normal Balance'),
+            'value': account.get_normal_balance_display() or account.normal_balance,
+        })
+        if account.description:
+            basic_fields.append({'label': _('Description'), 'value': account.description})
+        
+        detail_sections = [
+            {
+                'title': _('Basic Information'),
+                'fields': basic_fields,
+            },
+        ]
+        
+        # Get related GL accounts
+        from accounting.models import SubAccountGLAccountRelation
+        company_id = self.request.session.get('active_company_id')
+        related_gl_accounts = []
+        if company_id:
+            relations = SubAccountGLAccountRelation.objects.filter(
+                sub_account=account,
+                company_id=company_id
+            ).select_related('gl_account')
+            related_gl_accounts = [rel.gl_account for rel in relations]
+        
+        # Related GL Accounts section
+        if related_gl_accounts:
+            gl_accounts_text = '<br>'.join([
+                f"<code>{gl.account_code}</code> - {gl.account_name}"
+                for gl in related_gl_accounts
+            ])
+            detail_sections.append({
+                'title': _('Related GL Accounts'),
+                'type': 'custom',
+                'content': f'<div class="readonly-field">{gl_accounts_text}</div>',
+            })
+        
+        # Child Accounts section
+        if account.child_accounts.exists():
+            child_accounts_text = '<br>'.join([
+                f"<code>{child.account_code}</code> - {child.account_name}"
+                for child in account.child_accounts.all()
+            ])
+            detail_sections.append({
+                'title': _('Child Accounts') + ' (' + _('Tafsili Accounts') + ')',
+                'type': 'custom',
+                'content': f'<div class="readonly-field">{child_accounts_text}</div>',
+            })
+        
+        context['detail_sections'] = detail_sections
+        return context
+    
     def get_list_url(self):
         """Return list URL."""
         return reverse_lazy('accounting:sub_accounts')
@@ -280,22 +364,6 @@ class SubAccountDetailView(BaseDetailView):
         if hasattr(check_obj, 'is_locked'):
             return not bool(check_obj.is_locked)
         return True
-    
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail template."""
-        context = super().get_context_data(**kwargs)
-        
-        # Get related GL accounts
-        from accounting.models import SubAccountGLAccountRelation
-        company_id = self.request.session.get('active_company_id')
-        if company_id:
-            relations = SubAccountGLAccountRelation.objects.filter(
-                sub_account=self.object,
-                company_id=company_id
-            ).select_related('gl_account')
-            context['related_gl_accounts'] = [rel.gl_account for rel in relations]
-        
-        return context
 
 
 class SubAccountDeleteView(BaseDeleteView):

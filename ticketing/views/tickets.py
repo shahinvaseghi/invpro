@@ -222,8 +222,8 @@ class TicketCreateView(BaseCreateView):
 class TicketDetailView(BaseDetailView):
     """Detail view for viewing tickets (read-only)."""
     model = models.Ticket
-    template_name = "ticketing/ticket_detail.html"
-    context_object_name = "ticket"
+    template_name = "shared/generic/generic_detail.html"
+    context_object_name = "object"
     feature_code = "ticketing.tickets"
     required_action = "view_all"
     active_module = "ticketing"
@@ -238,12 +238,85 @@ class TicketDetailView(BaseDetailView):
             'template',
             'category',
             'subcategory',
+            'priority',
             'reported_by',
             'assigned_to',
             'created_by',
             'edited_by',
         )
         return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Ticket')
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add detail view context data."""
+        context = super().get_context_data(**kwargs)
+        ticket = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        info_banner = [
+            {'label': _('Ticket Code'), 'value': ticket.ticket_code, 'type': 'code'},
+            {'label': _('Status'), 'value': ticket.get_status_display()},
+        ]
+        if ticket.priority:
+            info_banner.append({
+                'label': _('Priority'),
+                'value': ticket.priority.name,
+            })
+        context['info_banner'] = info_banner
+        
+        # Basic Information section
+        basic_fields = [
+            {'label': _('Title'), 'value': ticket.title},
+        ]
+        if ticket.description:
+            basic_fields.append({'label': _('Description'), 'value': ticket.description})
+        if ticket.template:
+            basic_fields.append({
+                'label': _('Template'),
+                'value': ticket.template.name,
+            })
+        if ticket.category:
+            basic_fields.append({
+                'label': _('Category'),
+                'value': ticket.category.name,
+            })
+        if ticket.subcategory:
+            basic_fields.append({
+                'label': _('Subcategory'),
+                'value': ticket.subcategory.name,
+            })
+        
+        detail_sections = [
+            {
+                'title': _('Basic Information'),
+                'fields': basic_fields,
+            },
+        ]
+        
+        # Assignment Information section
+        assignment_fields = []
+        if ticket.reported_by:
+            assignment_fields.append({
+                'label': _('Reported By'),
+                'value': ticket.reported_by.get_full_name() or ticket.reported_by.username,
+            })
+        if ticket.assigned_to:
+            assignment_fields.append({
+                'label': _('Assigned To'),
+                'value': ticket.assigned_to.get_full_name() or ticket.assigned_to.username,
+            })
+        
+        if assignment_fields:
+            detail_sections.append({
+                'title': _('Assignment Information'),
+                'fields': assignment_fields,
+            })
+        
+        context['detail_sections'] = detail_sections
+        return context
     
     def get_list_url(self):
         """Return list URL."""

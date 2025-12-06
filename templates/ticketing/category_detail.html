@@ -1,153 +1,38 @@
-{% extends "shared/base.html" %}
+{% extends "shared/generic/generic_detail.html" %}
 {% load i18n jalali_tags %}
 
-{% block page_title %}{% trans "View Ticket Category" %}{% endblock %}
+{% block detail_sections %}
+{{ block.super }}
 
-{% block content %}
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-12">
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a></li>
-          <li class="breadcrumb-item"><a href="{% url 'ticketing:categories' %}">{% trans "Ticket Management" %}</a></li>
-          <li class="breadcrumb-item"><a href="{% url 'ticketing:categories' %}">{% trans "Categories" %}</a></li>
-          <li class="breadcrumb-item active">{% trans "View Category" %}</li>
-        </ol>
-      </nav>
-
-      <div class="card">
-        <div class="card-header">
-          <h2>{% trans "View Ticket Category" %}</h2>
-        </div>
-        <div class="card-body">
-          <div class="info-banner" style="background-color: #f3f4f6; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
-            <div class="row">
-              <div class="col-md-3">
-                <strong>{% trans "Code" %}:</strong> <code>{{ category.public_code }}</code>
-              </div>
-              <div class="col-md-3">
-                <strong>{% trans "Status" %}:</strong>
-                {% if category.is_enabled %}
-                  <span class="badge badge-success">{% trans "Active" %}</span>
-                {% else %}
-                  <span class="badge badge-secondary">{% trans "Inactive" %}</span>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-
-          <div class="form-section" style="margin-bottom: 2rem;">
-            <h3>{% trans "Basic Information" %}</h3>
-            <div class="row">
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label>{% trans "Name" %}</label>
-                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
-                    {{ category.name }}
-                  </div>
-                </div>
-              </div>
-              {% if category.name_en %}
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label>{% trans "Name (EN)" %}</label>
-                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
-                    {{ category.name_en }}
-                  </div>
-                </div>
-              </div>
-              {% endif %}
-              {% if category.parent_category %}
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label>{% trans "Parent Category" %}</label>
-                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
-                    {{ category.parent_category.name }}
-                  </div>
-                </div>
-              </div>
-              {% endif %}
-              {% if category.description %}
-              <div class="col-md-12">
-                <div class="form-group">
-                  <label>{% trans "Description" %}</label>
-                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
-                    {{ category.description|linebreaks }}
-                  </div>
-                </div>
-              </div>
-              {% endif %}
-            </div>
-          </div>
-
-          {% if category.subcategories.exists %}
-          <div class="form-section" style="margin-bottom: 2rem;">
-            <h3>{% trans "Subcategories" %}</h3>
-            <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
-              {% for subcat in category.subcategories.all %}
-                {{ subcat.name }}{% if not forloop.last %}, {% endif %}
-              {% endfor %}
-            </div>
-          </div>
-          {% endif %}
-
-          <div class="form-section" style="margin-bottom: 2rem;">
-            <h3>{% trans "Audit Information" %}</h3>
-            <div class="row">
-              {% if category.created_by %}
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label>{% trans "Created By" %}</label>
-                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
-                    {{ category.created_by.get_full_name|default:category.created_by.username }}
-                  </div>
-                </div>
-              </div>
-              {% endif %}
-              {% if category.created_at %}
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label>{% trans "Created At" %}</label>
-                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
-                    {{ category.created_at|jalali_date:"%Y/%m/%d %H:%M" }}
-                  </div>
-                </div>
-              </div>
-              {% endif %}
-              {% if category.edited_by %}
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label>{% trans "Edited By" %}</label>
-                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
-                    {{ category.edited_by.get_full_name|default:category.edited_by.username }}
-                  </div>
-                </div>
-              </div>
-              {% endif %}
-              {% if category.edited_at %}
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label>{% trans "Last Updated" %}</label>
-                  <div class="readonly-field" style="padding: 0.5rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;">
-                    {{ category.edited_at|jalali_date:"%Y/%m/%d %H:%M" }}
-                  </div>
-                </div>
-              </div>
-              {% endif %}
-            </div>
-          </div>
-
-          <div class="form-actions" style="margin-top: 2rem;">
-            <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
-            {% if can_edit %}
-            <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
-            {% endif %}
-          </div>
-        </div>
-      </div>
+{% if object.created_at or object.edited_at or object.created_by or object.edited_by %}
+<div class="form-section">
+  <h3>{% trans "Audit Information" %}</h3>
+  <div class="form-row">
+    {% if object.created_by %}
+    <div class="form-field">
+      <label>{% trans "Created By" %}</label>
+      <div class="readonly-field">{{ object.created_by.get_full_name|default:object.created_by.username }}</div>
     </div>
+    {% endif %}
+    {% if object.created_at %}
+    <div class="form-field">
+      <label>{% trans "Created At" %}</label>
+      <div class="readonly-field">{{ object.created_at|jalali_date:"%Y/%m/%d %H:%M" }}</div>
+    </div>
+    {% endif %}
+    {% if object.edited_by %}
+    <div class="form-field">
+      <label>{% trans "Edited By" %}</label>
+      <div class="readonly-field">{{ object.edited_by.get_full_name|default:object.edited_by.username }}</div>
+    </div>
+    {% endif %}
+    {% if object.edited_at %}
+    <div class="form-field">
+      <label>{% trans "Last Updated" %}</label>
+      <div class="readonly-field">{{ object.edited_at|jalali_date:"%Y/%m/%d %H:%M" }}</div>
+    </div>
+    {% endif %}
   </div>
 </div>
+{% endif %}
 {% endblock %}
-

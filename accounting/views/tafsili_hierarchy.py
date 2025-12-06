@@ -233,8 +233,8 @@ class TafsiliHierarchyUpdateView(BaseUpdateView, EditLockProtectedMixin):
 class TafsiliHierarchyDetailView(BaseDetailView):
     """Detail view for viewing Tafsili Hierarchies (read-only)."""
     model = TafsiliHierarchy
-    template_name = 'accounting/tafsili_hierarchy_detail.html'
-    context_object_name = 'hierarchy'
+    template_name = 'shared/generic/generic_detail.html'
+    context_object_name = 'object'
     feature_code = 'accounting.accounts.tafsili_hierarchy'
     required_action = 'view_own'
     active_module = 'accounting'
@@ -253,6 +253,67 @@ class TafsiliHierarchyDetailView(BaseDetailView):
             'edited_by',
         ).prefetch_related('children')
         return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Tafsili Hierarchy')
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add detail view context data."""
+        context = super().get_context_data(**kwargs)
+        hierarchy = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        context['info_banner'] = [
+            {'label': _('Code'), 'value': hierarchy.code, 'type': 'code'},
+            {'label': _('Level'), 'value': str(hierarchy.level)},
+            {'label': _('Status'), 'value': hierarchy.is_enabled, 'type': 'badge'},
+        ]
+        
+        # Basic Information section
+        basic_fields = [
+            {'label': _('Name'), 'value': hierarchy.name},
+        ]
+        if hierarchy.name_en:
+            basic_fields.append({'label': _('Name (EN)'), 'value': hierarchy.name_en})
+        if hierarchy.parent:
+            basic_fields.append({
+                'label': _('Parent'),
+                'value': f"{hierarchy.parent.code} - {hierarchy.parent.name}",
+            })
+        if hierarchy.tafsili_account:
+            basic_fields.append({
+                'label': _('Tafsili Account'),
+                'value': f"{hierarchy.tafsili_account.account_code} - {hierarchy.tafsili_account.account_name}",
+            })
+        basic_fields.append({
+            'label': _('Full Path'),
+            'value': hierarchy.get_full_path() if hasattr(hierarchy, 'get_full_path') else hierarchy.name,
+        })
+        if hierarchy.description:
+            basic_fields.append({'label': _('Description'), 'value': hierarchy.description})
+        
+        detail_sections = [
+            {
+                'title': _('Basic Information'),
+                'fields': basic_fields,
+            },
+        ]
+        
+        # Child Hierarchies section
+        if hierarchy.children.exists():
+            children_text = '<br>'.join([
+                f"<code>{child.code}</code> - {child.name} ({_('Level')} {child.level})"
+                for child in hierarchy.children.all()
+            ])
+            detail_sections.append({
+                'title': _('Child Hierarchies'),
+                'type': 'custom',
+                'content': f'<div class="readonly-field">{children_text}</div>',
+            })
+        
+        context['detail_sections'] = detail_sections
+        return context
     
     def get_list_url(self):
         """Return list URL."""

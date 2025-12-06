@@ -195,8 +195,8 @@ class FiscalYearUpdateView(BaseUpdateView, EditLockProtectedMixin):
 class FiscalYearDetailView(BaseDetailView):
     """Detail view for viewing fiscal years (read-only)."""
     model = FiscalYear
-    template_name = 'accounting/fiscal_year_detail.html'
-    context_object_name = 'fiscal_year'
+    template_name = 'shared/generic/generic_detail.html'
+    context_object_name = 'object'
     feature_code = 'accounting.fiscal_years'
     required_action = 'view_own'
     active_module = 'accounting'
@@ -213,6 +213,46 @@ class FiscalYearDetailView(BaseDetailView):
             'edited_by',
         )
         return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Fiscal Year')
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add detail view context data."""
+        context = super().get_context_data(**kwargs)
+        fiscal_year = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        info_banner = [
+            {'label': _('Fiscal Year Code'), 'value': fiscal_year.fiscal_year_code, 'type': 'code'},
+            {'label': _('Status'), 'value': fiscal_year.is_enabled, 'type': 'badge'},
+        ]
+        if fiscal_year.is_current:
+            info_banner.append({
+                'label': _('Current'),
+                'value': True,
+                'type': 'badge',
+                'true_label': _('Yes'),
+            })
+        context['info_banner'] = info_banner
+        
+        # Basic Information section
+        basic_fields = [
+            {'label': _('Fiscal Year Name'), 'value': fiscal_year.fiscal_year_name},
+            {'label': _('Start Date'), 'value': fiscal_year.start_date},
+            {'label': _('End Date'), 'value': fiscal_year.end_date},
+        ]
+        if fiscal_year.description:
+            basic_fields.append({'label': _('Description'), 'value': fiscal_year.description})
+        
+        context['detail_sections'] = [
+            {
+                'title': _('Basic Information'),
+                'fields': basic_fields,
+            },
+        ]
+        return context
     
     def get_list_url(self):
         """Return list URL."""
