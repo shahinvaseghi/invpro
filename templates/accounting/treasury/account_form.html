@@ -1,5 +1,6 @@
 {% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
+{% load static %}
 
 {% block breadcrumb_extra %}
 {% if breadcrumbs %}
@@ -219,6 +220,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="{% static 'js/cascading-dropdowns.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const tafsiliSelect = document.getElementById('id_tafsili_account');
@@ -227,94 +229,33 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (!tafsiliSelect || !subAccountSelect || !glAccountSelect) return;
     
-    // Load sub accounts when tafsili is selected
-    tafsiliSelect.addEventListener('change', function() {
-        const tafsiliId = this.value;
-        
-        // Reset sub_account and gl_account
-        subAccountSelect.innerHTML = '<option value="">--- {% trans "ابتدا تفصیلی را انتخاب کنید" %} ---</option>';
-        glAccountSelect.innerHTML = '<option value="">--- {% trans "ابتدا معین را انتخاب کنید" %} ---</option>';
-        
-        if (!tafsiliId) {
-            subAccountSelect.disabled = true;
-            glAccountSelect.disabled = true;
-            return;
+    // Initialize cascading dropdown: Tafsili → Sub Account
+    initCascadingDropdown('#id_tafsili_account', '#id_sub_account', '{% url "accounting:treasury_account_api_sub_accounts" %}', {
+        parentField: 'tafsili_account_id',
+        placeholder: '--- {% trans "ابتدا تفصیلی را انتخاب کنید" %} ---',
+        valueField: 'id',
+        labelField: 'label',
+        onChange: function(value, element) {
+            // Clear GL account when sub account changes
+            if (glAccountSelect) {
+                glAccountSelect.innerHTML = '<option value="">--- {% trans "ابتدا معین را انتخاب کنید" %} ---</option>';
+                glAccountSelect.disabled = true;
+            }
+        },
+        onError: function(error, element) {
+            element.innerHTML = '<option value="">--- {% trans "خطا در بارگذاری" %} ---</option>';
         }
-        
-        // Fetch sub accounts
-        fetch(`{% url 'accounting:treasury_account_api_sub_accounts' %}?tafsili_account_id=${tafsiliId}`)
-            .then(response => response.json())
-            .then(data => {
-                subAccountSelect.innerHTML = '<option value="">--- {% trans "انتخاب کنید" %} ---</option>';
-                
-                if (data.sub_accounts && data.sub_accounts.length > 0) {
-                    data.sub_accounts.forEach(function(subAccount) {
-                        const option = document.createElement('option');
-                        option.value = subAccount.id;
-                        option.textContent = subAccount.code + ' · ' + subAccount.name;
-                        subAccountSelect.appendChild(option);
-                    });
-                    
-                    subAccountSelect.disabled = false;
-                    
-                    // Auto-select if only one option
-                    if (data.sub_accounts.length === 1) {
-                        subAccountSelect.value = data.sub_accounts[0].id;
-                        subAccountSelect.dispatchEvent(new Event('change'));
-                    }
-                } else {
-                    subAccountSelect.innerHTML = '<option value="">--- {% trans "هیچ معینی یافت نشد" %} ---</option>';
-                }
-            })
-            .catch(error => {
-                console.error('Error loading sub accounts:', error);
-                subAccountSelect.innerHTML = '<option value="">--- {% trans "خطا در بارگذاری" %} ---</option>';
-            });
     });
     
-    // Load GL accounts when sub account is selected
-    subAccountSelect.addEventListener('change', function() {
-        const subAccountId = this.value;
-        
-        // Reset gl_account
-        glAccountSelect.innerHTML = '<option value="">--- {% trans "ابتدا معین را انتخاب کنید" %} ---</option>';
-        
-        if (!subAccountId) {
-            glAccountSelect.disabled = true;
-            return;
+    // Initialize cascading dropdown: Sub Account → GL Account
+    initCascadingDropdown('#id_sub_account', '#id_gl_account', '{% url "accounting:treasury_account_api_gl_accounts" %}', {
+        parentField: 'sub_account_id',
+        placeholder: '--- {% trans "ابتدا معین را انتخاب کنید" %} ---',
+        valueField: 'id',
+        labelField: 'label',
+        onError: function(error, element) {
+            element.innerHTML = '<option value="">--- {% trans "خطا در بارگذاری" %} ---</option>';
         }
-        
-        // Fetch GL accounts
-        fetch(`{% url 'accounting:treasury_account_api_gl_accounts' %}?sub_account_id=${subAccountId}`)
-            .then(response => response.json())
-            .then(data => {
-                glAccountSelect.innerHTML = '<option value="">--- {% trans "انتخاب کنید" %} ---</option>';
-                
-                if (data.gl_accounts && data.gl_accounts.length > 0) {
-                    data.gl_accounts.forEach(function(glAccount) {
-                        const option = document.createElement('option');
-                        option.value = glAccount.id;
-                        option.textContent = glAccount.code + ' · ' + glAccount.name;
-                        glAccountSelect.appendChild(option);
-                    });
-                    
-                    glAccountSelect.disabled = false;
-                    
-                    // Auto-select primary GL account or first one
-                    const primaryGL = data.gl_accounts.find(ga => ga.is_primary === 1);
-                    if (primaryGL) {
-                        glAccountSelect.value = primaryGL.id;
-                    } else if (data.gl_accounts.length === 1) {
-                        glAccountSelect.value = data.gl_accounts[0].id;
-                    }
-                } else {
-                    glAccountSelect.innerHTML = '<option value="">--- {% trans "هیچ حسابی یافت نشد" %} ---</option>';
-                }
-            })
-            .catch(error => {
-                console.error('Error loading GL accounts:', error);
-                glAccountSelect.innerHTML = '<option value="">--- {% trans "خطا در بارگذاری" %} ---</option>';
-            });
     });
     
     // Initially disable sub_account and gl_account

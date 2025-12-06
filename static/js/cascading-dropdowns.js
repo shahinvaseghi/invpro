@@ -95,6 +95,29 @@ function initCascadingDropdown(parentSelect, childSelect, apiUrl, options = {}) 
             } else if (data.warehouses && Array.isArray(data.warehouses)) {
                 // Support for item_allowed_warehouses API format
                 options = data.warehouses;
+            } else if (data.sub_accounts && Array.isArray(data.sub_accounts)) {
+                // Support for treasury_account_api_sub_accounts API format
+                // Transform to standard format: {id, label: code + ' · ' + name}
+                options = data.sub_accounts.map(function(acc) {
+                    return {
+                        id: acc.id,
+                        value: acc.id,
+                        name: acc.code + ' · ' + acc.name,
+                        label: acc.code + ' · ' + acc.name
+                    };
+                });
+            } else if (data.gl_accounts && Array.isArray(data.gl_accounts)) {
+                // Support for treasury_account_api_gl_accounts API format
+                // Transform to standard format: {id, label: code + ' · ' + name, is_primary}
+                options = data.gl_accounts.map(function(acc) {
+                    return {
+                        id: acc.id,
+                        value: acc.id,
+                        name: acc.code + ' · ' + acc.name,
+                        label: acc.code + ' · ' + acc.name,
+                        is_primary: acc.is_primary
+                    };
+                });
             } else {
                 console.warn('Unexpected API response format:', data);
                 options = [];
@@ -111,6 +134,22 @@ function initCascadingDropdown(parentSelect, childSelect, apiUrl, options = {}) 
                 const defaultOption = Array.from(childElement.options).find(opt => opt.value === data.default_unit);
                 if (defaultOption && !childElement.value) {
                     childElement.value = data.default_unit;
+                }
+            }
+            
+            // Handle auto-select for sub_accounts API (if only one option)
+            if (data.sub_accounts && data.sub_accounts.length === 1 && !childElement.value) {
+                childElement.value = data.sub_accounts[0].id;
+                childElement.dispatchEvent(new Event('change'));
+            }
+            
+            // Handle auto-select for gl_accounts API (primary or first one)
+            if (data.gl_accounts && data.gl_accounts.length > 0 && !childElement.value) {
+                const primaryGL = data.gl_accounts.find(ga => ga.is_primary === 1);
+                if (primaryGL) {
+                    childElement.value = primaryGL.id;
+                } else if (data.gl_accounts.length === 1) {
+                    childElement.value = data.gl_accounts[0].id;
                 }
             }
             

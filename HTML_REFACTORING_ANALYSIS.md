@@ -13,7 +13,7 @@
   - ✅ فاز 1.5: Detail Views ماژول shared (6 فایل)
 - ⏳ فاز 4: JavaScript Refactoring (40+ فایل) - در حال انجام
   - ⏳ فاز 4.1: Formset Management JavaScript (18+ فایل) - **4 فایل refactor شدند** (item_form.html, purchase_request_form.html, performance_record_form.html, transfer_to_line_form.html)
-  - ⏳ فاز 4.2: Cascading Dropdowns JavaScript (10+ فایل) - **1 فایل refactor شد** (bom_form.html)
+  - ⏳ فاز 4.2: Cascading Dropdowns JavaScript (10+ فایل) - **2 فایل refactor شدند** (bom_form.html, treasury/account_form.html)
   - ⏳ فاز 4.3: Table Export JavaScript (17+ فایل) - در انتظار
   - ⏳ فاز 4.4: Approval/Reject Functions (3+ فایل) - در انتظار
   - ⏳ فاز 4.5: Modal Dialogs (3+ فایل) - در انتظار
@@ -504,14 +504,15 @@
 - `production/transfer_to_line_form.html` - JavaScript inline برای cascading dropdowns
 
 **ماژول `inventory`** (5 فایل):
-- `inventory/item_form.html` - JavaScript inline برای cascading (Category → Subcategory) (~100 خط)
+- `inventory/item_form.html` - ✅ **refactor شد** - استفاده از `cascading-dropdowns.js` برای Category → Subcategory
 - `inventory/receipt_form.html` - JavaScript inline برای cascading (Item → Unit, Warehouse)
 - `inventory/issue_form.html` - JavaScript inline برای cascading (Item → Unit, Warehouse)
-- `inventory/purchase_request_form.html` - JavaScript inline برای cascading dropdowns
+- `inventory/purchase_request_form.html` - ✅ **refactor شد** - استفاده از `item-filters.js` (که خودش cascading dropdowns را handle می‌کند)
 - `inventory/warehouse_request_form.html` - استفاده از `cascading-dropdowns.js` ✅ (مثال خوب)
 
 **ماژول `accounting`** (1 فایل):
-- `accounting/parties/party_account_form.html` - JavaScript inline برای cascading dropdowns
+- `accounting/treasury/account_form.html` - ✅ **refactor شد** - استفاده از `cascading-dropdowns.js` برای Tafsili → Sub Account → GL Account
+- `accounting/parties/party_account_form.html` - JavaScript inline برای cascading dropdowns (بررسی شد - JavaScript ندارد)
 
 **سایر فایل‌ها** (1+ فایل):
 - `inventory/create_receipt_from_purchase_request.html` - JavaScript inline برای cascading dropdowns
