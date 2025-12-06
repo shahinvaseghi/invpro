@@ -1,5 +1,6 @@
 {% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
+{% load static %}
 
 {% block form_sections %}
 
@@ -655,6 +656,10 @@
 }
 </style>
 
+{% block form_scripts %}
+{{ block.super }}
+<script src="{% static 'js/cascading-dropdowns.js' %}"></script>
+<script src="{% static 'js/item-filters.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   // ====================================================================
@@ -664,100 +669,50 @@ document.addEventListener('DOMContentLoaded', function() {
   const itemCategorySelect = document.getElementById('id_item_category');
   const itemSubcategorySelect = document.getElementById('id_item_subcategory');
   const finishedItemSelect = document.getElementById('id_finished_item');
+  const finishedItemSearchInput = document.getElementById('finished-item-search');
   
-  // Filter categories when type changes
+  // Initialize cascading dropdowns using cascading-dropdowns.js
   if (itemTypeSelect && itemCategorySelect) {
-    itemTypeSelect.addEventListener('change', function() {
-      const selectedType = this.value;
-      
-      // Clear subsequent selects
-      itemCategorySelect.innerHTML = '<option value="">--------</option>';
-      itemSubcategorySelect.innerHTML = '<option value="">--------</option>';
-      finishedItemSelect.innerHTML = '<option value="">--------</option>';
-      
-      if (!selectedType) {
-        return;
+    initCascadingDropdown('#id_item_type', '#id_item_category', '{% url "inventory:filtered_categories" %}', {
+      parentField: 'type_id',
+      placeholder: '--- Please select ---',
+      valueField: 'value',
+      labelField: 'label',
+      onChange: function(value, element) {
+        // Clear subsequent selects when category changes
+        if (itemSubcategorySelect) {
+          itemSubcategorySelect.innerHTML = '<option value="">--- Please select ---</option>';
+        }
+        if (finishedItemSelect) {
+          finishedItemSelect.innerHTML = '<option value="">--- Please select ---</option>';
+        }
       }
-      
-      // Show loading
-      itemCategorySelect.innerHTML = '<option value="">{% trans "Loading categories..." %}</option>';
-      itemCategorySelect.disabled = true;
-      
-      // Fetch filtered categories
-      fetch('/inventory/api/filtered-categories/?type_id=' + selectedType)
-        .then(response => response.json())
-        .then(data => {
-          itemCategorySelect.innerHTML = '<option value="">--------</option>';
-          
-          if (data.categories && data.categories.length > 0) {
-            data.categories.forEach(function(cat) {
-              const option = document.createElement('option');
-              option.value = cat.value;
-              option.textContent = cat.label;
-              itemCategorySelect.appendChild(option);
-            });
-          }
-          
-          itemCategorySelect.disabled = false;
-        })
-        .catch(error => {
-          console.error('Error loading categories:', error);
-          itemCategorySelect.innerHTML = '<option value="">{% trans "Error loading categories" %}</option>';
-          itemCategorySelect.disabled = false;
-        });
     });
   }
   
-  // Filter subcategories when category changes
   if (itemCategorySelect && itemSubcategorySelect) {
-    itemCategorySelect.addEventListener('change', function() {
-      const selectedCategory = this.value;
-      const selectedType = itemTypeSelect.value;
-      
-      // Clear subsequent selects
-      itemSubcategorySelect.innerHTML = '<option value="">--------</option>';
-      finishedItemSelect.innerHTML = '<option value="">--------</option>';
-      
-      if (!selectedCategory) {
-        return;
+    initCascadingDropdown('#id_item_category', '#id_item_subcategory', '{% url "inventory:filtered_subcategories" %}', {
+      parentField: 'category_id',
+      placeholder: '--- Please select ---',
+      valueField: 'value',
+      labelField: 'label',
+      onChange: function(value, element) {
+        // Clear finished item when subcategory changes
+        if (finishedItemSelect) {
+          finishedItemSelect.innerHTML = '<option value="">--- Please select ---</option>';
+        }
       }
-      
-      // Show loading
-      itemSubcategorySelect.innerHTML = '<option value="">{% trans "Loading subcategories..." %}</option>';
-      itemSubcategorySelect.disabled = true;
-      
-      // Fetch filtered subcategories
-      fetch('/inventory/api/filtered-subcategories/?type_id=' + selectedType + '&category_id=' + selectedCategory)
-        .then(response => response.json())
-        .then(data => {
-          itemSubcategorySelect.innerHTML = '<option value="">--------</option>';
-          
-          if (data.subcategories && data.subcategories.length > 0) {
-            data.subcategories.forEach(function(subcat) {
-              const option = document.createElement('option');
-              option.value = subcat.value;
-              option.textContent = subcat.label;
-              itemSubcategorySelect.appendChild(option);
-            });
-          }
-          
-          itemSubcategorySelect.disabled = false;
-        })
-        .catch(error => {
-          console.error('Error loading subcategories:', error);
-          itemSubcategorySelect.innerHTML = '<option value="">{% trans "Error loading subcategories" %}</option>';
-          itemSubcategorySelect.disabled = false;
-        });
     });
   }
   
-  // Filter items when subcategory changes OR when search term changes
+  // Filter finished items based on type, category, subcategory, and search
   function filterFinishedItems() {
-    const selectedSubcategory = (itemSubcategorySelect && itemSubcategorySelect.value) || '';
-    const selectedCategory = (itemCategorySelect && itemCategorySelect.value) || '';
-    const selectedType = (itemTypeSelect && itemTypeSelect.value) || '';
-    const searchInput = document.getElementById('finished-item-search');
-    const searchTerm = (searchInput && searchInput.value && searchInput.value.trim()) || '';
+    if (!finishedItemSelect) return;
+    
+    const selectedType = itemTypeSelect ? itemTypeSelect.value : '';
+    const selectedCategory = itemCategorySelect ? itemCategorySelect.value : '';
+    const selectedSubcategory = itemSubcategorySelect ? itemSubcategorySelect.value : '';
+    const searchTerm = finishedItemSearchInput ? finishedItemSearchInput.value.trim() : '';
     
     // Build API URL with filters
     let apiUrl = '/inventory/api/filtered-items/';
@@ -767,13 +722,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (selectedSubcategory) params.append('subcategory_id', selectedSubcategory);
     if (searchTerm) params.append('search', searchTerm);
     
-    // If no filters and no search, load all items
-    // Otherwise, apply filters
     if (params.toString()) {
       apiUrl += '?' + params.toString();
     }
     
     // Show loading
+    const currentValue = finishedItemSelect.value;
     finishedItemSelect.innerHTML = '<option value="">{% trans "Loading items..." %}</option>';
     finishedItemSelect.disabled = true;
     
@@ -781,10 +735,9 @@ document.addEventListener('DOMContentLoaded', function() {
     fetch(apiUrl)
       .then(response => response.json())
       .then(data => {
-        finishedItemSelect.innerHTML = '<option value="">--------</option>';
+        finishedItemSelect.innerHTML = '<option value="">--- {% trans "Please select" %} ---</option>';
         
         if (data.items && data.items.length > 0) {
-          const currentValue = finishedItemSelect.value;
           data.items.forEach(function(item) {
             const option = document.createElement('option');
             option.value = item.value;
@@ -807,12 +760,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
   }
   
-  if (itemSubcategorySelect && finishedItemSelect) {
-    itemSubcategorySelect.addEventListener('change', filterFinishedItems);
-  }
-  
   // Setup search input with debounce for finished item
-  const finishedItemSearchInput = document.getElementById('finished-item-search');
   if (finishedItemSearchInput) {
     let searchTimeout;
     finishedItemSearchInput.addEventListener('input', function() {
@@ -823,17 +771,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Also filter when type or category changes
-  if (itemTypeSelect && finishedItemSelect) {
-    itemTypeSelect.addEventListener('change', function() {
-      filterFinishedItems();
-    });
+  // Filter when type, category, or subcategory changes
+  if (itemTypeSelect) {
+    itemTypeSelect.addEventListener('change', filterFinishedItems);
   }
   
-  if (itemCategorySelect && finishedItemSelect) {
-    itemCategorySelect.addEventListener('change', function() {
-      filterFinishedItems();
-    });
+  if (itemCategorySelect) {
+    itemCategorySelect.addEventListener('change', filterFinishedItems);
+  }
+  
+  if (itemSubcategorySelect) {
+    itemSubcategorySelect.addEventListener('change', filterFinishedItems);
   }
   
   // Load all items initially if no filters are selected

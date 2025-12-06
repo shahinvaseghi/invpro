@@ -13,7 +13,7 @@
   - ✅ فاز 1.5: Detail Views ماژول shared (6 فایل)
 - ⏳ فاز 4: JavaScript Refactoring (40+ فایل) - در حال انجام
   - ⏳ فاز 4.1: Formset Management JavaScript (18+ فایل) - **4 فایل refactor شدند** (item_form.html, purchase_request_form.html, performance_record_form.html, transfer_to_line_form.html)
-  - ⏳ فاز 4.2: Cascading Dropdowns JavaScript (10+ فایل) - در انتظار
+  - ⏳ فاز 4.2: Cascading Dropdowns JavaScript (10+ فایل) - **1 فایل refactor شد** (bom_form.html)
   - ⏳ فاز 4.3: Table Export JavaScript (17+ فایل) - در انتظار
   - ⏳ فاز 4.4: Approval/Reject Functions (3+ فایل) - در انتظار
   - ⏳ فاز 4.5: Modal Dialogs (3+ فایل) - در انتظار
@@ -499,7 +499,7 @@
 **فایل‌های نیازمند Refactor** (10+ فایل):
 
 **ماژول `production`** (3 فایل):
-- `production/bom_form.html` - JavaScript inline برای cascading (Type → Category → Subcategory → Item) (~300 خط)
+- `production/bom_form.html` - ✅ **refactor شد** - استفاده از `cascading-dropdowns.js` برای Type → Category → Subcategory
 - `production/process_form.html` - JavaScript inline برای cascading dropdowns
 - `production/transfer_to_line_form.html` - JavaScript inline برای cascading dropdowns
 
