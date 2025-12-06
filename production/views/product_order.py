@@ -1146,8 +1146,8 @@ class ProductOrderUpdateView(TransferRequestCreationMixin, BaseUpdateView, EditL
 class ProductOrderDetailView(BaseDetailView):
     """Detail view for viewing product orders (read-only)."""
     model = ProductOrder
-    template_name = 'production/product_order_detail.html'
-    context_object_name = 'order'
+    template_name = 'shared/generic/generic_detail.html'
+    context_object_name = 'object'
     feature_code = 'production.product_orders'
     required_action = 'view_own'
     active_module = 'production'
@@ -1164,6 +1164,82 @@ class ProductOrderDetailView(BaseDetailView):
             'edited_by',
         )
         return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Product Order')
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add detail view context data."""
+        context = super().get_context_data(**kwargs)
+        order = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        context['info_banner'] = [
+            {'label': _('Order Code'), 'value': order.order_code, 'type': 'code'},
+            {'label': _('Order Date'), 'value': order.order_date},
+            {'label': _('Status'), 'value': order.get_status_display()},
+            {'label': _('Priority'), 'value': order.get_priority_display()},
+        ]
+        
+        # Order Information section
+        order_fields = [
+            {
+                'label': _('Finished Item'),
+                'value': f"{order.finished_item.name} ({order.finished_item.item_code})",
+            },
+            {
+                'label': _('Quantity Planned'),
+                'value': f"{order.quantity_planned:.2f} {order.unit}",
+            },
+        ]
+        if order.bom:
+            order_fields.append({
+                'label': _('BOM'),
+                'value': f"{order.bom.bom_code} ({order.bom.version})",
+            })
+        if order.process:
+            process_value = order.process.process_code
+            if order.process.revision:
+                process_value += f" ({_('Revision')}: {order.process.revision})"
+            order_fields.append({
+                'label': _('Process'),
+                'value': process_value,
+            })
+        if order.due_date:
+            order_fields.append({
+                'label': _('Due Date'),
+                'value': order.due_date,
+            })
+        if order.customer_reference:
+            order_fields.append({
+                'label': _('Customer Reference'),
+                'value': order.customer_reference,
+            })
+        if order.approved_by:
+            order_fields.append({
+                'label': _('Approved By'),
+                'value': order.approved_by.get_full_name() or order.approved_by.username,
+            })
+        
+        detail_sections = [
+            {
+                'title': _('Order Information'),
+                'fields': order_fields,
+            },
+        ]
+        
+        # Notes section
+        if order.notes:
+            detail_sections.append({
+                'title': _('Notes'),
+                'fields': [
+                    {'label': _('Notes'), 'value': order.notes},
+                ],
+            })
+        
+        context['detail_sections'] = detail_sections
+        return context
     
     def get_list_url(self):
         """Return list URL."""

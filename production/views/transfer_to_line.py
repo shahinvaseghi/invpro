@@ -519,8 +519,8 @@ class TransferToLineUpdateView(BaseFormsetUpdateView, EditLockProtectedMixin):
 class TransferToLineDetailView(BaseDetailView):
     """Detail view for viewing transfer to line requests (read-only)."""
     model = TransferToLine
-    template_name = 'production/transfer_to_line_detail.html'
-    context_object_name = 'transfer'
+    template_name = 'shared/generic/generic_detail.html'
+    context_object_name = 'object'
     feature_code = 'production.transfer_requests'
     required_action = 'view_own'
     active_module = 'production'
@@ -542,6 +542,101 @@ class TransferToLineDetailView(BaseDetailView):
             'items__destination_work_center',
         )
         return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Transfer Request')
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add detail view context data."""
+        context = super().get_context_data(**kwargs)
+        transfer = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        info_banner = [
+            {'label': _('Transfer Code'), 'value': transfer.transfer_code, 'type': 'code'},
+            {'label': _('Transfer Date'), 'value': transfer.transfer_date},
+            {'label': _('Status'), 'value': transfer.get_status_display()},
+        ]
+        if transfer.qc_status:
+            info_banner.append({
+                'label': _('QC Status'),
+                'value': transfer.get_qc_status_display(),
+            })
+        context['info_banner'] = info_banner
+        
+        # Request Information section
+        request_fields = []
+        if transfer.order:
+            order_value = transfer.order.order_code
+            if transfer.order.finished_item:
+                order_value += f" ({transfer.order.finished_item.name})"
+            request_fields.append({
+                'label': _('Product Order'),
+                'value': order_value,
+            })
+        if transfer.approved_by:
+            request_fields.append({
+                'label': _('Approved By'),
+                'value': transfer.approved_by.get_full_name() or transfer.approved_by.username,
+            })
+        if transfer.approved_at:
+            request_fields.append({
+                'label': _('Approved At'),
+                'value': transfer.approved_at,
+            })
+        if transfer.description:
+            request_fields.append({
+                'label': _('Description'),
+                'value': transfer.description,
+            })
+        
+        detail_sections = [
+            {
+                'title': _('Request Information'),
+                'fields': request_fields,
+            },
+        ]
+        
+        # Transfer Items section (table)
+        if transfer.items.exists():
+            headers = [
+                _('Material Item'),
+                _('Quantity Required'),
+                _('Unit'),
+                _('Source Warehouse'),
+                _('Scrap Allowance'),
+                _('Extra'),
+            ]
+            data = []
+            for item in transfer.items.all():
+                data.append([
+                    f"{item.material_item.name} ({item.material_item.item_code})",
+                    f"{item.quantity_required:.2f}",
+                    item.unit,
+                    item.source_warehouse.name if item.source_warehouse else "—",
+                    f"{item.material_scrap_allowance:.2f}%",
+                    _('Yes') if item.is_extra else _('No'),
+                ])
+            
+            detail_sections.append({
+                'title': _('Transfer Items'),
+                'type': 'table',
+                'headers': headers,
+                'data': data,
+            })
+        
+        # Notes section
+        if transfer.notes:
+            detail_sections.append({
+                'title': _('Notes'),
+                'fields': [
+                    {'label': _('Notes'), 'value': transfer.notes},
+                ],
+            })
+        
+        context['detail_sections'] = detail_sections
+        return context
     
     def get_list_url(self):
         """Return list URL."""

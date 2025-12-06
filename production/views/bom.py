@@ -377,8 +377,8 @@ class BOMUpdateView(BaseNestedFormsetUpdateView, EditLockProtectedMixin):
 class BOMDetailView(BaseDetailView):
     """Detail view for viewing BOMs (read-only)."""
     model = BOM
-    template_name = 'production/bom_detail.html'
-    context_object_name = 'bom'
+    template_name = 'shared/generic/generic_detail.html'
+    context_object_name = 'object'
     feature_code = 'production.bom'
     required_action = 'view_own'
     active_module = 'production'
@@ -392,6 +392,90 @@ class BOMDetailView(BaseDetailView):
             'edited_by',
         ).prefetch_related('materials__material_item', 'materials__material_type')
         return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View BOM')
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add detail view context data."""
+        context = super().get_context_data(**kwargs)
+        bom = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        context['info_banner'] = [
+            {'label': _('BOM Code'), 'value': bom.bom_code, 'type': 'code'},
+            {'label': _('Version'), 'value': bom.version},
+            {'label': _('Status'), 'value': bom.is_active, 'type': 'badge'},
+        ]
+        
+        # Basic Information section
+        basic_fields = [
+            {
+                'label': _('Finished Item'),
+                'value': f"{bom.finished_item.name} ({bom.finished_item.item_code})",
+            },
+        ]
+        if bom.description:
+            basic_fields.append({'label': _('Description'), 'value': bom.description})
+        
+        detail_sections = [
+            {
+                'title': _('Basic Information'),
+                'fields': basic_fields,
+            },
+        ]
+        
+        # Material Lines section (table)
+        if bom.materials.exists():
+            # Check if any material has description
+            has_description = any(m.description for m in bom.materials.all())
+            
+            headers = [
+                _('Line'),
+                _('Material Item'),
+                _('Material Type'),
+                _('Quantity per Unit'),
+                _('Unit'),
+                _('Scrap Allowance'),
+                _('Optional'),
+            ]
+            if has_description:
+                headers.append(_('Description'))
+            
+            data = []
+            for material in bom.materials.all():
+                row = [
+                    str(material.line_number),
+                    f"{material.material_item.name} ({material.material_item.item_code})",
+                    material.material_type.name if material.material_type else "—",
+                    f"{material.quantity_per_unit:.2f}",
+                    material.unit,
+                    f"{material.scrap_allowance:.2f}%",
+                    _('Yes') if material.is_optional else _('No'),
+                ]
+                if has_description:
+                    row.append(material.description or "—")
+                data.append(row)
+            
+            detail_sections.append({
+                'title': _('Material Lines'),
+                'type': 'table',
+                'headers': headers,
+                'data': data,
+            })
+        
+        # Notes section
+        if bom.notes:
+            detail_sections.append({
+                'title': _('Notes'),
+                'fields': [
+                    {'label': _('Notes'), 'value': bom.notes},
+                ],
+            })
+        
+        context['detail_sections'] = detail_sections
+        return context
     
     def get_list_url(self):
         """Return list URL."""

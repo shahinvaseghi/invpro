@@ -880,8 +880,8 @@ class PerformanceRecordUpdateView(BaseMultipleFormsetUpdateView, EditLockProtect
 class PerformanceRecordDetailView(BaseDetailView):
     """Detail view for viewing performance records (read-only)."""
     model = PerformanceRecord
-    template_name = 'production/performance_record_detail.html'
-    context_object_name = 'performance_record'
+    template_name = 'shared/generic/generic_detail.html'
+    context_object_name = 'object'
     feature_code = 'production.performance_records'
     required_action = 'view_own'
     active_module = 'production'
@@ -904,6 +904,159 @@ class PerformanceRecordDetailView(BaseDetailView):
             'machines__machine',
         )
         return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Performance Record')
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add detail view context data."""
+        context = super().get_context_data(**kwargs)
+        record = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        context['info_banner'] = [
+            {'label': _('Performance Code'), 'value': record.performance_code, 'type': 'code'},
+            {'label': _('Performance Date'), 'value': record.performance_date},
+            {'label': _('Status'), 'value': record.get_status_display()},
+        ]
+        
+        # Order Information section
+        order_fields = []
+        if record.order:
+            order_value = record.order.order_code
+            if record.order.finished_item:
+                order_value += f" ({record.order.finished_item.name})"
+            order_fields.append({
+                'label': _('Product Order'),
+                'value': order_value,
+            })
+        if record.transfer:
+            order_fields.append({
+                'label': _('Transfer Request'),
+                'value': record.transfer.transfer_code,
+            })
+        
+        detail_sections = [
+            {
+                'title': _('Order Information'),
+                'fields': order_fields,
+            },
+        ]
+        
+        # Production Quantities section
+        detail_sections.append({
+            'title': _('Production Quantities'),
+            'fields': [
+                {'label': _('Quantity Produced'), 'value': f"{record.quantity_produced:.2f}"},
+                {'label': _('Quantity Received'), 'value': f"{record.quantity_received:.2f}"},
+                {'label': _('Quantity Scrapped'), 'value': f"{record.quantity_scrapped:.2f}"},
+            ],
+        })
+        
+        # Time Information section
+        detail_sections.append({
+            'title': _('Time Information'),
+            'fields': [
+                {'label': _('Unit Cycle Minutes'), 'value': f"{record.unit_cycle_minutes:.2f}"},
+                {'label': _('Total Run Minutes'), 'value': f"{record.total_run_minutes:.2f}"},
+                {'label': _('Machine Usage Minutes'), 'value': f"{record.machine_usage_minutes:.2f}"},
+            ],
+        })
+        
+        # Material Usage section (table)
+        if record.materials.exists():
+            headers = [
+                _('Material Item'),
+                _('Quantity Used'),
+                _('Unit'),
+                _('Scrap Quantity'),
+            ]
+            data = []
+            for material in record.materials.all():
+                data.append([
+                    f"{material.material_item.name} ({material.material_item.item_code})",
+                    f"{material.quantity_used:.2f}",
+                    material.unit,
+                    f"{material.scrap_quantity:.2f}",
+                ])
+            
+            detail_sections.append({
+                'title': _('Material Usage'),
+                'type': 'table',
+                'headers': headers,
+                'data': data,
+            })
+        
+        # Personnel Usage section (table)
+        if record.persons.exists():
+            headers = [
+                _('Person'),
+                _('Minutes'),
+            ]
+            data = []
+            for person in record.persons.all():
+                data.append([
+                    f"{person.person.first_name} {person.person.last_name}",
+                    f"{person.minutes:.2f}",
+                ])
+            
+            detail_sections.append({
+                'title': _('Personnel Usage'),
+                'type': 'table',
+                'headers': headers,
+                'data': data,
+            })
+        
+        # Machine Usage section (table)
+        if record.machines.exists():
+            headers = [
+                _('Machine'),
+                _('Minutes'),
+            ]
+            data = []
+            for machine in record.machines.all():
+                data.append([
+                    machine.machine.name,
+                    f"{machine.minutes:.2f}",
+                ])
+            
+            detail_sections.append({
+                'title': _('Machine Usage'),
+                'type': 'table',
+                'headers': headers,
+                'data': data,
+            })
+        
+        # Approval Information section
+        if record.approved_by:
+            approval_fields = [
+                {
+                    'label': _('Approved By'),
+                    'value': record.approved_by.get_full_name() or record.approved_by.username,
+                },
+            ]
+            if record.approved_at:
+                approval_fields.append({
+                    'label': _('Approved At'),
+                    'value': record.approved_at,
+                })
+            detail_sections.append({
+                'title': _('Approval Information'),
+                'fields': approval_fields,
+            })
+        
+        # Notes section
+        if record.notes:
+            detail_sections.append({
+                'title': _('Notes'),
+                'fields': [
+                    {'label': _('Notes'), 'value': record.notes},
+                ],
+            })
+        
+        context['detail_sections'] = detail_sections
+        return context
     
     def get_list_url(self):
         """Return list URL."""
