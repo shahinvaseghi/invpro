@@ -308,3 +308,4 @@ class BaseDetailAPIView(BaseAPIView):
             'str': str(obj),
         }
 
+

@@ -198,6 +198,8 @@
    - `updateDropdownOptions(selectElement, options, placeholder, valueField, labelField)`
    - `clearDropdown(selectElement, placeholder)`
    - `initCascadingDropdowns()` - auto-initialize
+   - پشتیبانی از format‌های مختلف API: `data.units`, `data.warehouses`, `data.sub_accounts`, `data.gl_accounts`
+   - Auto-select logic برای sub_accounts و gl_accounts (primary یا first option)
 
 3. **table-export.js** ✅
    - `exportTableToCSV(tableId, filename, options)`
@@ -296,7 +298,7 @@
 | **Backend Forms** | 2 کلاس | ✅ تکمیل شده |
 | **Backend API Views** | 3 کلاس | ✅ تکمیل شده |
 | **Backend Helpers** | 4 تابع | ✅ تکمیل شده |
-| **JavaScript Files** | 6 فایل | ✅ تکمیل شده |
+| **JavaScript Files** | 7 فایل | ✅ تکمیل شده |
 | **CSS Files** | 1 فایل | ✅ تکمیل شده |
 | **Template Partials** | 5 فایل | ✅ تکمیل شده |
 | **Generic Templates** | 4 فایل | ✅ تکمیل شده |
@@ -499,9 +501,9 @@
 **فایل‌های نیازمند Refactor** (10+ فایل):
 
 **ماژول `production`** (3 فایل):
-- `production/bom_form.html` - ✅ **refactor شد** - استفاده از `cascading-dropdowns.js` برای Type → Category → Subcategory
+- `production/bom_form.html` - ✅ **refactor شد** - استفاده از `cascading-dropdowns.js` برای Type → Category → Subcategory + `item-filters.js` برای finished item filtering
 - `production/process_form.html` - JavaScript inline برای cascading dropdowns
-- `production/transfer_to_line_form.html` - JavaScript inline برای cascading dropdowns
+- `production/transfer_to_line_form.html` - JavaScript inline برای cascading dropdowns (قبلاً formset refactor شده)
 
 **ماژول `inventory`** (5 فایل):
 - `inventory/item_form.html` - ✅ **refactor شد** - استفاده از `cascading-dropdowns.js` برای Category → Subcategory
@@ -511,15 +513,18 @@
 - `inventory/warehouse_request_form.html` - استفاده از `cascading-dropdowns.js` ✅ (مثال خوب)
 
 **ماژول `accounting`** (1 فایل):
-- `accounting/treasury/account_form.html` - ✅ **refactor شد** - استفاده از `cascading-dropdowns.js` برای Tafsili → Sub Account → GL Account
+- `accounting/treasury/account_form.html` - ✅ **refactor شد** - استفاده از `cascading-dropdowns.js` برای Tafsili → Sub Account → GL Account (با پشتیبانی از format خاص API)
 - `accounting/parties/party_account_form.html` - JavaScript inline برای cascading dropdowns (بررسی شد - JavaScript ندارد)
 
 **سایر فایل‌ها** (1+ فایل):
 - `inventory/create_receipt_from_purchase_request.html` - JavaScript inline برای cascading dropdowns
 
 **راه حل**: استفاده از `static/js/cascading-dropdowns.js`
+- پشتیبانی از format‌های مختلف API: `data.units`, `data.warehouses`, `data.sub_accounts`, `data.gl_accounts`
+- Auto-select logic برای sub_accounts و gl_accounts (primary یا first option)
 
 **صرفه‌جویی**: حذف ~300 خط کد JavaScript تکراری
+**پیشرفت**: 3 از 10+ فایل (30%)
 
 #### 6.3 Table Export JavaScript
 **فایل‌های نیازمند Refactor** (5+ فایل):
@@ -819,14 +824,14 @@
 | نوع Refactor | تعداد فایل | اولویت | وضعیت |
 |-------------|-----------|--------|--------|
 | Detail Views → Generic | 39 | 🔴 بالا | ✅ **39 فایل تکمیل شد (100%)** |
-| JavaScript Inline → Shared Files | 40+ | 🔴 بالا | ⏳ **4 فایل refactor شد (10%)** - فاز 4.1 در حال انجام |
+| JavaScript Inline → Shared Files | 40+ | 🔴 بالا | ⏳ **7 فایل refactor شد (17%)** - فاز 4.1 و 4.2 در حال انجام |
 | List Views → Generic | 8 | 🟡 متوسط | ⏳ در انتظار |
 | Form Views → Generic | 4-5 | 🟡 متوسط | ⏳ در انتظار |
 | Inline CSS → Shared CSS | 25+ | 🟡 متوسط | ⏳ در انتظار |
 | Inline Event Handlers → JS Files | 10+ | 🟡 متوسط | ⏳ در انتظار |
 | Row Actions → Partial | 10+ | 🟢 پایین | ⏳ در انتظار |
 | Pagination → Partial | 5+ | 🟢 پایین | ⏳ در انتظار |
-| **جمع کل** | **110+ فایل** | | **43 فایل تکمیل شد (39%)** |
+| **جمع کل** | **110+ فایل** | | **46 فایل تکمیل شد (42%)** |
 
 ---
 
@@ -854,9 +859,10 @@
    - استفاده از `static/js/formset.js` و `static/js/formset-table.js`
    - ✅ **تکمیل شده**: `inventory/item_form.html`, `inventory/purchase_request_form.html`, `production/performance_record_form.html`, `production/transfer_to_line_form.html`
    - ⏳ **باقی مانده**: `production/bom_form.html`, `production/process_form.html`, `production/rework_document_form.html`, `inventory/receipt_form.html`, `inventory/issue_form.html`, `inventory/stocktaking_form.html`, `ticketing/category_form.html`, `ticketing/subcategory_form.html`, `ticketing/template_form.html`, `shared/user_form.html`, `accounting/treasury/account_form.html`, `accounting/parties/party_form.html`, `inventory/create_receipt_from_purchase_request.html`, `inventory/create_issue_from_warehouse_request.html`
-2. Refactor Cascading Dropdowns JavaScript (10+ فایل)
+2. ⏳ Refactor Cascading Dropdowns JavaScript (10+ فایل) - **3 فایل refactor شد**
    - استفاده از `static/js/cascading-dropdowns.js`
-   - لیست کامل: `production/bom_form.html`, `production/process_form.html`, `production/transfer_to_line_form.html`, `inventory/item_form.html`, `inventory/receipt_form.html`, `inventory/issue_form.html`, `inventory/purchase_request_form.html`, `accounting/parties/party_account_form.html`, `inventory/create_receipt_from_purchase_request.html`
+   - ✅ **تکمیل شده**: `production/bom_form.html`, `accounting/treasury/account_form.html`, `inventory/item_form.html`
+   - ⏳ **باقی مانده**: `production/process_form.html`, `production/transfer_to_line_form.html`, `inventory/receipt_form.html`, `inventory/issue_form.html`, `inventory/purchase_request_form.html` (قبلاً از item-filters.js استفاده می‌کند), `accounting/parties/party_account_form.html`, `inventory/create_receipt_from_purchase_request.html`
 3. Refactor Table Export JavaScript (17+ فایل)
    - استفاده از `static/js/table-export.js`
    - لیست کامل: `shared/generic/generic_report.html`, `inventory/inventory_balance.html`, `inventory/inventory_balance_details.html`, `inventory/item_serials.html`, `inventory/purchase_requests.html`, `inventory/receipt_temporary.html`, `inventory/receipt_permanent.html`, `inventory/receipt_consignment.html`, `inventory/warehouse_requests.html`, `inventory/issue_permanent.html`, `inventory/issue_consumption.html`, `inventory/issue_consignment.html`, `inventory/stocktaking_deficit.html`, `inventory/stocktaking_surplus.html`, `inventory/stocktaking_records.html`, `production/performance_record_list.html`, `production/transfer_to_line_list.html`
@@ -1014,8 +1020,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
 **آخرین به‌روزرسانی**: 2024-12-06  
 **تکمیل شده**: 
-- ✅ فاز 1.1: Detail Views ماژول inventory (15 فایل) - **تکمیل شد**
-- ✅ لیست کامل فایل‌های Detail Views (39 فایل)، JavaScript Inline (40+ فایل)، و CSS Inline (25+ فایل) اضافه شد
+- ✅ فاز 1: Detail Views (39 فایل) - **100% تکمیل شد!** همه 39 فایل refactor شدند
+  - ✅ فاز 1.1: Detail Views ماژول inventory (15 فایل)
+  - ✅ فاز 1.2: Detail Views ماژول production (8 فایل)
+  - ✅ فاز 1.3: Detail Views ماژول accounting (6 فایل)
+  - ✅ فاز 1.4: Detail Views ماژول ticketing (4 فایل)
+  - ✅ فاز 1.5: Detail Views ماژول shared (6 فایل)
+- ⏳ فاز 4: JavaScript Refactoring (40+ فایل) - در حال انجام
+  - ⏳ فاز 4.1: Formset Management JavaScript (18+ فایل) - **4 فایل refactor شدند** (22%)
+  - ⏳ فاز 4.2: Cascading Dropdowns JavaScript (10+ فایل) - **3 فایل refactor شدند** (30%)
+    - ✅ `production/bom_form.html` - Type → Category → Subcategory
+    - ✅ `accounting/treasury/account_form.html` - Tafsili → Sub Account → GL Account
+    - ✅ `inventory/item_form.html` - Category → Subcategory (قبلاً refactor شده)
+  - ⏳ فاز 4.3: Table Export JavaScript (17+ فایل) - در انتظار
+  - ⏳ فاز 4.4: Approval/Reject Functions (3+ فایل) - در انتظار
+  - ⏳ فاز 4.5: Modal Dialogs (3+ فایل) - در انتظار
 
-**پیشرفت کلی**: 15 از 39 فایل Detail View (38%)
+**پیشرفت کلی**: 
+- ✅ Detail Views: 39 از 39 فایل (100%)
+- ⏳ JavaScript Refactoring: 7 از 40+ فایل (~17%)
 
