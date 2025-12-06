@@ -27,6 +27,11 @@ class BaseModelForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         """Initialize form and apply default widget styling."""
+        # Pop company_id if provided (some forms use it, others don't)
+        # This prevents TypeError when company_id is passed but form doesn't need it
+        company_id = kwargs.pop('company_id', None)
+        if company_id:
+            self.company_id = company_id
         super().__init__(*args, **kwargs)
         self._apply_default_widget_styling()
     

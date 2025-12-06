@@ -15,6 +15,8 @@ from django.db.models import Q
 from django.forms import inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
+from shared.forms.base import BaseModelForm
+
 logger = logging.getLogger('inventory.forms.master_data')
 
 
@@ -150,19 +152,14 @@ from inventory.models import (
 from inventory.forms.base import UNIT_CHOICES
 
 
-class ItemTypeForm(forms.ModelForm):
+class ItemTypeForm(BaseModelForm):
     """Form for creating/editing item types."""
     
     class Meta:
         model = ItemType
         fields = ['name', 'name_en', 'description', 'notes', 'sort_order', 'is_enabled']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.TextInput(attrs={'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'sort_order': forms.NumberInput(attrs={'class': 'form-control'}),
-            'is_enabled': forms.Select(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
         }
         labels = {
             'name': _('Name (Persian)'),
@@ -174,19 +171,14 @@ class ItemTypeForm(forms.ModelForm):
         }
 
 
-class ItemCategoryForm(forms.ModelForm):
+class ItemCategoryForm(BaseModelForm):
     """Form for creating/editing item categories."""
     
     class Meta:
         model = ItemCategory
         fields = ['name', 'name_en', 'description', 'notes', 'sort_order', 'is_enabled']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.TextInput(attrs={'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'sort_order': forms.NumberInput(attrs={'class': 'form-control'}),
-            'is_enabled': forms.Select(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
         }
         labels = {
             'name': _('Name (Persian)'),
@@ -198,20 +190,14 @@ class ItemCategoryForm(forms.ModelForm):
         }
 
 
-class ItemSubcategoryForm(forms.ModelForm):
+class ItemSubcategoryForm(BaseModelForm):
     """Form for creating/editing item subcategories."""
     
     class Meta:
         model = ItemSubcategory
         fields = ['category', 'name', 'name_en', 'description', 'notes', 'sort_order', 'is_enabled']
         widgets = {
-            'category': forms.Select(attrs={'class': 'form-control'}),
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.TextInput(attrs={'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'sort_order': forms.NumberInput(attrs={'class': 'form-control'}),
-            'is_enabled': forms.Select(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
         }
         labels = {
             'category': _('Item Category'),
@@ -222,9 +208,6 @@ class ItemSubcategoryForm(forms.ModelForm):
             'sort_order': _('Sort Order'),
             'is_enabled': _('Status'),
         }
-
-
-from shared.forms.base import BaseModelForm
 
 
 class WarehouseForm(BaseModelForm):

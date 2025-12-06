@@ -189,6 +189,14 @@ class ItemTypeDetailView(InventoryBaseView, BaseDetailView):
         """Return edit URL."""
         return reverse_lazy('inventory:itemtype_edit', kwargs={'pk': self.object.pk})
 
+    def get_context_data(self, **kwargs):
+        """Add detail_title and info_banner for generic_detail.html."""
+        context = super().get_context_data(**kwargs)
+        context['detail_title'] = self.get_page_title()
+        # Add empty info_banner list to enable info_banner_extra block
+        context['info_banner'] = []
+        return context
+
 
 class ItemTypeDeleteView(InventoryBaseView, BaseDeleteView):
     """Delete view for item types."""
@@ -430,6 +438,14 @@ class ItemCategoryDetailView(InventoryBaseView, BaseDetailView):
     def get_edit_url(self):
         """Return edit URL."""
         return reverse_lazy('inventory:itemcategory_edit', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        """Add detail_title and info_banner for generic_detail.html."""
+        context = super().get_context_data(**kwargs)
+        context['detail_title'] = self.get_page_title()
+        # Add empty info_banner list to enable info_banner_extra block
+        context['info_banner'] = []
+        return context
 
 
 class ItemCategoryDeleteView(InventoryBaseView, BaseDeleteView):
@@ -680,6 +696,14 @@ class ItemSubcategoryDetailView(InventoryBaseView, BaseDetailView):
     def get_edit_url(self):
         """Return edit URL."""
         return reverse_lazy('inventory:itemsubcategory_edit', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        """Add detail_title and info_banner for generic_detail.html."""
+        context = super().get_context_data(**kwargs)
+        context['detail_title'] = self.get_page_title()
+        # Add empty info_banner list to enable info_banner_extra block
+        context['info_banner'] = []
+        return context
 
 
 class ItemSubcategoryDeleteView(InventoryBaseView, BaseDeleteView):
