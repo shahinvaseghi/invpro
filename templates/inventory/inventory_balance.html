@@ -1,5 +1,6 @@
 {% extends "inventory/base.html" %}
 {% load i18n jalali_tags %}
+{% load static %}
 
 {% block page_title %}{% trans "Inventory Balance" %}{% endblock %}
 
@@ -13,9 +14,9 @@
   <button onclick="window.print()" class="btn btn-secondary">
     {% trans "Print" %}
   </button>
-  <a href="#" onclick="exportToExcel()" class="btn btn-success">
+  <button type="button" id="export-excel-btn" class="btn btn-success" data-table-id="balanceTable">
     {% trans "Export" %} Excel
-  </a>
+  </button>
 </div>
 {% endblock %}
 
@@ -175,34 +176,18 @@
 {% endblock %}
 
 {% block inventory_scripts %}
+<script src="{% static 'js/table-export.js' %}"></script>
 <script>
-function exportToExcel() {
-  // Simple CSV export
-  const table = document.getElementById('balanceTable');
-  if (!table) {
-    alert('{% trans "No data to export" %}');
-    return;
+document.addEventListener('DOMContentLoaded', function() {
+  const exportBtn = document.getElementById('export-excel-btn');
+  if (exportBtn && typeof exportTableToExcel === 'function') {
+    exportBtn.addEventListener('click', function() {
+      const tableId = this.getAttribute('data-table-id');
+      const filename = 'inventory_balance_' + new Date().toISOString().split('T')[0];
+      exportTableToExcel(tableId, filename);
+    });
   }
-  
-  let csv = [];
-  const rows = table.querySelectorAll('tr');
-  
-  for (const row of rows) {
-    const cols = row.querySelectorAll('td, th');
-    const csvRow = [];
-    for (const col of cols) {
-      csvRow.push('"' + col.innerText.replace(/"/g, '""') + '"');
-    }
-    csv.push(csvRow.join(','));
-  }
-  
-  const csvContent = csv.join('\n');
-  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'inventory_balance_' + new Date().toISOString().split('T')[0] + '.csv';
-  link.click();
-}
+});
 </script>
 {% endblock %}
 
