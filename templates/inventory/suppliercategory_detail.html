@@ -1,75 +1,54 @@
-{% extends "inventory/base.html" %}
+{% extends "shared/generic/generic_detail.html" %}
 {% load i18n jalali_tags %}
 
-{% block page_title %}{% trans "View Supplier Category" %}{% endblock %}
+{% block title %}{% trans "View Supplier Category" %} - {{ block.super }}{% endblock %}
 
-{% block inventory_content %}
-<div class="form-container">
-  <div class="info-banner">
-    <div><strong>{% trans "Supplier" %}:</strong> {{ suppliercategory.supplier.name }} ({{ suppliercategory.supplier.public_code }})</div>
-    <div><strong>{% trans "Category" %}:</strong> {{ suppliercategory.category.name }} ({{ suppliercategory.category.public_code }})</div>
-    <div><strong>{% trans "Primary" %}:</strong>
-      {% if suppliercategory.is_primary %}
-        <span class="badge badge-active">{% trans "Yes" %}</span>
-      {% else %}
-        <span class="badge badge-inactive">{% trans "No" %}</span>
-      {% endif %}
-    </div>
-  </div>
-
-  {% if suppliercategory.notes %}
-  <div class="form-section">
-    <h3>{% trans "Notes" %}</h3>
-    <div class="readonly-field">{{ suppliercategory.notes|linebreaks }}</div>
-  </div>
+{% block info_banner_extra %}
+<div><strong>{% trans "Supplier" %}:</strong> {{ suppliercategory.supplier.name }} ({{ suppliercategory.supplier.public_code }})</div>
+<div><strong>{% trans "Category" %}:</strong> {{ suppliercategory.category.name }} ({{ suppliercategory.category.public_code }})</div>
+<div><strong>{% trans "Primary" %}:</strong>
+  {% if suppliercategory.is_primary %}
+    <span class="badge badge-active">{% trans "Yes" %}</span>
+  {% else %}
+    <span class="badge badge-inactive">{% trans "No" %}</span>
   {% endif %}
+</div>
+{% endblock %}
 
-  <div class="form-section">
-    <h3>{% trans "Metadata" %}</h3>
-    <div class="form-row">
-      <div class="form-field">
-        <label>{% trans "Created At" %}</label>
-        <div class="readonly-field">{{ suppliercategory.created_at|jalali_date }}</div>
-      </div>
-      {% if suppliercategory.created_by %}
-      <div class="form-field">
-        <label>{% trans "Created By" %}</label>
-        <div class="readonly-field">{{ suppliercategory.created_by.get_full_name|default:suppliercategory.created_by.username }}</div>
-      </div>
-      {% endif %}
-      {% if suppliercategory.updated_at %}
-      <div class="form-field">
-        <label>{% trans "Updated At" %}</label>
-        <div class="readonly-field">{{ suppliercategory.updated_at|jalali_date }}</div>
-      </div>
-      {% endif %}
-      {% if suppliercategory.edited_by %}
-      <div class="form-field">
-        <label>{% trans "Edited By" %}</label>
-        <div class="readonly-field">{{ suppliercategory.edited_by.get_full_name|default:suppliercategory.edited_by.username }}</div>
-      </div>
-      {% endif %}
+{% block detail_sections %}
+{% if suppliercategory.notes %}
+<div class="form-section">
+  <h3>{% trans "Notes" %}</h3>
+  <div class="readonly-field">{{ suppliercategory.notes|linebreaks }}</div>
+</div>
+{% endif %}
+
+<div class="form-section">
+  <h3>{% trans "Metadata" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Created At" %}</label>
+      <div class="readonly-field">{{ suppliercategory.created_at|jalali_date }}</div>
     </div>
-  </div>
-
-  <div class="form-actions" style="margin-top: 2rem;">
-    <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
-    {% if can_edit %}
-    <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+    {% if suppliercategory.created_by %}
+    <div class="form-field">
+      <label>{% trans "Created By" %}</label>
+      <div class="readonly-field">{{ suppliercategory.created_by.get_full_name|default:suppliercategory.created_by.username }}</div>
+    </div>
+    {% endif %}
+    {% if suppliercategory.updated_at %}
+    <div class="form-field">
+      <label>{% trans "Updated At" %}</label>
+      <div class="readonly-field">{{ suppliercategory.updated_at|jalali_date }}</div>
+    </div>
+    {% endif %}
+    {% if suppliercategory.edited_by %}
+    <div class="form-field">
+      <label>{% trans "Edited By" %}</label>
+      <div class="readonly-field">{{ suppliercategory.edited_by.get_full_name|default:suppliercategory.edited_by.username }}</div>
+    </div>
     {% endif %}
   </div>
 </div>
-
-<style>
-.readonly-field {
-  padding: 0.5rem;
-  background-color: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  min-height: 2.5rem;
-  display: flex;
-  align-items: center;
-}
-</style>
 {% endblock %}
 

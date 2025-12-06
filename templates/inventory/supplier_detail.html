@@ -1,164 +1,143 @@
-{% extends "inventory/base.html" %}
+{% extends "shared/generic/generic_detail.html" %}
 {% load i18n jalali_tags %}
 
-{% block page_title %}{% trans "View Supplier" %}{% endblock %}
+{% block title %}{% trans "View Supplier" %} - {{ block.super }}{% endblock %}
 
-{% block inventory_content %}
-<div class="form-container">
-  <div class="info-banner">
-    <div><strong>{% trans "Code" %}:</strong> <code>{{ supplier.public_code }}</code></div>
-    <div><strong>{% trans "Status" %}:</strong>
-      {% if supplier.is_enabled %}
-        <span class="badge badge-active">{% trans "Active" %}</span>
-      {% else %}
-        <span class="badge badge-inactive">{% trans "Inactive" %}</span>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="form-section">
-    <h3>{% trans "Basic Information" %}</h3>
-    <div class="form-row">
-      <div class="form-field">
-        <label>{% trans "Name" %} (FA)</label>
-        <div class="readonly-field">{{ supplier.name }}</div>
-      </div>
-      {% if supplier.name_en %}
-      <div class="form-field">
-        <label>{% trans "Name" %} (EN)</label>
-        <div class="readonly-field">{{ supplier.name_en }}</div>
-      </div>
-      {% endif %}
-      <div class="form-field">
-        <label>{% trans "Sort Order" %}</label>
-        <div class="readonly-field">{{ supplier.sort_order }}</div>
-      </div>
-    </div>
-  </div>
-
-  {% if supplier.phone_number or supplier.mobile_number or supplier.email %}
-  <div class="form-section">
-    <h3>{% trans "Contact Information" %}</h3>
-    <div class="form-row">
-      {% if supplier.phone_number %}
-      <div class="form-field">
-        <label>{% trans "Phone Number" %}</label>
-        <div class="readonly-field">{{ supplier.phone_number }}</div>
-      </div>
-      {% endif %}
-      {% if supplier.mobile_number %}
-      <div class="form-field">
-        <label>{% trans "Mobile Number" %}</label>
-        <div class="readonly-field">{{ supplier.mobile_number }}</div>
-      </div>
-      {% endif %}
-      {% if supplier.email %}
-      <div class="form-field">
-        <label>{% trans "Email" %}</label>
-        <div class="readonly-field">{{ supplier.email }}</div>
-      </div>
-      {% endif %}
-    </div>
-  </div>
+{% block info_banner_extra %}
+<div><strong>{% trans "Code" %}:</strong> <code>{{ supplier.public_code }}</code></div>
+<div><strong>{% trans "Status" %}:</strong>
+  {% if supplier.is_enabled %}
+    <span class="badge badge-active">{% trans "Active" %}</span>
+  {% else %}
+    <span class="badge badge-inactive">{% trans "Inactive" %}</span>
   {% endif %}
+</div>
+{% endblock %}
 
-  {% if supplier.address or supplier.city or supplier.state or supplier.country %}
-  <div class="form-section">
-    <h3>{% trans "Address Information" %}</h3>
-    <div class="form-row">
-      {% if supplier.address %}
-      <div class="form-field full-width">
-        <label>{% trans "Address" %}</label>
-        <div class="readonly-field">{{ supplier.address|linebreaks }}</div>
-      </div>
-      {% endif %}
-      {% if supplier.city %}
-      <div class="form-field">
-        <label>{% trans "City" %}</label>
-        <div class="readonly-field">{{ supplier.city }}</div>
-      </div>
-      {% endif %}
-      {% if supplier.state %}
-      <div class="form-field">
-        <label>{% trans "State" %}</label>
-        <div class="readonly-field">{{ supplier.state }}</div>
-      </div>
-      {% endif %}
-      {% if supplier.country %}
-      <div class="form-field">
-        <label>{% trans "Country" %}</label>
-        <div class="readonly-field">{{ supplier.country }}</div>
-      </div>
-      {% endif %}
+{% block detail_sections %}
+<div class="form-section">
+  <h3>{% trans "Basic Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Name" %} (FA)</label>
+      <div class="readonly-field">{{ supplier.name }}</div>
     </div>
-  </div>
-  {% endif %}
-
-  {% if supplier.tax_id %}
-  <div class="form-section">
-    <h3>{% trans "Tax Information" %}</h3>
-    <div class="form-row">
-      <div class="form-field">
-        <label>{% trans "Tax ID" %}</label>
-        <div class="readonly-field">{{ supplier.tax_id }}</div>
-      </div>
+    {% if supplier.name_en %}
+    <div class="form-field">
+      <label>{% trans "Name" %} (EN)</label>
+      <div class="readonly-field">{{ supplier.name_en }}</div>
     </div>
-  </div>
-  {% endif %}
-
-  {% if supplier.description %}
-  <div class="form-section">
-    <h3>{% trans "Description" %}</h3>
-    <div class="readonly-field">{{ supplier.description }}</div>
-  </div>
-  {% endif %}
-
-  <div class="form-section">
-    <h3>{% trans "Metadata" %}</h3>
-    <div class="form-row">
-      <div class="form-field">
-        <label>{% trans "Created At" %}</label>
-        <div class="readonly-field">{{ supplier.created_at|jalali_date }}</div>
-      </div>
-      {% if supplier.created_by %}
-      <div class="form-field">
-        <label>{% trans "Created By" %}</label>
-        <div class="readonly-field">{{ supplier.created_by.get_full_name|default:supplier.created_by.username }}</div>
-      </div>
-      {% endif %}
-      {% if supplier.updated_at %}
-      <div class="form-field">
-        <label>{% trans "Updated At" %}</label>
-        <div class="readonly-field">{{ supplier.updated_at|jalali_date }}</div>
-      </div>
-      {% endif %}
-      {% if supplier.edited_by %}
-      <div class="form-field">
-        <label>{% trans "Edited By" %}</label>
-        <div class="readonly-field">{{ supplier.edited_by.get_full_name|default:supplier.edited_by.username }}</div>
-      </div>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="form-actions" style="margin-top: 2rem;">
-    <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
-    {% if can_edit %}
-    <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
     {% endif %}
+    <div class="form-field">
+      <label>{% trans "Sort Order" %}</label>
+      <div class="readonly-field">{{ supplier.sort_order }}</div>
+    </div>
   </div>
 </div>
 
-<style>
-.readonly-field {
-  padding: 0.5rem;
-  background-color: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  min-height: 2.5rem;
-  display: flex;
-  align-items: center;
-}
-</style>
+{% if supplier.phone_number or supplier.mobile_number or supplier.email %}
+<div class="form-section">
+  <h3>{% trans "Contact Information" %}</h3>
+  <div class="form-row">
+    {% if supplier.phone_number %}
+    <div class="form-field">
+      <label>{% trans "Phone Number" %}</label>
+      <div class="readonly-field">{{ supplier.phone_number }}</div>
+    </div>
+    {% endif %}
+    {% if supplier.mobile_number %}
+    <div class="form-field">
+      <label>{% trans "Mobile Number" %}</label>
+      <div class="readonly-field">{{ supplier.mobile_number }}</div>
+    </div>
+    {% endif %}
+    {% if supplier.email %}
+    <div class="form-field">
+      <label>{% trans "Email" %}</label>
+      <div class="readonly-field">{{ supplier.email }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if supplier.address or supplier.city or supplier.state or supplier.country %}
+<div class="form-section">
+  <h3>{% trans "Address Information" %}</h3>
+  <div class="form-row">
+    {% if supplier.address %}
+    <div class="form-field full-width">
+      <label>{% trans "Address" %}</label>
+      <div class="readonly-field">{{ supplier.address|linebreaks }}</div>
+    </div>
+    {% endif %}
+    {% if supplier.city %}
+    <div class="form-field">
+      <label>{% trans "City" %}</label>
+      <div class="readonly-field">{{ supplier.city }}</div>
+    </div>
+    {% endif %}
+    {% if supplier.state %}
+    <div class="form-field">
+      <label>{% trans "State" %}</label>
+      <div class="readonly-field">{{ supplier.state }}</div>
+    </div>
+    {% endif %}
+    {% if supplier.country %}
+    <div class="form-field">
+      <label>{% trans "Country" %}</label>
+      <div class="readonly-field">{{ supplier.country }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if supplier.tax_id %}
+<div class="form-section">
+  <h3>{% trans "Tax Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Tax ID" %}</label>
+      <div class="readonly-field">{{ supplier.tax_id }}</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if supplier.description %}
+<div class="form-section">
+  <h3>{% trans "Description" %}</h3>
+  <div class="readonly-field">{{ supplier.description }}</div>
+</div>
+{% endif %}
+
+<div class="form-section">
+  <h3>{% trans "Metadata" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Created At" %}</label>
+      <div class="readonly-field">{{ supplier.created_at|jalali_date }}</div>
+    </div>
+    {% if supplier.created_by %}
+    <div class="form-field">
+      <label>{% trans "Created By" %}</label>
+      <div class="readonly-field">{{ supplier.created_by.get_full_name|default:supplier.created_by.username }}</div>
+    </div>
+    {% endif %}
+    {% if supplier.updated_at %}
+    <div class="form-field">
+      <label>{% trans "Updated At" %}</label>
+      <div class="readonly-field">{{ supplier.updated_at|jalali_date }}</div>
+    </div>
+    {% endif %}
+    {% if supplier.edited_by %}
+    <div class="form-field">
+      <label>{% trans "Edited By" %}</label>
+      <div class="readonly-field">{{ supplier.edited_by.get_full_name|default:supplier.edited_by.username }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}
 
