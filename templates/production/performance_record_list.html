@@ -2,6 +2,7 @@
 {% load i18n %}
 {% load jalali_tags %}
 {% load access_tags %}
+{% load static %}
 
 {% block table_headers %}
 <th>{% trans "Performance Code" %}</th>
@@ -62,12 +63,12 @@
     {% endif %}
     {% if record.status == 'pending_approval' and record.approved_by == user %}
       {% if user_feature_permissions|feature_allowed:'production.performance_records:approve' or user.is_superuser %}
-        <button type="button" class="btn btn-sm btn-success" onclick="approveRecord({{ record.pk }})" style="padding: 4px 12px; font-size: 0.85rem;">
+        <button type="button" class="btn btn-sm btn-success" onclick="approveObject({{ record.pk }}, '{% url "production:performance_record_approve" 0 %}', '{% trans "Are you sure you want to approve this performance record?" %}')" style="padding: 4px 12px; font-size: 0.85rem;">
           {% trans "Approve" %}
         </button>
       {% endif %}
       {% if user_feature_permissions|feature_allowed:'production.performance_records:reject' or user.is_superuser %}
-        <button type="button" class="btn btn-sm btn-warning" onclick="rejectRecord({{ record.pk }})" style="padding: 4px 12px; font-size: 0.85rem;">
+        <button type="button" class="btn btn-sm btn-warning" onclick="rejectObject({{ record.pk }}, '{% url "production:performance_record_reject" 0 %}', '{% trans "Are you sure you want to reject this performance record?" %}')" style="padding: 4px 12px; font-size: 0.85rem;">
           {% trans "Reject" %}
         </button>
       {% endif %}
@@ -86,49 +87,5 @@
 {% endblock %}
 
 {% block after_table %}
-<script>
-function approveRecord(recordId) {
-  if (!confirm('{% trans "Are you sure you want to approve this performance record?" %}')) {
-    return;
-  }
-  
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = `{% url 'production:performance_record_approve' 0 %}`.replace('0', recordId);
-  
-  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-  if (csrfToken) {
-    const csrfInput = document.createElement('input');
-    csrfInput.type = 'hidden';
-    csrfInput.name = 'csrfmiddlewaretoken';
-    csrfInput.value = csrfToken.value;
-    form.appendChild(csrfInput);
-  }
-  
-  document.body.appendChild(form);
-  form.submit();
-}
-
-function rejectRecord(recordId) {
-  if (!confirm('{% trans "Are you sure you want to reject this performance record?" %}')) {
-    return;
-  }
-  
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = `{% url 'production:performance_record_reject' 0 %}`.replace('0', recordId);
-  
-  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-  if (csrfToken) {
-    const csrfInput = document.createElement('input');
-    csrfInput.type = 'hidden';
-    csrfInput.name = 'csrfmiddlewaretoken';
-    csrfInput.value = csrfToken.value;
-    form.appendChild(csrfInput);
-  }
-  
-  document.body.appendChild(form);
-  form.submit();
-}
-</script>
+<script src="{% static 'js/approval-actions.js' %}"></script>
 {% endblock %}
