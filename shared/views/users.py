@@ -277,8 +277,8 @@ class UserUpdateView(BaseUpdateView, UserAccessFormsetMixin):
 class UserDetailView(BaseDetailView):
     """Detail view for viewing users (read-only)."""
     model = User
-    template_name = 'shared/user_detail.html'
-    context_object_name = 'user_obj'
+    template_name = 'shared/generic/generic_detail.html'
+    context_object_name = 'object'
     feature_code = 'shared.users'
     required_action = 'view_own'
     
@@ -311,23 +311,115 @@ class UserDetailView(BaseDetailView):
         )
         return queryset
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail template."""
-        context = super().get_context_data(**kwargs)
-        context['active_module'] = 'shared'
-        return context
-    
     def get_page_title(self) -> str:
         """Return page title."""
         return str(self.object)
     
-    def get_breadcrumbs(self) -> List[Dict[str, Any]]:
-        """Return breadcrumbs list."""
-        return [
-            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
-            {'label': _('Users'), 'url': reverse('shared:users')},
-            {'label': _('View'), 'url': None},
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add detail view context data."""
+        context = super().get_context_data(**kwargs)
+        user = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        info_banner = [
+            {'label': _('Username'), 'value': user.username, 'type': 'code'},
+            {'label': _('Status'), 'value': user.is_active, 'type': 'badge'},
         ]
+        if user.is_superuser:
+            info_banner.append({
+                'label': _('Superuser'),
+                'value': True,
+                'type': 'badge',
+                'true_label': _('Yes'),
+            })
+        context['info_banner'] = info_banner
+        
+        # Personal Information section
+        personal_fields = [
+            {'label': _('First Name'), 'value': user.first_name or '—'},
+            {'label': _('Last Name'), 'value': user.last_name or '—'},
+        ]
+        if user.first_name_en or user.last_name_en:
+            personal_fields.append({
+                'label': _('Name (EN)'),
+                'value': f"{user.first_name_en or ''} {user.last_name_en or ''}".strip() or '—',
+            })
+        personal_fields.append({'label': _('Email'), 'value': user.email or '—'})
+        if user.phone_number:
+            personal_fields.append({'label': _('Phone'), 'value': user.phone_number})
+        if user.mobile_number:
+            personal_fields.append({'label': _('Mobile'), 'value': user.mobile_number})
+        if user.default_company:
+            personal_fields.append({
+                'label': _('Default Company'),
+                'value': user.default_company.display_name,
+            })
+        
+        detail_sections = [
+            {
+                'title': _('Personal Information'),
+                'fields': personal_fields,
+            },
+        ]
+        
+        # Groups section
+        if user.groups.exists():
+            groups_text = ', '.join([group.name for group in user.groups.all()])
+            detail_sections.append({
+                'title': _('Groups'),
+                'fields': [
+                    {'label': _('Groups'), 'value': groups_text},
+                ],
+            })
+        
+        # Primary Groups section
+        if user.primary_groups.exists():
+            primary_groups_text = ', '.join([group.name for group in user.primary_groups.all()])
+            detail_sections.append({
+                'title': _('Primary Groups'),
+                'fields': [
+                    {'label': _('Primary Groups'), 'value': primary_groups_text},
+                ],
+            })
+        
+        # Company Access section (table)
+        if user.company_accesses.exists():
+            headers = [
+                _('Company'),
+                _('Access Level'),
+                _('Primary'),
+                _('Status'),
+            ]
+            data = []
+            for access in user.company_accesses.all():
+                data.append([
+                    access.company.display_name,
+                    access.access_level.name if access.access_level else '—',
+                    _('Yes') if access.is_primary else _('No'),
+                    _('Active') if access.is_enabled else _('Inactive'),
+                ])
+            
+            detail_sections.append({
+                'title': _('Company Access'),
+                'type': 'table',
+                'headers': headers,
+                'data': data,
+            })
+        
+        # System Information section
+        system_fields = [
+            {'label': _('Date Joined'), 'value': user.date_joined, 'type': 'date'},
+        ]
+        if user.last_login:
+            system_fields.append({'label': _('Last Login'), 'value': user.last_login, 'type': 'date'})
+        
+        detail_sections.append({
+            'title': _('System Information'),
+            'fields': system_fields,
+        })
+        
+        context['detail_sections'] = detail_sections
+        return context
     
     def get_list_url(self):
         """Return list URL."""

@@ -181,7 +181,7 @@ class GroupDetailView(BaseDetailView):
     """Detail view for viewing groups (read-only)."""
     model = Group
     template_name = 'shared/generic/generic_detail.html'
-    context_object_name = 'group'
+    context_object_name = 'object'
     feature_code = 'shared.groups'
     required_action = 'view_own'
     auto_set_company = False  # Groups are not company-scoped
@@ -219,24 +219,25 @@ class GroupDetailView(BaseDetailView):
         """Add additional context for detail template."""
         context = super().get_context_data(**kwargs)
         
-        # Setup detail sections for generic_detail.html
         group = self.object
+        context['detail_title'] = self.get_page_title()
+        
+        # Setup detail sections for generic_detail.html
         detail_sections = []
         
         # Basic Information
-        basic_info = {
-            'title': _('Basic Information'),
-            'type': 'fields',
-            'fields': [
-                {'label': _('Group Name'), 'value': group.name},
-            ]
-        }
+        basic_fields = [
+            {'label': _('Group Name'), 'value': group.name},
+        ]
         if group.profile and group.profile.description:
-            basic_info['fields'].append({
+            basic_fields.append({
                 'label': _('Description'),
                 'value': group.profile.description
             })
-        detail_sections.append(basic_info)
+        detail_sections.append({
+            'title': _('Basic Information'),
+            'fields': basic_fields,
+        })
         
         # Members
         if group.user_set.exists():
@@ -246,7 +247,6 @@ class GroupDetailView(BaseDetailView):
             ])
             detail_sections.append({
                 'title': _('Members') + f' ({group.user_set.count()})',
-                'type': 'fields',
                 'fields': [
                     {'label': _('Members'), 'value': members}
                 ]
@@ -259,7 +259,6 @@ class GroupDetailView(BaseDetailView):
             ])
             detail_sections.append({
                 'title': _('Access Levels'),
-                'type': 'fields',
                 'fields': [
                     {'label': _('Access Levels'), 'value': access_levels}
                 ]
@@ -276,8 +275,6 @@ class GroupDetailView(BaseDetailView):
                 'label': _('Status'),
                 'value': group.profile.is_enabled,
                 'type': 'badge',
-                'true_label': _('Active'),
-                'false_label': _('Inactive'),
             })
         context['info_banner'] = info_banner
         

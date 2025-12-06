@@ -206,7 +206,7 @@ class AccessLevelDetailView(BaseDetailView):
     """Detail view for viewing access levels (read-only)."""
     model = AccessLevel
     template_name = 'shared/generic/generic_detail.html'
-    context_object_name = 'access_level'
+    context_object_name = 'object'
     feature_code = 'shared.access_levels'
     required_action = 'view_own'
     auto_set_company = False  # AccessLevels are not company-scoped
@@ -244,25 +244,25 @@ class AccessLevelDetailView(BaseDetailView):
         """Add additional context for detail template."""
         context = super().get_context_data(**kwargs)
         
-        # Setup detail sections for generic_detail.html
         access_level = self.object
+        context['detail_title'] = self.get_page_title()
+        
+        # Setup detail sections for generic_detail.html
         detail_sections = []
         
         # Basic Information
-        basic_info = {
-            'title': _('Basic Information'),
-            'type': 'fields',
-            'fields': [
-                {'label': _('Code'), 'value': access_level.code, 'type': 'code'},
-                {'label': _('Name'), 'value': access_level.name},
-            ]
-        }
+        basic_fields = [
+            {'label': _('Name'), 'value': access_level.name},
+        ]
         if access_level.description:
-            basic_info['fields'].append({
+            basic_fields.append({
                 'label': _('Description'),
                 'value': access_level.description
             })
-        detail_sections.append(basic_info)
+        detail_sections.append({
+            'title': _('Basic Information'),
+            'fields': basic_fields,
+        })
         
         # Feature Permissions
         from shared.models import AccessLevelPermission
@@ -304,7 +304,6 @@ class AccessLevelDetailView(BaseDetailView):
             groups = ', '.join([str(group) for group in access_level.groups.all()])
             detail_sections.append({
                 'title': _('Assigned Groups') + f' ({access_level.groups.count()})',
-                'type': 'fields',
                 'fields': [
                     {'label': _('Groups'), 'value': groups}
                 ]

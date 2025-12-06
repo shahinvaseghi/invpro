@@ -177,8 +177,8 @@ class CompanyUpdateView(BaseUpdateView):
 class CompanyDetailView(BaseDetailView):
     """Detail view for viewing companies (read-only)."""
     model = Company
-    # Use generic_detail.html (default in BaseDetailView)
-    context_object_name = 'company'
+    template_name = 'shared/generic/generic_detail.html'
+    context_object_name = 'object'
     feature_code = 'shared.companies'
     required_action = 'view_own'
     
@@ -225,20 +225,22 @@ class CompanyDetailView(BaseDetailView):
         # Set info_banner (used by generic_detail.html)
         context['info_banner'] = [
             {'label': _('Code'), 'value': self.object.public_code, 'type': 'code'},
-            {'label': _('Status'), 'value': self.object.is_enabled, 'type': 'badge',
-             'true_label': _('Active'), 'false_label': _('Inactive')},
+            {'label': _('Status'), 'value': self.object.is_enabled, 'type': 'badge'},
         ]
         
         # Set detail_sections (used by generic_detail.html)
+        basic_fields = [
+            {'label': _('Display Name'), 'value': self.object.display_name},
+        ]
+        if self.object.legal_name:
+            basic_fields.append({'label': _('Legal Name'), 'value': self.object.legal_name})
+        if self.object.tax_id:
+            basic_fields.append({'label': _('Tax ID'), 'value': self.object.tax_id})
+        
         context['detail_sections'] = [
             {
                 'title': _('Basic Information'),
-                'type': 'fields',
-                'fields': [
-                    {'label': _('Display Name'), 'value': self.object.display_name},
-                    {'label': _('Legal Name'), 'value': self.object.legal_name or '-'},
-                    {'label': _('Tax ID'), 'value': self.object.tax_id or '-'},
-                ],
+                'fields': basic_fields,
             },
         ]
         
@@ -257,7 +259,6 @@ class CompanyDetailView(BaseDetailView):
             if address_fields:
                 context['detail_sections'].append({
                     'title': _('Address Information'),
-                    'type': 'fields',
                     'fields': address_fields,
                 })
         
@@ -268,31 +269,16 @@ class CompanyDetailView(BaseDetailView):
         if self.object.email:
             contact_fields.append({'label': _('Email'), 'value': self.object.email})
         if self.object.website:
-            contact_fields.append({'label': _('Website'), 'value': self.object.website, 'type': 'link', 'url': self.object.website})
+            contact_fields.append({
+                'label': _('Website'),
+                'value': f"<a href='{self.object.website}' target='_blank'>{self.object.website}</a>",
+                'type': 'custom'
+            })
         
         if contact_fields:
             context['detail_sections'].append({
                 'title': _('Contact Information'),
-                'type': 'fields',
                 'fields': contact_fields,
-            })
-        
-        # Add audit information
-        audit_fields = []
-        if self.object.created_by:
-            audit_fields.append({'label': _('Created By'), 'value': self.object.created_by.get_full_name() or self.object.created_by.username})
-        if self.object.created_at:
-            audit_fields.append({'label': _('Created At'), 'value': self.object.created_at, 'type': 'date'})
-        if self.object.edited_by:
-            audit_fields.append({'label': _('Edited By'), 'value': self.object.edited_by.get_full_name() or self.object.edited_by.username})
-        if self.object.edited_at:
-            audit_fields.append({'label': _('Last Updated'), 'value': self.object.edited_at, 'type': 'date'})
-        
-        if audit_fields:
-            context['detail_sections'].append({
-                'title': _('Audit Information'),
-                'type': 'fields',
-                'fields': audit_fields,
             })
         
         return context

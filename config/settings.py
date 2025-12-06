@@ -308,12 +308,7 @@ UNFOLD = {
         "show_search": True,
         "show_all_applications": True,
     },
-    "STYLES": [
-        {
-            "source": "https://fonts.googleapis.com/css2?family=Vazir:wght@400;500;600;700&display=swap",
-            "pipeline": False,
-        },
-    ],
+    "STYLES": [],
     "SCRIPTS": [],
 }
 

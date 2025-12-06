@@ -1,12 +1,13 @@
 {% load static %}
 {% load i18n %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE }}" dir="ltr">
+<html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_CODE == 'fa' %}rtl{% else %}ltr{% endif %}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}{% trans "invproj Platform" %}{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=20241121-0245" />
+    <link rel="stylesheet" href="{% static 'css/vazirmatn-font-face.css' %}?v=20241206-2000" />
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=20241206-2000" />
   </head>
   <body>
     <div class="app-shell sidebar-collapsed">

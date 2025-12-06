@@ -11,7 +11,7 @@ from django.views.generic import CreateView, DeleteView, DetailView, ListView, U
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.models import SMTPServer
 from shared.forms import SMTPServerForm
-from shared.views.base import BaseUpdateView
+from shared.views.base import BaseUpdateView, BaseDetailView
 
 
 class SMTPServerListView(FeaturePermissionRequiredMixin, ListView):
@@ -127,13 +127,16 @@ class SMTPServerUpdateView(BaseUpdateView):
         return context
 
 
-class SMTPServerDetailView(FeaturePermissionRequiredMixin, DetailView):
+class SMTPServerDetailView(BaseDetailView):
     """Detail view for viewing SMTP servers (read-only)."""
     model = SMTPServer
-    template_name = 'shared/smtp_server_detail.html'
-    context_object_name = 'smtp_server'
+    template_name = 'shared/generic/generic_detail.html'
+    context_object_name = 'object'
     feature_code = 'shared.smtp_servers'
     required_action = 'view_own'
+    auto_set_company = False  # SMTP servers are not company-scoped
+    require_active_company = False  # SMTP servers are global
+    permission_field = ''  # Skip permission filtering for SMTPServer model
     
     def get_queryset(self):
         """Get all SMTP servers."""
@@ -141,15 +144,55 @@ class SMTPServerDetailView(FeaturePermissionRequiredMixin, DetailView):
         queryset = queryset.select_related('created_by', 'edited_by')
         return queryset
     
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View SMTP Server')
+    
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail template."""
+        """Add detail view context data."""
         context = super().get_context_data(**kwargs)
-        context['active_module'] = 'shared'
-        context['list_url'] = reverse_lazy('shared:smtp_servers')
-        context['edit_url'] = reverse_lazy('shared:smtp_server_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        context['feature_code'] = 'shared.smtp_servers'
+        smtp_server = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        context['info_banner'] = [
+            {'label': _('Name'), 'value': smtp_server.name, 'type': 'code'},
+            {'label': _('Status'), 'value': smtp_server.is_enabled, 'type': 'badge'},
+        ]
+        
+        # Server Configuration section
+        config_fields = [
+            {'label': _('Host'), 'value': smtp_server.host},
+            {'label': _('Port'), 'value': str(smtp_server.port)},
+            {'label': _('From Email'), 'value': smtp_server.from_email},
+        ]
+        if smtp_server.username:
+            config_fields.append({'label': _('Username'), 'value': smtp_server.username})
+        config_fields.append({
+            'label': _('Use TLS'),
+            'value': smtp_server.use_tls,
+            'type': 'badge',
+        })
+        config_fields.append({
+            'label': _('Use SSL'),
+            'value': smtp_server.use_ssl,
+            'type': 'badge',
+        })
+        
+        context['detail_sections'] = [
+            {
+                'title': _('Server Configuration'),
+                'fields': config_fields,
+            },
+        ]
         return context
+    
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('shared:smtp_servers')
+    
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('shared:smtp_server_edit', kwargs={'pk': self.object.pk})
 
 
 class SMTPServerDeleteView(FeaturePermissionRequiredMixin, DeleteView):

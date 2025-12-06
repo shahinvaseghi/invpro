@@ -162,8 +162,8 @@ class CompanyUnitUpdateView(BaseUpdateView):
 class CompanyUnitDetailView(BaseDetailView):
     """Detail view for viewing company units (read-only)."""
     model = CompanyUnit
-    # Use generic_detail.html (default in BaseDetailView)
-    context_object_name = 'unit'
+    template_name = 'shared/generic/generic_detail.html'
+    context_object_name = 'object'
     feature_code = 'shared.company_units'
     required_action = 'view_own'
     
@@ -213,21 +213,24 @@ class CompanyUnitDetailView(BaseDetailView):
         # Set info_banner (used by generic_detail.html)
         context['info_banner'] = [
             {'label': _('Code'), 'value': self.object.public_code, 'type': 'code'},
-            {'label': _('Status'), 'value': self.object.is_enabled, 'type': 'badge',
-             'true_label': _('Active'), 'false_label': _('Inactive')},
+            {'label': _('Status'), 'value': self.object.is_enabled, 'type': 'badge'},
         ]
         
         # Set detail_sections (used by generic_detail.html)
+        basic_fields = [
+            {'label': _('Unit Name'), 'value': self.object.name},
+        ]
+        if self.object.name_en:
+            basic_fields.append({'label': _('Unit Name (English)'), 'value': self.object.name_en})
+        if self.object.parent_unit:
+            basic_fields.append({'label': _('Parent Unit'), 'value': self.object.parent_unit.name})
+        if self.object.description:
+            basic_fields.append({'label': _('Description'), 'value': self.object.description})
+        
         context['detail_sections'] = [
             {
                 'title': _('Basic Information'),
-                'type': 'fields',
-                'fields': [
-                    {'label': _('Unit Name'), 'value': self.object.name},
-                    {'label': _('Unit Name (English)'), 'value': self.object.name_en or '-'},
-                    {'label': _('Parent Unit'), 'value': self.object.parent_unit.name if self.object.parent_unit else '-'},
-                    {'label': _('Description'), 'value': self.object.description or '-'},
-                ],
+                'fields': basic_fields,
             },
         ]
         
@@ -235,28 +238,9 @@ class CompanyUnitDetailView(BaseDetailView):
         if self.object.notes:
             context['detail_sections'].append({
                 'title': _('Notes'),
-                'type': 'fields',
                 'fields': [
                     {'label': _('Notes'), 'value': self.object.notes},
                 ],
-            })
-        
-        # Add audit information
-        audit_fields = []
-        if self.object.created_by:
-            audit_fields.append({'label': _('Created By'), 'value': self.object.created_by.get_full_name() or self.object.created_by.username})
-        if self.object.created_at:
-            audit_fields.append({'label': _('Created At'), 'value': self.object.created_at, 'type': 'date'})
-        if self.object.edited_by:
-            audit_fields.append({'label': _('Edited By'), 'value': self.object.edited_by.get_full_name() or self.object.edited_by.username})
-        if self.object.edited_at:
-            audit_fields.append({'label': _('Last Updated'), 'value': self.object.edited_at, 'type': 'date'})
-        
-        if audit_fields:
-            context['detail_sections'].append({
-                'title': _('Audit Information'),
-                'type': 'fields',
-                'fields': audit_fields,
             })
         
         return context
