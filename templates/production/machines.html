@@ -74,12 +74,7 @@
   </td>
   {% if show_actions %}
   <td>
-    <a href="{% url edit_url_name machine.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
-      {% trans "Edit" %}
-    </a>
-    <a href="{% url delete_url_name machine.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
-      {% trans "Delete" %}
-    </a>
+    {% include 'shared/partials/row_actions.html' with object=machine feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
   </td>
   {% endif %}
 </tr>

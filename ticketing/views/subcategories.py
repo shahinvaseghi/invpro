@@ -16,10 +16,17 @@ from .. import models
 from ..forms.categories import TicketCategoryForm, TicketCategoryPermissionFormSet
 from .base import TicketingBaseView
 from shared.mixins import FeaturePermissionRequiredMixin
-from shared.views.base import EditLockProtectedMixin
+from shared.views.base import (
+    BaseListView,
+    BaseFormsetCreateView,
+    BaseFormsetUpdateView,
+    BaseDetailView,
+    BaseDeleteView,
+    EditLockProtectedMixin,
+)
 
 
-class TicketSubcategoryListView(FeaturePermissionRequiredMixin, TicketingBaseView, ListView):
+class TicketSubcategoryListView(BaseListView):
     """List view for ticket subcategories (categories with parent)."""
 
     model = models.TicketCategory
@@ -28,55 +35,34 @@ class TicketSubcategoryListView(FeaturePermissionRequiredMixin, TicketingBaseVie
     paginate_by = 50
     feature_code = "ticketing.management.subcategories"
     required_action = "view_all"
+    active_module = "ticketing"
+    default_order_by = ["parent_category__name", "sort_order", "public_code", "name"]
 
-    def get_queryset(self):
-        """Filter subcategories (categories with parent) by company and search."""
+    def get_base_queryset(self):
+        """Filter subcategories (categories with parent) by company."""
         company_id = self.request.session.get("active_company_id")
-        queryset = models.TicketCategory.objects.filter(
+        return models.TicketCategory.objects.filter(
             company_id=company_id, parent_category__isnull=False
         )
 
-        search = self.request.GET.get("search", "")
-        if search:
-            queryset = queryset.filter(
-                Q(name__icontains=search)
-                | Q(name_en__icontains=search)
-                | Q(public_code__icontains=search)
-            )
+    def get_search_fields(self) -> list:
+        """Return list of fields to search in."""
+        return ["name", "name_en", "public_code"]
+
+    def get_queryset(self):
+        """Filter subcategories by company, search, and parent filter."""
+        queryset = super().get_queryset()
 
         # Filter by parent category
         parent_id = self.request.GET.get("parent", "")
         if parent_id:
             queryset = queryset.filter(parent_category_id=parent_id)
 
-        return queryset.order_by("parent_category__name", "sort_order", "public_code", "name")
+        return queryset
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context data."""
         context = super().get_context_data(**kwargs)
-        if 'page_obj' in context and hasattr(context['page_obj'], 'object_list'):
-            context['object_list'] = context['page_obj'].object_list
-        elif 'object_list' in context and hasattr(context['object_list'], 'query'):
-            context['object_list'] = list(context['object_list'])
-        
-        context["page_title"] = _("Ticket Subcategories")
-        context["breadcrumbs"] = [
-            {"label": _("Ticket Management"), "url": None},
-            {"label": _("Subcategories"), "url": None},
-        ]
-        context["create_url"] = reverse_lazy("ticketing:subcategory_create")
-        context["create_button_text"] = _("Create Subcategory")
-        context["show_filters"] = True
-        context["search_placeholder"] = _("Search by name or code")
-        context["clear_filter_url"] = reverse_lazy("ticketing:subcategories")
-        context["show_actions"] = True
-        context["feature_code"] = "ticketing.management.subcategories"
-        context["detail_url_name"] = "ticketing:subcategory_detail"
-        context["edit_url_name"] = "ticketing:subcategory_edit"
-        context["delete_url_name"] = "ticketing:subcategory_delete"
-        context["empty_state_title"] = _("No Subcategories Found")
-        context["empty_state_message"] = _("Start by creating your first subcategory.")
-        context["empty_state_icon"] = "📂"
 
         # Get all parent categories for filter
         company_id = self.request.session.get("active_company_id")
@@ -87,8 +73,51 @@ class TicketSubcategoryListView(FeaturePermissionRequiredMixin, TicketingBaseVie
 
         return context
 
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _("Ticket Subcategories")
 
-class TicketSubcategoryCreateView(FeaturePermissionRequiredMixin, TicketingBaseView, CreateView):
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
+            {"label": _("Ticket Management"), "url": None},
+            {"label": _("Subcategories"), "url": None},
+        ]
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy("ticketing:subcategory_create")
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _("Create Subcategory")
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return "ticketing:subcategory_detail"
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return "ticketing:subcategory_edit"
+
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return "ticketing:subcategory_delete"
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _("No Subcategories Found")
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _("Start by creating your first subcategory.")
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return "📂"
+
+
+class TicketSubcategoryCreateView(BaseFormsetCreateView):
     """View for creating a new ticket subcategory."""
 
     model = models.TicketCategory
@@ -97,6 +126,10 @@ class TicketSubcategoryCreateView(FeaturePermissionRequiredMixin, TicketingBaseV
     success_url = reverse_lazy("ticketing:subcategories")
     feature_code = "ticketing.management.subcategories"
     required_action = "create"
+    active_module = "ticketing"
+    success_message = _("Subcategory created successfully.")
+    formset_class = TicketCategoryPermissionFormSet
+    formset_prefix = "permissions"
 
     def get_form_kwargs(self):
         """Add request to form kwargs."""
@@ -105,32 +138,37 @@ class TicketSubcategoryCreateView(FeaturePermissionRequiredMixin, TicketingBaseV
         form.request = self.request
         return kwargs
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context data including permission formset."""
-        context = super().get_context_data(**kwargs)
-        context["form_title"] = _("Create Subcategory")
-        context["breadcrumbs"] = [
+    def get_formset_kwargs(self) -> Dict[str, Any]:
+        """Return kwargs for formset."""
+        kwargs = super().get_formset_kwargs()
+        if not kwargs.get("instance"):
+            kwargs["instance"] = models.TicketCategory()
+        return kwargs
+
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
             {"label": _("Ticket Management"), "url": None},
             {"label": _("Subcategories"), "url": reverse_lazy("ticketing:subcategories")},
             {"label": _("Create"), "url": None},
         ]
-        context["cancel_url"] = reverse_lazy("ticketing:subcategories")
 
-        # Create permission formset for new subcategory
-        if self.request.method == "POST":
-            permission_formset = TicketCategoryPermissionFormSet(
-                self.request.POST, instance=self.object or models.TicketCategory()
-            )
-        else:
-            permission_formset = TicketCategoryPermissionFormSet(
-                instance=self.object or models.TicketCategory()
-            )
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy("ticketing:subcategories")
+
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _("Create Subcategory")
+
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context data including permission formset."""
+        context = super().get_context_data(**kwargs)
 
         # Set request on all forms in formset
-        for form in permission_formset.forms:
-            form.request = self.request
-
-        context["permission_formset"] = permission_formset
+        if "formset" in context:
+            for form in context["formset"].forms:
+                form.request = self.request
 
         # Get all parent categories for dropdown
         company_id = self.request.session.get("active_company_id")
@@ -141,6 +179,15 @@ class TicketSubcategoryCreateView(FeaturePermissionRequiredMixin, TicketingBaseV
 
         return context
 
+    def process_formset_instance(self, instance):
+        """Process formset instance before saving."""
+        company_id = self.request.session.get("active_company_id")
+        if company_id:
+            instance.company_id = company_id
+        if instance.category:
+            instance.category_code = instance.category.public_code
+        return instance
+
     def form_valid(self, form):
         """Save subcategory and permissions."""
         # Ensure parent_category is set (subcategory requirement)
@@ -148,39 +195,39 @@ class TicketSubcategoryCreateView(FeaturePermissionRequiredMixin, TicketingBaseV
             form.add_error("parent_category", _("Subcategory must have a parent category."))
             return self.form_invalid(form)
 
+        from django.db import transaction
+
         # Set company_id before saving
         company_id = self.request.session.get("active_company_id")
         if company_id:
             form.instance.company_id = company_id
 
-        response = super().form_valid(form)
+        with transaction.atomic():
+            # Save main object first
+            self.object = form.save()
 
-        # Save permission formset
-        permission_formset = TicketCategoryPermissionFormSet(
-            self.request.POST, instance=self.object
-        )
+            # Get formset and set request on all forms
+            formset = self.formset_class(
+                self.request.POST, instance=self.object, prefix=self.formset_prefix
+            )
+            for perm_form in formset.forms:
+                perm_form.request = self.request
 
-        # Set request on all forms in formset
-        for perm_form in permission_formset.forms:
-            perm_form.request = self.request
+            if formset.is_valid():
+                # Process each instance before saving
+                for permission in formset.save(commit=False):
+                    self.process_formset_instance(permission)
+                    permission.save()
+                formset.save()
+            else:
+                # If formset is invalid, return form with errors
+                return self.form_invalid(form)
 
-        if permission_formset.is_valid():
-            permission_formset.save()
-            # Set company_id for all saved permissions
-            for permission in permission_formset.save(commit=False):
-                permission.company_id = company_id
-                if permission.category:
-                    permission.category_code = permission.category.public_code
-                permission.save()
-        else:
-            # If formset is invalid, return form with errors
-            return self.form_invalid(form)
-
-        messages.success(self.request, _("Subcategory created successfully."))
-        return response
+        from django.http import HttpResponseRedirect
+        return HttpResponseRedirect(self.get_success_url())
 
 
-class TicketSubcategoryUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, TicketingBaseView, UpdateView):
+class TicketSubcategoryUpdateView(BaseFormsetUpdateView, EditLockProtectedMixin):
     """View for editing an existing ticket subcategory."""
 
     model = models.TicketCategory
@@ -189,6 +236,10 @@ class TicketSubcategoryUpdateView(EditLockProtectedMixin, FeaturePermissionRequi
     success_url = reverse_lazy("ticketing:subcategories")
     feature_code = "ticketing.management.subcategories"
     required_action = "edit_own"
+    active_module = "ticketing"
+    success_message = _("Subcategory updated successfully.")
+    formset_class = TicketCategoryPermissionFormSet
+    formset_prefix = "permissions"
 
     def get_form_kwargs(self):
         """Add request to form kwargs."""
@@ -204,30 +255,30 @@ class TicketSubcategoryUpdateView(EditLockProtectedMixin, FeaturePermissionRequi
             company_id=company_id, parent_category__isnull=False
         )
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context data including permission formset."""
-        context = super().get_context_data(**kwargs)
-        context["form_title"] = _("Edit Subcategory")
-        context["breadcrumbs"] = [
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
             {"label": _("Ticket Management"), "url": None},
             {"label": _("Subcategories"), "url": reverse_lazy("ticketing:subcategories")},
             {"label": _("Edit"), "url": None},
         ]
-        context["cancel_url"] = reverse_lazy("ticketing:subcategories")
 
-        # Create permission formset for existing subcategory
-        if self.request.method == "POST":
-            permission_formset = TicketCategoryPermissionFormSet(
-                self.request.POST, instance=self.object
-            )
-        else:
-            permission_formset = TicketCategoryPermissionFormSet(instance=self.object)
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy("ticketing:subcategories")
+
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _("Edit Subcategory")
+
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context data including permission formset."""
+        context = super().get_context_data(**kwargs)
 
         # Set request on all forms in formset
-        for form in permission_formset.forms:
-            form.request = self.request
-
-        context["permission_formset"] = permission_formset
+        if "formset" in context:
+            for form in context["formset"].forms:
+                form.request = self.request
 
         # Get all parent categories for dropdown
         company_id = self.request.session.get("active_company_id")
@@ -238,6 +289,15 @@ class TicketSubcategoryUpdateView(EditLockProtectedMixin, FeaturePermissionRequi
 
         return context
 
+    def process_formset_instance(self, instance):
+        """Process formset instance before saving."""
+        company_id = self.request.session.get("active_company_id")
+        if company_id:
+            instance.company_id = company_id
+        if instance.category:
+            instance.category_code = instance.category.public_code
+        return instance
+
     def form_valid(self, form):
         """Save subcategory and permissions."""
         # Ensure parent_category is set (subcategory requirement)
@@ -245,40 +305,41 @@ class TicketSubcategoryUpdateView(EditLockProtectedMixin, FeaturePermissionRequi
             form.add_error("parent_category", _("Subcategory must have a parent category."))
             return self.form_invalid(form)
 
-        response = super().form_valid(form)
+        from django.db import transaction
 
-        # Save permission formset
-        permission_formset = TicketCategoryPermissionFormSet(
-            self.request.POST, instance=self.object
-        )
+        with transaction.atomic():
+            # Save main object first
+            self.object = form.save()
 
-        # Set request on all forms in formset
-        for perm_form in permission_formset.forms:
-            perm_form.request = self.request
+            # Get formset and set request on all forms
+            formset = self.formset_class(
+                self.request.POST, instance=self.object, prefix=self.formset_prefix
+            )
+            for perm_form in formset.forms:
+                perm_form.request = self.request
 
-        if permission_formset.is_valid():
-            company_id = self.request.session.get("active_company_id")
-            for permission in permission_formset.save(commit=False):
-                permission.company_id = company_id
-                if permission.category:
-                    permission.category_code = permission.category.public_code
-                permission.save()
-            permission_formset.save()
-        else:
-            # If formset is invalid, return form with errors
-            return self.form_invalid(form)
+            if formset.is_valid():
+                # Process each instance before saving
+                for permission in formset.save(commit=False):
+                    self.process_formset_instance(permission)
+                    permission.save()
+                formset.save()
+            else:
+                # If formset is invalid, return form with errors
+                return self.form_invalid(form)
 
-        messages.success(self.request, _("Subcategory updated successfully."))
-        return response
+        from django.http import HttpResponseRedirect
+        return HttpResponseRedirect(self.get_success_url())
 
 
-class TicketSubcategoryDetailView(FeaturePermissionRequiredMixin, TicketingBaseView, DetailView):
+class TicketSubcategoryDetailView(BaseDetailView):
     """Detail view for viewing ticket subcategories (read-only)."""
     model = models.TicketCategory
     template_name = "ticketing/subcategory_detail.html"
     context_object_name = "subcategory"
     feature_code = "ticketing.management.subcategories"
     required_action = "view_all"
+    active_module = "ticketing"
     
     def get_queryset(self):
         """Filter by company and ensure it's a subcategory."""
@@ -295,18 +356,23 @@ class TicketSubcategoryDetailView(FeaturePermissionRequiredMixin, TicketingBaseV
         )
         return queryset
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail template."""
-        context = super().get_context_data(**kwargs)
-        context["page_title"] = _("View Subcategory")
-        context["list_url"] = reverse_lazy("ticketing:subcategories")
-        context["edit_url"] = reverse_lazy("ticketing:subcategory_edit", kwargs={"pk": self.object.pk})
-        context["can_edit"] = not getattr(self.object, "is_locked", 0) if hasattr(self.object, "is_locked") else True
-        context["feature_code"] = "ticketing.management.subcategories"
-        return context
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy("ticketing:subcategories")
+    
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy("ticketing:subcategory_edit", kwargs={"pk": self.object.pk})
+    
+    def can_edit_object(self, obj=None, feature_code=None) -> bool:
+        """Check if object can be edited."""
+        check_obj = obj if obj is not None else self.object
+        if hasattr(check_obj, "is_locked"):
+            return not bool(check_obj.is_locked)
+        return True
 
 
-class TicketSubcategoryDeleteView(FeaturePermissionRequiredMixin, TicketingBaseView, DeleteView):
+class TicketSubcategoryDeleteView(BaseDeleteView):
     """View for deleting a ticket subcategory."""
 
     model = models.TicketCategory
@@ -314,6 +380,8 @@ class TicketSubcategoryDeleteView(FeaturePermissionRequiredMixin, TicketingBaseV
     success_url = reverse_lazy("ticketing:subcategories")
     feature_code = "ticketing.management.subcategories"
     required_action = "delete_own"
+    active_module = "ticketing"
+    success_message = _("Subcategory deleted successfully.")
 
     def get_queryset(self):
         """Filter by company and ensure it's a subcategory."""
@@ -322,31 +390,32 @@ class TicketSubcategoryDeleteView(FeaturePermissionRequiredMixin, TicketingBaseV
             company_id=company_id, parent_category__isnull=False
         )
 
-    def delete(self, request, *args, **kwargs):
-        """Delete subcategory and show success message."""
-        messages.success(self.request, _("Subcategory deleted successfully."))
-        return super().delete(request, *args, **kwargs)
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _("Delete Subcategory")
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context data."""
-        context = super().get_context_data(**kwargs)
-        context["delete_title"] = _("Delete Subcategory")
-        context["confirmation_message"] = _("Are you sure you want to delete this subcategory?")
-        context["object_details"] = [
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _("Are you sure you want to delete this subcategory?")
+
+    def get_object_details(self) -> list:
+        """Return object details for confirmation."""
+        details = [
             {"label": _("Name"), "value": self.object.name},
         ]
         if self.object.public_code:
-            context["object_details"].append({"label": _("Code"), "value": f"<code>{self.object.public_code}</code>"})
+            details.append({"label": _("Code"), "value": f"<code>{self.object.public_code}</code>"})
         if self.object.description:
-            context["object_details"].append({"label": _("Description"), "value": self.object.description})
+            details.append({"label": _("Description"), "value": self.object.description})
         if self.object.parent_category:
-            context["object_details"].append({"label": _("Parent Category"), "value": self.object.parent_category.name})
-        
-        context["cancel_url"] = reverse_lazy("ticketing:subcategories")
-        context["breadcrumbs"] = [
+            details.append({"label": _("Parent Category"), "value": self.object.parent_category.name})
+        return details
+
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
             {"label": _("Ticket Management"), "url": None},
             {"label": _("Subcategories"), "url": reverse_lazy("ticketing:subcategories")},
             {"label": _("Delete"), "url": None},
         ]
-        return context
 

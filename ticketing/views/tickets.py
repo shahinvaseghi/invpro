@@ -13,38 +13,57 @@ from django.views.generic import ListView, CreateView, DetailView, UpdateView
 
 from .. import models
 from .base import TicketingBaseView
-from shared.views.base import EditLockProtectedMixin
+from shared.views.base import (
+    BaseListView,
+    BaseCreateView,
+    BaseUpdateView,
+    BaseDetailView,
+    EditLockProtectedMixin,
+)
 
 
-class TicketListView(TicketingBaseView, ListView):
+class TicketListView(BaseListView):
     """List view for tickets."""
 
     model = models.Ticket
     template_name = "ticketing/ticket_list.html"
     context_object_name = "tickets"
     paginate_by = 50
+    feature_code = "ticketing.tickets"
+    required_action = "view_all"
+    active_module = "ticketing"
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context data."""
-        context = super().get_context_data(**kwargs)
-        context["page_title"] = _("Tickets")
-        context["feature_code"] = "ticketing.tickets"
-        context["detail_url_name"] = "ticketing:ticket_detail"
-        context["edit_url_name"] = "ticketing:ticket_edit"
-        return context
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _("Tickets")
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return "ticketing:ticket_detail"
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return "ticketing:ticket_edit"
 
 
-class TicketCreateView(TicketingBaseView, CreateView):
+class TicketCreateView(BaseCreateView):
     """View for creating a new ticket."""
 
     model = models.Ticket
     template_name = "ticketing/ticket_create.html"
     fields = ["template", "title", "description", "category", "priority"]
+    feature_code = "ticketing.tickets"
+    required_action = "create"
+    active_module = "ticketing"
+    success_message = _("Ticket created successfully.")
+
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _("Create Ticket")
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context data with available templates or selected template."""
         context = super().get_context_data(**kwargs)
-        context["page_title"] = _("Create Ticket")
         
         # Check if a template is selected
         template_id = self.request.GET.get("template_id")
@@ -193,7 +212,6 @@ class TicketCreateView(TicketingBaseView, CreateView):
         if company_id:
             form.instance.company_id = company_id
         form.instance.reported_by = self.request.user
-        messages.success(self.request, _("Ticket created successfully."))
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -201,14 +219,17 @@ class TicketCreateView(TicketingBaseView, CreateView):
         return reverse_lazy("ticketing:ticket_list")
 
 
-class TicketDetailView(TicketingBaseView, DetailView):
+class TicketDetailView(BaseDetailView):
     """Detail view for viewing tickets (read-only)."""
     model = models.Ticket
     template_name = "ticketing/ticket_detail.html"
     context_object_name = "ticket"
+    feature_code = "ticketing.tickets"
+    required_action = "view_all"
+    active_module = "ticketing"
     
     def get_queryset(self):
-        """Filter by active company."""
+        """Filter by active company and optimize queries."""
         company_id = self.request.session.get("active_company_id")
         if not company_id:
             return models.Ticket.objects.none()
@@ -224,36 +245,35 @@ class TicketDetailView(TicketingBaseView, DetailView):
         )
         return queryset
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail template."""
-        context = super().get_context_data(**kwargs)
-        context["page_title"] = _("View Ticket")
-        context["list_url"] = reverse_lazy("ticketing:ticket_list")
-        context["edit_url"] = reverse_lazy("ticketing:ticket_edit", kwargs={"pk": self.object.pk})
-        context["can_edit"] = not getattr(self.object, "is_locked", 0) if hasattr(self.object, "is_locked") else True
-        context["feature_code"] = "ticketing.tickets"
-        return context
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy("ticketing:ticket_list")
+    
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy("ticketing:ticket_edit", kwargs={"pk": self.object.pk})
+    
+    def can_edit_object(self, obj=None, feature_code=None) -> bool:
+        """Check if object can be edited."""
+        check_obj = obj if obj is not None else self.object
+        if hasattr(check_obj, "is_locked"):
+            return not bool(check_obj.is_locked)
+        return True
 
 
-class TicketEditView(EditLockProtectedMixin, TicketingBaseView, UpdateView):
+class TicketEditView(BaseUpdateView, EditLockProtectedMixin):
     """View for editing an existing ticket."""
 
     model = models.Ticket
     template_name = "ticketing/ticket_edit.html"
     fields = ["title", "description", "category", "priority", "status", "assigned_to"]
+    feature_code = "ticketing.tickets"
+    required_action = "edit_own"
+    active_module = "ticketing"
+    success_message = _("Ticket updated successfully.")
+    success_url = reverse_lazy("ticketing:ticket_list")
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context data."""
-        context = super().get_context_data(**kwargs)
-        context["page_title"] = _("Edit Ticket")
-        return context
-
-    def form_valid(self, form):
-        """Handle form submission."""
-        messages.success(self.request, _("Ticket updated successfully."))
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        """Redirect to ticket detail."""
-        return reverse_lazy("ticketing:ticket_list")
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _("Edit Ticket")
 

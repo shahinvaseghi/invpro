@@ -2,25 +2,33 @@
 Transfer to Line Request CRUD views for production module.
 """
 from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 from django.contrib import messages
 from django.db import transaction
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse_lazy, reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, UpdateView
 from django.views import View
+from django.db.models import Prefetch
 
 from shared.mixins import FeaturePermissionRequiredMixin
-from shared.views.base import EditLockProtectedMixin
+from shared.views.base import (
+    BaseDocumentListView,
+    BaseDetailView,
+    BaseDeleteView,
+    BaseFormsetUpdateView,
+    EditLockProtectedMixin,
+)
+from shared.views.base_additional import BaseMultipleDocumentCreateView
 from inventory.forms.base import generate_document_code
 from production.forms import TransferToLineForm, TransferToLineItemFormSet
 from production.models import TransferToLine, TransferToLineItem, ProductOrder
 from production.utils.transfer import generate_transfer_code
 
 
-class TransferToLineListView(FeaturePermissionRequiredMixin, ListView):
+class TransferToLineListView(BaseDocumentListView):
     """List all transfer to line requests for the active company."""
     model = TransferToLine
     template_name = 'production/transfer_to_line_list.html'
@@ -28,54 +36,73 @@ class TransferToLineListView(FeaturePermissionRequiredMixin, ListView):
     paginate_by = 50
     feature_code = 'production.transfer_requests'
     required_action = 'view_own'
+    active_module = 'production'
+    default_status_filter = False
+    default_order_by = ['-transfer_date', 'transfer_code']
     
-    def get_queryset(self):
-        """Filter transfers by active company."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        
-        if not active_company_id:
-            return TransferToLine.objects.none()
-        
-        from django.db.models import Prefetch
+    def get_select_related(self) -> List[str]:
+        """Return list of fields to select_related."""
+        return ['order', 'order__bom', 'order__finished_item', 'approved_by']
+    
+    def get_prefetch_related(self) -> List[str]:
+        """Return list of fields to prefetch_related."""
         from inventory.models import IssueWarehouseTransfer
-        
-        queryset = TransferToLine.objects.filter(
-            company_id=active_company_id
-        ).select_related(
-            'order',
-            'order__bom',
-            'order__finished_item',
-            'approved_by',
-        ).prefetch_related(
+        return [
             'items',
             Prefetch(
                 'warehouse_transfers',
                 queryset=IssueWarehouseTransfer.objects.filter(is_enabled=1),
                 to_attr='active_warehouse_transfers'
             ),
-        ).order_by('-transfer_date', 'transfer_code')
-        
-        return queryset
+        ]
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Transfer to Line Requests')
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Transfer to Line Requests'), 'url': None},
+        ]
+    
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('production:transfer_request_create')
+    
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Transfer Request +')
+    
+    def get_detail_url_name(self) -> Optional[str]:
+        """Return detail URL name."""
+        return 'production:transfer_request_detail'
+    
+    def get_edit_url_name(self) -> Optional[str]:
+        """Return edit URL name."""
+        return 'production:transfer_request_edit'
+    
+    def get_delete_url_name(self) -> Optional[str]:
+        """Return delete URL name."""
+        return 'production:transfer_request_delete'
+    
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Transfer Requests Found')
+    
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Create your first transfer request to get started.')
+    
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📦'
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context for generic list template."""
         context = super().get_context_data(**kwargs)
-        context['page_title'] = _('Transfer to Line Requests')
-        context['breadcrumbs'] = [
-            {'label': _('Production'), 'url': None},
-            {'label': _('Transfer to Line Requests'), 'url': None},
-        ]
-        context['create_url'] = reverse_lazy('production:transfer_request_create')
-        context['create_button_text'] = _('Create Transfer Request +')
         context['show_filters'] = False
-        context['show_actions'] = True
-        context['feature_code'] = 'production.transfer_requests'
-        context['detail_url_name'] = 'production:transfer_request_detail'
-        context['edit_url_name'] = 'production:transfer_request_edit'
-        context['delete_url_name'] = 'production:transfer_request_delete'
-        context['empty_state_title'] = _('No Transfer Requests Found')
-        context['empty_state_message'] = _('Create your first transfer request to get started.')
-        context['empty_state_icon'] = '📦'
         
         # Add user_feature_permissions for template
         active_company_id = self.request.session.get('active_company_id')
@@ -86,7 +113,7 @@ class TransferToLineListView(FeaturePermissionRequiredMixin, ListView):
         return context
 
 
-class TransferToLineCreateView(FeaturePermissionRequiredMixin, CreateView):
+class TransferToLineCreateView(BaseMultipleDocumentCreateView):
     """Create a new transfer to line request."""
     model = TransferToLine
     form_class = TransferToLineForm
@@ -94,11 +121,8 @@ class TransferToLineCreateView(FeaturePermissionRequiredMixin, CreateView):
     success_url = reverse_lazy('production:transfer_requests')
     feature_code = 'production.transfer_requests'
     required_action = 'create'
-    
-    def get_success_url(self):
-        """Return URL to redirect to after successful form submission."""
-        # Since we create multiple transfers, always redirect to list
-        return self.success_url
+    active_module = 'production'
+    success_message = _('Transfer requests created successfully.')
     
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
@@ -106,16 +130,25 @@ class TransferToLineCreateView(FeaturePermissionRequiredMixin, CreateView):
         kwargs['company_id'] = self.request.session.get('active_company_id')
         return kwargs
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add formset and context for generic template."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Create Transfer Request')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Production'), 'url': None},
             {'label': _('Transfer to Line Requests'), 'url': reverse_lazy('production:transfer_requests')},
             {'label': _('Create'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('production:transfer_requests')
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('production:transfer_requests')
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Create Transfer Request')
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add formset and context for generic template."""
+        context = super().get_context_data(**kwargs)
         context['form_id'] = 'transfer-form'
         
         # In CreateView, self.object is None initially, so we need to create a temporary instance
@@ -388,7 +421,7 @@ class TransferToLineCreateView(FeaturePermissionRequiredMixin, CreateView):
             return self.form_invalid(form)
 
 
-class TransferToLineUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
+class TransferToLineUpdateView(BaseFormsetUpdateView, EditLockProtectedMixin):
     """Update an existing transfer to line request (only extra items can be edited)."""
     model = TransferToLine
     form_class = TransferToLineForm
@@ -396,6 +429,10 @@ class TransferToLineUpdateView(EditLockProtectedMixin, FeaturePermissionRequired
     success_url = reverse_lazy('production:transfer_requests')
     feature_code = 'production.transfer_requests'
     required_action = 'edit_own'
+    active_module = 'production'
+    success_message = _('Transfer request updated successfully.')
+    formset_class = TransferToLineItemFormSet
+    formset_prefix = 'items'
     
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
@@ -403,41 +440,44 @@ class TransferToLineUpdateView(EditLockProtectedMixin, FeaturePermissionRequired
         kwargs['company_id'] = self.request.session.get('active_company_id')
         return kwargs
     
+    def get_formset_kwargs(self) -> Dict[str, Any]:
+        """Return kwargs for formset."""
+        kwargs = super().get_formset_kwargs()
+        kwargs['form_kwargs'] = {'company_id': self.request.session.get('active_company_id')}
+        return kwargs
+    
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add formset and context for generic template."""
         context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Edit Transfer Request')
-        context['breadcrumbs'] = [
+        context['form_id'] = 'transfer-form'
+        
+        # Filter formset to only show extra items
+        if 'formset' in context:
+            context['formset'].queryset = context['formset'].queryset.filter(is_extra=1)
+        
+        # Add BOM items (read-only)
+        context['bom_items'] = self.object.items.filter(is_extra=0) if self.object else []
+        context['is_locked'] = self.object.is_locked == 1 if self.object else False
+        
+        return context
+    
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Production'), 'url': None},
             {'label': _('Transfer to Line Requests'), 'url': reverse_lazy('production:transfer_requests')},
             {'label': _('Edit'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('production:transfer_requests')
-        context['form_id'] = 'transfer-form'
-        
-        # Only show extra items (is_extra=1) in formset
-        if self.request.POST:
-            formset = TransferToLineItemFormSet(
-                self.request.POST,
-                instance=self.object,
-                form_kwargs={'company_id': self.request.session.get('active_company_id')}
-            )
-        else:
-            formset = TransferToLineItemFormSet(
-                instance=self.object,
-                form_kwargs={'company_id': self.request.session.get('active_company_id')}
-            )
-        
-        # Filter formset to only show extra items
-        formset.queryset = formset.queryset.filter(is_extra=1)
-        
-        context['formset'] = formset
-        context['bom_items'] = self.object.items.filter(is_extra=0)  # BOM items (read-only)
-        context['is_locked'] = self.object.is_locked == 1
-        
-        return context
     
-    @transaction.atomic
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('production:transfer_requests')
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Edit Transfer Request')
+    
     def form_valid(self, form: TransferToLineForm) -> HttpResponseRedirect:
         """Save transfer and update extra items."""
         # Check if locked
@@ -453,77 +493,87 @@ class TransferToLineUpdateView(EditLockProtectedMixin, FeaturePermissionRequired
         # Set edited_by
         form.instance.edited_by = self.request.user
         
-        # Save transfer header
+        # Save transfer header and formset using parent's form_valid
+        # Note: formset will be filtered to only extra items in get_context_data
         response = super().form_valid(form)
         
-        # Get formset (only extra items)
-        formset = TransferToLineItemFormSet(
+        # Filter formset to only save extra items
+        formset = self.formset_class(
             self.request.POST,
             instance=self.object,
-            form_kwargs={'company_id': self.request.session.get('active_company_id')}
+            prefix=self.formset_prefix,
+            **self.get_formset_kwargs()
         )
-        
-        # Filter to only extra items
         formset.queryset = formset.queryset.filter(is_extra=1)
         
         if formset.is_valid():
             formset.save()
+        else:
+            # Formset validation failed - but we already saved the main object
+            # This shouldn't happen, but handle it gracefully
+            messages.warning(self.request, _('Some items could not be saved. Please check the form.'))
         
-        messages.success(self.request, _('Transfer request updated successfully.'))
         return response
 
 
-class TransferToLineDetailView(FeaturePermissionRequiredMixin, DetailView):
+class TransferToLineDetailView(BaseDetailView):
     """Detail view for viewing transfer to line requests (read-only)."""
     model = TransferToLine
     template_name = 'production/transfer_to_line_detail.html'
     context_object_name = 'transfer'
     feature_code = 'production.transfer_requests'
     required_action = 'view_own'
+    active_module = 'production'
     
     def get_queryset(self):
-        """Filter by active company."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        if not active_company_id:
-            return TransferToLine.objects.none()
-        queryset = TransferToLine.objects.filter(company_id=active_company_id)
+        """Filter by active company and optimize queries."""
+        queryset = super().get_queryset()
         queryset = queryset.select_related(
             'order',
             'order__bom',
             'order__finished_item',
             'approved_by',
+            'qc_approved_by',
             'created_by',
             'edited_by',
         ).prefetch_related(
             'items__material_item',
             'items__source_warehouse',
+            'items__destination_work_center',
         )
         return queryset
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail template."""
-        context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse_lazy('production:transfer_requests')
-        context['edit_url'] = reverse_lazy('production:transfer_request_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        context['feature_code'] = 'production.transfer_requests'
-        return context
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('production:transfer_requests')
+    
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('production:transfer_request_edit', kwargs={'pk': self.object.pk})
+    
+    def can_edit_object(self, obj=None, feature_code=None) -> bool:
+        """Check if object can be edited."""
+        check_obj = obj if obj is not None else self.object
+        if hasattr(check_obj, 'is_locked'):
+            return not bool(check_obj.is_locked)
+        return True
 
 
-class TransferToLineDeleteView(FeaturePermissionRequiredMixin, DeleteView):
+class TransferToLineDeleteView(BaseDeleteView):
     """Delete a transfer to line request."""
     model = TransferToLine
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('production:transfer_requests')
     feature_code = 'production.transfer_requests'
     required_action = 'delete_own'
+    active_module = 'production'
+    success_message = _('Transfer request deleted successfully.')
     
     def get_queryset(self):
-        """Filter by active company."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        if not active_company_id:
-            return TransferToLine.objects.none()
-        return TransferToLine.objects.filter(company_id=active_company_id).select_related('order')
+        """Filter by active company and optimize queries."""
+        queryset = super().get_queryset()
+        queryset = queryset.select_related('order')
+        return queryset
     
     def delete(self, request, *args, **kwargs):
         """Check if locked before deletion."""
@@ -533,19 +583,21 @@ class TransferToLineDeleteView(FeaturePermissionRequiredMixin, DeleteView):
             messages.error(request, _('This transfer request is locked and cannot be deleted.'))
             return HttpResponseRedirect(self.get_success_url())
         
-        messages.success(request, _('Transfer request deleted successfully.'))
         return super().delete(request, *args, **kwargs)
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Transfer Request')
-        context['confirmation_message'] = _('Are you sure you want to delete this transfer request? This action cannot be undone.')
-        
-        from django.template.defaultfilters import date as date_filter
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Transfer Request')
+    
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Are you sure you want to delete this transfer request? This action cannot be undone.')
+    
+    def get_object_details(self) -> List[Dict[str, str]]:
+        """Return object details for confirmation."""
         from production.utils.jalali import gregorian_to_jalali
         
-        object_details = [
+        details = [
             {'label': _('Transfer Code'), 'value': self.object.transfer_code},
             {'label': _('Product Order'), 'value': self.object.order_code},
         ]
@@ -560,21 +612,22 @@ class TransferToLineDeleteView(FeaturePermissionRequiredMixin, DeleteView):
                 date_str = f"{jalali_date[0]}/{jalali_date[1]:02d}/{jalali_date[2]:02d}"
             except:
                 date_str = str(self.object.transfer_date)
-            object_details.append({'label': _('Transfer Date'), 'value': date_str})
+            details.append({'label': _('Transfer Date'), 'value': date_str})
         
-        object_details.extend([
+        details.extend([
             {'label': _('Status'), 'value': self.object.get_status_display()},
             {'label': _('Total Items'), 'value': str(self.object.items.count())},
         ])
         
-        context['object_details'] = object_details
-        context['cancel_url'] = reverse_lazy('production:transfer_requests')
-        context['breadcrumbs'] = [
+        return details
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Production'), 'url': None},
             {'label': _('Transfer to Line Requests'), 'url': reverse_lazy('production:transfer_requests')},
             {'label': _('Delete'), 'url': None},
         ]
-        return context
 
 
 class TransferToLineApproveView(FeaturePermissionRequiredMixin, View):

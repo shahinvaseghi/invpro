@@ -1,49 +1,46 @@
 """
 Machine CRUD views for production module.
 """
-from typing import Any, Dict, Optional
-from django.contrib import messages
-from django.db.models import Q
-from django.http import HttpResponseRedirect
+from typing import Any, Dict, Optional, List
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
-from shared.mixins import FeaturePermissionRequiredMixin
-from shared.views.base import EditLockProtectedMixin
+from shared.views.base import (
+    BaseListView,
+    BaseCreateView,
+    BaseUpdateView,
+    BaseDetailView,
+    BaseDeleteView,
+)
 from production.forms import MachineForm
 from production.models import Machine
 
 
-class MachineListView(FeaturePermissionRequiredMixin, ListView):
-    """
-    List all machines for the active company.
-    """
+class MachineListView(BaseListView):
+    """List all machines for the active company."""
     model = Machine
     template_name = 'production/machines.html'
     context_object_name = 'object_list'
     paginate_by = 50
     feature_code = 'production.machines'
+    active_module = 'production'
+    search_fields = ['public_code', 'name', 'name_en']
+    default_status_filter = False  # Custom status filter
+    default_order_by = ['public_code']
     
-    def get_queryset(self):
-        """Filter machines by active company."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        
-        if not active_company_id:
-            return Machine.objects.none()
-        
-        queryset = Machine.objects.filter(
-            company_id=active_company_id,
-            is_enabled=1
-        )
-        
-        # Search filter
-        search = self.request.GET.get('search', '')
-        if search:
-            queryset = queryset.filter(
-                Q(public_code__icontains=search) | Q(name__icontains=search) | Q(name_en__icontains=search)
-            )
-        
+    def get_base_queryset(self):
+        """Get base queryset with is_enabled filter."""
+        return self.model.objects.filter(is_enabled=1)
+    
+    def get_select_related(self) -> List[str]:
+        """Return list of fields to select_related."""
+        try:
+            return ['work_center']
+        except Exception:
+            return []
+    
+    def apply_custom_filters(self, queryset):
+        """Apply custom filters (work_center, status)."""
         # Work center filter
         work_center_id = self.request.GET.get('work_center')
         if work_center_id:
@@ -54,40 +51,58 @@ class MachineListView(FeaturePermissionRequiredMixin, ListView):
         if status:
             queryset = queryset.filter(status=status)
         
-        # Try to select_related work_center if it exists
-        try:
-            queryset = queryset.select_related('work_center')
-        except Exception:
-            pass
-        
-        return queryset.order_by('public_code')
+        return queryset
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module to context."""
-        context = super().get_context_data(**kwargs)
-        if 'page_obj' in context and hasattr(context['page_obj'], 'object_list'):
-            context['object_list'] = context['page_obj'].object_list
-        elif 'object_list' in context and hasattr(context['object_list'], 'query'):
-            context['object_list'] = list(context['object_list'])
-        
-        context['page_title'] = _('Machines')
-        context['breadcrumbs'] = [
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Machines')
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Production'), 'url': None},
             {'label': _('Machines'), 'url': None},
         ]
-        context['create_url'] = reverse_lazy('production:machine_create')
-        context['create_button_text'] = _('Create Machine')
-        context['show_filters'] = True
-        context['search_placeholder'] = _('Search by code or name')
-        context['clear_filter_url'] = reverse_lazy('production:machines')
-        context['show_actions'] = True
-        context['feature_code'] = 'production.machines'
-        context['detail_url_name'] = 'production:machine_detail'
-        context['edit_url_name'] = 'production:machine_edit'
-        context['delete_url_name'] = 'production:machine_delete'
-        context['empty_state_title'] = _('No Machines Found')
-        context['empty_state_message'] = _('Start by adding your first machine.')
-        context['empty_state_icon'] = '⚙️'
+    
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('production:machine_create')
+    
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Machine')
+    
+    def get_search_placeholder(self) -> str:
+        """Return search placeholder."""
+        return _('Search by code or name')
+    
+    def get_detail_url_name(self) -> Optional[str]:
+        """Return detail URL name."""
+        return 'production:machine_detail'
+    
+    def get_edit_url_name(self) -> Optional[str]:
+        """Return edit URL name."""
+        return 'production:machine_edit'
+    
+    def get_delete_url_name(self) -> Optional[str]:
+        """Return delete URL name."""
+        return 'production:machine_delete'
+    
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Machines Found')
+    
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by adding your first machine.')
+    
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '⚙️'
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic list template."""
+        context = super().get_context_data(**kwargs)
         context['print_enabled'] = True
         
         # Get work centers for filter
@@ -101,7 +116,7 @@ class MachineListView(FeaturePermissionRequiredMixin, ListView):
         return context
 
 
-class MachineCreateView(FeaturePermissionRequiredMixin, CreateView):
+class MachineCreateView(BaseCreateView):
     """Create a new machine."""
     model = Machine
     form_class = MachineForm
@@ -109,39 +124,29 @@ class MachineCreateView(FeaturePermissionRequiredMixin, CreateView):
     success_url = reverse_lazy('production:machines')
     feature_code = 'production.machines'
     required_action = 'create'
-
+    active_module = 'production'
+    success_message = _('Machine created successfully.')
+    
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
         kwargs = super().get_form_kwargs()
         kwargs['company_id'] = self.request.session.get('active_company_id')
         return kwargs
     
-    def form_valid(self, form: MachineForm) -> HttpResponseRedirect:
-        """Auto-set company and created_by."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        if not active_company_id:
-            messages.error(self.request, _('Please select a company first.'))
-            return self.form_invalid(form)
-        
-        form.instance.company_id = active_company_id
-        form.instance.created_by = self.request.user
-        messages.success(self.request, _('Machine created successfully.'))
-        return super().form_valid(form)
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Create Machine')
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and form title to context."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Create Machine')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Production'), 'url': None},
             {'label': _('Machines'), 'url': reverse_lazy('production:machines')},
             {'label': _('Create'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('production:machines')
-        return context
 
 
-class MachineUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
+class MachineUpdateView(BaseUpdateView):
     """Update an existing machine."""
     model = Machine
     form_class = MachineForm
@@ -149,53 +154,40 @@ class MachineUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
     success_url = reverse_lazy('production:machines')
     feature_code = 'production.machines'
     required_action = 'edit_own'
-
+    active_module = 'production'
+    success_message = _('Machine updated successfully.')
+    
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
         kwargs = super().get_form_kwargs()
         kwargs['company_id'] = self.object.company_id
         return kwargs
     
-    def get_queryset(self):
-        """Filter by active company."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        if not active_company_id:
-            return Machine.objects.none()
-        return Machine.objects.filter(company_id=active_company_id)
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Edit Machine')
     
-    def form_valid(self, form: MachineForm) -> HttpResponseRedirect:
-        """Auto-set edited_by."""
-        form.instance.edited_by = self.request.user
-        messages.success(self.request, _('Machine updated successfully.'))
-        return super().form_valid(form)
-    
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and form title to context."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Edit Machine')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Production'), 'url': None},
             {'label': _('Machines'), 'url': reverse_lazy('production:machines')},
             {'label': _('Edit'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('production:machines')
-        return context
 
 
-class MachineDetailView(FeaturePermissionRequiredMixin, DetailView):
+class MachineDetailView(BaseDetailView):
     """Detail view for viewing machines (read-only)."""
     model = Machine
     template_name = 'production/machine_detail.html'
     context_object_name = 'machine'
     feature_code = 'production.machines'
     required_action = 'view_own'
+    active_module = 'production'
     
     def get_queryset(self):
-        """Filter by active company."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        if not active_company_id:
-            return Machine.objects.none()
-        queryset = Machine.objects.filter(company_id=active_company_id)
+        """Filter by active company and optimize queries."""
+        queryset = super().get_queryset()
         queryset = queryset.select_related(
             'work_center',
             'created_by',
@@ -203,54 +195,56 @@ class MachineDetailView(FeaturePermissionRequiredMixin, DetailView):
         )
         return queryset
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail template."""
-        context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse_lazy('production:machines')
-        context['edit_url'] = reverse_lazy('production:machine_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        context['feature_code'] = 'production.machines'
-        return context
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('production:machines')
+    
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('production:machine_edit', kwargs={'pk': self.object.pk})
+    
+    def can_edit_object(self, obj=None, feature_code=None) -> bool:
+        """Check if object can be edited."""
+        check_obj = obj if obj is not None else self.object
+        if hasattr(check_obj, 'is_locked'):
+            return not bool(check_obj.is_locked)
+        return True
 
 
-class MachineDeleteView(FeaturePermissionRequiredMixin, DeleteView):
+class MachineDeleteView(BaseDeleteView):
     """Delete a machine."""
     model = Machine
     success_url = reverse_lazy('production:machines')
     template_name = 'shared/generic/generic_confirm_delete.html'
     feature_code = 'production.machines'
     required_action = 'delete_own'
+    active_module = 'production'
+    success_message = _('Machine deleted successfully.')
     
-    def get_queryset(self):
-        """Filter by active company."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        if not active_company_id:
-            return Machine.objects.none()
-        return Machine.objects.filter(company_id=active_company_id)
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Machine')
     
-    def delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect:
-        """Delete machine and show success message."""
-        messages.success(self.request, _('Machine deleted successfully.'))
-        return super().delete(request, *args, **kwargs)
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Do you really want to delete this machine?')
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Machine')
-        context['confirmation_message'] = _('Do you really want to delete this machine?')
-        context['object_details'] = [
+    def get_object_details(self) -> List[Dict[str, str]]:
+        """Return object details for confirmation."""
+        details = [
             {'label': _('Code'), 'value': f'<code>{self.object.public_code}</code>'},
             {'label': _('Name'), 'value': self.object.name},
             {'label': _('Type'), 'value': str(self.object.machine_type)},
         ]
         if self.object.work_center:
-            context['object_details'].append({'label': _('Work Center'), 'value': self.object.work_center.name})
-        
-        context['cancel_url'] = reverse_lazy('production:machines')
-        context['breadcrumbs'] = [
+            details.append({'label': _('Work Center'), 'value': self.object.work_center.name})
+        return details
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Production'), 'url': None},
             {'label': _('Machines'), 'url': reverse_lazy('production:machines')},
             {'label': _('Delete'), 'url': None},
         ]
-        return context
 

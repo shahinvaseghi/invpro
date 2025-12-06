@@ -1,7 +1,7 @@
 """
 Account (Chart of Accounts) CRUD views for accounting module.
 """
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from django.contrib import messages
 from django.db.models import Q
 from django.http import HttpResponseRedirect
@@ -10,13 +10,20 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
-from shared.views.base import EditLockProtectedMixin
+from shared.views.base import (
+    BaseListView,
+    BaseCreateView,
+    BaseUpdateView,
+    BaseDetailView,
+    BaseDeleteView,
+    EditLockProtectedMixin,
+)
 from accounting.models import Account
 from accounting.forms import AccountForm
 from accounting.views.base import AccountingBaseView
 
 
-class AccountListView(FeaturePermissionRequiredMixin, AccountingBaseView, ListView):
+class AccountListView(BaseListView):
     """
     List all accounts for the active company.
     """
@@ -25,29 +32,30 @@ class AccountListView(FeaturePermissionRequiredMixin, AccountingBaseView, ListVi
     context_object_name = 'object_list'
     paginate_by = 50
     feature_code = 'accounting.accounts'
+    required_action = 'view_all'
+    active_module = 'accounting'
+    default_order_by = ['account_code']
+    default_status_filter = True
+    
+    def get_base_queryset(self):
+        """Get base queryset filtered by company."""
+        queryset = super().get_base_queryset()
+        # Use AccountingBaseView's permission filtering
+        base_view = AccountingBaseView()
+        base_view.request = self.request
+        queryset = base_view.filter_queryset_by_permissions(queryset, self.feature_code)
+        return queryset
+    
+    def get_search_fields(self) -> list:
+        """Return list of fields to search in."""
+        return ['account_code', 'account_name', 'account_name_en']
     
     def get_queryset(self):
         """Filter accounts by active company and search/filter criteria."""
         queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, self.feature_code)
         
-        search: str = self.request.GET.get('search', '').strip()
-        status: str = self.request.GET.get('status', '')
         account_type: str = self.request.GET.get('account_type', '')
         account_level: str = self.request.GET.get('account_level', '')
-        
-        if search:
-            queryset = queryset.filter(
-                Q(account_code__icontains=search) |
-                Q(account_name__icontains=search) |
-                Q(account_name_en__icontains=search)
-            )
-        
-        if status in ('0', '1'):
-            queryset = queryset.filter(is_enabled=int(status))
-        else:
-            # Default: show only enabled accounts
-            queryset = queryset.filter(is_enabled=1)
         
         if account_type:
             queryset = queryset.filter(account_type=account_type)
@@ -55,29 +63,55 @@ class AccountListView(FeaturePermissionRequiredMixin, AccountingBaseView, ListVi
         if account_level:
             queryset = queryset.filter(account_level=int(account_level))
         
-        return queryset.order_by('account_code')
+        return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Chart of Accounts')
+    
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Accounting'), 'url': reverse('accounting:dashboard')},
+            {'label': _('Chart of Accounts'), 'url': None},
+        ]
+    
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse('accounting:account_create')
+    
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Account')
+    
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'accounting:account_detail'
+    
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'accounting:account_edit'
+    
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'accounting:account_delete'
+    
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Accounts Found')
+    
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by adding your first account.')
+    
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📊'
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context variables for generic_list template."""
         context = super().get_context_data(**kwargs)
-        context['page_title'] = _('Chart of Accounts')
-        context['breadcrumbs'] = [
-            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
-            {'label': _('Accounting'), 'url': reverse('accounting:dashboard')},
-            {'label': _('Chart of Accounts')},
-        ]
-        context['create_url'] = reverse('accounting:account_create')
-        context['create_button_text'] = _('Create Account')
-        context['show_filters'] = True
-        context['status_filter'] = True
-        context['search_placeholder'] = _('Search by code or name')
-        context['clear_filter_url'] = reverse('accounting:accounts')
-        context['print_enabled'] = True
-        context['show_actions'] = True
-        context['feature_code'] = 'accounting.accounts'
-        context['detail_url_name'] = 'accounting:account_detail'
-        context['edit_url_name'] = 'accounting:account_edit'
-        context['delete_url_name'] = 'accounting:account_delete'
         context['table_headers'] = [
             {'label': _('CODE'), 'field': 'account_code', 'type': 'code'},
             {'label': _('Account Name'), 'field': 'account_name'},
@@ -89,13 +123,11 @@ class AccountListView(FeaturePermissionRequiredMixin, AccountingBaseView, ListVi
             {'label': _('Status'), 'field': 'is_enabled', 'type': 'badge',
              'true_label': _('Active'), 'false_label': _('Inactive')},
         ]
-        context['empty_state_title'] = _('No Accounts Found')
-        context['empty_state_message'] = _('Start by adding your first account.')
-        context['empty_state_icon'] = '📊'
+        context['print_enabled'] = True
         return context
 
 
-class AccountCreateView(FeaturePermissionRequiredMixin, AccountingBaseView, CreateView):
+class AccountCreateView(BaseCreateView):
     """Create a new account."""
     model = Account
     form_class = AccountForm
@@ -103,6 +135,8 @@ class AccountCreateView(FeaturePermissionRequiredMixin, AccountingBaseView, Crea
     success_url = reverse_lazy('accounting:accounts')
     feature_code = 'accounting.accounts'
     required_action = 'create'
+    active_module = 'accounting'
+    success_message = _('Account created successfully.')
     
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
@@ -111,25 +145,29 @@ class AccountCreateView(FeaturePermissionRequiredMixin, AccountingBaseView, Crea
         return kwargs
     
     def form_valid(self, form: AccountForm) -> HttpResponseRedirect:
-        """Set created_by and show success message."""
+        """Set created_by."""
         form.instance.created_by = self.request.user
-        messages.success(self.request, _('Account created successfully.'))
         return super().form_valid(form)
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and form title to context."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Create Account')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Accounting'), 'url': reverse('accounting:dashboard')},
             {'label': _('Chart of Accounts'), 'url': reverse('accounting:accounts')},
+            {'label': _('Create'), 'url': None},
         ]
-        context['cancel_url'] = reverse('accounting:accounts')
-        return context
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse('accounting:accounts')
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Create Account')
 
 
-class AccountUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, AccountingBaseView, UpdateView):
+class AccountUpdateView(BaseUpdateView, EditLockProtectedMixin):
     """Update an existing account."""
     model = Account
     form_class = AccountForm
@@ -137,6 +175,8 @@ class AccountUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
     success_url = reverse_lazy('accounting:accounts')
     feature_code = 'accounting.accounts'
     required_action = 'edit_own'
+    active_module = 'accounting'
+    success_message = _('Account updated successfully.')
     
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
@@ -150,34 +190,42 @@ class AccountUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
     def form_valid(self, form: AccountForm) -> HttpResponseRedirect:
         """Auto-set edited_by."""
         form.instance.edited_by = self.request.user
-        messages.success(self.request, _('Account updated successfully.'))
         return super().form_valid(form)
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and form title to context."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Edit Account')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Accounting'), 'url': reverse('accounting:dashboard')},
             {'label': _('Chart of Accounts'), 'url': reverse('accounting:accounts')},
+            {'label': _('Edit'), 'url': None},
         ]
-        context['cancel_url'] = reverse('accounting:accounts')
-        return context
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse('accounting:accounts')
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Edit Account')
 
 
-class AccountDetailView(FeaturePermissionRequiredMixin, AccountingBaseView, DetailView):
+class AccountDetailView(BaseDetailView):
     """Detail view for viewing accounts (read-only)."""
     model = Account
     template_name = 'accounting/account_detail.html'
     context_object_name = 'account'
     feature_code = 'accounting.accounts'
     required_action = 'view_own'
+    active_module = 'accounting'
     
     def get_queryset(self):
-        """Filter by active company."""
+        """Filter by active company and optimize queries."""
         queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, self.feature_code)
+        # Use AccountingBaseView's permission filtering
+        base_view = AccountingBaseView()
+        base_view.request = self.request
+        queryset = base_view.filter_queryset_by_permissions(queryset, self.feature_code)
         queryset = queryset.select_related(
             'parent_account',
             'created_by',
@@ -185,58 +233,68 @@ class AccountDetailView(FeaturePermissionRequiredMixin, AccountingBaseView, Deta
         ).prefetch_related('child_accounts')
         return queryset
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail template."""
-        context = super().get_context_data(**kwargs)
-        context['page_title'] = _('View Account')
-        context['list_url'] = reverse_lazy('accounting:accounts')
-        context['edit_url'] = reverse_lazy('accounting:account_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        context['feature_code'] = 'accounting.accounts'
-        return context
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('accounting:accounts')
+    
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('accounting:account_edit', kwargs={'pk': self.object.pk})
+    
+    def can_edit_object(self, obj=None, feature_code=None) -> bool:
+        """Check if object can be edited."""
+        check_obj = obj if obj is not None else self.object
+        if hasattr(check_obj, 'is_locked'):
+            return not bool(check_obj.is_locked)
+        return True
 
 
-class AccountDeleteView(FeaturePermissionRequiredMixin, AccountingBaseView, DeleteView):
+class AccountDeleteView(BaseDeleteView):
     """Delete an account."""
     model = Account
     success_url = reverse_lazy('accounting:accounts')
     template_name = 'shared/generic/generic_confirm_delete.html'
     feature_code = 'accounting.accounts'
     required_action = 'delete_own'
+    active_module = 'accounting'
+    success_message = _('Account deleted successfully.')
     
-    def delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect:
-        """Delete account and show success message."""
+    def validate_deletion(self) -> tuple[bool, Optional[str]]:
+        """Validate if account can be deleted."""
         obj = self.get_object()
         # Check if account is system account
         if obj.is_system_account:
-            messages.error(self.request, _('System accounts cannot be deleted.'))
-            return HttpResponseRedirect(self.success_url)
+            return False, _('System accounts cannot be deleted.')
         
         # Check if account has child accounts
         if obj.child_accounts.exists():
-            messages.error(self.request, _('Cannot delete account with child accounts.'))
-            return HttpResponseRedirect(self.success_url)
+            return False, _('Cannot delete account with child accounts.')
         
-        messages.success(self.request, _('Account deleted successfully.'))
-        return super().delete(request, *args, **kwargs)
+        return True, None
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Account')
-        context['confirmation_message'] = _('Do you really want to delete this account?')
-        context['breadcrumbs'] = [
-            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
-            {'label': _('Accounting'), 'url': reverse('accounting:dashboard')},
-            {'label': _('Chart of Accounts'), 'url': reverse('accounting:accounts')},
-            {'label': _('Delete')},
-        ]
-        context['object_details'] = [
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Account')
+    
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Do you really want to delete this account?')
+    
+    def get_object_details(self) -> list:
+        """Return object details for confirmation."""
+        return [
             {'label': _('Code'), 'value': self.object.account_code, 'type': 'code'},
             {'label': _('Name'), 'value': self.object.account_name},
             {'label': _('Type'), 'value': self.object.get_account_type_display()},
             {'label': _('Level'), 'value': self.object.get_account_level_display()},
         ]
-        context['cancel_url'] = reverse('accounting:accounts')
-        return context
+    
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Accounting'), 'url': reverse('accounting:dashboard')},
+            {'label': _('Chart of Accounts'), 'url': reverse('accounting:accounts')},
+            {'label': _('Delete'), 'url': None},
+        ]
 

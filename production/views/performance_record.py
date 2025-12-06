@@ -2,7 +2,7 @@
 Performance Record CRUD views for production module.
 """
 from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 from django.contrib import messages
 from django.db import transaction
 from django.http import HttpResponseRedirect, JsonResponse
@@ -10,11 +10,17 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, UpdateView
 from django.views import View
 
 from shared.mixins import FeaturePermissionRequiredMixin
-from shared.views.base import EditLockProtectedMixin
+from shared.views.base import (
+    BaseDocumentListView,
+    BaseDetailView,
+    BaseDeleteView,
+    EditLockProtectedMixin,
+)
+from shared.views.base_additional import BaseMultipleFormsetCreateView, BaseMultipleFormsetUpdateView
 from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
 from inventory.utils.codes import generate_sequential_code
 from production.forms import (
@@ -37,7 +43,7 @@ from production.models import (
 )
 
 
-class PerformanceRecordListView(FeaturePermissionRequiredMixin, ListView):
+class PerformanceRecordListView(BaseDocumentListView):
     """List all performance records for the active company."""
     model = PerformanceRecord
     template_name = 'production/performance_record_list.html'
@@ -45,77 +51,101 @@ class PerformanceRecordListView(FeaturePermissionRequiredMixin, ListView):
     paginate_by = 50
     feature_code = 'production.performance_records'
     required_action = 'view_own'
+    active_module = 'production'
+    default_status_filter = False
+    default_order_by = ['-performance_date', 'performance_code']
     
-    def get_queryset(self):
-        """Filter performance records by active company."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        
-        if not active_company_id:
-            return PerformanceRecord.objects.none()
-        
-        queryset = PerformanceRecord.objects.filter(
-            company_id=active_company_id
-        ).select_related(
+    def get_select_related(self) -> List[str]:
+        """Return list of fields to select_related."""
+        return [
             'order',
             'order__bom',
             'order__finished_item',
             'order__process',
             'transfer',
             'approved_by',
-        ).prefetch_related(
-            'materials',
-            'persons',
-            'machines',
-        ).order_by('-performance_date', 'performance_code')
+        ]
+    
+    def get_prefetch_related(self) -> List[str]:
+        """Return list of fields to prefetch_related."""
+        return ['materials', 'persons', 'machines']
+    
+    def get_queryset(self):
+        """Filter performance records by active company and permissions."""
+        queryset = super().get_queryset()
         
         # Check if user has view_all permission
-        permissions = get_user_feature_permissions(self.request.user, active_company_id)
-        if not has_feature_permission(permissions, 'production.performance_records', action='view_all'):
-            # Only show own records
-            queryset = queryset.filter(created_by=self.request.user)
+        active_company_id = self.request.session.get('active_company_id')
+        if active_company_id:
+            permissions = get_user_feature_permissions(self.request.user, active_company_id)
+            if not has_feature_permission(permissions, 'production.performance_records', action='view_all'):
+                # Only show own records
+                queryset = queryset.filter(created_by=self.request.user)
         
         return queryset
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic template."""
-        context = super().get_context_data(**kwargs)
-        if 'page_obj' in context and hasattr(context['page_obj'], 'object_list'):
-            context['object_list'] = context['page_obj'].object_list
-        elif 'object_list' in context and hasattr(context['object_list'], 'query'):
-            context['object_list'] = list(context['object_list'])
-        
-        context['page_title'] = _('Performance Records')
-        context['breadcrumbs'] = [
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Performance Records')
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Production'), 'url': None},
             {'label': _('Performance Records'), 'url': None},
         ]
-        
-        # Check permissions for create button
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
+    
+    def get_create_url(self):
+        """Return create URL if user has permission."""
+        active_company_id = self.request.session.get('active_company_id')
         if active_company_id:
             permissions = get_user_feature_permissions(self.request.user, active_company_id)
             if has_feature_permission(permissions, 'production.performance_records', action='create') or self.request.user.is_superuser:
-                context['create_url'] = reverse_lazy('production:performance_record_create')
-                context['create_button_text'] = _('Create Performance Record')
-        
+                return reverse_lazy('production:performance_record_create')
+        return None
+    
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Performance Record')
+    
+    def get_detail_url_name(self) -> Optional[str]:
+        """Return detail URL name."""
+        return 'production:performance_record_detail'
+    
+    def get_edit_url_name(self) -> Optional[str]:
+        """Return edit URL name."""
+        return 'production:performance_record_edit'
+    
+    def get_delete_url_name(self) -> Optional[str]:
+        """Return delete URL name."""
+        return 'production:performance_record_delete'
+    
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Performance Records Found')
+    
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Create your first performance record to get started.')
+    
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📊'
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic list template."""
+        context = super().get_context_data(**kwargs)
         context['show_filters'] = False
-        context['show_actions'] = True
-        context['feature_code'] = 'production.performance_records'
-        context['detail_url_name'] = 'production:performance_record_detail'
-        context['edit_url_name'] = 'production:performance_record_edit'
-        context['delete_url_name'] = 'production:performance_record_delete'
-        context['empty_state_title'] = _('No Performance Records Found')
-        context['empty_state_message'] = _('Create your first performance record to get started.')
-        context['empty_state_icon'] = '📊'
         
         # Add user_feature_permissions for template
+        active_company_id = self.request.session.get('active_company_id')
         if active_company_id:
             context['user_feature_permissions'] = get_user_feature_permissions(self.request.user, active_company_id)
         
         return context
 
 
-class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
+class PerformanceRecordCreateView(BaseMultipleFormsetCreateView):
     """Create a new performance record."""
     model = PerformanceRecord
     form_class = PerformanceRecordForm
@@ -123,6 +153,19 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
     success_url = reverse_lazy('production:performance_records')
     feature_code = 'production.performance_records'
     required_action = 'create'
+    active_module = 'production'
+    success_message = _('Performance record created successfully.')
+    
+    formsets = {
+        'materials': PerformanceRecordMaterialFormSet,
+        'persons': PerformanceRecordPersonFormSet,
+        'machines': PerformanceRecordMachineFormSet,
+    }
+    formset_prefixes = {
+        'materials': 'materials',
+        'persons': 'persons',
+        'machines': 'machines',
+    }
     
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
@@ -130,27 +173,55 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
         kwargs['company_id'] = self.request.session.get('active_company_id')
         return kwargs
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add formsets to context."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Create Performance Record')
-        context['breadcrumbs'] = [
+    def get_formset_kwargs(self, formset_name: str) -> Dict[str, Any]:
+        """Return kwargs for a specific formset."""
+        active_company_id = self.request.session.get('active_company_id')
+        kwargs = {'form_kwargs': {'company_id': active_company_id}}
+        
+        # Get order and process_id from form if available
+        if hasattr(self, 'form') and self.form and hasattr(self.form, 'cleaned_data') and self.form.cleaned_data:
+            order = self.form.cleaned_data.get('order')
+            if order:
+                kwargs['form_kwargs']['process_id'] = order.process_id if order else None
+        elif self.request.POST:
+            order_id = self.request.POST.get('order')
+            if order_id:
+                try:
+                    order = ProductOrder.objects.get(id=int(order_id))
+                    kwargs['form_kwargs']['process_id'] = order.process_id if order else None
+                except (ProductOrder.DoesNotExist, ValueError, TypeError):
+                    pass
+        
+        if hasattr(self, 'object') and self.object:
+            kwargs['instance'] = self.object
+        
+        return kwargs
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Production'), 'url': None},
             {'label': _('Performance Records'), 'url': reverse_lazy('production:performance_records')},
             {'label': _('Create'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('production:performance_records')
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('production:performance_records')
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Create Performance Record')
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add formsets to context."""
+        context = super().get_context_data(**kwargs)
         context['form_id'] = 'performance-form'
         
         # Add user_feature_permissions for template
         active_company_id = self.request.session.get('active_company_id')
         if active_company_id:
             context['user_feature_permissions'] = get_user_feature_permissions(self.request.user, active_company_id)
-        
-        # In CreateView, self.object is None initially
-        instance = self.object if hasattr(self, 'object') and self.object else None
-        
-        active_company_id = self.request.session.get('active_company_id')
         
         # Get document_type from form data or default
         document_type = None
@@ -164,71 +235,18 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
         context['document_type'] = document_type
         context['is_general_document'] = (document_type == PerformanceRecord.DocumentType.GENERAL)
         
-        if self.request.POST:
-            context['material_formset'] = PerformanceRecordMaterialFormSet(
-                self.request.POST,
-                instance=instance,
-                form_kwargs={'company_id': active_company_id},
-                prefix='materials',
-            )
-            # For general documents, disable person and machine formsets (they will be auto-populated)
-            if document_type == PerformanceRecord.DocumentType.GENERAL:
-                context['person_formset'] = PerformanceRecordPersonFormSet(
-                    self.request.POST,
-                    instance=instance,
-                    form_kwargs={'company_id': active_company_id, 'process_id': None},
-                    prefix='persons',
-                )
-                context['machine_formset'] = PerformanceRecordMachineFormSet(
-                    self.request.POST,
-                    instance=instance,
-                    form_kwargs={'company_id': active_company_id},
-                    prefix='machines',
-                )
-            else:
-                context['person_formset'] = PerformanceRecordPersonFormSet(
-                    self.request.POST,
-                    instance=instance,
-                    form_kwargs={'company_id': active_company_id, 'process_id': None},
-                    prefix='persons',
-                )
-                context['machine_formset'] = PerformanceRecordMachineFormSet(
-                    self.request.POST,
-                    instance=instance,
-                    form_kwargs={'company_id': active_company_id},
-                    prefix='machines',
-                )
-        else:
-            context['material_formset'] = PerformanceRecordMaterialFormSet(
-                instance=instance,
-                form_kwargs={'company_id': active_company_id},
-                prefix='materials',
-            )
-            # For general documents, disable person and machine formsets (they will be auto-populated)
-            if document_type == PerformanceRecord.DocumentType.GENERAL:
-                context['person_formset'] = PerformanceRecordPersonFormSet(
-                    instance=instance,
-                    form_kwargs={'company_id': active_company_id, 'process_id': None},
-                    prefix='persons',
-                )
-                context['machine_formset'] = PerformanceRecordMachineFormSet(
-                    instance=instance,
-                    form_kwargs={'company_id': active_company_id, 'process_id': None},
-                    prefix='machines',
-                )
-            else:
-                context['person_formset'] = PerformanceRecordPersonFormSet(
-                    instance=instance,
-                    form_kwargs={'company_id': active_company_id, 'process_id': None},
-                    prefix='persons',
-                )
-                context['machine_formset'] = PerformanceRecordMachineFormSet(
-                    instance=instance,
-                    form_kwargs={'company_id': active_company_id, 'process_id': None},
-                    prefix='machines',
-                )
-        
         return context
+    
+    def process_formset(self, formset_name: str, formset) -> Optional[List[Any]]:
+        """
+        Process formset before saving. Override for custom logic.
+        For materials formset, handle custom logic based on document type.
+        """
+        if formset_name == 'materials':
+            # Materials will be handled in after_formsets_save
+            # Return None to skip default saving
+            return []
+        return None
     
     @transaction.atomic
     def form_valid(self, form: PerformanceRecordForm) -> HttpResponseRedirect:
@@ -304,37 +322,61 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
             if document_type == PerformanceRecord.DocumentType.GENERAL:
                 form.instance.quantity_planned = order.quantity_planned
         
-        # Save performance record header
-        response = super().form_valid(form)
+        # Store form data for use in after_formsets_save
+        self._form_data = form.cleaned_data
+        self._active_company_id = active_company_id
         
-        # Get formsets
-        material_formset = PerformanceRecordMaterialFormSet(
-            self.request.POST,
-            instance=self.object,
-            form_kwargs={'company_id': active_company_id},
-            prefix='materials',
-        )
-        person_formset = PerformanceRecordPersonFormSet(
-            self.request.POST,
-            instance=self.object,
-            form_kwargs={'company_id': active_company_id, 'process_id': order.process_id if order else None},
-            prefix='persons',
-        )
-        machine_formset = PerformanceRecordMachineFormSet(
-            self.request.POST,
-            instance=self.object,
-            form_kwargs={'company_id': active_company_id, 'process_id': order.process_id if order else None},
-            prefix='machines',
-        )
+        # Save performance record header using parent's form_valid
+        return super().form_valid(form)
+    
+    def validate_formsets(self) -> bool:
+        """Validate formsets. Skip materials validation for custom handling."""
+        context = self.get_context_data()
+        document_type = self._form_data.get('document_type')
         
-        # Populate materials based on document type
-        document_type = form.cleaned_data.get('document_type')
-        order = form.cleaned_data.get('order')
-        operation = form.cleaned_data.get('operation')
-        
+        # For materials, we'll handle validation in after_formsets_save
+        # For persons and machines, only validate for operational documents
         if document_type == PerformanceRecord.DocumentType.OPERATIONAL:
-            # For operational documents: get actual materials from transfer documents for this order
-            # Get all approved transfer documents for this order
+            for formset_name in ['persons', 'machines']:
+                formset = context.get(f'{formset_name}_formset')
+                if formset and not formset.is_valid():
+                    return False
+        
+        return True
+    
+    def save_formsets(self) -> Dict[str, List[Any]]:
+        """Save formsets. Skip materials for custom handling."""
+        context = self.get_context_data()
+        saved_instances = {}
+        document_type = self._form_data.get('document_type')
+        
+        # Save persons and machines only for operational documents
+        if document_type == PerformanceRecord.DocumentType.OPERATIONAL:
+            for formset_name in ['persons', 'machines']:
+                formset = context.get(f'{formset_name}_formset')
+                if formset and formset.is_valid():
+                    formset.instance = self.object
+                    saved_instances[formset_name] = formset.save()
+                else:
+                    saved_instances[formset_name] = []
+        
+        # Materials will be handled in after_formsets_save
+        saved_instances['materials'] = []
+        
+        return saved_instances
+    
+    def after_formsets_save(self, saved_instances: Dict[str, List[Any]]) -> None:
+        """Handle custom logic after formsets are saved."""
+        active_company_id = self._active_company_id
+        form_data = self._form_data
+        document_type = form_data.get('document_type')
+        order = form_data.get('order')
+        operation = form_data.get('operation')
+        transfer = form_data.get('transfer')
+        
+        # Handle materials based on document type
+        if document_type == PerformanceRecord.DocumentType.OPERATIONAL:
+            # For operational documents: get actual materials from transfer documents
             transfers = TransferToLine.objects.filter(
                 company_id=active_company_id,
                 order=order,
@@ -342,11 +384,10 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
                 is_enabled=1,
             )
             
-            # Collect all materials from all transfers (actual materials used)
-            # Group by material_item to handle duplicates
+            # Collect all materials from all transfers
             materials_dict = {}
-            for transfer in transfers:
-                for transfer_item in transfer.items.all():
+            for transfer_obj in transfers:
+                for transfer_item in transfer_obj.items.all():
                     material_item_id = transfer_item.material_item_id
                     if material_item_id not in materials_dict:
                         materials_dict[material_item_id] = {
@@ -357,10 +398,9 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
                             'is_extra': transfer_item.is_extra,
                         }
                     else:
-                        # Sum quantities if same material appears in multiple transfers
                         materials_dict[material_item_id]['quantity_required'] += transfer_item.quantity_required
             
-            # Create performance record materials from actual transfer materials
+            # Create performance record materials
             PerformanceRecordMaterial.objects.filter(performance=self.object).delete()
             for material_data in materials_dict.values():
                 PerformanceRecordMaterial.objects.create(
@@ -376,13 +416,10 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
                 )
         else:
             # For general documents: populate from transfer if selected, or use formset
-            transfer = form.cleaned_data.get('transfer')
-            if transfer and material_formset.is_valid():
-                # Clear existing materials and populate from transfer
+            if transfer:
                 PerformanceRecordMaterial.objects.filter(performance=self.object).delete()
-                
                 for transfer_item in transfer.items.all():
-                    material = PerformanceRecordMaterial.objects.create(
+                    PerformanceRecordMaterial.objects.create(
                         performance=self.object,
                         company_id=active_company_id,
                         material_item=transfer_item.material_item,
@@ -393,41 +430,28 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
                         is_extra=transfer_item.is_extra,
                         created_by=self.request.user,
                     )
-            elif material_formset.is_valid():
-                # Save materials from formset
-                material_formset.instance = self.object
-                material_formset.save()
             else:
-                messages.error(self.request, _('Error saving materials. Please check the form.'))
-                return self.form_invalid(form)
-        
-        # Save persons and machines (only for operational documents)
-        # For general documents, persons and machines will be auto-populated from operational records
-        if document_type == PerformanceRecord.DocumentType.OPERATIONAL:
-            if person_formset.is_valid():
-                person_formset.instance = self.object
-                person_formset.save()
-            else:
-                messages.error(self.request, _('Error saving persons. Please check the form.'))
-                return self.form_invalid(form)
-            
-            if machine_formset.is_valid():
-                machine_formset.instance = self.object
-                machine_formset.save()
-            else:
-                messages.error(self.request, _('Error saving machines. Please check the form.'))
-                return self.form_invalid(form)
+                # Use formset
+                material_formset = PerformanceRecordMaterialFormSet(
+                    self.request.POST,
+                    instance=self.object,
+                    form_kwargs={'company_id': active_company_id},
+                    prefix='materials',
+                )
+                if material_formset.is_valid():
+                    material_formset.save()
+                else:
+                    messages.error(self.request, _('Error saving materials. Please check the form.'))
         
         # For general documents, aggregate data from all operational performance records
         if document_type == PerformanceRecord.DocumentType.GENERAL:
-            # Get all operational performance records for this order
             operational_records = PerformanceRecord.objects.filter(
                 company_id=active_company_id,
                 order=order,
                 document_type=PerformanceRecord.DocumentType.OPERATIONAL,
             ).prefetch_related('persons', 'machines', 'materials')
             
-            # Aggregate persons (sum work_minutes by person)
+            # Aggregate persons
             persons_dict = {}
             for op_record in operational_records:
                 for person_record in op_record.persons.all():
@@ -444,7 +468,7 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
                     else:
                         persons_dict[person_id]['work_minutes'] += person_record.work_minutes
             
-            # Aggregate machines (sum work_minutes by machine)
+            # Aggregate machines
             machines_dict = {}
             for op_record in operational_records:
                 for machine_record in op_record.machines.all():
@@ -461,7 +485,7 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
                     else:
                         machines_dict[machine_id]['work_minutes'] += machine_record.work_minutes
             
-            # Aggregate materials (sum quantity_required and quantity_waste by material_item)
+            # Aggregate materials
             materials_dict = {}
             for op_record in operational_records:
                 for material_record in op_record.materials.all():
@@ -480,8 +504,7 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
                         materials_dict[material_item_id]['quantity_required'] += material_record.quantity_required
                         materials_dict[material_item_id]['quantity_waste'] += material_record.quantity_waste
             
-            # Update or create aggregated records
-            # Clear existing and create aggregated ones
+            # Create aggregated records
             PerformanceRecordPerson.objects.filter(performance=self.object).delete()
             for person_data in persons_dict.values():
                 PerformanceRecordPerson.objects.create(
@@ -510,26 +533,32 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
                     created_by=self.request.user,
                 )
             
-            PerformanceRecordMaterial.objects.filter(performance=self.object).delete()
+            # Update materials (aggregate with existing if any)
+            existing_materials = PerformanceRecordMaterial.objects.filter(performance=self.object)
             for material_data in materials_dict.values():
-                PerformanceRecordMaterial.objects.create(
-                    performance=self.object,
-                    company_id=active_company_id,
-                    material_item=material_data['material_item'],
-                    material_item_code=material_data['material_item_code'],
-                    quantity_required=material_data['quantity_required'],
-                    quantity_waste=material_data['quantity_waste'],
-                    unit=material_data['unit'],
-                    is_extra=material_data['is_extra'],
-                    notes=material_data.get('notes', ''),
-                    created_by=self.request.user,
-                )
+                existing = existing_materials.filter(material_item=material_data['material_item']).first()
+                if existing:
+                    existing.quantity_required += material_data['quantity_required']
+                    existing.quantity_waste += material_data['quantity_waste']
+                    existing.save()
+                else:
+                    PerformanceRecordMaterial.objects.create(
+                        performance=self.object,
+                        company_id=active_company_id,
+                        material_item=material_data['material_item'],
+                        material_item_code=material_data['material_item_code'],
+                        quantity_required=material_data['quantity_required'],
+                        quantity_waste=material_data['quantity_waste'],
+                        unit=material_data['unit'],
+                        is_extra=material_data['is_extra'],
+                        notes=material_data.get('notes', ''),
+                        created_by=self.request.user,
+                    )
         
         # Create OperationQCStatus if this is an operational document for an operation that requires QC
         if document_type == PerformanceRecord.DocumentType.OPERATIONAL and operation:
             if operation.requires_qc == 1:
-                # Check if OperationQCStatus already exists (shouldn't, but check to be safe)
-                qc_status, created = OperationQCStatus.objects.get_or_create(
+                OperationQCStatus.objects.get_or_create(
                     company_id=active_company_id,
                     order=order,
                     operation=operation,
@@ -539,15 +568,9 @@ class PerformanceRecordCreateView(FeaturePermissionRequiredMixin, CreateView):
                         'created_by': self.request.user,
                     }
                 )
-                if created:
-                    # QC status created successfully
-                    pass
-        
-        messages.success(self.request, _('Performance record created successfully.'))
-        return response
 
 
-class PerformanceRecordUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
+class PerformanceRecordUpdateView(BaseMultipleFormsetUpdateView, EditLockProtectedMixin):
     """Update an existing performance record."""
     model = PerformanceRecord
     form_class = PerformanceRecordForm
@@ -555,6 +578,19 @@ class PerformanceRecordUpdateView(EditLockProtectedMixin, FeaturePermissionRequi
     success_url = reverse_lazy('production:performance_records')
     feature_code = 'production.performance_records'
     required_action = 'edit_own'
+    active_module = 'production'
+    success_message = _('Performance record updated successfully.')
+    
+    formsets = {
+        'materials': PerformanceRecordMaterialFormSet,
+        'persons': PerformanceRecordPersonFormSet,
+        'machines': PerformanceRecordMachineFormSet,
+    }
+    formset_prefixes = {
+        'materials': 'materials',
+        'persons': 'persons',
+        'machines': 'machines',
+    }
     
     def get_queryset(self):
         """Filter by company and check permissions."""
@@ -578,26 +614,44 @@ class PerformanceRecordUpdateView(EditLockProtectedMixin, FeaturePermissionRequi
         kwargs['company_id'] = self.request.session.get('active_company_id')
         return kwargs
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add formsets to context."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Edit Performance Record')
-        context['breadcrumbs'] = [
+    def get_formset_kwargs(self, formset_name: str) -> Dict[str, Any]:
+        """Return kwargs for a specific formset."""
+        active_company_id = self.request.session.get('active_company_id')
+        kwargs = {'form_kwargs': {'company_id': active_company_id}}
+        
+        # Get process_id from order
+        if self.object and self.object.order:
+            kwargs['form_kwargs']['process_id'] = self.object.order.process_id if self.object.order.process else None
+        
+        kwargs['instance'] = self.object
+        
+        return kwargs
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Production'), 'url': None},
             {'label': _('Performance Records'), 'url': reverse_lazy('production:performance_records')},
             {'label': _('Edit'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('production:performance_records')
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('production:performance_records')
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Edit Performance Record')
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add formsets to context."""
+        context = super().get_context_data(**kwargs)
         context['form_id'] = 'performance-form'
         
         # Add user_feature_permissions for template
         active_company_id = self.request.session.get('active_company_id')
         if active_company_id:
             context['user_feature_permissions'] = get_user_feature_permissions(self.request.user, active_company_id)
-        
-        active_company_id = self.request.session.get('active_company_id')
-        order = self.object.order
-        process_id = order.process_id if order and order.process else None
         
         # Get document_type from instance or form data
         document_type = self.object.document_type if self.object and self.object.pk else None
@@ -612,44 +666,54 @@ class PerformanceRecordUpdateView(EditLockProtectedMixin, FeaturePermissionRequi
         context['document_type'] = document_type
         context['is_general_document'] = (document_type == PerformanceRecord.DocumentType.GENERAL)
         
-        if self.request.POST:
-            context['material_formset'] = PerformanceRecordMaterialFormSet(
-                self.request.POST,
-                instance=self.object,
-                form_kwargs={'company_id': active_company_id},
-                prefix='materials',
-            )
-            # For general documents, disable person and machine formsets (they will be auto-populated)
-            context['person_formset'] = PerformanceRecordPersonFormSet(
-                self.request.POST,
-                instance=self.object,
-                form_kwargs={'company_id': active_company_id, 'process_id': process_id},
-                prefix='persons',
-            )
-            context['machine_formset'] = PerformanceRecordMachineFormSet(
-                self.request.POST,
-                instance=self.object,
-                form_kwargs={'company_id': active_company_id, 'process_id': process_id},
-                prefix='machines',
-            )
-        else:
-            context['material_formset'] = PerformanceRecordMaterialFormSet(
-                instance=self.object,
-                form_kwargs={'company_id': active_company_id},
-                prefix='materials',
-            )
-            context['person_formset'] = PerformanceRecordPersonFormSet(
-                instance=self.object,
-                form_kwargs={'company_id': active_company_id, 'process_id': process_id},
-                prefix='persons',
-            )
-            context['machine_formset'] = PerformanceRecordMachineFormSet(
-                instance=self.object,
-                form_kwargs={'company_id': active_company_id, 'process_id': process_id},
-                prefix='machines',
-            )
-        
         return context
+    
+    def process_formset(self, formset_name: str, formset) -> Optional[List[Any]]:
+        """
+        Process formset before saving. Override for custom logic.
+        For materials formset, handle custom logic based on document type.
+        """
+        if formset_name == 'materials':
+            # Materials will be handled in after_formsets_save
+            # Return empty list to skip default saving
+            return []
+        return None
+    
+    def validate_formsets(self) -> bool:
+        """Validate formsets. Skip materials validation for custom handling."""
+        context = self.get_context_data()
+        document_type = self.object.document_type if self.object else PerformanceRecord.DocumentType.OPERATIONAL
+        
+        # For materials, we'll handle validation in after_formsets_save
+        # For persons and machines, only validate for operational documents
+        if document_type == PerformanceRecord.DocumentType.OPERATIONAL:
+            for formset_name in ['persons', 'machines']:
+                formset = context.get(f'{formset_name}_formset')
+                if formset and not formset.is_valid():
+                    return False
+        
+        return True
+    
+    def save_formsets(self) -> Dict[str, List[Any]]:
+        """Save formsets. Skip materials for custom handling."""
+        context = self.get_context_data()
+        saved_instances = {}
+        document_type = self.object.document_type if self.object else PerformanceRecord.DocumentType.OPERATIONAL
+        
+        # Save persons and machines only for operational documents
+        if document_type == PerformanceRecord.DocumentType.OPERATIONAL:
+            for formset_name in ['persons', 'machines']:
+                formset = context.get(f'{formset_name}_formset')
+                if formset and formset.is_valid():
+                    formset.instance = self.object
+                    saved_instances[formset_name] = formset.save()
+                else:
+                    saved_instances[formset_name] = []
+        
+        # Materials will be handled in after_formsets_save
+        saved_instances['materials'] = []
+        
+        return saved_instances
     
     @transaction.atomic
     def form_valid(self, form: PerformanceRecordForm) -> HttpResponseRedirect:
@@ -667,32 +731,19 @@ class PerformanceRecordUpdateView(EditLockProtectedMixin, FeaturePermissionRequi
         # Set edited_by
         form.instance.edited_by = self.request.user
         
-        # Save performance record header
-        response = super().form_valid(form)
+        # Store form data for use in after_formsets_save
+        self._form_data = form.cleaned_data
+        self._active_company_id = active_company_id
         
-        # Get formsets
-        material_formset = PerformanceRecordMaterialFormSet(
-            self.request.POST,
-            instance=self.object,
-            form_kwargs={'company_id': active_company_id},
-            prefix='materials',
-        )
-        person_formset = PerformanceRecordPersonFormSet(
-            self.request.POST,
-            instance=self.object,
-            form_kwargs={'company_id': active_company_id, 'process_id': self.object.order.process_id if self.object.order else None},
-            prefix='persons',
-        )
-        machine_formset = PerformanceRecordMachineFormSet(
-            self.request.POST,
-            instance=self.object,
-            form_kwargs={'company_id': active_company_id, 'process_id': self.object.order.process_id if self.object.order else None},
-            prefix='machines',
-        )
-        
-        # Get document_type and order
-        document_type = form.cleaned_data.get('document_type', self.object.document_type)
-        order = form.cleaned_data.get('order', self.object.order)
+        # Save performance record header using parent's form_valid
+        return super().form_valid(form)
+    
+    def after_formsets_save(self, saved_instances: Dict[str, List[Any]]) -> None:
+        """Handle custom logic after formsets are saved."""
+        active_company_id = self._active_company_id
+        form_data = self._form_data
+        document_type = form_data.get('document_type', self.object.document_type)
+        order = form_data.get('order', self.object.order)
         
         # Handle materials based on document type
         if document_type == PerformanceRecord.DocumentType.OPERATIONAL:
@@ -741,14 +792,19 @@ class PerformanceRecordUpdateView(EditLockProtectedMixin, FeaturePermissionRequi
                     created_by=self.request.user,
                 )
         else:
-            # For general documents: use formset or recalculate from operational records
+            # For general documents: use formset
+            material_formset = PerformanceRecordMaterialFormSet(
+                self.request.POST,
+                instance=self.object,
+                form_kwargs={'company_id': active_company_id},
+                prefix='materials',
+            )
             if material_formset.is_valid():
                 material_formset.save()
             else:
                 messages.error(self.request, _('Error saving materials. Please check the form.'))
-                return self.form_invalid(form)
         
-        # Handle persons and machines
+        # Handle persons and machines for general documents
         if document_type == PerformanceRecord.DocumentType.GENERAL:
             # For general documents: recalculate from operational records
             operational_records = PerformanceRecord.objects.filter(
@@ -819,38 +875,20 @@ class PerformanceRecordUpdateView(EditLockProtectedMixin, FeaturePermissionRequi
                     notes=machine_data.get('notes', ''),
                     created_by=self.request.user,
                 )
-        else:
-            # For operational documents: use formsets
-            if person_formset.is_valid():
-                person_formset.save()
-            else:
-                messages.error(self.request, _('Error saving persons. Please check the form.'))
-                return self.form_invalid(form)
-            
-            if machine_formset.is_valid():
-                machine_formset.save()
-            else:
-                messages.error(self.request, _('Error saving machines. Please check the form.'))
-                return self.form_invalid(form)
-        
-        messages.success(self.request, _('Performance record updated successfully.'))
-        return response
 
 
-class PerformanceRecordDetailView(FeaturePermissionRequiredMixin, DetailView):
+class PerformanceRecordDetailView(BaseDetailView):
     """Detail view for viewing performance records (read-only)."""
     model = PerformanceRecord
     template_name = 'production/performance_record_detail.html'
     context_object_name = 'performance_record'
     feature_code = 'production.performance_records'
     required_action = 'view_own'
+    active_module = 'production'
     
     def get_queryset(self):
-        """Filter by active company."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        if not active_company_id:
-            return PerformanceRecord.objects.none()
-        queryset = PerformanceRecord.objects.filter(company_id=active_company_id)
+        """Filter by active company and optimize queries."""
+        queryset = super().get_queryset()
         queryset = queryset.select_related(
             'order',
             'order__bom',
@@ -867,37 +905,43 @@ class PerformanceRecordDetailView(FeaturePermissionRequiredMixin, DetailView):
         )
         return queryset
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail template."""
-        context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse_lazy('production:performance_records')
-        context['edit_url'] = reverse_lazy('production:performance_record_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        context['feature_code'] = 'production.performance_records'
-        return context
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('production:performance_records')
+    
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('production:performance_record_edit', kwargs={'pk': self.object.pk})
+    
+    def can_edit_object(self, obj=None, feature_code=None) -> bool:
+        """Check if object can be edited."""
+        check_obj = obj if obj is not None else self.object
+        if hasattr(check_obj, 'is_locked'):
+            return not bool(check_obj.is_locked)
+        return True
 
 
-class PerformanceRecordDeleteView(FeaturePermissionRequiredMixin, DeleteView):
+class PerformanceRecordDeleteView(BaseDeleteView):
     """Delete a performance record."""
     model = PerformanceRecord
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('production:performance_records')
     feature_code = 'production.performance_records'
     required_action = 'delete_own'
+    active_module = 'production'
+    success_message = _('Performance record deleted successfully.')
     
     def get_queryset(self):
         """Filter by company and check permissions."""
-        active_company_id = self.request.session.get('active_company_id')
-        if not active_company_id:
-            return PerformanceRecord.objects.none()
-        
-        queryset = PerformanceRecord.objects.filter(company_id=active_company_id)
+        queryset = super().get_queryset()
         
         # Check if user has delete_other permission
-        permissions = get_user_feature_permissions(self.request.user, active_company_id)
-        if not has_feature_permission(permissions, 'production.performance_records', action='delete_other'):
-            # Only allow deleting own records
-            queryset = queryset.filter(created_by=self.request.user)
+        active_company_id = self.request.session.get('active_company_id')
+        if active_company_id:
+            permissions = get_user_feature_permissions(self.request.user, active_company_id)
+            if not has_feature_permission(permissions, 'production.performance_records', action='delete_other'):
+                # Only allow deleting own records
+                queryset = queryset.filter(created_by=self.request.user)
         
         return queryset
     
@@ -913,16 +957,19 @@ class PerformanceRecordDeleteView(FeaturePermissionRequiredMixin, DeleteView):
             messages.error(request, _('Only pending approval records can be deleted.'))
             return redirect('production:performance_records')
         
-        messages.success(request, _('Performance record deleted successfully.'))
         return super().delete(request, *args, **kwargs)
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic delete template."""
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Performance Record')
+    
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Are you sure you want to delete this performance record?')
+    
+    def get_object_details(self) -> List[Dict[str, str]]:
+        """Return object details for confirmation."""
         from production.utils.jalali import gregorian_to_jalali
-        
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Performance Record')
-        context['confirmation_message'] = _('Are you sure you want to delete this performance record?')
         
         # Format performance date using jalali
         performance_date_jalali = ''
@@ -937,7 +984,7 @@ class PerformanceRecordDeleteView(FeaturePermissionRequiredMixin, DeleteView):
             except:
                 performance_date_jalali = str(self.object.performance_date)
         
-        context['object_details'] = [
+        details = [
             {'label': _('Performance Code'), 'value': f'<code>{self.object.performance_code}</code>'},
             {'label': _('Product Order'), 'value': self.object.order_code},
             {'label': _('Performance Date'), 'value': performance_date_jalali},
@@ -945,6 +992,20 @@ class PerformanceRecordDeleteView(FeaturePermissionRequiredMixin, DeleteView):
             {'label': _('Planned Quantity'), 'value': f'{self.object.quantity_planned} {self.object.unit}'},
             {'label': _('Actual Quantity'), 'value': f'{self.object.quantity_actual} {self.object.unit}'},
         ]
+        
+        return details
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Performance Records'), 'url': reverse_lazy('production:performance_records')},
+            {'label': _('Delete'), 'url': None},
+        ]
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic delete template."""
+        context = super().get_context_data(**kwargs)
         
         if self.object.materials.exists() or self.object.persons.exists() or self.object.machines.exists():
             warning_parts = []
@@ -959,12 +1020,6 @@ class PerformanceRecordDeleteView(FeaturePermissionRequiredMixin, DeleteView):
                 details=', '.join(warning_parts)
             )
         
-        context['cancel_url'] = reverse_lazy('production:performance_records')
-        context['breadcrumbs'] = [
-            {'label': _('Production'), 'url': None},
-            {'label': _('Performance Records'), 'url': reverse_lazy('production:performance_records')},
-            {'label': _('Delete'), 'url': None},
-        ]
         return context
 
 

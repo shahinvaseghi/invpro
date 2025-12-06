@@ -1,10 +1,10 @@
 """
 Temporary Receipt QC Inspection views.
 """
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List
 from decimal import Decimal, InvalidOperation
 from django.contrib import messages
-from django.views.generic import ListView, View, TemplateView
+from django.views.generic import View, TemplateView
 from django.http import HttpResponseRedirect, HttpRequest
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
@@ -15,9 +15,10 @@ from django.db import transaction
 from inventory import models as inventory_models
 from qc.views.base import QCBaseView
 from shared.mixins import FeaturePermissionRequiredMixin
+from shared.views.base import BaseListView
 
 
-class TemporaryReceiptQCListView(FeaturePermissionRequiredMixin, QCBaseView, ListView):
+class TemporaryReceiptQCListView(BaseListView):
     """List view for temporary receipts awaiting QC inspection."""
     model = inventory_models.ReceiptTemporary
     template_name = 'qc/temporary_receipts.html'
@@ -25,53 +26,78 @@ class TemporaryReceiptQCListView(FeaturePermissionRequiredMixin, QCBaseView, Lis
     paginate_by = 50
     feature_code = 'qc.inspections'
     required_action = 'view_own'
+    active_module = 'qc'
+    default_status_filter = False  # No status filter for QC view
+    default_order_by = ['status', '-document_date', 'document_code']  # Order by: awaiting first, then by date
     
-    def get_queryset(self):
-        """Show all receipts (awaiting, approved, rejected) - locked ones are read-only."""
-        queryset = super().get_queryset()
-        # Show all receipts (awaiting, approved, rejected) - they should all be visible
-        # Locked receipts (approved/rejected) will be shown but without action buttons
-        # Note: item and warehouse are in ReceiptTemporaryLine, not in ReceiptTemporary
-        queryset = queryset.filter(
-            is_enabled=1
-        ).select_related('supplier', 'created_by', 'qc_approved_by').prefetch_related(
-            'lines__item', 
-            'lines__warehouse'
-        )
-        # Order by: awaiting first (status=1), then approved (status=3), then rejected/closed (status=2), then by date
-        queryset = queryset.order_by(
-            'status',  # 1 (AWAITING_INSPECTION) < 2 (CLOSED) < 3 (APPROVED)
-            '-document_date',
-            'document_code'
-        )
-        return queryset
+    def get_base_queryset(self):
+        """Get base queryset with is_enabled filter."""
+        return self.model.objects.filter(is_enabled=1)
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic list template."""
-        from django.urls import reverse_lazy
-        
-        context = super().get_context_data(**kwargs)
-        context['page_title'] = _('Temporary Receipts - QC Inspection')
-        context['breadcrumbs'] = [
+    def get_select_related(self) -> List[str]:
+        """Return list of fields to select_related."""
+        return ['supplier', 'created_by', 'qc_approved_by']
+    
+    def get_prefetch_related(self) -> List[str]:
+        """Return list of fields to prefetch_related."""
+        return ['lines__item', 'lines__warehouse']
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Temporary Receipts - QC Inspection')
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('QC'), 'url': None},
             {'label': _('Temporary Receipts'), 'url': None},
         ]
-        context['table_headers'] = []  # Overridden in template
-        context['show_actions'] = True
-        context['view_url_name'] = 'inventory:receipt_temporary_detail'  # Use detail view from inventory
-        context['empty_state_title'] = _('No Receipts')
-        context['empty_state_message'] = _('There are no temporary receipts.')
-        context['empty_state_icon'] = '📋'
-        context['print_enabled'] = True
-        context['show_filters'] = False  # No filters for now
-        
-        # Calculate stats
+    
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Receipts')
+    
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('There are no temporary receipts.')
+    
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📋'
+    
+    def get_detail_url_name(self) -> Optional[str]:
+        """Return detail URL name."""
+        return 'inventory:receipt_temporary_detail'  # Use detail view from inventory
+    
+    def get_stats(self) -> Optional[Dict[str, int]]:
+        """Return stats dictionary."""
         queryset = self.get_queryset()
-        context['stats'] = {
+        return {
             'awaiting_qc': queryset.filter(status=inventory_models.ReceiptTemporary.Status.AWAITING_INSPECTION).count(),
             'approved': queryset.filter(status=inventory_models.ReceiptTemporary.Status.APPROVED).count(),
             'rejected': queryset.filter(status=inventory_models.ReceiptTemporary.Status.CLOSED).count(),
         }
+    
+    def get_stats_labels(self) -> Dict[str, str]:
+        """Return stats labels dictionary."""
+        return {
+            'awaiting_qc': _('Awaiting QC'),
+            'approved': _('Approved'),
+            'rejected': _('Rejected'),
+        }
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic list template."""
+        context = super().get_context_data(**kwargs)
+        
+        # Override show_filters to False (no filters for now)
+        context['show_filters'] = False
+        
+        # Add print_enabled
+        context['print_enabled'] = True
+        
+        # Add view_url_name (for row actions)
+        context['view_url_name'] = 'inventory:receipt_temporary_detail'
         
         # Prefetch rejected lines count for each receipt to show management button
         object_list = context.get('object_list', [])

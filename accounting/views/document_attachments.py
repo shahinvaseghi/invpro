@@ -14,6 +14,7 @@ from django.views.generic import ListView, FormView
 from django.core.files.uploadedfile import UploadedFile
 
 from shared.mixins import FeaturePermissionRequiredMixin
+from shared.views.base import BaseListView
 from accounting.models import DocumentAttachment, AccountingDocument
 from accounting.forms import DocumentAttachmentUploadForm, DocumentAttachmentFilterForm
 from accounting.views.base import AccountingBaseView
@@ -97,7 +98,7 @@ class DocumentAttachmentUploadView(FeaturePermissionRequiredMixin, AccountingBas
         return context
 
 
-class DocumentAttachmentListView(FeaturePermissionRequiredMixin, AccountingBaseView, ListView):
+class DocumentAttachmentListView(BaseListView):
     """
     List view for document attachments with filtering and download capabilities.
     """
@@ -106,11 +107,22 @@ class DocumentAttachmentListView(FeaturePermissionRequiredMixin, AccountingBaseV
     context_object_name = 'object_list'
     paginate_by = 50
     feature_code = 'accounting.attachments.list'
+    required_action = 'view_all'
+    active_module = 'accounting'
+    default_order_by = ['-uploaded_at', 'document_number']
+    
+    def get_base_queryset(self):
+        """Get base queryset filtered by company."""
+        queryset = super().get_base_queryset()
+        # Use AccountingBaseView's permission filtering
+        base_view = AccountingBaseView()
+        base_view.request = self.request
+        queryset = base_view.filter_queryset_by_permissions(queryset, self.feature_code)
+        return queryset
     
     def get_queryset(self):
         """Filter attachments by active company and search/filter criteria."""
-        queryset = DocumentAttachment.objects.all()
-        queryset = self.filter_queryset_by_permissions(queryset, self.feature_code)
+        queryset = super().get_queryset()
         
         document_number = self.request.GET.get('document_number', '').strip()
         file_type = self.request.GET.get('file_type', '')
@@ -154,24 +166,29 @@ class DocumentAttachmentListView(FeaturePermissionRequiredMixin, AccountingBaseV
             except ValueError:
                 pass
         
-        return queryset.order_by('-uploaded_at', 'document_number')
+        return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('فراخوانی اسناد')
+    
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Accounting'), 'url': reverse('accounting:dashboard')},
+            {'label': _('فراخوانی اسناد'), 'url': None},
+        ]
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context variables."""
         context = super().get_context_data(**kwargs)
-        context['page_title'] = _('فراخوانی اسناد')
-        context['breadcrumbs'] = [
-            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
-            {'label': _('Accounting'), 'url': reverse('accounting:dashboard')},
-            {'label': _('فراخوانی اسناد')},
-        ]
         context['filter_form'] = DocumentAttachmentFilterForm(self.request.GET)
-        context['show_filters'] = True
-        context['print_enabled'] = True
         
         # Add download URLs
         context['download_single_url'] = reverse('accounting:attachment_download_single')
         context['download_bulk_url'] = reverse('accounting:attachment_download_bulk')
+        context['print_enabled'] = True
         
         return context
 

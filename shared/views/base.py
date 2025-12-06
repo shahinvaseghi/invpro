@@ -941,7 +941,7 @@ class BaseDetailView(
         context['edit_url'] = self.get_edit_url()
         
         # Permissions
-        context['can_edit'] = self.can_edit_object()
+        context['can_edit'] = self.can_edit_object(self.object, self.feature_code)
         context['feature_code'] = self.feature_code
         
         return context
@@ -967,11 +967,23 @@ class BaseDetailView(
         """Return edit URL. Override for custom URL."""
         return None
     
-    def can_edit_object(self) -> bool:
-        """Check if object can be edited. Override for custom logic."""
+    def can_edit_object(self, obj=None, feature_code=None) -> bool:
+        """
+        Check if object can be edited. Override for custom logic.
+        
+        Args:
+            obj: Optional object to check (defaults to self.object)
+            feature_code: Optional feature code (defaults to self.feature_code)
+        
+        Returns:
+            True if object can be edited, False otherwise
+        """
+        # Use provided object or self.object
+        check_obj = obj if obj is not None else self.object
+        
         # Check if object is locked
-        if hasattr(self.object, 'is_locked'):
-            return not bool(self.object.is_locked)
+        if hasattr(check_obj, 'is_locked'):
+            return not bool(check_obj.is_locked)
         return True
 
 
@@ -1226,4 +1238,289 @@ class BaseDocumentUpdateView(BaseFormsetUpdateView):
             formset.save()
         else:
             raise ValueError("Formset is not valid")
+
+
+class BaseNestedFormsetCreateView(BaseFormsetCreateView):
+    """
+    Base CreateView with nested formset support.
+    
+    This class extends BaseFormsetCreateView to handle nested formsets
+    (e.g., BOM materials with alternative materials).
+    
+    Usage:
+        class BOMCreateView(BaseNestedFormsetCreateView):
+            model = BOM
+            form_class = BOMForm
+            formset_class = BOMMaterialLineFormSet
+            nested_formset_class = BOMMaterialAlternativeFormSet
+            nested_formset_prefix_template = 'alternatives_{parent_pk}'
+            success_url = reverse_lazy('production:bom_list')
+            feature_code = 'production.bom'
+            
+            def get_nested_formset_kwargs(self, parent_instance):
+                return {
+                    'company_id': self.request.session.get('active_company_id'),
+                    'bom_material_id': parent_instance.pk
+                }
+    """
+    
+    nested_formset_class = None
+    nested_formset_prefix_template: str = 'nested_{parent_pk}'
+    
+    def get_nested_formset_kwargs(self, parent_instance) -> Dict[str, Any]:
+        """Return kwargs for nested formset. Override for custom kwargs."""
+        return {}
+    
+    def get_nested_formset_prefix(self, parent_instance) -> str:
+        """Return prefix for nested formset."""
+        if hasattr(parent_instance, 'pk') and parent_instance.pk:
+            return self.nested_formset_prefix_template.format(parent_pk=parent_instance.pk)
+        return 'nested'
+    
+    def save_nested_formsets(self, parent_instances: List[Any]) -> None:
+        """
+        Save nested formsets for each parent instance.
+        
+        Args:
+            parent_instances: List of parent instances that need nested formsets
+        """
+        if not self.nested_formset_class:
+            return
+        
+        for parent_instance in parent_instances:
+            if not hasattr(parent_instance, 'pk') or not parent_instance.pk:
+                continue
+            
+            prefix = self.get_nested_formset_prefix(parent_instance)
+            nested_formset = self.nested_formset_class(
+                self.request.POST,
+                instance=parent_instance,
+                prefix=prefix,
+                **self.get_nested_formset_kwargs(parent_instance)
+            )
+            
+            if nested_formset.is_valid():
+                try:
+                    nested_formset.save()
+                except Exception as e:
+                    from django.contrib import messages
+                    messages.warning(
+                        self.request,
+                        _('Error saving nested formset for {parent}: {error}').format(
+                            parent=str(parent_instance),
+                            error=str(e)
+                        )
+                    )
+            else:
+                # Show errors for nested formset
+                for error in nested_formset.non_form_errors():
+                    from django.contrib import messages
+                    messages.warning(self.request, f"⚠️ {error}")
+    
+    def form_valid(self, form):
+        """Save form, formset, and nested formsets."""
+        from django.db import transaction
+        from django.http import HttpResponseRedirect
+        
+        with transaction.atomic():
+            # Save main object first (from BaseCreateView)
+            self.object = form.save()
+            
+            # Get formset
+            formset = self.formset_class(
+                self.request.POST,
+                instance=self.object,
+                prefix=self.formset_prefix,
+                **self.get_formset_kwargs()
+            )
+            
+            if formset.is_valid():
+                # Save formset and get instances
+                instances = formset.save(commit=False)
+                saved_instances = []
+                
+                # Save each instance with custom logic
+                for instance in instances:
+                    # Hook for custom instance processing
+                    instance = self.process_formset_instance(instance)
+                    if instance:
+                        instance.save()
+                        saved_instances.append(instance)
+                
+                # Delete marked instances
+                for obj in formset.deleted_objects:
+                    obj.delete()
+                
+                # Save nested formsets
+                if saved_instances:
+                    self.save_nested_formsets(saved_instances)
+            else:
+                # Formset validation failed
+                return self.form_invalid(form)
+        
+        # Return redirect response
+        return HttpResponseRedirect(self.get_success_url())
+    
+    def process_formset_instance(self, instance):
+        """
+        Process formset instance before saving. Override for custom logic.
+        
+        Returns:
+            Instance to save, or None to skip
+        """
+        return instance
+
+
+class BaseNestedFormsetUpdateView(BaseFormsetUpdateView):
+    """
+    Base UpdateView with nested formset support.
+    
+    This class extends BaseFormsetUpdateView to handle nested formsets.
+    
+    Usage:
+        class BOMUpdateView(BaseNestedFormsetUpdateView):
+            model = BOM
+            form_class = BOMForm
+            formset_class = BOMMaterialLineFormSet
+            nested_formset_class = BOMMaterialAlternativeFormSet
+            nested_formset_prefix_template = 'alternatives_{parent_pk}'
+            success_url = reverse_lazy('production:bom_list')
+            feature_code = 'production.bom'
+            
+            def get_nested_formset_kwargs(self, parent_instance):
+                return {
+                    'company_id': self.object.company_id,
+                    'bom_material_id': parent_instance.pk
+                }
+    """
+    
+    nested_formset_class = None
+    nested_formset_prefix_template: str = 'nested_{parent_pk}'
+    
+    def get_nested_formset_kwargs(self, parent_instance) -> Dict[str, Any]:
+        """Return kwargs for nested formset. Override for custom kwargs."""
+        return {}
+    
+    def get_nested_formset_prefix(self, parent_instance) -> str:
+        """Return prefix for nested formset."""
+        if hasattr(parent_instance, 'pk') and parent_instance.pk:
+            return self.nested_formset_prefix_template.format(parent_pk=parent_instance.pk)
+        return 'nested'
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add nested formsets to context."""
+        context = super().get_context_data(**kwargs)
+        
+        if self.nested_formset_class and hasattr(self, 'object') and self.object:
+            # Get existing parent instances
+            nested_formsets = {}
+            
+            # Try to find parent relationship (e.g., bom.materials.all())
+            parent_relation = None
+            if hasattr(self.object, 'materials'):
+                parent_relation = self.object.materials.all()
+            elif hasattr(self.object, 'lines'):
+                parent_relation = self.object.lines.all()
+            elif hasattr(self.object, 'items'):
+                parent_relation = self.object.items.all()
+            
+            if parent_relation:
+                for parent_instance in parent_relation:
+                    prefix = self.get_nested_formset_prefix(parent_instance)
+                    if self.request.method == 'POST':
+                        nested_formset = self.nested_formset_class(
+                            self.request.POST,
+                            instance=parent_instance,
+                            prefix=prefix,
+                            **self.get_nested_formset_kwargs(parent_instance)
+                        )
+                    else:
+                        nested_formset = self.nested_formset_class(
+                            instance=parent_instance,
+                            prefix=prefix,
+                            **self.get_nested_formset_kwargs(parent_instance)
+                        )
+                    nested_formsets[parent_instance.pk] = nested_formset
+            
+            context['nested_formsets'] = nested_formsets
+        
+        return context
+    
+    def save_nested_formsets(self, nested_formsets: Dict[int, Any]) -> None:
+        """
+        Save nested formsets.
+        
+        Args:
+            nested_formsets: Dictionary of nested formsets keyed by parent instance pk
+        """
+        for parent_pk, nested_formset in nested_formsets.items():
+            if nested_formset.is_valid():
+                try:
+                    nested_formset.save()
+                except Exception as e:
+                    from django.contrib import messages
+                    messages.warning(
+                        self.request,
+                        _('Error saving nested formset: {error}').format(error=str(e))
+                    )
+            else:
+                # Show errors for nested formset
+                for error in nested_formset.non_form_errors():
+                    from django.contrib import messages
+                    messages.warning(self.request, f"⚠️ {error}")
+    
+    def form_valid(self, form):
+        """Save form, formset, and nested formsets."""
+        from django.db import transaction
+        
+        with transaction.atomic():
+            # Save main object first
+            self.object = form.save()
+            
+            # Save formset
+            formset = self.formset_class(
+                self.request.POST,
+                instance=self.object,
+                prefix=self.formset_prefix,
+                **self.get_formset_kwargs()
+            )
+            
+            if formset.is_valid():
+                # Save formset and get instances
+                instances = formset.save(commit=False)
+                saved_instances = []
+                
+                # Save each instance with custom logic
+                for instance in instances:
+                    # Hook for custom instance processing
+                    instance = self.process_formset_instance(instance)
+                    if instance:
+                        instance.save()
+                        saved_instances.append(instance)
+                
+                # Delete marked instances
+                for obj in formset.deleted_objects:
+                    obj.delete()
+                
+                # Get nested formsets from context
+                context = self.get_context_data()
+                nested_formsets = context.get('nested_formsets', {})
+                
+                # Save nested formsets
+                if nested_formsets:
+                    self.save_nested_formsets(nested_formsets)
+            else:
+                # Formset validation failed
+                return self.form_invalid(form)
+        
+        return super().form_valid(form)
+    
+    def process_formset_instance(self, instance):
+        """
+        Process formset instance before saving. Override for custom logic.
+        
+        Returns:
+            Instance to save, or None to skip
+        """
+        return instance
 

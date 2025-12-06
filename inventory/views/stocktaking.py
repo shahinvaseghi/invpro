@@ -18,6 +18,8 @@ import json
 from .base import InventoryBaseView, DocumentLockProtectedMixin, DocumentLockView, LineFormsetMixin
 from shared.views.base import (
     EditLockProtectedMixin,
+    BaseListView,
+    BaseCreateView,
     BaseUpdateView,
     BaseDocumentUpdateView,
     BaseDocumentListView,

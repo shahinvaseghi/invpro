@@ -88,20 +88,43 @@ def can_action(context, object, action: str, feature_code: str = '') -> bool:
         available_actions = object.get_available_actions(request.user)
         return action in available_actions
     
-    # Check permissions based on feature_code
+    # Use feature permission system if feature_code is provided
     if feature_code:
-        permission_map = {
-            'view': f'{feature_code}.view',
-            'edit': f'{feature_code}.change',
-            'delete': f'{feature_code}.delete',
-            'add': f'{feature_code}.add',
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        
+        # Get user permissions
+        company_id = request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(user, company_id)
+        
+        # Map action names to permission actions
+        action_map = {
+            'view': 'view_own',
+            'edit': 'edit_own',
+            'delete': 'delete_own',
+            'add': 'create',
         }
         
-        permission = permission_map.get(action.lower())
-        if permission:
-            return user.has_perm(permission)
+        permission_action = action_map.get(action.lower())
+        if permission_action:
+            # Get resource owner if available
+            resource_owner = None
+            if hasattr(object, 'created_by'):
+                resource_owner = object.created_by
+            elif hasattr(object, 'owner'):
+                resource_owner = object.owner
+            elif hasattr(object, 'user'):
+                resource_owner = object.user
+            
+            return has_feature_permission(
+                permissions,
+                feature_code,
+                permission_action,
+                allow_own_scope=True,
+                current_user=user,
+                resource_owner=resource_owner,
+            )
     
-    # Default: check if user has model-level permission
+    # Fallback: check Django permissions
     if hasattr(object, '_meta'):
         app_label = object._meta.app_label
         model_name = object._meta.model_name

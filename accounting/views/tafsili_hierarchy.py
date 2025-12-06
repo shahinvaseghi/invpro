@@ -9,14 +9,22 @@ from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
+from typing import Optional
 from shared.mixins import FeaturePermissionRequiredMixin
-from shared.views.base import EditLockProtectedMixin
+from shared.views.base import (
+    BaseListView,
+    BaseCreateView,
+    BaseUpdateView,
+    BaseDetailView,
+    BaseDeleteView,
+    EditLockProtectedMixin,
+)
 from accounting.models import TafsiliHierarchy
 from accounting.forms import TafsiliHierarchyForm
 from accounting.views.base import AccountingBaseView
 
 
-class TafsiliHierarchyListView(FeaturePermissionRequiredMixin, AccountingBaseView, ListView):
+class TafsiliHierarchyListView(BaseListView):
     """
     List all Tafsili Hierarchies (تفصیلی چند سطحی) for the active company.
     Shows tree structure.
@@ -26,29 +34,30 @@ class TafsiliHierarchyListView(FeaturePermissionRequiredMixin, AccountingBaseVie
     context_object_name = 'object_list'
     paginate_by = 50
     feature_code = 'accounting.accounts.tafsili_hierarchy'
+    required_action = 'view_all'
+    active_module = 'accounting'
+    default_order_by = ['level', 'sort_order', 'code']
+    default_status_filter = True
+    
+    def get_base_queryset(self):
+        """Get base queryset filtered by company."""
+        queryset = super().get_base_queryset()
+        # Use AccountingBaseView's permission filtering
+        base_view = AccountingBaseView()
+        base_view.request = self.request
+        queryset = base_view.filter_queryset_by_permissions(queryset, self.feature_code)
+        return queryset
+    
+    def get_search_fields(self) -> list:
+        """Return list of fields to search in."""
+        return ['code', 'name', 'name_en']
     
     def get_queryset(self):
         """Filter hierarchies by active company and search/filter criteria."""
-        queryset = TafsiliHierarchy.objects.all()
-        queryset = self.filter_queryset_by_permissions(queryset, self.feature_code)
+        queryset = super().get_queryset()
         
-        search: str = self.request.GET.get('search', '').strip()
-        status: str = self.request.GET.get('status', '')
         level: str = self.request.GET.get('level', '')
         parent_id: str = self.request.GET.get('parent_id', '')
-        
-        if search:
-            queryset = queryset.filter(
-                Q(code__icontains=search) |
-                Q(name__icontains=search) |
-                Q(name_en__icontains=search)
-            )
-        
-        if status in ('0', '1'):
-            queryset = queryset.filter(is_enabled=int(status))
-        else:
-            # Default: show only enabled hierarchies
-            queryset = queryset.filter(is_enabled=1)
         
         if level:
             try:
@@ -62,29 +71,55 @@ class TafsiliHierarchyListView(FeaturePermissionRequiredMixin, AccountingBaseVie
             except ValueError:
                 pass
         
-        return queryset.order_by('level', 'sort_order', 'code')
+        return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('تفصیلی چند سطحی')
+    
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Accounting'), 'url': reverse('accounting:general_detail')},
+            {'label': _('تفصیلی چند سطحی'), 'url': None},
+        ]
+    
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse('accounting:tafsili_hierarchy_create')
+    
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('افزودن تفصیلی چند سطحی')
+    
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'accounting:tafsili_hierarchy_detail'
+    
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'accounting:tafsili_hierarchy_edit'
+    
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'accounting:tafsili_hierarchy_delete'
+    
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('هیچ تفصیلی چند سطحی یافت نشد')
+    
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('با افزودن اولین تفصیلی چند سطحی شروع کنید.')
+    
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '🌳'
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context variables for generic_list template."""
         context = super().get_context_data(**kwargs)
-        context['page_title'] = _('تفصیلی چند سطحی')
-        context['breadcrumbs'] = [
-            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
-            {'label': _('Accounting'), 'url': reverse('accounting:general_detail')},
-            {'label': _('تفصیلی چند سطحی')},
-        ]
-        context['create_url'] = reverse('accounting:tafsili_hierarchy_create')
-        context['create_button_text'] = _('افزودن تفصیلی چند سطحی')
-        context['show_filters'] = True
-        context['status_filter'] = True
-        context['search_placeholder'] = _('جستجو بر اساس کد یا نام')
-        context['clear_filter_url'] = reverse('accounting:tafsili_hierarchy_list')
-        context['print_enabled'] = True
-        context['show_actions'] = True
-        context['feature_code'] = 'accounting.accounts.tafsili_hierarchy'
-        context['detail_url_name'] = 'accounting:tafsili_hierarchy_detail'
-        context['edit_url_name'] = 'accounting:tafsili_hierarchy_edit'
-        context['delete_url_name'] = 'accounting:tafsili_hierarchy_delete'
         context['table_headers'] = [
             {'label': _('کد'), 'field': 'code', 'type': 'code'},
             {'label': _('نام'), 'field': 'name'},
@@ -94,9 +129,6 @@ class TafsiliHierarchyListView(FeaturePermissionRequiredMixin, AccountingBaseVie
             {'label': _('وضعیت'), 'field': 'is_enabled', 'type': 'badge',
              'true_label': _('فعال'), 'false_label': _('غیرفعال')},
         ]
-        context['empty_state_title'] = _('هیچ تفصیلی چند سطحی یافت نشد')
-        context['empty_state_message'] = _('با افزودن اولین تفصیلی چند سطحی شروع کنید.')
-        context['empty_state_icon'] = '🌳'
         
         # Add full path to each object for display
         for obj in context['object_list']:
@@ -110,11 +142,12 @@ class TafsiliHierarchyListView(FeaturePermissionRequiredMixin, AccountingBaseVie
                 parent__isnull=True,
                 is_enabled=1
             ).order_by('sort_order', 'code')
+        context['print_enabled'] = True
         
         return context
 
 
-class TafsiliHierarchyCreateView(FeaturePermissionRequiredMixin, AccountingBaseView, CreateView):
+class TafsiliHierarchyCreateView(BaseCreateView):
     """Create a new Tafsili Hierarchy (تفصیلی چند سطحی)."""
     model = TafsiliHierarchy
     form_class = TafsiliHierarchyForm
@@ -122,6 +155,8 @@ class TafsiliHierarchyCreateView(FeaturePermissionRequiredMixin, AccountingBaseV
     success_url = reverse_lazy('accounting:tafsili_hierarchy_list')
     feature_code = 'accounting.accounts.tafsili_hierarchy'
     required_action = 'create'
+    active_module = 'accounting'
+    success_message = _('تفصیلی چند سطحی با موفقیت ایجاد شد.')
     
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
@@ -132,24 +167,27 @@ class TafsiliHierarchyCreateView(FeaturePermissionRequiredMixin, AccountingBaseV
     def form_valid(self, form: TafsiliHierarchyForm) -> HttpResponseRedirect:
         """Set created_by."""
         form.instance.created_by = self.request.user
-        messages.success(self.request, _('تفصیلی چند سطحی با موفقیت ایجاد شد.'))
         return super().form_valid(form)
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and form title to context."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('افزودن تفصیلی چند سطحی')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Accounting'), 'url': reverse('accounting:general_detail')},
             {'label': _('تفصیلی چند سطحی'), 'url': reverse('accounting:tafsili_hierarchy_list')},
-            {'label': _('افزودن')},
+            {'label': _('افزودن'), 'url': None},
         ]
-        context['cancel_url'] = reverse('accounting:tafsili_hierarchy_list')
-        return context
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse('accounting:tafsili_hierarchy_list')
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('افزودن تفصیلی چند سطحی')
 
 
-class TafsiliHierarchyUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, AccountingBaseView, UpdateView):
+class TafsiliHierarchyUpdateView(BaseUpdateView, EditLockProtectedMixin):
     """Update an existing Tafsili Hierarchy (تفصیلی چند سطحی)."""
     model = TafsiliHierarchy
     form_class = TafsiliHierarchyForm
@@ -157,6 +195,8 @@ class TafsiliHierarchyUpdateView(EditLockProtectedMixin, FeaturePermissionRequir
     success_url = reverse_lazy('accounting:tafsili_hierarchy_list')
     feature_code = 'accounting.accounts.tafsili_hierarchy'
     required_action = 'edit_own'
+    active_module = 'accounting'
+    success_message = _('تفصیلی چند سطحی با موفقیت به‌روزرسانی شد.')
     
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
@@ -170,35 +210,42 @@ class TafsiliHierarchyUpdateView(EditLockProtectedMixin, FeaturePermissionRequir
     def form_valid(self, form: TafsiliHierarchyForm) -> HttpResponseRedirect:
         """Auto-set edited_by."""
         form.instance.edited_by = self.request.user
-        messages.success(self.request, _('تفصیلی چند سطحی با موفقیت به‌روزرسانی شد.'))
         return super().form_valid(form)
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and form title to context."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('ویرایش تفصیلی چند سطحی')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Accounting'), 'url': reverse('accounting:general_detail')},
             {'label': _('تفصیلی چند سطحی'), 'url': reverse('accounting:tafsili_hierarchy_list')},
-            {'label': _('ویرایش')},
+            {'label': _('ویرایش'), 'url': None},
         ]
-        context['cancel_url'] = reverse('accounting:tafsili_hierarchy_list')
-        return context
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse('accounting:tafsili_hierarchy_list')
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('ویرایش تفصیلی چند سطحی')
 
 
-class TafsiliHierarchyDetailView(FeaturePermissionRequiredMixin, AccountingBaseView, DetailView):
+class TafsiliHierarchyDetailView(BaseDetailView):
     """Detail view for viewing Tafsili Hierarchies (read-only)."""
     model = TafsiliHierarchy
     template_name = 'accounting/tafsili_hierarchy_detail.html'
     context_object_name = 'hierarchy'
     feature_code = 'accounting.accounts.tafsili_hierarchy'
     required_action = 'view_own'
+    active_module = 'accounting'
     
     def get_queryset(self):
-        """Filter by active company."""
-        queryset = TafsiliHierarchy.objects.all()
-        queryset = self.filter_queryset_by_permissions(queryset, self.feature_code)
+        """Filter by active company and optimize queries."""
+        queryset = super().get_queryset()
+        # Use AccountingBaseView's permission filtering
+        base_view = AccountingBaseView()
+        base_view.request = self.request
+        queryset = base_view.filter_queryset_by_permissions(queryset, self.feature_code)
         queryset = queryset.select_related(
             'parent',
             'tafsili_account',
@@ -207,53 +254,64 @@ class TafsiliHierarchyDetailView(FeaturePermissionRequiredMixin, AccountingBaseV
         ).prefetch_related('children')
         return queryset
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail template."""
-        context = super().get_context_data(**kwargs)
-        context['page_title'] = _('مشاهده تفصیلی چند سطحی')
-        context['list_url'] = reverse_lazy('accounting:tafsili_hierarchy_list')
-        context['edit_url'] = reverse_lazy('accounting:tafsili_hierarchy_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        context['feature_code'] = 'accounting.accounts.tafsili_hierarchy'
-        return context
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('accounting:tafsili_hierarchy_list')
+    
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('accounting:tafsili_hierarchy_edit', kwargs={'pk': self.object.pk})
+    
+    def can_edit_object(self, obj=None, feature_code=None) -> bool:
+        """Check if object can be edited."""
+        check_obj = obj if obj is not None else self.object
+        if hasattr(check_obj, 'is_locked'):
+            return not bool(check_obj.is_locked)
+        return True
 
 
-class TafsiliHierarchyDeleteView(FeaturePermissionRequiredMixin, AccountingBaseView, DeleteView):
+class TafsiliHierarchyDeleteView(BaseDeleteView):
     """Delete a Tafsili Hierarchy (تفصیلی چند سطحی)."""
     model = TafsiliHierarchy
     success_url = reverse_lazy('accounting:tafsili_hierarchy_list')
     template_name = 'shared/generic/generic_confirm_delete.html'
     feature_code = 'accounting.accounts.tafsili_hierarchy'
     required_action = 'delete_own'
+    active_module = 'accounting'
+    success_message = _('تفصیلی چند سطحی با موفقیت حذف شد.')
     
-    def delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect:
-        """Delete hierarchy and show success message."""
+    def validate_deletion(self) -> tuple[bool, Optional[str]]:
+        """Validate if hierarchy can be deleted."""
         obj = self.get_object()
         # Check if hierarchy has children
         if obj.children.exists():
-            messages.error(self.request, _('نمی‌توان تفصیلی چند سطحی که دارای زیرگروه است را حذف کرد.'))
-            return HttpResponseRedirect(self.success_url)
+            return False, _('نمی‌توان تفصیلی چند سطحی که دارای زیرگروه است را حذف کرد.')
         
-        messages.success(self.request, _('تفصیلی چند سطحی با موفقیت حذف شد.'))
-        return super().delete(request, *args, **kwargs)
+        return True, None
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('حذف تفصیلی چند سطحی')
-        context['confirmation_message'] = _('آیا مطمئن هستید که می‌خواهید این تفصیلی چند سطحی را حذف کنید؟')
-        context['breadcrumbs'] = [
-            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
-            {'label': _('Accounting'), 'url': reverse('accounting:general_detail')},
-            {'label': _('تفصیلی چند سطحی'), 'url': reverse('accounting:tafsili_hierarchy_list')},
-            {'label': _('حذف')},
-        ]
-        context['object_details'] = [
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('حذف تفصیلی چند سطحی')
+    
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('آیا مطمئن هستید که می‌خواهید این تفصیلی چند سطحی را حذف کنید؟')
+    
+    def get_object_details(self) -> list:
+        """Return object details for confirmation."""
+        return [
             {'label': _('کد'), 'value': self.object.code, 'type': 'code'},
             {'label': _('نام'), 'value': self.object.name},
             {'label': _('مسیر کامل'), 'value': self.object.get_full_path()},
             {'label': _('سطح'), 'value': self.object.level},
         ]
-        context['cancel_url'] = reverse('accounting:tafsili_hierarchy_list')
-        return context
+    
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Accounting'), 'url': reverse('accounting:general_detail')},
+            {'label': _('تفصیلی چند سطحی'), 'url': reverse('accounting:tafsili_hierarchy_list')},
+            {'label': _('حذف'), 'url': None},
+        ]
 

@@ -1,76 +1,104 @@
 """
 BOM (Bill of Materials) CRUD views for production module.
 """
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 from django.contrib import messages
+from django.db import models
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
-from shared.views.base import EditLockProtectedMixin
+from shared.views.base import (
+    BaseListView,
+    BaseDetailView,
+    BaseDeleteView,
+    BaseNestedFormsetCreateView,
+    BaseNestedFormsetUpdateView,
+    EditLockProtectedMixin,
+)
 from production.forms import BOMForm, BOMMaterialLineFormSet, BOMMaterialAlternativeFormSet
 from production.models import BOM, BOMMaterial
 
 
-class BOMListView(FeaturePermissionRequiredMixin, ListView):
-    """
-    List all BOMs for the active company.
-    """
+class BOMListView(BaseListView):
+    """List all BOMs for the active company."""
     model = BOM
     template_name = 'production/bom_list.html'
     context_object_name = 'object_list'
     paginate_by = 50
     feature_code = 'production.bom'
+    active_module = 'production'
+    default_status_filter = False
+    default_order_by = ['finished_item__item_code', '-version']
     
-    def get_queryset(self):
-        """Filter BOMs by active company."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        
-        if not active_company_id:
-            return BOM.objects.none()
-        
-        queryset = BOM.objects.filter(
-            company_id=active_company_id,
-            is_enabled=1
-        ).select_related('finished_item', 'company').prefetch_related('materials').order_by(
-            'finished_item__item_code', '-version'
-        )
-        
-        # Filter by finished_item if provided
-        finished_item_id: Optional[str] = self.request.GET.get('finished_item')
+    def get_base_queryset(self):
+        """Get base queryset with is_enabled filter."""
+        return self.model.objects.filter(is_enabled=1)
+    
+    def get_select_related(self) -> List[str]:
+        """Return list of fields to select_related."""
+        return ['finished_item', 'company']
+    
+    def get_prefetch_related(self) -> List[str]:
+        """Return list of fields to prefetch_related."""
+        return ['materials']
+    
+    def apply_custom_filters(self, queryset):
+        """Apply custom filters (finished_item)."""
+        finished_item_id = self.request.GET.get('finished_item')
         if finished_item_id:
             queryset = queryset.filter(finished_item_id=finished_item_id)
-        
         return queryset
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and finished items filter to context."""
-        context = super().get_context_data(**kwargs)
-        if 'page_obj' in context and hasattr(context['page_obj'], 'object_list'):
-            context['object_list'] = context['page_obj'].object_list
-        elif 'object_list' in context and hasattr(context['object_list'], 'query'):
-            context['object_list'] = list(context['object_list'])
-        
-        context['page_title'] = _('BOM (Bill of Materials)')
-        context['breadcrumbs'] = [
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('BOM (Bill of Materials)')
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Production'), 'url': None},
             {'label': _('BOM'), 'url': None},
         ]
-        context['create_url'] = reverse_lazy('production:bom_create')
-        context['create_button_text'] = _('Create BOM')
-        context['show_filters'] = True
-        context['clear_filter_url'] = reverse_lazy('production:bom_list')
-        context['show_actions'] = True
-        context['feature_code'] = 'production.bom'
-        context['detail_url_name'] = 'production:bom_detail'
-        context['edit_url_name'] = 'production:bom_edit'
-        context['delete_url_name'] = 'production:bom_delete'
-        context['empty_state_title'] = _('No BOMs Found')
-        context['empty_state_message'] = _('Start by defining the materials needed for your products.')
-        context['empty_state_icon'] = '📋'
+    
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('production:bom_create')
+    
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create BOM')
+    
+    def get_detail_url_name(self) -> Optional[str]:
+        """Return detail URL name."""
+        return 'production:bom_detail'
+    
+    def get_edit_url_name(self) -> Optional[str]:
+        """Return edit URL name."""
+        return 'production:bom_edit'
+    
+    def get_delete_url_name(self) -> Optional[str]:
+        """Return delete URL name."""
+        return 'production:bom_delete'
+    
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No BOMs Found')
+    
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by defining the materials needed for your products.')
+    
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📋'
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic list template."""
+        context = super().get_context_data(**kwargs)
         context['print_enabled'] = True
         
         # Get list of finished items for filter dropdown
@@ -88,7 +116,7 @@ class BOMListView(FeaturePermissionRequiredMixin, ListView):
         return context
 
 
-class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
+class BOMCreateView(BaseNestedFormsetCreateView):
     """Create a new BOM with materials (multi-line)."""
     model = BOM
     form_class = BOMForm
@@ -96,58 +124,98 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
     success_url = reverse_lazy('production:bom_list')
     feature_code = 'production.bom'
     required_action = 'create'
-
+    active_module = 'production'
+    formset_class = BOMMaterialLineFormSet
+    formset_prefix = 'materials'
+    nested_formset_class = BOMMaterialAlternativeFormSet
+    nested_formset_prefix_template = 'alternatives_{parent_pk}'
+    success_message = _('BOM created successfully.')
+    
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
         kwargs = super().get_form_kwargs()
         kwargs['company_id'] = self.request.session.get('active_company_id')
         return kwargs
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add formset to context."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Create BOM')
-        context['breadcrumbs'] = [
+    def get_formset_kwargs(self) -> Dict[str, Any]:
+        """Return kwargs for formset."""
+        kwargs = {}
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            kwargs['form_kwargs'] = {'company_id': company_id}
+        return kwargs
+    
+    def get_nested_formset_kwargs(self, parent_instance) -> Dict[str, Any]:
+        """Return kwargs for nested formset."""
+        active_company_id = self.request.session.get('active_company_id')
+        return {
+            'form_kwargs': {
+                'company_id': active_company_id,
+                'bom_material_id': parent_instance.pk
+            }
+        }
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Production'), 'url': None},
             {'label': _('BOM'), 'url': reverse_lazy('production:bom_list')},
             {'label': _('Create'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('production:bom_list')
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('production:bom_list')
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Create BOM')
+    
+    def process_formset_instance(self, instance):
+        """
+        Process formset instance before saving.
+        Sets line_number, company_id, created_by, and auto-fills fields.
+        """
+        active_company_id = self.request.session.get('active_company_id')
         
-        company_id: Optional[int] = self.request.session.get('active_company_id')
+        # Validate required fields
+        if not instance.material_item or not instance.unit:
+            return None
         
-        if self.request.POST:
-            # Create formset from POST data without instance (since object doesn't exist yet)
-            context['formset'] = BOMMaterialLineFormSet(
-                self.request.POST,
-                prefix='materials',
-                form_kwargs={'company_id': company_id}
-            )
-            
-            # Show form errors if form is invalid
-            form = context.get('form')
-            if form and form.errors:
-                for field, errors in form.errors.items():
-                    for error in errors:
-                        if field == '__all__':
-                            messages.error(self.request, f"❌ {error}")
-                        else:
-                            field_label = form.fields[field].label if field in form.fields else field
-                            messages.error(self.request, f"❌ {field_label}: {error}")
-        else:
-            # Create empty formset with only 'extra' number of forms
-            context['formset'] = BOMMaterialLineFormSet(
-                queryset=BOMMaterial.objects.none(),
-                prefix='materials',
-                form_kwargs={'company_id': company_id}
-            )
+        # Initialize line_number counter if not exists
+        if not hasattr(self, '_line_number'):
+            self._line_number = 1
         
-        # Initialize alternative formsets dictionary (will be populated after materials are saved)
-        context['alternative_formsets'] = {}
-        return context
+        # Set additional fields
+        instance.bom = self.object
+        instance.line_number = self._line_number
+        instance.company_id = active_company_id
+        instance.created_by = self.request.user
+        
+        # Auto-fill material_item_code
+        if instance.material_item:
+            instance.material_item_code = instance.material_item.item_code
+        
+        # Set material_type if not set
+        if not instance.material_type:
+            if instance.material_item and instance.material_item.type:
+                instance.material_type = instance.material_item.type
+            else:
+                messages.error(
+                    self.request,
+                    _('Material item {item_code} has no type assigned.').format(
+                        item_code=instance.material_item.item_code
+                    )
+                )
+                return None
+        
+        # Increment line number for next instance
+        self._line_number += 1
+        
+        return instance
     
     def form_valid(self, form: BOMForm) -> HttpResponseRedirect:
-        """Save BOM and material lines."""
+        """Save BOM with custom logic."""
         active_company_id: Optional[int] = self.request.session.get('active_company_id')
         if not active_company_id:
             messages.error(self.request, _('Please select a company first.'))
@@ -160,143 +228,26 @@ class BOMCreateView(FeaturePermissionRequiredMixin, CreateView):
         if not form.instance.is_enabled:
             form.instance.is_enabled = 1
         
-        # Save BOM first
-        try:
-            self.object = form.save()
-        except Exception as e:
-            messages.error(self.request, f"Error saving BOM: {str(e)}")
-            return self.form_invalid(form)
+        # Initialize line number counter
+        self._line_number = 1
         
-        # Now create formset with instance
-        formset = BOMMaterialLineFormSet(
-            self.request.POST,
-            instance=self.object,
-            prefix='materials',
-            form_kwargs={'company_id': active_company_id}
-        )
+        # Use parent form_valid which handles formset and nested formsets
+        response = super().form_valid(form)
         
-        # Validate formset
-        is_valid = formset.is_valid()
-        
-        if not is_valid:
-            # Delete the BOM we just created since formset is invalid
-            self.object.delete()
-            # Recreate context with formset errors
-            context = self.get_context_data(form=form)
-            context['formset'] = formset  # Include formset with errors
-            
-            # Show formset errors prominently
-            if formset.non_form_errors():
-                for error in formset.non_form_errors():
-                    messages.error(self.request, f"❌ {error}")
-            
-            # Show form errors for each form in formset
-            has_errors = False
-            for i, line_form in enumerate(formset):
-                if line_form.errors:
-                    has_errors = True
-                    for field, errors in line_form.errors.items():
-                        for error in errors:
-                            field_label = line_form.fields[field].label if field in line_form.fields else field
-                            messages.error(self.request, f"❌ ردیف {i + 1} - {field_label}: {error}")
-            
-            # If no specific errors shown, show generic message
-            if not has_errors and not formset.non_form_errors():
-                messages.error(self.request, _('Please fill in all required fields in the material lines.'))
-            
-            return self.render_to_response(context)
-        
-        # Save formset with line numbers
-        try:
-            instances = formset.save(commit=False)
-            
-            # Now set additional fields and save each instance
-            line_number = 1
-            saved_count = 0
-            for line_instance in instances:
-                # Validate required fields
-                if not line_instance.material_item:
-                    continue
-                
-                if not line_instance.unit:
-                    continue
-                
-                # Set additional fields
-                line_instance.bom = self.object
-                line_instance.line_number = line_number
-                line_instance.company_id = active_company_id
-                line_instance.created_by = self.request.user
-                
-                # Auto-fill material_item_code
-                if line_instance.material_item:
-                    line_instance.material_item_code = line_instance.material_item.item_code
-                
-                # Set material_type if not set
-                if not line_instance.material_type:
-                    if line_instance.material_item and line_instance.material_item.type:
-                        line_instance.material_type = line_instance.material_item.type
-                    else:
-                        messages.error(self.request, f"Material item {line_instance.material_item.item_code} has no type assigned.")
-                        continue
-                
-                # Save the instance
-                try:
-                    line_instance.save()
-                    saved_count += 1
-                    line_number += 1
-                except Exception as e:
-                    messages.error(self.request, f"Error saving material line {line_number}: {str(e)}")
-            
-            # Delete any forms marked for deletion
-            for obj in formset.deleted_objects:
-                obj.delete()
-            
-            # Save alternative formsets for each saved material line
-            for line_instance in instances:
-                if line_instance.pk and line_instance.material_item:
-                    prefix = f'alternatives_{line_instance.pk}'
-                    alt_formset = BOMMaterialAlternativeFormSet(
-                        self.request.POST,
-                        instance=line_instance,
-                        prefix=prefix,
-                        form_kwargs={
-                            'company_id': active_company_id,
-                            'bom_material_id': line_instance.pk
-                        }
-                    )
-                    if alt_formset.is_valid():
-                        try:
-                            alt_formset.save()
-                        except Exception as e:
-                            messages.warning(self.request, _('Error saving alternatives for material line: %(error)s') % {'error': str(e)})
-                    else:
-                        # Show errors for alternative formset
-                        for error in alt_formset.non_form_errors():
-                            messages.warning(self.request, f"⚠️ {error}")
-                        for i, alt_form in enumerate(alt_formset):
-                            if alt_form.errors:
-                                for field, errors in alt_form.errors.items():
-                                    for error in errors:
-                                        field_label = alt_form.fields[field].label if field in alt_form.fields else field
-                                        messages.warning(self.request, f"⚠️ Material {line_instance.pk} - Alternative {i + 1} - {field_label}: {error}")
-                
-        except Exception as e:
-            messages.error(self.request, f"Error saving material lines: {str(e)}")
-            # Delete the BOM we created
-            self.object.delete()
-            context = self.get_context_data(form=form)
-            context['formset'] = formset
-            return self.render_to_response(context)
-        
+        # Count saved instances for success message
+        saved_count = self.object.materials.count()
         if saved_count == 0:
             messages.warning(self.request, _('BOM created but no material lines were saved. Please check the form data.'))
         else:
-            messages.success(self.request, _('BOM created successfully with %(count)s material line(s).') % {'count': saved_count})
+            messages.success(
+                self.request,
+                _('BOM created successfully with {count} material line(s).').format(count=saved_count)
+            )
         
-        return redirect(self.success_url)
+        return response
 
 
-class BOMUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
+class BOMUpdateView(BaseNestedFormsetUpdateView, EditLockProtectedMixin):
     """Update an existing BOM."""
     model = BOM
     form_class = BOMForm
@@ -304,7 +255,13 @@ class BOMUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, Upda
     success_url = reverse_lazy('production:bom_list')
     feature_code = 'production.bom'
     required_action = 'edit_own'
-
+    active_module = 'production'
+    formset_class = BOMMaterialLineFormSet
+    formset_prefix = 'materials'
+    nested_formset_class = BOMMaterialAlternativeFormSet
+    nested_formset_prefix_template = 'alternatives_{parent_pk}'
+    success_message = _('BOM updated successfully.')
+    
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
         kwargs = super().get_form_kwargs()
@@ -318,178 +275,117 @@ class BOMUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, Upda
             return BOM.objects.none()
         return BOM.objects.filter(company_id=active_company_id)
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add formset to context."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Edit BOM')
-        context['breadcrumbs'] = [
+    def get_formset_kwargs(self) -> Dict[str, Any]:
+        """Return kwargs for formset."""
+        return {
+            'form_kwargs': {'company_id': self.object.company_id}
+        }
+    
+    def get_nested_formset_kwargs(self, parent_instance) -> Dict[str, Any]:
+        """Return kwargs for nested formset."""
+        return {
+            'form_kwargs': {
+                'company_id': self.object.company_id,
+                'bom_material_id': parent_instance.pk
+            }
+        }
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Production'), 'url': None},
             {'label': _('BOM'), 'url': reverse_lazy('production:bom_list')},
             {'label': _('Edit'), 'url': None},
         ]
-        context['cancel_url'] = reverse_lazy('production:bom_list')
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('production:bom_list')
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Edit BOM')
+    
+    def process_formset_instance(self, instance):
+        """
+        Process formset instance before saving.
+        Sets line_number, edited_by, and auto-fills fields.
+        """
+        # Validate required fields
+        if not instance.material_item or not instance.unit:
+            return None
         
-        if self.request.POST:
-            context['formset'] = BOMMaterialLineFormSet(
-                self.request.POST,
-                instance=self.object,
-                form_kwargs={'company_id': self.object.company_id}
-            )
-        else:
-            context['formset'] = BOMMaterialLineFormSet(
-                instance=self.object,
-                form_kwargs={'company_id': self.object.company_id}
-            )
+        # Initialize line_number counter if not exists
+        if not hasattr(self, '_line_number'):
+            # Get max line_number from existing materials
+            existing_max = self.object.materials.aggregate(
+                max_line=models.Max('line_number')
+            )['max_line'] or 0
+            self._line_number = existing_max + 1
         
-        # Create alternative formsets for each material line
-        alternative_formsets = {}
-        if self.object.pk:
-            for material in self.object.materials.all():
-                prefix = f'alternatives_{material.pk}'
-                if self.request.POST:
-                    alternative_formsets[material.pk] = BOMMaterialAlternativeFormSet(
-                        self.request.POST,
-                        instance=material,
-                        prefix=prefix,
-                        form_kwargs={
-                            'company_id': self.object.company_id,
-                            'bom_material_id': material.pk
-                        }
+        # Set additional fields
+        instance.bom = self.object
+        instance.line_number = self._line_number
+        instance.edited_by = self.request.user
+        
+        # Auto-fill material_item_code
+        if instance.material_item:
+            instance.material_item_code = instance.material_item.item_code
+        
+        # Set material_type if not set
+        if not instance.material_type:
+            if instance.material_item and instance.material_item.type:
+                instance.material_type = instance.material_item.type
+            else:
+                messages.error(
+                    self.request,
+                    _('Material item {item_code} has no type assigned.').format(
+                        item_code=instance.material_item.item_code
                     )
-                else:
-                    alternative_formsets[material.pk] = BOMMaterialAlternativeFormSet(
-                        instance=material,
-                        prefix=prefix,
-                        form_kwargs={
-                            'company_id': self.object.company_id,
-                            'bom_material_id': material.pk
-                        }
-                    )
+                )
+                return None
         
-        context['alternative_formsets'] = alternative_formsets
-        return context
+        # Increment line number for next instance
+        self._line_number += 1
+        
+        return instance
     
     def form_valid(self, form: BOMForm) -> HttpResponseRedirect:
-        """Save BOM and material lines."""
-        context = self.get_context_data()
-        formset = context['formset']
-        
-        # Validate formset
-        is_valid = formset.is_valid()
-        
-        if not is_valid:
-            # Show formset errors prominently
-            if formset.non_form_errors():
-                for error in formset.non_form_errors():
-                    messages.error(self.request, f"❌ {error}")
-            
-            # Show form errors for each form in formset
-            has_errors = False
-            for i, line_form in enumerate(formset):
-                if line_form.errors:
-                    has_errors = True
-                    for field, errors in line_form.errors.items():
-                        for error in errors:
-                            field_label = line_form.fields[field].label if field in line_form.fields else field
-                            messages.error(self.request, f"❌ ردیف {i + 1} - {field_label}: {error}")
-            
-            return self.form_invalid(form)
-        
+        """Save BOM with custom logic."""
         # Auto-set edited_by
         form.instance.edited_by = self.request.user
         
-        # Save BOM
-        try:
-            self.object = form.save()
-        except Exception as e:
-            messages.error(self.request, f"Error updating BOM: {str(e)}")
-            return self.form_invalid(form)
+        # Initialize line number counter
+        self._line_number = 1
         
-        # Save formset with line numbers
-        try:
-            instances = formset.save(commit=False)
-            
-            # Now set additional fields and save each instance
-            line_number = 1
-            saved_count = 0
-            for line_instance in instances:
-                # Validate required fields
-                if not line_instance.material_item:
-                    continue
-                
-                if not line_instance.unit:
-                    continue
-                
-                # Set additional fields
-                line_instance.bom = self.object
-                line_instance.line_number = line_number
-                line_instance.edited_by = self.request.user
-                
-                # Auto-fill material_item_code
-                if line_instance.material_item:
-                    line_instance.material_item_code = line_instance.material_item.item_code
-                
-                # Set material_type if not set
-                if not line_instance.material_type:
-                    if line_instance.material_item and line_instance.material_item.type:
-                        line_instance.material_type = line_instance.material_item.type
-                    else:
-                        messages.error(self.request, f"Material item {line_instance.material_item.item_code} has no type assigned.")
-                        continue
-                
-                # Save the instance
-                try:
-                    line_instance.save()
-                    saved_count += 1
-                    line_number += 1
-                except Exception as e:
-                    messages.error(self.request, f"Error saving material line {line_number}: {str(e)}")
-            
-            # Delete marked lines
-            for deleted_obj in formset.deleted_objects:
-                deleted_obj.delete()
-                
-        except Exception as e:
-            messages.error(self.request, f"Error saving material lines: {str(e)}")
-            return self.form_invalid(form)
+        # Use parent form_valid which handles formset and nested formsets
+        response = super().form_valid(form)
         
-        # Save alternative formsets for each material line
-        alternative_formsets = context.get('alternative_formsets', {})
-        for material_pk, alt_formset in alternative_formsets.items():
-            if alt_formset.is_valid():
-                try:
-                    alt_formset.save()
-                except Exception as e:
-                    messages.warning(self.request, _('Error saving alternatives for material line: %(error)s') % {'error': str(e)})
-            else:
-                # Show errors for alternative formset
-                for error in alt_formset.non_form_errors():
-                    messages.warning(self.request, f"⚠️ {error}")
-                for i, alt_form in enumerate(alt_formset):
-                    if alt_form.errors:
-                        for field, errors in alt_form.errors.items():
-                            for error in errors:
-                                field_label = alt_form.fields[field].label if field in alt_form.fields else field
-                                messages.warning(self.request, f"⚠️ Material {material_pk} - Alternative {i + 1} - {field_label}: {error}")
+        # Count saved instances for success message
+        saved_count = self.object.materials.count()
+        if saved_count == 0:
+            messages.warning(self.request, _('BOM updated but no material lines were saved. Please check the form data.'))
+        else:
+            messages.success(
+                self.request,
+                _('BOM updated successfully with {count} material line(s).').format(count=saved_count)
+            )
         
-        messages.success(self.request, _('BOM updated successfully.'))
-        return super().form_valid(form)
+        return response
 
 
-class BOMDetailView(FeaturePermissionRequiredMixin, DetailView):
+class BOMDetailView(BaseDetailView):
     """Detail view for viewing BOMs (read-only)."""
     model = BOM
     template_name = 'production/bom_detail.html'
     context_object_name = 'bom'
     feature_code = 'production.bom'
     required_action = 'view_own'
+    active_module = 'production'
     
     def get_queryset(self):
-        """Filter by active company."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        if not active_company_id:
-            return BOM.objects.none()
-        queryset = BOM.objects.filter(company_id=active_company_id)
+        """Filter by active company and optimize queries."""
+        queryset = super().get_queryset()
         queryset = queryset.select_related(
             'finished_item',
             'created_by',
@@ -497,55 +393,63 @@ class BOMDetailView(FeaturePermissionRequiredMixin, DetailView):
         ).prefetch_related('materials__material_item', 'materials__material_type')
         return queryset
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail template."""
-        context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse_lazy('production:bom_list')
-        context['edit_url'] = reverse_lazy('production:bom_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        context['feature_code'] = 'production.bom'
-        return context
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('production:bom_list')
+    
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('production:bom_edit', kwargs={'pk': self.object.pk})
+    
+    def can_edit_object(self, obj=None, feature_code=None) -> bool:
+        """Check if object can be edited."""
+        check_obj = obj if obj is not None else self.object
+        if hasattr(check_obj, 'is_locked'):
+            return not bool(check_obj.is_locked)
+        return True
 
 
-class BOMDeleteView(FeaturePermissionRequiredMixin, DeleteView):
+class BOMDeleteView(BaseDeleteView):
     """Delete a BOM."""
     model = BOM
     success_url = reverse_lazy('production:bom_list')
     template_name = 'shared/generic/generic_confirm_delete.html'
     feature_code = 'production.bom'
     required_action = 'delete_own'
-
-    def get_queryset(self):
-        """Filter by active company."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        if not active_company_id:
-            return BOM.objects.none()
-        return BOM.objects.filter(company_id=active_company_id)
+    active_module = 'production'
+    success_message = _('BOM deleted successfully.')
     
-    def delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect:
-        """Delete BOM and show success message."""
-        messages.success(self.request, _('BOM deleted successfully.'))
-        return super().delete(request, *args, **kwargs)
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete BOM')
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module to context."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete BOM')
-        context['confirmation_message'] = _('Are you sure you want to delete this BOM?')
-        context['object_details'] = [
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Are you sure you want to delete this BOM?')
+    
+    def get_object_details(self) -> List[Dict[str, str]]:
+        """Return object details for confirmation."""
+        details = [
             {'label': _('BOM Code'), 'value': f'<code>{self.object.bom_code}</code>'},
             {'label': _('Finished Product'), 'value': f'{self.object.finished_item.item_code} - {self.object.finished_item.name}'},
             {'label': _('Version'), 'value': str(self.object.version)},
         ]
-        if self.object.materials.exists():
-            context['warning_message'] = _('This BOM has {count} material line(s). They will also be deleted.').format(
-                count=self.object.materials.count()
-            )
-        context['cancel_url'] = reverse_lazy('production:bom_list')
-        context['breadcrumbs'] = [
+        return details
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Production'), 'url': None},
             {'label': _('BOM'), 'url': reverse_lazy('production:bom_list')},
             {'label': _('Delete'), 'url': None},
         ]
+    
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Add context for generic delete template."""
+        context = super().get_context_data(**kwargs)
+        if self.object.materials.exists():
+            context['warning_message'] = _('This BOM has {count} material line(s). They will also be deleted.').format(
+                count=self.object.materials.count()
+            )
         return context
 

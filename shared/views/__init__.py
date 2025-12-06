@@ -14,6 +14,12 @@ __all__ = []
 
 # Import base mixins
 from shared.views.base import UserAccessFormsetMixin, AccessLevelPermissionMixin, EditLockProtectedMixin
+from shared.views.base_additional import (
+    TransferRequestCreationMixin,
+    BaseMultipleFormsetCreateView,
+    BaseMultipleFormsetUpdateView,
+    BaseMultipleDocumentCreateView,
+)
 
 # Import auth views
 from shared.views.auth import set_active_company, custom_login

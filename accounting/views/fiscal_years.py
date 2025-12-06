@@ -9,14 +9,22 @@ from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
+from typing import Optional
 from shared.mixins import FeaturePermissionRequiredMixin
-from shared.views.base import EditLockProtectedMixin
+from shared.views.base import (
+    BaseListView,
+    BaseCreateView,
+    BaseUpdateView,
+    BaseDetailView,
+    BaseDeleteView,
+    EditLockProtectedMixin,
+)
 from accounting.models import FiscalYear
 from accounting.forms import FiscalYearForm
 from accounting.views.base import AccountingBaseView
 
 
-class FiscalYearListView(FeaturePermissionRequiredMixin, AccountingBaseView, ListView):
+class FiscalYearListView(BaseListView):
     """
     List all fiscal years for the active company.
     """
@@ -25,50 +33,71 @@ class FiscalYearListView(FeaturePermissionRequiredMixin, AccountingBaseView, Lis
     context_object_name = 'object_list'
     paginate_by = 50
     feature_code = 'accounting.fiscal_years'
+    required_action = 'view_all'
+    active_module = 'accounting'
+    default_order_by = ['-fiscal_year_code']
+    default_status_filter = True
     
-    def get_queryset(self):
-        """Filter fiscal years by active company and search/filter criteria."""
-        queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, self.feature_code)
-        
-        search: str = self.request.GET.get('search', '').strip()
-        status: str = self.request.GET.get('status', '')
-        
-        if search:
-            queryset = queryset.filter(
-                Q(fiscal_year_code__icontains=search) |
-                Q(fiscal_year_name__icontains=search)
-            )
-        
-        if status in ('0', '1'):
-            queryset = queryset.filter(is_enabled=int(status))
-        else:
-            # Default: show only enabled fiscal years
-            queryset = queryset.filter(is_enabled=1)
-        
-        return queryset.order_by('-fiscal_year_code')
+    def get_base_queryset(self):
+        """Get base queryset filtered by company."""
+        queryset = super().get_base_queryset()
+        # Use AccountingBaseView's permission filtering
+        base_view = AccountingBaseView()
+        base_view.request = self.request
+        queryset = base_view.filter_queryset_by_permissions(queryset, self.feature_code)
+        return queryset
+    
+    def get_search_fields(self) -> list:
+        """Return list of fields to search in."""
+        return ['fiscal_year_code', 'fiscal_year_name']
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Fiscal Years')
+    
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Accounting'), 'url': reverse('accounting:dashboard')},
+            {'label': _('Fiscal Years'), 'url': None},
+        ]
+    
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse('accounting:fiscal_year_create')
+    
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('Create Fiscal Year')
+    
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'accounting:fiscal_year_detail'
+    
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'accounting:fiscal_year_edit'
+    
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'accounting:fiscal_year_delete'
+    
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Fiscal Years Found')
+    
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by adding your first fiscal year.')
+    
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📅'
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context variables for generic_list template."""
         context = super().get_context_data(**kwargs)
-        context['page_title'] = _('Fiscal Years')
-        context['breadcrumbs'] = [
-            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
-            {'label': _('Accounting'), 'url': reverse('accounting:dashboard')},
-            {'label': _('Fiscal Years')},
-        ]
-        context['create_url'] = reverse('accounting:fiscal_year_create')
-        context['create_button_text'] = _('Create Fiscal Year')
-        context['show_filters'] = True
-        context['status_filter'] = True
-        context['search_placeholder'] = _('Search by code or name')
-        context['clear_filter_url'] = reverse('accounting:fiscal_years')
-        context['print_enabled'] = True
-        context['show_actions'] = True
-        context['feature_code'] = 'accounting.fiscal_years'
-        context['detail_url_name'] = 'accounting:fiscal_year_detail'
-        context['edit_url_name'] = 'accounting:fiscal_year_edit'
-        context['delete_url_name'] = 'accounting:fiscal_year_delete'
         context['table_headers'] = [
             {'label': _('CODE'), 'field': 'fiscal_year_code', 'type': 'code'},
             {'label': _('Name'), 'field': 'fiscal_year_name'},
@@ -79,13 +108,11 @@ class FiscalYearListView(FeaturePermissionRequiredMixin, AccountingBaseView, Lis
             {'label': _('Status'), 'field': 'is_enabled', 'type': 'badge',
              'true_label': _('Active'), 'false_label': _('Inactive')},
         ]
-        context['empty_state_title'] = _('No Fiscal Years Found')
-        context['empty_state_message'] = _('Start by adding your first fiscal year.')
-        context['empty_state_icon'] = '📅'
+        context['print_enabled'] = True
         return context
 
 
-class FiscalYearCreateView(FeaturePermissionRequiredMixin, AccountingBaseView, CreateView):
+class FiscalYearCreateView(BaseCreateView):
     """Create a new fiscal year."""
     model = FiscalYear
     form_class = FiscalYearForm
@@ -93,6 +120,8 @@ class FiscalYearCreateView(FeaturePermissionRequiredMixin, AccountingBaseView, C
     success_url = reverse_lazy('accounting:fiscal_years')
     feature_code = 'accounting.fiscal_years'
     required_action = 'create'
+    active_module = 'accounting'
+    success_message = _('Fiscal year created successfully.')
     
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
@@ -101,25 +130,29 @@ class FiscalYearCreateView(FeaturePermissionRequiredMixin, AccountingBaseView, C
         return kwargs
     
     def form_valid(self, form: FiscalYearForm) -> HttpResponseRedirect:
-        """Set created_by and show success message."""
+        """Set created_by."""
         form.instance.created_by = self.request.user
-        messages.success(self.request, _('Fiscal year created successfully.'))
         return super().form_valid(form)
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and form title to context."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Create Fiscal Year')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Accounting'), 'url': reverse('accounting:dashboard')},
             {'label': _('Fiscal Years'), 'url': reverse('accounting:fiscal_years')},
+            {'label': _('Create'), 'url': None},
         ]
-        context['cancel_url'] = reverse('accounting:fiscal_years')
-        return context
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse('accounting:fiscal_years')
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Create Fiscal Year')
 
 
-class FiscalYearUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, AccountingBaseView, UpdateView):
+class FiscalYearUpdateView(BaseUpdateView, EditLockProtectedMixin):
     """Update an existing fiscal year."""
     model = FiscalYear
     form_class = FiscalYearForm
@@ -127,6 +160,8 @@ class FiscalYearUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixi
     success_url = reverse_lazy('accounting:fiscal_years')
     feature_code = 'accounting.fiscal_years'
     required_action = 'edit_own'
+    active_module = 'accounting'
+    success_message = _('Fiscal year updated successfully.')
     
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
@@ -137,81 +172,97 @@ class FiscalYearUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixi
     def form_valid(self, form: FiscalYearForm) -> HttpResponseRedirect:
         """Auto-set edited_by."""
         form.instance.edited_by = self.request.user
-        messages.success(self.request, _('Fiscal year updated successfully.'))
         return super().form_valid(form)
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add active module and form title to context."""
-        context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Edit Fiscal Year')
-        context['breadcrumbs'] = [
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Accounting'), 'url': reverse('accounting:dashboard')},
             {'label': _('Fiscal Years'), 'url': reverse('accounting:fiscal_years')},
+            {'label': _('Edit'), 'url': None},
         ]
-        context['cancel_url'] = reverse('accounting:fiscal_years')
-        return context
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse('accounting:fiscal_years')
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Edit Fiscal Year')
 
 
-class FiscalYearDetailView(FeaturePermissionRequiredMixin, AccountingBaseView, DetailView):
+class FiscalYearDetailView(BaseDetailView):
     """Detail view for viewing fiscal years (read-only)."""
     model = FiscalYear
     template_name = 'accounting/fiscal_year_detail.html'
     context_object_name = 'fiscal_year'
     feature_code = 'accounting.fiscal_years'
     required_action = 'view_own'
+    active_module = 'accounting'
     
     def get_queryset(self):
-        """Filter by active company."""
+        """Filter by active company and optimize queries."""
         queryset = super().get_queryset()
-        queryset = self.filter_queryset_by_permissions(queryset, self.feature_code)
+        # Use AccountingBaseView's permission filtering
+        base_view = AccountingBaseView()
+        base_view.request = self.request
+        queryset = base_view.filter_queryset_by_permissions(queryset, self.feature_code)
         queryset = queryset.select_related(
             'created_by',
             'edited_by',
         )
         return queryset
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail template."""
-        context = super().get_context_data(**kwargs)
-        context['page_title'] = _('View Fiscal Year')
-        context['list_url'] = reverse_lazy('accounting:fiscal_years')
-        context['edit_url'] = reverse_lazy('accounting:fiscal_year_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        context['feature_code'] = 'accounting.fiscal_years'
-        return context
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('accounting:fiscal_years')
+    
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('accounting:fiscal_year_edit', kwargs={'pk': self.object.pk})
+    
+    def can_edit_object(self, obj=None, feature_code=None) -> bool:
+        """Check if object can be edited."""
+        check_obj = obj if obj is not None else self.object
+        if hasattr(check_obj, 'is_locked'):
+            return not bool(check_obj.is_locked)
+        return True
 
 
-class FiscalYearDeleteView(FeaturePermissionRequiredMixin, AccountingBaseView, DeleteView):
+class FiscalYearDeleteView(BaseDeleteView):
     """Delete a fiscal year."""
     model = FiscalYear
     success_url = reverse_lazy('accounting:fiscal_years')
     template_name = 'shared/generic/generic_confirm_delete.html'
     feature_code = 'accounting.fiscal_years'
     required_action = 'delete_own'
+    active_module = 'accounting'
+    success_message = _('Fiscal year deleted successfully.')
     
-    def delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect:
-        """Delete fiscal year and show success message."""
-        messages.success(self.request, _('Fiscal year deleted successfully.'))
-        return super().delete(request, *args, **kwargs)
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Fiscal Year')
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Fiscal Year')
-        context['confirmation_message'] = _('Do you really want to delete this fiscal year?')
-        context['breadcrumbs'] = [
-            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
-            {'label': _('Accounting'), 'url': reverse('accounting:dashboard')},
-            {'label': _('Fiscal Years'), 'url': reverse('accounting:fiscal_years')},
-            {'label': _('Delete')},
-        ]
-        context['object_details'] = [
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Do you really want to delete this fiscal year?')
+    
+    def get_object_details(self) -> list:
+        """Return object details for confirmation."""
+        return [
             {'label': _('Code'), 'value': self.object.fiscal_year_code, 'type': 'code'},
             {'label': _('Name'), 'value': self.object.fiscal_year_name},
             {'label': _('Start Date'), 'value': self.object.start_date},
             {'label': _('End Date'), 'value': self.object.end_date},
         ]
-        context['cancel_url'] = reverse('accounting:fiscal_years')
-        return context
+    
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Accounting'), 'url': reverse('accounting:dashboard')},
+            {'label': _('Fiscal Years'), 'url': reverse('accounting:fiscal_years')},
+            {'label': _('Delete'), 'url': None},
+        ]
 

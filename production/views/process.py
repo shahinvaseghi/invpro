@@ -1,16 +1,23 @@
 """
 Process CRUD views for production module.
 """
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 from django.contrib import messages
 from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, UpdateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
-from shared.views.base import EditLockProtectedMixin
+from shared.views.base import (
+    BaseListView,
+    BaseDetailView,
+    BaseDeleteView,
+    BaseFormsetCreateView,
+    BaseFormsetUpdateView,
+    EditLockProtectedMixin,
+)
 from production.forms import (
     ProcessForm,
     ProcessOperationFormSet,
@@ -130,7 +137,7 @@ def save_operation_materials_from_post(request, operation, operation_index, comp
     return True
 
 
-class ProcessListView(FeaturePermissionRequiredMixin, ListView):
+class ProcessListView(BaseListView):
     """List all processes for the active company."""
     model = Process
     template_name = 'production/processes.html'
@@ -138,31 +145,22 @@ class ProcessListView(FeaturePermissionRequiredMixin, ListView):
     paginate_by = 50
     feature_code = 'production.processes'
     required_action = 'view_own'
+    active_module = 'production'
+    default_status_filter = False
+    default_order_by = ['finished_item__name', 'revision', 'sort_order']
     
-    def get_queryset(self):
-        """Filter processes by active company."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        
-        if not active_company_id:
-            return Process.objects.none()
-        
-        queryset = Process.objects.filter(
-            company_id=active_company_id
-        )
-        
-        queryset = queryset.select_related(
-            'finished_item',
-            'bom',
-            'approved_by',  # Now FK to User, not Person
-        ).prefetch_related('work_lines')
+    def get_select_related(self) -> List[str]:
+        """Return list of fields to select_related."""
+        return ['finished_item', 'bom', 'approved_by']
+    
+    def get_prefetch_related(self) -> List[str]:
+        """Return list of fields to prefetch_related."""
+        prefetch = ['work_lines']
         
         # Try to prefetch operations if table exists
-        # This is a safety check in case migration hasn't been run yet
         try:
             from django.db import connection
-            
             with connection.cursor() as cursor:
-                # Check if ProcessOperation table exists
                 cursor.execute("""
                     SELECT EXISTS (
                         SELECT FROM information_schema.tables 
@@ -171,43 +169,68 @@ class ProcessListView(FeaturePermissionRequiredMixin, ListView):
                     );
                 """)
                 table_exists = cursor.fetchone()[0]
-                
             if table_exists:
-                queryset = queryset.prefetch_related(
+                prefetch.extend([
                     'operations',
                     'operations__operation_materials',
                     'operations__operation_materials__bom_material',
-                )
+                ])
         except Exception:
-            # If check fails (e.g., table doesn't exist), skip operations prefetch
-            # This allows the page to load even if migration hasn't been run
             pass
         
-        return queryset.order_by('finished_item__name', 'revision', 'sort_order')
+        return prefetch
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Processes')
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Processes'), 'url': None},
+        ]
+    
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy('production:process_create')
+    
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('+ Create Process')
+    
+    def get_detail_url_name(self) -> Optional[str]:
+        """Return detail URL name."""
+        return 'production:process_detail'
+    
+    def get_edit_url_name(self) -> Optional[str]:
+        """Return edit URL name."""
+        return 'production:process_edit'
+    
+    def get_delete_url_name(self) -> Optional[str]:
+        """Return delete URL name."""
+        return 'production:process_delete'
+    
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('No Processes Found')
+    
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('Start by creating your first process.')
+    
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '⚙️'
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context for generic list template."""
         context = super().get_context_data(**kwargs)
-        context['page_title'] = _('Processes')
-        context['breadcrumbs'] = [
-            {'label': _('Production'), 'url': None},
-            {'label': _('Processes'), 'url': None},
-        ]
-        context['create_url'] = reverse_lazy('production:process_create')
-        context['create_button_text'] = _('+ Create Process')
         context['table_headers'] = []  # Overridden in template
-        context['show_actions'] = True
-        context['feature_code'] = 'production.processes'
-        context['detail_url_name'] = 'production:process_detail'
-        context['edit_url_name'] = 'production:process_edit'
-        context['delete_url_name'] = 'production:process_delete'
-        context['empty_state_title'] = _('No Processes Found')
-        context['empty_state_message'] = _('Start by creating your first process.')
-        context['empty_state_icon'] = '⚙️'
         return context
 
 
-class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
+class ProcessCreateView(BaseFormsetCreateView):
     """Create a new process."""
     model = Process
     form_class = ProcessForm
@@ -215,12 +238,73 @@ class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
     success_url = reverse_lazy('production:processes')
     feature_code = 'production.processes'
     required_action = 'create'
+    active_module = 'production'
+    formset_class = ProcessOperationFormSet
+    formset_prefix = 'operations'
+    success_message = _('Process created successfully.')
     
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
         kwargs = super().get_form_kwargs()
         kwargs['company_id'] = self.request.session.get('active_company_id')
         return kwargs
+    
+    def get_formset_kwargs(self) -> Dict[str, Any]:
+        """Return kwargs for formset."""
+        kwargs = {}
+        company_id = self.request.session.get('active_company_id')
+        bom_id = None
+        
+        # Get BOM ID from form if available
+        if hasattr(self, 'form') and self.form and hasattr(self.form, 'cleaned_data') and self.form.cleaned_data:
+            bom = self.form.cleaned_data.get('bom')
+            if bom:
+                bom_id = bom.id
+        elif self.request.POST:
+            bom_id_str = self.request.POST.get('bom')
+            if bom_id_str:
+                try:
+                    bom_id = int(bom_id_str)
+                except (ValueError, TypeError):
+                    pass
+        
+        if company_id:
+            kwargs['form_kwargs'] = {'bom_id': bom_id, 'company_id': company_id}
+        return kwargs
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Processes'), 'url': reverse_lazy('production:processes')},
+            {'label': _('Create'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('production:processes')
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Create Process')
+    
+    def process_formset_instance(self, instance):
+        """
+        Process formset instance before saving.
+        Sets process, company_id, created_by.
+        """
+        active_company_id = self.request.session.get('active_company_id')
+        
+        # Validate required fields
+        if not instance.name and not instance.sequence_order:
+            return None
+        
+        # Set additional fields
+        instance.process = self.object
+        instance.company_id = active_company_id
+        instance.created_by = self.request.user
+        
+        return instance
     
     @transaction.atomic
     def form_valid(self, form: ProcessForm) -> HttpResponseRedirect:
@@ -232,13 +316,14 @@ class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
         
         form.instance.company_id = active_company_id
         form.instance.created_by = self.request.user
+        
         # Set finished_item from BOM
         bom = form.cleaned_data.get('bom')
         if bom:
             form.instance.finished_item = bom.finished_item
         
-        # Save process first
-        response = super().form_valid(form)
+        # Save process first (from BaseCreateView)
+        self.object = form.save()
         
         # Save Many-to-Many relationships
         form.save_m2m()
@@ -246,33 +331,32 @@ class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
         # Get BOM ID for operations
         bom_id = bom.id if bom else None
         
-        # Handle operations formset
-        operations_formset = ProcessOperationFormSet(
+        # Get formset
+        formset = self.formset_class(
             self.request.POST,
-            prefix='operations',
-            form_kwargs={'bom_id': bom_id, 'company_id': active_company_id},
+            instance=self.object,
+            prefix=self.formset_prefix,
+            **self.get_formset_kwargs()
         )
         
-        if operations_formset.is_valid():
-            # Save operations
+        if formset.is_valid():
+            # Save operations and get saved instances
             operations = []
-            for operation_form in operations_formset:
+            for operation_form in formset:
                 if operation_form.cleaned_data and not operation_form.cleaned_data.get('DELETE', False):
-                    # Check if operation has required fields
                     name = operation_form.cleaned_data.get('name')
                     sequence_order = operation_form.cleaned_data.get('sequence_order')
                     
                     if name or sequence_order:
                         operation = operation_form.save(commit=False)
-                        operation.process = self.object
-                        operation.company_id = active_company_id
-                        operation.created_by = self.request.user
-                        operation.save()
-                        operations.append(operation)
+                        operation = self.process_formset_instance(operation)
+                        if operation:
+                            operation.save()
+                            operations.append(operation)
             
-            # Now save materials for each operation
+            # Save materials for each operation (custom nested logic)
             operation_index = 0
-            for operation_form in operations_formset:
+            for operation_form in formset:
                 if operation_form.cleaned_data and not operation_form.cleaned_data.get('DELETE', False):
                     name = operation_form.cleaned_data.get('name')
                     sequence_order = operation_form.cleaned_data.get('sequence_order')
@@ -280,7 +364,7 @@ class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
                     if (name or sequence_order) and operation_index < len(operations):
                         operation = operations[operation_index]
                         
-                        # Save materials manually from POST data
+                        # Save materials manually from POST data (custom nested formset handling)
                         save_operation_materials_from_post(
                             self.request,
                             operation,
@@ -292,61 +376,23 @@ class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
                         operation_index += 1
         else:
             # Show operations formset errors
-            if operations_formset.non_form_errors():
-                for error in operations_formset.non_form_errors():
+            if formset.non_form_errors():
+                for error in formset.non_form_errors():
                     messages.error(self.request, f"❌ {error}")
-            for i, op_form in enumerate(operations_formset):
+            for i, op_form in enumerate(formset):
                 if op_form.errors:
                     for field, errors in op_form.errors.items():
                         for error in errors:
                             field_label = op_form.fields[field].label if field in op_form.fields else field
                             messages.error(self.request, f"❌ {_('Operation')} {i + 1} - {field_label}: {error}")
+            return self.form_invalid(form)
         
         messages.success(self.request, _('Process created successfully.'))
-        return response
+        return HttpResponseRedirect(self.get_success_url())
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add form title, breadcrumbs, and operations formset to context."""
         context = super().get_context_data(**kwargs)
-        context['form_title'] = _('Create Process')
-        context['breadcrumbs'] = [
-            {'label': _('Production'), 'url': None},
-            {'label': _('Processes'), 'url': reverse_lazy('production:processes')},
-            {'label': _('Create'), 'url': None},
-        ]
-        context['cancel_url'] = reverse_lazy('production:processes')
-        context['form_id'] = 'process-form'
-        
-        # Get BOM ID from form if available
-        bom_id = None
-        if hasattr(context.get('form'), 'cleaned_data') and context['form'].cleaned_data:
-            bom = context['form'].cleaned_data.get('bom')
-            if bom:
-                bom_id = bom.id
-        elif self.request.POST:
-            bom_id_str = self.request.POST.get('bom')
-            if bom_id_str:
-                try:
-                    bom_id = int(bom_id_str)
-                except (ValueError, TypeError):
-                    pass
-        
-        # Create operations formset
-        active_company_id = self.request.session.get('active_company_id')
-        if self.request.POST:
-            operations_formset = ProcessOperationFormSet(
-                self.request.POST,
-                prefix='operations',
-                form_kwargs={'bom_id': bom_id, 'company_id': active_company_id},
-            )
-        else:
-            operations_formset = ProcessOperationFormSet(
-                prefix='operations',
-                form_kwargs={'bom_id': bom_id, 'company_id': active_company_id},
-            )
-        
-        context['operations_formset'] = operations_formset
-        context['process_id'] = self.object.id if hasattr(self, 'object') and self.object else None
         
         # Add work lines to context for JavaScript
         active_company_id = self.request.session.get('active_company_id')
@@ -363,10 +409,13 @@ class ProcessCreateView(FeaturePermissionRequiredMixin, CreateView):
         else:
             context['work_lines'] = []
         
+        context['process_id'] = self.object.id if hasattr(self, 'object') and self.object else None
+        context['form_id'] = 'process-form'
+        
         return context
 
 
-class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, UpdateView):
+class ProcessUpdateView(BaseFormsetUpdateView, EditLockProtectedMixin):
     """Update an existing process."""
     model = Process
     form_class = ProcessForm
@@ -374,6 +423,10 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
     success_url = reverse_lazy('production:processes')
     feature_code = 'production.processes'
     required_action = 'edit_own'
+    active_module = 'production'
+    formset_class = ProcessOperationFormSet
+    formset_prefix = 'operations'
+    success_message = _('Process updated successfully.')
     
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
@@ -387,6 +440,57 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
         if not active_company_id:
             return Process.objects.none()
         return Process.objects.filter(company_id=active_company_id)
+    
+    def get_formset_kwargs(self) -> Dict[str, Any]:
+        """Return kwargs for formset."""
+        bom_id = None
+        if self.object and self.object.bom_id:
+            bom_id = self.object.bom_id
+        elif self.request.POST:
+            bom_id_str = self.request.POST.get('bom')
+            if bom_id_str:
+                try:
+                    bom_id = int(bom_id_str)
+                except (ValueError, TypeError):
+                    pass
+        
+        return {
+            'form_kwargs': {
+                'bom_id': bom_id,
+                'company_id': self.object.company_id
+            }
+        }
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Production'), 'url': None},
+            {'label': _('Processes'), 'url': reverse_lazy('production:processes')},
+            {'label': _('Edit'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy('production:processes')
+    
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _('Edit Process')
+    
+    def process_formset_instance(self, instance):
+        """
+        Process formset instance before saving.
+        Sets process, company_id, edited_by.
+        """
+        # Validate required fields
+        if not instance.name and not instance.sequence_order:
+            return None
+        
+        # Set additional fields
+        instance.process = self.object
+        instance.edited_by = self.request.user
+        
+        return instance
     
     @transaction.atomic
     def form_valid(self, form: ProcessForm) -> HttpResponseRedirect:
@@ -402,8 +506,8 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
         if bom:
             form.instance.finished_item = bom.finished_item
         
-        # Save process
-        response = super().form_valid(form)
+        # Save process first
+        self.object = form.save()
         
         # Save Many-to-Many relationships
         form.save_m2m()
@@ -411,14 +515,15 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
         # Get BOM ID for operations
         bom_id = bom.id if bom else (self.object.bom_id if self.object else None)
         
-        # Handle operations formset
-        operations_formset = ProcessOperationFormSet(
+        # Get formset
+        formset = self.formset_class(
             self.request.POST,
-            prefix='operations',
-            form_kwargs={'bom_id': bom_id, 'company_id': active_company_id},
+            instance=self.object,
+            prefix=self.formset_prefix,
+            **self.get_formset_kwargs()
         )
         
-        if operations_formset.is_valid():
+        if formset.is_valid():
             # Delete existing operations that are not in formset
             existing_operation_ids = set(
                 ProcessOperation.objects.filter(process=self.object).values_list('id', flat=True)
@@ -426,13 +531,13 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
             
             # Save operations
             operations = []
-            for operation_form in operations_formset:
+            for operation_form in formset:
                 if operation_form.cleaned_data and not operation_form.cleaned_data.get('DELETE', False):
                     name = operation_form.cleaned_data.get('name')
                     sequence_order = operation_form.cleaned_data.get('sequence_order')
                     
                     if name or sequence_order:
-                        # Check if this is an existing operation (by checking if we have an ID in form)
+                        # Check if this is an existing operation
                         operation_id = self.request.POST.get(f'{operation_form.prefix}-id')
                         
                         if operation_id:
@@ -453,19 +558,17 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
                             except (ProcessOperation.DoesNotExist, ValueError, TypeError):
                                 # Create new
                                 operation = operation_form.save(commit=False)
-                                operation.process = self.object
-                                operation.company_id = active_company_id
-                                operation.created_by = self.request.user
-                                operation.save()
-                                operations.append(operation)
+                                operation = self.process_formset_instance(operation)
+                                if operation:
+                                    operation.save()
+                                    operations.append(operation)
                         else:
                             # Create new
                             operation = operation_form.save(commit=False)
-                            operation.process = self.object
-                            operation.company_id = active_company_id
-                            operation.created_by = self.request.user
-                            operation.save()
-                            operations.append(operation)
+                            operation = self.process_formset_instance(operation)
+                            if operation:
+                                operation.save()
+                                operations.append(operation)
             
             # Delete operations that were removed
             if existing_operation_ids:
@@ -474,9 +577,9 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
                     process=self.object,
                 ).delete()
             
-            # Now save materials for each operation
+            # Save materials for each operation (custom nested logic)
             operation_index = 0
-            for operation_form in operations_formset:
+            for operation_form in formset:
                 if operation_form.cleaned_data and not operation_form.cleaned_data.get('DELETE', False):
                     name = operation_form.cleaned_data.get('name')
                     sequence_order = operation_form.cleaned_data.get('sequence_order')
@@ -484,7 +587,7 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
                     if (name or sequence_order) and operation_index < len(operations):
                         operation = operations[operation_index]
                         
-                        # Save materials manually from POST data
+                        # Save materials manually from POST data (custom nested formset handling)
                         save_operation_materials_from_post(
                             self.request,
                             operation,
@@ -496,18 +599,19 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
                         operation_index += 1
         else:
             # Show operations formset errors
-            if operations_formset.non_form_errors():
-                for error in operations_formset.non_form_errors():
+            if formset.non_form_errors():
+                for error in formset.non_form_errors():
                     messages.error(self.request, f"❌ {error}")
-            for i, op_form in enumerate(operations_formset):
+            for i, op_form in enumerate(formset):
                 if op_form.errors:
                     for field, errors in op_form.errors.items():
                         for error in errors:
                             field_label = op_form.fields[field].label if field in op_form.fields else field
                             messages.error(self.request, f"❌ {_('Operation')} {i + 1} - {field_label}: {error}")
+            return self.form_invalid(form)
         
         messages.success(self.request, _('Process updated successfully.'))
-        return response
+        return HttpResponseRedirect(self.get_success_url())
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add form title, breadcrumbs, and operations formset to context."""
@@ -620,20 +724,18 @@ class ProcessUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, 
         return context
 
 
-class ProcessDetailView(FeaturePermissionRequiredMixin, DetailView):
+class ProcessDetailView(BaseDetailView):
     """Detail view for viewing processes (read-only)."""
     model = Process
     template_name = 'production/process_detail.html'
     context_object_name = 'process'
     feature_code = 'production.processes'
     required_action = 'view_own'
+    active_module = 'production'
     
     def get_queryset(self):
-        """Filter by active company."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        if not active_company_id:
-            return Process.objects.none()
-        queryset = Process.objects.filter(company_id=active_company_id)
+        """Filter by active company and optimize queries."""
+        queryset = super().get_queryset()
         queryset = queryset.select_related(
             'finished_item',
             'bom',
@@ -648,64 +750,71 @@ class ProcessDetailView(FeaturePermissionRequiredMixin, DetailView):
         )
         return queryset
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for detail template."""
-        context = super().get_context_data(**kwargs)
-        context['list_url'] = reverse_lazy('production:processes')
-        context['edit_url'] = reverse_lazy('production:process_edit', kwargs={'pk': self.object.pk})
-        context['can_edit'] = not getattr(self.object, 'is_locked', 0) if hasattr(self.object, 'is_locked') else True
-        context['feature_code'] = 'production.processes'
-        return context
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy('production:processes')
+    
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy('production:process_edit', kwargs={'pk': self.object.pk})
+    
+    def can_edit_object(self, obj=None, feature_code=None) -> bool:
+        """Check if object can be edited."""
+        check_obj = obj if obj is not None else self.object
+        if hasattr(check_obj, 'is_locked'):
+            return not bool(check_obj.is_locked)
+        return True
 
 
-class ProcessDeleteView(FeaturePermissionRequiredMixin, DeleteView):
+class ProcessDeleteView(BaseDeleteView):
     """Delete a process."""
     model = Process
     template_name = 'shared/generic/generic_confirm_delete.html'
     success_url = reverse_lazy('production:processes')
     feature_code = 'production.processes'
     required_action = 'delete_own'
+    active_module = 'production'
+    success_message = _('Process deleted successfully.')
     
     def get_queryset(self):
-        """Filter by active company."""
-        active_company_id: Optional[int] = self.request.session.get('active_company_id')
-        if not active_company_id:
-            return Process.objects.none()
-        return Process.objects.filter(company_id=active_company_id).select_related('finished_item', 'bom').prefetch_related('work_lines')
+        """Filter by active company and optimize queries."""
+        queryset = super().get_queryset()
+        queryset = queryset.select_related('finished_item', 'bom').prefetch_related('work_lines')
+        return queryset
     
-    def delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect:
-        """Delete process and show success message."""
-        messages.success(self.request, _('Process deleted successfully.'))
-        return super().delete(request, *args, **kwargs)
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('Delete Process')
     
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add context for generic delete template."""
-        context = super().get_context_data(**kwargs)
-        context['delete_title'] = _('Delete Process')
-        context['confirmation_message'] = _('Are you sure you want to delete this process?')
-        
-        object_details = [
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('Are you sure you want to delete this process?')
+    
+    def get_object_details(self) -> List[Dict[str, str]]:
+        """Return object details for confirmation."""
+        details = [
             {'label': _('Code'), 'value': self.object.process_code},
         ]
         
         if self.object.finished_item:
-            object_details.append({'label': _('Finished Item'), 'value': self.object.finished_item.name})
+            details.append({'label': _('Finished Item'), 'value': self.object.finished_item.name})
         
         if self.object.bom:
-            object_details.append({'label': _('BOM'), 'value': self.object.bom.bom_code})
+            details.append({'label': _('BOM'), 'value': self.object.bom.bom_code})
         
-        object_details.append({'label': _('Revision'), 'value': str(self.object.revision)})
+        details.append({'label': _('Revision'), 'value': str(self.object.revision)})
         
         if self.object.work_lines.exists():
             work_lines_text = ', '.join([wl.name for wl in self.object.work_lines.all()])
-            object_details.append({'label': _('Work Lines'), 'value': work_lines_text})
+            details.append({'label': _('Work Lines'), 'value': work_lines_text})
         
-        context['object_details'] = object_details
-        context['cancel_url'] = reverse_lazy('production:processes')
-        context['breadcrumbs'] = [
+        return details
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list."""
+        return [
             {'label': _('Production'), 'url': None},
             {'label': _('Processes'), 'url': reverse_lazy('production:processes')},
             {'label': _('Delete'), 'url': None},
         ]
-        return context
 
