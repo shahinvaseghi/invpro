@@ -160,8 +160,8 @@ class PersonUpdateView(BaseUpdateView):
 class PersonDetailView(BaseDetailView):
     """Detail view for viewing persons (read-only)."""
     model = Person
-    template_name = 'production/person_detail.html'
-    context_object_name = 'person'
+    template_name = 'shared/generic/generic_detail.html'
+    context_object_name = 'object'
     feature_code = 'production.personnel'
     required_action = 'view_own'
     active_module = 'production'
@@ -175,6 +175,82 @@ class PersonDetailView(BaseDetailView):
             'edited_by',
         ).prefetch_related('company_units')
         return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Person')
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add detail view context data."""
+        context = super().get_context_data(**kwargs)
+        person = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        context['info_banner'] = [
+            {'label': _('Code'), 'value': person.public_code, 'type': 'code'},
+            {'label': _('Status'), 'value': person.is_enabled, 'type': 'badge'},
+        ]
+        
+        # Personal Information section
+        personal_fields = [
+            {'label': _('First Name'), 'value': person.first_name},
+            {'label': _('Last Name'), 'value': person.last_name},
+        ]
+        if person.national_id:
+            personal_fields.append({'label': _('National ID'), 'value': person.national_id})
+        if person.email:
+            personal_fields.append({'label': _('Email'), 'value': person.email})
+        if person.phone_number:
+            personal_fields.append({'label': _('Phone'), 'value': person.phone_number})
+        if person.mobile_number:
+            personal_fields.append({'label': _('Mobile'), 'value': person.mobile_number})
+        if person.username:
+            personal_fields.append({'label': _('Username'), 'value': person.username})
+        if person.personnel_code:
+            personal_fields.append({'label': _('Personnel Code'), 'value': person.personnel_code})
+        if person.user:
+            personal_fields.append({
+                'label': _('Linked User'),
+                'value': person.user.get_full_name() or person.user.username
+            })
+        
+        detail_sections = [
+            {
+                'title': _('Personal Information'),
+                'fields': personal_fields,
+            },
+        ]
+        
+        # Company Units section
+        if person.company_units.exists():
+            company_units_text = ', '.join([unit.name for unit in person.company_units.all()])
+            detail_sections.append({
+                'title': _('Company Units'),
+                'fields': [
+                    {'label': _('Company Units'), 'value': company_units_text},
+                ],
+            })
+        
+        # Description section
+        if person.description:
+            detail_sections.append({
+                'title': _('Description'),
+                'fields': [
+                    {'label': _('Description'), 'value': person.description},
+                ],
+            })
+        
+        # Notes section
+        if person.notes:
+            detail_sections.append({
+                'title': _('Notes'),
+                'fields': [
+                    {'label': _('Notes'), 'value': person.notes},
+                ],
+            })
+        
+        context['detail_sections'] = detail_sections
+        return context
     
     def get_list_url(self):
         """Return list URL."""

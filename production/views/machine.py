@@ -179,8 +179,8 @@ class MachineUpdateView(BaseUpdateView):
 class MachineDetailView(BaseDetailView):
     """Detail view for viewing machines (read-only)."""
     model = Machine
-    template_name = 'production/machine_detail.html'
-    context_object_name = 'machine'
+    template_name = 'shared/generic/generic_detail.html'
+    context_object_name = 'object'
     feature_code = 'production.machines'
     required_action = 'view_own'
     active_module = 'production'
@@ -194,6 +194,85 @@ class MachineDetailView(BaseDetailView):
             'edited_by',
         )
         return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Machine')
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add detail view context data."""
+        context = super().get_context_data(**kwargs)
+        machine = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        context['info_banner'] = [
+            {'label': _('Code'), 'value': machine.public_code, 'type': 'code'},
+            {'label': _('Status'), 'value': machine.is_enabled, 'type': 'badge'},
+            {'label': _('Machine Status'), 'value': machine.get_status_display()},
+        ]
+        
+        # Basic Information section
+        basic_fields = [
+            {'label': _('Name'), 'value': machine.name},
+        ]
+        if machine.name_en:
+            basic_fields.append({'label': _('Name (EN)'), 'value': machine.name_en})
+        basic_fields.append({'label': _('Machine Type'), 'value': machine.machine_type})
+        if machine.work_center:
+            basic_fields.append({
+                'label': _('Work Center'),
+                'value': machine.work_center.name,
+            })
+        if machine.manufacturer:
+            basic_fields.append({'label': _('Manufacturer'), 'value': machine.manufacturer})
+        if machine.model_number:
+            basic_fields.append({'label': _('Model Number'), 'value': machine.model_number})
+        if machine.serial_number:
+            basic_fields.append({'label': _('Serial Number'), 'value': machine.serial_number})
+        if machine.purchase_date:
+            basic_fields.append({'label': _('Purchase Date'), 'value': machine.purchase_date})
+        if machine.installation_date:
+            basic_fields.append({'label': _('Installation Date'), 'value': machine.installation_date})
+        if machine.description:
+            basic_fields.append({'label': _('Description'), 'value': machine.description})
+        
+        detail_sections = [
+            {
+                'title': _('Basic Information'),
+                'fields': basic_fields,
+            },
+        ]
+        
+        # Maintenance Information section
+        if machine.last_maintenance_date or machine.next_maintenance_date:
+            maintenance_fields = []
+            if machine.last_maintenance_date:
+                maintenance_fields.append({
+                    'label': _('Last Maintenance Date'),
+                    'value': machine.last_maintenance_date,
+                })
+            if machine.next_maintenance_date:
+                maintenance_fields.append({
+                    'label': _('Next Maintenance Date'),
+                    'value': machine.next_maintenance_date,
+                })
+            if maintenance_fields:
+                detail_sections.append({
+                    'title': _('Maintenance Information'),
+                    'fields': maintenance_fields,
+                })
+        
+        # Notes section
+        if machine.notes:
+            detail_sections.append({
+                'title': _('Notes'),
+                'fields': [
+                    {'label': _('Notes'), 'value': machine.notes},
+                ],
+            })
+        
+        context['detail_sections'] = detail_sections
+        return context
     
     def get_list_url(self):
         """Return list URL."""
