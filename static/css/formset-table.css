@@ -1,0 +1,297 @@
+/**
+ * Formset table layout styles.
+ * 
+ * This file provides common CSS styles for displaying formsets as tables
+ * with grid layout. Used in warehouse requests, purchase requests, and other
+ * multi-line forms.
+ */
+
+/* Formset wrapper */
+.formset-table-wrapper {
+  margin-top: 1rem;
+  overflow-x: auto;
+  overflow-y: visible;
+  width: 100%;
+}
+
+/* Formset container */
+.formset-table {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  min-width: 1200px;
+  width: max-content;
+}
+
+/* Table header */
+.formset-table-header {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: #f3f4f6;
+  border-bottom: 2px solid #e5e7eb;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+/* Table row */
+.formset-table-row {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  align-items: start;
+  transition: background-color 0.2s;
+}
+
+.formset-table-row:last-child {
+  border-bottom: none;
+}
+
+.formset-table-row:hover {
+  background-color: #f9fafb;
+}
+
+.formset-table-row.deleted {
+  opacity: 0.5;
+  background-color: #fee2e2;
+}
+
+/* Table cell */
+.formset-table-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.formset-table-cell.cell-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Form controls in cells */
+.formset-table-cell select,
+.formset-table-cell input[type="text"],
+.formset-table-cell input[type="number"],
+.formset-table-cell textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.formset-table-cell textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+/* Item select wrapper */
+.item-select-wrapper {
+  width: 100%;
+}
+
+/* Item filters */
+.item-filters {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.item-filters select,
+.item-filters input[type="text"] {
+  flex: 1;
+  min-width: 80px;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background-color: #f9fafb;
+  color: #6b7280;
+}
+
+.item-filters select:focus,
+.item-filters input[type="text"]:focus {
+  outline: none;
+  border-color: #2563eb;
+  background-color: #ffffff;
+}
+
+.item-filters input[type="text"] {
+  flex: 2;
+  min-width: 150px;
+}
+
+/* Delete cell */
+.formset-table-cell.cell-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.formset-table-cell.cell-delete input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* Error messages */
+.formset-table-cell .error {
+  font-size: 0.75rem;
+  color: #dc2626;
+  margin-top: 0.25rem;
+}
+
+.error.full-width {
+  grid-column: 1 / -1;
+  padding: 0.5rem;
+  background-color: #fee2e2;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+}
+
+/* Add line button */
+.btn-add-formset-row {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+}
+
+.btn-add-icon {
+  font-size: 1.2rem;
+  margin-right: 0.25rem;
+}
+
+[dir="rtl"] .btn-add-icon {
+  margin-right: 0;
+  margin-left: 0.25rem;
+}
+
+/* Success button */
+.btn-success {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  padding: 0.5rem 1rem;
+  margin-top: 1rem;
+}
+
+.btn-success:hover {
+  background-color: #059669;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .formset-table-wrapper {
+    overflow-x: scroll;
+  }
+}
+
+/* Legacy class names for backward compatibility */
+.lines-formset-wrapper {
+  margin-top: 1rem;
+  overflow-x: auto;
+  overflow-y: visible;
+  width: 100%;
+}
+
+.lines-formset {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  min-width: 1200px;
+  width: max-content;
+}
+
+.lines-table-header {
+  display: grid !important;
+  grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr 2fr 80px !important; /* Default: with delete column */
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: #f3f4f6;
+  border-bottom: 2px solid #e5e7eb;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.line-row {
+  display: grid !important;
+  grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr 2fr 80px !important; /* Default: with delete column */
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  align-items: start;
+  transition: background-color 0.2s;
+}
+
+/* Override for formsets without delete */
+.lines-formset[data-can-delete="false"] .lines-table-header,
+.lines-formset[data-can-delete="false"] .line-row {
+  grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr 2fr !important;
+}
+
+.line-row:last-child {
+  border-bottom: none;
+}
+
+.line-row:hover {
+  background-color: #f9fafb;
+}
+
+.line-row.deleted {
+  opacity: 0.5;
+  background-color: #fee2e2;
+}
+
+.line-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.line-cell.line-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.line-cell.line-item select,
+.line-cell.line-unit select,
+.line-cell.line-quantity input,
+.line-cell.line-warehouse select,
+.line-cell.line-notes textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.line-cell.line-notes textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.line-cell.line-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.line-cell.line-delete input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
