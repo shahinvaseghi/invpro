@@ -1,122 +1,101 @@
-{% extends "inventory/base.html" %}
+{% extends "shared/generic/generic_detail.html" %}
 {% load i18n jalali_tags %}
 
-{% block page_title %}{% trans "View Stocktaking Record" %}{% endblock %}
+{% block title %}{% trans "View Stocktaking Record" %} - {{ block.super }}{% endblock %}
 
-{% block inventory_content %}
-<div class="form-container">
-  <div class="info-banner">
-    <div><strong>{% trans "Document Code" %}:</strong> {{ record.document_code }}</div>
-    <div><strong>{% trans "Document Date" %}:</strong> {{ record.document_date|jalali_date }}</div>
-    <div><strong>{% trans "Approval Status" %}:</strong> {{ record.get_approval_status_display }}</div>
-    <div class="lock-status">
-      <strong>{% trans "Lock Status" %}:</strong>
-      {% if record.is_locked %}
-        <span class="badge badge-locked">{% trans "Locked" %}</span>
-      {% else %}
-        <span class="badge badge-unlocked">{% trans "Editable" %}</span>
-      {% endif %}
-    </div>
-  </div>
-
+{% block info_banner_extra %}
+<div><strong>{% trans "Document Code" %}:</strong> {{ record.document_code }}</div>
+<div><strong>{% trans "Document Date" %}:</strong> {{ record.document_date|jalali_date }}</div>
+<div><strong>{% trans "Approval Status" %}:</strong> {{ record.get_approval_status_display }}</div>
+<div class="lock-status">
+  <strong>{% trans "Lock Status" %}:</strong>
   {% if record.is_locked %}
-  <div class="alert alert-info">
-    {% trans "This document is locked and can no longer be edited or deleted." %}
-  </div>
+    <span class="badge badge-locked">{% trans "Locked" %}</span>
+  {% else %}
+    <span class="badge badge-unlocked">{% trans "Editable" %}</span>
   {% endif %}
+</div>
+{% endblock %}
 
-  <div class="form-section">
-    <h3>{% trans "Record Information" %}</h3>
-    <div class="form-row">
-      <div class="form-field">
-        <label>{% trans "Stocktaking Session ID" %}</label>
-        <div class="readonly-field">{{ record.stocktaking_session_id }}</div>
-      </div>
-      <div class="form-field">
-        <label>{% trans "Inventory Snapshot Time" %}</label>
-        <div class="readonly-field">{{ record.inventory_snapshot_time|jalali_date }}</div>
-      </div>
-      <div class="form-field">
-        <label>{% trans "Confirmed By" %}</label>
-        <div class="readonly-field">{{ record.confirmed_by.get_full_name|default:record.confirmed_by.username }}</div>
-      </div>
-      {% if record.approver %}
-      <div class="form-field">
-        <label>{% trans "Approver" %}</label>
-        <div class="readonly-field">{{ record.approver.get_full_name|default:record.approver.username }}</div>
-      </div>
-      {% endif %}
-      {% if record.approved_at %}
-      <div class="form-field">
-        <label>{% trans "Approved At" %}</label>
-        <div class="readonly-field">{{ record.approved_at|jalali_date }}</div>
-      </div>
-      {% endif %}
-      {% if record.final_inventory_value %}
-      <div class="form-field">
-        <label>{% trans "Final Inventory Value" %}</label>
-        <div class="readonly-field">{{ record.final_inventory_value|floatformat:2 }}</div>
-      </div>
-      {% endif %}
-      {% if record.created_by %}
-      <div class="form-field">
-        <label>{% trans "Created By" %}</label>
-        <div class="readonly-field">{{ record.created_by.get_full_name|default:record.created_by.username }}</div>
-      </div>
-      {% endif %}
+{% block detail_sections %}
+{% if record.is_locked %}
+<div class="alert alert-info">
+  {% trans "This document is locked and can no longer be edited or deleted." %}
+</div>
+{% endif %}
+
+<div class="form-section">
+  <h3>{% trans "Record Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Stocktaking Session ID" %}</label>
+      <div class="readonly-field">{{ record.stocktaking_session_id }}</div>
     </div>
-  </div>
-
-  {% if record.confirmation_notes %}
-  <div class="form-section">
-    <h3>{% trans "Confirmation Notes" %}</h3>
-    <div class="readonly-field">{{ record.confirmation_notes|linebreaks }}</div>
-  </div>
-  {% endif %}
-
-  {% if record.approver_notes %}
-  <div class="form-section">
-    <h3>{% trans "Approver Notes" %}</h3>
-    <div class="readonly-field">{{ record.approver_notes|linebreaks }}</div>
-  </div>
-  {% endif %}
-
-  {% if record.notes %}
-  <div class="form-section">
-    <h3>{% trans "Notes" %}</h3>
-    <div class="readonly-field">{{ record.notes|linebreaks }}</div>
-  </div>
-  {% endif %}
-
-  {% if record.variance_document_codes %}
-  <div class="form-section">
-    <h3>{% trans "Variance Documents" %}</h3>
-    <div class="readonly-field">
-      {% for code in record.variance_document_codes %}
-        {{ code }}{% if not forloop.last %}, {% endif %}
-      {% endfor %}
+    <div class="form-field">
+      <label>{% trans "Inventory Snapshot Time" %}</label>
+      <div class="readonly-field">{{ record.inventory_snapshot_time|jalali_date }}</div>
     </div>
-  </div>
-  {% endif %}
-
-  <div class="form-actions" style="margin-top: 2rem;">
-    <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
-    {% if can_edit %}
-    <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+    <div class="form-field">
+      <label>{% trans "Confirmed By" %}</label>
+      <div class="readonly-field">{{ record.confirmed_by.get_full_name|default:record.confirmed_by.username }}</div>
+    </div>
+    {% if record.approver %}
+    <div class="form-field">
+      <label>{% trans "Approver" %}</label>
+      <div class="readonly-field">{{ record.approver.get_full_name|default:record.approver.username }}</div>
+    </div>
+    {% endif %}
+    {% if record.approved_at %}
+    <div class="form-field">
+      <label>{% trans "Approved At" %}</label>
+      <div class="readonly-field">{{ record.approved_at|jalali_date }}</div>
+    </div>
+    {% endif %}
+    {% if record.final_inventory_value %}
+    <div class="form-field">
+      <label>{% trans "Final Inventory Value" %}</label>
+      <div class="readonly-field">{{ record.final_inventory_value|floatformat:2 }}</div>
+    </div>
+    {% endif %}
+    {% if record.created_by %}
+    <div class="form-field">
+      <label>{% trans "Created By" %}</label>
+      <div class="readonly-field">{{ record.created_by.get_full_name|default:record.created_by.username }}</div>
+    </div>
     {% endif %}
   </div>
 </div>
 
-<style>
-.readonly-field {
-  padding: 0.5rem;
-  background-color: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  min-height: 2.5rem;
-  display: flex;
-  align-items: center;
-}
-</style>
+{% if record.confirmation_notes %}
+<div class="form-section">
+  <h3>{% trans "Confirmation Notes" %}</h3>
+  <div class="readonly-field">{{ record.confirmation_notes|linebreaks }}</div>
+</div>
+{% endif %}
+
+{% if record.approver_notes %}
+<div class="form-section">
+  <h3>{% trans "Approver Notes" %}</h3>
+  <div class="readonly-field">{{ record.approver_notes|linebreaks }}</div>
+</div>
+{% endif %}
+
+{% if record.notes %}
+<div class="form-section">
+  <h3>{% trans "Notes" %}</h3>
+  <div class="readonly-field">{{ record.notes|linebreaks }}</div>
+</div>
+{% endif %}
+
+{% if record.variance_document_codes %}
+<div class="form-section">
+  <h3>{% trans "Variance Documents" %}</h3>
+  <div class="readonly-field">
+    {% for code in record.variance_document_codes %}
+      {{ code }}{% if not forloop.last %}, {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 {% endblock %}
 

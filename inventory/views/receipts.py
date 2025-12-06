@@ -503,6 +503,9 @@ class ReceiptTemporaryDetailView(InventoryBaseView, BaseDetailView):
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'inventory'
         context['receipt_variant'] = 'temporary'
+        context['detail_title'] = self.get_page_title()
+        # Add empty info_banner list to enable info_banner_extra block
+        context['info_banner'] = []
         return context
 
 
@@ -550,6 +553,9 @@ class ReceiptPermanentDetailView(InventoryBaseView, BaseDetailView):
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'inventory'
         context['receipt_variant'] = 'permanent'
+        context['detail_title'] = self.get_page_title()
+        # Add empty info_banner list to enable info_banner_extra block
+        context['info_banner'] = []
         return context
 
 
@@ -597,6 +603,9 @@ class ReceiptConsignmentDetailView(InventoryBaseView, BaseDetailView):
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'inventory'
         context['receipt_variant'] = 'consignment'
+        context['detail_title'] = self.get_page_title()
+        # Add empty info_banner list to enable info_banner_extra block
+        context['info_banner'] = []
         return context
 
 

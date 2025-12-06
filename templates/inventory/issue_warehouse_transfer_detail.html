@@ -1,115 +1,94 @@
-{% extends "inventory/base.html" %}
+{% extends "shared/generic/generic_detail.html" %}
 {% load i18n jalali_tags %}
 
-{% block page_title %}{% trans "View Warehouse Transfer Issue" %}{% endblock %}
+{% block title %}{% trans "View Warehouse Transfer Issue" %} - {{ block.super }}{% endblock %}
 
-{% block inventory_content %}
-<div class="form-container">
-  <div class="info-banner">
-    <div><strong>{% trans "Document Code" %}:</strong> {{ warehouse_transfer.document_code }}</div>
-    <div><strong>{% trans "Document Date" %}:</strong> {{ warehouse_transfer.document_date|jalali_date }}</div>
-    {% if warehouse_transfer.production_transfer %}
-    <div>
-      <strong>{% trans "Production Transfer" %}:</strong>
-      <a href="{% url 'production:transfer_request_detail' warehouse_transfer.production_transfer.pk %}" style="color: #3b82f6; text-decoration: underline;">
-        {{ warehouse_transfer.production_transfer_code }}
-      </a>
-    </div>
-    {% endif %}
-    <div class="lock-status">
-      <strong>{% trans "Lock Status" %}:</strong>
-      {% if warehouse_transfer.is_locked %}
-        <span class="badge badge-locked">{% trans "Locked" %}</span>
-      {% else %}
-        <span class="badge badge-unlocked">{% trans "Editable" %}</span>
-      {% endif %}
-    </div>
-  </div>
-
+{% block info_banner_extra %}
+<div><strong>{% trans "Document Code" %}:</strong> {{ warehouse_transfer.document_code }}</div>
+<div><strong>{% trans "Document Date" %}:</strong> {{ warehouse_transfer.document_date|jalali_date }}</div>
+{% if warehouse_transfer.production_transfer %}
+<div>
+  <strong>{% trans "Production Transfer" %}:</strong>
+  <a href="{% url 'production:transfer_request_detail' warehouse_transfer.production_transfer.pk %}" style="color: #3b82f6; text-decoration: underline;">
+    {{ warehouse_transfer.production_transfer_code }}
+  </a>
+</div>
+{% endif %}
+<div class="lock-status">
+  <strong>{% trans "Lock Status" %}:</strong>
   {% if warehouse_transfer.is_locked %}
-  <div class="alert alert-info">
-    {% trans "This document is locked and can no longer be edited or deleted." %}
-  </div>
+    <span class="badge badge-locked">{% trans "Locked" %}</span>
+  {% else %}
+    <span class="badge badge-unlocked">{% trans "Editable" %}</span>
   {% endif %}
+</div>
+{% endblock %}
 
-  <div class="form-section">
-    <h3>{% trans "Document Information" %}</h3>
-    <div class="form-row">
-      <div class="form-field">
-        <label>{% trans "Created By" %}</label>
-        <div class="readonly-field">
-          {{ warehouse_transfer.created_by.get_full_name|default:warehouse_transfer.created_by.username|default:"-" }}
-        </div>
+{% block detail_sections %}
+{% if warehouse_transfer.is_locked %}
+<div class="alert alert-info">
+  {% trans "This document is locked and can no longer be edited or deleted." %}
+</div>
+{% endif %}
+
+<div class="form-section">
+  <h3>{% trans "Document Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Created By" %}</label>
+      <div class="readonly-field">
+        {{ warehouse_transfer.created_by.get_full_name|default:warehouse_transfer.created_by.username|default:"-" }}
       </div>
-      {% if warehouse_transfer.production_transfer %}
-      <div class="form-field">
-        <label>{% trans "Production Transfer" %}</label>
-        <div class="readonly-field">
-          <a href="{% url 'production:transfer_request_detail' warehouse_transfer.production_transfer.pk %}">
-            {{ warehouse_transfer.production_transfer_code }}
-          </a>
-        </div>
+    </div>
+    {% if warehouse_transfer.production_transfer %}
+    <div class="form-field">
+      <label>{% trans "Production Transfer" %}</label>
+      <div class="readonly-field">
+        <a href="{% url 'production:transfer_request_detail' warehouse_transfer.production_transfer.pk %}">
+          {{ warehouse_transfer.production_transfer_code }}
+        </a>
       </div>
-      {% endif %}
     </div>
-  </div>
-
-  <div class="form-section">
-    <h3>{% trans "Transfer Lines" %}</h3>
-    {% if warehouse_transfer.lines.all %}
-    <div class="data-table-container">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>{% trans "Item" %}</th>
-            <th>{% trans "Source Warehouse" %}</th>
-            <th>{% trans "Destination Warehouse" %}</th>
-            <th>{% trans "Unit" %}</th>
-            <th>{% trans "Quantity" %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for line in warehouse_transfer.lines.all %}
-          <tr>
-            <td>
-              <strong>{{ line.item.name }}</strong>
-              <br>
-              <small class="text-muted">{{ line.item.item_code }}</small>
-            </td>
-            <td>{{ line.source_warehouse.name }} ({{ line.source_warehouse_code }})</td>
-            <td>{{ line.destination_warehouse.name }} ({{ line.destination_warehouse_code }})</td>
-            <td>{{ line.unit }}</td>
-            <td style="text-align: right;">{{ line.quantity|floatformat:2 }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <div class="alert alert-info">
-      {% trans "No lines found for this document." %}
-    </div>
-    {% endif %}
-  </div>
-
-  <div class="form-actions" style="margin-top: 2rem;">
-    <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
-    {% if can_edit %}
-    <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
     {% endif %}
   </div>
 </div>
 
-<style>
-.readonly-field {
-  padding: 0.5rem;
-  background-color: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  min-height: 2.5rem;
-  display: flex;
-  align-items: center;
-}
-</style>
+<div class="form-section">
+  <h3>{% trans "Transfer Lines" %}</h3>
+  {% if warehouse_transfer.lines.all %}
+  <div class="data-table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>{% trans "Item" %}</th>
+          <th>{% trans "Source Warehouse" %}</th>
+          <th>{% trans "Destination Warehouse" %}</th>
+          <th>{% trans "Unit" %}</th>
+          <th>{% trans "Quantity" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in warehouse_transfer.lines.all %}
+        <tr>
+          <td>
+            <strong>{{ line.item.name }}</strong>
+            <br>
+            <small class="text-muted">{{ line.item.item_code }}</small>
+          </td>
+          <td>{{ line.source_warehouse.name }} ({{ line.source_warehouse_code }})</td>
+          <td>{{ line.destination_warehouse.name }} ({{ line.destination_warehouse_code }})</td>
+          <td>{{ line.unit }}</td>
+          <td style="text-align: right;">{{ line.quantity|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    {% trans "No lines found for this document." %}
+  </div>
+  {% endif %}
+</div>
 {% endblock %}
 

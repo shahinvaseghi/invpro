@@ -1,119 +1,98 @@
-{% extends "inventory/base.html" %}
+{% extends "shared/generic/generic_detail.html" %}
 {% load i18n jalali_tags %}
 
-{% block page_title %}{% trans "View Stocktaking Surplus" %}{% endblock %}
+{% block title %}{% trans "View Stocktaking Surplus" %} - {{ block.super }}{% endblock %}
 
-{% block inventory_content %}
-<div class="form-container">
-  <div class="info-banner">
-    <div><strong>{% trans "Document Code" %}:</strong> {{ surplus.document_code }}</div>
-    <div><strong>{% trans "Document Date" %}:</strong> {{ surplus.document_date|jalali_date }}</div>
-    <div class="lock-status">
-      <strong>{% trans "Lock Status" %}:</strong>
-      {% if surplus.is_locked %}
-        <span class="badge badge-locked">{% trans "Locked" %}</span>
-      {% else %}
-        <span class="badge badge-unlocked">{% trans "Editable" %}</span>
-      {% endif %}
-    </div>
-  </div>
-
+{% block info_banner_extra %}
+<div><strong>{% trans "Document Code" %}:</strong> {{ surplus.document_code }}</div>
+<div><strong>{% trans "Document Date" %}:</strong> {{ surplus.document_date|jalali_date }}</div>
+<div class="lock-status">
+  <strong>{% trans "Lock Status" %}:</strong>
   {% if surplus.is_locked %}
-  <div class="alert alert-info">
-    {% trans "This document is locked and can no longer be edited or deleted." %}
-  </div>
+    <span class="badge badge-locked">{% trans "Locked" %}</span>
+  {% else %}
+    <span class="badge badge-unlocked">{% trans "Editable" %}</span>
   {% endif %}
+</div>
+{% endblock %}
 
-  <div class="form-section">
-    <h3>{% trans "Document Information" %}</h3>
-    <div class="form-row">
-      {% if surplus.created_by %}
-      <div class="form-field">
-        <label>{% trans "Created By" %}</label>
-        <div class="readonly-field">{{ surplus.created_by.get_full_name|default:surplus.created_by.username }}</div>
-      </div>
-      {% endif %}
-      {% if surplus.notes %}
-      <div class="form-field full-width">
-        <label>{% trans "Notes" %}</label>
-        <div class="readonly-field">{{ surplus.notes|linebreaks }}</div>
-      </div>
-      {% endif %}
-    </div>
-  </div>
+{% block detail_sections %}
+{% if surplus.is_locked %}
+<div class="alert alert-info">
+  {% trans "This document is locked and can no longer be edited or deleted." %}
+</div>
+{% endif %}
 
-  <div class="form-section">
-    <h3>{% trans "Surplus Lines" %}</h3>
-    {% if surplus.lines.all %}
-    <div class="data-table-container">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>{% trans "Item" %}</th>
-            <th>{% trans "Warehouse" %}</th>
-            <th>{% trans "Unit" %}</th>
-            <th>{% trans "Expected" %}</th>
-            <th>{% trans "Counted" %}</th>
-            <th>{% trans "Adjusted" %}</th>
-            {% if surplus.lines.first.unit_cost %}
-            <th>{% trans "Unit Cost" %}</th>
-            <th>{% trans "Total Cost" %}</th>
-            {% endif %}
-            {% if surplus.lines.first.reason_code %}
-            <th>{% trans "Reason Code" %}</th>
-            {% endif %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for line in surplus.lines.all %}
-          <tr>
-            <td>
-              <strong>{{ line.item.name }}</strong>
-              <br>
-              <small class="text-muted">{{ line.item.item_code }}</small>
-            </td>
-            <td>{{ line.warehouse.name }} ({{ line.warehouse.public_code }})</td>
-            <td>{{ line.unit }}</td>
-            <td style="text-align: right;">{{ line.quantity_expected|floatformat:2 }}</td>
-            <td style="text-align: right;">{{ line.quantity_counted|floatformat:2 }}</td>
-            <td style="text-align: right;">{{ line.quantity_adjusted|floatformat:2 }}</td>
-            {% if line.unit_cost %}
-            <td style="text-align: right;">{{ line.unit_cost|floatformat:2 }}</td>
-            <td style="text-align: right;">{{ line.total_cost|floatformat:2 }}</td>
-            {% endif %}
-            {% if line.reason_code %}
-            <td>{{ line.reason_code }}</td>
-            {% endif %}
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <div class="alert alert-info">
-      {% trans "No lines found for this document." %}
+<div class="form-section">
+  <h3>{% trans "Document Information" %}</h3>
+  <div class="form-row">
+    {% if surplus.created_by %}
+    <div class="form-field">
+      <label>{% trans "Created By" %}</label>
+      <div class="readonly-field">{{ surplus.created_by.get_full_name|default:surplus.created_by.username }}</div>
     </div>
     {% endif %}
-  </div>
-
-  <div class="form-actions" style="margin-top: 2rem;">
-    <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
-    {% if can_edit %}
-    <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+    {% if surplus.notes %}
+    <div class="form-field full-width">
+      <label>{% trans "Notes" %}</label>
+      <div class="readonly-field">{{ surplus.notes|linebreaks }}</div>
+    </div>
     {% endif %}
   </div>
 </div>
 
-<style>
-.readonly-field {
-  padding: 0.5rem;
-  background-color: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  min-height: 2.5rem;
-  display: flex;
-  align-items: center;
-}
-</style>
+<div class="form-section">
+  <h3>{% trans "Surplus Lines" %}</h3>
+  {% if surplus.lines.all %}
+  <div class="data-table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>{% trans "Item" %}</th>
+          <th>{% trans "Warehouse" %}</th>
+          <th>{% trans "Unit" %}</th>
+          <th>{% trans "Expected" %}</th>
+          <th>{% trans "Counted" %}</th>
+          <th>{% trans "Adjusted" %}</th>
+          {% if surplus.lines.first.unit_cost %}
+          <th>{% trans "Unit Cost" %}</th>
+          <th>{% trans "Total Cost" %}</th>
+          {% endif %}
+          {% if surplus.lines.first.reason_code %}
+          <th>{% trans "Reason Code" %}</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in surplus.lines.all %}
+        <tr>
+          <td>
+            <strong>{{ line.item.name }}</strong>
+            <br>
+            <small class="text-muted">{{ line.item.item_code }}</small>
+          </td>
+          <td>{{ line.warehouse.name }} ({{ line.warehouse.public_code }})</td>
+          <td>{{ line.unit }}</td>
+          <td style="text-align: right;">{{ line.quantity_expected|floatformat:2 }}</td>
+          <td style="text-align: right;">{{ line.quantity_counted|floatformat:2 }}</td>
+          <td style="text-align: right;">{{ line.quantity_adjusted|floatformat:2 }}</td>
+          {% if line.unit_cost %}
+          <td style="text-align: right;">{{ line.unit_cost|floatformat:2 }}</td>
+          <td style="text-align: right;">{{ line.total_cost|floatformat:2 }}</td>
+          {% endif %}
+          {% if line.reason_code %}
+          <td>{{ line.reason_code }}</td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    {% trans "No lines found for this document." %}
+  </div>
+  {% endif %}
+</div>
 {% endblock %}
 

@@ -303,6 +303,14 @@ class StocktakingDeficitDetailView(InventoryBaseView, BaseDetailView):
         """Return edit URL."""
         return reverse_lazy('inventory:stocktaking_deficit_edit', kwargs={'pk': self.object.pk})
 
+    def get_context_data(self, **kwargs):
+        """Add detail_title and info_banner for generic_detail.html."""
+        context = super().get_context_data(**kwargs)
+        context['detail_title'] = self.get_page_title()
+        # Add empty info_banner list to enable info_banner_extra block
+        context['info_banner'] = []
+        return context
+
 
 class StocktakingDeficitUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, BaseDocumentUpdateView):
     """Update view for stocktaking deficit records."""
@@ -618,6 +626,14 @@ class StocktakingSurplusDetailView(InventoryBaseView, BaseDetailView):
         """Return edit URL."""
         return reverse_lazy('inventory:stocktaking_surplus_edit', kwargs={'pk': self.object.pk})
 
+    def get_context_data(self, **kwargs):
+        """Add detail_title and info_banner for generic_detail.html."""
+        context = super().get_context_data(**kwargs)
+        context['detail_title'] = self.get_page_title()
+        # Add empty info_banner list to enable info_banner_extra block
+        context['info_banner'] = []
+        return context
+
 
 class StocktakingSurplusUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, StocktakingFormMixin, BaseDocumentUpdateView):
     """Update view for stocktaking surplus records."""
@@ -886,6 +902,14 @@ class StocktakingRecordDetailView(InventoryBaseView, BaseDetailView):
     def get_edit_url(self):
         """Return edit URL."""
         return reverse_lazy('inventory:stocktaking_record_edit', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        """Add detail_title and info_banner for generic_detail.html."""
+        context = super().get_context_data(**kwargs)
+        context['detail_title'] = self.get_page_title()
+        # Add empty info_banner list to enable info_banner_extra block
+        context['info_banner'] = []
+        return context
 
 
 class StocktakingRecordUpdateView(DocumentLockProtectedMixin, StocktakingFormMixin, BaseUpdateView):

@@ -213,6 +213,9 @@ class IssuePermanentDetailView(InventoryBaseView, BaseDetailView):
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'inventory'
         context['issue_variant'] = 'permanent'
+        context['detail_title'] = self.get_page_title()
+        # Add empty info_banner list to enable info_banner_extra block
+        context['info_banner'] = []
         return context
 
 
@@ -697,6 +700,9 @@ class IssueConsumptionDetailView(InventoryBaseView, BaseDetailView):
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'inventory'
         context['issue_variant'] = 'consumption'
+        context['detail_title'] = self.get_page_title()
+        # Add empty info_banner list to enable info_banner_extra block
+        context['info_banner'] = []
         return context
 
 
@@ -1170,6 +1176,9 @@ class IssueConsignmentDetailView(InventoryBaseView, BaseDetailView):
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'inventory'
         context['issue_variant'] = 'consignment'
+        context['detail_title'] = self.get_page_title()
+        # Add empty info_banner list to enable info_banner_extra block
+        context['info_banner'] = []
         return context
 
 
@@ -1970,8 +1979,11 @@ class IssueWarehouseTransferDetailView(InventoryBaseView, BaseDetailView):
         return reverse_lazy('inventory:issue_warehouse_transfer_edit', kwargs={'pk': self.object.pk})
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """Add issue-specific context."""
+        """Add detail_title and info_banner for generic_detail.html."""
         context = super().get_context_data(**kwargs)
+        context['detail_title'] = self.get_page_title()
+        # Add empty info_banner list to enable info_banner_extra block
+        context['info_banner'] = []
         return context
 
 

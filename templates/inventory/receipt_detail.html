@@ -1,146 +1,125 @@
-{% extends "inventory/base.html" %}
+{% extends "shared/generic/generic_detail.html" %}
 {% load i18n jalali_tags %}
 
-{% block page_title %}{% trans "View Receipt" %}{% endblock %}
+{% block title %}{% trans "View Receipt" %} - {{ block.super }}{% endblock %}
 
-{% block inventory_content %}
-<div class="form-container">
-  <div class="info-banner">
-    <div><strong>{% trans "Document Code" %}:</strong> {{ receipt.document_code }}</div>
-    <div><strong>{% trans "Document Date" %}:</strong> {{ receipt.document_date|jalali_date }}</div>
-    {% if receipt.get_status_display %}
-    <div><strong>{% trans "Status" %}:</strong> {{ receipt.get_status_display }}</div>
-    {% endif %}
-    <div class="lock-status">
-      <strong>{% trans "Lock Status" %}:</strong>
-      {% if receipt.is_locked %}
-        <span class="badge badge-locked">{% trans "Locked" %}</span>
-      {% else %}
-        <span class="badge badge-unlocked">{% trans "Editable" %}</span>
-      {% endif %}
-    </div>
-  </div>
-
+{% block info_banner_extra %}
+<div><strong>{% trans "Document Code" %}:</strong> {{ receipt.document_code }}</div>
+<div><strong>{% trans "Document Date" %}:</strong> {{ receipt.document_date|jalali_date }}</div>
+{% if receipt.get_status_display %}
+<div><strong>{% trans "Status" %}:</strong> {{ receipt.get_status_display }}</div>
+{% endif %}
+<div class="lock-status">
+  <strong>{% trans "Lock Status" %}:</strong>
   {% if receipt.is_locked %}
-  <div class="alert alert-info">
-    {% trans "This document is locked and can no longer be edited or deleted." %}
-  </div>
+    <span class="badge badge-locked">{% trans "Locked" %}</span>
+  {% else %}
+    <span class="badge badge-unlocked">{% trans "Editable" %}</span>
   {% endif %}
+</div>
+{% endblock %}
 
-  <div class="form-section">
-    <h3>{% trans "Document Information" %}</h3>
-    <div class="form-row">
-      {% if receipt.expected_receipt_date %}
-      <div class="form-field">
-        <label>{% trans "Expected Receipt Date" %}</label>
-        <div class="readonly-field">{{ receipt.expected_receipt_date|jalali_date }}</div>
-      </div>
-      {% endif %}
-      {% if receipt.supplier %}
-      <div class="form-field">
-        <label>{% trans "Supplier" %}</label>
-        <div class="readonly-field">{{ receipt.supplier.name }} ({{ receipt.supplier.supplier_code }})</div>
-      </div>
-      {% endif %}
-      {% if receipt.source_document_type %}
-      <div class="form-field">
-        <label>{% trans "Source Document Type" %}</label>
-        <div class="readonly-field">{{ receipt.source_document_type }}</div>
-      </div>
-      {% endif %}
-      {% if receipt.source_document_code %}
-      <div class="form-field">
-        <label>{% trans "Source Document Code" %}</label>
-        <div class="readonly-field">{{ receipt.source_document_code }}</div>
-      </div>
-      {% endif %}
-      {% if receipt.qc_approval_notes %}
-      <div class="form-field">
-        <label>{% trans "QC Approval Notes" %}</label>
-        <div class="readonly-field">{{ receipt.qc_approval_notes }}</div>
-      </div>
-      {% endif %}
-    </div>
-  </div>
+{% block detail_sections %}
+{% if receipt.is_locked %}
+<div class="alert alert-info">
+  {% trans "This document is locked and can no longer be edited or deleted." %}
+</div>
+{% endif %}
 
-  <div class="form-section">
-    <h3>{% trans "Document Lines" %}</h3>
-    {% if receipt.lines.all %}
-    <div class="data-table-container">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>{% trans "Item" %}</th>
-            <th>{% trans "Warehouse" %}</th>
-            <th>{% trans "Unit" %}</th>
-            <th>{% trans "Quantity" %}</th>
-            {% if receipt_variant == 'temporary' %}
-            <th>{% trans "Expected Receipt Date" %}</th>
-            {% endif %}
-            {% if receipt_variant == 'permanent' %}
-            <th>{% trans "Supplier" %}</th>
-            {% endif %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for line in receipt.lines.all %}
-          <tr>
-            <td>
-              <strong>{{ line.item.name }}</strong>
-              <br>
-              <small class="text-muted">{{ line.item.item_code }}</small>
-            </td>
-            <td>{{ line.warehouse.name }} ({{ line.warehouse.warehouse_code }})</td>
-            <td>{{ line.unit }}</td>
-            <td style="text-align: right;">{{ line.quantity|floatformat:2 }}</td>
-            {% if receipt_variant == 'temporary' %}
-            <td>
-              {% if line.expected_receipt_date %}
-                {{ line.expected_receipt_date|jalali_date }}
-              {% else %}
-                -
-              {% endif %}
-            </td>
-            {% endif %}
-            {% if receipt_variant == 'permanent' %}
-            <td>
-              {% if line.supplier %}
-                {{ line.supplier.name }} ({{ line.supplier.supplier_code }})
-              {% else %}
-                -
-              {% endif %}
-            </td>
-            {% endif %}
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <div class="alert alert-info">
-      {% trans "No lines found for this document." %}
+<div class="form-section">
+  <h3>{% trans "Document Information" %}</h3>
+  <div class="form-row">
+    {% if receipt.expected_receipt_date %}
+    <div class="form-field">
+      <label>{% trans "Expected Receipt Date" %}</label>
+      <div class="readonly-field">{{ receipt.expected_receipt_date|jalali_date }}</div>
     </div>
     {% endif %}
-  </div>
-
-  <div class="form-actions" style="margin-top: 2rem;">
-    <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
-    {% if can_edit %}
-    <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+    {% if receipt.supplier %}
+    <div class="form-field">
+      <label>{% trans "Supplier" %}</label>
+      <div class="readonly-field">{{ receipt.supplier.name }} ({{ receipt.supplier.supplier_code }})</div>
+    </div>
+    {% endif %}
+    {% if receipt.source_document_type %}
+    <div class="form-field">
+      <label>{% trans "Source Document Type" %}</label>
+      <div class="readonly-field">{{ receipt.source_document_type }}</div>
+    </div>
+    {% endif %}
+    {% if receipt.source_document_code %}
+    <div class="form-field">
+      <label>{% trans "Source Document Code" %}</label>
+      <div class="readonly-field">{{ receipt.source_document_code }}</div>
+    </div>
+    {% endif %}
+    {% if receipt.qc_approval_notes %}
+    <div class="form-field">
+      <label>{% trans "QC Approval Notes" %}</label>
+      <div class="readonly-field">{{ receipt.qc_approval_notes }}</div>
+    </div>
     {% endif %}
   </div>
 </div>
 
-<style>
-.readonly-field {
-  padding: 0.5rem;
-  background-color: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  min-height: 2.5rem;
-  display: flex;
-  align-items: center;
-}
-</style>
+<div class="form-section">
+  <h3>{% trans "Document Lines" %}</h3>
+  {% if receipt.lines.all %}
+  <div class="data-table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>{% trans "Item" %}</th>
+          <th>{% trans "Warehouse" %}</th>
+          <th>{% trans "Unit" %}</th>
+          <th>{% trans "Quantity" %}</th>
+          {% if receipt_variant == 'temporary' %}
+          <th>{% trans "Expected Receipt Date" %}</th>
+          {% endif %}
+          {% if receipt_variant == 'permanent' %}
+          <th>{% trans "Supplier" %}</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in receipt.lines.all %}
+        <tr>
+          <td>
+            <strong>{{ line.item.name }}</strong>
+            <br>
+            <small class="text-muted">{{ line.item.item_code }}</small>
+          </td>
+          <td>{{ line.warehouse.name }} ({{ line.warehouse.warehouse_code }})</td>
+          <td>{{ line.unit }}</td>
+          <td style="text-align: right;">{{ line.quantity|floatformat:2 }}</td>
+          {% if receipt_variant == 'temporary' %}
+          <td>
+            {% if line.expected_receipt_date %}
+              {{ line.expected_receipt_date|jalali_date }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          {% endif %}
+          {% if receipt_variant == 'permanent' %}
+          <td>
+            {% if line.supplier %}
+              {{ line.supplier.name }} ({{ line.supplier.supplier_code }})
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    {% trans "No lines found for this document." %}
+  </div>
+  {% endif %}
+</div>
 {% endblock %}
 

@@ -1,258 +1,237 @@
-{% extends "inventory/base.html" %}
+{% extends "shared/generic/generic_detail.html" %}
 {% load i18n jalali_tags %}
 
-{% block page_title %}{% trans "View Item" %}{% endblock %}
+{% block title %}{% trans "View Item" %} - {{ block.super }}{% endblock %}
 
-{% block inventory_content %}
-<div class="form-container">
-  <div class="info-banner">
-    <div><strong>{% trans "Item Code" %}:</strong> <code>{{ item.item_code|default:item.full_item_code }}</code></div>
-    {% if item.full_item_code %}
-    <div><strong>{% trans "Full Item Code" %}:</strong> <code>{{ item.full_item_code }}</code></div>
-    {% endif %}
-    <div><strong>{% trans "Status" %}:</strong>
-      {% if item.is_enabled %}
-        <span class="badge badge-active">{% trans "Active" %}</span>
-      {% else %}
-        <span class="badge badge-inactive">{% trans "Inactive" %}</span>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="form-section">
-    <h3>{% trans "Basic Information" %}</h3>
-    <div class="form-row">
-      <div class="form-field">
-        <label>{% trans "Name" %} (FA)</label>
-        <div class="readonly-field">{{ item.name }}</div>
-      </div>
-      <div class="form-field">
-        <label>{% trans "Name" %} (EN)</label>
-        <div class="readonly-field">{{ item.name_en|default:"-" }}</div>
-      </div>
-      <div class="form-field">
-        <label>{% trans "Type" %}</label>
-        <div class="readonly-field">{{ item.type.name }} ({{ item.type.public_code }})</div>
-      </div>
-      <div class="form-field">
-        <label>{% trans "Category" %}</label>
-        <div class="readonly-field">{{ item.category.name }} ({{ item.category.public_code }})</div>
-      </div>
-      <div class="form-field">
-        <label>{% trans "Subcategory" %}</label>
-        <div class="readonly-field">{{ item.subcategory.name }} ({{ item.subcategory.public_code }})</div>
-      </div>
-      <div class="form-field">
-        <label>{% trans "User Segment" %}</label>
-        <div class="readonly-field">{{ item.user_segment }}</div>
-      </div>
-      <div class="form-field">
-        <label>{% trans "Batch Number" %}</label>
-        <div class="readonly-field">{{ item.batch_number }}</div>
-      </div>
-      {% if item.secondary_batch_number %}
-      <div class="form-field">
-        <label>{% trans "Secondary Batch Number" %}</label>
-        <div class="readonly-field">{{ item.secondary_batch_number }}</div>
-      </div>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="form-section">
-    <h3>{% trans "Flags & Settings" %}</h3>
-    <div class="form-row">
-      <div class="form-field">
-        <label>{% trans "Sellable" %}</label>
-        <div class="readonly-field">
-          {% if item.is_sellable %}
-            <span class="badge badge-active">{% trans "Yes" %}</span>
-          {% else %}
-            <span class="badge badge-inactive">{% trans "No" %}</span>
-          {% endif %}
-        </div>
-      </div>
-      <div class="form-field">
-        <label>{% trans "Lot Tracking" %}</label>
-        <div class="readonly-field">
-          {% if item.has_lot_tracking %}
-            <span class="badge badge-active">{% trans "Yes" %}</span>
-          {% else %}
-            <span class="badge badge-inactive">{% trans "No" %}</span>
-          {% endif %}
-        </div>
-      </div>
-      <div class="form-field">
-        <label>{% trans "Requires Temporary Receipt" %}</label>
-        <div class="readonly-field">
-          {% if item.requires_temporary_receipt %}
-            <span class="badge badge-active">{% trans "Yes" %}</span>
-          {% else %}
-            <span class="badge badge-inactive">{% trans "No" %}</span>
-          {% endif %}
-        </div>
-      </div>
-      <div class="form-field">
-        <label>{% trans "Primary Unit" %}</label>
-        <div class="readonly-field">{{ item.primary_unit }}</div>
-      </div>
-      <div class="form-field">
-        <label>{% trans "Default Unit" %}</label>
-        <div class="readonly-field">{{ item.default_unit }}</div>
-      </div>
-      {% if item.min_stock %}
-      <div class="form-field">
-        <label>{% trans "Minimum Stock" %}</label>
-        <div class="readonly-field">{{ item.min_stock|floatformat:2 }} {{ item.primary_unit }}</div>
-      </div>
-      {% endif %}
-    </div>
-  </div>
-
-  {% if item.tax_id or item.tax_title %}
-  <div class="form-section">
-    <h3>{% trans "Tax Information" %}</h3>
-    <div class="form-row">
-      {% if item.tax_id %}
-      <div class="form-field">
-        <label>{% trans "Tax ID" %}</label>
-        <div class="readonly-field">{{ item.tax_id }}</div>
-      </div>
-      {% endif %}
-      {% if item.tax_title %}
-      <div class="form-field">
-        <label>{% trans "Tax Title" %}</label>
-        <div class="readonly-field">{{ item.tax_title }}</div>
-      </div>
-      {% endif %}
-    </div>
-  </div>
+{% block info_banner_extra %}
+<div><strong>{% trans "Item Code" %}:</strong> <code>{{ item.item_code|default:item.full_item_code }}</code></div>
+{% if item.full_item_code %}
+<div><strong>{% trans "Full Item Code" %}:</strong> <code>{{ item.full_item_code }}</code></div>
+{% endif %}
+<div><strong>{% trans "Status" %}:</strong>
+  {% if item.is_enabled %}
+    <span class="badge badge-active">{% trans "Active" %}</span>
+  {% else %}
+    <span class="badge badge-inactive">{% trans "Inactive" %}</span>
   {% endif %}
+</div>
+{% endblock %}
 
-  {% if item.warehouses.exists %}
-  <div class="form-section">
-    <h3>{% trans "Allowed Warehouses" %}</h3>
-    <div class="data-table-container">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>{% trans "Code" %}</th>
-            <th>{% trans "Name" %}</th>
-            <th>{% trans "Primary" %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item_warehouse in item.warehouses.all %}
-          <tr>
-            <td><code>{{ item_warehouse.warehouse.public_code }}</code></td>
-            <td>{{ item_warehouse.warehouse.name }}</td>
-            <td>
-              {% if item_warehouse.is_primary %}
-                <span class="badge badge-active">{% trans "Yes" %}</span>
-              {% else %}
-                <span class="badge badge-inactive">{% trans "No" %}</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+{% block detail_sections %}
+<div class="form-section">
+  <h3>{% trans "Basic Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Name" %} (FA)</label>
+      <div class="readonly-field">{{ item.name }}</div>
     </div>
-  </div>
-  {% endif %}
-
-  {% if item.units.exists %}
-  <div class="form-section">
-    <h3>{% trans "Unit Conversions" %}</h3>
-    <div class="data-table-container">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>{% trans "From Unit" %}</th>
-            <th>{% trans "From Quantity" %}</th>
-            <th>{% trans "To Unit" %}</th>
-            <th>{% trans "To Quantity" %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for unit in item.units.all %}
-          <tr>
-            <td>{{ unit.from_unit }}</td>
-            <td style="text-align: right;">{{ unit.from_quantity|floatformat:2 }}</td>
-            <td>{{ unit.to_unit }}</td>
-            <td style="text-align: right;">{{ unit.to_quantity|floatformat:2 }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="form-field">
+      <label>{% trans "Name" %} (EN)</label>
+      <div class="readonly-field">{{ item.name_en|default:"-" }}</div>
     </div>
-  </div>
-  {% endif %}
-
-  {% if item.description %}
-  <div class="form-section">
-    <h3>{% trans "Description" %}</h3>
-    <div class="readonly-field">{{ item.description }}</div>
-  </div>
-  {% endif %}
-
-  {% if item.notes %}
-  <div class="form-section">
-    <h3>{% trans "Notes" %}</h3>
-    <div class="readonly-field">{{ item.notes|linebreaks }}</div>
-  </div>
-  {% endif %}
-
-  <div class="form-section">
-    <h3>{% trans "Metadata" %}</h3>
-    <div class="form-row">
-      <div class="form-field">
-        <label>{% trans "Created At" %}</label>
-        <div class="readonly-field">{{ item.created_at|jalali_date }}</div>
-      </div>
-      {% if item.created_by %}
-      <div class="form-field">
-        <label>{% trans "Created By" %}</label>
-        <div class="readonly-field">{{ item.created_by.get_full_name|default:item.created_by.username }}</div>
-      </div>
-      {% endif %}
-      {% if item.updated_at %}
-      <div class="form-field">
-        <label>{% trans "Updated At" %}</label>
-        <div class="readonly-field">{{ item.updated_at|jalali_date }}</div>
-      </div>
-      {% endif %}
-      {% if item.edited_by %}
-      <div class="form-field">
-        <label>{% trans "Edited By" %}</label>
-        <div class="readonly-field">{{ item.edited_by.get_full_name|default:item.edited_by.username }}</div>
-      </div>
-      {% endif %}
-      <div class="form-field">
-        <label>{% trans "Sort Order" %}</label>
-        <div class="readonly-field">{{ item.sort_order }}</div>
-      </div>
+    <div class="form-field">
+      <label>{% trans "Type" %}</label>
+      <div class="readonly-field">{{ item.type.name }} ({{ item.type.public_code }})</div>
     </div>
-  </div>
-
-  <div class="form-actions" style="margin-top: 2rem;">
-    <a href="{{ list_url }}" class="btn btn-secondary">{% trans "Back to List" %}</a>
-    {% if can_edit %}
-    <a href="{{ edit_url }}" class="btn btn-primary">{% trans "Edit" %}</a>
+    <div class="form-field">
+      <label>{% trans "Category" %}</label>
+      <div class="readonly-field">{{ item.category.name }} ({{ item.category.public_code }})</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Subcategory" %}</label>
+      <div class="readonly-field">{{ item.subcategory.name }} ({{ item.subcategory.public_code }})</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "User Segment" %}</label>
+      <div class="readonly-field">{{ item.user_segment }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Batch Number" %}</label>
+      <div class="readonly-field">{{ item.batch_number }}</div>
+    </div>
+    {% if item.secondary_batch_number %}
+    <div class="form-field">
+      <label>{% trans "Secondary Batch Number" %}</label>
+      <div class="readonly-field">{{ item.secondary_batch_number }}</div>
+    </div>
     {% endif %}
   </div>
 </div>
 
-<style>
-.readonly-field {
-  padding: 0.5rem;
-  background-color: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  min-height: 2.5rem;
-  display: flex;
-  align-items: center;
-}
-</style>
+<div class="form-section">
+  <h3>{% trans "Flags & Settings" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Sellable" %}</label>
+      <div class="readonly-field">
+        {% if item.is_sellable %}
+          <span class="badge badge-active">{% trans "Yes" %}</span>
+        {% else %}
+          <span class="badge badge-inactive">{% trans "No" %}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Lot Tracking" %}</label>
+      <div class="readonly-field">
+        {% if item.has_lot_tracking %}
+          <span class="badge badge-active">{% trans "Yes" %}</span>
+        {% else %}
+          <span class="badge badge-inactive">{% trans "No" %}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Requires Temporary Receipt" %}</label>
+      <div class="readonly-field">
+        {% if item.requires_temporary_receipt %}
+          <span class="badge badge-active">{% trans "Yes" %}</span>
+        {% else %}
+          <span class="badge badge-inactive">{% trans "No" %}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Primary Unit" %}</label>
+      <div class="readonly-field">{{ item.primary_unit }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Default Unit" %}</label>
+      <div class="readonly-field">{{ item.default_unit }}</div>
+    </div>
+    {% if item.min_stock %}
+    <div class="form-field">
+      <label>{% trans "Minimum Stock" %}</label>
+      <div class="readonly-field">{{ item.min_stock|floatformat:2 }} {{ item.primary_unit }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if item.tax_id or item.tax_title %}
+<div class="form-section">
+  <h3>{% trans "Tax Information" %}</h3>
+  <div class="form-row">
+    {% if item.tax_id %}
+    <div class="form-field">
+      <label>{% trans "Tax ID" %}</label>
+      <div class="readonly-field">{{ item.tax_id }}</div>
+    </div>
+    {% endif %}
+    {% if item.tax_title %}
+    <div class="form-field">
+      <label>{% trans "Tax Title" %}</label>
+      <div class="readonly-field">{{ item.tax_title }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if item.warehouses.exists %}
+<div class="form-section">
+  <h3>{% trans "Allowed Warehouses" %}</h3>
+  <div class="data-table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>{% trans "Code" %}</th>
+          <th>{% trans "Name" %}</th>
+          <th>{% trans "Primary" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item_warehouse in item.warehouses.all %}
+        <tr>
+          <td><code>{{ item_warehouse.warehouse.public_code }}</code></td>
+          <td>{{ item_warehouse.warehouse.name }}</td>
+          <td>
+            {% if item_warehouse.is_primary %}
+              <span class="badge badge-active">{% trans "Yes" %}</span>
+            {% else %}
+              <span class="badge badge-inactive">{% trans "No" %}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if item.units.exists %}
+<div class="form-section">
+  <h3>{% trans "Unit Conversions" %}</h3>
+  <div class="data-table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>{% trans "From Unit" %}</th>
+          <th>{% trans "From Quantity" %}</th>
+          <th>{% trans "To Unit" %}</th>
+          <th>{% trans "To Quantity" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for unit in item.units.all %}
+        <tr>
+          <td>{{ unit.from_unit }}</td>
+          <td style="text-align: right;">{{ unit.from_quantity|floatformat:2 }}</td>
+          <td>{{ unit.to_unit }}</td>
+          <td style="text-align: right;">{{ unit.to_quantity|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if item.description %}
+<div class="form-section">
+  <h3>{% trans "Description" %}</h3>
+  <div class="readonly-field">{{ item.description }}</div>
+</div>
+{% endif %}
+
+{% if item.notes %}
+<div class="form-section">
+  <h3>{% trans "Notes" %}</h3>
+  <div class="readonly-field">{{ item.notes|linebreaks }}</div>
+</div>
+{% endif %}
+
+<div class="form-section">
+  <h3>{% trans "Metadata" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Created At" %}</label>
+      <div class="readonly-field">{{ item.created_at|jalali_date }}</div>
+    </div>
+    {% if item.created_by %}
+    <div class="form-field">
+      <label>{% trans "Created By" %}</label>
+      <div class="readonly-field">{{ item.created_by.get_full_name|default:item.created_by.username }}</div>
+    </div>
+    {% endif %}
+    {% if item.updated_at %}
+    <div class="form-field">
+      <label>{% trans "Updated At" %}</label>
+      <div class="readonly-field">{{ item.updated_at|jalali_date }}</div>
+    </div>
+    {% endif %}
+    {% if item.edited_by %}
+    <div class="form-field">
+      <label>{% trans "Edited By" %}</label>
+      <div class="readonly-field">{{ item.edited_by.get_full_name|default:item.edited_by.username }}</div>
+    </div>
+    {% endif %}
+    <div class="form-field">
+      <label>{% trans "Sort Order" %}</label>
+      <div class="readonly-field">{{ item.sort_order }}</div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
