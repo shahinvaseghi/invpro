@@ -178,8 +178,8 @@ class WorkLineUpdateView(BaseUpdateView):
 class WorkLineDetailView(BaseDetailView):
     """Detail view for viewing work lines (read-only)."""
     model = WorkLine
-    template_name = 'production/work_line_detail.html'
-    context_object_name = 'work_line'
+    template_name = 'shared/generic/generic_detail.html'
+    context_object_name = 'object'
     feature_code = 'production.work_lines'
     required_action = 'view_own'
     active_module = 'production'
@@ -193,6 +193,77 @@ class WorkLineDetailView(BaseDetailView):
             queryset = queryset.select_related('created_by', 'edited_by')
         queryset = queryset.prefetch_related('personnel', 'machines')
         return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Work Line')
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add detail view context data."""
+        context = super().get_context_data(**kwargs)
+        work_line = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        context['info_banner'] = [
+            {'label': _('Code'), 'value': work_line.public_code, 'type': 'code'},
+            {'label': _('Status'), 'value': work_line.is_enabled, 'type': 'badge'},
+        ]
+        
+        # Basic Information section
+        basic_fields = [
+            {'label': _('Name'), 'value': work_line.name},
+        ]
+        if work_line.name_en:
+            basic_fields.append({'label': _('Name (EN)'), 'value': work_line.name_en})
+        if work_line.warehouse:
+            basic_fields.append({
+                'label': _('Warehouse'),
+                'value': work_line.warehouse.name,
+            })
+        if work_line.description:
+            basic_fields.append({'label': _('Description'), 'value': work_line.description})
+        
+        detail_sections = [
+            {
+                'title': _('Basic Information'),
+                'fields': basic_fields,
+            },
+        ]
+        
+        # Assigned Personnel section
+        if work_line.personnel.exists():
+            personnel_text = ', '.join([
+                f"{person.first_name} {person.last_name}"
+                for person in work_line.personnel.all()
+            ])
+            detail_sections.append({
+                'title': _('Assigned Personnel'),
+                'fields': [
+                    {'label': _('Personnel'), 'value': personnel_text},
+                ],
+            })
+        
+        # Assigned Machines section
+        if work_line.machines.exists():
+            machines_text = ', '.join([machine.name for machine in work_line.machines.all()])
+            detail_sections.append({
+                'title': _('Assigned Machines'),
+                'fields': [
+                    {'label': _('Machines'), 'value': machines_text},
+                ],
+            })
+        
+        # Notes section
+        if work_line.notes:
+            detail_sections.append({
+                'title': _('Notes'),
+                'fields': [
+                    {'label': _('Notes'), 'value': work_line.notes},
+                ],
+            })
+        
+        context['detail_sections'] = detail_sections
+        return context
     
     def get_list_url(self):
         """Return list URL."""

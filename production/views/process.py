@@ -727,8 +727,8 @@ class ProcessUpdateView(BaseFormsetUpdateView, EditLockProtectedMixin):
 class ProcessDetailView(BaseDetailView):
     """Detail view for viewing processes (read-only)."""
     model = Process
-    template_name = 'production/process_detail.html'
-    context_object_name = 'process'
+    template_name = 'shared/generic/generic_detail.html'
+    context_object_name = 'object'
     feature_code = 'production.processes'
     required_action = 'view_own'
     active_module = 'production'
@@ -749,6 +749,143 @@ class ProcessDetailView(BaseDetailView):
             'operations__operation_materials__bom_material',
         )
         return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Process')
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add detail view context data."""
+        context = super().get_context_data(**kwargs)
+        process = self.object
+        
+        # Info banner
+        info_banner = [
+            {'label': _('Process Code'), 'value': process.process_code, 'type': 'code'},
+        ]
+        if process.revision:
+            info_banner.append({'label': _('Revision'), 'value': process.revision})
+        
+        # Approval status badge
+        if process.approval_status == 'approved':
+            status_label = _('Approved')
+            status_value = True
+        elif process.approval_status == 'draft':
+            status_label = _('Draft')
+            status_value = False
+        else:
+            status_label = process.get_approval_status_display()
+            status_value = False
+        info_banner.append({
+            'label': _('Status'),
+            'value': status_value,
+            'type': 'badge',
+            'true_label': status_label if process.approval_status == 'approved' else None,
+            'false_label': status_label,
+        })
+        
+        if process.is_primary:
+            info_banner.append({
+                'label': _('Primary'),
+                'value': True,
+                'type': 'badge',
+                'true_label': _('Yes'),
+            })
+        
+        context['detail_title'] = self.get_page_title()
+        context['info_banner'] = info_banner
+        
+        # Basic Information section
+        basic_fields = [
+            {
+                'label': _('Finished Item'),
+                'value': f"{process.finished_item.name} ({process.finished_item.item_code})",
+            },
+        ]
+        if process.bom:
+            basic_fields.append({
+                'label': _('BOM'),
+                'value': f"{process.bom.bom_code} ({process.bom.version})",
+            })
+        if process.description:
+            basic_fields.append({'label': _('Description'), 'value': process.description})
+        
+        detail_sections = [
+            {
+                'title': _('Basic Information'),
+                'fields': basic_fields,
+            },
+        ]
+        
+        # Work Lines section
+        if process.work_lines.exists():
+            work_lines_text = ', '.join([wl.name for wl in process.work_lines.all()])
+            detail_sections.append({
+                'title': _('Work Lines'),
+                'fields': [
+                    {'label': _('Work Lines'), 'value': work_lines_text},
+                ],
+            })
+        
+        # Operations section (table)
+        if process.operations.exists():
+            operations_headers = [
+                _('Name'),
+                _('Sequence'),
+                _('Work Line'),
+                _('Labor Minutes'),
+                _('Machine Minutes'),
+                _('Materials'),
+            ]
+            operations_data = []
+            for operation in process.operations.all():
+                materials_count = operation.operation_materials.count()
+                materials_text = f"{materials_count} {_('material(s)')}" if materials_count > 0 else "—"
+                operations_data.append([
+                    operation.name or "—",
+                    str(operation.sequence_order),
+                    operation.work_line.name if operation.work_line else "—",
+                    f"{operation.labor_minutes_per_unit:.2f}",
+                    f"{operation.machine_minutes_per_unit:.2f}",
+                    materials_text,
+                ])
+            
+            detail_sections.append({
+                'title': _('Operations'),
+                'type': 'table',
+                'headers': operations_headers,
+                'data': operations_data,
+            })
+        
+        # Approval Information section
+        if process.approved_by:
+            approval_fields = [
+                {
+                    'label': _('Approved By'),
+                    'value': process.approved_by.get_full_name() or process.approved_by.username,
+                },
+            ]
+            if process.approved_at:
+                approval_fields.append({
+                    'label': _('Approved At'),
+                    'value': process.approved_at,
+                })
+            detail_sections.append({
+                'title': _('Approval Information'),
+                'fields': approval_fields,
+            })
+        
+        # Notes section
+        if process.notes:
+            detail_sections.append({
+                'title': _('Notes'),
+                'fields': [
+                    {'label': _('Notes'), 'value': process.notes},
+                ],
+            })
+        
+        context['detail_sections'] = detail_sections
+        return context
     
     def get_list_url(self):
         """Return list URL."""
