@@ -120,61 +120,33 @@
   {% endif %}
 </section>
 
+{% load static %}
+<script src="{% static 'js/approval-actions.js' %}"></script>
+<script src="{% static 'js/modal-dialogs.js' %}"></script>
 <script>
+// Wrapper functions for QC operations
 function approveOperation(qcOperationId) {
-  if (!confirm('{% trans "Are you sure you want to approve this operation?" %}')) {
-    return;
-  }
-  
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = `{% url 'production:qc_operation_approve' 0 %}`.replace('0', qcOperationId);
-  
-  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-  if (csrfToken) {
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = 'csrfmiddlewaretoken';
-    input.value = csrfToken.value;
-    form.appendChild(input);
-  }
-  
-  document.body.appendChild(form);
-  form.submit();
+  approveObject(
+    qcOperationId,
+    '{% url "production:qc_operation_approve" 0 %}',
+    '{% trans "Are you sure you want to approve this operation?" %}'
+  );
 }
 
 function rejectOperation(qcOperationId) {
-  const notes = prompt('{% trans "Please provide a reason for rejection:" %}');
-  if (notes === null) {
-    return;
-  }
-  
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = `{% url 'production:qc_operation_reject' 0 %}`.replace('0', qcOperationId);
-  
-  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-  if (csrfToken) {
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = 'csrfmiddlewaretoken';
-    input.value = csrfToken.value;
-    form.appendChild(input);
-  }
-  
-  const notesInput = document.createElement('input');
-  notesInput.type = 'hidden';
-  notesInput.name = 'qc_notes';
-  notesInput.value = notes;
-  form.appendChild(notesInput);
-  
-  document.body.appendChild(form);
-  form.submit();
+  rejectObject(
+    qcOperationId,
+    '{% url "production:qc_operation_reject" 0 %}',
+    '{% trans "Are you sure you want to reject this operation?" %}',
+    {
+      requireNotes: true,
+      notesPrompt: '{% trans "Please provide a reason for rejection:" %}',
+      notesFieldName: 'qc_notes'
+    }
+  );
 }
 
-function showNotes(notes) {
-  alert('{% trans "QC Notes:" %}\n\n' + notes);
-}
+// showNotes is now available from modal-dialogs.js
 </script>
 {% endblock %}
 

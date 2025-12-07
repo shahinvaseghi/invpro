@@ -127,9 +127,12 @@
   {% endif %}
 </section>
 
+{% load static %}
+<script src="{% static 'js/modal-dialogs.js' %}"></script>
 <script>
+// Use showRejectionNotes from modal-dialogs.js
 function showNotes(notes) {
-  alert('{% trans "QC Rejection Notes:" %}\n\n' + notes);
+  showRejectionNotes(notes);
 }
 </script>
 

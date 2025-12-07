@@ -91,13 +91,68 @@ function approveObject(objectId, approveUrl, confirmMessage = null) {
  * @param {string|number} objectId - ID of the object to reject
  * @param {string} rejectUrl - URL template for reject action (should contain '0' as placeholder)
  * @param {string} confirmMessage - Confirmation message (default: generic reject message)
+ * @param {Object} options - Configuration options
+ * @param {boolean} options.requireNotes - Require notes/reason for rejection (default: false)
+ * @param {string} options.notesPrompt - Prompt message for notes (default: 'Please provide a reason for rejection:')
+ * @param {string} options.notesFieldName - Field name for notes in form (default: 'qc_notes')
  */
-function rejectObject(objectId, rejectUrl, confirmMessage = null) {
+function rejectObject(objectId, rejectUrl, confirmMessage = null, options = {}) {
+    const config = {
+        requireNotes: options.requireNotes || false,
+        notesPrompt: options.notesPrompt || 'Please provide a reason for rejection:',
+        notesFieldName: options.notesFieldName || 'qc_notes'
+    };
+    
     const defaultMessage = 'Are you sure you want to reject this item?';
-    submitApprovalAction(
-        objectId,
-        rejectUrl,
-        confirmMessage || defaultMessage
-    );
+    
+    // If notes are required, get them first
+    let notes = null;
+    if (config.requireNotes) {
+        notes = prompt(config.notesPrompt);
+        if (notes === null) {
+            return; // User cancelled
+        }
+        if (notes.trim() === '') {
+            alert('Notes are required for rejection.');
+            return;
+        }
+    }
+    
+    // Show confirmation dialog unless notes prompt was cancelled
+    if (!confirmMessage || !confirm(confirmMessage || defaultMessage)) {
+        return;
+    }
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (!csrfToken) {
+        console.error('CSRF token not found');
+        return;
+    }
+    
+    // Create form
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = rejectUrl.replace('0', objectId.toString());
+    
+    // Add CSRF token
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = csrfToken.value;
+    form.appendChild(csrfInput);
+    
+    // Add notes if provided
+    if (notes) {
+        const notesInput = document.createElement('input');
+        notesInput.type = 'hidden';
+        notesInput.name = config.notesFieldName;
+        notesInput.value = notes;
+        form.appendChild(notesInput);
+    }
+    
+    // Append form to body and submit
+    document.body.appendChild(form);
+    form.submit();
 }
 
