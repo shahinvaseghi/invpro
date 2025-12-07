@@ -471,33 +471,35 @@
 **مشکل**: JavaScript برای مدیریت formset، cascading dropdowns، table export و سایر عملکردها در چندین template به صورت inline نوشته شده است:
 
 #### 6.1 Formset Management JavaScript
-**وضعیت**: ⏳ **5 فایل refactor شد (28%)** - 13+ فایل باقی مانده
+**وضعیت**: ⏳ **7 فایل refactor شد (39%)** - 11+ فایل باقی مانده
 
-**فایل‌های refactor شده** (5 فایل):
+**فایل‌های refactor شده** (7 فایل):
 - ✅ `production/performance_record_form.html` - استفاده از `formset.js`
 - ✅ `production/transfer_to_line_form.html` - استفاده از `formset.js`
 - ✅ `inventory/item_form.html` - استفاده از `formset.js` و `cascading-dropdowns.js`
 - ✅ `inventory/receipt_form.html` - استفاده از `formset.js` و `cascading-dropdowns.js`
 - ✅ `inventory/purchase_request_form.html` - استفاده از `formset.js`, `item-filters.js`, و `formset-table.js`
+- ✅ `ticketing/subcategory_form.html` - استفاده از `formset.js` (permission formset)
+- ✅ `shared/user_form.html` - استفاده از `formset.js` (company access formset)
 
 **فایل‌های نیازمند Refactor** (13+ فایل):
 
-**ماژول `production`** (3 فایل):
+**ماژول `production`** (2 فایل):
 - ⏳ `production/bom_form.html` - JavaScript inline برای formset management (~200 خط) - **نکته**: nested formsets (پیچیده)
 - ⏳ `production/process_form.html` - JavaScript inline برای formset management - **نکته**: nested formsets (پیچیده)
-- ⏳ `production/rework_document_form.html` - JavaScript inline برای formset management
+- ~~`production/rework_document_form.html`~~ - بررسی شد - formset management ندارد
 
 **ماژول `inventory`** (2 فایل):
 - ⏳ `inventory/stocktaking_form.html` - JavaScript inline برای formset management (بررسی شد - formset ندارد)
 - ⏳ `inventory/warehouse_request_form.html` - استفاده از `formset.js` ✅ (مثال خوب - نیاز به بررسی ندارد)
 
-**ماژول `ticketing`** (3 فایل):
+**ماژول `ticketing`** (2 فایل):
 - ⏳ `ticketing/category_form.html` - JavaScript inline برای permission formset management (بررسی شد - JavaScript ندارد)
-- ⏳ `ticketing/subcategory_form.html` - JavaScript inline برای permission formset management
+- ~~`ticketing/subcategory_form.html`~~ - **refactor شد** - استفاده از `formset.js`
 - ⏳ `ticketing/template_form.html` - JavaScript inline برای multiple formsets management - **نکته**: multiple formsets (پیچیده)
 
-**ماژول `shared`** (1 فایل):
-- ⏳ `shared/user_form.html` - JavaScript inline برای company access formset management
+**ماژول `shared`** (0 فایل):
+- ~~`shared/user_form.html`~~ - **refactor شد** - استفاده از `formset.js`
 
 **ماژول `accounting`** (2 فایل):
 - ⏳ `accounting/treasury/account_form.html` - JavaScript inline برای formset management
@@ -1116,7 +1118,7 @@ document.addEventListener('DOMContentLoaded', function() {
   - ✅ فاز 1.4: Detail Views ماژول ticketing (4 فایل)
   - ✅ فاز 1.5: Detail Views ماژول shared (6 فایل)
 - ⏳ فاز 4: JavaScript Refactoring (40+ فایل) - در حال انجام
-  - ⏳ فاز 4.1: Formset Management JavaScript (18+ فایل) - **5 فایل refactor شدند** (28%)
+  - ⏳ فاز 4.1: Formset Management JavaScript (18+ فایل) - **7 فایل refactor شدند** (39%)
   - ⏳ فاز 4.2: Cascading Dropdowns JavaScript (10+ فایل) - **6 فایل refactor شدند** (60%)
     - ✅ `production/bom_form.html` - Type → Category → Subcategory
     - ✅ `accounting/treasury/account_form.html` - Tafsili → Sub Account → GL Account
@@ -1184,7 +1186,7 @@ document.addEventListener('DOMContentLoaded', function() {
 ### ⏳ کارهای باقی‌مانده
 
 #### 1. JavaScript Refactoring (45% باقی مانده)
-- ⏳ **Formset Management**: 13+ فایل باقی مانده (28% تکمیل شد)
+- ⏳ **Formset Management**: 11+ فایل باقی مانده (39% تکمیل شد)
 - ⏳ **Cascading Dropdowns**: 4+ فایل باقی مانده (60% تکمیل شد)
 - ⏳ **Table Export**: 14 فایل export function ندارند (18% تکمیل شد)
 

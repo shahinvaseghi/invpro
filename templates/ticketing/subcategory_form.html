@@ -1,5 +1,5 @@
 {% extends "shared/generic/generic_form.html" %}
-{% load i18n %}
+{% load i18n static %}
 
 {% block form_sections %}
 <div class="form-section">
@@ -98,10 +98,60 @@
       {% endfor %}
     </tbody>
   </table>
-  <p class="muted-text">
-    {% trans "Add more entries by filling the blank row and saving; a fresh row will appear after each save." %}
+  <div style="margin-top: 1rem;">
+    <button type="button" id="add-permission-btn" class="btn btn-primary">{% trans "Add Permission" %}</button>
+  </div>
+  <p class="muted-text" style="margin-top: 1rem;">
+    {% trans "Add more entries by clicking the button above or filling the blank row and saving." %}
   </p>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% load static %}
+<script src="{% static 'js/formset.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const formsetContainer = document.querySelector('.formset-table tbody');
+  const addBtn = document.getElementById('add-permission-btn');
+  const totalFormsInput = document.querySelector('input[name="permission_formset-TOTAL_FORMS"]');
+  
+  if (!formsetContainer || !addBtn || !totalFormsInput) return;
+  
+  // Clone first row as template
+  const firstRow = formsetContainer.querySelector('tr');
+  if (firstRow) {
+    const templateRow = firstRow.cloneNode(true);
+    templateRow.id = 'permission-formset-template';
+    templateRow.style.display = 'none';
+    templateRow.classList.add('formset-template');
+    formsetContainer.appendChild(templateRow);
+    
+    // Clear all inputs in template
+    templateRow.querySelectorAll('input, select').forEach(function(input) {
+      if (input.type !== 'hidden' && input.name !== 'permission_formset-TOTAL_FORMS' && 
+          input.name !== 'permission_formset-INITIAL_FORMS' && 
+          input.name !== 'permission_formset-MIN_NUM_FORMS' && 
+          input.name !== 'permission_formset-MAX_NUM_FORMS') {
+        if (input.type === 'checkbox') {
+          input.checked = false;
+        } else {
+          input.value = '';
+        }
+      }
+    });
+    
+    // Initialize formset
+    initFormset('permission_formset', '#permission-formset-template', {
+      minRows: 0,
+      maxRows: null,
+      addButtonSelector: '#add-permission-btn',
+      removeButtonSelector: 'input[name*="-DELETE"]',
+      rowSelector: 'tr:not(.formset-template)'
+    });
+  }
+});
+</script>
 {% endblock %}
 
 {% block form_extra %}

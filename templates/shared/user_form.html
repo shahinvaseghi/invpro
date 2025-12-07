@@ -1,5 +1,5 @@
 {% extends "shared/generic/generic_form.html" %}
-{% load i18n %}
+{% load i18n static %}
 
 {% block title %}{{ page_title }} - {{ block.super }}{% endblock %}
 
@@ -142,10 +142,59 @@
       {% endfor %}
     </tbody>
   </table>
+  <div style="margin-top: 1rem;">
+    <button type="button" id="add-access-btn" class="btn btn-primary">{% trans "Add Company Access" %}</button>
+  </div>
   <p class="muted-text" style="margin-top: 1rem;">
-    {% trans "Add more entries by filling the blank row and saving; a fresh row will appear after each save." %}
+    {% trans "Add more entries by clicking the button above or filling the blank row and saving." %}
   </p>
 </section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/formset.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const formsetContainer = document.querySelector('.formset-table tbody');
+  const addBtn = document.getElementById('add-access-btn');
+  const totalFormsInput = document.querySelector('input[name="access_formset-TOTAL_FORMS"]');
+  
+  if (!formsetContainer || !addBtn || !totalFormsInput) return;
+  
+  // Clone first row as template
+  const firstRow = formsetContainer.querySelector('tr');
+  if (firstRow) {
+    const templateRow = firstRow.cloneNode(true);
+    templateRow.id = 'access-formset-template';
+    templateRow.style.display = 'none';
+    templateRow.classList.add('formset-template');
+    formsetContainer.appendChild(templateRow);
+    
+    // Clear all inputs in template
+    templateRow.querySelectorAll('input, select').forEach(function(input) {
+      if (input.type !== 'hidden' && input.name !== 'access_formset-TOTAL_FORMS' && 
+          input.name !== 'access_formset-INITIAL_FORMS' && 
+          input.name !== 'access_formset-MIN_NUM_FORMS' && 
+          input.name !== 'access_formset-MAX_NUM_FORMS') {
+        if (input.type === 'checkbox') {
+          input.checked = false;
+        } else {
+          input.value = '';
+        }
+      }
+    });
+    
+    // Initialize formset
+    initFormset('access_formset', '#access-formset-template', {
+      minRows: 0,
+      maxRows: null,
+      addButtonSelector: '#add-access-btn',
+      removeButtonSelector: 'input[name*="-DELETE"]',
+      rowSelector: 'tr:not(.formset-template)'
+    });
+  }
+});
+</script>
 {% endblock %}
 
 {% block form_actions_extra %}
