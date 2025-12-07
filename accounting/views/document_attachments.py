@@ -90,11 +90,14 @@ class DocumentAttachmentUploadView(FeaturePermissionRequiredMixin, AccountingBas
         """Add context data."""
         context = super().get_context_data(**kwargs)
         context['page_title'] = _('بارگذاری اسناد')
+        context['form_title'] = _('بارگذاری اسناد')
+        context['enctype'] = 'multipart/form-data'  # Required for file uploads
         context['breadcrumbs'] = [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Accounting'), 'url': reverse('accounting:dashboard')},
             {'label': _('بارگذاری اسناد')},
         ]
+        context['cancel_url'] = reverse('accounting:attachment_list')
         return context
 
 

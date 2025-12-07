@@ -2,7 +2,7 @@
 
 **تاریخ ایجاد**: 2024-12-05  
 **آخرین به‌روزرسانی**: 2024-12-06  
-**وضعیت**: در حال انجام - 70 فایل از 110+ فایل تکمیل شد (64%)  
+**وضعیت**: در حال انجام - 76 فایل از 110+ فایل تکمیل شد (69%)  
 **هدف**: شناسایی الگوهای تکراری در فایل‌های HTML/Template و برنامه‌ریزی برای refactoring
 
 **وضعیت پیشرفت**:
@@ -21,6 +21,8 @@
 - ✅ فاز 2: List Views (9 فایل) - **تکمیل شد!** همه 9 فایل refactor شدند
   - ✅ فاز 2.1: List Views ماژول accounting (6 فایل)
   - ✅ فاز 2.2: List Views ماژول ticketing (3 فایل)
+- ✅ فاز 3: Form Views (6 فایل) - **تکمیل شد!** همه 6 فایل refactor شدند
+  - ✅ فاز 3.1: Form Views ماژول accounting (6 فایل)
 
 ---
 
@@ -452,11 +454,15 @@
 
 **فایل‌های نیازمند Refactor**:
 
-#### ماژول `accounting` (4 فایل):
-- `accounting/attachments/upload.html` → باید از `generic_form.html` extend کند
-- سایر formهای accounting که از `base.html` extend می‌کنند
+#### ماژول `accounting` (6 فایل): ✅ **تکمیل شد**
+- ✅ `accounting/treasury/account_form.html` → از `generic_form.html` extend می‌کند
+- ✅ `accounting/parties/party_form.html` → از `generic_form.html` extend می‌کند
+- ✅ `accounting/parties/party_account_form.html` → از `generic_form.html` extend می‌کند
+- ✅ `accounting/income_expense/category_form.html` → از `generic_form.html` extend می‌کند
+- ✅ `accounting/income_expense/cost_center_form.html` → از `generic_form.html` extend می‌کند
+- ✅ `accounting/attachments/upload.html` → از `generic_form.html` extend می‌کند (با enctype برای file upload)
 
-**جمع کل**: حدود **4-5 فایل Form View** نیازمند refactor
+**جمع کل**: **6 فایل Form View** ✅ **همه refactor شدند!**
 
 ---
 
@@ -888,12 +894,12 @@
 | Detail Views → Generic | 39 | 🔴 بالا | ✅ **39 فایل تکمیل شد (100%)** |
 | JavaScript Inline → Shared Files | 40+ | 🔴 بالا | ⏳ **22 فایل refactor شد (55%)** - فاز 4.1 (28%)، 4.2 (60%)، 4.3 (18%)، 4.4 (100%)، 4.5 (100%) |
 | List Views → Generic | 9 | 🟡 متوسط | ✅ **9 فایل تکمیل شد (100%)** |
-| Form Views → Generic | 4-5 | 🟡 متوسط | ⏳ در انتظار |
+| Form Views → Generic | 6 | 🟡 متوسط | ✅ **6 فایل تکمیل شد (100%)** |
 | Inline CSS → Shared CSS | 25+ | 🟡 متوسط | ⏳ در انتظار |
 | Inline Event Handlers → JS Files | 10+ | 🟡 متوسط | ⏳ در انتظار |
 | Row Actions → Partial | 10+ | 🟢 پایین | ⏳ در انتظار |
 | Pagination → Partial | 5+ | 🟢 پایین | ⏳ در انتظار |
-| **جمع کل** | **110+ فایل** | | **70 فایل تکمیل شد (64%)** |
+| **جمع کل** | **110+ فایل** | | **76 فایل تکمیل شد (69%)** |
 
 ---
 
@@ -922,8 +928,14 @@
    - ✅ `ticketing/subcategories_list.html` - از قبل از `generic_list.html` استفاده می‌کند
    - ✅ `ticketing/templates_list.html` - از قبل از `generic_list.html` استفاده می‌کند
 
-### فاز 3: Form Views (اولویت متوسط)
-1. Refactor Form Views در ماژول `accounting` (4-5 فایل)
+### فاز 3: Form Views (اولویت متوسط) ✅ **تکمیل شد!**
+1. ✅ Refactor Form Views در ماژول `accounting` (6 فایل) - **تکمیل شد**
+   - ✅ `accounting/treasury/account_form.html` - از قبل از `generic_form.html` استفاده می‌کند
+   - ✅ `accounting/parties/party_form.html` - از قبل از `generic_form.html` استفاده می‌کند
+   - ✅ `accounting/parties/party_account_form.html` - از قبل از `generic_form.html` استفاده می‌کند
+   - ✅ `accounting/income_expense/category_form.html` - از قبل از `generic_form.html` استفاده می‌کند
+   - ✅ `accounting/income_expense/cost_center_form.html` - از قبل از `generic_form.html` استفاده می‌کند
+   - ✅ `accounting/attachments/upload.html` - **refactor شد** - استفاده از `generic_form.html` (با enctype برای file upload)
 
 ### فاز 4: JavaScript Refactoring (اولویت بالا) ⏳ **در حال انجام**
 1. ⏳ Refactor Formset Management JavaScript (18+ فایل) - **5 فایل refactor شد**
@@ -1136,7 +1148,7 @@ document.addEventListener('DOMContentLoaded', function() {
   - ✅ Approval/Reject Functions: 4 از 4 فایل (100%)
   - ✅ Modal Dialogs: 3 از 3 فایل (100%)
 - ✅ List Views: 9 از 9 فایل (100%)
-- ⏳ Form Views: 0 از 4-5 فایل (0%)
+- ✅ Form Views: 6 از 6 فایل (100%)
 - ⏳ CSS Refactoring: 0 از 25+ فایل (0%)
 - ⏳ Event Handlers: 0 از 10+ فایل (0%)
 - ⏳ Partials: 0 از 15+ فایل (0%)
@@ -1178,6 +1190,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 #### 2. سایر فازها
 - ✅ **List Views**: 9 از 9 فایل (100%) - **تکمیل شد**
+- ✅ **Form Views**: 6 از 6 فایل (100%) - **تکمیل شد**
 - ⏳ **Form Views**: 4-5 فایل
 - ⏳ **CSS Refactoring**: 25+ فایل
 - ⏳ **Event Handlers**: 10+ فایل
@@ -1185,14 +1198,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 ### 📊 آمار کلی
 - **کل فایل‌های نیازمند Refactor**: 110+ فایل
-- **فایل‌های تکمیل شده**: 70 فایل (64%)
-- **فایل‌های باقی‌مانده**: 40+ فایل (36%)
+- **فایل‌های تکمیل شده**: 76 فایل (69%)
+- **فایل‌های باقی‌مانده**: 34+ فایل (31%)
 
 ### 🎯 اولویت‌های بعدی
 1. **فاز 4.1**: تکمیل Formset Management (13+ فایل باقی مانده)
 2. **فاز 4.2**: تکمیل Cascading Dropdowns (4+ فایل باقی مانده)
-3. **فاز 3**: شروع Form Views (4-5 فایل)
-4. **فاز 5**: CSS و Event Handlers (35+ فایل)
+3. **فاز 5**: CSS و Event Handlers (35+ فایل)
 
 ### 💡 نکات مهم
 - فایل‌های JavaScript مشترک ایجاد شده قابل استفاده مجدد هستند

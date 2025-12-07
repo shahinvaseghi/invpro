@@ -1,95 +1,99 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_form.html" %}
 {% load static i18n %}
 
-{% block title %}{% trans "بارگذاری اسناد" %} - {% trans "Accounting" %}{% endblock %}
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<a href="{% url 'accounting:dashboard' %}">{% trans "Accounting" %}</a>
+<span class="separator">/</span>
+<a href="{% url 'accounting:attachment_list' %}">{% trans "فراخوانی اسناد" %}</a>
+<span class="separator">/</span>
+<span>{% trans "بارگذاری اسناد" %}</span>
+{% endblock %}
 
-{% block content %}
-<div class="page-container">
-  <div class="page-header">
-    <h1>{% trans "بارگذاری اسناد" %}</h1>
-    <nav class="breadcrumb">
-      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
-      <span class="separator">/</span>
-      <a href="{% url 'accounting:dashboard' %}">{% trans "Accounting" %}</a>
-      <span class="separator">/</span>
-      <span>{% trans "بارگذاری اسناد" %}</span>
-    </nav>
+{% block form_actions_extra %}
+<button type="submit" class="btn btn-primary">{% trans "آپلود فایل‌ها" %}</button>
+<a href="{{ cancel_url|default:request.META.HTTP_REFERER|default:'/' }}" class="btn btn-secondary">{% trans "لغو" %}</a>
+{% endblock %}
+
+{% block form_sections %}
+<div class="form-section">
+  <h3>{% trans "اطلاعات فایل" %}</h3>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.document_number.id_for_label }}">
+        {{ form.document_number.label }}
+        {% if form.document_number.field.required %}*{% endif %}
+      </label>
+      {{ form.document_number }}
+      {% if form.document_number.errors %}
+        <span class="error">{{ form.document_number.errors.0 }}</span>
+      {% endif %}
+      {% if form.document_number.help_text %}
+        <small class="form-text">{{ form.document_number.help_text }}</small>
+      {% endif %}
+    </div>
+
+    <div class="form-field">
+      <label for="{{ form.file_type.id_for_label }}">
+        {{ form.file_type.label }}
+        {% if form.file_type.field.required %}*{% endif %}
+      </label>
+      {{ form.file_type }}
+      {% if form.file_type.errors %}
+        <span class="error">{{ form.file_type.errors.0 }}</span>
+      {% endif %}
+      {% if form.file_type.help_text %}
+        <small class="form-text">{{ form.file_type.help_text }}</small>
+      {% endif %}
+    </div>
   </div>
 
-  <div class="content-section">
-    <form method="post" enctype="multipart/form-data" class="form-container">
-      {% csrf_token %}
-      
-      {% if form.non_field_errors %}
-        <div class="alert alert-error">
-          {{ form.non_field_errors }}
-        </div>
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.files.id_for_label }}">
+        {{ form.files.label }}
+        {% if form.files.field.required %}*{% endif %}
+      </label>
+      {{ form.files }}
+      {% if form.files.errors %}
+        <span class="error">{{ form.files.errors.0 }}</span>
       {% endif %}
+      {% if form.files.help_text %}
+        <small class="form-text">{{ form.files.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
 
-      <div class="form-section">
-        <div class="form-field">
-          <label for="{{ form.document_number.id_for_label }}">
-            {{ form.document_number.label }}
-            {% if form.document_number.field.required %}*{% endif %}
-          </label>
-          {{ form.document_number }}
-          {% if form.document_number.errors %}
-            <span class="error">{{ form.document_number.errors.0 }}</span>
-          {% endif %}
-          {% if form.document_number.help_text %}
-            <small class="form-text">{{ form.document_number.help_text }}</small>
-          {% endif %}
-        </div>
-
-        <div class="form-field">
-          <label for="{{ form.file_type.id_for_label }}">
-            {{ form.file_type.label }}
-            {% if form.file_type.field.required %}*{% endif %}
-          </label>
-          {{ form.file_type }}
-          {% if form.file_type.errors %}
-            <span class="error">{{ form.file_type.errors.0 }}</span>
-          {% endif %}
-          {% if form.file_type.help_text %}
-            <small class="form-text">{{ form.file_type.help_text }}</small>
-          {% endif %}
-        </div>
-
-        <div class="form-field">
-          <label for="{{ form.files.id_for_label }}">
-            {{ form.files.label }}
-            {% if form.files.field.required %}*{% endif %}
-          </label>
-          {{ form.files }}
-          {% if form.files.errors %}
-            <span class="error">{{ form.files.errors.0 }}</span>
-          {% endif %}
-          {% if form.files.help_text %}
-            <small class="form-text">{{ form.files.help_text }}</small>
-          {% endif %}
-        </div>
-
-        <div class="form-field">
-          <label for="{{ form.description.id_for_label }}">
-            {{ form.description.label }}
-            {% if form.description.field.required %}*{% endif %}
-          </label>
-          {{ form.description }}
-          {% if form.description.errors %}
-            <span class="error">{{ form.description.errors.0 }}</span>
-          {% endif %}
-          {% if form.description.help_text %}
-            <small class="form-text">{{ form.description.help_text }}</small>
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary">{% trans "آپلود فایل‌ها" %}</button>
-        <a href="{% url 'accounting:attachment_list' %}" class="btn btn-secondary">{% trans "لغو" %}</a>
-      </div>
-    </form>
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.description.id_for_label }}">
+        {{ form.description.label }}
+        {% if form.description.field.required %}*{% endif %}
+      </label>
+      {{ form.description }}
+      {% if form.description.errors %}
+        <span class="error">{{ form.description.errors.0 }}</span>
+      {% endif %}
+      {% if form.description.help_text %}
+        <small class="form-text">{{ form.description.help_text }}</small>
+      {% endif %}
+    </div>
   </div>
 </div>
 {% endblock %}
 
+{% block form_actions_extra %}
+<script>
+// Override default form actions
+document.addEventListener('DOMContentLoaded', function() {
+  const formActions = document.querySelector('.form-actions');
+  if (formActions) {
+    formActions.innerHTML = `
+      <button type="submit" class="btn btn-primary">{% trans "آپلود فایل‌ها" %}</button>
+      <a href="{{ cancel_url|default:request.META.HTTP_REFERER|default:'/' }}" class="btn btn-secondary">{% trans "لغو" %}</a>
+    `;
+  }
+});
+</script>
+{% endblock %}
