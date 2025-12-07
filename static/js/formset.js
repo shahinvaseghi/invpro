@@ -16,11 +16,13 @@
  * @param {Object} options - Configuration options
  * @param {number} options.minRows - Minimum number of rows (default: 1)
  * @param {number} options.maxRows - Maximum number of rows (null = unlimited, default: null)
+ * @param {string} options.rowSelector - CSS selector for row elements (default: '.formset-row')
  * @returns {boolean} - True if row was added, false otherwise
  */
 function addFormsetRow(prefix, templateSelector, options = {}) {
     const minRows = options.minRows || 1;
     const maxRows = options.maxRows || null;
+    const rowSelector = options.rowSelector || '.formset-row';
     
     // Check max rows limit
     if (maxRows !== null) {
@@ -63,7 +65,7 @@ function addFormsetRow(prefix, templateSelector, options = {}) {
     totalFormsInput.value = currentFormCount + 1;
     
     // Reindex all rows (to ensure sequential indices)
-    reindexFormset(prefix);
+    reindexFormset(prefix, rowSelector);
     
     // Trigger custom event
     const event = new CustomEvent('formset:row-added', {
@@ -81,13 +83,15 @@ function addFormsetRow(prefix, templateSelector, options = {}) {
  * @param {string} prefix - Formset prefix
  * @param {Object} options - Configuration options
  * @param {number} options.minRows - Minimum number of rows (default: 1)
+ * @param {string} options.rowSelector - CSS selector for row elements (default: '.formset-row')
  * @returns {boolean} - True if row was removed, false otherwise
  */
 function removeFormsetRow(button, prefix, options = {}) {
     const minRows = options.minRows || 1;
+    const rowSelector = options.rowSelector || '.formset-row';
     
     // Get row to remove
-    const row = button.closest('tr') || button.closest('.formset-row') || button.parentElement;
+    const row = button.closest('tr') || button.closest(rowSelector) || button.parentElement;
     if (!row) {
         console.error('Row not found');
         return false;
@@ -111,10 +115,10 @@ function removeFormsetRow(button, prefix, options = {}) {
     }
     
     // Update TOTAL_FORMS
-    updateFormsetTotal(prefix);
+    updateFormsetTotal(prefix, rowSelector);
     
     // Reindex all rows
-    reindexFormset(prefix);
+    reindexFormset(prefix, rowSelector);
     
     // Trigger custom event
     const event = new CustomEvent('formset:row-removed', {
@@ -129,8 +133,9 @@ function removeFormsetRow(button, prefix, options = {}) {
  * Update TOTAL_FORMS hidden input.
  * 
  * @param {string} prefix - Formset prefix
+ * @param {string} rowSelector - CSS selector for row elements (default: '.formset-row')
  */
-function updateFormsetTotal(prefix) {
+function updateFormsetTotal(prefix, rowSelector = '.formset-row') {
     const totalFormsInput = document.getElementById(`id_${prefix}-TOTAL_FORMS`);
     if (!totalFormsInput) {
         console.error(`TOTAL_FORMS input not found for prefix: ${prefix}`);
@@ -144,14 +149,14 @@ function updateFormsetTotal(prefix) {
         // Fallback: count by field name pattern
         const visibleRows = document.querySelectorAll(`[name*="${prefix}-"][name*="-id"]`);
         const visibleCount = Array.from(visibleRows).filter(input => {
-            const row = input.closest('tr') || input.closest('.formset-row');
+            const row = input.closest('tr') || input.closest(rowSelector);
             return row && row.style.display !== 'none' && !row.classList.contains('formset-template');
         }).length;
         totalFormsInput.value = visibleCount;
         return;
     }
     
-    const visibleRows = formsetContainer.querySelectorAll('.formset-row:not(.formset-template)');
+    const visibleRows = formsetContainer.querySelectorAll(`${rowSelector}:not(.formset-template)`);
     const visibleCount = Array.from(visibleRows).filter(row => {
         const deleteInput = row.querySelector(`input[name*="-DELETE"]`);
         return !deleteInput || !deleteInput.checked;
@@ -164,8 +169,9 @@ function updateFormsetTotal(prefix) {
  * Reindex all formset rows.
  * 
  * @param {string} prefix - Formset prefix
+ * @param {string} rowSelector - CSS selector for row elements (default: '.formset-row')
  */
-function reindexFormset(prefix) {
+function reindexFormset(prefix, rowSelector = '.formset-row') {
     const formsetContainer = document.querySelector(`[data-formset-prefix="${prefix}"]`) || 
                             document.querySelector(`.formset-container`);
     if (!formsetContainer) {
@@ -173,7 +179,7 @@ function reindexFormset(prefix) {
         return;
     }
     
-    const rows = formsetContainer.querySelectorAll('.formset-row:not(.formset-template)');
+    const rows = formsetContainer.querySelectorAll(`${rowSelector}:not(.formset-template)`);
     let currentIndex = 0;
     
     rows.forEach((row, index) => {
@@ -196,7 +202,7 @@ function reindexFormset(prefix) {
     });
     
     // Update TOTAL_FORMS
-    updateFormsetTotal(prefix);
+    updateFormsetTotal(prefix, rowSelector);
 }
 
 /**
@@ -262,12 +268,14 @@ function getFormsetRowCount(prefix) {
  * @param {number} options.maxRows - Maximum number of rows (null = unlimited, default: null)
  * @param {string} options.addButtonSelector - Selector for add button (default: `.add-formset-row`)
  * @param {string} options.removeButtonSelector - Selector for remove buttons (default: `.remove-formset-row`)
+ * @param {string} options.rowSelector - CSS selector for row elements (default: '.formset-row')
  */
 function initFormset(prefix, templateSelector, options = {}) {
     const minRows = options.minRows || 1;
     const maxRows = options.maxRows || null;
     const addButtonSelector = options.addButtonSelector || `.add-formset-row[data-prefix="${prefix}"]`;
     const removeButtonSelector = options.removeButtonSelector || `.remove-formset-row[data-prefix="${prefix}"]`;
+    const rowSelector = options.rowSelector || '.formset-row';
     
     // Set formset prefix on container for easy selection
     const templateRow = document.querySelector(templateSelector);
@@ -284,7 +292,7 @@ function initFormset(prefix, templateSelector, options = {}) {
     if (addButton) {
         addButton.addEventListener('click', function(e) {
             e.preventDefault();
-            addFormsetRow(prefix, templateSelector, { minRows, maxRows });
+            addFormsetRow(prefix, templateSelector, { minRows, maxRows, rowSelector });
         });
     }
     
@@ -292,7 +300,7 @@ function initFormset(prefix, templateSelector, options = {}) {
     document.addEventListener('click', function(e) {
         if (e.target.matches(removeButtonSelector)) {
             e.preventDefault();
-            removeFormsetRow(e.target, prefix, { minRows });
+            removeFormsetRow(e.target, prefix, { minRows, rowSelector });
         }
     });
     
@@ -301,12 +309,12 @@ function initFormset(prefix, templateSelector, options = {}) {
     if (currentRows < minRows) {
         const rowsToAdd = minRows - currentRows;
         for (let i = 0; i < rowsToAdd; i++) {
-            addFormsetRow(prefix, templateSelector, { minRows, maxRows });
+            addFormsetRow(prefix, templateSelector, { minRows, maxRows, rowSelector });
         }
     }
     
     // Initial reindex
-    reindexFormset(prefix);
+    reindexFormset(prefix, rowSelector);
 }
 
 

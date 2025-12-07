@@ -1713,6 +1713,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </style>
 
 <script src="{% static 'js/cascading-dropdowns.js' %}"></script>
+<script src="{% static 'js/formset.js' %}"></script>
 <script>
 // Global error handler
 window.addEventListener('error', function(e) {
@@ -2578,7 +2579,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   function getLineForms() {
     if (!formsetContainer) return [];
-    return Array.from(formsetContainer.querySelectorAll('.line-form'));
+    return Array.from(formsetContainer.querySelectorAll('.line-form:not(.formset-template)'));
   }
   
   function ensureLineFormCount(count) {
@@ -2589,6 +2590,283 @@ document.addEventListener('DOMContentLoaded', function() {
       forms = getLineForms();
     }
     return forms;
+  }
+  
+  // Initialize a new line form (called after formset.js adds a row)
+  function initializeNewLineForm(newForm) {
+    if (!newForm) return;
+    
+    // Clear values
+    newForm.querySelectorAll('input[type="text"], input[type="number"], select, textarea').forEach(function(input) {
+      if (input.type !== 'checkbox' && input.type !== 'hidden') {
+        input.value = '';
+      }
+    });
+    
+    // Update line number
+    const lineHeader = newForm.querySelector('.line-header h4');
+    if (lineHeader) {
+      const formIndex = parseInt(newForm.dataset.formIndex) || getLineForms().length;
+      lineHeader.textContent = '{% trans "Line" %} ' + (formIndex + 1);
+    }
+    
+    // Reset delete checkbox
+    const deleteCheckbox = newForm.querySelector('input[type="checkbox"][name*="DELETE"]');
+    if (deleteCheckbox) {
+      deleteCheckbox.checked = false;
+      newForm.classList.remove('deleted');
+      deleteCheckbox.addEventListener('change', function() {
+        const lineForm = this.closest('.line-form');
+        if (this.checked) {
+          lineForm.classList.add('deleted');
+        } else {
+          lineForm.classList.remove('deleted');
+        }
+      });
+    }
+    
+    // Setup item change handlers for new form
+    setupItemSelectHandlers(newForm);
+    
+    // Setup quantity_adjusted auto-calculation for stocktaking forms
+    const quantityExpectedInput = newForm.querySelector('input[name*="-quantity_expected"]');
+    const quantityCountedInput = newForm.querySelector('input[name*="-quantity_counted"]');
+    if (quantityExpectedInput) {
+      quantityExpectedInput.addEventListener('input', function() {
+        calculateQuantityAdjusted(newForm);
+      });
+      quantityExpectedInput.addEventListener('change', function() {
+        calculateQuantityAdjusted(newForm);
+      });
+    }
+    if (quantityCountedInput) {
+      quantityCountedInput.addEventListener('input', function() {
+        calculateQuantityAdjusted(newForm);
+      });
+      quantityCountedInput.addEventListener('change', function() {
+        calculateQuantityAdjusted(newForm);
+      });
+    }
+    
+    // Disable unit and warehouse selects for new form (no item selected yet)
+    const newFormUnitSelect = newForm.querySelector('select[name*="-unit"]');
+    const newFormWarehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
+    const newFormSourceWarehouseSelect = newForm.querySelector('select[name*="-source_warehouse"]');
+    const newFormDestinationWarehouseSelect = newForm.querySelector('select[name*="-destination_warehouse"]');
+    if (newFormUnitSelect) {
+      newFormUnitSelect.disabled = true;
+      newFormUnitSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+    }
+    if (newFormWarehouseSelect) {
+      newFormWarehouseSelect.disabled = true;
+      newFormWarehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+    }
+    if (newFormSourceWarehouseSelect) {
+      newFormSourceWarehouseSelect.disabled = true;
+      newFormSourceWarehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
+    }
+    if (newFormDestinationWarehouseSelect) {
+      newFormDestinationWarehouseSelect.disabled = true;
+    }
+    
+    // Setup filters for new form
+    const typeSelect = newForm.querySelector('.filter-type-select');
+    const categorySelect = newForm.querySelector('.filter-category-select');
+    const subcategorySelect = newForm.querySelector('.filter-subcategory-select');
+    const searchInput = newForm.querySelector('.filter-search-input');
+    
+    // Setup filter listeners for new form
+    if (typeSelect) {
+      typeSelect.addEventListener('change', function() {
+        loadCategoriesForRow(newForm, this.value);
+      });
+    }
+    
+    if (categorySelect) {
+      categorySelect.addEventListener('change', function() {
+        loadSubcategoriesForRow(newForm, this.value);
+      });
+    }
+    
+    if (subcategorySelect) {
+      subcategorySelect.addEventListener('change', function() {
+        filterItemsForRow(newForm);
+      });
+    }
+    
+    // Setup search input for new form
+    if (searchInput) {
+      let searchTimeout;
+      searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() {
+          filterItemsForRow(newForm);
+        }, 300); // Debounce 300ms
+      });
+    }
+    
+    // Initialize filters for new form
+    if (typeSelect) {
+      loadCategoriesForRow(newForm, typeSelect.value);
+    } else {
+      // If no type filter, just load all items
+      filterItemsForRow(newForm);
+    }
+    
+    // Remove search box from item select if it was added
+    const newItemSelect = newForm.querySelector('select[name*="-item"]');
+    if (newItemSelect) {
+      const wrapper = newItemSelect.parentNode;
+      if (wrapper && wrapper.classList && wrapper.classList.contains('select-wrapper')) {
+        const searchInput = wrapper.querySelector('.select-search-input');
+        if (searchInput) {
+          searchInput.remove();
+          const grandParent = wrapper.parentNode;
+          if (grandParent) {
+            grandParent.insertBefore(newItemSelect, wrapper);
+            wrapper.remove();
+          }
+        }
+      }
+      const prevSibling = newItemSelect.previousElementSibling;
+      if (prevSibling && prevSibling.classList && prevSibling.classList.contains('select-search-input')) {
+        prevSibling.remove();
+      }
+    }
+    
+    // Handle serial button visibility and work lines
+    const newWarehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
+    
+    if (newWarehouseSelect) {
+      newWarehouseSelect.addEventListener('change', function() {
+        // Update serial button visibility when warehouse changes
+        if (typeof updateSerialButtonVisibility === 'function') {
+          updateSerialButtonVisibility(newForm);
+        }
+        
+        // Update work lines if destination type is work_line
+        const choiceSelect = newForm.querySelector('select[id*="destination_type_choice"]');
+        const workLineField = newForm.querySelector('select[id*="destination_work_line"]');
+        if (choiceSelect && choiceSelect.value === 'work_line' && workLineField && typeof updateWorkLineChoices === 'function') {
+          updateWorkLineChoices(newWarehouseSelect, workLineField);
+        }
+      });
+    }
+    
+    // Add handler for serial button visibility when item changes
+    if (newItemSelect) {
+      newItemSelect.addEventListener('change', function() {
+        // Update serial button visibility when item changes
+        if (typeof updateSerialButtonVisibility === 'function') {
+          updateSerialButtonVisibility(newForm);
+        }
+      });
+    }
+    
+    // Attach serial selection button handler for new form
+    const newSelectSerialsBtn = newForm.querySelector('.select-serials-btn');
+    if (newSelectSerialsBtn && typeof openSerialModal === 'function') {
+      newSelectSerialsBtn.addEventListener('click', function() {
+        openSerialModal(newForm);
+      });
+    }
+    
+    // Handle destination type choice for new form
+    const newChoiceSelect = newForm.querySelector('select[id*="destination_type_choice"]');
+    if (newChoiceSelect) {
+      const newCompanyUnitField = newForm.querySelector('select[id*="destination_company_unit"]');
+      const newCompanyUnitFieldContainer = newCompanyUnitField ? newCompanyUnitField.closest('.destination-company-unit-field') : null;
+      const newWorkLineField = newForm.querySelector('select[id*="destination_work_line"]');
+      const newWorkLineFieldContainer = newWorkLineField ? newWorkLineField.closest('.destination-work-line-field') : null;
+      const newWarehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
+      const newConsumptionTypeHidden = newForm.querySelector('input[name*="-consumption_type"]');
+      
+      function toggleFieldsForNewForm() {
+        const value = newChoiceSelect.value;
+        
+        // Update hidden consumption_type field
+        if (newConsumptionTypeHidden) {
+          newConsumptionTypeHidden.value = value;
+        }
+        
+        if (newCompanyUnitFieldContainer) {
+          newCompanyUnitFieldContainer.style.display = (value === 'company_unit') ? 'block' : 'none';
+          if (value !== 'company_unit' && newCompanyUnitField) {
+            newCompanyUnitField.value = '';
+          }
+        }
+        if (newWorkLineFieldContainer) {
+          newWorkLineFieldContainer.style.display = (value === 'work_line') ? 'block' : 'none';
+          if (value !== 'work_line' && newWorkLineField) {
+            newWorkLineField.value = '';
+          } else if (value === 'work_line' && newWarehouseSelect && newWorkLineField && typeof updateWorkLineChoices === 'function') {
+            // When work_line is selected, update work lines based on warehouse
+            updateWorkLineChoices(newWarehouseSelect, newWorkLineField);
+          }
+        }
+      }
+      
+      // Initial toggle
+      toggleFieldsForNewForm();
+      
+      // Add change handler
+      newChoiceSelect.addEventListener('change', toggleFieldsForNewForm);
+      
+      // Update work lines when warehouse changes (only if work_line is selected)
+      if (newWarehouseSelect && newWorkLineField) {
+        newWarehouseSelect.addEventListener('change', function() {
+          if (newChoiceSelect.value === 'work_line' && typeof updateWorkLineChoices === 'function') {
+            updateWorkLineChoices(newWarehouseSelect, newWorkLineField);
+          }
+        });
+      }
+    }
+    
+    // Initial check for serial button visibility
+    if (typeof updateSerialButtonVisibility === 'function') {
+      updateSerialButtonVisibility(newForm);
+    }
+    
+    // Add search to new selects (exclude filter selects explicitly)
+    newForm.querySelectorAll('select').forEach(function(select) {
+      // Skip filter selects
+      if (select.classList && (
+          select.classList.contains('filter-type-select') ||
+          select.classList.contains('filter-category-select') ||
+          select.classList.contains('filter-subcategory-select')
+      )) return;
+      
+      // Skip if inside .item-filters (unless it's the main item select)
+      if (select.closest('.item-filters')) {
+        if (!select.name || !select.name.includes('-item')) return;
+      }
+      
+      // Skip unit selects
+      if (select.name && select.name.includes('-unit')) return;
+      
+      // Add search to this select
+      addSearchToSelect(select);
+    });
+    
+    // Clean up any search boxes from filter selects in new form
+    removeSearchBoxesFromFilterSelects();
+    
+    // Also run cleanup after a short delay for the new form
+    setTimeout(function() {
+      removeSearchBoxesFromFilterSelects();
+    }, 50);
+    
+    setTimeout(function() {
+      removeSearchBoxesFromFilterSelects();
+    }, 200);
+    
+    // Update line numbers for all forms
+    getLineForms().forEach(function(lineForm, index) {
+      const lineHeader = lineForm.querySelector('.line-header h4');
+      if (lineHeader) {
+        lineHeader.textContent = '{% trans "Line" %} ' + (index + 1);
+      }
+    });
   }
   // Update unit choices when item changes
   function updateUnitChoices(itemSelect, unitSelect) {
@@ -3445,17 +3723,66 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Add new line functionality
-  if (addLineBtn && totalFormsInput) {
-    addLineBtn.addEventListener('click', function() {
-      const totalForms = parseInt(totalFormsInput.value);
-      const newFormIndex = totalForms;
+  // Setup formset management using formset.js
+  if (addLineBtn && formsetContainer && totalFormsInput && typeof initFormset === 'function') {
+    // Clone first row as template (or use last if no first exists)
+    const firstRow = formsetContainer.querySelector('.line-form:not(.formset-template)');
+    if (firstRow) {
+      const templateRow = firstRow.cloneNode(true);
+      templateRow.id = 'lines-formset-template';
+      templateRow.style.display = 'none';
+      templateRow.classList.add('formset-template');
+      formsetContainer.appendChild(templateRow);
       
-      // Clone the last form
+      // Determine formset prefix from totalFormsInput name
+      const prefixMatch = totalFormsInput.name.match(/^(\w+)-TOTAL_FORMS$/);
+      const formsetPrefix = prefixMatch ? prefixMatch[1] : 'lines';
+      
+      // Initialize formset
+      initFormset(formsetPrefix, '#lines-formset-template', {
+        minRows: 1,
+        maxRows: null,
+        addButtonSelector: '#add-line-btn',
+        removeButtonSelector: 'input[name*="-DELETE"]',
+        rowSelector: '.line-form'
+      });
+      
+      // After adding row, initialize the new form
+      document.addEventListener('formset:row-added', function(e) {
+        if (e.detail.prefix === formsetPrefix) {
+          setTimeout(function() {
+            const newRow = e.detail.row;
+            if (newRow) {
+              initializeNewLineForm(newRow);
+            }
+          }, 50);
+        }
+      });
+      
+      // Handle row removal - update line numbers
+      document.addEventListener('formset:row-removed', function(e) {
+        if (e.detail.prefix === formsetPrefix) {
+          setTimeout(function() {
+            getLineForms().forEach(function(lineForm, index) {
+              const lineHeader = lineForm.querySelector('.line-header h4');
+              if (lineHeader) {
+                lineHeader.textContent = '{% trans "Line" %} ' + (index + 1);
+              }
+            });
+          }, 50);
+        }
+      });
+    }
+  } else if (addLineBtn && totalFormsInput) {
+    // Fallback: use old method if formset.js is not available
+    console.warn('formset.js not available, using fallback method');
+    addLineBtn.addEventListener('click', function() {
       const lastForm = formsetContainer.querySelector('.line-form:last-child');
       if (!lastForm) return;
       
       const newForm = lastForm.cloneNode(true);
+      const totalForms = parseInt(totalFormsInput.value);
+      const newFormIndex = totalForms;
       
       // Update form indices
       newForm.querySelectorAll('input, select, textarea').forEach(function(input) {
@@ -3466,278 +3793,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
       
-      // Clear values
-      newForm.querySelectorAll('input[type="text"], input[type="number"], select, textarea').forEach(function(input) {
-        if (input.type !== 'checkbox' && input.type !== 'hidden') {
-          input.value = '';
-        }
-      });
-      
-      // Update line number
-      const lineHeader = newForm.querySelector('.line-header h4');
-      if (lineHeader) {
-        lineHeader.textContent = '{% trans "Line" %} ' + (newFormIndex + 1);
-      }
-      
-      // Reset delete checkbox
-      const deleteCheckbox = newForm.querySelector('input[type="checkbox"][name*="DELETE"]');
-      if (deleteCheckbox) {
-        deleteCheckbox.checked = false;
-        newForm.classList.remove('deleted');
-      }
-      
-      // Add to container
       formsetContainer.appendChild(newForm);
-      
-      // Update total forms
       totalFormsInput.value = totalForms + 1;
-      
-      // Re-attach event handlers
-      if (deleteCheckbox) {
-        deleteCheckbox.addEventListener('change', function() {
-          const lineForm = this.closest('.line-form');
-          if (this.checked) {
-            lineForm.classList.add('deleted');
-          } else {
-            lineForm.classList.remove('deleted');
-          }
-        });
-      }
-      
-      // Setup item change handlers for new form
-      setupItemSelectHandlers(newForm);
-      
-      // Setup quantity_adjusted auto-calculation for stocktaking forms
-      const quantityExpectedInput = newForm.querySelector('input[name*="-quantity_expected"]');
-      const quantityCountedInput = newForm.querySelector('input[name*="-quantity_counted"]');
-      if (quantityExpectedInput) {
-        quantityExpectedInput.addEventListener('input', function() {
-          calculateQuantityAdjusted(newForm);
-        });
-        quantityExpectedInput.addEventListener('change', function() {
-          calculateQuantityAdjusted(newForm);
-        });
-      }
-      if (quantityCountedInput) {
-        quantityCountedInput.addEventListener('input', function() {
-          calculateQuantityAdjusted(newForm);
-        });
-        quantityCountedInput.addEventListener('change', function() {
-          calculateQuantityAdjusted(newForm);
-        });
-      }
-      
-      // Disable unit and warehouse selects for new form (no item selected yet)
-      const newFormUnitSelect = newForm.querySelector('select[name*="-unit"]');
-      const newFormWarehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
-      const newFormSourceWarehouseSelect = newForm.querySelector('select[name*="-source_warehouse"]');
-      const newFormDestinationWarehouseSelect = newForm.querySelector('select[name*="-destination_warehouse"]');
-      if (newFormUnitSelect) {
-        newFormUnitSelect.disabled = true;
-        newFormUnitSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
-      }
-      if (newFormWarehouseSelect) {
-        newFormWarehouseSelect.disabled = true;
-        newFormWarehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
-      }
-      if (newFormSourceWarehouseSelect) {
-        newFormSourceWarehouseSelect.disabled = true;
-        newFormSourceWarehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
-      }
-      if (newFormDestinationWarehouseSelect) {
-        newFormDestinationWarehouseSelect.disabled = true;
-      }
-      
-      // Setup filters for new form
-      const typeSelect = newForm.querySelector('.filter-type-select');
-      const categorySelect = newForm.querySelector('.filter-category-select');
-      const subcategorySelect = newForm.querySelector('.filter-subcategory-select');
-      const searchInput = newForm.querySelector('.filter-search-input');
-      
-      // Setup filter listeners for new form
-      if (typeSelect) {
-        typeSelect.addEventListener('change', function() {
-          loadCategoriesForRow(newForm, this.value);
-        });
-      }
-      
-      if (categorySelect) {
-        categorySelect.addEventListener('change', function() {
-          loadSubcategoriesForRow(newForm, this.value);
-        });
-      }
-      
-      if (subcategorySelect) {
-        subcategorySelect.addEventListener('change', function() {
-          filterItemsForRow(newForm);
-        });
-      }
-      
-      // Setup search input for new form
-      if (searchInput) {
-        let searchTimeout;
-        searchInput.addEventListener('input', function() {
-          clearTimeout(searchTimeout);
-          searchTimeout = setTimeout(function() {
-            filterItemsForRow(newForm);
-          }, 300); // Debounce 300ms
-        });
-      }
-      
-      // Initialize filters for new form
-      if (typeSelect) {
-        loadCategoriesForRow(newForm, typeSelect.value);
-      } else {
-        // If no type filter, just load all items
-        filterItemsForRow(newForm);
-      }
-      
-      // Remove search box from item select if it was added
-      const newItemSelect = newForm.querySelector('select[name*="-item"]');
-      if (newItemSelect) {
-        const wrapper = newItemSelect.parentNode;
-        if (wrapper && wrapper.classList && wrapper.classList.contains('select-wrapper')) {
-          const searchInput = wrapper.querySelector('.select-search-input');
-          if (searchInput) {
-            searchInput.remove();
-            const grandParent = wrapper.parentNode;
-            if (grandParent) {
-              grandParent.insertBefore(newItemSelect, wrapper);
-              wrapper.remove();
-            }
-          }
-        }
-        const prevSibling = newItemSelect.previousElementSibling;
-        if (prevSibling && prevSibling.classList && prevSibling.classList.contains('select-search-input')) {
-          prevSibling.remove();
-        }
-      }
-      // Note: setupItemSelectHandlers is called above, so we don't need to duplicate event handlers here
-      // But we still need to handle serial button visibility and work lines
-      const newWarehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
-      
-      if (newWarehouseSelect) {
-        newWarehouseSelect.addEventListener('change', function() {
-          // Update serial button visibility when warehouse changes
-          if (typeof updateSerialButtonVisibility === 'function') {
-            updateSerialButtonVisibility(newForm);
-          }
-          
-          // Update work lines if destination type is work_line
-          const choiceSelect = newForm.querySelector('select[id*="destination_type_choice"]');
-          const workLineField = newForm.querySelector('select[id*="destination_work_line"]');
-          if (choiceSelect && choiceSelect.value === 'work_line' && workLineField && typeof updateWorkLineChoices === 'function') {
-            updateWorkLineChoices(newWarehouseSelect, workLineField);
-          }
-        });
-      }
-      
-      // Add handler for serial button visibility when item changes (setupItemSelectHandlers doesn't handle this)
-      if (newItemSelect) {
-        newItemSelect.addEventListener('change', function() {
-          // Update serial button visibility when item changes
-          if (typeof updateSerialButtonVisibility === 'function') {
-            updateSerialButtonVisibility(newForm);
-          }
-        });
-      }
-      
-      // Attach serial selection button handler for new form
-      const newSelectSerialsBtn = newForm.querySelector('.select-serials-btn');
-      if (newSelectSerialsBtn && typeof openSerialModal === 'function') {
-        newSelectSerialsBtn.addEventListener('click', function() {
-          openSerialModal(newForm);
-        });
-      }
-      
-      // Handle destination type choice for new form
-      const newChoiceSelect = newForm.querySelector('select[id*="destination_type_choice"]');
-      if (newChoiceSelect) {
-        const newCompanyUnitField = newForm.querySelector('select[id*="destination_company_unit"]');
-        const newCompanyUnitFieldContainer = newCompanyUnitField ? newCompanyUnitField.closest('.destination-company-unit-field') : null;
-        const newWorkLineField = newForm.querySelector('select[id*="destination_work_line"]');
-        const newWorkLineFieldContainer = newWorkLineField ? newWorkLineField.closest('.destination-work-line-field') : null;
-        const newWarehouseSelect = newForm.querySelector('select[name*="-warehouse"]');
-        const newConsumptionTypeHidden = newForm.querySelector('input[name*="-consumption_type"]');
-        
-        function toggleFieldsForNewForm() {
-          const value = newChoiceSelect.value;
-          
-          // Update hidden consumption_type field
-          if (newConsumptionTypeHidden) {
-            newConsumptionTypeHidden.value = value;
-          }
-          
-          if (newCompanyUnitFieldContainer) {
-            newCompanyUnitFieldContainer.style.display = (value === 'company_unit') ? 'block' : 'none';
-            if (value !== 'company_unit' && newCompanyUnitField) {
-              newCompanyUnitField.value = '';
-            }
-          }
-          if (newWorkLineFieldContainer) {
-            newWorkLineFieldContainer.style.display = (value === 'work_line') ? 'block' : 'none';
-            if (value !== 'work_line' && newWorkLineField) {
-              newWorkLineField.value = '';
-            } else if (value === 'work_line' && newWarehouseSelect && newWorkLineField && typeof updateWorkLineChoices === 'function') {
-              // When work_line is selected, update work lines based on warehouse
-              updateWorkLineChoices(newWarehouseSelect, newWorkLineField);
-            }
-          }
-        }
-        
-        // Initial toggle
-        toggleFieldsForNewForm();
-        
-        // Add change handler
-        newChoiceSelect.addEventListener('change', toggleFieldsForNewForm);
-        
-        // Update work lines when warehouse changes (only if work_line is selected)
-        if (newWarehouseSelect && newWorkLineField) {
-          newWarehouseSelect.addEventListener('change', function() {
-            if (newChoiceSelect.value === 'work_line' && typeof updateWorkLineChoices === 'function') {
-              updateWorkLineChoices(newWarehouseSelect, newWorkLineField);
-            }
-          });
-        }
-      }
-      
-      // Initial check for serial button visibility
-      if (typeof updateSerialButtonVisibility === 'function') {
-        updateSerialButtonVisibility(newForm);
-      }
-      
-      // Add search to new selects (exclude filter selects explicitly)
-      newForm.querySelectorAll('select').forEach(function(select) {
-        // Skip filter selects
-        if (select.classList && (
-            select.classList.contains('filter-type-select') ||
-            select.classList.contains('filter-category-select') ||
-            select.classList.contains('filter-subcategory-select')
-        )) return;
-        
-        // Skip if inside .item-filters (unless it's the main item select)
-        if (select.closest('.item-filters')) {
-          if (!select.name || !select.name.includes('-item')) return;
-        }
-        
-        // Skip unit selects
-        if (select.name && select.name.includes('-unit')) return;
-        
-        // Add search to this select
-        addSearchToSelect(select);
-      });
-      
-      // Clean up any search boxes from filter selects in new form (in case any were processed)
-      removeSearchBoxesFromFilterSelects();
-      
-      // Also run cleanup after a short delay for the new form
-      setTimeout(function() {
-        removeSearchBoxesFromFilterSelects();
-      }, 50);
-      
-      setTimeout(function() {
-        removeSearchBoxesFromFilterSelects();
-      }, 200);
+      initializeNewLineForm(newForm);
     });
   }
   
