@@ -1,20 +1,47 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n %}
 
-{% block title %}{% if page_title %}{{ page_title }}{% else %}{% trans "حساب‌های طرف حساب" %}{% endif %} - {{ block.super }}{% endblock %}
+{% block table_headers %}
+<th>{% trans "Party" %}</th>
+<th>{% trans "Account Code" %}</th>
+<th>{% trans "Account Name" %}</th>
+<th>{% trans "Tafsili Account" %}</th>
+<th>{% trans "Sub Account" %}</th>
+<th>{% trans "GL Account" %}</th>
+{% if show_actions %}
+  <th>{% trans "Actions" %}</th>
+{% endif %}
+{% endblock %}
 
-{% block content %}
-<section class="page-section">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding: 1rem 0;">
-        <h1 style="margin: 0;">{% if page_title %}{{ page_title }}{% else %}{% trans "حساب‌های طرف حساب" %}{% endif %}</h1>
-        {% if create_url %}
-        <a href="{{ create_url }}" class="btn btn-primary">+ {% trans "ایجاد حساب طرف حساب" %}</a>
-        {% endif %}
-    </div>
-
-    <div class="card">
-        <p>{% trans "این صفحه در حال توسعه است." %}</p>
-    </div>
-</section>
+{% block table_rows %}
+{% if object_list %}
+  {% for account in object_list %}
+  <tr>
+    <td>
+      {% if account.party %}
+        <a href="{% url 'accounting:party_detail' account.party.pk %}">{{ account.party.name }}</a>
+      {% else %}
+        <span class="muted-text">–</span>
+      {% endif %}
+    </td>
+    <td><code>{{ account.code|default:"–" }}</code></td>
+    <td><strong>{{ account.name|default:"–" }}</strong></td>
+    <td>{{ account.tafsili_account|default:"–" }}</td>
+    <td>{{ account.sub_account|default:"–" }}</td>
+    <td>{{ account.gl_account|default:"–" }}</td>
+    {% if show_actions %}
+      <td>
+        {% include 'shared/partials/row_actions.html' with object=account feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
+      </td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+{% else %}
+  <tr>
+    <td colspan="{% if show_actions %}7{% else %}6{% endif %}" style="text-align: center; padding: 2rem;">
+      <p>{% trans "این صفحه در حال توسعه است." %}</p>
+    </td>
+  </tr>
+{% endif %}
 {% endblock %}
 

@@ -1,20 +1,39 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "حساب‌های نقدی و بانکی" %} - {{ block.super }}{% endblock %}
+{% block table_headers %}
+<th>{% trans "Code" %}</th>
+<th>{% trans "Name" %}</th>
+<th>{% trans "Account Type" %}</th>
+<th>{% trans "Bank Name" %}</th>
+<th>{% trans "Account Number" %}</th>
+{% if show_actions %}
+  <th>{% trans "Actions" %}</th>
+{% endif %}
+{% endblock %}
 
-{% block content %}
-<section class="page-section">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding: 1rem 0;">
-        <h1 style="margin: 0;">{% trans "حساب‌های نقدی و بانکی" %}</h1>
-        {% if create_url %}
-        <a href="{{ create_url }}" class="btn btn-primary">+ {% trans "ایجاد حساب نقدی/بانکی" %}</a>
-        {% endif %}
-    </div>
-
-    <div class="card">
-        <p>{% trans "این صفحه در حال توسعه است." %}</p>
-    </div>
-</section>
+{% block table_rows %}
+{% if object_list %}
+  {% for account in object_list %}
+  <tr>
+    <td><code>{{ account.code|default:"–" }}</code></td>
+    <td><strong>{{ account.name|default:"–" }}</strong></td>
+    <td>{{ account.account_type|default:"–" }}</td>
+    <td>{{ account.bank_name|default:"–" }}</td>
+    <td>{{ account.account_number|default:"–" }}</td>
+    {% if show_actions %}
+      <td>
+        {% include 'shared/partials/row_actions.html' with object=account feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
+      </td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+{% else %}
+  <tr>
+    <td colspan="{% if show_actions %}6{% else %}5{% endif %}" style="text-align: center; padding: 2rem;">
+      <p>{% trans "این صفحه در حال توسعه است." %}</p>
+    </td>
+  </tr>
+{% endif %}
 {% endblock %}
 

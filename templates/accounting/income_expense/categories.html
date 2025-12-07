@@ -1,20 +1,51 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n %}
 
-{% block title %}{% if page_title %}{{ page_title }}{% else %}{% trans "دسته‌بندی درآمد و هزینه" %}{% endif %} - {{ block.super }}{% endblock %}
+{% block table_headers %}
+<th>{% trans "Code" %}</th>
+<th>{% trans "Name" %}</th>
+<th>{% trans "Type" %}</th>
+<th>{% trans "Parent Category" %}</th>
+<th>{% trans "Status" %}</th>
+{% if show_actions %}
+  <th>{% trans "Actions" %}</th>
+{% endif %}
+{% endblock %}
 
-{% block content %}
-<section class="page-section">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding: 1rem 0;">
-        <h1 style="margin: 0;">{% if page_title %}{{ page_title }}{% else %}{% trans "دسته‌بندی درآمد و هزینه" %}{% endif %}</h1>
-        {% if create_url %}
-        <a href="{{ create_url }}" class="btn btn-primary">+ {% trans "ایجاد دسته‌بندی" %}</a>
-        {% endif %}
-    </div>
-
-    <div class="card">
-        <p>{% trans "این صفحه در حال توسعه است." %}</p>
-    </div>
-</section>
+{% block table_rows %}
+{% if object_list %}
+  {% for category in object_list %}
+  <tr>
+    <td><code>{{ category.code|default:"–" }}</code></td>
+    <td><strong>{{ category.name|default:"–" }}</strong></td>
+    <td>{{ category.category_type|default:"–" }}</td>
+    <td>
+      {% if category.parent_category %}
+        <a href="{% url 'accounting:income_expense_category_detail' category.parent_category.pk %}">{{ category.parent_category.name }}</a>
+      {% else %}
+        <span class="muted-text">–</span>
+      {% endif %}
+    </td>
+    <td>
+      {% if category.is_enabled %}
+        <span class="badge badge-active">{% trans "Active" %}</span>
+      {% else %}
+        <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+      {% endif %}
+    </td>
+    {% if show_actions %}
+      <td>
+        {% include 'shared/partials/row_actions.html' with object=category feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
+      </td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+{% else %}
+  <tr>
+    <td colspan="{% if show_actions %}6{% else %}5{% endif %}" style="text-align: center; padding: 2rem;">
+      <p>{% trans "این صفحه در حال توسعه است." %}</p>
+    </td>
+  </tr>
+{% endif %}
 {% endblock %}
 

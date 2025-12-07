@@ -1,26 +1,45 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n %}
 
-{% block title %}{% if page_title %}{{ page_title }}{% else %}{% trans "طرف حساب‌ها" %}{% endif %} - {{ block.super }}{% endblock %}
+{% block extra_actions %}
+{% if party_accounts_url %}
+  <a href="{{ party_accounts_url }}" class="btn btn-secondary">{% trans "حساب‌های طرف حساب‌ها" %}</a>
+{% endif %}
+{% endblock %}
 
-{% block content %}
-<section class="page-section">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding: 1rem 0;">
-        <h1 style="margin: 0;">{% if page_title %}{{ page_title }}{% else %}{% trans "طرف حساب‌ها" %}{% endif %}</h1>
-        {% if create_url %}
-        <a href="{{ create_url }}" class="btn btn-primary">+ {% trans "ایجاد طرف حساب" %}</a>
-        {% endif %}
-    </div>
+{% block table_headers %}
+<th>{% trans "Code" %}</th>
+<th>{% trans "Name" %}</th>
+<th>{% trans "Type" %}</th>
+<th>{% trans "Contact Person" %}</th>
+<th>{% trans "Phone" %}</th>
+{% if show_actions %}
+  <th>{% trans "Actions" %}</th>
+{% endif %}
+{% endblock %}
 
-    <div class="card">
-        <p>{% trans "این صفحه در حال توسعه است." %}</p>
-        
-        {% if party_accounts_url %}
-        <div style="margin-top: 1rem;">
-            <a href="{{ party_accounts_url }}" class="btn btn-secondary">{% trans "حساب‌های طرف حساب‌ها" %}</a>
-        </div>
-        {% endif %}
-    </div>
-</section>
+{% block table_rows %}
+{% if object_list %}
+  {% for party in object_list %}
+  <tr>
+    <td><code>{{ party.code|default:"–" }}</code></td>
+    <td><strong>{{ party.name|default:"–" }}</strong></td>
+    <td>{{ party.party_type|default:"–" }}</td>
+    <td>{{ party.contact_person|default:"–" }}</td>
+    <td>{{ party.phone|default:"–" }}</td>
+    {% if show_actions %}
+      <td>
+        {% include 'shared/partials/row_actions.html' with object=party feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
+      </td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+{% else %}
+  <tr>
+    <td colspan="{% if show_actions %}6{% else %}5{% endif %}" style="text-align: center; padding: 2rem;">
+      <p>{% trans "این صفحه در حال توسعه است." %}</p>
+    </td>
+  </tr>
+{% endif %}
 {% endblock %}
 
