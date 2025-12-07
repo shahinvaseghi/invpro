@@ -14,9 +14,9 @@
 - ⏳ فاز 4: JavaScript Refactoring (40+ فایل) - در حال انجام
   - ⏳ فاز 4.1: Formset Management JavaScript (18+ فایل) - **5 فایل refactor شدند** (item_form.html, purchase_request_form.html, performance_record_form.html, transfer_to_line_form.html, receipt_form.html)
   - ⏳ فاز 4.2: Cascading Dropdowns JavaScript (10+ فایل) - **6 فایل refactor شدند** (bom_form.html, treasury/account_form.html, item_form.html, transfer_to_line_form.html, purchase_request_form.html, receipt_form.html)
-  - ⏳ فاز 4.3: Table Export JavaScript (17+ فایل) - در انتظار
-  - ⏳ فاز 4.4: Approval/Reject Functions (3+ فایل) - در انتظار
-  - ⏳ فاز 4.5: Modal Dialogs (3+ فایل) - در انتظار
+  - ⏳ فاز 4.3: Table Export JavaScript (17+ فایل) - **3 فایل refactor شدند** (generic_report.html, inventory_balance.html, inventory_balance_details.html) - **نکته**: 14 فایل دیگر export function ندارند
+  - ✅ فاز 4.4: Approval/Reject Functions (4 فایل) - **4 فایل refactor شدند** (100%)
+  - ✅ فاز 4.5: Modal Dialogs (3+ فایل) - **3 فایل refactor شدند** (100%)
 
 ---
 
@@ -551,22 +551,31 @@
 **صرفه‌جویی**: حذف ~100 خط کد JavaScript تکراری
 
 #### 6.4 Approval/Reject Functions JavaScript
-**فایل‌های نیازمند Refactor** (3+ فایل):
-- `production/rework_document_list.html` - JavaScript inline برای `approveDocument()`, `rejectDocument()` (~50 خط)
-- `production/qc_operations_list.html` - JavaScript inline برای `approveOperation()`, `rejectOperation()` (~80 خط)
-- `production/rework_operations_list.html` - JavaScript inline برای `showNotes()` (~20 خط)
+**فایل‌های نیازمند Refactor** (4 فایل): ✅ **تکمیل شد**
+- ✅ `production/performance_record_list.html` - **refactor شد** - استفاده از `approval-actions.js`
+- ✅ `production/rework_document_list.html` - **refactor شد** - استفاده از `approval-actions.js`
+- ✅ `production/qc_operations_list.html` - **refactor شد** - استفاده از `approval-actions.js`
+- ✅ `production/transfer_to_line_list.html` - **refactor شد** - استفاده از `approval-actions.js` با fetch API
 
-**راه حل**: ایجاد `static/js/approval-actions.js` با توابع مشترک
+**راه حل**: استفاده از `static/js/approval-actions.js` با توابع مشترک
+- `approveObject()` - برای approve کردن object
+- `rejectObject()` - برای reject کردن object (با پشتیبانی از notes)
+- `submitApprovalAction()` - برای form submission
+- `submitApprovalActionFetch()` - برای fetch API
 
-**صرفه‌جویی**: حذف ~150 خط کد JavaScript تکراری
+**صرفه‌جویی**: حذف ~200 خط کد JavaScript تکراری
 
 #### 6.5 Modal Dialogs JavaScript
-**فایل‌های نیازمند Refactor** (3+ فایل):
-- `production/rework.html` - JavaScript inline برای `showNotes()` modal
-- `production/qc_operations_list.html` - JavaScript inline برای `showNotes()` modal
-- `production/rework_operations_list.html` - JavaScript inline برای `showNotes()` modal
+**فایل‌های نیازمند Refactor** (3+ فایل): ✅ **تکمیل شد**
+- ✅ `production/rework.html` - **refactor شد** - استفاده از `modal-dialogs.js`
+- ✅ `production/qc_operations_list.html` - **refactor شد** - استفاده از `modal-dialogs.js`
+- ✅ `production/rework_operations_list.html` - **refactor شد** - استفاده از `modal-dialogs.js`
 
-**راه حل**: ایجاد `static/js/modal-dialogs.js` با توابع مشترک
+**راه حل**: استفاده از `static/js/modal-dialogs.js` با توابع مشترک
+- `showModal()` - برای نمایش modal dialog
+- `showNotes()` - برای نمایش notes
+- `showQCNotes()` - برای نمایش QC notes
+- `showRejectionNotes()` - برای نمایش rejection notes
 
 **صرفه‌جویی**: حذف ~50 خط کد JavaScript تکراری
 
@@ -868,10 +877,10 @@
    - ✅ **تکمیل شده**: `shared/generic/generic_report.html`, `inventory/inventory_balance.html`, `inventory/inventory_balance_details.html`
    - ⏳ **باقی مانده**: `inventory/item_serials.html`, `inventory/purchase_requests.html`, `inventory/receipt_temporary.html`, `inventory/receipt_permanent.html`, `inventory/receipt_consignment.html`, `inventory/warehouse_requests.html`, `inventory/issue_permanent.html`, `inventory/issue_consumption.html`, `inventory/issue_consignment.html`, `inventory/stocktaking_deficit.html`, `inventory/stocktaking_surplus.html`, `inventory/stocktaking_records.html`, `production/performance_record_list.html`, `production/transfer_to_line_list.html`
    - **نکته**: بسیاری از این فایل‌ها export function ندارند و نیاز به بررسی دارند. فقط فایل‌هایی که واقعاً export function دارند refactor می‌شوند.
-4. ⏳ Refactor Approval/Reject Functions (3+ فایل) - **3 فایل refactor شد**
+4. ✅ Refactor Approval/Reject Functions (4 فایل) - **4 فایل refactor شد**
    - استفاده از `static/js/approval-actions.js`
-   - ✅ **تکمیل شده**: `production/performance_record_list.html`, `production/rework_document_list.html`, `production/qc_operations_list.html`
-   - ⏳ **باقی مانده**: `production/transfer_to_line_list.html` (از fetch API استفاده می‌کند - نیاز به بررسی و احتمالاً extend کردن approval-actions.js)
+   - ✅ **تکمیل شده**: `production/performance_record_list.html`, `production/rework_document_list.html`, `production/qc_operations_list.html`, `production/transfer_to_line_list.html`
+   - **نکته**: `approval-actions.js` اکنون از fetch API هم پشتیبانی می‌کند (option `useFetch`)
 5. ✅ Refactor Modal Dialogs (3+ فایل) - **3 فایل refactor شد**
    - استفاده از `static/js/modal-dialogs.js`
    - ✅ **تکمیل شده**: `production/rework.html`, `production/qc_operations_list.html`, `production/rework_operations_list.html`
@@ -918,9 +927,11 @@
 - `static/js/table-export.js` - export جدول به CSV/Excel
 - `static/js/formset-table.js` - مدیریت formset در جداول
 
-⏳ **فایل‌های نیازمند ساخت**:
-- `static/js/approval-actions.js` - توابع approve/reject مشترک
+✅ **فایل‌های ساخته شده**:
+- `static/js/approval-actions.js` - توابع approve/reject مشترک (با پشتیبانی از form submission و fetch API)
 - `static/js/modal-dialogs.js` - مدیریت modal dialogs
+
+⏳ **فایل‌های نیازمند ساخت**:
 - `static/js/common-actions.js` - توابع مشترک (print, confirm, toggle visibility)
 
 ### مثال Refactoring JavaScript
@@ -1042,15 +1053,23 @@ document.addEventListener('DOMContentLoaded', function() {
     - ✅ `shared/generic/generic_report.html`
     - ✅ `inventory/inventory_balance.html`
     - ✅ `inventory/inventory_balance_details.html`
-  - ⏳ فاز 4.4: Approval/Reject Functions (3+ فایل) - در انتظار
-  - ⏳ فاز 4.5: Modal Dialogs (3+ فایل) - در انتظار
+    - **نکته**: 14 فایل دیگر export function ندارند و نیاز به refactoring ندارند
+  - ✅ فاز 4.4: Approval/Reject Functions (4 فایل) - **4 فایل refactor شدند** (100%)
+    - ✅ `production/performance_record_list.html`
+    - ✅ `production/rework_document_list.html`
+    - ✅ `production/qc_operations_list.html`
+    - ✅ `production/transfer_to_line_list.html` (با پشتیبانی از fetch API)
+  - ✅ فاز 4.5: Modal Dialogs (3+ فایل) - **3 فایل refactor شدند** (100%)
+    - ✅ `production/rework.html`
+    - ✅ `production/qc_operations_list.html`
+    - ✅ `production/rework_operations_list.html`
 
 **پیشرفت کلی**: 
 - ✅ Detail Views: 39 از 39 فایل (100%)
-- ⏳ JavaScript Refactoring: 21 از 40+ فایل (~53%)
+- ⏳ JavaScript Refactoring: 22 از 40+ فایل (~55%)
   - ✅ Formset Management: 5 از 18+ فایل (28%)
   - ✅ Cascading Dropdowns: 6 از 10+ فایل (60%)
   - ✅ Table Export: 3 از 17+ فایل (18%) - **نکته**: 14 فایل دیگر export function ندارند
-  - ✅ Approval/Reject Functions: 3 از 4 فایل (75%)
+  - ✅ Approval/Reject Functions: 4 از 4 فایل (100%)
   - ✅ Modal Dialogs: 3 از 3 فایل (100%)
 

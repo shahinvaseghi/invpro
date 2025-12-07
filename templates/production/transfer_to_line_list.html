@@ -163,124 +163,44 @@ function getCSRFToken() {
   return null;
 }
 
+{% load static %}
+<script src="{% static 'js/approval-actions.js' %}"></script>
+<script>
+// Wrapper functions for transfer requests using fetch API
 function approveTransfer(transferId) {
-  if (!confirm('{% trans "Are you sure you want to approve this transfer request?" %}')) {
-    return;
-  }
-  
-  const url = `{% url 'production:transfer_request_approve' 0 %}`.replace('0', transferId);
-  const csrfToken = getCSRFToken();
-  
-  fetch(url, {
-    method: 'POST',
-    headers: {
-      'X-CSRFToken': csrfToken,
-      'Content-Type': 'application/json',
-    },
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      // Reload page to show updated status
-      window.location.reload();
-    } else {
-      alert(data.error || '{% trans "An error occurred while approving the transfer request." %}');
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    alert('{% trans "An error occurred while approving the transfer request." %}');
-  });
+  approveObject(
+    transferId,
+    '{% url "production:transfer_request_approve" 0 %}',
+    '{% trans "Are you sure you want to approve this transfer request?" %}',
+    { useFetch: true }
+  );
 }
 
 function rejectTransfer(transferId) {
-  if (!confirm('{% trans "Are you sure you want to reject this transfer request?" %}')) {
-    return;
-  }
-  
-  const url = `{% url 'production:transfer_request_reject' 0 %}`.replace('0', transferId);
-  const csrfToken = getCSRFToken();
-  
-  fetch(url, {
-    method: 'POST',
-    headers: {
-      'X-CSRFToken': csrfToken,
-      'Content-Type': 'application/json',
-    },
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      // Reload page to show updated status
-      window.location.reload();
-    } else {
-      alert(data.error || '{% trans "An error occurred while rejecting the transfer request." %}');
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    alert('{% trans "An error occurred while rejecting the transfer request." %}');
-  });
+  rejectObject(
+    transferId,
+    '{% url "production:transfer_request_reject" 0 %}',
+    '{% trans "Are you sure you want to reject this transfer request?" %}',
+    { useFetch: true }
+  );
 }
 
 function approveQCTransfer(transferId) {
-  if (!confirm('{% trans "Are you sure you want to approve QC for this transfer request?" %}')) {
-    return;
-  }
-  
-  const url = `{% url 'production:transfer_request_qc_approve' 0 %}`.replace('0', transferId);
-  const csrfToken = getCSRFToken();
-  
-  fetch(url, {
-    method: 'POST',
-    headers: {
-      'X-CSRFToken': csrfToken,
-      'Content-Type': 'application/json',
-    },
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      // Reload page to show updated status
-      window.location.reload();
-    } else {
-      alert(data.error || '{% trans "An error occurred while approving QC for the transfer request." %}');
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    alert('{% trans "An error occurred while approving QC for the transfer request." %}');
-  });
+  approveObject(
+    transferId,
+    '{% url "production:transfer_request_qc_approve" 0 %}',
+    '{% trans "Are you sure you want to approve QC for this transfer request?" %}',
+    { useFetch: true }
+  );
 }
 
 function rejectQCTransfer(transferId) {
-  if (!confirm('{% trans "Are you sure you want to reject QC for this transfer request?" %}')) {
-    return;
-  }
-  
-  const url = `{% url 'production:transfer_request_qc_reject' 0 %}`.replace('0', transferId);
-  const csrfToken = getCSRFToken();
-  
-  fetch(url, {
-    method: 'POST',
-    headers: {
-      'X-CSRFToken': csrfToken,
-      'Content-Type': 'application/json',
-    },
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      // Reload page to show updated status
-      window.location.reload();
-    } else {
-      alert(data.error || '{% trans "An error occurred while rejecting QC for the transfer request." %}');
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    alert('{% trans "An error occurred while rejecting QC for the transfer request." %}');
-  });
+  rejectObject(
+    transferId,
+    '{% url "production:transfer_request_qc_reject" 0 %}',
+    '{% trans "Are you sure you want to reject QC for this transfer request?" %}',
+    { useFetch: true }
+  );
 }
 
 function createWarehouseTransfer(transferId) {
