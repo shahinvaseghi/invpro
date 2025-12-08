@@ -121,17 +121,7 @@
 {% endblock %}
 
 {% block pagination %}
-{% if is_paginated %}
-<div class="pagination">
-  {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}" class="page-link">{% trans "Previous" %}</a>
-  {% endif %}
-  <span>{% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}</span>
-  {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}" class="page-link">{% trans "Next" %}</a>
-  {% endif %}
-</div>
-{% endif %}
+{% include 'shared/partials/pagination.html' %}
 {% endblock %}
 
 {% block empty_state_title %}{% trans "No Transfer Requests Found" %}{% endblock %}

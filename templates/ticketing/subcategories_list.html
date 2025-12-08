@@ -55,12 +55,7 @@
   </td>
   {% if show_actions %}
   <td>
-    <a href="{% url edit_url_name subcategory.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
-      {% trans "Edit" %}
-    </a>
-    <a href="{% url delete_url_name subcategory.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
-      {% trans "Delete" %}
-    </a>
+    {% include 'shared/partials/row_actions.html' with object=subcategory feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
   </td>
   {% endif %}
 </tr>
@@ -68,21 +63,5 @@
 {% endblock %}
 
 {% block pagination %}
-{% if is_paginated %}
-<div class="pagination">
-  {% if page_obj.has_previous %}
-    <a href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.parent %}&parent={{ request.GET.parent }}{% endif %}">&laquo; {% trans "First" %}</a>
-    <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.parent %}&parent={{ request.GET.parent }}{% endif %}">{% trans "Previous" %}</a>
-  {% endif %}
-
-  <span class="current">
-    {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
-  </span>
-
-  {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.parent %}&parent={{ request.GET.parent }}{% endif %}">{% trans "Next" %}</a>
-    <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.parent %}&parent={{ request.GET.parent }}{% endif %}">{% trans "Last" %} &raquo;</a>
-  {% endif %}
-</div>
-{% endif %}
+{% include 'shared/partials/pagination.html' %}
 {% endblock %}

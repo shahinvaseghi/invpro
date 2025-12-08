@@ -109,23 +109,7 @@
 {% endblock %}
 
 {% block pagination %}
-{% if is_paginated %}
-<div class="pagination">
-  {% if page_obj.has_previous %}
-    <a href="?page=1{% if request.GET.finished_item %}&finished_item={{ request.GET.finished_item }}{% endif %}">&laquo; {% trans "First" %}</a>
-    <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.finished_item %}&finished_item={{ request.GET.finished_item }}{% endif %}">{% trans "Previous" %}</a>
-  {% endif %}
-
-  <span class="current">
-    {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
-  </span>
-
-  {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}{% if request.GET.finished_item %}&finished_item={{ request.GET.finished_item }}{% endif %}">{% trans "Next" %}</a>
-    <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.finished_item %}&finished_item={{ request.GET.finished_item }}{% endif %}">{% trans "Last" %} &raquo;</a>
-  {% endif %}
-</div>
-{% endif %}
+{% include 'shared/partials/pagination.html' %}
 {% endblock %}
 
 {% block after_table %}

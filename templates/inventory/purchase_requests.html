@@ -129,54 +129,29 @@
     </span>
   </td>
   <td>
-    <div class="action-buttons">
+    {% include 'shared/partials/row_actions.html' with object=pr feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
+    {% block row_actions_extra %}
       {% load access_tags %}
-      {# View button - always show if user has view permission #}
-      {% if detail_url_name %}
-        {% can_view_object pr feature_code|default:"" as can_view %}
-        {% if can_view or user.is_superuser %}
-          <a href="{% url detail_url_name pr.pk %}" class="btn btn-info btn-xs">
-            {% trans "View" %}
-          </a>
-        {% endif %}
-      {% elif view_url_name %}
-        {% can_view_object pr feature_code|default:"" as can_view %}
-        {% if can_view or user.is_superuser %}
-          <a href="{% url view_url_name pr.pk %}" class="btn btn-info btn-xs">
-            {% trans "View" %}
-          </a>
-        {% endif %}
-      {% endif %}
-      {# Edit button - only show if object is not locked and user has edit permission #}
-      {% if edit_url_name %}
-        {% can_edit_object pr feature_code|default:"" as can_edit %}
-        {% if can_edit or user.is_superuser %}
-          {% if not pr.is_locked %}
-            <a href="{% url edit_url_name pr.pk %}" class="btn btn-secondary btn-xs">
-              {% trans "Edit" %}
-            </a>
-          {% endif %}
-        {% endif %}
-      {% endif %}
       {% if pr.can_current_user_approve %}
-        <form method="post" action="{% url approve_url_name pr.pk %}" class="inline-lock-form">
+        <form method="post" action="{% url approve_url_name pr.pk %}" class="inline-lock-form" style="display: inline;">
           {% csrf_token %}
-          <button type="submit" class="btn btn-primary btn-xs">
+          <button type="submit" class="btn btn-action btn-primary">
             {% trans "Approve" %}
           </button>
         </form>
       {% endif %}
       {% if pr.status == 'approved' %}
-        <a href="{% url 'inventory:purchase_request_create_temporary_receipt' pr.pk %}" class="btn btn-success-custom">
+        <a href="{% url 'inventory:purchase_request_create_temporary_receipt' pr.pk %}" class="btn btn-action btn-success-custom">
           {% trans "Temporary Receipt" %}
         </a>
-        <a href="{% url 'inventory:purchase_request_create_permanent_receipt' pr.pk %}" class="btn btn-primary-custom">
+        <a href="{% url 'inventory:purchase_request_create_permanent_receipt' pr.pk %}" class="btn btn-action btn-primary-custom">
           {% trans "Permanent Receipt" %}
         </a>
-        <a href="{% url 'inventory:purchase_request_create_consignment_receipt' pr.pk %}" class="btn btn-purple-custom">
+        <a href="{% url 'inventory:purchase_request_create_consignment_receipt' pr.pk %}" class="btn btn-action btn-purple-custom">
           {% trans "Consignment Receipt" %}
         </a>
       {% endif %}
+    {% endblock %}
     </div>
   </td>
 </tr>

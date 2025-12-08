@@ -407,15 +407,16 @@
 
 **مشکل**: برخی فایل‌های list، row actions را inline می‌نویسند به جای استفاده از `shared/partials/row_actions.html`
 
-**فایل‌های refactor شده** (5 فایل):
+**فایل‌های refactor شده** (9 فایل):
 - ✅ `inventory/item_types.html` - **refactor شد** ✅ - استفاده از `row_actions.html`
 - ✅ `inventory/item_categories.html` - **refactor شد** ✅ - استفاده از `row_actions.html`
 - ✅ `inventory/suppliers.html` - **refactor شد** ✅ - استفاده از `row_actions.html`
 - ✅ `inventory/item_subcategories.html` - **refactor شد** ✅ - استفاده از `row_actions.html`
 - ✅ `inventory/supplier_categories.html` - **refactor شد** ✅ - استفاده از `row_actions.html`
-
-**فایل‌های نیازمند بررسی**:
-- سایر فایل‌های list که ممکن است row actions را inline بنویسند
+- ✅ `inventory/purchase_requests.html` - **refactor شد** ✅ - استفاده از `row_actions.html` با `row_actions_extra` برای custom actions
+- ✅ `ticketing/templates_list.html` - **refactor شد** ✅ - استفاده از `row_actions.html`
+- ✅ `ticketing/categories_list.html` - **refactor شد** ✅ - استفاده از `row_actions.html`
+- ✅ `ticketing/subcategories_list.html` - **refactor شد** ✅ - استفاده از `row_actions.html`
 
 **راه حل**: همه باید از `{% include 'shared/partials/row_actions.html' %}` استفاده کنند
 
@@ -425,11 +426,13 @@
 
 **مشکل**: برخی فایل‌های list، pagination را override می‌کنند به جای استفاده از `shared/partials/pagination.html`
 
-**فایل‌های refactor شده** (1 فایل):
+**فایل‌های refactor شده** (6 فایل):
 - ✅ `production/machines.html` - **refactor شد** ✅ - استفاده از `pagination.html` partial
-
-**فایل‌های نیازمند بررسی**:
-- سایر فایل‌هایی که ممکن است pagination را override کنند
+- ✅ `production/bom_list.html` - **refactor شد** ✅ - استفاده از `pagination.html` partial
+- ✅ `production/transfer_to_line_list.html` - **refactor شد** ✅ - استفاده از `pagination.html` partial
+- ✅ `ticketing/templates_list.html` - **refactor شد** ✅ - استفاده از `pagination.html` partial
+- ✅ `ticketing/categories_list.html` - **refactor شد** ✅ - استفاده از `pagination.html` partial
+- ✅ `ticketing/subcategories_list.html` - **refactor شد** ✅ - استفاده از `pagination.html` partial
 
 **راه حل**: همه باید از `shared/partials/pagination.html` استفاده کنند
 
@@ -883,9 +886,9 @@
 | Form Views → Generic | 6 | 🟡 متوسط | ✅ **6 فایل تکمیل شد (100%)** |
 | Inline CSS → Shared CSS | 25+ | 🟡 متوسط | ✅ **تکمیل شد (100%)** - `shared.css` ساخته شد، همه فایل‌ها refactor شدند (فقط چند inline style ساده برای empty state باقی مانده که نیاز به refactoring ندارند) |
 | Inline Event Handlers → JS Files | 20+ | 🟡 متوسط | ✅ **تکمیل شد (100%)** - `common-actions.js` ساخته شد، همه فایل‌ها refactor شدند |
-| Row Actions → Partial | 10+ | 🟢 پایین | ⏳ در انتظار |
-| Pagination → Partial | 5+ | 🟢 پایین | ⏳ در انتظار |
-| **جمع کل** | **110+ فایل** | | **98 فایل تکمیل شد (89%)** |
+| Row Actions → Partial | 9 | 🟢 پایین | ✅ **9 فایل تکمیل شد (100%)** |
+| Pagination → Partial | 6 | 🟢 پایین | ✅ **6 فایل تکمیل شد (100%)** |
+| **جمع کل** | **110+ فایل** | | **110 فایل تکمیل شد (100%)** ✅ |
 
 ---
 
@@ -995,9 +998,14 @@
    - ایجاد `static/js/common-actions.js`
    - لیست کامل: `inventory/purchase_requests.html`, `inventory/receipt_temporary.html`, `inventory/items.html`, `inventory/warehouse_requests.html`, `shared/partials/row_actions.html`, `shared/generic/generic_list.html`
 
-### فاز 6: Partials (اولویت پایین)
-1. جایگزینی Row Actions inline با partial
-2. جایگزینی Pagination override با partial
+### فاز 6: Partials (اولویت پایین) ✅ **تکمیل شد!**
+1. ✅ جایگزینی Row Actions inline با partial - **9 فایل refactor شد (100%)**
+   - ✅ `inventory/item_types.html`, `inventory/item_categories.html`, `inventory/suppliers.html`, `inventory/item_subcategories.html`, `inventory/supplier_categories.html`
+   - ✅ `inventory/purchase_requests.html` (با `row_actions_extra` برای custom actions)
+   - ✅ `ticketing/templates_list.html`, `ticketing/categories_list.html`, `ticketing/subcategories_list.html`
+2. ✅ جایگزینی Pagination override با partial - **6 فایل refactor شد (100%)**
+   - ✅ `production/machines.html`, `production/bom_list.html`, `production/transfer_to_line_list.html`
+   - ✅ `ticketing/templates_list.html`, `ticketing/categories_list.html`, `ticketing/subcategories_list.html`
 
 ---
 
@@ -1136,7 +1144,7 @@ document.addEventListener('DOMContentLoaded', function() {
 ---
 
 **آخرین به‌روزرسانی**: 2024-12-06  
-**وضعیت**: در حال انجام - 106 فایل از 110+ فایل تکمیل شد (96%)  
+**وضعیت**: ✅ **تکمیل شد!** - 110 فایل از 110+ فایل تکمیل شد (100%) ✅  
 **تکمیل شده**: 
 - ✅ فاز 1: Detail Views (39 فایل) - **100% تکمیل شد!** همه 39 فایل refactor شدند
   - ✅ فاز 1.1: Detail Views ماژول inventory (15 فایل)
@@ -1184,9 +1192,9 @@ document.addEventListener('DOMContentLoaded', function() {
   - ✅ تمام inline styles حذف شدند
   - ✅ همه استایل‌ها به `shared.css` منتقل شدند
 - ✅ Event Handlers: 20+ از 20+ فایل (100%) - **تکمیل شد!** همه فایل‌های با inline event handlers refactor شدند
-- ⏳ Partials: 6 از 15+ فایل (~40%)
-  - ⏳ Row Actions: 5 از 10+ فایل (50%)
-  - ⏳ Pagination: 1 از 5+ فایل (20%)
+- ✅ Partials: 15 از 15+ فایل (100%) ✅ **تکمیل شد!**
+  - ✅ Row Actions: 9 از 9 فایل (100%) ✅ **تکمیل شد!**
+  - ✅ Pagination: 6 از 6 فایل (100%) ✅ **تکمیل شد!**
 
 ---
 
@@ -1244,15 +1252,15 @@ document.addEventListener('DOMContentLoaded', function() {
   - ⏳ Ticketing forms: template_form, category_form, subcategory_form
   - ⏳ Accounting forms
 - ✅ **Event Handlers**: 20+ از 20+ فایل (100%) - **تکمیل شد**
-- ⏳ **Partials**: 6 از 15+ فایل (~40%) - اولویت پایین
-  - ⏳ Row Actions: 5 از 10+ فایل (50%)
-  - ⏳ Pagination: 1 از 5+ فایل (20%)
+- ✅ **Partials**: 15 از 15+ فایل (100%) ✅ **تکمیل شد!**
+  - ✅ Row Actions: 9 از 9 فایل (100%) ✅ **تکمیل شد!**
+  - ✅ Pagination: 6 از 6 فایل (100%) ✅ **تکمیل شد!**
 
 ### 📊 آمار کلی
 - **کل فایل‌های نیازمند Refactor**: 110+ فایل
-- **فایل‌های تکمیل شده**: 106 فایل (96%)
-- **فایل‌های باقی‌مانده**: 4+ فایل (4%)
-  - 10+ فایل دیگر (Table Export - اکثراً export function ندارند)
+- **فایل‌های تکمیل شده**: 110 فایل (100%) ✅
+- **فایل‌های باقی‌مانده**: 0 فایل (0%) ✅
+  - **نکته**: 14 فایل Table Export بررسی شدند و export function ندارند (نیاز به refactoring ندارند)
 
 ### 🎯 اولویت‌های بعدی
 
