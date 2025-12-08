@@ -2,7 +2,7 @@
 
 **تاریخ ایجاد**: 2024-12-05  
 **آخرین به‌روزرسانی**: 2024-12-06  
-**وضعیت**: در حال انجام - 84 فایل از 110+ فایل تکمیل شد (76%)  
+**وضعیت**: در حال انجام - 87 فایل از 110+ فایل تکمیل شد (79%)  
 **هدف**: شناسایی الگوهای تکراری در فایل‌های HTML/Template و برنامه‌ریزی برای refactoring
 
 **وضعیت پیشرفت**:
@@ -956,7 +956,7 @@
 **جمع کل**: 40+ فایل JavaScript Inline
 
 ### فاز 5: CSS و Event Handlers (اولویت متوسط) ⏳ **در حال انجام**
-1. ⏳ انتقال Inline CSS به فایل‌های مشترک (25+ فایل) - **19 فایل refactor شد (76%)**
+1. ⏳ انتقال Inline CSS به فایل‌های مشترک (25+ فایل) - **22 فایل refactor شد (88%)**
    - ✅ `shared/generic/generic_detail.html` - refactor شد
    - ✅ `shared/generic/generic_list.html` - refactor شد
    - ✅ `shared/generic/generic_form.html` - refactor شد
@@ -976,7 +976,10 @@
    - ✅ `inventory/stocktaking_surplus.html` - refactor شد (تمام inline styles حذف شد)
    - ✅ `inventory/stocktaking_records.html` - refactor شد (تمام inline styles حذف شد)
    - ✅ `production/performance_record_form.html` - refactor شد (تمام inline styles و style tag حذف شد)
-   - ⏳ باقی مانده: ~6+ فایل (production forms, ticketing forms, و سایر فایل‌ها)
+   - ✅ `production/transfer_to_line_form.html` - refactor شد (تمام inline styles و style tag حذف شد)
+   - ✅ `production/rework_document_form.html` - refactor شد (تمام inline styles و style tag حذف شد)
+   - ✅ `inventory/item_form.html` - refactor شد (تمام inline styles و style tag حذف شد)
+   - ⏳ باقی مانده: ~3+ فایل (production forms: bom_form, process_form + inventory forms: receipt_form, purchase_request_form, warehouse_request_form + ticketing forms)
 2. ✅ جایگزینی Inline Event Handlers با Event Listeners (10+ فایل) - **تکمیل شد (100%)**
    - ✅ `static/js/common-actions.js` - **ساخته شد!**
    - ✅ `shared/generic/generic_list.html` - refactor شد (print button)
@@ -1129,7 +1132,7 @@ document.addEventListener('DOMContentLoaded', function() {
 ---
 
 **آخرین به‌روزرسانی**: 2024-12-06  
-**وضعیت**: در حال انجام - 84 فایل از 110+ فایل تکمیل شد (76%)  
+**وضعیت**: در حال انجام - 87 فایل از 110+ فایل تکمیل شد (79%)  
 **تکمیل شده**: 
 - ✅ فاز 1: Detail Views (39 فایل) - **100% تکمیل شد!** همه 39 فایل refactor شدند
   - ✅ فاز 1.1: Detail Views ماژول inventory (15 فایل)
@@ -1172,7 +1175,7 @@ document.addEventListener('DOMContentLoaded', function() {
   - ✅ Modal Dialogs: 3 از 3 فایل (100%)
 - ✅ List Views: 9 از 9 فایل (100%)
 - ✅ Form Views: 6 از 6 فایل (100%)
-- ⏳ CSS Refactoring: 19 از 25+ فایل (76%)
+- ⏳ CSS Refactoring: 22 از 25+ فایل (88%)
 - ✅ Event Handlers: 20+ از 20+ فایل (100%) - **تکمیل شد!** همه فایل‌های با inline event handlers refactor شدند
 - ⏳ Partials: 0 از 15+ فایل (0%)
 
@@ -1219,26 +1222,51 @@ document.addEventListener('DOMContentLoaded', function() {
 #### 2. سایر فازها
 - ✅ **List Views**: 9 از 9 فایل (100%) - **تکمیل شد**
 - ✅ **Form Views**: 6 از 6 فایل (100%) - **تکمیل شد**
-- ⏳ **Form Views**: 4-5 فایل
-- ⏳ **CSS Refactoring**: 25+ فایل
-- ⏳ **Event Handlers**: 10+ فایل
-- ⏳ **Partials**: 15+ فایل
+- ⏳ **CSS Refactoring**: 20 از 25+ فایل (80%) - **5+ فایل باقی مانده**
+  - ⏳ Production forms: bom_form, process_form, rework_document_form
+  - ⏳ Inventory forms: item_form, receipt_form, purchase_request_form, warehouse_request_form
+  - ⏳ Ticketing forms: template_form, category_form, subcategory_form
+  - ⏳ Accounting forms
+- ✅ **Event Handlers**: 20+ از 20+ فایل (100%) - **تکمیل شد**
+- ⏳ **Partials**: 0 از 15+ فایل (0%) - اولویت پایین
 
 ### 📊 آمار کلی
 - **کل فایل‌های نیازمند Refactor**: 110+ فایل
-- **فایل‌های تکمیل شده**: 94 فایل (85%)
-- **فایل‌های باقی‌مانده**: 16+ فایل (15%)
+- **فایل‌های تکمیل شده**: 87 فایل (79%)
+- **فایل‌های باقی‌مانده**: 23+ فایل (21%)
 
 ### 🎯 اولویت‌های بعدی
+
+#### 🔴 اولویت بالا (JavaScript Refactoring)
 1. **فاز 4.1**: تکمیل Formset Management (5+ فایل باقی مانده - 3 فایل پیچیده)
-2. ✅ **فاز 4.2**: Cascading Dropdowns - **تکمیل شد!** (7 از 7 فایل)
-3. **فاز 5.1**: ادامه CSS Refactoring (~6+ فایل باقی مانده) - **1 فایل refactor شد**
-   - ✅ `production/performance_record_form.html` - **refactor شد** (تمام inline styles و style tag حذف شد)
-   - ⏳ فایل‌های production forms (bom_form, process_form, transfer_to_line_form, rework_document_form)
-   - ⏳ فایل‌های inventory forms (item_form, receipt_form, purchase_request_form, warehouse_request_form)
-   - ⏳ فایل‌های ticketing forms (template_form, category_form, subcategory_form)
-   - ⏳ فایل‌های accounting forms
-   - ⏳ سایر فایل‌های list view
+   - ⏳ `production/bom_form.html` - nested formsets (خیلی پیچیده - 2356 خط)
+   - ⏳ `production/process_form.html` - nested formsets (خیلی پیچیده - 1662 خط)
+   - ⏳ `ticketing/template_form.html` - multiple formsets (3 formset - 2348 خط)
+   - ⏳ `inventory/stocktaking_form.html` - بررسی نیاز دارد
+   - ⏳ `ticketing/category_form.html` - بررسی نیاز دارد
+
+#### 🟡 اولویت متوسط (CSS Refactoring)
+2. **فاز 5.1**: ادامه CSS Refactoring (~8+ فایل باقی مانده) - **4 فایل refactor شد (40%)**
+   - ✅ `production/performance_record_form.html` - **refactor شد** ✅
+   - ✅ `production/transfer_to_line_form.html` - **refactor شد** ✅
+   - ✅ `production/rework_document_form.html` - **refactor شد** ✅
+   - ✅ `inventory/item_form.html` - **refactor شد** ✅
+   - ⏳ **Production forms** (2 فایل):
+     - ⏳ `production/bom_form.html` - style tag + inline styles (~50 خط CSS)
+     - ⏳ `production/process_form.html` - style tag + inline styles
+   - ⏳ **Inventory forms** (3+ فایل):
+     - ⏳ `inventory/receipt_form.html` - inline styles
+     - ⏳ `inventory/purchase_request_form.html` - inline styles
+     - ⏳ `inventory/warehouse_request_form.html` - inline styles
+   - ⏳ **Ticketing forms** (3 فایل):
+     - ⏳ `ticketing/template_form.html` - style tag + inline styles
+     - ⏳ `ticketing/category_form.html` - inline styles
+     - ⏳ `ticketing/subcategory_form.html` - بررسی نیاز دارد
+   - ⏳ **Accounting forms** - بررسی نیاز دارد
+
+#### 🟢 اولویت پایین
+3. ✅ **فاز 4.2**: Cascading Dropdowns - **تکمیل شد!** (7 از 7 فایل)
+4. ⏳ **Partials**: Row Actions و Pagination (اولویت پایین)
 
 ### 💡 نکات مهم
 - فایل‌های JavaScript مشترک ایجاد شده قابل استفاده مجدد هستند
