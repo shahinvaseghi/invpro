@@ -33,11 +33,25 @@ function addFormsetRow(prefix, templateSelector, options = {}) {
         }
     }
     
-    // Get template row
-    const templateRow = document.querySelector(templateSelector);
-    if (!templateRow) {
-        console.error(`Template row not found: ${templateSelector}`);
+    // Get template row (support both template tag and regular elements)
+    const templateElement = document.querySelector(templateSelector);
+    if (!templateElement) {
+        console.error(`Template element not found: ${templateSelector}`);
         return false;
+    }
+    
+    // Handle template tag (use .content) or regular element
+    let templateRow;
+    if (templateElement.tagName === 'TEMPLATE') {
+        // For template tag, get the first row from content
+        const templateContent = templateElement.content;
+        templateRow = templateContent.querySelector('tr') || templateContent.firstElementChild;
+        if (!templateRow) {
+            console.error(`No row found in template: ${templateSelector}`);
+            return false;
+        }
+    } else {
+        templateRow = templateElement;
     }
     
     // Clone template row
@@ -55,11 +69,34 @@ function addFormsetRow(prefix, templateSelector, options = {}) {
     const newFormIndex = currentFormCount;
     
     // Update all field names and IDs in the new row
-    updateRowFields(newRow, prefix, newFormIndex);
+    // Check if template uses __prefix__ pattern
+    const usePrefixPattern = options.usePrefixPattern !== false && 
+                             (templateRow.textContent.includes('__prefix__') || 
+                              templateElement.tagName === 'TEMPLATE');
+    updateRowFields(newRow, prefix, newFormIndex, usePrefixPattern);
     
-    // Insert new row before template row (or append to formset container)
-    const formsetContainer = templateRow.closest('.formset-container') || templateRow.parentElement;
-    formsetContainer.insertBefore(newRow, templateRow);
+    // Insert new row into formset container
+    // For template tag, find the tbody or container
+    let formsetContainer;
+    if (templateElement.tagName === 'TEMPLATE') {
+        // Find the tbody that should contain the rows
+        const tbodyId = options.tbodyId || `${prefix}-formset-body`;
+        formsetContainer = document.getElementById(tbodyId) || 
+                          document.querySelector(`#${prefix}-formset-body`) ||
+                          document.querySelector(`tbody[id*="${prefix}"]`);
+        if (!formsetContainer) {
+            // Fallback: find closest tbody or table
+            const templateParent = templateElement.parentElement;
+            formsetContainer = templateParent.querySelector('tbody') || 
+                              templateParent.querySelector(`[id*="${prefix}"]`) ||
+                              templateParent;
+        }
+        formsetContainer.appendChild(newRow);
+    } else {
+        // Regular element - insert before template
+        formsetContainer = templateRow.closest('.formset-container') || templateRow.parentElement;
+        formsetContainer.insertBefore(newRow, templateRow);
+    }
     
     // Increment TOTAL_FORMS
     totalFormsInput.value = currentFormCount + 1;
@@ -211,35 +248,52 @@ function reindexFormset(prefix, rowSelector = '.formset-row') {
  * @param {HTMLElement} row - Row element
  * @param {string} prefix - Formset prefix
  * @param {number} index - New index for this row
+ * @param {boolean} usePrefixPattern - If true, use __prefix__ pattern instead of numeric pattern
  */
-function updateRowFields(row, prefix, index) {
-    // Update all inputs, selects, textareas
-    const fields = row.querySelectorAll('input, select, textarea, label');
+function updateRowFields(row, prefix, index, usePrefixPattern = false) {
+    // Update all inputs, selects, textareas, buttons
+    const fields = row.querySelectorAll('input, select, textarea, label, button');
     
     fields.forEach(field => {
-        // Update name attribute
-        if (field.name) {
-            field.name = field.name.replace(
-                new RegExp(`${prefix}-\\d+-`),
-                `${prefix}-${index}-`
-            );
-        }
-        
-        // Update id attribute
-        if (field.id) {
-            field.id = field.id.replace(
-                new RegExp(`${prefix}-\\d+-`),
-                `${prefix}-${index}-`
-            );
-        }
-        
-        // Update label 'for' attribute
-        if (field.tagName === 'LABEL' && field.getAttribute('for')) {
-            const forAttr = field.getAttribute('for');
-            field.setAttribute('for', forAttr.replace(
-                new RegExp(`${prefix}-\\d+-`),
-                `${prefix}-${index}-`
-            ));
+        if (usePrefixPattern) {
+            // Use __prefix__ pattern (Django's default for empty forms)
+            if (field.name && field.name.includes('__prefix__')) {
+                field.name = field.name.replace(/__prefix__/g, index);
+            }
+            if (field.id && field.id.includes('__prefix__')) {
+                field.id = field.id.replace(/__prefix__/g, index);
+            }
+            if (field.getAttribute('for') && field.getAttribute('for').includes('__prefix__')) {
+                field.setAttribute('for', field.getAttribute('for').replace(/__prefix__/g, index));
+            }
+            // Update data attributes
+            if (field.hasAttribute('data-field-index') && field.getAttribute('data-field-index') === '__prefix__') {
+                field.setAttribute('data-field-index', index);
+            }
+            if (field.hasAttribute('data-permission-index') && field.getAttribute('data-permission-index') === '__prefix__') {
+                field.setAttribute('data-permission-index', index);
+            }
+        } else {
+            // Use numeric pattern (prefix-N-)
+            if (field.name) {
+                field.name = field.name.replace(
+                    new RegExp(`${prefix}-\\d+-`),
+                    `${prefix}-${index}-`
+                );
+            }
+            if (field.id) {
+                field.id = field.id.replace(
+                    new RegExp(`${prefix}-\\d+-`),
+                    `${prefix}-${index}-`
+                );
+            }
+            if (field.tagName === 'LABEL' && field.getAttribute('for')) {
+                const forAttr = field.getAttribute('for');
+                field.setAttribute('for', forAttr.replace(
+                    new RegExp(`${prefix}-\\d+-`),
+                    `${prefix}-${index}-`
+                ));
+            }
         }
     });
 }
