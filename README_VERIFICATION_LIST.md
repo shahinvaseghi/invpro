@@ -48,6 +48,7 @@
 
 تاریخ‌های اجرای این فرآیند در زیر ثبت می‌شوند (جدیدترین در بالا):
 
+- **2025-12-08** - ایجاد فایل‌های README خالی برای فایل‌های مهم بدون README: production/forms/README_PROCESS_OPERATIONS.md, production/utils/README_TRANSFER.md, production/views/README_REWORK.md, production/views/README_QCOPERATIONS.md, shared/forms/README_BASE.md, shared/views/README_API.md, shared/views/README_BASE_ADDITIONAL.md, shared/utils/README_VIEW_HELPERS.md, shared/templatetags/README_GENERIC_TAGS.md, shared/templatetags/README_VIEW_TAGS.md. به‌روزرسانی README_VERIFICATION_LIST.md و DOCUMENTATION_STRUCTURE.md
 - **2025-11-28** - بررسی و به‌روزرسانی فایل‌های README با وضعیت "Source newer". به‌روزرسانی `inventory/views/README_MASTER_DATA.md` با مستندات متد `get_queryset()` و `filter_queryset_by_permissions`. به‌روزرسانی تاریخ README برای فایل‌هایی که مستندات کامل هستند
 - **2025-11-28** - به‌روزرسانی کامل تاریخ‌های تغییر از Git برای تمام فایل‌ها. شناسایی 27 فایل با وضعیت "Source newer" که نیاز به بررسی محتوایی دارند
 - **2025-11-28** - ایجاد 18 فایل README خالی برای فایل‌هایی که README نداشتند (Views: 3, Utils: 1, Management Commands: 2, Models: 12)
@@ -184,18 +185,21 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `production/views/README_PERFORMANCE_RECORD.md` | `production/views/performance_record.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 18:26:29 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_queryset()` (با permission-based filtering)، `get_context_data()` (با 3 formsets)، و `delete()` (با is_locked و status checks) اضافه شد |
 | `production/views/README_PLACEHOLDERS.md` | `production/views/placeholders.py` | ✅ Updated | 2025-11-21 19:59:04 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `production/views/README_API.md` | `production/views/api.py` | ✅ Updated | 2025-11-28 17:54:59 | 2025-11-29 18:28:20 | ✅ README newer | تکمیل شد - مستندات کامل برای `get_bom_materials` API endpoint با جزئیات منطق، response format، و error handling اضافه شد |
+| `production/views/README_REWORK.md` | `production/views/rework.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `production/views/README_QCOPERATIONS.md` | `production/views/qc_operations.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
 
 ### Forms
-| README File | Source File | Status | Notes |
-|-------------|-------------|--------|-------|
-| `production/forms/README_BOM.md` | `production/forms/bom.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `production/forms/README_PROCESS.md` | `production/forms/process.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `production/forms/README_PRODUCT_ORDER.md` | `production/forms/product_order.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `production/forms/README_WORK_LINE.md` | `production/forms/work_line.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `production/forms/README_MACHINE.md` | `production/forms/machine.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `production/forms/README_PERSON.md` | `production/forms/person.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `production/forms/README_TRANSFER_TO_LINE.md` | `production/forms/transfer_to_line.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `production/forms/README_PERFORMANCE_RECORD.md` | `production/forms/performance_record.py` | ✅ Updated | بررسی شد - مستندات کامل است |
+| README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
+|-------------|-------------|--------|---------------------|---------------------|-----------|-------|
+| `production/forms/README_BOM.md` | `production/forms/bom.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `production/forms/README_PROCESS.md` | `production/forms/process.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `production/forms/README_PRODUCT_ORDER.md` | `production/forms/product_order.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `production/forms/README_WORK_LINE.md` | `production/forms/work_line.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `production/forms/README_MACHINE.md` | `production/forms/machine.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `production/forms/README_PERSON.md` | `production/forms/person.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `production/forms/README_TRANSFER_TO_LINE.md` | `production/forms/transfer_to_line.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `production/forms/README_PERFORMANCE_RECORD.md` | `production/forms/performance_record.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `production/forms/README_PROCESS_OPERATIONS.md` | `production/forms/process_operations.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
 
 ---
 
@@ -249,17 +253,20 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `shared/views/README_COMPANY_UNITS.md` | `shared/views/company_units.py` | ✅ Updated | بررسی شد - مستندات کامل است |
 | `shared/views/README_AUTH.md` | `shared/views/auth.py` | ✅ Updated | به‌روزرسانی شد - mark_notification_unread اضافه شد، مستندات mark_notification_read اصلاح شد |
 | `shared/views/README_SMTP_SERVER.md` | `shared/views/smtp_server.py` | ✅ Updated | به‌روزرسانی شد - جزئیات form_valid و delete تکمیل شد |
-| `shared/views/README_BASE.md` | `shared/views/base.py` | ✅ Updated | به‌روزرسانی شد - متدهای واقعی اضافه شد، متدهای نادرست حذف شد |
+| `shared/views/README_BASE.md` | `shared/views/base.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-28 03:55:30 | ✅ Same date | به‌روزرسانی شد - متدهای واقعی اضافه شد، متدهای نادرست حذف شد |
 | `shared/views/README_NOTIFICATIONS.md` | `shared/views/notifications.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-29 19:10:19 | ✅ README newer | مستندات کامل برای `NotificationListView`: `get_queryset()` (با user filtering، company filtering از session، read status filtering از GET parameter)، `get_context_data()` (با read_filter، unread_count، read_count) |
+| `shared/views/README_API.md` | `shared/views/api.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `shared/views/README_BASE_ADDITIONAL.md` | `shared/views/base_additional.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
 
 ### Forms
-| README File | Source File | Status | Notes |
-|-------------|-------------|--------|-------|
-| `shared/forms/README_USERS.md` | `shared/forms/users.py` | ✅ Updated | به‌روزرسانی شد - جزئیات UserUpdateForm.save و BaseUserCompanyAccessFormSet.clean تکمیل شد |
-| `shared/forms/README_COMPANIES.md` | `shared/forms/companies.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `shared/forms/README_ACCESS_LEVELS.md` | `shared/forms/access_levels.py` | ✅ Updated | بررسی شد - مستندات کامل است |
-| `shared/forms/README_GROUPS.md` | `shared/forms/groups.py` | ✅ Updated | به‌روزرسانی شد - جزئیات save و save_m2m تکمیل شد |
-| `shared/forms/README_SMTP_SERVER.md` | `shared/forms/smtp_server.py` | ✅ Updated | به‌روزرسانی شد - جزئیات clean method تکمیل شد |
+| README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
+|-------------|-------------|--------|---------------------|---------------------|-----------|-------|
+| `shared/forms/README_USERS.md` | `shared/forms/users.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 03:55:30 | ✅ README newer | به‌روزرسانی شد - جزئیات UserUpdateForm.save و BaseUserCompanyAccessFormSet.clean تکمیل شد |
+| `shared/forms/README_COMPANIES.md` | `shared/forms/companies.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 03:55:30 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `shared/forms/README_ACCESS_LEVELS.md` | `shared/forms/access_levels.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 03:55:30 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `shared/forms/README_GROUPS.md` | `shared/forms/groups.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 03:55:30 | ✅ README newer | به‌روزرسانی شد - جزئیات save و save_m2m تکمیل شد |
+| `shared/forms/README_SMTP_SERVER.md` | `shared/forms/smtp_server.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 03:55:30 | ✅ README newer | به‌روزرسانی شد - جزئیات clean method تکمیل شد |
+| `shared/forms/README_BASE.md` | `shared/forms/base.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
 
 ### Utils
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
@@ -268,12 +275,15 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `shared/utils/README_MODULES.md` | `shared/utils/modules.py` | ✅ Updated | 2025-11-22 16:22:00 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `shared/utils/README_EMAIL.md` | `shared/utils/email.py` | ✅ Updated | 2025-11-22 20:47:51 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `shared/utils/README_NOTIFICATIONS.md` | `shared/utils/notifications.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-29 19:11:57 | ✅ README newer | مستندات کامل برای 4 function: `get_or_create_notification()` (با get_or_create و update logic)، `get_unread_notifications()` (با company filtering)، `get_unread_notification_count()` (با Sum aggregation)، `get_recent_notifications()` (با limit و is_read field) |
+| `shared/utils/README_VIEW_HELPERS.md` | `shared/utils/view_helpers.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
 
 ### Template Tags
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
 | `shared/templatetags/README_ACCESS_TAGS.md` | `shared/templatetags/access_tags.py` | ✅ Updated | 2025-11-13 18:02:43 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `shared/templatetags/README_JSON_FILTERS.md` | `shared/templatetags/json_filters.py` | ✅ Updated | 2025-11-26 14:12:06 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `shared/templatetags/README_GENERIC_TAGS.md` | `shared/templatetags/generic_tags.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `shared/templatetags/README_VIEW_TAGS.md` | `shared/templatetags/view_tags.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
 
 ### Context Processors
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
@@ -476,12 +486,14 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 
 ## 📊 آمار
 
-- **جمع کل README فایل‌ها**: 139+ فایل
-- **جمع کل فایل‌های بررسی شده**: 139+ فایل
+- **جمع کل README فایل‌ها**: 149+ فایل
+- **جمع کل فایل‌های بررسی شده**: 149+ فایل
 - **فایل‌های کامل**: 139+ فایل
-- **فایل‌های نیازمند تکمیل**: 18 فایل (فایل README ایجاد شده اما محتوا خالی است - برای ماژول‌های آینده)
+- **فایل‌های نیازمند تکمیل**: 28 فایل (18 فایل برای ماژول‌های آینده + 10 فایل جدید ایجاد شده)
+  - Production: 3 فایل (forms/README_PROCESS_OPERATIONS.md, utils/README_TRANSFER.md, views/README_REWORK.md, views/README_QCOPERATIONS.md)
+  - Shared: 7 فایل (forms/README_BASE.md, views/README_API.md, views/README_BASE_ADDITIONAL.md, utils/README_VIEW_HELPERS.md, templatetags/README_GENERIC_TAGS.md, templatetags/README_VIEW_TAGS.md)
 - **فایل‌های نیازمند بررسی محتوایی**: 2 فایل (Source newer - بررسی شدند و محتوا درست است، تفاوت تاریخ فقط چند ساعت)
-- **وضعیت**: ✅ تمام فایل‌های اصلی README دارند و بررسی شدند
+- **وضعیت**: ✅ تمام فایل‌های اصلی README دارند (28 فایل نیازمند تکمیل محتوا)
 
 ---
 
