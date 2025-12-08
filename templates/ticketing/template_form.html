@@ -124,13 +124,13 @@
                 </td>
               </tr>
               <!-- Field Settings Row (Collapsible) -->
-              <tr class="field-settings-row" id="field-settings-{{ forloop.counter0 }}" style="display: none;" data-field-type="{{ field_form.field_type.value|default:'' }}">
-                <td colspan="10" style="background: #f8f9fa; padding: 1.5rem;">
+              <tr class="field-settings-row hidden" id="field-settings-{{ forloop.counter0 }}" data-field-type="{{ field_form.field_type.value|default:'' }}">
+                <td colspan="10" class="field-settings-cell">
                   <div class="field-settings-panel" data-field-index="{{ forloop.counter0 }}">
-                    <h4 style="margin-bottom: 1rem;">{% trans "Field Settings" %}</h4>
+                    <h4 class="field-settings-title">{% trans "Field Settings" %}</h4>
                     
                     <!-- Common Settings (always visible) -->
-                    <div class="form-field" style="margin-bottom: 1rem;">
+                    <div class="form-field field-settings-field">
                       <label>{{ field_form.help_text.label }}</label>
                       {{ field_form.help_text }}
                       {% for error in field_form.help_text.errors %}
@@ -159,7 +159,7 @@
                     {% endif %}
                     
                     <!-- Validation Rules (JSON) - Optional for all fields -->
-                    <div class="form-field" style="margin-bottom: 1rem;">
+                    <div class="form-field field-settings-field">
                       <label>{% trans "Validation Rules (JSON)" %}</label>
                       {{ field_form.validation_rules }}
                       <small class="form-text">
@@ -172,10 +172,10 @@
             {% endfor %}
           </tbody>
         </table>
-        <button type="button" id="add-field-row" class="btn btn-secondary" style="margin-top: 1rem;">
+        <button type="button" id="add-field-row" class="btn btn-secondary btn-add-formset-row">
           + {% trans "Add Field" %}
         </button>
-        <p class="muted-text" style="margin-top: 0.5rem;">
+        <p class="muted-text form-text-mt">
           {% trans "Note: After saving, you can edit individual fields to add options (for radio/dropdown fields) and events." %}
         </p>
       </div>
@@ -196,7 +196,7 @@
           <td>
             {{ field_formset.empty_form.field_key }}
           </td>
-          <td style="text-align: center;">
+          <td class="text-center">
             {{ field_formset.empty_form.is_required }}
           </td>
           <td>
@@ -205,22 +205,22 @@
           <td>
             {{ field_formset.empty_form.is_enabled }}
           </td>
-          <td style="text-align: center;">
+          <td class="text-center">
             <button type="button" class="btn btn-sm btn-danger remove-field-row" data-field-index="__prefix__">
               🗑️ {% trans "Remove" %}
             </button>
           </td>
-          <td style="text-align: center;">
+          <td class="text-center">
             <button type="button" class="btn btn-sm btn-secondary toggle-field-settings" data-field-index="__prefix__">
               ⚙️ {% trans "Settings" %}
             </button>
           </td>
         </tr>
         <!-- Field Settings Row (Collapsible) - Empty Form -->
-        <tr class="field-settings-row" id="field-settings-__prefix__" style="display: none;" data-field-type="">
-          <td colspan="10" style="background: #f8f9fa; padding: 1.5rem; border-top: 2px solid #e5e7eb;">
+        <tr class="field-settings-row hidden" id="field-settings-__prefix__" data-field-type="">
+          <td colspan="10" class="field-settings-cell field-settings-cell-template">
             <div class="field-settings-panel" data-field-index="__prefix__">
-              <h4 style="margin-bottom: 1rem; color: #1f2937;">{% trans "Field Settings" %}</h4>
+              <h4 class="field-settings-title">{% trans "Field Settings" %}</h4>
               
               <!-- Help Text -->
               <div class="form-field" style="margin-bottom: 1rem;">
@@ -296,19 +296,19 @@
                   <div class="field-error">{{ error }}</div>
                 {% endfor %}
               </td>
-              <td style="text-align: center;">
+              <td class="text-center">
                 {{ perm_form.can_create }}
                 {% for error in perm_form.can_create.errors %}
                   <div class="field-error">{{ error }}</div>
                 {% endfor %}
               </td>
-              <td style="text-align: center;">
+              <td class="text-center">
                 {{ perm_form.can_respond }}
                 {% for error in perm_form.can_respond.errors %}
                   <div class="field-error">{{ error }}</div>
                 {% endfor %}
               </td>
-              <td style="text-align: center;">
+              <td class="text-center">
                 {{ perm_form.can_close }}
                 {% for error in perm_form.can_close.errors %}
                   <div class="field-error">{{ error }}</div>
@@ -323,7 +323,7 @@
               <td>
                 {% if perm_form.instance.pk %}
                   {{ perm_form.DELETE }}
-                  <label for="{{ perm_form.DELETE.id_for_label }}" style="margin-left: 5px;">{% trans "Delete" %}</label>
+                  <label for="{{ perm_form.DELETE.id_for_label }}" class="ml-2">{% trans "Delete" %}</label>
                 {% else %}
                   <button type="button" class="btn btn-sm btn-danger remove-permission-row" data-permission-index="{{ forloop.counter0 }}">
                     🗑️ {% trans "Remove" %}
@@ -334,7 +334,7 @@
           {% endfor %}
         </tbody>
       </table>
-      <button type="button" id="add-permission-row" class="btn btn-secondary" style="margin-top: 1rem;">
+      <button type="button" id="add-permission-row" class="btn btn-secondary btn-add-formset-row">
         + {% trans "Add Permission" %}
       </button>
       
@@ -348,13 +348,13 @@
           <td>
             {{ permission_formset.empty_form.group }}
           </td>
-          <td style="text-align: center;">
+          <td class="text-center">
             {{ permission_formset.empty_form.can_create }}
           </td>
-          <td style="text-align: center;">
+          <td class="text-center">
             {{ permission_formset.empty_form.can_respond }}
           </td>
-          <td style="text-align: center;">
+          <td class="text-center">
             {{ permission_formset.empty_form.can_close }}
           </td>
           <td>
@@ -433,7 +433,7 @@
               <td>
                 {% if event_form.instance.pk %}
                   {{ event_form.DELETE }}
-                  <label for="{{ event_form.DELETE.id_for_label }}" style="margin-left: 5px;">{% trans "Delete" %}</label>
+                  <label for="{{ event_form.DELETE.id_for_label }}" class="ml-2">{% trans "Delete" %}</label>
                 {% else %}
                   <span class="muted-text">–</span>
                 {% endif %}
@@ -442,12 +442,12 @@
           {% endfor %}
         </tbody>
       </table>
-      <button type="button" id="add-event-row" class="btn btn-secondary" style="margin-top: 1rem;">
+      <button type="button" id="add-event-row" class="btn btn-secondary btn-add-formset-row">
         + {% trans "Add Event" %}
       </button>
       
       <!-- Empty form template for event formset -->
-      <div id="empty-event-form" style="display: none;">
+      <div id="empty-event-form" class="hidden">
         <tr>
           {% for hidden in event_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
           <td>
@@ -922,7 +922,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function generateFieldSettingsHTML(fieldType, fieldIndex, fieldConfig = {}) {
     const config = FIELD_SETTINGS_CONFIG[fieldType];
     if (!config) {
-      return '<div class="form-text" style="color: #6b7280; font-style: italic;">{% trans "No special settings for this field type" %}</div>';
+      return '<div class="form-text muted-text">{% trans "No special settings for this field type" %}</div>';
     }
     
     let html = '';
@@ -931,13 +931,13 @@ document.addEventListener('DOMContentLoaded', function() {
     switch (config.type) {
       case 'none':
         // No special settings needed
-        html = '<div class="form-text" style="color: #6b7280; font-style: italic;">{% trans "No special settings required for this field type" %}</div>';
+        html = '<div class="form-text muted-text">{% trans "No special settings required for this field type" %}</div>';
         break;
         
       case 'options':
         // Options management (manual or entity reference)
         html = `
-          <div class="options-source-setting" style="margin-bottom: 1rem;">
+          <div class="options-source-setting field-settings-field">
             <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">{% trans "Options Source" %}</label>
             <select name="fields-${index}-options_source" class="form-control options-source-select" style="margin-bottom: 0.5rem;">
               <option value="manual">{% trans "Manual" %}</option>

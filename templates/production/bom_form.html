@@ -42,7 +42,7 @@
                 <input type="text" class="form-control filter-search-input" 
                        id="finished-item-search"
                        placeholder="{% trans 'Search by name or code...' %}" 
-                       style="flex: 1; min-width: 150px; font-size: 0.875rem; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; background-color: #f9fafb; color: #6b7280;">
+                       class="item-filter-input">
               </div>
               {{ form.finished_item }}
             </div>
@@ -101,17 +101,17 @@
           <table class="materials-table" id="materials-table">
             <thead>
               <tr>
-                <th style="width: 40px;">{% trans "Line" %}</th>
-                <th style="width: 150px;">{% trans "Material Type" %}</th>
-                <th style="width: 150px;">{% trans "Category" %}</th>
-                <th style="width: 150px;">{% trans "Subcategory" %}</th>
+                <th class="col-line">{% trans "Line" %}</th>
+                <th class="col-material-type">{% trans "Material Type" %}</th>
+                <th class="col-category">{% trans "Category" %}</th>
+                <th class="col-subcategory">{% trans "Subcategory" %}</th>
                 <th>{% trans "Material/Component" %}</th>
-                <th style="width: 100px;">{% trans "Quantity" %}</th>
-                <th style="width: 80px;">{% trans "Unit" %}</th>
-                <th style="width: 70px;">{% trans "Scrap %" %}</th>
-                <th style="width: 180px;">{% trans "Source Warehouses" %}</th>
-                <th style="width: 70px;">{% trans "Optional" %}</th>
-                <th style="width: 60px;">{% trans "Delete" %}</th>
+                <th class="col-quantity">{% trans "Quantity" %}</th>
+                <th class="col-unit">{% trans "Unit" %}</th>
+                <th class="col-scrap">{% trans "Scrap %" %}</th>
+                <th class="col-warehouses">{% trans "Source Warehouses" %}</th>
+                <th class="col-optional">{% trans "Optional" %}</th>
+                <th class="col-delete">{% trans "Delete" %}</th>
               </tr>
             </thead>
             <tbody id="materials-tbody">
@@ -178,14 +178,14 @@
                     {% endif %}
                     <div class="source-warehouses-container" 
                          data-form-index="{{ forloop.counter0 }}">
-                      <button type="button" class="btn-manage-warehouses" onclick="toggleWarehousesManager(this)" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; background: #f3f4f6; cursor: pointer;">
+                      <button type="button" class="btn-manage-warehouses" onclick="toggleWarehousesManager(this)">
                         <span class="warehouses-count">0</span> {% trans "warehouses" %}
                       </button>
-                      <div class="warehouses-manager" style="display: none; margin-top: 0.5rem; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 4px; background: #f9fafb;">
-                        <div class="warehouses-list" style="margin-bottom: 0.5rem;">
+                      <div class="warehouses-manager hidden">
+                        <div class="warehouses-list">
                           <!-- Will be populated by JavaScript -->
                         </div>
-                        <button type="button" class="btn-add-warehouse" onclick="addWarehouseRow(this)" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid #3b82f6; border-radius: 4px; background: #3b82f6; color: white; cursor: pointer;">
+                        <button type="button" class="btn-add-warehouse" onclick="addWarehouseRow(this)">
                           + {% trans "Add Warehouse" %}
                         </button>
                       </div>
@@ -209,9 +209,9 @@
                 {% if form.instance.pk %}
                   {% for material_pk, alt_formset in alternative_formsets.items %}
                     {% if material_pk == form.instance.pk %}
-                      <tr class="alternatives-row" data-material-pk="{{ form.instance.pk }}" style="display: none;">
-                        <td colspan="11" style="padding: 0; background: #f9fafb;">
-                          <div class="alternatives-container" style="padding: 1rem;">
+                      <tr class="alternatives-row hidden" data-material-pk="{{ form.instance.pk }}">
+                        <td colspan="11" class="alternatives-cell">
+                          <div class="alternatives-container">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                               <h4 style="margin: 0; font-size: 1rem; font-weight: 600;">{% trans "Alternative Items" %}</h4>
                               <button type="button" class="btn-toggle-alternatives" onclick="toggleAlternatives(this)" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; background: #f3f4f6; cursor: pointer;">

@@ -10,7 +10,7 @@
 
 {% block before_form %}
 {% if form.instance.pk and form.instance.process_code %}
-<div class="info-banner" style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; color: #1f2937; font-weight: 600;">
+<div class="info-banner info-banner-flex">
   <div><strong>{% trans "Code" %}:</strong> <code>{{ form.instance.process_code }}</code></div>
   {% if form.instance.finished_item %}
   <div><strong>{% trans "Finished Item" %}:</strong> {{ form.instance.finished_item.name }}</div>
@@ -241,7 +241,7 @@
           </div>
 
           <div class="form-field">
-            <label for="{{ operation_form.requires_qc.id_for_label }}" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+            <label for="{{ operation_form.requires_qc.id_for_label }}" class="checkbox-label-flex">
               {{ operation_form.requires_qc }}
               <span>{{ operation_form.requires_qc.label }}</span>
             </label>
@@ -275,15 +275,15 @@
                 <thead>
                   <tr>
                     <th>{% trans "Material from BOM" %}</th>
-                    <th style="width: 150px;">{% trans "Quantity Used" %}</th>
-                    <th style="width: 80px;">{% trans "Unit" %}</th>
-                    <th style="width: 60px;">{% trans "Delete" %}</th>
+                    <th class="col-quantity-used">{% trans "Quantity Used" %}</th>
+                    <th class="col-unit">{% trans "Unit" %}</th>
+                    <th class="col-delete">{% trans "Delete" %}</th>
                   </tr>
                 </thead>
                 <tbody class="operation-materials-tbody" data-operation-index="{{ forloop.counter0 }}">
                   <!-- Materials will be added here via JavaScript -->
                   <tr class="material-row-placeholder">
-                    <td colspan="4" class="text-center" style="color: #9ca3af; padding: 1rem;">
+                    <td colspan="4" class="text-center muted-text-cell">
                       {% trans "No materials added yet. Select a BOM first." %}
                     </td>
                   </tr>
@@ -311,14 +311,17 @@
 </div>
 {% else %}
 <div class="form-section">
-  <div class="info-banner" style="background: #fef3c7; border-color: #fbbf24;">
-    <p style="margin: 0;">⚠️ {% trans "Please select a BOM first to add production operations" %}</p>
+  <div class="info-banner info-banner-warning">
+    <p class="no-margin">⚠️ {% trans "Please select a BOM first to add production operations" %}</p>
   </div>
 </div>
 {% endif %}
 {% endblock %}
 
 {% block extra_styles %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+<link rel="stylesheet" href="{% static 'css/formset-table.css' %}">
 <style>
 .entity-form select[multiple] {
   min-height: 200px;
@@ -894,7 +897,7 @@ function addOperation() {
         </div>
         
         <div class="form-field">
-          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+          <label class="checkbox-label-flex">
             <input type="checkbox" name="operations-${formCount}-requires_qc" id="id_operations-${formCount}-requires_qc" class="form-check-input operation-requires-qc" />
             <span>{% trans "نیاز به QC" %}</span>
           </label>
@@ -917,9 +920,9 @@ function addOperation() {
               <thead>
                 <tr>
                   <th>{% trans "Material from BOM" %}</th>
-                  <th style="width: 150px;">{% trans "Quantity Used" %}</th>
-                  <th style="width: 80px;">{% trans "Unit" %}</th>
-                  <th style="width: 60px;">{% trans "Delete" %}</th>
+                  <th class="col-quantity-used">{% trans "Quantity Used" %}</th>
+                  <th class="col-unit">{% trans "Unit" %}</th>
+                  <th class="col-delete">{% trans "Delete" %}</th>
                 </tr>
               </thead>
               <tbody class="operation-materials-tbody" data-operation-index="${formCount}">
