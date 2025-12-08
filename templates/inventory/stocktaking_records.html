@@ -43,7 +43,7 @@
     {% if record.confirmed_by %}
       {{ record.confirmed_by.get_full_name|default:record.confirmed_by.username }}
     {% else %}
-      <span style="color: #6b7280;">—</span>
+      <span class="text-muted">—</span>
     {% endif %}
   </td>
   <td>
@@ -55,11 +55,11 @@
       <span class="badge badge-pending">{% trans "Pending" %}</span>
     {% endif %}
   </td>
-  <td style="text-align: right;">
+  <td class="table-cell-right">
     {% if record.final_inventory_value %}
       {{ record.final_inventory_value|floatformat:2 }}
     {% else %}
-      <span style="color: #6b7280;">—</span>
+      <span class="text-muted">—</span>
     {% endif %}
   </td>
   <td>
@@ -69,14 +69,14 @@
       {% if detail_url_name %}
         {% can_view_object record feature_code|default:"" as can_view %}
         {% if can_view or user.is_superuser %}
-          <a href="{% url detail_url_name record.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+          <a href="{% url detail_url_name record.pk %}" class="btn btn-info btn-xs">
             {% trans "View" %}
           </a>
         {% endif %}
       {% elif view_url_name %}
         {% can_view_object record feature_code|default:"" as can_view %}
         {% if can_view or user.is_superuser %}
-          <a href="{% url view_url_name record.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+          <a href="{% url view_url_name record.pk %}" class="btn btn-info btn-xs">
             {% trans "View" %}
           </a>
         {% endif %}
@@ -86,34 +86,34 @@
         {% can_edit_object record feature_code|default:"" as can_edit %}
         {% if can_edit or user.is_superuser %}
           {% if not record.is_locked %}
-            <a href="{% url edit_url_name record.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+            <a href="{% url edit_url_name record.pk %}" class="btn btn-secondary btn-xs">
               {% trans "Edit" %}
             </a>
           {% endif %}
         {% endif %}
       {% endif %}
       {% if record.is_locked %}
-        <span class="badge-locked">{% trans "Locked" %}</span>
+        <span class="badge badge-locked">{% trans "Locked" %}</span>
       {% else %}
         {% if delete_url_name %}
           {% if record.created_by == user %}
             {% if can_delete_own %}
-              <a href="{% url delete_url_name record.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" data-confirm="{% trans 'Are you sure you want to delete this record?' %}">
+              <a href="{% url delete_url_name record.pk %}" class="btn btn-danger btn-xs" data-confirm="{% trans 'Are you sure you want to delete this record?' %}">
                 {% trans "Delete" %}
               </a>
             {% endif %}
           {% else %}
             {% if can_delete_other %}
-              <a href="{% url delete_url_name record.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" data-confirm="{% trans 'Are you sure you want to delete this record?' %}">
+              <a href="{% url delete_url_name record.pk %}" class="btn btn-danger btn-xs" data-confirm="{% trans 'Are you sure you want to delete this record?' %}">
                 {% trans "Delete" %}
               </a>
             {% endif %}
           {% endif %}
         {% endif %}
         {% if lock_url_name %}
-        <form method="post" action="{% url lock_url_name record.pk %}" class="inline-lock-form" style="display:inline-flex; margin:0;">
+        <form method="post" action="{% url lock_url_name record.pk %}" class="inline-lock-form form-inline-flex">
           {% csrf_token %}
-          <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;">
+          <button type="submit" class="btn btn-warning btn-xs">
             {% trans "Lock" %}
           </button>
         </form>
