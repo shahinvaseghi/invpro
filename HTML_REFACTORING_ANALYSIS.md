@@ -968,7 +968,9 @@
    - ✅ `inventory/receipt_temporary.html` - refactor شد (تمام inline styles حذف شد)
    - ✅ `inventory/receipt_permanent.html` - refactor شد (تمام inline styles حذف شد)
    - ✅ `inventory/receipt_consignment.html` - refactor شد (تمام inline styles حذف شد)
-   - ⏳ باقی مانده: ~14+ فایل (warehouse_requests, issue_*, stocktaking_*, production forms, ticketing forms, و سایر فایل‌ها)
+   - ✅ `inventory/warehouse_requests.html` - refactor شد (تمام inline styles حذف شد)
+   - ✅ `inventory/issue_permanent.html` - refactor شد (تمام inline styles حذف شد)
+   - ⏳ باقی مانده: ~12+ فایل (issue_consumption, issue_consignment, stocktaking_*, production forms, ticketing forms, و سایر فایل‌ها)
 2. ✅ جایگزینی Inline Event Handlers با Event Listeners (10+ فایل) - **تکمیل شد (100%)**
    - ✅ `static/js/common-actions.js` - **ساخته شد!**
    - ✅ `shared/generic/generic_list.html` - refactor شد (print button)
@@ -1164,7 +1166,7 @@ document.addEventListener('DOMContentLoaded', function() {
   - ✅ Modal Dialogs: 3 از 3 فایل (100%)
 - ✅ List Views: 9 از 9 فایل (100%)
 - ✅ Form Views: 6 از 6 فایل (100%)
-- ⏳ CSS Refactoring: 11 از 25+ فایل (44%)
+- ⏳ CSS Refactoring: 13 از 25+ فایل (52%)
 - ✅ Event Handlers: 20+ از 20+ فایل (100%) - **تکمیل شد!** همه فایل‌های با inline event handlers refactor شدند
 - ⏳ Partials: 0 از 15+ فایل (0%)
 
@@ -1218,13 +1220,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 ### 📊 آمار کلی
 - **کل فایل‌های نیازمند Refactor**: 110+ فایل
-- **فایل‌های تکمیل شده**: 87 فایل (79%)
-- **فایل‌های باقی‌مانده**: 23+ فایل (21%)
+- **فایل‌های تکمیل شده**: 89 فایل (81%)
+- **فایل‌های باقی‌مانده**: 21+ فایل (19%)
 
 ### 🎯 اولویت‌های بعدی
 1. **فاز 4.1**: تکمیل Formset Management (5+ فایل باقی مانده - 3 فایل پیچیده)
 2. ✅ **فاز 4.2**: Cascading Dropdowns - **تکمیل شد!** (7 از 7 فایل)
-3. **فاز 5.1**: ادامه CSS Refactoring (~14+ فایل باقی مانده)
+3. **فاز 5.1**: ادامه CSS Refactoring (~12+ فایل باقی مانده)
    - فایل‌های production forms (bom_form, process_form, performance_record_form, transfer_to_line_form, rework_document_form)
    - فایل‌های inventory forms (item_form, receipt_form, purchase_request_form, warehouse_request_form)
    - فایل‌های ticketing forms (template_form, category_form, subcategory_form)

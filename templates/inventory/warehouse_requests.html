@@ -87,7 +87,7 @@
       <small class="muted"><code>{{ wr.item_code }}</code></small>
     {% endif %}
   </td>
-  <td style="text-align: right;">
+  <td class="table-cell-right">
     {% if wr.lines.exists %}
       {{ wr.total_quantity_requested|floatformat:2 }}
     {% else %}
@@ -98,35 +98,35 @@
     {% if wr.warehouse %}
       {{ wr.warehouse.public_code }} · {{ wr.warehouse.name }}
     {% else %}
-      <span style="color:#6b7280;">—</span>
+      <span class="text-muted">—</span>
     {% endif %}
   </td>
   <td>
     {% if wr.requester %}
       {{ wr.requester.get_full_name|default:wr.requester.username }}
     {% else %}
-      <span style="color:#6b7280;">—</span>
+      <span class="text-muted">—</span>
     {% endif %}
   </td>
   <td>
     {% if wr.approver %}
       {{ wr.approver.get_full_name|default:wr.approver.username }}
     {% else %}
-      <span style="color:#6b7280;">—</span>
+      <span class="text-muted">—</span>
     {% endif %}
   </td>
   <td>
     {% if wr.needed_by_date %}
       {{ wr.needed_by_date|jalali_date }}
     {% else %}
-      <span style="color:#6b7280;">—</span>
+      <span class="text-muted">—</span>
     {% endif %}
   </td>
   <td>
     {% if wr.priority == 'urgent' %}
       <span class="badge badge-rejected">{% trans "Urgent" %}</span>
     {% elif wr.priority == 'high' %}
-      <span class="badge" style="background-color: #fbbf24; color: #78350f;">{% trans "High" %}</span>
+      <span class="badge badge-priority-high">{% trans "High" %}</span>
     {% elif wr.priority == 'low' %}
       <span class="badge badge-inactive">{% trans "Low" %}</span>
     {% else %}
@@ -153,14 +153,14 @@
       {% if detail_url_name %}
         {% can_view_object wr feature_code|default:"" as can_view %}
         {% if can_view or user.is_superuser %}
-          <a href="{% url detail_url_name wr.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+          <a href="{% url detail_url_name wr.pk %}" class="btn btn-info btn-xs">
             {% trans "View" %}
           </a>
         {% endif %}
       {% elif view_url_name %}
         {% can_view_object wr feature_code|default:"" as can_view %}
         {% if can_view or user.is_superuser %}
-          <a href="{% url view_url_name wr.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+          <a href="{% url view_url_name wr.pk %}" class="btn btn-info btn-xs">
             {% trans "View" %}
           </a>
         {% endif %}
@@ -170,28 +170,28 @@
         {% can_edit_object wr feature_code|default:"" as can_edit %}
         {% if can_edit or user.is_superuser %}
           {% if not wr.is_locked %}
-            <a href="{% url edit_url_name wr.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+            <a href="{% url edit_url_name wr.pk %}" class="btn btn-secondary btn-xs">
               {% trans "Edit" %}
             </a>
           {% endif %}
         {% endif %}
       {% endif %}
       {% if wr.can_current_user_approve %}
-        <form method="post" action="{% url approve_url_name wr.pk %}" class="inline-lock-form" style="display:inline-flex; margin:0;">
+        <form method="post" action="{% url approve_url_name wr.pk %}" class="inline-lock-form form-inline-flex">
           {% csrf_token %}
-          <button type="submit" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+          <button type="submit" class="btn btn-primary btn-xs">
             {% trans "Approve" %}
           </button>
         </form>
       {% endif %}
       {% if wr.request_status == 'approved' %}
-        <a href="{% url 'inventory:warehouse_request_create_permanent_issue' wr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 4px;">
+        <a href="{% url 'inventory:warehouse_request_create_permanent_issue' wr.pk %}" class="btn btn-primary-custom">
           {% trans "Permanent Issue" %}
         </a>
-        <a href="{% url 'inventory:warehouse_request_create_consumption_issue' wr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #10b981; color: white; text-decoration: none; border-radius: 4px;">
+        <a href="{% url 'inventory:warehouse_request_create_consumption_issue' wr.pk %}" class="btn btn-success-custom">
           {% trans "Consumption Issue" %}
         </a>
-        <a href="{% url 'inventory:warehouse_request_create_consignment_issue' wr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #8b5cf6; color: white; text-decoration: none; border-radius: 4px;">
+        <a href="{% url 'inventory:warehouse_request_create_consignment_issue' wr.pk %}" class="btn btn-purple-custom">
           {% trans "Consignment Issue" %}
         </a>
       {% endif %}
