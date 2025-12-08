@@ -11,7 +11,7 @@
 
 {% block page_actions %}
 <div class="page-actions">
-  <button class="btn btn-secondary btn-print" data-action="print">
+  <button class="btn btn-secondary btn-print" data-action="print" data-table-id="balanceTable" data-print-title="{% trans 'Inventory Balance' %}">
     {% trans "Print" %}
   </button>
   <button type="button" id="export-excel-btn" class="btn btn-success" data-table-id="balanceTable">

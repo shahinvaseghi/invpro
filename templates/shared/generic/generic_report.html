@@ -25,7 +25,7 @@
     {% block page_actions %}
     <div class="page-actions">
       {% if print_enabled %}
-        <button class="btn btn-secondary btn-print" data-action="print">{% trans "Print" %}</button>
+        <button class="btn btn-secondary btn-print" data-action="print" data-table-id="{{ table_id|default:'reportTable' }}" data-print-title="{{ page_title|default:'Report' }}">{% trans "Print" %}</button>
       {% endif %}
       {% if export_enabled %}
         <button type="button" id="export-excel-btn" class="btn btn-success" data-table-id="{{ table_id|default:'reportTable' }}" data-filename="{{ export_filename|default:'report' }}">

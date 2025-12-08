@@ -83,6 +83,9 @@ function hideElement(elementId) {
 /**
  * Initialize print buttons - converts onclick="window.print()" to event listeners
  * 
+ * If button has data-table-id attribute, uses printTable() from table-export.js
+ * Otherwise, uses printPage() to print the entire page
+ * 
  * @param {string} selector - CSS selector for print buttons (default: '.btn-print, [data-action="print"]')
  */
 function initPrintButtons(selector) {
@@ -93,10 +96,25 @@ function initPrintButtons(selector) {
         // Remove existing onclick handler if present
         button.removeAttribute('onclick');
         
+        // Check if button has data-table-id attribute
+        const tableId = button.getAttribute('data-table-id');
+        const printTitle = button.getAttribute('data-print-title') || document.title || 'Table';
+        
         // Add event listener
         button.addEventListener('click', function(e) {
             e.preventDefault();
-            printPage();
+            
+            // If table-id is specified and printTable function exists, use it
+            if (tableId && typeof printTable === 'function') {
+                printTable(tableId, {
+                    title: printTitle,
+                    includePageTitle: true,
+                    includeDate: true
+                });
+            } else {
+                // Fallback to printing entire page
+                printPage();
+            }
         });
     });
 }

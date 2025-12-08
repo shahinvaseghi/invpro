@@ -4,7 +4,7 @@
 {% block page_actions %}
 <div class="page-actions">
   {% if create_url %}
-    <button class="btn btn-secondary btn-print" data-action="print">{% trans "Print" %}</button>
+    <button class="btn btn-secondary btn-print" data-action="print" data-table-id="mainTable" data-print-title="{% trans 'Personnel' %}">{% trans "Print" %}</button>
     <a href="{{ create_url }}" class="btn btn-primary">
       {{ create_button_text|default:"Create New" }}
     </a>

@@ -13,7 +13,7 @@
 
 {% block page_actions %}
 <div class="page-actions">
-  <button class="btn btn-secondary btn-print" data-action="print">
+  <button class="btn btn-secondary btn-print" data-action="print" data-table-id="mainTable" data-print-title="{% trans 'Item Serials' %}">
     {% trans "Print" %}
   </button>
 </div>
@@ -55,7 +55,7 @@
 </div>
 
 <div class="data-table-container">
-  <table class="data-table">
+  <table class="data-table" id="mainTable">
     <thead>
       <tr>
         <th>{% trans "Serial" %}</th>
