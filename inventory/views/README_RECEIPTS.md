@@ -43,18 +43,67 @@
 **Type**: `FeaturePermissionRequiredMixin, DocumentLockProtectedMixin, InventoryBaseView, DeleteView`
 
 **Attributes**:
-- `owner_field`: `None` (owner check disabled)
+- `owner_field`: `None` (owner check disabled - permission checking manually handled)
 - `success_message`: `_('سند با موفقیت حذف شد.')`
 
 **متدها**:
-- `dispatch()`: بررسی permissions (delete_own/delete_other) قبل از delete
-- `delete()`: نمایش پیام موفقیت
-- `get_context_data()`: اضافه کردن `active_module`
+
+#### `dispatch(self, request, *args, **kwargs) -> HttpResponse`
+
+**توضیح**: بررسی permissions قبل از اجازه دادن به حذف.
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
+
+**مقدار بازگشتی**:
+- `HttpResponse`: response از `super().dispatch()` یا `PermissionDenied` exception
 
 **منطق**:
-- Superuser bypass
-- بررسی `is_owner` و `can_delete_own` / `can_delete_other`
-- `PermissionDenied` اگر permission نداشته باشد
+1. اگر کاربر superuser باشد، اجازه می‌دهد و `super().dispatch()` را فراخوانی می‌کند
+2. object را با `self.get_object()` دریافت می‌کند
+3. `company_id` را از session دریافت می‌کند
+4. permissions کاربر را با `get_user_feature_permissions()` دریافت می‌کند
+5. بررسی می‌کند که آیا کاربر owner است یا نه (`obj.created_by == request.user`)
+6. بررسی می‌کند که آیا کاربر `delete_own` permission دارد (اگر owner است) یا `delete_other` permission دارد (اگر owner نیست)
+7. اگر permission نداشته باشد، `PermissionDenied` exception می‌اندازد با پیام مناسب:
+   - اگر owner است اما `delete_own` ندارد: "شما اجازه حذف اسناد خود را ندارید."
+   - اگر owner نیست اما `delete_other` ندارد: "شما اجازه حذف اسناد سایر کاربران را ندارید."
+8. اگر permission داشته باشد، `super().dispatch()` را فراخوانی می‌کند
+
+**نکته**: این متد permission checking را قبل از `delete()` انجام می‌دهد تا اطمینان حاصل شود که کاربر فقط می‌تواند اسناد خود را حذف کند (اگر `delete_own` دارد) یا اسناد سایر کاربران را (اگر `delete_other` دارد).
+
+---
+
+#### `delete(self, request, *args, **kwargs) -> HttpResponseRedirect`
+
+**توضیح**: نمایش پیام موفقیت پس از حذف.
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
+
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect از `super().delete()`
+
+**منطق**:
+1. پیام موفقیت را با `messages.success()` نمایش می‌دهد
+2. `super().delete()` را فراخوانی می‌کند که حذف را انجام می‌دهد و redirect می‌کند
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: اضافه کردن `active_module` به context.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `active_module = 'inventory'` اضافه شده
+
+**Context Variables اضافه شده**:
+- `active_module`: `'inventory'` (برای navigation highlighting)
 
 ---
 

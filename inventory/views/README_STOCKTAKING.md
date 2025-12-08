@@ -260,7 +260,7 @@
 
 ### StocktakingDeficitDeleteView
 
-**Type**: `DocumentDeleteViewBase`
+**Type**: `InventoryBaseView, BaseDeleteView`
 
 **Template**: `shared/generic/generic_confirm_delete.html`
 
@@ -274,11 +274,25 @@
 - `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('inventory:stocktaking_deficit')`
 - `feature_code`: `'inventory.stocktaking.deficit'`
-- `required_action`: `'delete_own'`
-- `allow_own_scope`: `True`
 - `success_message`: `_('سند کسری موجودی با موفقیت حذف شد.')`
+- `owner_field`: `'created_by'`
 
 **متدها**:
+
+#### `dispatch(self, request, *args, **kwargs) -> HttpResponse`
+
+**توضیح**: بررسی permissions قبل از اجازه دادن به حذف.
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
+
+**مقدار بازگشتی**:
+- `HttpResponse`: response از `super().dispatch()` یا `PermissionDenied` exception
+
+**منطق**: مشابه `IssuePermanentDeleteView.dispatch()` با feature code `'inventory.stocktaking.deficit'`
+
+---
 
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
@@ -454,7 +468,7 @@
 
 ### StocktakingSurplusDeleteView
 
-**Type**: `DocumentDeleteViewBase`
+**Type**: `InventoryBaseView, BaseDeleteView`
 
 **Template**: `shared/generic/generic_confirm_delete.html`
 
@@ -468,11 +482,25 @@
 - `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('inventory:stocktaking_surplus')`
 - `feature_code`: `'inventory.stocktaking.surplus'`
-- `required_action`: `'delete_own'`
-- `allow_own_scope`: `True`
 - `success_message`: `_('سند مازاد موجودی با موفقیت حذف شد.')`
+- `owner_field`: `'created_by'`
 
 **متدها**:
+
+#### `dispatch(self, request, *args, **kwargs) -> HttpResponse`
+
+**توضیح**: بررسی permissions قبل از اجازه دادن به حذف.
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
+
+**مقدار بازگشتی**:
+- `HttpResponse`: response از `super().dispatch()` یا `PermissionDenied` exception
+
+**منطق**: مشابه `IssuePermanentDeleteView.dispatch()` با feature code `'inventory.stocktaking.surplus'`
+
+---
 
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
@@ -613,13 +641,57 @@
 - `form_class`: `StocktakingRecordForm`
 - `template_name`: `'inventory/stocktaking_form.html'`
 - `success_url`: `reverse_lazy('inventory:stocktaking_records')`
+- `feature_code`: `'inventory.stocktaking.records'`
+- `success_message`: `_('سند نهایی انبارگردانی با موفقیت بروزرسانی شد.')`
 - `form_title`: `_('ویرایش سند نهایی انبارگردانی')`
 - `list_url_name`: `'inventory:stocktaking_records'`
 - `lock_url_name`: `'inventory:stocktaking_record_lock'`
 
-**متدها**: مشابه `StocktakingDeficitUpdateView`
+**متدها**:
 
-**Fieldsets**: مشابه `StocktakingRecordCreateView`
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس permissions
+
+**منطق**:
+1. queryset را از `super().get_queryset()` دریافت می‌کند
+2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.records', 'created_by')`
+3. نتیجه فیلتر شده را برمی‌گرداند
+
+---
+
+#### `form_valid(self, form) -> HttpResponseRedirect`
+
+**توضیح**: سند را ذخیره می‌کند و `created_by` را تنظیم می‌کند اگر تنظیم نشده باشد.
+
+**پارامترهای ورودی**:
+- `form`: فرم معتبر `StocktakingRecordForm`
+
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect به `success_url`
+
+**منطق**:
+1. بررسی می‌کند که آیا `form.instance.created_by_id` تنظیم شده است یا نه
+2. اگر تنظیم نشده باشد، `form.instance.created_by` را به `request.user` تنظیم می‌کند
+3. `super().form_valid(form)` را فراخوانی می‌کند
+
+---
+
+#### `get_fieldsets(self) -> list`
+
+**توضیح**: تنظیمات fieldsets را برای template برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `list`: لیست tuples شامل (title, fields)
+
+**Fieldsets**:
+- `(_('اطلاعات سند'), ['stocktaking_session_id'])`
+- `(_('تأیید موجودی'), ['confirmed_by', 'confirmation_notes'])`
+- `(_('وضعیت تایید'), ['approver', 'approval_status', 'approver_notes'])`
+- `(_('خلاصه موجودی'), ['final_inventory_value'])`
 
 **URL**: `/inventory/stocktaking/records/<pk>/edit/`
 
@@ -627,7 +699,7 @@
 
 ### StocktakingRecordDeleteView
 
-**Type**: `DocumentDeleteViewBase`
+**Type**: `InventoryBaseView, BaseDeleteView`
 
 **Template**: `shared/generic/generic_confirm_delete.html`
 
@@ -641,11 +713,25 @@
 - `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('inventory:stocktaking_records')`
 - `feature_code`: `'inventory.stocktaking.records'`
-- `required_action`: `'delete_own'`
-- `allow_own_scope`: `True`
 - `success_message`: `_('سند شمارش موجودی با موفقیت حذف شد.')`
+- `owner_field`: `'created_by'`
 
 **متدها**:
+
+#### `dispatch(self, request, *args, **kwargs) -> HttpResponse`
+
+**توضیح**: بررسی permissions قبل از اجازه دادن به حذف.
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
+
+**مقدار بازگشتی**:
+- `HttpResponse`: response از `super().dispatch()` یا `PermissionDenied` exception
+
+**منطق**: مشابه `IssuePermanentDeleteView.dispatch()` با feature code `'inventory.stocktaking.records'`
+
+---
 
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 

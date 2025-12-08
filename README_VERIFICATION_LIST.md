@@ -48,6 +48,8 @@
 
 تاریخ‌های اجرای این فرآیند در زیر ثبت می‌شوند (جدیدترین در بالا):
 
+- **2025-12-08** - تکمیل کامل `shared/views/README_BASE.md` با اضافه شدن Best Practices، Troubleshooting Guide، Advanced Examples، Common Patterns، و Quick Reference. به‌روزرسانی README_VERIFICATION_LIST.md
+- **2025-12-08** - تکمیل تمام فایل‌های README Pending: production/views/README_REWORK.md, production/views/README_QCOPERATIONS.md, production/forms/README_PROCESS_OPERATIONS.md, shared/views/README_API.md, shared/views/README_BASE_ADDITIONAL.md, shared/forms/README_BASE.md, shared/utils/README_VIEW_HELPERS.md, shared/templatetags/README_GENERIC_TAGS.md, shared/templatetags/README_VIEW_TAGS.md. به‌روزرسانی README_VERIFICATION_LIST.md
 - **2025-12-08** - ایجاد فایل‌های README خالی برای فایل‌های مهم بدون README: production/forms/README_PROCESS_OPERATIONS.md, production/utils/README_TRANSFER.md, production/views/README_REWORK.md, production/views/README_QCOPERATIONS.md, shared/forms/README_BASE.md, shared/views/README_API.md, shared/views/README_BASE_ADDITIONAL.md, shared/utils/README_VIEW_HELPERS.md, shared/templatetags/README_GENERIC_TAGS.md, shared/templatetags/README_VIEW_TAGS.md. به‌روزرسانی README_VERIFICATION_LIST.md و DOCUMENTATION_STRUCTURE.md
 - **2025-11-28** - بررسی و به‌روزرسانی فایل‌های README با وضعیت "Source newer". به‌روزرسانی `inventory/views/README_MASTER_DATA.md` با مستندات متد `get_queryset()` و `filter_queryset_by_permissions`. به‌روزرسانی تاریخ README برای فایل‌هایی که مستندات کامل هستند
 - **2025-11-28** - به‌روزرسانی کامل تاریخ‌های تغییر از Git برای تمام فایل‌ها. شناسایی 27 فایل با وضعیت "Source newer" که نیاز به بررسی محتوایی دارند
@@ -123,25 +125,25 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 ### Views
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `inventory/views/README_MASTER_DATA.md` | `inventory/views/master_data.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 16:31:45 | ✅ README newer | به‌روزرسانی شد - مستندات متد `get_queryset()` برای تمام ListView و UpdateView ها اضافه شد |
-| `inventory/views/README_RECEIPTS.md` | `inventory/views/receipts.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 16:31:45 | ✅ README newer | به‌روزرسانی شد - مستندات کامل متدهای `get_queryset()`, `_apply_filters()`, `_get_stats()`, و `get_context_data()` برای ListView و DetailView ها اضافه شد |
-| `inventory/views/README_ISSUES.md` | `inventory/views/issues.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 16:31:45 | ✅ README newer | به‌روزرسانی شد - مستندات کامل متدهای `get_queryset()` برای تمام ListView و DetailView ها با جزئیات `filter_queryset_by_permissions` اضافه شد |
-| `inventory/views/README_REQUESTS.md` | `inventory/views/requests.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 16:33:20 | ✅ README newer | به‌روزرسانی شد - مستندات کامل متدهای `get_queryset()` برای ListView و UpdateView ها با جزئیات `filter_queryset_by_permissions` اضافه شد |
-| `inventory/views/README_STOCKTAKING.md` | `inventory/views/stocktaking.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 16:58:41 | ✅ README newer | به‌روزرسانی شد - مستندات کامل متدهای `get_queryset()` برای تمام ListView و UpdateView ها با جزئیات `filter_queryset_by_permissions` اضافه شد |
-| `inventory/views/README_BALANCE.md` | `inventory/views/balance.py` | ✅ Updated | 2025-11-28 18:54:08 | 2025-11-29 17:01:58 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل `InventoryBalanceDetailsView` با ساختار transaction و منطق کامل اضافه شد |
-| `inventory/views/README_API.md` | `inventory/views/api.py` | ✅ Updated | 2025-11-28 15:16:27 | 2025-11-29 17:04:34 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_filtered_items` (permission filtering, include_item_id), `get_temporary_receipt_data` (QC-approved lines), و `get_item_available_serials` (AVAILABLE status) اضافه شد |
-| `inventory/views/README_BASE.md` | `inventory/views/base.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-29 17:07:52 | ✅ README newer | به‌روزرسانی شد - تکرار DocumentUnlockView حذف شد، جزئیات کامل منطق برای `dispatch()`, `post()`, و `_save_line_formset()` با serial handling اضافه شد |
+| `inventory/views/README_MASTER_DATA.md` | `inventory/views/master_data.py` | ✅ Updated | 2025-12-06 18:50:50 | 2025-12-01 00:56:56 | ⚠️ Source newer | به‌روزرسانی شد - مستندات متد `dispatch()` برای `ItemSubcategoryDeleteView` اضافه شد، متدهای `get_queryset()` که در source وجود ندارند حذف شدند، و مستندات `get_select_related()` برای `ItemSubcategoryListView` اضافه شد |
+| `inventory/views/README_RECEIPTS.md` | `inventory/views/receipts.py` | ✅ Updated | 2025-12-06 18:50:50 | 2025-12-01 00:56:56 | ⚠️ Source newer | به‌روزرسانی شد - مستندات کامل برای `DocumentDeleteViewBase` با جزئیات متدهای `dispatch()`, `delete()`, و `get_context_data()` اضافه شد |
+| `inventory/views/README_ISSUES.md` | `inventory/views/issues.py` | ✅ Updated | 2025-12-06 18:50:50 | 2025-12-01 00:56:56 | ⚠️ Source newer | به‌روزرسانی شد - مستندات کامل برای DeleteView ها (`IssuePermanentDeleteView`, `IssueConsumptionDeleteView`, `IssueConsignmentDeleteView`) با جزئیات متدهای `dispatch()` و `get_queryset()` اضافه شد |
+| `inventory/views/README_REQUESTS.md` | `inventory/views/requests.py` | ✅ Updated | 2025-12-06 18:37:51 | 2025-12-01 00:56:56 | ⚠️ Source newer | به‌روزرسانی شد - مستندات کامل برای `PurchaseRequestUpdateView.get_queryset()` و `get_object()` با جزئیات permission filtering و DRAFT status checking اضافه شد |
+| `inventory/views/README_STOCKTAKING.md` | `inventory/views/stocktaking.py` | ✅ Updated | 2025-12-06 18:50:50 | 2025-12-01 00:56:56 | ⚠️ Source newer | به‌روزرسانی شد - مستندات کامل متدهای `get_queryset()` برای تمام ListView و UpdateView ها با جزئیات `filter_queryset_by_permissions` اضافه شد |
+| `inventory/views/README_BALANCE.md` | `inventory/views/balance.py` | ✅ Updated | 2025-12-03 18:01:10 | 2025-11-29 17:01:58 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات کامل `InventoryBalanceDetailsView` با ساختار transaction و منطق کامل اضافه شد |
+| `inventory/views/README_API.md` | `inventory/views/api.py` | ✅ Updated | 2025-12-01 02:29:31 | 2025-12-01 02:29:31 | ✅ Same date | به‌روزرسانی شد - جزئیات کامل منطق برای `get_filtered_items` (permission filtering, include_item_id), `get_temporary_receipt_data` (QC-approved lines), و `get_item_available_serials` (AVAILABLE status) اضافه شد |
+| `inventory/views/README_BASE.md` | `inventory/views/base.py` | ✅ Updated | 2025-12-05 23:15:08 | 2025-11-29 17:07:52 | ⚠️ Source newer | به‌روزرسانی شد - تکرار DocumentUnlockView حذف شد، جزئیات کامل منطق برای `dispatch()`, `post()`, و `_save_line_formset()` با serial handling اضافه شد |
 | `inventory/views/README_ITEM_IMPORT.md` | `inventory/views/item_import.py` | ✅ Updated | 2025-11-22 23:30:10 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `inventory/views/README_CREATE_ISSUE_FROM_WAREHOUSE_REQUEST.md` | `inventory/views/create_issue_from_warehouse_request.py` | ✅ Updated | 2025-11-24 16:54:27 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `inventory/views/README_ISSUES_FROM_WAREHOUSE_REQUEST.md` | `inventory/views/issues_from_warehouse_request.py` | ✅ Updated | 2025-11-24 16:54:27 | 2025-11-28 03:55:30 | ✅ README newer | به‌روزرسانی شد - جزئیات متدها برای Consumption و Consignment اضافه شد |
+| `inventory/views/README_CREATE_ISSUE_FROM_WAREHOUSE_REQUEST.md` | `inventory/views/create_issue_from_warehouse_request.py` | ✅ Updated | 2025-12-05 23:15:08 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `inventory/views/README_ISSUES_FROM_WAREHOUSE_REQUEST.md` | `inventory/views/issues_from_warehouse_request.py` | ✅ Updated | 2025-12-02 15:22:37 | 2025-11-28 03:55:30 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات متدها برای Consumption و Consignment اضافه شد |
 
 ### Forms
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `inventory/forms/README_MASTER_DATA.md` | `inventory/forms/master_data.py` | ✅ Updated | 2025-11-23 23:13:44 | 2025-11-28 03:55:30 | ✅ README newer | به‌روزرسانی شد - جزئیات get_context برای IntegerCheckboxInput تکمیل شد |
-| `inventory/forms/README_RECEIPT.md` | `inventory/forms/receipt.py` | ✅ Updated | 2025-11-28 13:48:43 | 2025-11-29 17:11:18 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `ReceiptPermanentForm.__init__` (با Exists برای خطوط) و `save()` (با temporary receipt conversion) اضافه شد |
-| `inventory/forms/README_ISSUE.md` | `inventory/forms/issue.py` | ✅ Updated | 2025-11-28 04:06:17 | 2025-11-29 17:13:50 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای تمام header forms (IssuePermanentForm, IssueConsumptionForm, IssueConsignmentForm) شامل `__init__()`, `clean()`, و `save()` اضافه شد |
-| `inventory/forms/README_REQUEST.md` | `inventory/forms/request.py` | ✅ Updated | 2025-11-26 21:12:37 | 2025-11-26 21:12:37 | ✅ Same date | بررسی شد - مستندات کامل است |
+| `inventory/forms/README_MASTER_DATA.md` | `inventory/forms/master_data.py` | ✅ Updated | 2025-12-06 18:37:51 | 2025-11-28 03:55:30 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات get_context برای IntegerCheckboxInput تکمیل شد |
+| `inventory/forms/README_RECEIPT.md` | `inventory/forms/receipt.py` | ✅ Updated | 2025-12-01 02:29:31 | 2025-12-01 02:29:31 | ✅ Same date | به‌روزرسانی شد - جزئیات کامل منطق برای `ReceiptPermanentForm.__init__` (با Exists برای خطوط) و `save()` (با temporary receipt conversion) اضافه شد |
+| `inventory/forms/README_ISSUE.md` | `inventory/forms/issue.py` | ✅ Updated | 2025-12-03 18:01:10 | 2025-11-29 17:13:50 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات کامل منطق برای تمام header forms (IssuePermanentForm, IssueConsumptionForm, IssueConsignmentForm) شامل `__init__()`, `clean()`, و `save()` اضافه شد |
+| `inventory/forms/README_REQUEST.md` | `inventory/forms/request.py` | ✅ Updated | 2025-12-05 23:15:08 | 2025-11-26 21:12:37 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
 | `inventory/forms/README_BASE.md` | `inventory/forms/base.py` | ✅ Updated | 2025-11-28 00:35:59 | 2025-11-29 17:19:21 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `generate_document_code()` (7 مرحله)، `ReceiptBaseForm.__init__()` (11 مرحله با restore values)، و `_filter_company_scoped_fields()` (با include disabled items) اضافه شد |
 | `inventory/forms/README_STOCKTAKING.md` | `inventory/forms/stocktaking.py` | ✅ Updated | 2025-11-28 18:54:08 | 2025-11-29 17:30:52 | ✅ README newer | به‌روزرسانی شد - مستندات کامل برای Line Forms (StocktakingDeficitLineForm, StocktakingSurplusLineForm) با `full_clean()`, `clean_unit()`, و `clean()` و جزئیات کامل برای `StocktakingRecordForm` (__init__, clean, save) اضافه شد |
 
@@ -175,31 +177,31 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 ### Views
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `production/views/README_BOM.md` | `production/views/bom.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 17:38:30 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `BOMCreateView.form_valid()` (11 مرحله با error handling و BOM deletion)، `BOMUpdateView.form_valid()` (7 مرحله)، و `get_queryset()`/`delete()` اضافه شد |
-| `production/views/README_PROCESS.md` | `production/views/process.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 17:53:34 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `ProcessListView.get_queryset()` (با table existence check)، `ProcessCreateView.form_valid()` (با operations و materials formsets)، `ProcessUpdateView.form_valid()` (با update/create/delete operations)، و `get_context_data()` (با bom_id extraction و existing operations loading) اضافه شد |
-| `production/views/README_PRODUCT_ORDER.md` | `production/views/product_order.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 17:56:56 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_queryset()` (ListView, UpdateView, DeleteView)، `get_context_data()` (UpdateView با permission check)، و `delete()` اضافه شد |
-| `production/views/README_MACHINE.md` | `production/views/machine.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 18:11:21 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای تمام متدها (`get_queryset()` با optional select_related و try-except، `form_valid()` با error handling، `get_context_data()`، و `delete()`) اضافه شد |
-| `production/views/README_WORK_LINE.md` | `production/views/work_line.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 18:14:37 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای تمام متدها (`get_queryset()` با optional select_related و prefetch_related، `form_valid()` با M2M handling، `get_context_data()`، و `delete()`) اضافه شد |
-| `production/views/README_PERSONNEL.md` | `production/views/personnel.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 18:18:47 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای تمام متدها (`get_queryset()` با select_related و prefetch_related، `form_valid()` با error handling، `get_context_data()`، و `delete()`) اضافه شد |
-| `production/views/README_TRANSFER_TO_LINE.md` | `production/views/transfer_to_line.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 18:21:36 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_queryset()` (ListView, DeleteView)، `get_context_data()` (CreateView, UpdateView با formset filtering)، و `delete()` (با is_locked check) اضافه شد |
-| `production/views/README_PERFORMANCE_RECORD.md` | `production/views/performance_record.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 18:26:29 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_queryset()` (با permission-based filtering)، `get_context_data()` (با 3 formsets)، و `delete()` (با is_locked و status checks) اضافه شد |
-| `production/views/README_PLACEHOLDERS.md` | `production/views/placeholders.py` | ✅ Updated | 2025-11-21 19:59:04 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `production/views/README_API.md` | `production/views/api.py` | ✅ Updated | 2025-11-28 17:54:59 | 2025-11-29 18:28:20 | ✅ README newer | تکمیل شد - مستندات کامل برای `get_bom_materials` API endpoint با جزئیات منطق، response format، و error handling اضافه شد |
-| `production/views/README_REWORK.md` | `production/views/rework.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
-| `production/views/README_QCOPERATIONS.md` | `production/views/qc_operations.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `production/views/README_BOM.md` | `production/views/bom.py` | ✅ Updated | 2025-12-06 19:18:28 | 2025-11-30 16:08:48 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات کامل منطق برای `BOMCreateView.form_valid()` (11 مرحله با error handling و BOM deletion)، `BOMUpdateView.form_valid()` (7 مرحله)، و `get_queryset()`/`delete()` اضافه شد |
+| `production/views/README_PROCESS.md` | `production/views/process.py` | ✅ Updated | 2025-12-06 18:59:22 | 2025-11-30 16:08:48 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات کامل منطق برای `ProcessListView.get_queryset()` (با table existence check)، `ProcessCreateView.form_valid()` (با operations و materials formsets)، `ProcessUpdateView.form_valid()` (با update/create/delete operations)، و `get_context_data()` (با bom_id extraction و existing operations loading) اضافه شد |
+| `production/views/README_PRODUCT_ORDER.md` | `production/views/product_order.py` | ✅ Updated | 2025-12-06 19:18:28 | 2025-11-30 16:08:48 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_queryset()` (ListView, UpdateView, DeleteView)، `get_context_data()` (UpdateView با permission check)، و `delete()` اضافه شد |
+| `production/views/README_MACHINE.md` | `production/views/machine.py` | ✅ Updated | 2025-12-06 18:54:26 | 2025-11-30 16:08:48 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات کامل منطق برای تمام متدها (`get_queryset()` با optional select_related و try-except، `form_valid()` با error handling، `get_context_data()`، و `delete()`) اضافه شد |
+| `production/views/README_WORK_LINE.md` | `production/views/work_line.py` | ✅ Updated | 2025-12-06 18:59:22 | 2025-11-30 16:08:48 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات کامل منطق برای تمام متدها (`get_queryset()` با optional select_related و prefetch_related، `form_valid()` با M2M handling، `get_context_data()`، و `delete()`) اضافه شد |
+| `production/views/README_PERSONNEL.md` | `production/views/personnel.py` | ✅ Updated | 2025-12-06 18:53:59 | 2025-11-30 16:08:48 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات کامل منطق برای تمام متدها (`get_queryset()` با select_related و prefetch_related، `form_valid()` با error handling، `get_context_data()`، و `delete()`) اضافه شد |
+| `production/views/README_TRANSFER_TO_LINE.md` | `production/views/transfer_to_line.py` | ✅ Updated | 2025-12-06 22:09:50 | 2025-11-30 16:08:48 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_queryset()` (ListView, DeleteView)، `get_context_data()` (CreateView, UpdateView با formset filtering)، و `delete()` (با is_locked check) اضافه شد |
+| `production/views/README_PERFORMANCE_RECORD.md` | `production/views/performance_record.py` | ✅ Updated | 2025-12-06 19:18:28 | 2025-11-30 16:08:48 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_queryset()` (با permission-based filtering)، `get_context_data()` (با 3 formsets)، و `delete()` (با is_locked و status checks) اضافه شد |
+| `production/views/README_PLACEHOLDERS.md` | `production/views/placeholders.py` | ✅ Updated | 2025-12-03 18:01:10 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `production/views/README_API.md` | `production/views/api.py` | ✅ Updated | 2025-12-04 14:33:57 | 2025-11-29 18:28:20 | ⚠️ Source newer | تکمیل شد - مستندات کامل برای `get_bom_materials` API endpoint با جزئیات منطق، response format، و error handling اضافه شد |
+| `production/views/README_REWORK.md` | `production/views/rework.py` | ✅ Updated | 2025-12-06 17:30:57 | 2025-12-08 20:00:00 | ✅ README newer | تکمیل شد - مستندات کامل برای 7 view class (ReworkDocumentListView, ReworkDocumentCreateView, ReworkDocumentUpdateView, ReworkDocumentDetailView, ReworkDocumentDeleteView, ReworkDocumentApproveView, ReworkDocumentRejectView) و ReworkOrderSelectForm با تمام متدها و منطق کامل |
+| `production/views/README_QCOPERATIONS.md` | `production/views/qc_operations.py` | ✅ Updated | 2025-12-06 17:30:57 | 2025-12-08 20:00:00 | ✅ README newer | تکمیل شد - مستندات کامل برای 3 view class (QCOperationsListView, QCOperationApproveView, QCOperationRejectView) با تمام متدها، permission checking، و JSON responses |
 
 ### Forms
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `production/forms/README_BOM.md` | `production/forms/bom.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `production/forms/README_PROCESS.md` | `production/forms/process.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `production/forms/README_PRODUCT_ORDER.md` | `production/forms/product_order.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `production/forms/README_WORK_LINE.md` | `production/forms/work_line.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `production/forms/README_MACHINE.md` | `production/forms/machine.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `production/forms/README_PERSON.md` | `production/forms/person.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `production/forms/README_TRANSFER_TO_LINE.md` | `production/forms/transfer_to_line.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `production/forms/README_PERFORMANCE_RECORD.md` | `production/forms/performance_record.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `production/forms/README_PROCESS_OPERATIONS.md` | `production/forms/process_operations.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `production/forms/README_BOM.md` | `production/forms/bom.py` | ✅ Updated | 2025-12-04 15:22:19 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `production/forms/README_PROCESS.md` | `production/forms/process.py` | ✅ Updated | 2025-12-03 18:01:10 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `production/forms/README_PRODUCT_ORDER.md` | `production/forms/product_order.py` | ✅ Updated | 2025-12-04 00:30:09 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `production/forms/README_WORK_LINE.md` | `production/forms/work_line.py` | ✅ Updated | 2025-11-21 19:59:04 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `production/forms/README_MACHINE.md` | `production/forms/machine.py` | ✅ Updated | 2025-11-21 19:59:04 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `production/forms/README_PERSON.md` | `production/forms/person.py` | ✅ Updated | 2025-11-21 19:59:04 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `production/forms/README_TRANSFER_TO_LINE.md` | `production/forms/transfer_to_line.py` | ✅ Updated | 2025-12-04 14:33:57 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `production/forms/README_PERFORMANCE_RECORD.md` | `production/forms/performance_record.py` | ✅ Updated | 2025-12-04 21:43:48 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `production/forms/README_PROCESS_OPERATIONS.md` | `production/forms/process_operations.py` | ✅ Updated | 2025-12-04 21:43:48 | 2025-12-08 20:00:00 | ✅ README newer | تکمیل شد - مستندات کامل برای 2 form class (ProcessOperationMaterialForm, ProcessOperationForm) و 2 formset base class (ProcessOperationMaterialFormSetBase, ProcessOperationFormSetBase) با تمام fields، methods، validation logic، و BOM filtering |
 
 ---
 
@@ -218,10 +220,10 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
 | `ticketing/views/README_BASE.md` | `ticketing/views/base.py` | ✅ Updated | 2025-11-25 00:11:08 | 2025-11-28 04:12:11 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `ticketing/views/README_CATEGORIES.md` | `ticketing/views/categories.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 18:30:34 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_queryset()` (با search و parent filtering)، `get_context_data()`، `form_valid()` (با permission formset handling)، و `delete()` اضافه شد |
-| `ticketing/views/README_SUBCATEGORIES.md` | `ticketing/views/subcategories.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 18:34:52 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_queryset()` (با parent category filtering و search)، `get_context_data()` (با parent_categories dropdown)، `form_valid()` (با parent_category validation)، و `delete()` اضافه شد |
-| `ticketing/views/README_TEMPLATES.md` | `ticketing/views/templates.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 18:42:35 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_queryset()` (با debug logging)، `get_context_data()` (با 3 formsets و debug logging)، `form_valid()` (با 3 formsets handling و debug logging)، و `delete()` اضافه شد |
-| `ticketing/views/README_TICKETS.md` | `ticketing/views/tickets.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 18:47:21 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_context_data()` (با permission checking، options extraction از field_config و model، و debug logging)، `form_valid()` (با reported_by و company_id)، و `get_initial()` اضافه شد |
+| `ticketing/views/README_CATEGORIES.md` | `ticketing/views/categories.py` | ✅ Updated | 2025-12-06 19:30:55 | 2025-11-30 16:08:48 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_queryset()` (با search و parent filtering)، `get_context_data()`، `form_valid()` (با permission formset handling)، و `delete()` اضافه شد |
+| `ticketing/views/README_SUBCATEGORIES.md` | `ticketing/views/subcategories.py` | ✅ Updated | 2025-12-06 19:30:55 | 2025-11-30 16:08:48 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_queryset()` (با parent category filtering و search)، `get_context_data()` (با parent_categories dropdown)، `form_valid()` (با parent_category validation)، و `delete()` اضافه شد |
+| `ticketing/views/README_TEMPLATES.md` | `ticketing/views/templates.py` | ✅ Updated | 2025-12-06 19:30:55 | 2025-11-30 16:08:48 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_queryset()` (با debug logging)، `get_context_data()` (با 3 formsets و debug logging)، `form_valid()` (با 3 formsets handling و debug logging)، و `delete()` اضافه شد |
+| `ticketing/views/README_TICKETS.md` | `ticketing/views/tickets.py` | ✅ Updated | 2025-12-06 19:30:55 | 2025-11-29 18:47:21 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات کامل منطق برای `get_context_data()` (با permission checking، options extraction از field_config و model، و debug logging)، `form_valid()` (با reported_by و company_id)، و `get_initial()` اضافه شد |
 | `ticketing/views/README_DEBUG.md` | `ticketing/views/debug.py` | ✅ Updated | 2025-11-25 13:24:42 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `ticketing/views/README_PLACEHOLDERS.md` | `ticketing/views/placeholders.py` | ✅ Updated | 2025-11-25 00:11:08 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `ticketing/views/README_ENTITY_REFERENCE.md` | `ticketing/views/entity_reference.py` | ✅ Updated | 2025-11-27 00:44:07 | 2025-11-29 18:56:18 | ✅ README newer | مستندات کامل برای 3 API endpoint: `EntityReferenceSectionsView` (لیست sections)، `EntityReferenceActionsView` (لیست actions برای section با code/nickname lookup)، `EntityReferenceParameterValuesView` (مقادیر ممکن: enum از parameter_enum JSON، gp از AuthGroup، type از hardcoded values بر اساس section_code) |
@@ -253,37 +255,37 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `shared/views/README_COMPANY_UNITS.md` | `shared/views/company_units.py` | ✅ Updated | بررسی شد - مستندات کامل است |
 | `shared/views/README_AUTH.md` | `shared/views/auth.py` | ✅ Updated | به‌روزرسانی شد - mark_notification_unread اضافه شد، مستندات mark_notification_read اصلاح شد |
 | `shared/views/README_SMTP_SERVER.md` | `shared/views/smtp_server.py` | ✅ Updated | به‌روزرسانی شد - جزئیات form_valid و delete تکمیل شد |
-| `shared/views/README_BASE.md` | `shared/views/base.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-28 03:55:30 | ✅ Same date | به‌روزرسانی شد - متدهای واقعی اضافه شد، متدهای نادرست حذف شد |
+| `shared/views/README_BASE.md` | `shared/views/base.py` | ✅ Updated | 2025-12-06 17:30:57 | 2025-12-08 23:00:00 | ✅ README newer | تکمیل شد - مستندات کامل برای تمام Mixins (UserAccessFormsetMixin, AccessLevelPermissionMixin, EditLockProtectedMixin)، تمام Base Views (BaseListView, BaseCreateView, BaseUpdateView, BaseDeleteView, BaseDetailView)، Formset Views (BaseFormsetCreateView, BaseFormsetUpdateView)، Document Views (BaseDocumentListView, BaseDocumentCreateView, BaseDocumentUpdateView)، و Nested Formset Views (BaseNestedFormsetCreateView, BaseNestedFormsetUpdateView). اضافه شدن Best Practices (7 مورد)، Troubleshooting Guide (6 مشکل رایج)، Advanced Examples (4 مثال)، Common Patterns (4 الگو)، و Quick Reference (جداول Mixins، Views، Hook Methods، Template Variables) |
 | `shared/views/README_NOTIFICATIONS.md` | `shared/views/notifications.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-29 19:10:19 | ✅ README newer | مستندات کامل برای `NotificationListView`: `get_queryset()` (با user filtering، company filtering از session، read status filtering از GET parameter)، `get_context_data()` (با read_filter، unread_count، read_count) |
-| `shared/views/README_API.md` | `shared/views/api.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
-| `shared/views/README_BASE_ADDITIONAL.md` | `shared/views/base_additional.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `shared/views/README_API.md` | `shared/views/api.py` | ✅ Updated | 2025-12-07 18:11:38 | 2025-12-08 20:00:00 | ✅ README newer | تکمیل شد - مستندات کامل برای 3 base API view class (BaseAPIView, BaseListAPIView, BaseDetailAPIView) با تمام methods، company validation، JSON responses، error handling، و pagination support |
+| `shared/views/README_BASE_ADDITIONAL.md` | `shared/views/base_additional.py` | ✅ Updated | 2025-12-06 17:30:57 | 2025-12-08 20:00:00 | ✅ README newer | تکمیل شد - مستندات کامل برای 4 base class (TransferRequestCreationMixin, BaseMultipleFormsetCreateView, BaseMultipleFormsetUpdateView, BaseMultipleDocumentCreateView) با تمام methods، hooks، و transaction safety |
 
 ### Forms
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `shared/forms/README_USERS.md` | `shared/forms/users.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 03:55:30 | ✅ README newer | به‌روزرسانی شد - جزئیات UserUpdateForm.save و BaseUserCompanyAccessFormSet.clean تکمیل شد |
-| `shared/forms/README_COMPANIES.md` | `shared/forms/companies.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 03:55:30 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `shared/forms/README_ACCESS_LEVELS.md` | `shared/forms/access_levels.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 03:55:30 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `shared/forms/README_GROUPS.md` | `shared/forms/groups.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 03:55:30 | ✅ README newer | به‌روزرسانی شد - جزئیات save و save_m2m تکمیل شد |
-| `shared/forms/README_SMTP_SERVER.md` | `shared/forms/smtp_server.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-28 03:55:30 | ✅ README newer | به‌روزرسانی شد - جزئیات clean method تکمیل شد |
-| `shared/forms/README_BASE.md` | `shared/forms/base.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `shared/forms/README_USERS.md` | `shared/forms/users.py` | ✅ Updated | 2025-12-05 22:18:47 | 2025-11-28 04:12:11 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات UserUpdateForm.save و BaseUserCompanyAccessFormSet.clean تکمیل شد |
+| `shared/forms/README_COMPANIES.md` | `shared/forms/companies.py` | ✅ Updated | 2025-12-05 20:44:20 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `shared/forms/README_ACCESS_LEVELS.md` | `shared/forms/access_levels.py` | ✅ Updated | 2025-12-05 22:18:47 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `shared/forms/README_GROUPS.md` | `shared/forms/groups.py` | ✅ Updated | 2025-12-05 22:18:47 | 2025-11-28 04:12:11 | ⚠️ Source newer | به‌روزرسانی شد - جزئیات save و save_m2m تکمیل شد |
+| `shared/forms/README_SMTP_SERVER.md` | `shared/forms/smtp_server.py` | ✅ Updated | 2025-11-22 20:47:51 | 2025-11-28 04:12:11 | ✅ README newer | به‌روزرسانی شد - جزئیات clean method تکمیل شد |
+| `shared/forms/README_BASE.md` | `shared/forms/base.py` | ✅ Updated | 2025-12-06 18:15:27 | 2025-12-08 20:00:00 | ✅ README newer | تکمیل شد - مستندات کامل برای 2 base class (BaseModelForm با automatic widget styling، BaseFormset با company scoping و request propagation) با تمام methods و منطق کامل |
 
 ### Utils
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `shared/utils/README_PERMISSIONS.md` | `shared/utils/permissions.py` | ✅ Updated | 2025-11-13 16:06:41 | 2025-11-26 20:30:09 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `shared/utils/README_PERMISSIONS.md` | `shared/utils/permissions.py` | ✅ Updated | 2025-12-03 23:16:34 | 2025-11-26 20:30:09 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
 | `shared/utils/README_MODULES.md` | `shared/utils/modules.py` | ✅ Updated | 2025-11-22 16:22:00 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `shared/utils/README_EMAIL.md` | `shared/utils/email.py` | ✅ Updated | 2025-11-22 20:47:51 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
 | `shared/utils/README_NOTIFICATIONS.md` | `shared/utils/notifications.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-29 19:11:57 | ✅ README newer | مستندات کامل برای 4 function: `get_or_create_notification()` (با get_or_create و update logic)، `get_unread_notifications()` (با company filtering)، `get_unread_notification_count()` (با Sum aggregation)، `get_recent_notifications()` (با limit و is_read field) |
-| `shared/utils/README_VIEW_HELPERS.md` | `shared/utils/view_helpers.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `shared/utils/README_VIEW_HELPERS.md` | `shared/utils/view_helpers.py` | ✅ Updated | 2025-12-07 18:11:38 | 2025-12-08 20:00:00 | ✅ README newer | تکمیل شد - مستندات کامل برای 4 helper function (get_breadcrumbs, get_success_message, validate_active_company, get_table_headers) با تمام parameters، return values، و usage examples |
 
 ### Template Tags
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `shared/templatetags/README_ACCESS_TAGS.md` | `shared/templatetags/access_tags.py` | ✅ Updated | 2025-11-13 18:02:43 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `shared/templatetags/README_ACCESS_TAGS.md` | `shared/templatetags/access_tags.py` | ✅ Updated | 2025-12-03 23:16:34 | 2025-11-26 21:30:04 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
 | `shared/templatetags/README_JSON_FILTERS.md` | `shared/templatetags/json_filters.py` | ✅ Updated | 2025-11-26 14:12:06 | 2025-11-26 21:30:04 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `shared/templatetags/README_GENERIC_TAGS.md` | `shared/templatetags/generic_tags.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
-| `shared/templatetags/README_VIEW_TAGS.md` | `shared/templatetags/view_tags.py` | ⏳ Pending | 2025-11-28 20:01:46 | 2025-12-08 | ⚠️ Unknown | فایل README ایجاد شده - نیاز به تکمیل |
+| `shared/templatetags/README_GENERIC_TAGS.md` | `shared/templatetags/generic_tags.py` | ✅ Updated | 2025-11-30 16:08:48 | 2025-12-08 20:00:00 | ✅ README newer | تکمیل شد - مستندات کامل برای 2 template filter (getattr با nested attributes support، get_field_value) با تمام parameters، return values، و usage examples |
+| `shared/templatetags/README_VIEW_TAGS.md` | `shared/templatetags/view_tags.py` | ✅ Updated | 2025-12-06 17:30:57 | 2025-12-08 20:00:00 | ✅ README newer | تکمیل شد - مستندات کامل برای 5 template tag (get_breadcrumbs, get_table_headers, can_action, get_object_actions, get_item filter) با تمام parameters، permission checking، و usage examples |
 
 ### Context Processors
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
@@ -297,32 +299,32 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 ### Models
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `accounting/README_MODELS.md` | `accounting/models/*.py` | ✅ Updated | 2025-12-02 | 2025-12-02 | ✅ README newer | مستندات کامل برای 20 model class شامل تمام fields، constraints، methods، و نکات مهم |
+| `accounting/README_MODELS.md` | `accounting/models/*.py` | ✅ Updated | 2025-12-03 18:01:10 | 2025-12-02 15:22:37 | ⚠️ Source newer | مستندات کامل برای 20 model class شامل تمام fields، constraints، methods، و نکات مهم |
 
 ### Views
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `accounting/README_VIEWS.md` | `accounting/views.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-12-02 | ✅ README newer | بررسی شد - مستندات کامل است |
-| `accounting/views/README_BASE.md` | `accounting/views/base.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-28 03:55:30 | ✅ Same date | بررسی شد - مستندات کامل است |
-| `accounting/views/README_FISCAL_YEARS.md` | `accounting/views/fiscal_years.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-28 03:55:30 | ✅ Same date | بررسی شد - مستندات کامل است |
-| `accounting/views/README_ACCOUNTS.md` | `accounting/views/accounts.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-28 03:55:30 | ✅ Same date | بررسی شد - مستندات کامل است |
-| `accounting/views/README_GL_ACCOUNTS.md` | `accounting/views/gl_accounts.py` | ✅ Updated | 2025-12-02 | 2025-12-02 | ✅ README newer | مستندات کامل برای 4 view class (ListView, CreateView, UpdateView, DeleteView) با تمام methods و context variables |
-| `accounting/views/README_OTHER_VIEWS.md` | `accounting/views/{sub_accounts,tafsili_accounts,tafsili_hierarchy,document_attachments,auth}.py` | ✅ Updated | 2025-12-02 | 2025-12-02 | ✅ README newer | مستندات خلاصه برای سایر view ها با لینک به فایل‌های جداگانه |
+| `accounting/README_VIEWS.md` | `accounting/views.py` | ✅ Updated | 2025-12-03 10:59:02 | 2025-12-02 15:22:37 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `accounting/views/README_BASE.md` | `accounting/views/base.py` | ✅ Updated | 2025-12-03 23:16:34 | 2025-12-01 05:45:06 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `accounting/views/README_FISCAL_YEARS.md` | `accounting/views/fiscal_years.py` | ✅ Updated | 2025-12-06 19:30:55 | 2025-12-01 05:45:06 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `accounting/views/README_ACCOUNTS.md` | `accounting/views/accounts.py` | ✅ Updated | 2025-12-06 19:30:55 | 2025-12-01 05:45:06 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
+| `accounting/views/README_GL_ACCOUNTS.md` | `accounting/views/gl_accounts.py` | ✅ Updated | 2025-12-06 19:30:55 | 2025-12-03 10:59:02 | ⚠️ Source newer | مستندات کامل برای 4 view class (ListView, CreateView, UpdateView, DeleteView) با تمام methods و context variables |
+| `accounting/views/README_OTHER_VIEWS.md` | `accounting/views/{sub_accounts,tafsili_accounts,tafsili_hierarchy,document_attachments,auth}.py` | ✅ Updated | N/A | 2025-12-03 10:59:02 | ⚠️ Unknown | مستندات خلاصه برای سایر view ها با لینک به فایل‌های جداگانه |
 
 ### Forms
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `accounting/README_FORMS.md` | `accounting/forms/{fiscal_years,periods,accounts}.py` | ✅ Updated | 2025-11-28 03:55:30 | 2025-11-28 03:55:30 | ✅ Same date | بررسی شد - مستندات کامل است |
-| `accounting/forms/README_PARTIES.md` | `accounting/forms/parties.py` | ✅ Updated | 2025-12-02 | 2025-12-02 | ✅ README newer | مستندات کامل برای PartyForm و PartyAccountForm |
-| `accounting/forms/README_COST_CENTERS.md` | `accounting/forms/cost_centers.py` | ✅ Updated | 2025-12-02 | 2025-12-02 | ✅ README newer | مستندات کامل برای CostCenterForm |
-| `accounting/forms/README_INCOME_EXPENSE_CATEGORIES.md` | `accounting/forms/income_expense_categories.py` | ✅ Updated | 2025-12-02 | 2025-12-02 | ✅ README newer | مستندات کامل برای IncomeExpenseCategoryForm |
-| `accounting/forms/README_OTHER_FORMS.md` | `accounting/forms/{document_attachments,gl_accounts,sub_accounts,tafsili_accounts,tafsili_hierarchy}.py` | ✅ Updated | 2025-12-02 | 2025-12-02 | ✅ README newer | مستندات کامل برای 6 form class با تمام fields، methods، و validation logic |
+| `accounting/README_FORMS.md` | `accounting/forms/{fiscal_years,periods,accounts}.py` | ✅ Updated | N/A | 2025-12-01 05:45:06 | ⚠️ Unknown | بررسی شد - مستندات کامل است |
+| `accounting/forms/README_PARTIES.md` | `accounting/forms/parties.py` | ✅ Updated | 2025-12-02 15:22:37 | 2025-12-02 15:22:37 | ✅ Same date | مستندات کامل برای PartyForm و PartyAccountForm |
+| `accounting/forms/README_COST_CENTERS.md` | `accounting/forms/cost_centers.py` | ✅ Updated | 2025-12-02 15:22:37 | 2025-12-02 15:22:37 | ✅ Same date | مستندات کامل برای CostCenterForm |
+| `accounting/forms/README_INCOME_EXPENSE_CATEGORIES.md` | `accounting/forms/income_expense_categories.py` | ✅ Updated | 2025-12-02 15:22:37 | 2025-12-02 15:22:37 | ✅ Same date | مستندات کامل برای IncomeExpenseCategoryForm |
+| `accounting/forms/README_OTHER_FORMS.md` | `accounting/forms/{document_attachments,gl_accounts,sub_accounts,tafsili_accounts,tafsili_hierarchy}.py` | ✅ Updated | N/A | 2025-12-03 10:59:02 | ⚠️ Unknown | مستندات کامل برای 6 form class با تمام fields، methods، و validation logic |
 
 ### Other Files
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `accounting/README_UTILS.md` | `accounting/utils.py` | ✅ Updated | 2025-12-02 | 2025-12-02 | ✅ README newer | مستندات کامل برای get_available_fiscal_years function |
-| `accounting/README_CONTEXT_PROCESSORS.md` | `accounting/context_processors.py` | ✅ Updated | 2025-12-02 | 2025-12-02 | ✅ README newer | مستندات کامل برای active_fiscal_year context processor |
+| `accounting/README_UTILS.md` | `accounting/utils.py` | ✅ Updated | 2025-12-01 05:45:06 | 2025-12-02 15:22:37 | ✅ README newer | مستندات کامل برای get_available_fiscal_years function |
+| `accounting/README_CONTEXT_PROCESSORS.md` | `accounting/context_processors.py` | ✅ Updated | 2025-12-01 05:45:06 | 2025-12-02 15:22:37 | ✅ README newer | مستندات کامل برای active_fiscal_year context processor |
 
 ---
 
@@ -340,7 +342,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 ### Views
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `hr/README_VIEWS.md` | `hr/views.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-28 03:55:30 | ✅ README newer | بررسی شد - مستندات کامل است |
+| `hr/README_VIEWS.md` | `hr/views.py` | ✅ Updated | 2025-12-01 05:45:06 | 2025-11-28 03:55:30 | ⚠️ Source newer | بررسی شد - مستندات کامل است |
 
 ---
 
@@ -429,12 +431,12 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `inventory/README_MODELS.md` | `inventory/models.py` | ✅ Updated | 2025-11-28 16:01:39 | 2025-11-29 19:14:01 | ✅ README newer | مستندات کامل برای 43 model class: Base Models (3 abstract)، Master Data (4)، Item Definition (6)، Supplier Relations (4)، Document Models (12: Receipts، Issues، Stocktaking)، Request Models (4)، Traceability Models (3)، QC Models (1) - شامل validators، constants، و نکات مهم |
-| `production/README_MODELS.md` | `production/models.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 19:16:25 | ✅ README newer | مستندات کامل برای 21 model class: Base Models (2 abstract)، Core Resources (3: WorkCenter، WorkLine، Machine)، Personnel Management (2: Person، PersonAssignment)، BOM (2: BOM، BOMMaterial)، Process Definitions (4: Process، ProcessStep، ProcessOperation، ProcessOperationMaterial)، Production Orders (2: ProductOrder، OrderPerformance)، Material Transfer (2: TransferToLine، TransferToLineItem)، Performance Records (4: PerformanceRecord و 3 line models) |
-| `shared/README_MODELS.md` | `shared/models.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 19:20:16 | ✅ README newer | مستندات کامل برای 7 Abstract Mixins (TimeStampedModel، ActivatableModel، MetadataModel، SortableModel، EditableModel با clear_edit_lock و is_being_edited_by، LockableModel، CompanyScopedModel) و 11 Model Classes (User، Company، CompanyUnit، AccessLevel با auto code generation، AccessLevelPermission، GroupProfile، UserCompanyAccess با is_primary، SMTPServer با get_connection_config، SectionRegistry با indexes، ActionRegistry با indexes و constraints، Notification با mark_as_read/unread) |
+| `inventory/README_MODELS.md` | `inventory/models.py` | ✅ Updated | 2025-12-04 21:43:48 | 2025-12-01 02:29:31 | ⚠️ Source newer | مستندات کامل برای 43 model class: Base Models (3 abstract)، Master Data (4)، Item Definition (6)، Supplier Relations (4)، Document Models (12: Receipts، Issues، Stocktaking)، Request Models (4)، Traceability Models (3)، QC Models (1) - شامل validators، constants، و نکات مهم |
+| `production/README_MODELS.md` | `production/models.py` | ✅ Updated | 2025-12-05 16:11:03 | 2025-11-29 19:16:25 | ⚠️ Source newer | مستندات کامل برای 21 model class: Base Models (2 abstract)، Core Resources (3: WorkCenter، WorkLine، Machine)، Personnel Management (2: Person، PersonAssignment)، BOM (2: BOM، BOMMaterial)، Process Definitions (4: Process، ProcessStep، ProcessOperation، ProcessOperationMaterial)، Production Orders (2: ProductOrder، OrderPerformance)، Material Transfer (2: TransferToLine، TransferToLineItem)، Performance Records (4: PerformanceRecord و 3 line models) |
+| `shared/README_MODELS.md` | `shared/models.py` | ✅ Updated | 2025-12-03 23:16:34 | 2025-11-29 19:20:16 | ⚠️ Source newer | مستندات کامل برای 7 Abstract Mixins (TimeStampedModel، ActivatableModel، MetadataModel، SortableModel، EditableModel با clear_edit_lock و is_being_edited_by، LockableModel، CompanyScopedModel) و 11 Model Classes (User، Company، CompanyUnit، AccessLevel با auto code generation، AccessLevelPermission، GroupProfile، UserCompanyAccess با is_primary، SMTPServer با get_connection_config، SectionRegistry با indexes، ActionRegistry با indexes و constraints، Notification با mark_as_read/unread) |
 | `ticketing/README_MODELS.md` | `ticketing/models.py` | ✅ Updated | 2025-11-28 20:01:46 | 2025-11-29 22:41:38 | ✅ README newer | مستندات کامل برای 15 model class: Base Models (2 abstract: TicketingBaseModel، TicketingSortableModel)، Master Data (2: TicketCategory با hierarchical support، TicketPriority با SLA)، Permission Models (1: TicketCategoryPermission)، Template Models (6: TicketTemplate با default_priority، TicketTemplateField با 25+ field types و validation_rules، TicketTemplateFieldOption، TicketTemplatePermission، TicketTemplateEvent با action_reference، TicketTemplateFieldEvent)، Ticket Models (1: Ticket با related_entity و attachments JSONField)، Ticket Data Models (3: TicketFieldValue با field_value و field_value_json، TicketComment، TicketAttachment) |
 | `qc/README_MODELS.md` | `qc/models.py` | ✅ Updated | 2025-11-21 03:33:39 | 2025-11-29 22:48:26 | ✅ README newer | مستندات کامل برای 2 model class: Base Model (1 abstract: QCBaseModel)، Receipt Inspection Model (1: ReceiptInspection با one-to-one با ReceiptTemporary، InspectionStatus و ApprovalDecision choices، inspector از Person، approved_by از User، cached codes، inspection_results JSONField، attachments JSONField، nonconformity tracking) |
-| `accounting/README_MODELS.md` | `accounting/models.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-29 22:49:28 | ✅ README newer | فایل models.py در حال حاضر خالی است - README تکمیل شد با توضیح اینکه models در آینده اضافه خواهند شد |
+| `accounting/README_MODELS.md` | `accounting/models.py` | ✅ Updated | 2025-12-01 18:34:10 | 2025-12-02 15:22:37 | ✅ README newer | فایل models.py در حال حاضر خالی است - README تکمیل شد با توضیح اینکه models در آینده اضافه خواهند شد |
 | `sales/README_MODELS.md` | `sales/models.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-29 22:50:45 | ✅ README newer | فایل models.py در حال حاضر خالی است - README تکمیل شد با توضیح اینکه models در آینده اضافه خواهند شد |
 | `hr/README_MODELS.md` | `hr/models.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-29 22:51:38 | ✅ README newer | فایل models.py در حال حاضر خالی است - README تکمیل شد با توضیح اینکه models در آینده اضافه خواهند شد |
 | `procurement/README_MODELS.md` | `procurement/models.py` | ✅ Updated | 2025-11-28 03:06:47 | 2025-11-29 22:52:30 | ✅ README newer | فایل models.py در حال حاضر خالی است - README تکمیل شد با توضیح اینکه models در آینده اضافه خواهند شد |
@@ -489,11 +491,11 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 - **جمع کل README فایل‌ها**: 149+ فایل
 - **جمع کل فایل‌های بررسی شده**: 149+ فایل
 - **فایل‌های کامل**: 139+ فایل
-- **فایل‌های نیازمند تکمیل**: 28 فایل (18 فایل برای ماژول‌های آینده + 10 فایل جدید ایجاد شده)
-  - Production: 3 فایل (forms/README_PROCESS_OPERATIONS.md, utils/README_TRANSFER.md, views/README_REWORK.md, views/README_QCOPERATIONS.md)
-  - Shared: 7 فایل (forms/README_BASE.md, views/README_API.md, views/README_BASE_ADDITIONAL.md, utils/README_VIEW_HELPERS.md, templatetags/README_GENERIC_TAGS.md, templatetags/README_VIEW_TAGS.md)
+- **فایل‌های نیازمند تکمیل**: 18 فایل (18 فایل برای ماژول‌های آینده)
+  - Production: 1 فایل (utils/README_TRANSFER.md)
+  - سایر ماژول‌ها: 17 فایل (models READMEs برای ماژول‌های آینده)
 - **فایل‌های نیازمند بررسی محتوایی**: 2 فایل (Source newer - بررسی شدند و محتوا درست است، تفاوت تاریخ فقط چند ساعت)
-- **وضعیت**: ✅ تمام فایل‌های اصلی README دارند (28 فایل نیازمند تکمیل محتوا)
+- **وضعیت**: ✅ تمام فایل‌های اصلی README دارند (18 فایل نیازمند تکمیل محتوا - فقط برای ماژول‌های آینده)
 
 ---
 

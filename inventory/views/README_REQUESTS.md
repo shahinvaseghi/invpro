@@ -219,17 +219,43 @@
 
 #### `get_queryset(self) -> QuerySet`
 
-**توضیح**: queryset را فیلتر می‌کند تا فقط DRAFT requests created by current user را شامل شود.
+**توضیح**: queryset را با فیلتر company، enabled status و permissions آماده می‌کند.
 
 **مقدار بازگشتی**:
-- `QuerySet`: queryset فیلتر شده
+- `QuerySet`: queryset فیلتر شده و بهینه شده
 
 **منطق**:
 1. queryset را از `super().get_queryset()` دریافت می‌کند
-2. `select_related('requested_by', 'approver')` و `prefetch_related('lines__item')` را اعمال می‌کند
-3. فیلتر می‌کند: `status = DRAFT` و `requested_by = request.user`
+2. فیلتر بر اساس `company_id` از session
+3. فیلتر `is_enabled=1`
+4. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.requests.purchase', 'requested_by')`
+5. `select_related('requested_by', 'approver')` و `prefetch_related('lines__item')` را اعمال می‌کند
 
-**نکته**: این view فقط اجازه ویرایش DRAFT requests که توسط کاربر فعلی ایجاد شده‌اند را می‌دهد.
+**نکته**: این متد permission filtering را انجام می‌دهد اما بررسی وضعیت DRAFT و ownership در `get_object()` انجام می‌شود.
+
+---
+
+#### `get_object(self, queryset=None) -> PurchaseRequest`
+
+**توضیح**: object را دریافت می‌کند و بررسی می‌کند که آیا قابل ویرایش است یا نه.
+
+**پارامترهای ورودی**:
+- `queryset`: queryset اختیاری (اگر None باشد، از `get_queryset()` استفاده می‌شود)
+
+**مقدار بازگشتی**:
+- `PurchaseRequest`: instance درخواست خرید
+
+**منطق**:
+1. object را با `super().get_object(queryset)` دریافت می‌کند
+2. بررسی می‌کند که آیا request در وضعیت `DRAFT` است:
+   - اگر نیست، `Http404` با پیام "فقط درخواست‌های پیش‌نویس قابل ویرایش هستند." می‌اندازد
+3. بررسی می‌کند که آیا کاربر owner است یا نه (`obj.requested_by_id != self.request.user.id`):
+   - اگر owner نیست:
+     - بررسی می‌کند که آیا کاربر superuser است یا `edit_other` permission دارد
+     - اگر permission نداشته باشد، `Http404` با پیام "شما اجازه ویرایش این درخواست را ندارید." می‌اندازد
+4. object را برمی‌گرداند
+
+**نکته**: این متد اطمینان می‌دهد که فقط DRAFT requests قابل ویرایش هستند و فقط owner یا کاربری که `edit_other` permission دارد می‌تواند آن را ویرایش کند.
 
 ---
 

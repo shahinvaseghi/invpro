@@ -46,20 +46,6 @@
 
 **متدها**:
 
-#### `get_queryset(self) -> QuerySet`
-
-**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
-
-**مقدار بازگشتی**:
-- `QuerySet`: queryset فیلتر شده بر اساس permissions
-
-**منطق**:
-1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
-2. سپس `self.filter_queryset_by_permissions()` را با feature code `'inventory.master.item_types'` و owner field `'created_by'` فراخوانی می‌کند
-3. نتیجه فیلتر شده را برمی‌گرداند
-
-**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
-
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
 **توضیح**: context variables را برای generic list template اضافه می‌کند.
@@ -314,21 +300,6 @@
 
 **متدها**:
 
-#### `get_queryset(self) -> QuerySet`
-
-**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند و `item_type` را select_related می‌کند.
-
-**مقدار بازگشتی**:
-- `QuerySet`: queryset فیلتر شده بر اساس permissions با select_related('item_type')
-
-**منطق**:
-1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
-2. سپس `self.filter_queryset_by_permissions()` را با feature code `'inventory.master.item_categories'` و owner field `'created_by'` فراخوانی می‌کند
-3. `select_related('item_type')` برای بهینه‌سازی query
-4. نتیجه فیلتر شده را برمی‌گرداند
-
-**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
-
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
 **توضیح**: context variables را برای generic list template اضافه می‌کند.
@@ -545,19 +516,15 @@
 
 **متدها**:
 
-#### `get_queryset(self) -> QuerySet`
+#### `get_select_related(self) -> List[str]`
 
-**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+**توضیح**: لیست فیلدهای related را برای select_related برمی‌گرداند.
 
 **مقدار بازگشتی**:
-- `QuerySet`: queryset فیلتر شده بر اساس permissions
+- `List[str]`: لیست فیلدهای related (`['category']`)
 
 **منطق**:
-1. ابتدا `super().get_queryset()` را فراخوانی می‌کند که queryset را بر اساس `active_company_id` فیلتر می‌کند
-2. سپس `self.filter_queryset_by_permissions()` را با feature code `'inventory.master.item_subcategories'` و owner field `'created_by'` فراخوانی می‌کند
-3. نتیجه فیلتر شده را برمی‌گرداند
-
-**نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
+- `category` را برای بهینه‌سازی query با select_related اضافه می‌کند
 
 **URL**: `/inventory/item-subcategories/`
 
@@ -678,7 +645,7 @@
 
 **توضیح**: حذف زیردسته کالا
 
-**Type**: `DocumentDeleteViewBase`
+**Type**: `InventoryBaseView, BaseDeleteView`
 
 **Template**: `shared/generic/generic_confirm_delete.html`
 
@@ -691,12 +658,38 @@
 - `model`: `models.ItemSubcategory`
 - `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('inventory:item_subcategories')`
-- `feature_code`: `'inventory.master_data.item_subcategory'`
-- `required_action`: `'delete_own'`
-- `allow_own_scope`: `True`
+- `feature_code`: `'inventory.master.item_subcategories'`
 - `success_message`: `_('زیردسته کالا با موفقیت حذف شد.')`
+- `owner_field`: `'created_by'`
 
 **متدها**:
+
+#### `dispatch(self, request, *args, **kwargs) -> HttpResponse`
+
+**توضیح**: بررسی permissions قبل از اجازه دادن به حذف.
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
+
+**مقدار بازگشتی**:
+- `HttpResponse`: response از `super().dispatch()` یا `PermissionDenied` exception
+
+**منطق**:
+1. اگر کاربر superuser باشد، اجازه می‌دهد و `super().dispatch()` را فراخوانی می‌کند
+2. object را با `self.get_object()` دریافت می‌کند
+3. `company_id` را از session دریافت می‌کند
+4. permissions کاربر را با `get_user_feature_permissions()` دریافت می‌کند
+5. بررسی می‌کند که آیا کاربر owner است یا نه (`obj.created_by == request.user`)
+6. بررسی می‌کند که آیا کاربر `delete_own` permission دارد (اگر owner است) یا `delete_other` permission دارد (اگر owner نیست)
+7. اگر permission نداشته باشد، `PermissionDenied` exception می‌اندازد با پیام مناسب:
+   - اگر owner است اما `delete_own` ندارد: "شما اجازه حذف اسناد خود را ندارید."
+   - اگر owner نیست اما `delete_other` ندارد: "شما اجازه حذف اسناد سایر کاربران را ندارید."
+8. اگر permission داشته باشد، `super().dispatch()` را فراخوانی می‌کند
+
+**نکته**: این متد permission checking را قبل از `delete()` انجام می‌دهد تا اطمینان حاصل شود که کاربر فقط می‌تواند اسناد خود را حذف کند (اگر `delete_own` دارد) یا اسناد سایر کاربران را (اگر `delete_other` دارد).
+
+---
 
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
@@ -715,14 +708,26 @@
 
 **توضیح**: حذف را با مدیریت `ProtectedError` انجام می‌دهد.
 
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
+
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect به `success_url`
+
 **منطق**:
-1. سعی می‌کند object را حذف کند
-2. در صورت موفقیت، پیام موفقیت را نمایش می‌دهد و redirect می‌کند
-3. در صورت `ProtectedError` (وقتی که object در جای دیگری استفاده شده):
+1. اطلاعات subcategory را log می‌کند
+2. سعی می‌کند object را حذف کند
+3. اگر موفق شد:
+   - پیام موفقیت را نمایش می‌دهد: "زیردسته کالا با موفقیت حذف شد."
+   - redirect می‌کند
+4. اگر `ProtectedError` رخ داد:
+   - خطا را log می‌کند
    - مدل‌های محافظت شده را شناسایی می‌کند
-   - نام‌های مدل را به فارسی تبدیل می‌کند
-   - پیام خطای کاربرپسند نمایش می‌دهد: "نمی‌توان این زیر دسته‌بندی کالا را حذف کرد چون در ساختار {models} استفاده شده است."
-   - به صفحه لیست redirect می‌کند
+   - نام‌های مدل را به فارسی map می‌کند (Item -> کالا، Items -> کالاها)
+   - پیام خطای کاربرپسند می‌سازد: "نمی‌توان این زیر دسته‌بندی کالا را حذف کرد چون در ساختار {models} استفاده شده است."
+   - پیام خطا را نمایش می‌دهد
+   - redirect می‌کند
 
 **URL**: `/inventory/item-subcategories/<pk>/delete/`
 
