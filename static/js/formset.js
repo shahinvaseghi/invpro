@@ -76,9 +76,9 @@ function addFormsetRow(prefix, templateSelector, options = {}) {
     updateRowFields(newRow, prefix, newFormIndex, usePrefixPattern);
     
     // Insert new row into formset container
-    // For template tag, find the tbody or container
+    // For template tag or when tbodyId is specified, find the tbody or container
     let formsetContainer;
-    if (templateElement.tagName === 'TEMPLATE') {
+    if (templateElement.tagName === 'TEMPLATE' || options.tbodyId) {
         // Find the tbody that should contain the rows
         const tbodyId = options.tbodyId || `${prefix}-formset-body`;
         formsetContainer = document.getElementById(tbodyId) || 

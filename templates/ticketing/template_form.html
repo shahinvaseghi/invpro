@@ -478,7 +478,7 @@
 {% block form_extra %}
 <link rel="stylesheet" href="{% static 'css/shared.css' %}">
 <link rel="stylesheet" href="{% static 'css/formset-table.css' %}">
-
+<script src="{% static 'js/formset.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   // ========================================================================
@@ -708,103 +708,20 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   
   // ========================================================================
-  // Permission Formset
+  // Permission Formset - Using formset.js
   // ========================================================================
   const permissionFormsetBody = document.getElementById('permission-formset-body');
   const addPermissionButton = document.getElementById('add-permission-row');
-  // Find management form dynamically
-  const permissionManagementForm = permissionFormsetBody ? 
-    permissionFormsetBody.closest('.form-section').querySelector('input[name$="-TOTAL_FORMS"]') : null;
   
   if (permissionFormsetBody && addPermissionButton) {
-    // Find management form dynamically
-    let permissionManagementForm = permissionFormsetBody.closest('.form-section').querySelector('input[name$="-TOTAL_FORMS"]');
-    if (!permissionManagementForm) {
-      const form = permissionFormsetBody.closest('form');
-      if (form) {
-        const allInputs = form.querySelectorAll('input[name$="-TOTAL_FORMS"]');
-        const section = permissionFormsetBody.closest('.form-section');
-        for (let i = 0; i < allInputs.length; i++) {
-          if (section && section.contains(allInputs[i])) {
-            permissionManagementForm = allInputs[i];
-            break;
-          }
-        }
-        if (!permissionManagementForm && allInputs.length > 0) {
-          permissionManagementForm = allInputs[0];
-        }
-      }
-    }
-    
-    if (permissionManagementForm) {
-      const emptyPermissionForm = document.getElementById('empty-permission-form');
-      
-      if (emptyPermissionForm) {
-        addPermissionButton.addEventListener('click', function() {
-          const totalForms = parseInt(permissionManagementForm.value) || 0;
-          
-          // Clone the empty form template (use .content for template tag)
-          const templateContent = emptyPermissionForm.content || emptyPermissionForm;
-          const newRow = templateContent.querySelector('tr').cloneNode(true);
-          
-          // Update all form field names and IDs to use the new index
-          const formFields = newRow.querySelectorAll('input, select, textarea, label, button');
-          formFields.forEach(function(field) {
-            if (field.name) {
-              field.name = field.name.replace(/__prefix__/g, totalForms);
-            }
-            if (field.id) {
-              field.id = field.id.replace(/__prefix__/g, totalForms);
-            }
-            if (field.getAttribute('for')) {
-              field.setAttribute('for', field.getAttribute('for').replace(/__prefix__/g, totalForms));
-            }
-            if (field.getAttribute('data-permission-index')) {
-              field.setAttribute('data-permission-index', totalForms);
-            }
-          });
-          
-          // Add the new row to the formset body
-          permissionFormsetBody.appendChild(newRow);
-          
-          // Update the total forms count
-          permissionManagementForm.value = totalForms + 1;
-        });
-      }
-    }
-    
-    // Handle remove button clicks for new permission rows
-    permissionFormsetBody.addEventListener('click', function(e) {
-      if (e.target.closest('.remove-permission-row')) {
-        const button = e.target.closest('.remove-permission-row');
-        const row = button.closest('tr');
-        if (row) {
-          row.remove();
-          
-          // Update the total forms count
-          let mgmtForm = permissionFormsetBody.closest('.form-section').querySelector('input[name$="-TOTAL_FORMS"]');
-          if (!mgmtForm) {
-            const form = permissionFormsetBody.closest('form');
-            if (form) {
-              const allInputs = form.querySelectorAll('input[name$="-TOTAL_FORMS"]');
-              const section = permissionFormsetBody.closest('.form-section');
-              for (let i = 0; i < allInputs.length; i++) {
-                if (section && section.contains(allInputs[i])) {
-                  mgmtForm = allInputs[i];
-                  break;
-                }
-              }
-            }
-          }
-          
-          if (mgmtForm) {
-            const currentTotal = parseInt(mgmtForm.value) || 0;
-            if (currentTotal > 0) {
-              mgmtForm.value = currentTotal - 1;
-            }
-          }
-        }
-      }
+    // Initialize permission formset using formset.js
+    initFormset('permissions', '#empty-permission-form', {
+      minRows: 0,
+      addButtonSelector: '#add-permission-row',
+      removeButtonSelector: '.remove-permission-row',
+      rowSelector: 'tr',
+      tbodyId: 'permission-formset-body',
+      usePrefixPattern: true
     });
     
     // Handle delete checkboxes for permissions (for existing saved rows)
@@ -821,42 +738,21 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // ========================================================================
-  // Event Formset
+  // Event Formset - Using formset.js
   // ========================================================================
   const eventFormsetBody = document.getElementById('event-formset-body');
   const addEventButton = document.getElementById('add-event-row');
-  // Find management form dynamically
-  const eventManagementForm = eventFormsetBody ? 
-    eventFormsetBody.closest('.form-section').querySelector('input[name$="-TOTAL_FORMS"]') : null;
   
-  if (eventFormsetBody && addEventButton && eventManagementForm) {
-    const emptyEventForm = document.getElementById('empty-event-form');
-    
-    addEventButton.addEventListener('click', function() {
-      const totalForms = parseInt(eventManagementForm.value);
-      
-      // Clone the empty form template
-      const newRow = emptyEventForm.querySelector('tr').cloneNode(true);
-      
-      // Update all form field names and IDs to use the new index
-      const formFields = newRow.querySelectorAll('input, select, textarea, label');
-      formFields.forEach(function(field) {
-        if (field.name) {
-          field.name = field.name.replace(/__prefix__/g, totalForms);
-        }
-        if (field.id) {
-          field.id = field.id.replace(/__prefix__/g, totalForms);
-        }
-        if (field.getAttribute('for')) {
-          field.setAttribute('for', field.getAttribute('for').replace(/__prefix__/g, totalForms));
-        }
-      });
-      
-      // Add the new row to the formset body
-      eventFormsetBody.appendChild(newRow);
-      
-      // Update the total forms count
-      eventManagementForm.value = totalForms + 1;
+  if (eventFormsetBody && addEventButton) {
+    // Initialize event formset using formset.js
+    // Note: empty-event-form is a div, not a template tag
+    initFormset('events', '#empty-event-form', {
+      minRows: 0,
+      addButtonSelector: '#add-event-row',
+      removeButtonSelector: '.remove-event-row',
+      rowSelector: 'tr',
+      tbodyId: 'event-formset-body',
+      usePrefixPattern: true
     });
     
     // Handle delete checkboxes for events
