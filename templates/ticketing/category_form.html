@@ -62,19 +62,19 @@
               <div class="field-error">{{ error }}</div>
             {% endfor %}
           </td>
-          <td style="text-align: center;">
+          <td class="text-center">
             {{ perm_form.can_create }}
             {% for error in perm_form.can_create.errors %}
               <div class="field-error">{{ error }}</div>
             {% endfor %}
           </td>
-          <td style="text-align: center;">
+          <td class="text-center">
             {{ perm_form.can_respond }}
             {% for error in perm_form.can_respond.errors %}
               <div class="field-error">{{ error }}</div>
             {% endfor %}
           </td>
-          <td style="text-align: center;">
+          <td class="text-center">
             {{ perm_form.can_close }}
             {% for error in perm_form.can_close.errors %}
               <div class="field-error">{{ error }}</div>
@@ -89,7 +89,7 @@
           <td>
             {% if perm_form.instance.pk %}
               {{ perm_form.DELETE }}
-              <label for="{{ perm_form.DELETE.id_for_label }}" style="margin-left: 5px;">{% trans "Delete" %}</label>
+                    <label for="{{ perm_form.DELETE.id_for_label }}" class="ml-2">{% trans "Delete" %}</label>
             {% else %}
               <span class="muted-text">–</span>
             {% endif %}
@@ -105,135 +105,7 @@
 {% endblock %}
 
 {% block form_extra %}
-<style>
-.form-section {
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.form-section:last-child {
-  border-bottom: none;
-}
-
-.form-section h2 {
-  margin-bottom: 1rem;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.section-header {
-  margin-bottom: 1.5rem;
-}
-
-.section-header h2 {
-  margin-bottom: 0.5rem;
-}
-
-.section-header p {
-  color: #6b7280;
-  margin: 0;
-}
-
-.entity-form .form-section {
-  display: grid;
-  gap: 1.5rem;
-}
-
-.entity-form .form-field label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: #374151;
-}
-
-.entity-form .form-control, 
-.entity-form select,
-.entity-form textarea,
-.entity-form input[type="text"],
-.entity-form input[type="number"] {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-.entity-form .form-control:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.entity-form textarea {
-  resize: vertical;
-}
-
-.entity-form .error {
-  display: block;
-  color: #dc2626;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-}
-
-.form-text {
-  display: block;
-  margin-top: 0.25rem;
-  color: #6b7280;
-  font-size: 0.875rem;
-}
-
-.formset-table {
-  width: 100%;
-  margin-top: 1rem;
-}
-
-.formset-table th {
-  text-align: right;
-  font-weight: 600;
-  padding: 0.75rem;
-  background: #f8f9fa;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.formset-table td {
-  padding: 0.75rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.formset-table select {
-  width: 100%;
-  padding: 0.375rem 0.5rem;
-  font-size: 0.875rem;
-}
-
-.formset-table input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-}
-
-.muted-text {
-  color: #9ca3af;
-  font-style: italic;
-}
-
-.field-error {
-  color: #dc2626;
-  font-size: 0.75rem;
-  margin-top: 0.25rem;
-}
-
-.alert {
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1.5rem;
-}
-
-.alert-error {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-</style>
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+<link rel="stylesheet" href="{% static 'css/formset-table.css' %}">
 {% endblock %}

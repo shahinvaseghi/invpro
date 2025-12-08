@@ -2,7 +2,7 @@
 
 **تاریخ ایجاد**: 2024-12-05  
 **آخرین به‌روزرسانی**: 2024-12-06  
-**وضعیت**: در حال انجام - 76 فایل از 110+ فایل تکمیل شد (69%)  
+**وضعیت**: در حال انجام - 83 فایل از 110+ فایل تکمیل شد (75%)  
 **هدف**: شناسایی الگوهای تکراری در فایل‌های HTML/Template و برنامه‌ریزی برای refactoring
 
 **وضعیت پیشرفت**:
@@ -955,9 +955,17 @@
 
 **جمع کل**: 40+ فایل JavaScript Inline
 
-### فاز 5: CSS و Event Handlers (اولویت متوسط) ⏳ **شروع شد!**
-1. ⏳ انتقال Inline CSS به فایل‌های مشترک (25+ فایل) - **در انتظار**
-2. ⏳ جایگزینی Inline Event Handlers با Event Listeners (10+ فایل) - **شروع شد (20%)**
+### فاز 5: CSS و Event Handlers (اولویت متوسط) ⏳ **در حال انجام**
+1. ⏳ انتقال Inline CSS به فایل‌های مشترک (25+ فایل) - **7 فایل refactor شد (28%)**
+   - ✅ `shared/generic/generic_detail.html` - refactor شد
+   - ✅ `shared/generic/generic_list.html` - refactor شد
+   - ✅ `shared/generic/generic_form.html` - refactor شد
+   - ✅ `shared/partials/row_actions.html` - refactor شد
+   - ✅ `inventory/inventory_balance.html` - refactor شد (تمام inline styles حذف شد)
+   - ✅ `inventory/inventory_balance_details.html` - refactor شد (تمام inline styles و style tag حذف شد)
+   - ✅ `inventory/base.html` - alert messages refactor شد
+   - ⏳ باقی مانده: ~18+ فایل (production forms, inventory forms, ticketing forms, و سایر فایل‌ها)
+2. ✅ جایگزینی Inline Event Handlers با Event Listeners (10+ فایل) - **تکمیل شد (100%)**
    - ✅ `static/js/common-actions.js` - **ساخته شد!**
    - ✅ `shared/generic/generic_list.html` - refactor شد (print button)
    - ✅ `shared/partials/row_actions.html` - refactor شد (delete confirmation)
@@ -1109,7 +1117,7 @@ document.addEventListener('DOMContentLoaded', function() {
 ---
 
 **آخرین به‌روزرسانی**: 2024-12-06  
-**وضعیت**: در حال انجام - 79 فایل از 110+ فایل تکمیل شد (72%)  
+**وضعیت**: در حال انجام - 83 فایل از 110+ فایل تکمیل شد (75%)  
 **تکمیل شده**: 
 - ✅ فاز 1: Detail Views (39 فایل) - **100% تکمیل شد!** همه 39 فایل refactor شدند
   - ✅ فاز 1.1: Detail Views ماژول inventory (15 فایل)
@@ -1152,7 +1160,7 @@ document.addEventListener('DOMContentLoaded', function() {
   - ✅ Modal Dialogs: 3 از 3 فایل (100%)
 - ✅ List Views: 9 از 9 فایل (100%)
 - ✅ Form Views: 6 از 6 فایل (100%)
-- ⏳ CSS Refactoring: 0 از 25+ فایل (0%)
+- ⏳ CSS Refactoring: 7 از 25+ فایل (28%)
 - ✅ Event Handlers: 20+ از 20+ فایل (100%) - **تکمیل شد!** همه فایل‌های با inline event handlers refactor شدند
 - ⏳ Partials: 0 از 15+ فایل (0%)
 
@@ -1206,13 +1214,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
 ### 📊 آمار کلی
 - **کل فایل‌های نیازمند Refactor**: 110+ فایل
-- **فایل‌های تکمیل شده**: 77 فایل (70%)
-- **فایل‌های باقی‌مانده**: 33+ فایل (30%)
+- **فایل‌های تکمیل شده**: 83 فایل (75%)
+- **فایل‌های باقی‌مانده**: 27+ فایل (25%)
 
 ### 🎯 اولویت‌های بعدی
 1. **فاز 4.1**: تکمیل Formset Management (5+ فایل باقی مانده - 3 فایل پیچیده)
 2. ✅ **فاز 4.2**: Cascading Dropdowns - **تکمیل شد!** (7 از 7 فایل)
-3. **فاز 5**: CSS و Event Handlers (35+ فایل)
+3. **فاز 5.1**: ادامه CSS Refactoring (~18+ فایل باقی مانده)
+   - فایل‌های production forms (bom_form, process_form, performance_record_form, transfer_to_line_form, rework_document_form)
+   - فایل‌های inventory forms (item_form, receipt_form, purchase_request_form, warehouse_request_form)
+   - فایل‌های ticketing forms (template_form, category_form, subcategory_form)
+   - فایل‌های accounting forms
+   - سایر فایل‌های list view
 
 ### 💡 نکات مهم
 - فایل‌های JavaScript مشترک ایجاد شده قابل استفاده مجدد هستند

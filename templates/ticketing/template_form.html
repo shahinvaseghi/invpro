@@ -1,6 +1,7 @@
 {% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
 {% load json_filters %}
+{% load static %}
 
 {% block form_sections %}
 <!-- Template Information Section -->
@@ -81,7 +82,7 @@
                     <div class="field-error">{{ error }}</div>
                   {% endfor %}
                 </td>
-                <td style="text-align: center;">
+                <td class="text-center">
                   {{ field_form.is_required }}
                   {% for error in field_form.is_required.errors %}
                     <div class="field-error">{{ error }}</div>
@@ -102,12 +103,12 @@
                 <td>
                   {% if field_form.instance.pk %}
                     {{ field_form.DELETE }}
-                    <label for="{{ field_form.DELETE.id_for_label }}" style="margin-left: 5px;">{% trans "Delete" %}</label>
+                    <label for="{{ field_form.DELETE.id_for_label }}" class="ml-2">{% trans "Delete" %}</label>
                   {% else %}
                     <span class="muted-text">–</span>
                   {% endif %}
                 </td>
-                <td style="text-align: center;">
+                <td class="text-center">
                   {% if not field_form.instance.pk %}
                     <button type="button" class="btn btn-sm btn-danger remove-field-row" data-field-index="{{ forloop.counter0 }}">
                       🗑️ {% trans "Remove" %}
@@ -116,7 +117,7 @@
                     <span class="muted-text">–</span>
                   {% endif %}
                 </td>
-                <td style="text-align: center;">
+                <td class="text-center">
                   <button type="button" class="btn btn-sm btn-secondary toggle-field-settings" data-field-index="{{ forloop.counter0 }}">
                     <span>⚙️</span> {% trans "Settings" %}
                   </button>
@@ -475,195 +476,8 @@
 {% endblock %}
 
 {% block form_extra %}
-<style>
-.form-container {
-  max-width: 100%;
-  width: 100%;
-  margin: 2rem auto;
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.form-section {
-  margin-bottom: 3rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.form-section:last-child {
-  border-bottom: none;
-}
-
-.form-section h2 {
-  margin-bottom: 1rem;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.section-header {
-  margin-bottom: 1.5rem;
-}
-
-.section-header h2 {
-  margin-bottom: 0.5rem;
-}
-
-.section-header p {
-  color: #6b7280;
-  margin: 0;
-  font-size: 0.9rem;
-}
-
-.entity-form .form-section:first-child {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
-}
-
-.entity-form .form-field label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: #374151;
-}
-
-.entity-form .form-control, 
-.entity-form select,
-.entity-form textarea,
-.entity-form input[type="text"],
-.entity-form input[type="number"] {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-.entity-form .form-control:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.entity-form textarea {
-  resize: vertical;
-}
-
-.entity-form .error {
-  display: block;
-  color: #dc2626;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-}
-
-.form-text {
-  display: block;
-  margin-top: 0.25rem;
-  color: #6b7280;
-  font-size: 0.875rem;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-start;
-  padding-top: 2rem;
-  margin-top: 2rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-.fields-container {
-  width: 100%;
-  overflow-x: auto;
-}
-
-.formset-table {
-  width: 100%;
-  min-width: 1200px;
-  width: 100%;
-  margin-top: 1rem;
-  font-size: 0.9rem;
-}
-
-.formset-table th {
-  text-align: right;
-  font-weight: 600;
-  padding: 0.75rem;
-  background: #f8f9fa;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.formset-table td {
-  padding: 0.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  vertical-align: middle;
-}
-
-.formset-table select,
-.formset-table input[type="text"],
-.formset-table input[type="number"],
-.formset-table textarea {
-  width: 100%;
-  padding: 0.375rem 0.5rem;
-  font-size: 0.875rem;
-}
-
-.formset-table input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-}
-
-.formset-table textarea {
-  min-height: 60px;
-  resize: vertical;
-}
-
-.field-form-row td:first-child input {
-  width: 60px;
-}
-
-.field-help-row {
-  background: #f8f9fa;
-}
-
-.field-help-row td {
-  padding: 0.5rem 1rem;
-}
-
-.form-field-inline label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-  font-size: 0.85rem;
-}
-
-.muted-text {
-  color: #9ca3af;
-  font-style: italic;
-  font-size: 0.85rem;
-}
-
-.field-error {
-  color: #dc2626;
-  font-size: 0.75rem;
-  margin-top: 0.25rem;
-}
-
-.alert {
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1.5rem;
-}
-
-.alert-error {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-</style>
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+<link rel="stylesheet" href="{% static 'css/formset-table.css' %}">
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

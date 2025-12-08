@@ -8,6 +8,7 @@
     <title>{% block title %}{% trans "invproj Platform" %}{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/vazirmatn-font-face.css' %}?v=20241206-2000" />
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=20241206-2000" />
+    {% block extra_head %}{% endblock %}
   </head>
   <body>
     <div class="app-shell sidebar-collapsed">

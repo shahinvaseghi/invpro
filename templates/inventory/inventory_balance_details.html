@@ -26,9 +26,9 @@
 {% endblock %}
 
 {% block inventory_content %}
-<div class="details-header" style="margin-bottom: 24px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
-  <h2 style="margin: 0 0 16px 0;">{{ item.name }} ({{ item.item_code }})</h2>
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+<div class="details-header">
+  <h2>{{ item.name }} ({{ item.item_code }})</h2>
+  <div class="details-header-grid">
     <div>
       <strong>{% trans "Warehouse" %}:</strong> {{ warehouse.name }} ({{ warehouse.public_code }})
     </div>
@@ -50,32 +50,32 @@
 </div>
 
 {% if error %}
-<div class="alert alert-error" style="margin-bottom: 20px; padding: 16px; background-color: #fee2e2; border: 1px solid #fecaca; border-radius: 8px; color: #991b1b;">
+<div class="alert alert-error mb-2">
   <strong>{% trans "Error" %}:</strong> {{ error }}
 </div>
 {% else %}
 
 <!-- Summary Cards -->
-<div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-  <div class="stat-card" style="padding: 16px; background: #ecfdf5; border: 1px solid #10b981; border-radius: 8px;">
-    <div class="stat-label" style="font-size: 0.875rem; color: #065f46; margin-bottom: 8px;">{% trans "Total Receipts" %}</div>
-    <div class="stat-value" style="font-size: 1.5rem; font-weight: 600; color: #10b981;">+{{ total_receipts|floatformat:2 }}</div>
+<div class="stats-grid">
+  <div class="stat-card stat-card-success">
+    <div class="stat-label">{% trans "Total Receipts" %}</div>
+    <div class="stat-value">+{{ total_receipts|floatformat:2 }}</div>
   </div>
-  <div class="stat-card" style="padding: 16px; background: #fef2f2; border: 1px solid #ef4444; border-radius: 8px;">
-    <div class="stat-label" style="font-size: 0.875rem; color: #991b1b; margin-bottom: 8px;">{% trans "Total Issues" %}</div>
-    <div class="stat-value" style="font-size: 1.5rem; font-weight: 600; color: #ef4444;">-{{ total_issues|floatformat:2 }}</div>
+  <div class="stat-card stat-card-danger">
+    <div class="stat-label">{% trans "Total Issues" %}</div>
+    <div class="stat-value">-{{ total_issues|floatformat:2 }}</div>
   </div>
-    <div class="stat-card" style="padding: 16px; background: #eff6ff; border: 1px solid #3b82f6; border-radius: 8px;">
-      <div class="stat-label" style="font-size: 0.875rem; color: #1e40af; margin-bottom: 8px;">{% trans "Current Balance" %}</div>
-      <div class="stat-value" style="font-size: 1.5rem; font-weight: 600; color: #3b82f6;">
-        {{ current_balance|floatformat:2 }}
-      </div>
+  <div class="stat-card stat-card-info">
+    <div class="stat-label">{% trans "Current Balance" %}</div>
+    <div class="stat-value">
+      {{ current_balance|floatformat:2 }}
     </div>
+  </div>
 </div>
 
 <!-- Transactions Table -->
 <div class="data-table-container">
-  <h3 style="margin-bottom: 16px;">{% trans "Transaction History" %}</h3>
+  <h3 class="section-heading">{% trans "Transaction History" %}</h3>
   <table class="data-table" id="balanceDetailsTable">
     <thead>
       <tr>
@@ -84,13 +84,13 @@
         <th>{% trans "Document Code" %}</th>
         <th>{% trans "Source/Destination" %} ({% trans "مرکز مصرف/تامین" %})</th>
         <th>{% trans "Created By" %}</th>
-        <th style="text-align: right;">{% trans "Quantity" %}</th>
-        <th style="text-align: right;">{% trans "Running Balance" %}</th>
+        <th class="text-right">{% trans "Quantity" %}</th>
+        <th class="text-right">{% trans "Running Balance" %}</th>
       </tr>
     </thead>
     <tbody>
       {% if baseline.baseline_date %}
-      <tr style="background-color: #f8f9fa;">
+      <tr class="table-row-highlight">
         <td>{{ baseline.baseline_date|jalali_date }}</td>
         <td><span class="badge badge-info">{% trans "Baseline" %}</span></td>
         <td>
@@ -108,8 +108,8 @@
         </td>
         <td>—</td>
         <td>—</td>
-        <td style="text-align: right;">{{ baseline.baseline_quantity|floatformat:2 }}</td>
-        <td style="text-align: right; font-weight: 600;">{{ baseline.baseline_quantity|floatformat:2 }}</td>
+        <td class="table-cell-right">{{ baseline.baseline_quantity|floatformat:2 }}</td>
+        <td class="table-cell-bold">{{ baseline.baseline_quantity|floatformat:2 }}</td>
       </tr>
       {% endif %}
       
@@ -158,27 +158,27 @@
         </td>
         <td>{{ transaction.source_destination|default:"—" }}</td>
         <td>{{ transaction.created_by|default:"—" }}</td>
-        <td style="text-align: right;">
+        <td class="table-cell-right">
           {% if transaction.type == 'receipt' %}
-            <span style="color: #10b981;">+{{ transaction.quantity|floatformat:2 }}</span>
+            <span class="table-cell-positive">+{{ transaction.quantity|floatformat:2 }}</span>
           {% else %}
-            <span style="color: #ef4444;">-{{ transaction.quantity|floatformat:2 }}</span>
+            <span class="table-cell-negative">-{{ transaction.quantity|floatformat:2 }}</span>
           {% endif %}
           {{ transaction.unit }}
         </td>
-        <td style="text-align: right; font-weight: 600;">
+        <td class="table-cell-bold">
           {% if transaction.running_balance < 0 %}
-            <span style="color: #ef4444;">{{ transaction.running_balance|floatformat:2 }}</span>
+            <span class="table-cell-negative">{{ transaction.running_balance|floatformat:2 }}</span>
           {% elif transaction.running_balance == 0 %}
-            <span style="color: #6b7280;">{{ transaction.running_balance|floatformat:2 }}</span>
+            <span class="table-cell-neutral">{{ transaction.running_balance|floatformat:2 }}</span>
           {% else %}
-            <span style="color: #10b981;">{{ transaction.running_balance|floatformat:2 }}</span>
+            <span class="table-cell-positive">{{ transaction.running_balance|floatformat:2 }}</span>
           {% endif %}
         </td>
       </tr>
       {% empty %}
       <tr>
-        <td colspan="7" style="text-align: center; padding: 40px; color: #6b7280;">
+        <td colspan="7" class="table-cell-empty">
           {% trans "No transactions found for this period." %}
         </td>
       </tr>
@@ -188,32 +188,6 @@
 </div>
 
 {% endif %}
-
-<style>
-  .document-link {
-    text-decoration: none;
-    color: #2563eb !important;
-    cursor: pointer;
-    font-weight: 500;
-    display: inline-block;
-  }
-  .document-link:hover {
-    text-decoration: underline;
-    color: #1d4ed8 !important;
-  }
-  .document-link code {
-    color: #2563eb !important;
-    background-color: transparent;
-    padding: 0;
-  }
-  .document-link:hover code {
-    color: #1d4ed8 !important;
-  }
-  td code {
-    background-color: transparent;
-    padding: 0;
-  }
-</style>
 {% endblock %}
 
 {% block inventory_scripts %}

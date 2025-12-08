@@ -19,29 +19,8 @@
 {% endblock %}
 
 {% block before_table %}
-<style>
-  .action-buttons {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-  .badge-locked {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background-color: #dc2626;
-    color: #ffffff;
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
-  .muted {
-    color: #6b7280;
-    font-size: 0.75rem;
-    display: block;
-  }
-</style>
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
 {% endblock %}
 
 {% block table_headers %}

@@ -568,3 +568,365 @@ textarea {
   font-weight: 600;
 }
 
+/* ====================================================================
+   Text Alignment Utilities
+   ==================================================================== */
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-left {
+  text-align: left;
+}
+
+/* ====================================================================
+   Spacing Utilities
+   ==================================================================== */
+
+.ml-2 {
+  margin-left: 0.5rem;
+}
+
+.mr-2 {
+  margin-right: 0.5rem;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+.mb-2 {
+  margin-bottom: 0.5rem;
+}
+
+/* ====================================================================
+   Formset Table Specific Styles
+   ==================================================================== */
+
+.fields-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.formset-table {
+  width: 100%;
+  min-width: 1200px;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.formset-table td {
+  vertical-align: middle;
+}
+
+.formset-table textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.field-form-row td:first-child input {
+  width: 60px;
+}
+
+.field-help-row {
+  background: #f8f9fa;
+}
+
+.field-help-row td {
+  padding: 0.5rem 1rem;
+}
+
+.form-field-inline label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+}
+
+/* ====================================================================
+   Section Header Styles
+   ==================================================================== */
+
+.section-header {
+  margin-bottom: 1.5rem;
+}
+
+.section-header h2 {
+  margin-bottom: 0.5rem;
+}
+
+.section-header p {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* ====================================================================
+   Form Section First Child Grid Layout
+   ==================================================================== */
+
+.entity-form .form-section:first-child {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+/* ====================================================================
+   Action Buttons Styles
+   ==================================================================== */
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.muted {
+  color: #6b7280;
+  font-size: 0.75rem;
+  display: block;
+}
+
+.badge-locked {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: #dc2626;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* ====================================================================
+   Stats Grid Styles (for list views with stats)
+   ==================================================================== */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stats-grid .stat-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.stats-grid .stat-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.stats-grid .stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.stats-grid .stat-value-sm {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* ====================================================================
+   Table Cell Styles (for numeric values with colors)
+   ==================================================================== */
+
+.table-cell-right {
+  text-align: right;
+}
+
+.table-cell-positive {
+  text-align: right;
+  color: #10b981;
+}
+
+.table-cell-negative {
+  text-align: right;
+  color: #ef4444;
+}
+
+.table-cell-neutral {
+  text-align: right;
+  color: #6b7280;
+}
+
+.table-cell-bold {
+  text-align: right;
+  font-weight: 600;
+}
+
+/* ====================================================================
+   Button Size Variants
+   ==================================================================== */
+
+.btn-xs {
+  padding: 4px 12px;
+  font-size: 0.85rem;
+}
+
+.btn-full-width {
+  width: 100%;
+}
+
+/* ====================================================================
+   Filter Form Group Alignment
+   ==================================================================== */
+
+.filter-form .form-group.align-end {
+  align-self: flex-end;
+}
+
+/* ====================================================================
+   Details Header Styles
+   ==================================================================== */
+
+.details-header {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.details-header h2 {
+  margin: 0 0 16px 0;
+}
+
+.details-header-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+/* ====================================================================
+   Stat Card Variants (with colored backgrounds)
+   ==================================================================== */
+
+.stat-card-success {
+  padding: 16px;
+  background: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: 8px;
+}
+
+.stat-card-success .stat-label {
+  font-size: 0.875rem;
+  color: #065f46;
+  margin-bottom: 8px;
+}
+
+.stat-card-success .stat-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.stat-card-danger {
+  padding: 16px;
+  background: #fef2f2;
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+}
+
+.stat-card-danger .stat-label {
+  font-size: 0.875rem;
+  color: #991b1b;
+  margin-bottom: 8px;
+}
+
+.stat-card-danger .stat-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #ef4444;
+}
+
+.stat-card-info {
+  padding: 16px;
+  background: #eff6ff;
+  border: 1px solid #3b82f6;
+  border-radius: 8px;
+}
+
+.stat-card-info .stat-label {
+  font-size: 0.875rem;
+  color: #1e40af;
+  margin-bottom: 8px;
+}
+
+.stat-card-info .stat-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+/* ====================================================================
+   Table Row Background Styles
+   ==================================================================== */
+
+.table-row-highlight {
+  background-color: #f8f9fa;
+}
+
+/* ====================================================================
+   Section Heading Styles
+   ==================================================================== */
+
+.section-heading {
+  margin-bottom: 16px;
+}
+
+/* ====================================================================
+   Empty State Table Cell
+   ==================================================================== */
+
+.table-cell-empty {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+}
+
+/* ====================================================================
+   Document Link Styles
+   ==================================================================== */
+
+.document-link {
+  text-decoration: none;
+  color: #2563eb !important;
+  cursor: pointer;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.document-link:hover {
+  text-decoration: underline;
+  color: #1d4ed8 !important;
+}
+
+.document-link code {
+  color: #2563eb !important;
+  background-color: transparent;
+  padding: 0;
+}
+
+.document-link:hover code {
+  color: #1d4ed8 !important;
+}
+
+td code {
+  background-color: transparent;
+  padding: 0;
+}
+
