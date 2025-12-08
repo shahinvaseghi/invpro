@@ -51,31 +51,31 @@
   <td>
     {% if record.is_locked != 1 %}
       {% if user_feature_permissions|feature_allowed:'production.performance_records:edit_own' or user.is_superuser %}
-        <a href="{% url edit_url_name record.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+        <a href="{% url edit_url_name record.pk %}" class="btn btn-secondary btn-xs">
           {% trans "Edit" %}
         </a>
       {% endif %}
       {% if user_feature_permissions|feature_allowed:'production.performance_records:delete_own' or user.is_superuser %}
-        <a href="{% url delete_url_name record.pk %}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+        <a href="{% url delete_url_name record.pk %}" class="btn btn-primary btn-xs">
           {% trans "Delete" %}
         </a>
       {% endif %}
     {% endif %}
     {% if record.status == 'pending_approval' and record.approved_by == user %}
       {% if user_feature_permissions|feature_allowed:'production.performance_records:approve' or user.is_superuser %}
-        <button type="button" class="btn btn-sm btn-success" onclick="approveObject({{ record.pk }}, '{% url "production:performance_record_approve" 0 %}', '{% trans "Are you sure you want to approve this performance record?" %}')" style="padding: 4px 12px; font-size: 0.85rem;">
+        <button type="button" class="btn btn-sm btn-success btn-xs" onclick="approveObject({{ record.pk }}, '{% url "production:performance_record_approve" 0 %}', '{% trans "Are you sure you want to approve this performance record?" %}')">
           {% trans "Approve" %}
         </button>
       {% endif %}
       {% if user_feature_permissions|feature_allowed:'production.performance_records:reject' or user.is_superuser %}
-        <button type="button" class="btn btn-sm btn-warning" onclick="rejectObject({{ record.pk }}, '{% url "production:performance_record_reject" 0 %}', '{% trans "Are you sure you want to reject this performance record?" %}')" style="padding: 4px 12px; font-size: 0.85rem;">
+        <button type="button" class="btn btn-sm btn-warning btn-xs" onclick="rejectObject({{ record.pk }}, '{% url "production:performance_record_reject" 0 %}', '{% trans "Are you sure you want to reject this performance record?" %}')">
           {% trans "Reject" %}
         </button>
       {% endif %}
     {% endif %}
     {% if record.status == 'approved' and record.is_locked == 1 %}
       {% if user_feature_permissions|feature_allowed:'production.performance_records:create_receipt' or user.is_superuser %}
-        <a href="{% url 'production:performance_record_create_receipt' record.pk %}" class="btn btn-sm btn-primary" data-confirm="{% trans 'Create receipt for this performance record?' %}" style="padding: 4px 12px; font-size: 0.85rem;">
+        <a href="{% url 'production:performance_record_create_receipt' record.pk %}" class="btn btn-sm btn-primary btn-xs" data-confirm="{% trans 'Create receipt for this performance record?' %}">
           {% trans "Create Receipt" %}
         </a>
       {% endif %}

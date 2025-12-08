@@ -15,7 +15,7 @@
 
 {% block before_form %}
 {% if object and object.pk %}
-  <div class="info-banner" style="background: #f3f4f6; padding: 1.5rem; border-radius: 6px; margin-bottom: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+  <div class="info-banner info-banner-grid">
     <div><strong>{% trans "Performance Code" %}:</strong> <code>{{ object.performance_code }}</code></div>
     <div><strong>{% trans "Performance Date" %}:</strong> {{ object.performance_date|jalali_date }}</div>
     <div><strong>{% trans "Status" %}:</strong> {{ object.get_status_display }}</div>
@@ -30,7 +30,7 @@
   </div>
   
   {% if object.is_locked == 1 %}
-  <div class="alert alert-info" style="background: #dbeafe; color: #1e40af; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; border: 1px solid #93c5fd;">
+  <div class="alert alert-info">
     {% trans "This performance record is locked and can no longer be edited." %}
   </div>
   {% endif %}
@@ -166,7 +166,7 @@
     </div>
   {% endif %}
   
-  <div class="table-responsive" style="overflow-x: auto; width: 100%; margin-bottom: 1rem;">
+  <div class="table-responsive">
     <table class="data-table formset-table" id="materials-table">
       <thead>
         <tr>
@@ -239,7 +239,7 @@
     </div>
   {% endif %}
   
-  <div class="table-responsive" style="overflow-x: auto; width: 100%; margin-bottom: 1rem;">
+  <div class="table-responsive">
     <table class="data-table formset-table" id="persons-table">
       <thead>
         <tr>
@@ -282,7 +282,7 @@
             {% if not is_general_document and person_formset.can_delete %}
               {{ person_form.DELETE }}
               {% if person_form.DELETE %}
-                <label for="{{ person_form.DELETE.id_for_label }}" style="margin-left: 5px; cursor: pointer;">
+                <label for="{{ person_form.DELETE.id_for_label }}" class="delete-label">
                   {% trans "Delete" %}
                 </label>
               {% endif %}
@@ -320,7 +320,7 @@
     </div>
   {% endif %}
   
-  <div class="table-responsive" style="overflow-x: auto; width: 100%; margin-bottom: 1rem;">
+  <div class="table-responsive">
     <table class="data-table formset-table" id="machines-table">
       <thead>
         <tr>
@@ -363,7 +363,7 @@
             {% if not is_general_document and machine_formset.can_delete %}
               {{ machine_form.DELETE }}
               {% if machine_form.DELETE %}
-                <label for="{{ machine_form.DELETE.id_for_label }}" style="margin-left: 5px; cursor: pointer;">
+                <label for="{{ machine_form.DELETE.id_for_label }}" class="delete-label">
                   {% trans "Delete" %}
                 </label>
               {% endif %}
@@ -407,60 +407,8 @@
 {% endblock %}
 
 {% block extra_styles %}
-<style>
-.table-responsive {
-  overflow-x: auto;
-  width: 100%;
-  margin-bottom: 1rem;
-}
-
-#materials-table,
-#persons-table,
-#machines-table {
-  min-width: 800px;
-  width: 100%;
-}
-
-#materials-table th,
-#materials-table td,
-#persons-table th,
-#persons-table td,
-#machines-table th,
-#machines-table td {
-  white-space: nowrap;
-  min-width: 120px;
-  padding: 8px 12px;
-}
-
-.formset-table {
-  border-collapse: collapse;
-}
-
-.formset-table thead {
-  background: #f3f4f6;
-}
-
-.formset-table th {
-  font-weight: 600;
-  text-align: left;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.formset-table td {
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.formset-table tbody tr:hover {
-  background: #f9fafb;
-}
-
-.field-error {
-  color: #dc2626;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-  display: block;
-}
-</style>
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
 {% endblock %}
 
 {% block form_scripts %}

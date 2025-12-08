@@ -1041,3 +1041,113 @@ td code {
   margin-bottom: 4px;
 }
 
+/* ====================================================================
+   Production Forms Styles
+   ==================================================================== */
+
+/* Table Responsive */
+.table-responsive {
+  overflow-x: auto;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+/* Formset Tables */
+.formset-table {
+  border-collapse: collapse;
+}
+
+.formset-table thead {
+  background: #f3f4f6;
+}
+
+.formset-table th {
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.formset-table td {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.formset-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+/* Performance Record Form Tables */
+#materials-table,
+#persons-table,
+#machines-table {
+  min-width: 800px;
+  width: 100%;
+}
+
+#materials-table th,
+#materials-table td,
+#persons-table th,
+#persons-table td,
+#machines-table th,
+#machines-table td {
+  white-space: nowrap;
+  min-width: 120px;
+  padding: 8px 12px;
+}
+
+/* Field Error */
+.field-error {
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+/* Info Banner Grid Layout */
+.info-banner-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  background: #f3f4f6;
+  padding: 1.5rem;
+  border-radius: 6px;
+  margin-bottom: 2rem;
+}
+
+/* Alert Info */
+.alert-info {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  border: 1px solid #93c5fd;
+}
+
+/* Badge Locked/Unlocked */
+.badge-locked {
+  background: #dc2626;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.badge-unlocked {
+  background: #10b981;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+/* Delete Label */
+.delete-label {
+  margin-left: 5px;
+  cursor: pointer;
+}
+
+/* Form Actions Submit Button Hidden */
+.form-actions button[type="submit"].hidden {
+  display: none !important;
+}
+
