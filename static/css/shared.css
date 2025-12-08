@@ -1151,3 +1151,376 @@ td code {
   display: none !important;
 }
 
+/* Hidden Elements */
+.hidden {
+  display: none !important;
+}
+
+/* Searchable Select Container */
+.searchable-select-container {
+  position: relative;
+}
+
+/* Extra Items Table */
+#extra-items-table {
+  min-width: 1200px;
+  width: 100%;
+}
+
+#extra-items-table th,
+#extra-items-table td {
+  white-space: nowrap;
+  min-width: 120px;
+  padding: 8px 12px;
+}
+
+#extra-items-table th:nth-child(1),
+#extra-items-table td:nth-child(1) {
+  min-width: 150px;
+}
+
+#extra-items-table th:nth-child(2),
+#extra-items-table td:nth-child(2) {
+  min-width: 150px;
+}
+
+#extra-items-table th:nth-child(3),
+#extra-items-table td:nth-child(3) {
+  min-width: 150px;
+}
+
+#extra-items-table th:nth-child(4),
+#extra-items-table td:nth-child(4) {
+  min-width: 200px;
+}
+
+#extra-items-table th:nth-child(5),
+#extra-items-table td:nth-child(5) {
+  min-width: 120px;
+}
+
+#extra-items-table th:nth-child(6),
+#extra-items-table td:nth-child(6) {
+  min-width: 100px;
+}
+
+#extra-items-table th:nth-child(7),
+#extra-items-table td:nth-child(7) {
+  min-width: 150px;
+}
+
+#extra-items-table th:nth-child(8),
+#extra-items-table td:nth-child(8) {
+  min-width: 180px;
+}
+
+#extra-items-table th:nth-child(9),
+#extra-items-table td:nth-child(9) {
+  min-width: 120px;
+}
+
+#extra-items-table th:nth-child(10),
+#extra-items-table td:nth-child(10) {
+  min-width: 80px;
+}
+
+/* Radio Group */
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.radio-option input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.radio-option label {
+  margin: 0;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+/* Checkbox Group */
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background: #f9fafb;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.checkbox-option:hover {
+  background-color: #f3f4f6;
+}
+
+.checkbox-option input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.checkbox-option label {
+  margin: 0;
+  cursor: pointer;
+  font-weight: normal;
+  flex: 1;
+}
+
+/* Operations Checkbox Container */
+.operations-checkbox-container {
+  margin-top: 0.5rem;
+}
+
+#operations-selection-row {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* ====================================================================
+   Rework Document Form Styles
+   ==================================================================== */
+
+/* Form Section with Background */
+.form-section-bg {
+  background: #f9f9f9;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  border: 1px solid #ddd;
+}
+
+.form-section-bg h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+/* Operations Section */
+.operations-section {
+  margin-bottom: 2rem;
+}
+
+.operations-list-section {
+  background: #f9f9f9;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  border: 1px solid #ddd;
+}
+
+.operations-list-section h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.operations-list {
+  /* Container for operations list */
+}
+
+.operation-item {
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.operation-item label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.operation-item input[type="radio"] {
+  margin-right: 0.5rem;
+}
+
+/* Error Message */
+.error-message {
+  color: #d00;
+  margin-top: 0.5rem;
+}
+
+/* Form Actions */
+.form-actions-flex {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+/* Button Margin Top */
+.btn-mt {
+  margin-top: 1rem;
+}
+
+/* Muted Text */
+.text-muted-gray {
+  color: #666;
+}
+
+/* Form Group Styles */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-group textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* Button Styles (if not already defined) */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0056b3;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #545b62;
+}
+
+/* ====================================================================
+   Item Form Styles
+   ==================================================================== */
+
+/* Section Margin Top */
+.section-margin-top {
+  margin-top: 2rem;
+}
+
+/* Unit Formset Styles */
+.unit-formset {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.unit-form {
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #f9fafb;
+}
+
+.unit-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.unit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.unit-field label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.unit-delete {
+  display: flex;
+  align-items: center;
+}
+
+.form-field.full-width {
+  width: 100%;
+}
+
+/* Checkbox Grid */
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem 1rem;
+  margin-top: 0.5rem;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.checkbox-item:hover {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.checkbox-item input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  cursor: pointer;
+}
+
+.checkbox-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
