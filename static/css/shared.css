@@ -1524,3 +1524,207 @@ td code {
   border-top: 1px solid #e5e7eb;
 }
 
+/* ====================================================================
+   Purchase Request Form Styles
+   ==================================================================== */
+
+/* Form container with narrower max-width for purchase requests */
+.form-container.form-container-narrow {
+  max-width: 720px;
+}
+
+/* Entity form specific styles */
+.entity-form .form-section {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.entity-form .form-section:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.entity-form .form-section h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  color: #111827;
+}
+
+.entity-form .form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.entity-form .form-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.entity-form label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #1f2937;
+}
+
+.entity-form .form-control,
+.entity-form select,
+.entity-form textarea,
+.entity-form input[type="text"],
+.entity-form input[type="number"],
+.entity-form input[type="date"] {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.entity-form .form-control:focus,
+.entity-form select:focus,
+.entity-form textarea:focus,
+.entity-form input[type="text"]:focus,
+.entity-form input[type="number"]:focus,
+.entity-form input[type="date"]:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.entity-form textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.entity-form .error {
+  margin-top: 0.35rem;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+.entity-form .form-text {
+  margin-top: 0.4rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.entity-form .form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 1rem;
+}
+
+.entity-form .alert {
+  padding: 0.9rem 1.1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+}
+
+.entity-form .alert-success {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.entity-form .alert-error {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.entity-form .alert-info {
+  background-color: #e0f2fe;
+  color: #0c4a6e;
+  border: 1px solid #bae6fd;
+}
+
+/* Form text margin top utility */
+.form-text-mt {
+  margin-top: 0.5rem;
+}
+
+/* No margin utility */
+.no-margin {
+  margin: 0;
+}
+
+/* Hidden utility */
+.hidden {
+  display: none !important;
+}
+
+/* Filter search input flex utility */
+.filter-search-input-flex {
+  flex: 2;
+  min-width: 150px;
+}
+
+/* Add line button styles */
+.btn-add-line {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+}
+
+.btn-add-line-icon {
+  font-size: 1.2rem;
+  margin-right: 0.25rem;
+}
+
+[dir="rtl"] .btn-add-line-icon {
+  margin-right: 0;
+  margin-left: 0.25rem;
+}
+
+/* ====================================================================
+   Ticketing Form Styles
+   ==================================================================== */
+
+/* Form section with padding bottom */
+.form-section.form-section-padded {
+  padding-bottom: 2rem;
+}
+
+/* Formset table specific styles for ticketing */
+.formset-table th {
+  text-align: right;
+  font-weight: 600;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.formset-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.formset-table select {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.formset-table input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+/* Text center utility */
+.text-center {
+  text-align: center;
+}
+
+/* Margin left utility */
+.ml-2 {
+  margin-left: 0.5rem;
+}
+
+[dir="rtl"] .ml-2 {
+  margin-left: 0;
+  margin-right: 0.5rem;
+}
+

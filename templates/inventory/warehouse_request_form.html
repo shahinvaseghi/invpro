@@ -25,7 +25,7 @@
 
   <div class="lines-formset-wrapper">
     <div class="lines-formset" id="lines-formset" data-can-delete="{% if lines_formset.can_delete %}true{% else %}false{% endif %}">
-      <div class="lines-table-header" style="display: grid !important; grid-template-columns: {% if lines_formset.can_delete %}50px 3fr 1.5fr 1.5fr 2fr 2fr 80px{% else %}50px 3fr 1.5fr 1.5fr 2fr 2fr{% endif %} !important;">
+      <div class="lines-table-header">
         <div class="line-cell line-number">#</div>
         <div class="line-cell line-item">{% trans "Item" %} *</div>
         <div class="line-cell line-unit">{% trans "Unit" %} *</div>
@@ -38,7 +38,7 @@
       </div>
       
       {% for line_form in lines_formset %}
-        <div class="line-row" data-form-index="{{ forloop.counter0 }}" style="display: grid !important; grid-template-columns: {% if lines_formset.can_delete %}50px 3fr 1.5fr 1.5fr 2fr 2fr 80px{% else %}50px 3fr 1.5fr 1.5fr 2fr 2fr{% endif %} !important;">
+        <div class="line-row" data-form-index="{{ forloop.counter0 }}">
           {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
           
           <div class="line-cell line-number">{{ forloop.counter }}</div>
@@ -159,25 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const formsetContainer = document.getElementById('lines-formset');
   if (!formsetContainer) return;
   
-  // Force grid layout immediately
-  const canDelete = formsetContainer.getAttribute('data-can-delete') === 'true';
-  const gridColumns = canDelete ? '50px 3fr 1.5fr 1.5fr 2fr 2fr 80px' : '50px 3fr 1.5fr 1.5fr 2fr 2fr';
-  
-  // Apply to header
-  const header = formsetContainer.querySelector('.lines-table-header');
-  if (header) {
-    header.style.setProperty('display', 'grid', 'important');
-    header.style.setProperty('grid-template-columns', gridColumns, 'important');
-  }
-  
-  // Apply to all rows
-  const rows = formsetContainer.querySelectorAll('.line-row');
-  rows.forEach(function(row) {
-    row.style.setProperty('display', 'grid', 'important');
-    row.style.setProperty('grid-template-columns', gridColumns, 'important');
-  });
-  
-  // Also use shared function for consistency
+  // Use shared function for consistency
   initFormsetTableLayout(formsetContainer, {
     columnsWithDelete: '50px 3fr 1.5fr 1.5fr 2fr 2fr 80px',
     columnsWithoutDelete: '50px 3fr 1.5fr 1.5fr 2fr 2fr',
@@ -236,9 +218,6 @@ document.addEventListener('DOMContentLoaded', function() {
           setTimeout(function() {
             const newRow = formsetContainer.querySelector('.line-row:not(.formset-template)');
             if (newRow) {
-              // Force grid layout on new row
-              newRow.style.setProperty('display', 'grid', 'important');
-              newRow.style.setProperty('grid-template-columns', gridColumns, 'important');
               initializeItemFiltersForRow(newRow, filterOptions);
               initializeLineForms(); // Re-index all rows
               updateFormsetTableLayout(formsetContainer, {

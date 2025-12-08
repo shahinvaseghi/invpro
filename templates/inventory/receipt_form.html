@@ -4,6 +4,12 @@
 
 {% block page_title %}{{ form_title }}{% endblock %}
 
+{% block inventory_styles %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+<link rel="stylesheet" href="{% static 'css/formset-table.css' %}">
+{% endblock %}
+
 {% block inventory_content %}
 <div class="form-container">
   {% if document_instance and document_instance.pk %}
@@ -95,8 +101,8 @@
     {% if lines_formset %}
     <div class="form-section">
       <div>
-        <h3 style="margin: 0;">{% trans "Document Lines" %}</h3>
-        <p class="form-text" style="margin: 0.5rem 0 0 0;">
+        <h3 class="no-margin">{% trans "Document Lines" %}</h3>
+        <p class="form-text form-text-mt no-margin">
           {% trans "Add one or more items to this document. Each line represents a single item with its quantity and other details." %}
         </p>
       </div>
@@ -161,7 +167,7 @@
                       <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}"
                             placeholder="{% trans 'Search by name or code...' %}"
                             value="{{ current_item_search }}"
-                            style="flex: 2; min-width: 150px;">
+                            class="filter-search-input-flex">
                     </div>
                     {% endif %}
                     {{ line_form.item }}
@@ -257,7 +263,7 @@
                 </div>
                 
                 {% if 'destination_company_unit' in line_form.fields %}
-                <div class="form-field destination-company-unit-field" style="display:none;">
+                <div class="form-field destination-company-unit-field hidden">
                   <label>{{ line_form.destination_company_unit.label }}{% if line_form.destination_company_unit.field.required %}*{% endif %}</label>
                   {{ line_form.destination_company_unit }}
                   {% if line_form.destination_company_unit.errors %}
@@ -267,7 +273,7 @@
                 {% endif %}
                 
                 {% if 'destination_work_line' in line_form.fields %}
-                <div class="form-field destination-work-line-field" style="display:none;">
+                <div class="form-field destination-work-line-field hidden">
                   <label>{{ line_form.destination_work_line.label }}{% if line_form.destination_work_line.field.required %}*{% endif %}</label>
                   {{ line_form.destination_work_line }}
                   {% if line_form.destination_work_line.errors %}
@@ -423,7 +429,7 @@
               {# Serial selection for new issue lines (when line doesn't have pk yet) #}
               <div class="form-row">
                 <div class="form-field full-width">
-                  <div class="serial-assignment-section" data-line-index="{{ forloop.counter0 }}" style="display: none;">
+                  <div class="serial-assignment-section hidden" data-line-index="{{ forloop.counter0 }}">
                     <button type="button" class="btn btn-sm btn-primary select-serials-btn">
                       {% trans "Select Serials" %}
                     </button>
@@ -551,7 +557,7 @@
                       <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}"
                             placeholder="{% trans 'Search by name or code...' %}"
                             value="{{ current_item_search }}"
-                            style="flex: 2; min-width: 150px;">
+                            class="filter-search-input-flex">
                     </div>
                     {% endif %}
                     {{ line_form.item }}
@@ -749,7 +755,7 @@
               {# Serial selection for new issue lines (when line doesn't have pk yet) #}
               <div class="form-row">
                 <div class="form-field full-width">
-                  <div class="serial-assignment-section" data-line-index="{{ forloop.counter0 }}" style="display: none;">
+                  <div class="serial-assignment-section hidden" data-line-index="{{ forloop.counter0 }}">
                     <button type="button" class="btn btn-sm btn-primary select-serials-btn">
                       {% trans "Select Serials" %}
                     </button>
@@ -874,7 +880,7 @@
                       <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}"
                             placeholder="{% trans 'Search by name or code...' %}"
                             value="{{ current_item_search }}"
-                            style="flex: 2; min-width: 150px;">
+                            class="filter-search-input-flex">
                     </div>
                     {% endif %}
                     {{ line_form.item }}
@@ -1072,7 +1078,7 @@
               {# Serial selection for new issue lines (when line doesn't have pk yet) #}
               <div class="form-row">
                 <div class="form-field full-width">
-                  <div class="serial-assignment-section" data-line-index="{{ forloop.counter0 }}" style="display: none;">
+                  <div class="serial-assignment-section hidden" data-line-index="{{ forloop.counter0 }}">
                     <button type="button" class="btn btn-sm btn-primary select-serials-btn">
                       {% trans "Select Serials" %}
                     </button>
@@ -1159,8 +1165,8 @@
       </div>
       
       {% if not document_is_locked %}
-      <button type="button" id="add-line-btn" class="btn btn-success" style="margin-top: 1rem; padding: 0.5rem 1rem;">
-        <span style="font-size: 1.2rem; margin-right: 0.25rem;">+</span> {% trans "Add Line" %}
+      <button type="button" id="add-line-btn" class="btn btn-success btn-add-line">
+        <span class="btn-add-line-icon">+</span> {% trans "Add Line" %}
       </button>
       {% endif %}
     </div>
@@ -3804,7 +3810,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Create modal HTML
   const modalHTML = `
-    <div id="serial-selection-modal" class="serial-modal" style="display: none;">
+    <div id="serial-selection-modal" class="serial-modal hidden">
       <div class="serial-modal-overlay"></div>
       <div class="serial-modal-content">
         <div class="serial-modal-header">

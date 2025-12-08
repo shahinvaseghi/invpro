@@ -4,14 +4,20 @@
 
 {% block page_title %}{{ form_title }}{% endblock %}
 
+{% block inventory_styles %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+<link rel="stylesheet" href="{% static 'css/formset-table.css' %}">
+{% endblock %}
+
 {% block inventory_content %}
-<div class="form-container">
+<div class="form-container form-container-narrow">
   <form method="post" class="entity-form">
     {% csrf_token %}
     {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
     
     {% if form.non_field_errors %}
-      <div class="alert alert-error" style="margin-bottom: 20px; padding: 15px; background-color: #fee; border: 1px solid #fcc; border-radius: 6px; color: #c33;">
+      <div class="alert alert-error">
         {{ form.non_field_errors }}
       </div>
     {% endif %}
@@ -64,8 +70,8 @@
     {% if lines_formset %}
     <div class="form-section">
       <div>
-        <h3 style="margin: 0;">{% trans "Request Lines" %}</h3>
-        <p class="form-text" style="margin: 0.5rem 0 0 0;">
+        <h3 class="no-margin">{% trans "Request Lines" %}</h3>
+        <p class="form-text form-text-mt no-margin">
           {% trans "Add one or more items to this purchase request. Each line represents a single item with its quantity." %}
         </p>
       </div>
@@ -121,10 +127,9 @@
                     <option value="{{ subcategory.id }}" {% if current_subcategory == subcategory.id|stringformat:"s" %}selected{% endif %}>{{ subcategory.name }}</option>
                     {% endfor %}
                   </select>
-                  <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}" 
+                  <input type="text" class="form-control filter-search-input filter-search-input-flex" data-form-index="{{ forloop.counter0 }}" 
                          placeholder="{% trans 'Search by name or code...' %}" 
-                         value="{{ current_item_search }}"
-                         style="flex: 2; min-width: 150px;">
+                         value="{{ current_item_search }}">
                 </div>
                 {{ line_form.item }}
                 {% if line_form.item.errors %}
@@ -193,10 +198,9 @@
                     <option value="{{ subcategory.id }}" {% if current_subcategory == subcategory.id|stringformat:"s" %}selected{% endif %}>{{ subcategory.name }}</option>
                     {% endfor %}
                   </select>
-                  <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}" 
+                  <input type="text" class="form-control filter-search-input filter-search-input-flex" data-form-index="{{ forloop.counter0 }}" 
                          placeholder="{% trans 'Search by name or code...' %}" 
-                         value="{{ current_item_search }}"
-                         style="flex: 2; min-width: 150px;">
+                         value="{{ current_item_search }}">
                 </div>
                 {{ line_form.item }}
                 {% if line_form.item.errors %}
@@ -240,8 +244,8 @@
         {% endfor %}
       </div>
       
-      <button type="button" id="add-line-btn" class="btn btn-success" style="margin-top: 1rem; padding: 0.5rem 1rem;">
-        <span style="font-size: 1.2rem; margin-right: 0.25rem;">+</span> {% trans "Add Line" %}
+      <button type="button" id="add-line-btn" class="btn btn-success btn-add-line">
+        <span class="btn-add-line-icon">+</span> {% trans "Add Line" %}
       </button>
     </div>
     {% endif %}
@@ -252,287 +256,6 @@
     </div>
   </form>
 </div>
-
-<style>
-.form-container {
-  max-width: 720px;
-  margin: 2rem auto;
-  background: #ffffff;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
-}
-
-.entity-form .form-section {
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.entity-form .form-section:last-of-type {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.entity-form .form-section h3 {
-  font-size: 1.15rem;
-  font-weight: 600;
-  margin-bottom: 1.25rem;
-  color: #111827;
-}
-
-.entity-form .form-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.5rem;
-}
-
-.entity-form .form-field {
-  display: flex;
-  flex-direction: column;
-}
-
-.entity-form label {
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: #1f2937;
-}
-
-.entity-form .form-control,
-.entity-form select,
-.entity-form textarea,
-.entity-form input[type="text"],
-.entity-form input[type="number"],
-.entity-form input[type="date"] {
-  width: 100%;
-  padding: 0.55rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 1rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.entity-form .form-control:focus,
-.entity-form select:focus,
-.entity-form textarea:focus,
-.entity-form input[type="text"]:focus,
-.entity-form input[type="number"]:focus,
-.entity-form input[type="date"]:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.entity-form textarea {
-  min-height: 100px;
-  resize: vertical;
-}
-
-.entity-form .error {
-  margin-top: 0.35rem;
-  color: #dc2626;
-  font-size: 0.875rem;
-}
-
-.entity-form .form-text {
-  margin-top: 0.4rem;
-  color: #6b7280;
-  font-size: 0.875rem;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  padding-top: 1rem;
-}
-
-.alert {
-  padding: 0.9rem 1.1rem;
-  border-radius: 6px;
-  margin-bottom: 1.5rem;
-}
-
-.alert-success {
-  background-color: #dcfce7;
-  color: #166534;
-  border: 1px solid #bbf7d0;
-}
-
-.alert-error {
-  background-color: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-
-.alert-info {
-  background-color: #e0f2fe;
-  color: #0c4a6e;
-  border: 1px solid #bae6fd;
-}
-
-.lines-formset {
-  margin-top: 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.lines-table-header {
-  display: grid;
-  {% if lines_formset.can_delete %}
-  grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr 80px;
-  {% else %}
-  grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr;
-  {% endif %}
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background-color: #f3f4f6;
-  border-bottom: 2px solid #e5e7eb;
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: #374151;
-}
-
-.line-row {
-  display: grid;
-  {% if lines_formset.can_delete %}
-  grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr 80px;
-  {% else %}
-  grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr;
-  {% endif %}
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e5e7eb;
-  align-items: start;
-  transition: background-color 0.2s;
-}
-
-.line-row:last-child {
-  border-bottom: none;
-}
-
-.line-row:hover {
-  background-color: #f9fafb;
-}
-
-.line-row.deleted {
-  opacity: 0.5;
-  background-color: #fee2e2;
-}
-
-.line-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.line-cell.line-number {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 500;
-  color: #6b7280;
-  font-size: 0.875rem;
-}
-
-.line-cell.line-item,
-.line-cell.line-unit,
-.line-cell.line-quantity,
-.line-cell.line-notes {
-  min-width: 0;
-}
-
-.line-cell.line-item select,
-.line-cell.line-unit select,
-.line-cell.line-quantity input,
-.line-cell.line-notes textarea {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-}
-
-.item-select-wrapper {
-  width: 100%;
-}
-
-.item-filters {
-  display: flex;
-  gap: 0.4rem;
-  margin-bottom: 0.4rem;
-  flex-wrap: wrap;
-}
-
-.item-filters select,
-.item-filters input[type="text"] {
-  flex: 1;
-  min-width: 80px;
-  font-size: 0.7rem;
-  padding: 0.3rem 0.4rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  background-color: #f9fafb;
-  color: #6b7280;
-}
-
-.item-filters select:focus,
-.item-filters input[type="text"]:focus {
-  outline: none;
-  border-color: #2563eb;
-  background-color: #ffffff;
-}
-
-.item-filters input[type="text"] {
-  flex: 2;
-  min-width: 150px;
-}
-
-.line-cell.line-notes textarea {
-  min-height: 60px;
-  resize: vertical;
-}
-
-.line-cell.line-delete {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.line-cell.line-delete input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-}
-
-.line-cell .error {
-  font-size: 0.75rem;
-  color: #dc2626;
-  margin-top: 0.25rem;
-}
-
-.error.full-width {
-  grid-column: 1 / -1;
-  padding: 0.5rem;
-  background-color: #fee2e2;
-  border-radius: 4px;
-  margin-top: 0.5rem;
-}
-
-.btn-success {
-  background-color: #10b981;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.btn-success:hover {
-  background-color: #059669;
-}
-</style>
 
 {% load static %}
 <script src="{% static 'js/formset.js' %}"></script>
