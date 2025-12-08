@@ -956,7 +956,7 @@
 **جمع کل**: 40+ فایل JavaScript Inline
 
 ### فاز 5: CSS و Event Handlers (اولویت متوسط) ⏳ **در حال انجام**
-1. ⏳ انتقال Inline CSS به فایل‌های مشترک (25+ فایل) - **7 فایل refactor شد (28%)**
+1. ⏳ انتقال Inline CSS به فایل‌های مشترک (25+ فایل) - **9 فایل refactor شد (36%)**
    - ✅ `shared/generic/generic_detail.html` - refactor شد
    - ✅ `shared/generic/generic_list.html` - refactor شد
    - ✅ `shared/generic/generic_form.html` - refactor شد
@@ -964,7 +964,9 @@
    - ✅ `inventory/inventory_balance.html` - refactor شد (تمام inline styles حذف شد)
    - ✅ `inventory/inventory_balance_details.html` - refactor شد (تمام inline styles و style tag حذف شد)
    - ✅ `inventory/base.html` - alert messages refactor شد
-   - ⏳ باقی مانده: ~18+ فایل (production forms, inventory forms, ticketing forms, و سایر فایل‌ها)
+   - ✅ `inventory/purchase_requests.html` - refactor شد (تمام inline styles حذف شد)
+   - ✅ `inventory/receipt_temporary.html` - refactor شد (تمام inline styles حذف شد)
+   - ⏳ باقی مانده: ~16+ فایل (receipt_permanent, receipt_consignment, warehouse_requests, issue_*, stocktaking_*, production forms, ticketing forms, و سایر فایل‌ها)
 2. ✅ جایگزینی Inline Event Handlers با Event Listeners (10+ فایل) - **تکمیل شد (100%)**
    - ✅ `static/js/common-actions.js` - **ساخته شد!**
    - ✅ `shared/generic/generic_list.html` - refactor شد (print button)
@@ -1160,7 +1162,7 @@ document.addEventListener('DOMContentLoaded', function() {
   - ✅ Modal Dialogs: 3 از 3 فایل (100%)
 - ✅ List Views: 9 از 9 فایل (100%)
 - ✅ Form Views: 6 از 6 فایل (100%)
-- ⏳ CSS Refactoring: 7 از 25+ فایل (28%)
+- ⏳ CSS Refactoring: 9 از 25+ فایل (36%)
 - ✅ Event Handlers: 20+ از 20+ فایل (100%) - **تکمیل شد!** همه فایل‌های با inline event handlers refactor شدند
 - ⏳ Partials: 0 از 15+ فایل (0%)
 
@@ -1214,13 +1216,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 ### 📊 آمار کلی
 - **کل فایل‌های نیازمند Refactor**: 110+ فایل
-- **فایل‌های تکمیل شده**: 83 فایل (75%)
-- **فایل‌های باقی‌مانده**: 27+ فایل (25%)
+- **فایل‌های تکمیل شده**: 85 فایل (77%)
+- **فایل‌های باقی‌مانده**: 25+ فایل (23%)
 
 ### 🎯 اولویت‌های بعدی
 1. **فاز 4.1**: تکمیل Formset Management (5+ فایل باقی مانده - 3 فایل پیچیده)
 2. ✅ **فاز 4.2**: Cascading Dropdowns - **تکمیل شد!** (7 از 7 فایل)
-3. **فاز 5.1**: ادامه CSS Refactoring (~18+ فایل باقی مانده)
+3. **فاز 5.1**: ادامه CSS Refactoring (~16+ فایل باقی مانده)
    - فایل‌های production forms (bom_form, process_form, performance_record_form, transfer_to_line_form, rework_document_form)
    - فایل‌های inventory forms (item_form, receipt_form, purchase_request_form, warehouse_request_form)
    - فایل‌های ticketing forms (template_form, category_form, subcategory_form)

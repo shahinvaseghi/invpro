@@ -86,35 +86,35 @@
       <small class="muted"><code>{{ pr.item_code }}</code></small>
     {% endif %}
   </td>
-  <td style="text-align: right;">
+  <td class="table-cell-right">
     {{ pr.total_quantity_requested|floatformat:2 }}
   </td>
   <td>
     {% if pr.requested_by %}
       {{ pr.requested_by.get_full_name|default:pr.requested_by.username }}
     {% else %}
-      <span style="color: #6b7280;">—</span>
+      <span class="text-muted">—</span>
     {% endif %}
   </td>
   <td>
     {% if pr.approver %}
       {{ pr.approver.get_full_name|default:pr.approver.username }}
     {% else %}
-      <span style="color: #6b7280;">—</span>
+      <span class="text-muted">—</span>
     {% endif %}
   </td>
   <td>
     {% if pr.needed_by_date %}
       {{ pr.needed_by_date|jalali_date }}
     {% else %}
-      <span style="color: #6b7280;">—</span>
+      <span class="text-muted">—</span>
     {% endif %}
   </td>
   <td>
     {% if pr.priority == 'urgent' %}
       <span class="badge badge-rejected">{{ pr.get_priority_display }}</span>
     {% elif pr.priority == 'high' %}
-      <span class="badge" style="background-color: #fbbf24; color: #78350f;">{{ pr.get_priority_display }}</span>
+      <span class="badge badge-priority-high">{{ pr.get_priority_display }}</span>
     {% elif pr.priority == 'low' %}
       <span class="badge badge-inactive">{{ pr.get_priority_display }}</span>
     {% else %}
@@ -135,14 +135,14 @@
       {% if detail_url_name %}
         {% can_view_object pr feature_code|default:"" as can_view %}
         {% if can_view or user.is_superuser %}
-          <a href="{% url detail_url_name pr.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+          <a href="{% url detail_url_name pr.pk %}" class="btn btn-info btn-xs">
             {% trans "View" %}
           </a>
         {% endif %}
       {% elif view_url_name %}
         {% can_view_object pr feature_code|default:"" as can_view %}
         {% if can_view or user.is_superuser %}
-          <a href="{% url view_url_name pr.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+          <a href="{% url view_url_name pr.pk %}" class="btn btn-info btn-xs">
             {% trans "View" %}
           </a>
         {% endif %}
@@ -152,28 +152,28 @@
         {% can_edit_object pr feature_code|default:"" as can_edit %}
         {% if can_edit or user.is_superuser %}
           {% if not pr.is_locked %}
-            <a href="{% url edit_url_name pr.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+            <a href="{% url edit_url_name pr.pk %}" class="btn btn-secondary btn-xs">
               {% trans "Edit" %}
             </a>
           {% endif %}
         {% endif %}
       {% endif %}
       {% if pr.can_current_user_approve %}
-        <form method="post" action="{% url approve_url_name pr.pk %}" class="inline-lock-form" style="display:inline-flex; margin:0;">
+        <form method="post" action="{% url approve_url_name pr.pk %}" class="inline-lock-form">
           {% csrf_token %}
-          <button type="submit" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+          <button type="submit" class="btn btn-primary btn-xs">
             {% trans "Approve" %}
           </button>
         </form>
       {% endif %}
       {% if pr.status == 'approved' %}
-        <a href="{% url 'inventory:purchase_request_create_temporary_receipt' pr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #10b981; color: white; text-decoration: none; border-radius: 4px;">
+        <a href="{% url 'inventory:purchase_request_create_temporary_receipt' pr.pk %}" class="btn btn-success-custom">
           {% trans "Temporary Receipt" %}
         </a>
-        <a href="{% url 'inventory:purchase_request_create_permanent_receipt' pr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 4px;">
+        <a href="{% url 'inventory:purchase_request_create_permanent_receipt' pr.pk %}" class="btn btn-primary-custom">
           {% trans "Permanent Receipt" %}
         </a>
-        <a href="{% url 'inventory:purchase_request_create_consignment_receipt' pr.pk %}" class="btn" style="padding: 4px 12px; font-size: 0.85rem; background-color: #8b5cf6; color: white; text-decoration: none; border-radius: 4px;">
+        <a href="{% url 'inventory:purchase_request_create_consignment_receipt' pr.pk %}" class="btn btn-purple-custom">
           {% trans "Consignment Receipt" %}
         </a>
       {% endif %}

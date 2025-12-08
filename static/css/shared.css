@@ -930,3 +930,94 @@ td code {
   padding: 0;
 }
 
+/* ====================================================================
+   Muted/Empty Text Styles
+   ==================================================================== */
+
+.text-muted,
+.muted-text {
+  color: #6b7280;
+}
+
+/* ====================================================================
+   Badge Priority Variants
+   ==================================================================== */
+
+.badge-priority-high {
+  background-color: #fbbf24;
+  color: #78350f;
+}
+
+/* ====================================================================
+   Button Color Variants
+   ==================================================================== */
+
+.btn-success-custom {
+  padding: 4px 12px;
+  font-size: 0.85rem;
+  background-color: #10b981;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  border: none;
+}
+
+.btn-primary-custom {
+  padding: 4px 12px;
+  font-size: 0.85rem;
+  background-color: #3b82f6;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  border: none;
+}
+
+.btn-purple-custom {
+  padding: 4px 12px;
+  font-size: 0.85rem;
+  background-color: #8b5cf6;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  border: none;
+}
+
+/* ====================================================================
+   Badge Link Styles
+   ==================================================================== */
+
+.badge-link {
+  text-decoration: none;
+}
+
+.badge-link:hover {
+  text-decoration: underline;
+}
+
+/* ====================================================================
+   Form Inline Styles
+   ==================================================================== */
+
+.form-inline {
+  display: inline;
+  margin: 0;
+}
+
+.form-inline-flex {
+  display: inline-flex;
+  margin: 0;
+}
+
+.form-inline-flex-ml {
+  display: inline-flex;
+  margin-left: 0.5rem;
+}
+
+/* ====================================================================
+   Badge Margin Utilities
+   ==================================================================== */
+
+.badge-mt {
+  margin-top: 4px;
+}
+
