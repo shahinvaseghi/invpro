@@ -16,7 +16,7 @@
     </a>
   {% endif %}
   {% if print_enabled %}
-    <button onclick="window.print()" class="btn btn-secondary">
+    <button class="btn btn-secondary btn-print" data-action="print">
       {% trans "Print" %}
     </button>
   {% endif %}
@@ -153,7 +153,7 @@
       {% if user_feature_permissions|feature_allowed:'inventory.issues.warehouse_transfer:unlock_own' or user.is_superuser %}
         <form method="post" action="{% url 'inventory:issue_warehouse_transfer_unlock' warehouse_transfer.pk %}" style="display: inline;">
           {% csrf_token %}
-          <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem; background-color: #ffc107; border-color: #ffc107; color: #000;" onclick="return confirm('{% trans 'Are you sure you want to unlock this warehouse transfer?' %}')">
+          <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem; background-color: #ffc107; border-color: #ffc107; color: #000;" data-confirm="{% trans 'Are you sure you want to unlock this warehouse transfer?' %}">
             {% trans "Unlock" %}
           </button>
         </form>
@@ -164,7 +164,7 @@
       {% if user_feature_permissions|feature_allowed:'inventory.issues.warehouse_transfer:lock' or user.is_superuser %}
         <form method="post" action="{% url 'inventory:issue_warehouse_transfer_lock' warehouse_transfer.pk %}" style="display: inline;">
           {% csrf_token %}
-          <button type="submit" class="btn btn-success" style="padding: 4px 12px; font-size: 0.85rem; background-color: #10b981; border-color: #10b981;" onclick="return confirm('{% trans 'Are you sure you want to lock this warehouse transfer?' %}')">
+          <button type="submit" class="btn btn-success" style="padding: 4px 12px; font-size: 0.85rem; background-color: #10b981; border-color: #10b981;" data-confirm="{% trans 'Are you sure you want to lock this warehouse transfer?' %}">
             {% trans "Lock" %}
           </button>
         </form>

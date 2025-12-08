@@ -1,5 +1,6 @@
 {% extends "inventory/base.html" %}
 {% load i18n jalali_tags %}
+{% load static %}
 
 {% block page_title %}لیست سریال‌های کالا{% endblock %}
 
@@ -12,7 +13,7 @@
 
 {% block page_actions %}
 <div class="page-actions">
-  <button onclick="window.print()" class="btn btn-secondary">
+  <button class="btn btn-secondary btn-print" data-action="print">
     {% trans "Print" %}
   </button>
 </div>

@@ -16,7 +16,7 @@
     </a>
   {% endif %}
   {% if print_enabled %}
-    <button onclick="window.print()" class="btn btn-secondary">
+    <button class="btn btn-secondary btn-print" data-action="print">
       {% trans "Print" %}
     </button>
   {% endif %}
@@ -177,7 +177,7 @@
           {% if can_unlock_own %}
             <form method="post" action="{% url unlock_url_name receipt.pk %}" style="display: inline; margin: 0;">
               {% csrf_token %}
-              <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to unlock this receipt?" %}');">
+              <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;" data-confirm="{% trans 'Are you sure you want to unlock this receipt?' %}">
                 {% trans "Unlock" %}
               </button>
             </form>
@@ -186,7 +186,7 @@
           {% if can_unlock_other %}
             <form method="post" action="{% url unlock_url_name receipt.pk %}" style="display: inline; margin: 0;">
               {% csrf_token %}
-              <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to unlock this receipt?" %}');">
+              <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;" data-confirm="{% trans 'Are you sure you want to unlock this receipt?' %}">
                 {% trans "Unlock" %}
               </button>
             </form>
@@ -198,13 +198,13 @@
         {% if delete_url_name %}
           {% if receipt.created_by == user %}
             {% if can_delete_own %}
-              <a href="{% url delete_url_name receipt.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this receipt?" %}');">
+              <a href="{% url delete_url_name receipt.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" data-confirm="{% trans 'Are you sure you want to delete this receipt?' %}">
                 {% trans "Delete" %}
               </a>
             {% endif %}
           {% else %}
             {% if can_delete_other %}
-              <a href="{% url delete_url_name receipt.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" onclick="return confirm('{% trans "Are you sure you want to delete this receipt?" %}');">
+              <a href="{% url delete_url_name receipt.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" data-confirm="{% trans 'Are you sure you want to delete this receipt?' %}">
                 {% trans "Delete" %}
               </a>
             {% endif %}

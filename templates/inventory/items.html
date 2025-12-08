@@ -32,11 +32,11 @@
   <a href="{% url 'inventory:item_excel_template' %}" class="btn btn-secondary">
     📥 {% trans "Download Excel Template" %}
   </a>
-  <button type="button" onclick="document.getElementById('excel-import-form').style.display='block'" class="btn btn-secondary">
+  <button type="button" class="btn btn-secondary" data-toggle="excel-import-form" data-display="block">
     📤 {% trans "Import Items from Excel" %}
   </button>
   {% if print_enabled %}
-    <button onclick="window.print()" class="btn btn-secondary">
+    <button class="btn btn-secondary btn-print" data-action="print">
       {% trans "Print" %}
     </button>
   {% endif %}

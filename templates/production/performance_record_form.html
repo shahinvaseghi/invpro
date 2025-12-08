@@ -388,7 +388,7 @@
       <h2>{% trans "Create Receipt" %}</h2>
       <p>{% trans "Create a receipt for the actual quantity produced." %}</p>
     </header>
-    <a href="{% url 'production:performance_record_create_receipt' object.pk %}" class="btn btn-primary" onclick="return confirm('{% trans "Create receipt for this performance record?" %}')">
+    <a href="{% url 'production:performance_record_create_receipt' object.pk %}" class="btn btn-primary" data-confirm="{% trans 'Create receipt for this performance record?' %}">
       {% trans "Create Receipt" %}
     </a>
   </div>

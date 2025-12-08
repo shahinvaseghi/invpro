@@ -890,10 +890,10 @@
 | List Views → Generic | 9 | 🟡 متوسط | ✅ **9 فایل تکمیل شد (100%)** |
 | Form Views → Generic | 6 | 🟡 متوسط | ✅ **6 فایل تکمیل شد (100%)** |
 | Inline CSS → Shared CSS | 25+ | 🟡 متوسط | ⏳ در انتظار |
-| Inline Event Handlers → JS Files | 10+ | 🟡 متوسط | ⏳ **شروع شد (20%)** - `common-actions.js` ساخته شد، 4 فایل refactor شد |
+| Inline Event Handlers → JS Files | 20+ | 🟡 متوسط | ✅ **تکمیل شد (100%)** - `common-actions.js` ساخته شد، همه فایل‌ها refactor شدند |
 | Row Actions → Partial | 10+ | 🟢 پایین | ⏳ در انتظار |
 | Pagination → Partial | 5+ | 🟢 پایین | ⏳ در انتظار |
-| **جمع کل** | **110+ فایل** | | **79 فایل تکمیل شد (72%)** |
+| **جمع کل** | **110+ فایل** | | **99 فایل تکمیل شد (90%)** |
 
 ---
 
@@ -1153,7 +1153,7 @@ document.addEventListener('DOMContentLoaded', function() {
 - ✅ List Views: 9 از 9 فایل (100%)
 - ✅ Form Views: 6 از 6 فایل (100%)
 - ⏳ CSS Refactoring: 0 از 25+ فایل (0%)
-- ⏳ Event Handlers: 2 از 10+ فایل (20%) - **شروع شد!** (`generic_list.html`, `row_actions.html`, `receipt_temporary.html`, `purchase_requests.html`)
+- ✅ Event Handlers: 20+ از 20+ فایل (100%) - **تکمیل شد!** همه فایل‌های با inline event handlers refactor شدند
 - ⏳ Partials: 0 از 15+ فایل (0%)
 
 ---

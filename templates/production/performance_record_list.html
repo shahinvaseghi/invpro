@@ -75,7 +75,7 @@
     {% endif %}
     {% if record.status == 'approved' and record.is_locked == 1 %}
       {% if user_feature_permissions|feature_allowed:'production.performance_records:create_receipt' or user.is_superuser %}
-        <a href="{% url 'production:performance_record_create_receipt' record.pk %}" class="btn btn-sm btn-primary" onclick="return confirm('{% trans "Create receipt for this performance record?" %}')" style="padding: 4px 12px; font-size: 0.85rem;">
+        <a href="{% url 'production:performance_record_create_receipt' record.pk %}" class="btn btn-sm btn-primary" data-confirm="{% trans 'Create receipt for this performance record?' %}" style="padding: 4px 12px; font-size: 0.85rem;">
           {% trans "Create Receipt" %}
         </a>
       {% endif %}

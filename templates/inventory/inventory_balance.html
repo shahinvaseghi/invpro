@@ -11,7 +11,7 @@
 
 {% block page_actions %}
 <div class="page-actions">
-  <button onclick="window.print()" class="btn btn-secondary">
+  <button class="btn btn-secondary btn-print" data-action="print">
     {% trans "Print" %}
   </button>
   <button type="button" id="export-excel-btn" class="btn btn-success" data-table-id="balanceTable">
@@ -189,5 +189,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 </script>
+<script src="{% static 'js/common-actions.js' %}"></script>
 {% endblock %}
 

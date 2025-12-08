@@ -16,7 +16,7 @@
   <a href="{% url 'inventory:inventory_balance' %}?warehouse_id={{ warehouse.id }}" class="btn btn-secondary">
     {% trans "Back to Balance" %}
   </a>
-  <button onclick="window.print()" class="btn btn-secondary">
+  <button class="btn btn-secondary btn-print" data-action="print">
     {% trans "Print" %}
   </button>
   <button type="button" id="export-excel-btn" class="btn btn-success" data-table-id="balanceDetailsTable">
@@ -230,5 +230,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 </script>
+<script src="{% static 'js/common-actions.js' %}"></script>
 {% endblock %}
 
