@@ -175,9 +175,9 @@
     </div>
   {% endif %}
 
-  <div id="operations-container">
+  <div id="operations-container" class="formset-container" data-formset-prefix="operations">
     {% for operation_form in operations_formset %}
-      <div class="operation-row" data-operation-index="{{ forloop.counter0 }}">
+      <div class="operation-row formset-row" data-operation-index="{{ forloop.counter0 }}">
         {% for hidden in operation_form.hidden_fields %}{{ hidden }}{% endfor %}
         
         <div class="operation-header">
@@ -188,7 +188,7 @@
               🗑️ {% trans "Delete Operation" %}
             </label>
           {% else %}
-            <button type="button" class="btn-remove-operation" onclick="removeOperation(this)">× {% trans "Remove" %}</button>
+            <button type="button" class="btn-remove-operation remove-formset-row" data-prefix="operations">× {% trans "Remove" %}</button>
           {% endif %}
         </div>
         
@@ -293,7 +293,6 @@
             
             <button type="button" class="btn btn-secondary btn-sm add-material-btn" 
                     data-operation-index="{{ forloop.counter0 }}"
-                    onclick="addMaterialToOperation({{ forloop.counter0 }})"
                     {% if not form.bom.value and not process_id %}disabled{% endif %}>
               ➕ {% trans "Add Material" %}
             </button>
@@ -303,8 +302,93 @@
     {% endfor %}
   </div>
 
+  <!-- Template row for new operations (hidden) -->
+  <template id="operation-template-row" style="display: none;">
+    <div class="operation-row formset-row" data-operation-index="__prefix__">
+      <div class="operation-header">
+        <h4>{% trans "Operation" %} #<span class="operation-number">1</span></h4>
+        <button type="button" class="btn-remove-operation remove-formset-row" data-prefix="operations">× {% trans "Remove" %}</button>
+      </div>
+      
+      <div class="operation-form-fields">
+        <div class="form-row">
+          <div class="form-field">
+            <label>{% trans "Operation Name" %}</label>
+            <input type="text" name="operations-__prefix__-name" class="form-control operation-name" />
+          </div>
+          <div class="form-field">
+            <label>{% trans "Sequence Order" %}</label>
+            <input type="number" name="operations-__prefix__-sequence_order" class="form-control operation-sequence" min="1" value="1" />
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label>{% trans "Labor Minutes per Unit" %}</label>
+            <input type="number" name="operations-__prefix__-labor_minutes_per_unit" class="form-control operation-labor-minutes" step="0.000001" min="0" />
+          </div>
+          <div class="form-field">
+            <label>{% trans "Machine Minutes per Unit" %}</label>
+            <input type="number" name="operations-__prefix__-machine_minutes_per_unit" class="form-control operation-machine-minutes" step="0.000001" min="0" />
+          </div>
+        </div>
+        
+        <div class="form-field">
+          <label>{% trans "Work Line (خط کاری)" %}</label>
+          <select name="operations-__prefix__-work_line" class="form-control operation-work-line">
+            <option value="">---</option>
+          </select>
+        </div>
+        
+        <div class="form-field">
+          <label class="checkbox-label-flex">
+            <input type="checkbox" name="operations-__prefix__-requires_qc" id="id_operations-__prefix__-requires_qc" class="form-check-input operation-requires-qc" />
+            <span>{% trans "نیاز به QC" %}</span>
+          </label>
+        </div>
+        
+        <div class="form-field full-width">
+          <label>{% trans "Description" %}</label>
+          <input type="text" name="operations-__prefix__-description" class="form-control operation-description" />
+        </div>
+        
+        <div class="form-field full-width">
+          <label>{% trans "Notes" %}</label>
+          <textarea name="operations-__prefix__-notes" class="form-control operation-notes" rows="2"></textarea>
+        </div>
+        
+        <div class="operation-materials-section">
+          <h5>{% trans "Materials Used in This Operation" %}</h5>
+          <div class="materials-table-wrapper">
+            <table class="materials-table">
+              <thead>
+                <tr>
+                  <th>{% trans "Material from BOM" %}</th>
+                  <th class="col-quantity-used">{% trans "Quantity Used" %}</th>
+                  <th class="col-unit">{% trans "Unit" %}</th>
+                  <th class="col-delete">{% trans "Delete" %}</th>
+                </tr>
+              </thead>
+              <tbody class="operation-materials-tbody" data-operation-index="__prefix__">
+                <tr class="material-row-placeholder">
+                  <td colspan="4" class="text-center muted-text-cell">
+                    {% trans "No materials added yet." %}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm add-material-btn" 
+                  data-operation-index="__prefix__">
+            ➕ {% trans "Add Material" %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+
   <div class="formset-actions">
-    <button type="button" class="btn btn-secondary" id="add-operation-btn" onclick="addOperation()">
+    <button type="button" class="btn btn-secondary add-formset-row" data-prefix="operations" id="add-operation-btn">
       ➕ {% trans "Add Operation" %}
     </button>
   </div>
@@ -726,163 +810,86 @@ function updateMaterialSelect(selectElement, materials, targetValue = null) {
   }
 }
 
-let operationCounter = {{ operations_formset.total_form_count|default:0 }};
-
-function addOperation() {
-  const container = document.getElementById('operations-container');
-  const totalForms = document.getElementById('id_operations-TOTAL_FORMS');
-  const formCount = parseInt(totalForms.value);
+// Initialize operations formset using formset.js
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize operations formset
+  initFormset('operations', '#operation-template-row', {
+    minRows: 0,
+    rowSelector: '.operation-row',
+    addButtonSelector: '.add-formset-row[data-prefix="operations"]',
+    removeButtonSelector: '.remove-formset-row[data-prefix="operations"]',
+    usePrefixPattern: true,
+    tbodyId: null // Not using tbody, using div container
+  });
   
-  const newOperationHtml = `
-    <div class="operation-row" data-operation-index="${formCount}">
-      <div class="operation-header">
-        <h4>{% trans "Operation" %} #<span class="operation-number">${formCount + 1}</span></h4>
-        <button type="button" class="btn-remove-operation" onclick="removeOperation(this)">× {% trans "Remove" %}</button>
-      </div>
+  // Listen for formset row added event to initialize new operations
+  document.addEventListener('formset:row-added', function(e) {
+    if (e.detail.prefix === 'operations') {
+      const newRow = e.detail.row;
+      const operationIndex = e.detail.index;
       
-      <div class="operation-form-fields">
-        <div class="form-row">
-          <div class="form-field">
-            <label>{% trans "Operation Name" %}</label>
-            <input type="text" name="operations-${formCount}-name" class="form-control operation-name" />
-          </div>
-          <div class="form-field">
-            <label>{% trans "Sequence Order" %}</label>
-            <input type="number" name="operations-${formCount}-sequence_order" class="form-control operation-sequence" min="1" value="${formCount + 1}" />
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label>{% trans "Labor Minutes per Unit" %}</label>
-            <input type="number" name="operations-${formCount}-labor_minutes_per_unit" class="form-control operation-labor-minutes" step="0.000001" min="0" />
-          </div>
-          <div class="form-field">
-            <label>{% trans "Machine Minutes per Unit" %}</label>
-            <input type="number" name="operations-${formCount}-machine_minutes_per_unit" class="form-control operation-machine-minutes" step="0.000001" min="0" />
-          </div>
-        </div>
-        
-        <div class="form-field">
-          <label>{% trans "Work Line (خط کاری)" %}</label>
-          <select name="operations-${formCount}-work_line" class="form-control operation-work-line">
-            <option value="">---</option>
-            ${workLinesData.map(wl => `<option value="${wl.id}">${wl.public_code} - ${wl.name}</option>`).join('')}
-          </select>
-        </div>
-        
-        <div class="form-field">
-          <label class="checkbox-label-flex">
-            <input type="checkbox" name="operations-${formCount}-requires_qc" id="id_operations-${formCount}-requires_qc" class="form-check-input operation-requires-qc" />
-            <span>{% trans "نیاز به QC" %}</span>
-          </label>
-        </div>
-        
-        <div class="form-field full-width">
-          <label>{% trans "Description" %}</label>
-          <input type="text" name="operations-${formCount}-description" class="form-control operation-description" />
-        </div>
-        
-        <div class="form-field full-width">
-          <label>{% trans "Notes" %}</label>
-          <textarea name="operations-${formCount}-notes" class="form-control operation-notes" rows="2"></textarea>
-        </div>
-        
-        <div class="operation-materials-section">
-          <h5>{% trans "Materials Used in This Operation" %}</h5>
-          <div class="materials-table-wrapper">
-            <table class="materials-table">
-              <thead>
-                <tr>
-                  <th>{% trans "Material from BOM" %}</th>
-                  <th class="col-quantity-used">{% trans "Quantity Used" %}</th>
-                  <th class="col-unit">{% trans "Unit" %}</th>
-                  <th class="col-delete">{% trans "Delete" %}</th>
-                </tr>
-              </thead>
-              <tbody class="operation-materials-tbody" data-operation-index="${formCount}">
-                <tr class="material-row-placeholder">
-                  <td colspan="4" class="text-center" style="color: #9ca3af; padding: 1rem;">
-                    {% trans "No materials added yet." %}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <button type="button" class="btn btn-secondary btn-sm add-material-btn" 
-                  data-operation-index="${formCount}"
-                  onclick="addMaterialToOperation(${formCount})">
-            ➕ {% trans "Add Material" %}
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  container.insertAdjacentHTML('beforeend', newOperationHtml);
-  
-  // Update TOTAL_FORMS using formset.js helper
-  totalForms.value = formCount + 1;
-  operationCounter++;
-  
-  // Update operation numbers
-  updateOperationNumbers();
-  
-  // Note: Since we're using HTML string (not clone), we can't use formset.js reindexFormset
-  // But we can use updateFormsetTotal to ensure TOTAL_FORMS is correct
-  
-  // Wait for DOM to be ready, then update buttons
-  setTimeout(function() {
-    // Update add material buttons state for newly added operation
-    updateAddMaterialButtons();
-    
-    // Ensure the newly added button is enabled if BOM or process exists
-    const bomSelect = document.getElementById(bomSelectId);
-    const bomId = bomSelect ? bomSelect.value : '';
-    const hasBOM = bomId || processIdGlobal;
-    
-    console.log('New operation added - formCount:', formCount, 'hasBOM:', hasBOM, 'bomId:', bomId);
-    
-    // Enable the newly added button if BOM/process exists
-    if (hasBOM) {
-      const newBtn = container.querySelector(`.operation-row[data-operation-index="${formCount}"] .add-material-btn`);
-      console.log('Found new button:', newBtn);
-      if (newBtn) {
-        newBtn.disabled = false;
-        console.log('Button enabled for operation', formCount);
-      } else {
-        console.error('Could not find button for operation', formCount);
+      // Update operation number
+      const numberSpan = newRow.querySelector('.operation-number');
+      if (numberSpan) {
+        numberSpan.textContent = operationIndex + 1;
       }
-    } else {
-      console.warn('No BOM selected, button will be disabled');
+      
+      // Update sequence order default value
+      const sequenceInput = newRow.querySelector('.operation-sequence');
+      if (sequenceInput) {
+        sequenceInput.value = operationIndex + 1;
+      }
+      
+      // Populate work line dropdown
+      const workLineSelect = newRow.querySelector('.operation-work-line');
+      if (workLineSelect && workLinesData) {
+        workLinesData.forEach(wl => {
+          const option = document.createElement('option');
+          option.value = wl.id;
+          option.textContent = `${wl.public_code} - ${wl.name}`;
+          workLineSelect.appendChild(option);
+        });
+      }
+      
+      // Update data-operation-index for materials tbody
+      const materialsTbody = newRow.querySelector('.operation-materials-tbody');
+      if (materialsTbody) {
+        materialsTbody.setAttribute('data-operation-index', operationIndex);
+      }
+      
+      // Update add material button data-operation-index
+      const addMaterialBtn = newRow.querySelector('.add-material-btn');
+      if (addMaterialBtn) {
+        addMaterialBtn.setAttribute('data-operation-index', operationIndex);
+        // Attach click handler
+        addMaterialBtn.addEventListener('click', function() {
+          addMaterialToOperation(operationIndex);
+        });
+      }
+      
+      // Update add material buttons state
+      setTimeout(function() {
+        updateAddMaterialButtons();
+      }, 50);
     }
-  }, 100);
-}
-
-function removeOperation(button) {
-  const operationRow = button.closest('.operation-row');
-  if (!operationRow) {
-    console.error('Operation row not found');
-    return;
-  }
+  });
   
-  // Get operation index before removal
-  const operationIndex = operationRow.dataset.operationIndex;
-  
-  // Remove operation row
-  operationRow.remove();
-  
-  // Update TOTAL_FORMS using formset.js helper
-  updateFormsetTotal('operations', '.operation-row');
-  
-  // Update operation numbers
-  updateOperationNumbers();
-  
-  // Clean up material counters for this operation
-  if (materialCounters[operationIndex]) {
-    delete materialCounters[operationIndex];
-  }
-}
+  // Listen for formset row removed event to clean up
+  document.addEventListener('formset:row-removed', function(e) {
+    if (e.detail.prefix === 'operations') {
+      const removedRow = e.detail.row;
+      const operationIndex = removedRow.dataset.operationIndex;
+      
+      // Clean up material counters for this operation
+      if (materialCounters[operationIndex]) {
+        delete materialCounters[operationIndex];
+      }
+      
+      // Update operation numbers
+      updateOperationNumbers();
+    }
+  });
+});
 
 function updateOperationNumbers() {
   const operations = document.querySelectorAll('.operation-row');
@@ -940,12 +947,23 @@ function addMaterialToOperation(operationIndex) {
                class="form-control operation-material-unit" readonly />
       </td>
       <td class="text-center">
-        <button type="button" class="btn-remove-material" onclick="removeMaterial(this)">×</button>
+        <button type="button" class="btn-remove-material" >×</button>
       </td>
     </tr>
   `;
   
   tbody.insertAdjacentHTML('beforeend', newMaterialRow);
+  
+  // Attach event listener to remove button
+  const newRow = tbody.querySelector(`.material-row[data-material-index="${materialIndex}"]`);
+  if (newRow) {
+    const removeBtn = newRow.querySelector('.btn-remove-material');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', function() {
+        removeMaterial(this);
+      });
+    }
+  }
   
   // Load BOM materials - wait a bit for DOM to be ready
   setTimeout(function() {
@@ -1014,13 +1032,33 @@ function removeMaterial(button) {
   if (tbody.querySelectorAll('.material-row').length === 0) {
     tbody.innerHTML = `
       <tr class="material-row-placeholder">
-        <td colspan="4" class="text-center" style="color: #9ca3af; padding: 1rem;">
+        <td colspan="4" class="text-center muted-text-cell">
           {% trans "No materials added yet." %}
         </td>
       </tr>
     `;
   }
 }
+
+// Attach event listeners for material buttons
+document.addEventListener('DOMContentLoaded', function() {
+  // Attach click handlers to existing add material buttons
+  document.querySelectorAll('.add-material-btn').forEach(btn => {
+    const operationIndex = btn.getAttribute('data-operation-index');
+    if (operationIndex !== null) {
+      btn.addEventListener('click', function() {
+        addMaterialToOperation(parseInt(operationIndex));
+      });
+    }
+  });
+  
+  // Attach click handlers to existing remove material buttons
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('btn-remove-material')) {
+      removeMaterial(e.target);
+    }
+  });
+});
 
 function loadProcessBOMMaterialsForOperation(operationIndex, materialIndex, processId) {
   const select = document.querySelector(
@@ -1345,12 +1383,23 @@ function addExistingMaterialToOperation(operationIndex, bomMaterialId, quantityU
                class="form-control operation-material-unit" value="${unit}" readonly />
       </td>
       <td class="text-center">
-        <button type="button" class="btn-remove-material" onclick="removeMaterial(this)">×</button>
+        <button type="button" class="btn-remove-material" >×</button>
       </td>
     </tr>
   `;
   
   tbody.insertAdjacentHTML('beforeend', newMaterialRow);
+  
+  // Attach event listener to remove button
+  const newRow = tbody.querySelector(`.material-row[data-material-index="${materialIndex}"]`);
+  if (newRow) {
+    const removeBtn = newRow.querySelector('.btn-remove-material');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', function() {
+        removeMaterial(this);
+      });
+    }
+  }
   
   // Load BOM materials and set selected value
   // Wait a bit longer for DOM to be ready (row needs to be fully inserted)
