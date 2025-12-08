@@ -410,6 +410,7 @@
 {{ block.super }}
 <script src="{% static 'js/cascading-dropdowns.js' %}"></script>
 <script src="{% static 'js/item-filters.js' %}"></script>
+<script src="{% static 'js/formset.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   // Add bom-form class to form container and entity-form
@@ -555,81 +556,118 @@ document.addEventListener('DOMContentLoaded', function() {
   // ====================================================================
   // Formset Management (Add/Remove Material Lines)
   // ====================================================================
-  const totalFormsInput = document.querySelector('#id_materials-TOTAL_FORMS');
-  const addLineBtn = document.getElementById('add-material-line');
   const tbody = document.getElementById('materials-tbody');
+  const addLineBtn = document.getElementById('add-material-line');
   
-  if (addLineBtn && tbody && totalFormsInput) {
-    // Add new line button
-    addLineBtn.addEventListener('click', function() {
-      const currentCount = parseInt(totalFormsInput.value);
-      
-      // Get the last row as template (or first if none exist)
-      const rows = tbody.querySelectorAll('.material-row');
-      const templateRow = rows[rows.length - 1] || rows[0];
-      
-      if (!templateRow) {
-        console.error('No template row found');
-        return;
-      }
-      
-      const newRow = templateRow.cloneNode(true);
-      newRow.classList.remove('existing');
-      newRow.classList.add('new');
-      
-      // Update form index in all fields
-      newRow.querySelectorAll('[name],[id],[for]').forEach(function(elem) {
-        ['name', 'id', 'for'].forEach(function(attr) {
-          if (elem.hasAttribute(attr)) {
-            const val = elem.getAttribute(attr);
-            elem.setAttribute(attr, val.replace(/-\d+-/, `-${currentCount}-`));
-          }
-        });
-      });
-      
-      // Clear values
-      newRow.querySelectorAll('select').forEach(function(field) {
-        field.selectedIndex = 0;
-      });
-      
-      newRow.querySelectorAll('input[type="text"], input[type="number"]').forEach(function(field) {
-        field.value = '';
-      });
-      
-      newRow.querySelectorAll('input[type="checkbox"]').forEach(function(field) {
-        field.checked = false;
-      });
-      
-      newRow.querySelectorAll('textarea').forEach(function(field) {
-        field.value = '';
-      });
-      
-      // Clear error messages
-      newRow.querySelectorAll('.error').forEach(function(error) {
-        error.remove();
-      });
-      
-      // Update line number
-      newRow.querySelector('.line-number').textContent = currentCount + 1;
-      newRow.setAttribute('data-form-idx', currentCount);
-      
-      // Update delete button (remove checkbox DELETE field if exists, add remove button)
-      const deleteCell = newRow.querySelector('td:last-child');
-      deleteCell.innerHTML = '<button type="button" class="btn-remove-line" onclick="removeLine(this)">×</button>';
-      
-      // Add to table
-      tbody.appendChild(newRow);
-      
-      // Update total forms count
-      totalFormsInput.value = currentCount + 1;
-      
-      // Update line numbers for all rows
-      updateLineNumbers();
-      
-      // Setup cascading filters for new row
-      setupRowCascading(newRow);
+  // Helper function to update line numbers
+  function updateLineNumbers() {
+    if (!tbody) return;
+    tbody.querySelectorAll('.material-row .line-number').forEach(function(cell, index) {
+      cell.textContent = index + 1;
     });
   }
+  
+  // Helper function to prepare new row (clear values, update classes, etc.)
+  function prepareNewRow(row, formIndex) {
+    // Update classes
+    row.classList.remove('existing');
+    row.classList.add('new');
+    
+    // Clear values
+    row.querySelectorAll('select').forEach(function(field) {
+      field.selectedIndex = 0;
+    });
+    
+    row.querySelectorAll('input[type="text"], input[type="number"]').forEach(function(field) {
+      field.value = '';
+    });
+    
+    row.querySelectorAll('input[type="checkbox"]').forEach(function(field) {
+      field.checked = false;
+    });
+    
+    row.querySelectorAll('textarea').forEach(function(field) {
+      field.value = '';
+    });
+    
+    // Clear error messages
+    row.querySelectorAll('.error').forEach(function(error) {
+      error.remove();
+    });
+    
+    // Update line number
+    const lineNumberElement = row.querySelector('.line-number');
+    if (lineNumberElement) {
+      lineNumberElement.textContent = formIndex + 1;
+    }
+    
+    // Update delete button (remove checkbox DELETE field if exists, add remove button)
+    const deleteCell = row.querySelector('td:last-child');
+    if (deleteCell) {
+      deleteCell.innerHTML = '<button type="button" class="btn-remove-line" onclick="removeLine(this)">×</button>';
+    }
+  }
+  
+  // Setup formset with custom callbacks
+  if (addLineBtn && tbody) {
+    // Find template row (last row or first row)
+    const rows = tbody.querySelectorAll('.material-row');
+    const templateRow = rows[rows.length - 1] || rows[0];
+    
+    if (templateRow) {
+      // Mark template row
+      templateRow.classList.add('formset-template');
+      
+      // Add click handler for add button
+      addLineBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Use formset.js helper function
+        const lastRow = tbody.querySelectorAll('.material-row:not(.formset-template)');
+        const sourceRow = lastRow[lastRow.length - 1] || templateRow;
+        
+        if (!sourceRow) {
+          console.error('No template row found');
+          return;
+        }
+        
+        // Clone row
+        const newRow = sourceRow.cloneNode(true);
+        newRow.classList.remove('formset-template');
+        
+        // Get current form count
+        const totalFormsInput = document.querySelector('#id_materials-TOTAL_FORMS');
+        const currentCount = totalFormsInput ? parseInt(totalFormsInput.value) || 0 : 0;
+        
+        // Update field names and IDs using formset.js helper
+        updateRowFields(newRow, 'materials', currentCount, false);
+        
+        // Prepare new row (clear values, update classes, etc.)
+        prepareNewRow(newRow, currentCount);
+        
+        // Add to table
+        tbody.appendChild(newRow);
+        
+        // Update total forms count
+        if (totalFormsInput) {
+          totalFormsInput.value = currentCount + 1;
+        }
+        
+        // Update line numbers for all rows
+        updateLineNumbers();
+        
+        // Setup cascading filters for new row
+        setupRowCascading(newRow);
+      });
+    }
+  }
+  
+  // Listen for formset row removal events to update line numbers
+  document.addEventListener('formset:row-removed', function(e) {
+    if (e.detail.prefix === 'materials') {
+      updateLineNumbers();
+    }
+  });
   
   
   // ====================================================================
@@ -1487,9 +1525,8 @@ function updateWarehousesJSON(container) {
 // Remove Line Function (Global)
 // ====================================================================
 function removeLine(button) {
-  const row = button.closest('.material-row');
   const tbody = document.getElementById('materials-tbody');
-  const rows = tbody.querySelectorAll('.material-row');
+  const rows = tbody ? tbody.querySelectorAll('.material-row:not(.formset-template)') : [];
   
   // Don't allow removing if only one row left
   if (rows.length <= 1) {
@@ -1497,19 +1534,17 @@ function removeLine(button) {
     return;
   }
   
-  row.remove();
-  
-  // Update line numbers
-  tbody.querySelectorAll('.material-row .line-number').forEach(function(cell, index) {
-    cell.textContent = index + 1;
+  // Use formset.js helper function
+  removeFormsetRow(button, 'materials', {
+    minRows: 1,
+    rowSelector: '.material-row'
   });
   
-  // Update TOTAL_FORMS if this was a new row (not from database)
-  if (row.classList.contains('new')) {
-    const totalFormsInput = document.querySelector('#id_materials-TOTAL_FORMS');
-    if (totalFormsInput) {
-      totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
-    }
+  // Update line numbers after removal
+  if (tbody) {
+    tbody.querySelectorAll('.material-row:not(.formset-template) .line-number').forEach(function(cell, index) {
+      cell.textContent = index + 1;
+    });
   }
 }
 

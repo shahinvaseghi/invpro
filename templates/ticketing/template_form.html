@@ -482,178 +482,110 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   // ========================================================================
-  // Field Formset
+  // Field Formset - Custom handler with settings row support
   // ========================================================================
   const fieldFormsetBody = document.getElementById('field-formset-body');
   const addFieldButton = document.getElementById('add-field-row');
-  
-  if (!fieldFormsetBody || !addFieldButton) {
-    return;
-  }
-  
-  // Find management form - look in the form section
-  const section = fieldFormsetBody.closest('.form-section');
-  let fieldManagementForm = null;
-  
-  // Find the management form input - Django creates it in management_form
-  if (section) {
-    // Look for input with name ending in -TOTAL_FORMS within this section
-    const allInputs = section.querySelectorAll('input');
-    for (let i = 0; i < allInputs.length; i++) {
-      const input = allInputs[i];
-      if (input.name && input.name.endsWith('-TOTAL_FORMS')) {
-        fieldManagementForm = input;
-        break;
-      }
-    }
-  }
-  
   const emptyFieldForm = document.getElementById('empty-field-form');
   
-  if (!emptyFieldForm) {
+  if (!fieldFormsetBody || !addFieldButton || !emptyFieldForm) {
     return;
   }
   
-  // Try to find management form if not found yet
-  if (!fieldManagementForm) {
-    // Try to find it in the entire form
-    const form = fieldFormsetBody.closest('form');
-    if (form) {
-      const allManagementForms = form.querySelectorAll('input[name$="-TOTAL_FORMS"]');
-      if (allManagementForms.length > 0) {
-        // Try to find the one in the fields section first
-        const section = fieldFormsetBody.closest('.form-section');
-        for (let i = 0; i < allManagementForms.length; i++) {
-          const mf = allManagementForms[i];
-          if (section && section.contains(mf)) {
-            fieldManagementForm = mf;
-            break;
-          }
-        }
-        // If still not found, use the first one (fallback)
-        if (!fieldManagementForm && allManagementForms.length > 0) {
-          fieldManagementForm = allManagementForms[0];
-        }
-      }
-    }
-  }
-  
-  // Add event listener for adding new rows
+  // Custom add handler for field formset (includes settings row)
   addFieldButton.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
     
-    // Find management form if not already found
-    let mgmtForm = fieldManagementForm;
-    if (!mgmtForm) {
-      const form = fieldFormsetBody.closest('form');
-      if (form) {
-        const allManagementForms = form.querySelectorAll('input[name$="-TOTAL_FORMS"]');
-        if (allManagementForms.length > 0) {
-          const section = fieldFormsetBody.closest('.form-section');
-          for (let i = 0; i < allManagementForms.length; i++) {
-            const mf = allManagementForms[i];
-            if (section && section.contains(mf)) {
-              mgmtForm = mf;
-              break;
-            }
-          }
-          if (!mgmtForm) {
-            mgmtForm = allManagementForms[0];
-          }
-        }
-      }
-    }
+    // Use formset.js to add the field row
+    const success = addFormsetRow('fields', '#empty-field-form', {
+      minRows: 0,
+      rowSelector: 'tr.field-form-row',
+      tbodyId: 'field-formset-body',
+      usePrefixPattern: true
+    });
     
-    if (!mgmtForm) {
+    if (!success) {
       return;
     }
     
-    const totalForms = parseInt(mgmtForm.value) || 0;
+    // Get the newly added field row (last one in tbody)
+    const rows = fieldFormsetBody.querySelectorAll('tr.field-form-row');
+    const newFieldRow = rows[rows.length - 1];
     
-    // Get the field row template from template tag (use .content for template elements)
+    if (!newFieldRow) {
+      return;
+    }
+    
+    // Get the settings row template and clone it
     const templateContent = emptyFieldForm.content || emptyFieldForm;
-    const fieldRowTemplate = templateContent.querySelector('tr.field-form-row');
     const settingsRowTemplate = templateContent.querySelector('tr.field-settings-row');
     
-    if (!fieldRowTemplate) {
-      return;
-    }
-    
-    // Clone the rows directly
-    const newFieldRow = fieldRowTemplate.cloneNode(true);
-    const newSettingsRow = settingsRowTemplate ? settingsRowTemplate.cloneNode(true) : null;
-    
-    // Update all form field names and IDs using __prefix__ replacement
-    function updateFieldNames(element) {
-      if (!element) return;
-      const formFields = element.querySelectorAll('input, select, textarea, label, button');
-      formFields.forEach(function(field) {
-        if (field.name && field.name.includes('__prefix__')) {
-          field.name = field.name.replace(/__prefix__/g, totalForms);
+    if (settingsRowTemplate) {
+      // Get the current form index from the field row
+      const fieldIndexInput = newFieldRow.querySelector('input[name*="field_order"]');
+      let fieldIndex = 0;
+      if (fieldIndexInput) {
+        const nameMatch = fieldIndexInput.name.match(/fields-(\d+)-/);
+        if (nameMatch) {
+          fieldIndex = parseInt(nameMatch[1]);
         }
-        if (field.id && field.id.includes('__prefix__')) {
-          field.id = field.id.replace(/__prefix__/g, totalForms);
-        }
-        if (field.getAttribute('for') && field.getAttribute('for').includes('__prefix__')) {
-          field.setAttribute('for', field.getAttribute('for').replace(/__prefix__/g, totalForms));
-        }
-        // Update data attributes
-        if (field.hasAttribute('data-field-index') && field.getAttribute('data-field-index') === '__prefix__') {
-          field.setAttribute('data-field-index', totalForms);
-        }
-      });
-    }
-    
-    updateFieldNames(newFieldRow);
-    if (newSettingsRow) {
-      newSettingsRow.id = 'field-settings-' + totalForms;
-      updateFieldNames(newSettingsRow);
+      }
+      
+      // Clone settings row
+      const newSettingsRow = settingsRowTemplate.cloneNode(true);
+      newSettingsRow.id = 'field-settings-' + fieldIndex;
+      newSettingsRow.style.display = 'none'; // Hidden by default
+      
+      // Update all field names and IDs in settings row using formset.js function
+      // Note: updateRowFields is defined in formset.js and should be accessible
+      if (typeof updateRowFields === 'function') {
+        updateRowFields(newSettingsRow, 'fields', fieldIndex, true);
+      } else {
+        // Fallback: manual update if function not available
+        const formFields = newSettingsRow.querySelectorAll('input, select, textarea, label, button');
+        formFields.forEach(function(field) {
+          if (field.name && field.name.includes('__prefix__')) {
+            field.name = field.name.replace(/__prefix__/g, fieldIndex);
+          }
+          if (field.id && field.id.includes('__prefix__')) {
+            field.id = field.id.replace(/__prefix__/g, fieldIndex);
+          }
+          if (field.getAttribute('for') && field.getAttribute('for').includes('__prefix__')) {
+            field.setAttribute('for', field.getAttribute('for').replace(/__prefix__/g, fieldIndex));
+          }
+          if (field.hasAttribute('data-field-index') && field.getAttribute('data-field-index') === '__prefix__') {
+            field.setAttribute('data-field-index', fieldIndex);
+          }
+        });
+      }
+      
+      // Update data attributes
+      const settingsPanel = newSettingsRow.querySelector('.field-settings-panel');
+      if (settingsPanel) {
+        settingsPanel.setAttribute('data-field-index', fieldIndex);
+      }
+      const fieldSpecificSettings = newSettingsRow.querySelector('.field-specific-settings');
+      if (fieldSpecificSettings) {
+        fieldSpecificSettings.setAttribute('data-field-index', fieldIndex);
+      }
       
       // Initialize field settings for the new row
       const fieldTypeSelect = newFieldRow.querySelector('select[name*="field_type"]');
       if (fieldTypeSelect) {
-        // Set default field type to trigger settings update
         const defaultFieldType = fieldTypeSelect.value || 'short_text';
         newSettingsRow.setAttribute('data-field-type', defaultFieldType);
         
         // Generate initial settings HTML
         setTimeout(function() {
-          updateFieldSettings(newFieldRow, defaultFieldType);
+          if (typeof updateFieldSettings === 'function') {
+            updateFieldSettings(newFieldRow, defaultFieldType);
+          }
         }, 100);
       }
-    }
-    
-    // Add the new field row to tbody
-    fieldFormsetBody.appendChild(newFieldRow);
-    
-    // Add the settings row right after the field row
-    if (newSettingsRow) {
-      fieldFormsetBody.appendChild(newSettingsRow);
-    }
-    
-    // Update the total forms count
-    mgmtForm.value = totalForms + 1;
-  });
-  
-  // Handle delete checkboxes for fields (for existing saved fields)
-  fieldFormsetBody.addEventListener('change', function(e) {
-    if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('DELETE')) {
-      const row = e.target.closest('.field-form-row');
-      if (row && e.target.checked) {
-        row.style.opacity = '0.5';
-        // Also hide the settings row if it exists
-        const settingsRow = row.nextElementSibling;
-        if (settingsRow && settingsRow.classList.contains('field-settings-row')) {
-          settingsRow.style.opacity = '0.5';
-        }
-      } else if (row) {
-        row.style.opacity = '1';
-        const settingsRow = row.nextElementSibling;
-        if (settingsRow && settingsRow.classList.contains('field-settings-row')) {
-          settingsRow.style.opacity = '1';
-        }
-      }
+      
+      // Add settings row right after field row
+      fieldFormsetBody.insertBefore(newSettingsRow, newFieldRow.nextSibling);
     }
   });
   
@@ -672,36 +604,31 @@ document.addEventListener('DOMContentLoaded', function() {
           nextRow.remove();
         }
         
-        // Remove the field row
-        fieldRow.remove();
-        
-        // Update the total forms count - find management form again if needed
-        let mgmtForm = fieldManagementForm;
-        if (!mgmtForm) {
-          const form = fieldFormsetBody.closest('form');
-          if (form) {
-            const allManagementForms = form.querySelectorAll('input[name$="-TOTAL_FORMS"]');
-            if (allManagementForms.length > 0) {
-              const section = fieldFormsetBody.closest('.form-section');
-              for (let i = 0; i < allManagementForms.length; i++) {
-                const mf = allManagementForms[i];
-                if (section && section.contains(mf)) {
-                  mgmtForm = mf;
-                  break;
-                }
-              }
-              if (!mgmtForm) {
-                mgmtForm = allManagementForms[0];
-              }
-            }
-          }
+        // Use formset.js to remove the row
+        removeFormsetRow(button, 'fields', {
+          minRows: 0,
+          rowSelector: 'tr.field-form-row'
+        });
+      }
+    }
+  });
+  
+  // Handle delete checkboxes for fields (for existing saved fields)
+  fieldFormsetBody.addEventListener('change', function(e) {
+    if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('DELETE')) {
+      const row = e.target.closest('.field-form-row');
+      if (row && e.target.checked) {
+        row.style.opacity = '0.5';
+        // Also hide the settings row if it exists
+        const settingsRow = row.nextElementSibling;
+        if (settingsRow && settingsRow.classList.contains('field-settings-row')) {
+          settingsRow.style.opacity = '0.5';
         }
-        
-        if (mgmtForm) {
-          const currentTotal = parseInt(mgmtForm.value) || 0;
-          if (currentTotal > 0) {
-            mgmtForm.value = currentTotal - 1;
-          }
+      } else if (row) {
+        row.style.opacity = '1';
+        const settingsRow = row.nextElementSibling;
+        if (settingsRow && settingsRow.classList.contains('field-settings-row')) {
+          settingsRow.style.opacity = '1';
         }
       }
     }

@@ -325,6 +325,8 @@
 {% endblock %}
 
 {% block form_scripts %}
+{% load static %}
+<script src="{% static 'js/formset.js' %}"></script>
 <script>
 // Add process-form class to entity-form
 document.addEventListener('DOMContentLoaded', function() {

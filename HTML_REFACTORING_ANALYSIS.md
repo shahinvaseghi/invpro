@@ -2,7 +2,7 @@
 
 **تاریخ ایجاد**: 2024-12-05  
 **آخرین به‌روزرسانی**: 2024-12-06  
-**وضعیت**: در حال انجام - 97 فایل از 110+ فایل تکمیل شد (88%)  
+**وضعیت**: در حال انجام - 98 فایل از 110+ فایل تکمیل شد (89%)  
 **هدف**: شناسایی الگوهای تکراری در فایل‌های HTML/Template و برنامه‌ریزی برای refactoring
 
 **وضعیت پیشرفت**:
@@ -13,7 +13,7 @@
   - ✅ فاز 1.4: Detail Views ماژول ticketing (4 فایل)
   - ✅ فاز 1.5: Detail Views ماژول shared (6 فایل)
 - ⏳ فاز 4: JavaScript Refactoring (40+ فایل) - در حال انجام
-  - ⏳ فاز 4.1: Formset Management JavaScript (10 فایل) - **7 فایل refactor شدند (70%)** (item_form.html, purchase_request_form.html, performance_record_form.html, transfer_to_line_form.html, receipt_form.html, subcategory_form.html, user_form.html) - **3 فایل پیچیده باقی مانده** (bom_form.html, process_form.html, template_form.html)
+  - ⏳ فاز 4.1: Formset Management JavaScript (10 فایل) - **9 فایل refactor شدند (90%)** (item_form.html, purchase_request_form.html, performance_record_form.html, transfer_to_line_form.html, receipt_form.html, subcategory_form.html, user_form.html, template_form.html, bom_form.html) - **1 فایل پیچیده باقی مانده** (process_form.html)
   - ✅ فاز 4.2: Cascading Dropdowns JavaScript (7 فایل) - **7 فایل refactor شدند** (100%) - **تکمیل شد!**
   - ⏳ فاز 4.3: Table Export JavaScript (17+ فایل) - **3 فایل refactor شدند** (generic_report.html, inventory_balance.html, inventory_balance_details.html) - **نکته**: 14 فایل دیگر export function ندارند
   - ✅ فاز 4.4: Approval/Reject Functions (4 فایل) - **4 فایل refactor شدند** (100%)
@@ -471,9 +471,9 @@
 **مشکل**: JavaScript برای مدیریت formset، cascading dropdowns، table export و سایر عملکردها در چندین template به صورت inline نوشته شده است:
 
 #### 6.1 Formset Management JavaScript
-**وضعیت**: ⏳ **7 فایل refactor شد (70%)** - 3 فایل پیچیده باقی مانده
+**وضعیت**: ⏳ **9 فایل refactor شد (90%)** - 1 فایل پیچیده باقی مانده
 
-**فایل‌های refactor شده** (7 فایل):
+**فایل‌های refactor شده** (9 فایل):
 - ✅ `production/performance_record_form.html` - استفاده از `formset.js`
 - ✅ `production/transfer_to_line_form.html` - استفاده از `formset.js`
 - ✅ `inventory/item_form.html` - استفاده از `formset.js` و `cascading-dropdowns.js`
@@ -481,22 +481,23 @@
 - ✅ `inventory/purchase_request_form.html` - استفاده از `formset.js`, `item-filters.js`, و `formset-table.js`
 - ✅ `ticketing/subcategory_form.html` - استفاده از `formset.js` (permission formset)
 - ✅ `shared/user_form.html` - استفاده از `formset.js` (company access formset)
+- ✅ `ticketing/template_form.html` - **refactor شد** ✅ - استفاده از `formset.js` برای permission و event formsets، custom handler برای field formset (با settings row)
+- ✅ `production/bom_form.html` - **refactor شد** ✅ - استفاده از `formset.js` برای materials formset، custom handlers برای alternatives formset (nested) و cascading filters
 
-**فایل‌های نیازمند Refactor** (3 فایل - همه پیچیده):
+**فایل‌های نیازمند Refactor** (1 فایل - پیچیده):
 
-**ماژول `production`** (2 فایل):
-- ⏳ `production/bom_form.html` - JavaScript inline برای formset management (~200 خط) - **نکته**: nested formsets (پیچیده)
-- ⏳ `production/process_form.html` - JavaScript inline برای formset management - **نکته**: nested formsets (پیچیده)
+**ماژول `production`** (1 فایل):
+- ⏳ `production/process_form.html` - JavaScript inline برای formset management - **نکته**: nested formsets (خیلی پیچیده - 1662 خط) - operations formset با HTML string ساخته می‌شود (نیاز به refactoring تخصصی)
 - ~~`production/rework_document_form.html`~~ - بررسی شد - formset management ندارد
 
-**ماژول `inventory`** (1 فایل):
+**ماژول `inventory`** (0 فایل):
 - ~~`inventory/stocktaking_form.html`~~ - بررسی شد - formset ندارد (نیاز به refactoring ندارد)
 - ~~`inventory/warehouse_request_form.html`~~ - استفاده از `formset.js` ✅ (مثال خوب - نیاز به بررسی ندارد)
 
-**ماژول `ticketing`** (1 فایل):
+**ماژول `ticketing`** (0 فایل):
 - ~~`ticketing/category_form.html`~~ - بررسی شد - formset دارد اما JavaScript inline ندارد (نیاز به refactoring ندارد)
 - ~~`ticketing/subcategory_form.html`~~ - **refactor شد** - استفاده از `formset.js`
-- ⏳ `ticketing/template_form.html` - JavaScript inline برای multiple formsets management - **نکته**: multiple formsets (پیچیده)
+- ~~`ticketing/template_form.html`~~ - **refactor شد** ✅ - استفاده از `formset.js`
 
 **ماژول `shared`** (0 فایل):
 - ~~`shared/user_form.html`~~ - **refactor شد** - استفاده از `formset.js`
@@ -512,7 +513,7 @@
 
 **راه حل**: استفاده از `static/js/formset.js` و `static/js/formset-table.js`
 
-**صرفه‌جویی**: حذف ~500 خط کد JavaScript تکراری
+**صرفه‌جویی**: حذف ~900 خط کد JavaScript تکراری (9 فایل refactor شده)
 
 #### 6.2 Cascading Dropdowns JavaScript
 **وضعیت**: ✅ **7 فایل refactor شد (100%)** - **تکمیل شد!**
@@ -568,18 +569,7 @@
 
 **راه حل**: استفاده از `static/js/table-export.js`
 
-**صرفه‌جویی**: حذف ~100 خط کد JavaScript تکراری
-- `inventory/issue_consignment.html` - JavaScript inline برای `exportToExcel()`
-- `inventory/warehouse_requests.html` - JavaScript inline برای `exportToExcel()`
-- `inventory/stocktaking_deficit.html` - JavaScript inline برای `exportToExcel()`
-- `inventory/stocktaking_surplus.html` - JavaScript inline برای `exportToExcel()`
-- `inventory/stocktaking_records.html` - JavaScript inline برای `exportToExcel()`
-- `production/performance_record_list.html` - JavaScript inline برای `exportToExcel()`
-- `production/transfer_to_line_list.html` - JavaScript inline برای `exportToExcel()`
-
-**راه حل**: استفاده از `static/js/table-export.js`
-
-**صرفه‌جویی**: حذف ~100 خط کد JavaScript تکراری
+**صرفه‌جویی**: حذف ~100 خط کد JavaScript تکراری (3 فایل refactor شده)
 
 #### 6.4 Approval/Reject Functions JavaScript
 **فایل‌های نیازمند Refactor** (4 فایل): ✅ **تکمیل شد**
@@ -611,13 +601,13 @@
 **صرفه‌جویی**: حذف ~50 خط کد JavaScript تکراری
 
 **جمع کل JavaScript**: حدود **40+ فایل** نیازمند refactor
-- ✅ **22 فایل refactor شد** (55%)
-  - ✅ Formset Management: 5 فایل (28%)
-  - ✅ Cascading Dropdowns: 6 فایل (60%)
-  - ✅ Table Export: 3 فایل (18%)
+- ✅ **23 فایل refactor شد** (58%)
+  - ⏳ Formset Management: 9 فایل (90%) - 1 فایل پیچیده باقی مانده
+  - ✅ Cascading Dropdowns: 7 فایل (100%)
+  - ⏳ Table Export: 3 فایل (18%) - 14 فایل export function ندارند
   - ✅ Approval/Reject Functions: 4 فایل (100%)
   - ✅ Modal Dialogs: 3 فایل (100%)
-  - ⏳ باقی مانده: ~18 فایل
+  - ⏳ باقی مانده: ~17 فایل
 
 ---
 
@@ -871,14 +861,14 @@
 | نوع Refactor | تعداد فایل | اولویت | وضعیت |
 |-------------|-----------|--------|--------|
 | Detail Views → Generic | 39 | 🔴 بالا | ✅ **39 فایل تکمیل شد (100%)** |
-| JavaScript Inline → Shared Files | 40+ | 🔴 بالا | ⏳ **25 فایل refactor شد (63%)** - فاز 4.1 (70%)، 4.2 (100%)، 4.3 (18%)، 4.4 (100%)، 4.5 (100%) |
+| JavaScript Inline → Shared Files | 40+ | 🔴 بالا | ⏳ **26 فایل refactor شد (65%)** - فاز 4.1 (80%)، 4.2 (100%)، 4.3 (18%)، 4.4 (100%)، 4.5 (100%) |
 | List Views → Generic | 9 | 🟡 متوسط | ✅ **9 فایل تکمیل شد (100%)** |
 | Form Views → Generic | 6 | 🟡 متوسط | ✅ **6 فایل تکمیل شد (100%)** |
 | Inline CSS → Shared CSS | 25+ | 🟡 متوسط | ✅ **تکمیل شد (100%)** - `shared.css` ساخته شد، همه فایل‌ها refactor شدند (فقط چند inline style ساده برای empty state باقی مانده که نیاز به refactoring ندارند) |
 | Inline Event Handlers → JS Files | 20+ | 🟡 متوسط | ✅ **تکمیل شد (100%)** - `common-actions.js` ساخته شد، همه فایل‌ها refactor شدند |
 | Row Actions → Partial | 10+ | 🟢 پایین | ⏳ در انتظار |
 | Pagination → Partial | 5+ | 🟢 پایین | ⏳ در انتظار |
-| **جمع کل** | **110+ فایل** | | **97 فایل تکمیل شد (88%)** |
+| **جمع کل** | **110+ فایل** | | **98 فایل تکمیل شد (89%)** |
 
 ---
 
@@ -917,10 +907,10 @@
    - ✅ `accounting/attachments/upload.html` - **refactor شد** - استفاده از `generic_form.html` (با enctype برای file upload)
 
 ### فاز 4: JavaScript Refactoring (اولویت بالا) ⏳ **در حال انجام**
-1. ⏳ Refactor Formset Management JavaScript (10 فایل) - **7 فایل refactor شد (70%)**
+1. ⏳ Refactor Formset Management JavaScript (10 فایل) - **9 فایل refactor شد (90%)**
    - استفاده از `static/js/formset.js` و `static/js/formset-table.js`
-   - ✅ **تکمیل شده**: `inventory/item_form.html`, `inventory/purchase_request_form.html`, `production/performance_record_form.html`, `production/transfer_to_line_form.html`, `inventory/receipt_form.html`, `ticketing/subcategory_form.html`, `shared/user_form.html`
-   - ⏳ **باقی مانده (3 فایل پیچیده)**: `production/bom_form.html` (nested formsets - خیلی پیچیده - 2356 خط), `production/process_form.html` (nested formsets - خیلی پیچیده - 1662 خط), `ticketing/template_form.html` (multiple formsets - 3 formset - 2348 خط)
+   - ✅ **تکمیل شده**: `inventory/item_form.html`, `inventory/purchase_request_form.html`, `production/performance_record_form.html`, `production/transfer_to_line_form.html`, `inventory/receipt_form.html`, `ticketing/subcategory_form.html`, `shared/user_form.html`, `ticketing/template_form.html`, `production/bom_form.html`
+   - ⏳ **باقی مانده (1 فایل پیچیده)**: `production/process_form.html` (nested formsets - خیلی پیچیده - 1662 خط - operations formset با HTML string ساخته می‌شود)
    - ✅ **بررسی شده - نیاز به refactoring ندارند**: `production/rework_document_form.html`, `inventory/stocktaking_form.html`, `ticketing/category_form.html`, `accounting/treasury/account_form.html`, `accounting/parties/party_form.html`, `inventory/create_receipt_from_purchase_request.html`, `inventory/create_issue_from_warehouse_request.html`
 2. ⏳ Refactor Cascading Dropdowns JavaScript (10+ فایل) - **6 فایل refactor شد**
    - استفاده از `static/js/cascading-dropdowns.js` و `static/js/item-filters.js`
@@ -1012,19 +1002,17 @@
 
 ### فایل‌های JavaScript مشترک موجود
 
-✅ **فایل‌های JavaScript مشترک ساخته شده** (9 فایل):
-- `static/js/formset.js` - مدیریت formsets (add/remove rows, update indices)
+✅ **فایل‌های JavaScript مشترک ساخته شده** (10 فایل):
+- `static/js/formset.js` - مدیریت formsets (add/remove rows, update indices) - **گسترش یافته**: پشتیبانی از template tag و __prefix__ pattern
 - `static/js/cascading-dropdowns.js` - مدیریت cascading dropdowns
 - `static/js/table-export.js` - export جدول به CSV/Excel
 - `static/js/formset-table.js` - مدیریت formset در جداول
 - `static/js/item-filters.js` - فیلترهای item (category, subcategory, warehouse)
 - `static/js/approval-actions.js` - توابع approve/reject مشترک (با پشتیبانی از form submission و fetch API)
 - `static/js/modal-dialogs.js` - مدیریت modal dialogs
+- `static/js/common-actions.js` - توابع مشترک (print, confirm, toggle visibility)
 - `static/js/common.js` - توابع مشترک (قبلاً وجود داشت)
 - `static/js/base.js` - توابع پایه (قبلاً وجود داشت)
-
-✅ **فایل‌های ساخته شده**:
-- `static/js/common-actions.js` ✅ - توابع مشترک (print, confirm, toggle visibility) - **ساخته شد!**
 
 ### مثال Refactoring JavaScript
 
@@ -1125,7 +1113,7 @@ document.addEventListener('DOMContentLoaded', function() {
 ---
 
 **آخرین به‌روزرسانی**: 2024-12-06  
-**وضعیت**: در حال انجام - 97 فایل از 110+ فایل تکمیل شد (88%)  
+**وضعیت**: در حال انجام - 98 فایل از 110+ فایل تکمیل شد (89%)  
 **تکمیل شده**: 
 - ✅ فاز 1: Detail Views (39 فایل) - **100% تکمیل شد!** همه 39 فایل refactor شدند
   - ✅ فاز 1.1: Detail Views ماژول inventory (15 فایل)
@@ -1134,7 +1122,7 @@ document.addEventListener('DOMContentLoaded', function() {
   - ✅ فاز 1.4: Detail Views ماژول ticketing (4 فایل)
   - ✅ فاز 1.5: Detail Views ماژول shared (6 فایل)
   - ⏳ فاز 4: JavaScript Refactoring (40+ فایل) - در حال انجام
-  - ⏳ فاز 4.1: Formset Management JavaScript (18+ فایل) - **7 فایل refactor شدند** (39%) - **نکته**: 3 فایل پیچیده باقی مانده (nested/multiple formsets)
+  - ⏳ فاز 4.1: Formset Management JavaScript (10 فایل) - **9 فایل refactor شدند** (90%) - **نکته**: 1 فایل پیچیده باقی مانده (nested formsets با HTML string)
   - ⏳ فاز 4.2: Cascading Dropdowns JavaScript (10+ فایل) - **6 فایل refactor شدند** (60%)
     - ✅ `production/bom_form.html` - Type → Category → Subcategory
     - ✅ `accounting/treasury/account_form.html` - Tafsili → Sub Account → GL Account
@@ -1160,8 +1148,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 **پیشرفت کلی**: 
 - ✅ Detail Views: 39 از 39 فایل (100%)
-- ⏳ JavaScript Refactoring: 24 از 40+ فایل (~60%)
-  - ⏳ Formset Management: 7 از 10 فایل (70%) - 3 فایل پیچیده باقی مانده
+- ⏳ JavaScript Refactoring: 25 از 40+ فایل (~63%)
+  - ⏳ Formset Management: 9 از 10 فایل (90%) - 1 فایل پیچیده باقی مانده
   - ✅ Cascading Dropdowns: 7 از 7 فایل (100%) - **تکمیل شد!**
   - ⏳ Table Export: 3 از 17+ فایل (18%) - **نکته**: 14 فایل دیگر export function ندارند
   - ✅ Approval/Reject Functions: 4 از 4 فایل (100%)
@@ -1186,30 +1174,34 @@ document.addEventListener('DOMContentLoaded', function() {
 - همه Detail Views از `shared/generic/generic_detail.html` استفاده می‌کنند
 - کاهش قابل توجه کد تکراری در templateها
 
-#### 2. JavaScript Refactoring (63% تکمیل شد)
-- **25 فایل** از 40+ فایل refactor شدند
-- **9 فایل JavaScript مشترک** ایجاد شد:
-  - `formset.js` - مدیریت formsets
+#### 2. JavaScript Refactoring (68% تکمیل شد)
+- **27 فایل** از 40+ فایل refactor شدند
+- **10 فایل JavaScript مشترک** ایجاد شد:
+  - `formset.js` - مدیریت formsets (با پشتیبانی از template tag و __prefix__ pattern)
   - `cascading-dropdowns.js` - مدیریت cascading dropdowns
   - `table-export.js` - export جدول به CSV/Excel
   - `formset-table.js` - مدیریت formset در جداول
   - `item-filters.js` - فیلترهای item
   - `approval-actions.js` - توابع approve/reject (با پشتیبانی از form submission و fetch API)
   - `modal-dialogs.js` - مدیریت modal dialogs
-  - `common.js` - توابع مشترک
-  - `base.js` - توابع پایه
+  - `common-actions.js` - توابع مشترک (print, confirm, toggle visibility)
+  - `common.js` - توابع مشترک (قبلاً وجود داشت)
+  - `base.js` - توابع پایه (قبلاً وجود داشت)
 
 #### 3. فازهای JavaScript تکمیل شده
+- ✅ **Cascading Dropdowns**: 7 از 7 فایل (100%)
 - ✅ **Approval/Reject Functions**: 4 از 4 فایل (100%)
 - ✅ **Modal Dialogs**: 3 از 3 فایل (100%)
+- ⏳ **Formset Management**: 9 از 10 فایل (90%) - 1 فایل پیچیده باقی مانده
+- ⏳ **Table Export**: 3 از 17+ فایل (18%) - 14 فایل export function ندارند
 
 ### ⏳ کارهای باقی‌مانده
 
-#### 1. JavaScript Refactoring (30% باقی مانده)
-- ⏳ **Formset Management**: 3 فایل پیچیده باقی مانده (70% تکمیل شد)
-  - ⏳ `production/bom_form.html` - nested formsets (خیلی پیچیده - 2356 خط)
-  - ⏳ `production/process_form.html` - nested formsets (خیلی پیچیده - 1662 خط)
-  - ⏳ `ticketing/template_form.html` - multiple formsets (3 formset - 2348 خط)
+#### 1. JavaScript Refactoring (10% باقی مانده)
+- ⏳ **Formset Management**: 1 فایل پیچیده باقی مانده (90% تکمیل شد)
+  - ✅ `production/bom_form.html` - **refactor شد** ✅ - استفاده از `formset.js` برای materials formset، custom handlers برای alternatives formset
+  - ⏳ `production/process_form.html` - nested formsets (خیلی پیچیده - 1662 خط) - operations formset با HTML string ساخته می‌شود (نیاز به refactoring تخصصی)
+  - ✅ `ticketing/template_form.html` - **refactor شد** ✅ (3 formset - 2348 خط) - استفاده از `formset.js`
   - ✅ **بررسی شده - نیاز به refactoring ندارند**: `inventory/stocktaking_form.html` (formset ندارد), `ticketing/category_form.html` (JavaScript inline ندارد)
 - ✅ **Cascading Dropdowns**: 7 از 7 فایل (100%) - **تکمیل شد!**
 - ⏳ **Table Export**: 14 فایل export function ندارند (18% تکمیل شد)
@@ -1227,18 +1219,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
 ### 📊 آمار کلی
 - **کل فایل‌های نیازمند Refactor**: 110+ فایل
-- **فایل‌های تکمیل شده**: 97 فایل (88%)
-- **فایل‌های باقی‌مانده**: 13+ فایل (12%)
-  - 3 فایل پیچیده (Formset Management - نیاز به refactoring تخصصی)
+- **فایل‌های تکمیل شده**: 99 فایل (90%)
+- **فایل‌های باقی‌مانده**: 11+ فایل (10%)
+  - 1 فایل پیچیده (Formset Management - نیاز به refactoring تخصصی)
   - 10+ فایل دیگر (Table Export - اکثراً export function ندارند)
 
 ### 🎯 اولویت‌های بعدی
 
 #### 🔴 اولویت بالا (JavaScript Refactoring)
-1. **فاز 4.1**: تکمیل Formset Management (3 فایل پیچیده باقی مانده - 70% تکمیل شد)
-   - ⏳ `production/bom_form.html` - nested formsets (خیلی پیچیده - 2356 خط) - نیاز به بررسی دقیق و refactoring تخصصی
-   - ⏳ `production/process_form.html` - nested formsets (خیلی پیچیده - 1662 خط) - نیاز به بررسی دقیق و refactoring تخصصی
-   - ⏳ `ticketing/template_form.html` - multiple formsets (3 formset - 2348 خط) - نیاز به بررسی دقیق و refactoring تخصصی
+1. **فاز 4.1**: تکمیل Formset Management (1 فایل پیچیده باقی مانده - 90% تکمیل شد)
+   - ✅ `production/bom_form.html` - **refactor شد** ✅ - استفاده از `formset.js` برای materials formset، custom handlers برای alternatives formset
+   - ⏳ `production/process_form.html` - nested formsets (خیلی پیچیده - 1662 خط) - operations formset با HTML string ساخته می‌شود (نیاز به refactoring تخصصی)
+   - ✅ `ticketing/template_form.html` - **refactor شد** ✅ (3 formset - 2348 خط) - استفاده از `formset.js` برای permission و event formsets، custom handler برای field formset (با settings row)
    - ✅ **بررسی شده**: `inventory/stocktaking_form.html` (formset ندارد - نیاز به refactoring ندارد)
    - ✅ **بررسی شده**: `ticketing/category_form.html` (JavaScript inline ندارد - نیاز به refactoring ندارد)
 
