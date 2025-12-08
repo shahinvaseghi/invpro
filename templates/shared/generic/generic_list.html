@@ -3,6 +3,7 @@
 {% load generic_tags %}
 {% load access_tags %}
 {% load view_tags %}
+{% load static %}
 
 {% block title %}{{ page_title|default:"List" }} - {{ block.super }}{% endblock %}
 
@@ -32,7 +33,7 @@
         </a>
       {% endif %}
       {% if print_enabled %}
-        <button class="btn btn-secondary" onclick="window.print()">{% trans "Print" %}</button>
+        <button class="btn btn-secondary btn-print" data-action="print">{% trans "Print" %}</button>
       {% endif %}
       {% block extra_actions %}{% endblock %}
     </div>
@@ -160,5 +161,7 @@
   color: #92400e;
 }
 </style>
+
+<script src="{% static 'js/common-actions.js' %}"></script>
 {% endblock %}
 
