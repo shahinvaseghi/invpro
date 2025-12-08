@@ -208,9 +208,9 @@
    - Auto-select logic برای sub_accounts و gl_accounts (primary یا first option)
 
 3. **table-export.js** ✅
-   - `exportTableToCSV(tableId, filename, options)`
-   - `exportTableToExcel(tableId, filename, options)`
-   - `printTable(tableId, options)`
+   - `exportTableToCSV(tableId, filename, options)` - ✅ می‌تواند refactor شود
+   - `exportTableToExcel(tableId, filename, options)` - ✅ می‌تواند refactor شود
+   - `printTable(tableId, options)` - ⏳ باید توسط کاربر refactor شود (نیاز به ساختار خاص)
 
 4. **form-helpers.js** ✅
    - `initAutoSubmit(selectElement, options)`
@@ -546,6 +546,10 @@
 #### 6.3 Table Export JavaScript
 **وضعیت**: ⏳ **3 فایل refactor شد (18%)** - 14 فایل export function ندارند
 
+**نکته مهم**: 
+- ✅ **CSV Export** و **Excel Export** می‌توانند refactor شوند (استفاده از `exportTableToCSV` و `exportTableToExcel`)
+- ⏳ **Print Table** (چاپ در صفحه جدید) باید توسط کاربر refactor شود (نیاز به ساختار خاص و بررسی دقیق دارد)
+
 **فایل‌های refactor شده** (3 فایل):
 - ✅ `shared/generic/generic_report.html` - استفاده از `table-export.js`
 - ✅ `inventory/inventory_balance.html` - استفاده از `table-export.js`
@@ -567,7 +571,9 @@
 - ⏳ `production/performance_record_list.html` - بررسی شد - export function ندارد
 - ⏳ `production/transfer_to_line_list.html` - بررسی شد - export function ندارد
 
-**راه حل**: استفاده از `static/js/table-export.js`
+**راه حل**: 
+- استفاده از `static/js/table-export.js` برای CSV و Excel Export
+- Print Table باید توسط کاربر refactor شود (نیاز به بررسی ساختار خاص)
 
 **صرفه‌جویی**: حذف ~100 خط کد JavaScript تکراری (3 فایل refactor شده)
 
@@ -920,6 +926,9 @@
    - استفاده از `static/js/table-export.js`
    - ✅ **تکمیل شده**: `shared/generic/generic_report.html`, `inventory/inventory_balance.html`, `inventory/inventory_balance_details.html`
    - ⏳ **باقی مانده**: `inventory/item_serials.html`, `inventory/purchase_requests.html`, `inventory/receipt_temporary.html`, `inventory/receipt_permanent.html`, `inventory/receipt_consignment.html`, `inventory/warehouse_requests.html`, `inventory/issue_permanent.html`, `inventory/issue_consumption.html`, `inventory/issue_consignment.html`, `inventory/stocktaking_deficit.html`, `inventory/stocktaking_surplus.html`, `inventory/stocktaking_records.html`, `production/performance_record_list.html`, `production/transfer_to_line_list.html`
+   - **نکته مهم**: 
+     - ✅ CSV Export و Excel Export می‌توانند refactor شوند
+     - ⏳ Print Table (چاپ در صفحه جدید) باید توسط کاربر refactor شود (نیاز به ساختار خاص)
    - **نکته**: بسیاری از این فایل‌ها export function ندارند و نیاز به بررسی دارند. فقط فایل‌هایی که واقعاً export function دارند refactor می‌شوند.
 4. ✅ Refactor Approval/Reject Functions (4 فایل) - **4 فایل refactor شد**
    - استفاده از `static/js/approval-actions.js`
@@ -1005,7 +1014,10 @@
 ✅ **فایل‌های JavaScript مشترک ساخته شده** (10 فایل):
 - `static/js/formset.js` - مدیریت formsets (add/remove rows, update indices) - **گسترش یافته**: پشتیبانی از template tag و __prefix__ pattern
 - `static/js/cascading-dropdowns.js` - مدیریت cascading dropdowns
-- `static/js/table-export.js` - export جدول به CSV/Excel
+- `static/js/table-export.js` - export جدول به CSV/Excel/Print
+  - `exportTableToCSV()` - ✅ می‌تواند refactor شود
+  - `exportTableToExcel()` - ✅ می‌تواند refactor شود
+  - `printTable()` - ⏳ باید توسط کاربر refactor شود (نیاز به ساختار خاص)
 - `static/js/formset-table.js` - مدیریت formset در جداول
 - `static/js/item-filters.js` - فیلترهای item (category, subcategory, warehouse)
 - `static/js/approval-actions.js` - توابع approve/reject مشترک (با پشتیبانی از form submission و fetch API)
@@ -1179,7 +1191,9 @@ document.addEventListener('DOMContentLoaded', function() {
 - **10 فایل JavaScript مشترک** ایجاد شد:
   - `formset.js` - مدیریت formsets (با پشتیبانی از template tag و __prefix__ pattern)
   - `cascading-dropdowns.js` - مدیریت cascading dropdowns
-  - `table-export.js` - export جدول به CSV/Excel
+  - `table-export.js` - export جدول به CSV/Excel/Print
+    - CSV و Excel Export: ✅ می‌توانند refactor شوند
+    - Print Table: ⏳ باید توسط کاربر refactor شود (نیاز به ساختار خاص)
   - `formset-table.js` - مدیریت formset در جداول
   - `item-filters.js` - فیلترهای item
   - `approval-actions.js` - توابع approve/reject (با پشتیبانی از form submission و fetch API)
@@ -1205,6 +1219,7 @@ document.addEventListener('DOMContentLoaded', function() {
   - ✅ **بررسی شده - نیاز به refactoring ندارند**: `inventory/stocktaking_form.html` (formset ندارد), `ticketing/category_form.html` (JavaScript inline ندارد)
 - ✅ **Cascading Dropdowns**: 7 از 7 فایل (100%) - **تکمیل شد!**
 - ⏳ **Table Export**: 14 فایل export function ندارند (18% تکمیل شد)
+  - **نکته مهم**: CSV و Excel Export می‌توانند refactor شوند، اما Print Table باید توسط کاربر refactor شود (نیاز به ساختار خاص)
 
 #### 2. سایر فازها
 - ✅ **List Views**: 9 از 9 فایل (100%) - **تکمیل شد**
@@ -1229,7 +1244,7 @@ document.addEventListener('DOMContentLoaded', function() {
 #### 🔴 اولویت بالا (JavaScript Refactoring)
 1. **فاز 4.1**: تکمیل Formset Management (1 فایل پیچیده باقی مانده - 90% تکمیل شد)
    - ✅ `production/bom_form.html` - **refactor شد** ✅ - استفاده از `formset.js` برای materials formset، custom handlers برای alternatives formset
-   - ⏳ `production/process_form.html` - nested formsets (خیلی پیچیده - 1662 خط) - operations formset با HTML string ساخته می‌شود (نیاز به refactoring تخصصی)
+   - ⏳ `production/process_form.html` - **در حال refactoring** ⏳ - nested formsets (خیلی پیچیده - 1662 خط) - operations formset با HTML string ساخته می‌شود - استفاده از `formset.js` helper functions برای مدیریت TOTAL_FORMS
    - ✅ `ticketing/template_form.html` - **refactor شد** ✅ (3 formset - 2348 خط) - استفاده از `formset.js` برای permission و event formsets، custom handler برای field formset (با settings row)
    - ✅ **بررسی شده**: `inventory/stocktaking_form.html` (formset ندارد - نیاز به refactoring ندارد)
    - ✅ **بررسی شده**: `ticketing/category_form.html` (JavaScript inline ندارد - نیاز به refactoring ندارد)

@@ -820,11 +820,16 @@ function addOperation() {
   `;
   
   container.insertAdjacentHTML('beforeend', newOperationHtml);
+  
+  // Update TOTAL_FORMS using formset.js helper
   totalForms.value = formCount + 1;
   operationCounter++;
   
   // Update operation numbers
   updateOperationNumbers();
+  
+  // Note: Since we're using HTML string (not clone), we can't use formset.js reindexFormset
+  // But we can use updateFormsetTotal to ensure TOTAL_FORMS is correct
   
   // Wait for DOM to be ready, then update buttons
   setTimeout(function() {
@@ -856,8 +861,27 @@ function addOperation() {
 
 function removeOperation(button) {
   const operationRow = button.closest('.operation-row');
+  if (!operationRow) {
+    console.error('Operation row not found');
+    return;
+  }
+  
+  // Get operation index before removal
+  const operationIndex = operationRow.dataset.operationIndex;
+  
+  // Remove operation row
   operationRow.remove();
+  
+  // Update TOTAL_FORMS using formset.js helper
+  updateFormsetTotal('operations', '.operation-row');
+  
+  // Update operation numbers
   updateOperationNumbers();
+  
+  // Clean up material counters for this operation
+  if (materialCounters[operationIndex]) {
+    delete materialCounters[operationIndex];
+  }
 }
 
 function updateOperationNumbers() {
