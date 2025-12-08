@@ -889,7 +889,7 @@
 | JavaScript Inline → Shared Files | 40+ | 🔴 بالا | ⏳ **25 فایل refactor شد (63%)** - فاز 4.1 (39%)، 4.2 (100%)، 4.3 (18%)، 4.4 (100%)، 4.5 (100%) |
 | List Views → Generic | 9 | 🟡 متوسط | ✅ **9 فایل تکمیل شد (100%)** |
 | Form Views → Generic | 6 | 🟡 متوسط | ✅ **6 فایل تکمیل شد (100%)** |
-| Inline CSS → Shared CSS | 25+ | 🟡 متوسط | ⏳ در انتظار |
+| Inline CSS → Shared CSS | 25+ | 🟡 متوسط | ⏳ **شروع شد (20%)** - `shared.css` ساخته شد، 4 فایل refactor شد (generic_detail, generic_list, generic_form, partials) |
 | Inline Event Handlers → JS Files | 20+ | 🟡 متوسط | ✅ **تکمیل شد (100%)** - `common-actions.js` ساخته شد، همه فایل‌ها refactor شدند |
 | Row Actions → Partial | 10+ | 🟢 پایین | ⏳ در انتظار |
 | Pagination → Partial | 5+ | 🟢 پایین | ⏳ در انتظار |

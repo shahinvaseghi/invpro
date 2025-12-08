@@ -4,7 +4,7 @@
 {% load static %}
 
 {% with button_size=button_size|default:'sm' show_icons=show_icons|default:False %}
-<div class="row-actions" style="display: flex; gap: 0.25rem; flex-wrap: wrap; align-items: center;">
+<div class="row-actions">
   
   {# Prefer explicit URL names from view context over auto-detected actions #}
   {% if detail_url_name or edit_url_name or delete_url_name %}
@@ -15,8 +15,7 @@
       {% can_action object 'view' feature_code|default:"" as can_view %}
       {% if can_view %}
         <a href="{% url detail_url_name object.pk %}" 
-           class="btn btn-action btn-view"
-           style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #0dcaf0; color: #000; border: 1px solid #0dcaf0; border-radius: 4px; text-decoration: none; white-space: nowrap;">
+           class="btn btn-action btn-view">
           {% if show_icons %}👁️ {% endif %}{% trans "View" %}
         </a>
       {% endif %}
@@ -24,8 +23,7 @@
       {% can_action object 'view' feature_code|default:"" as can_view %}
       {% if can_view %}
         <a href="{% url view_url_name object.pk %}" 
-           class="btn btn-action btn-view"
-           style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #0dcaf0; color: #000; border: 1px solid #0dcaf0; border-radius: 4px; text-decoration: none; white-space: nowrap;">
+           class="btn btn-action btn-view">
           {% if show_icons %}👁️ {% endif %}{% trans "View" %}
         </a>
       {% endif %}
@@ -38,14 +36,12 @@
         {# Check if object is locked (if EditLockProtectedMixin is used) #}
         {% if object.is_locked %}
           <span class="btn btn-action btn-edit btn-disabled"
-                style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #e9ecef; color: #6c757d; border: 1px solid #dee2e6; border-radius: 4px; cursor: not-allowed; white-space: nowrap;"
                 title="{% trans 'This record is locked and cannot be edited' %}">
             {% if show_icons %}🔒 {% endif %}{% trans "Locked" %}
           </span>
         {% else %}
           <a href="{% url edit_url_name object.pk %}" 
-             class="btn btn-action btn-edit"
-             style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #6c757d; color: white; border: 1px solid #6c757d; border-radius: 4px; text-decoration: none; white-space: nowrap;">
+             class="btn btn-action btn-edit">
             {% if show_icons %}✏️ {% endif %}{% trans "Edit" %}
           </a>
         {% endif %}
@@ -58,7 +54,6 @@
       {% if can_delete %}
         <a href="{% url delete_url_name object.pk %}" 
            class="btn btn-action btn-delete"
-           style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #dc3545; color: white; border: 1px solid #dc3545; border-radius: 4px; text-decoration: none; white-space: nowrap;"
            data-confirm="{% trans 'Are you sure you want to delete this item?' %}">
           {% if show_icons %}🗑️ {% endif %}{% trans "Delete" %}
         </a>
@@ -74,12 +69,7 @@
       {% for action in available_actions %}
         {% if action.url %}
           <a href="{{ action.url }}" 
-             class="btn btn-action {{ action.class }}"
-             style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px; text-decoration: none; white-space: nowrap;
-                    {% if action.name == 'view' %}background-color: #0dcaf0; color: #000; border: 1px solid #0dcaf0;
-                    {% elif action.name == 'edit' %}background-color: #6c757d; color: white; border: 1px solid #6c757d;
-                    {% elif action.name == 'delete' %}background-color: #dc3545; color: white; border: 1px solid #dc3545;
-                    {% else %}background-color: #0d6efd; color: white; border: 1px solid #0d6efd;{% endif %}">
+             class="btn btn-action {% if action.name == 'view' %}btn-view{% elif action.name == 'edit' %}btn-edit{% elif action.name == 'delete' %}btn-delete{% else %}btn-primary{% endif %} {{ action.class }}">
             {% if show_icons %}
               {% if action.name == 'view' %}👁️
               {% elif action.name == 'edit' %}✏️
@@ -98,8 +88,7 @@
     {% for action in custom_actions %}
       {% if action.url %}
         <a href="{{ action.url }}" 
-           class="btn btn-action {{ action.class|default:'btn-custom' }}"
-           style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: {{ action.color|default:'#0d6efd' }}; color: white; border: 1px solid {{ action.color|default:'#0d6efd' }}; border-radius: 4px; text-decoration: none; white-space: nowrap;">
+           class="btn btn-action {{ action.class|default:'btn-primary' }}"{% if action.color %} style="background-color: {{ action.color }}; border-color: {{ action.color }};"{% endif %}>
           {% if action.icon %}{{ action.icon|safe }} {% endif %}{{ action.label }}
         </a>
       {% endif %}

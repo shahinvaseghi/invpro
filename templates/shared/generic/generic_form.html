@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% load static %}
 
 {% block title %}{{ form_title|default:"Form" }} - {{ block.super }}{% endblock %}
 
@@ -24,7 +25,7 @@
 
   {% if messages %}
     {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}" style="margin-bottom: 1rem; padding: 1rem; border-radius: 4px; {% if message.tags == 'error' %}background-color: #fee; border: 1px solid #fcc; color: #c00;{% elif message.tags == 'success' %}background-color: #efe; border: 1px solid #cfc; color: #0c0;{% elif message.tags == 'warning' %}background-color: #ffe; border: 1px solid #ffc; color: #cc0;{% else %}background-color: #eef; border: 1px solid #ccf; color: #00c;{% endif %}">
+      <div class="alert alert-{{ message.tags }}">
         {{ message }}
       </div>
     {% endfor %}
@@ -112,174 +113,7 @@
   </div>
 </div>
 
-<style>
-.form-container {
-  max-width: 1400px;
-  margin: 2rem auto;
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  width: 100%;
-}
-
-.info-banner {
-  display: flex;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: #f8fafc;
-  color: #1f2937;
-  font-weight: 600;
-}
-
-.entity-form .form-section {
-  display: grid;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.entity-form .form-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-}
-
-@media (max-width: 768px) {
-  .entity-form .form-row {
-    grid-template-columns: 1fr;
-  }
-  
-  .form-container {
-    padding: 1rem;
-    margin: 1rem;
-  }
-  
-  .form-actions {
-    flex-direction: column;
-  }
-  
-  .form-actions .btn {
-    width: 100%;
-  }
-}
-
-.entity-form .form-field label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: #374151;
-}
-
-.entity-form .form-field.full-width {
-  grid-column: 1 / -1;
-}
-
-.entity-form .form-control, 
-.entity-form select,
-.entity-form textarea,
-.entity-form input[type="text"],
-.entity-form input[type="number"],
-.entity-form input[type="email"],
-.entity-form input[type="date"],
-.entity-form input[type="datetime-local"] {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-.entity-form .form-control:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.entity-form textarea {
-  resize: vertical;
-  min-height: 100px;
-}
-
-.entity-form .error-message {
-  display: block;
-  margin-top: 0.25rem;
-}
-
-.entity-form .error {
-  display: block;
-  color: #dc2626;
-  font-size: 0.875rem;
-  padding: 0.25rem 0.5rem;
-  background-color: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 4px;
-}
-
-.entity-form .form-field input.is-invalid,
-.entity-form .form-field select.is-invalid,
-.entity-form .form-field textarea.is-invalid {
-  border-color: #dc2626;
-  background-color: #fef2f2;
-}
-
-.entity-form .form-field input.is-invalid:focus,
-.entity-form .form-field select.is-invalid:focus,
-.entity-form .form-field textarea.is-invalid:focus {
-  border-color: #dc2626;
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-}
-
-.form-text {
-  display: block;
-  margin-top: 0.25rem;
-  color: #6b7280;
-  font-size: 0.875rem;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-start;
-  padding-top: 2rem;
-  margin-top: 2rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-.alert {
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1.5rem;
-}
-
-.alert-success {
-  background: #d1fae5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
-}
-
-.alert-error,
-.alert-danger {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-
-.alert-warning {
-  background: #fef3c7;
-  color: #92400e;
-  border: 1px solid #fde68a;
-}
-
-.alert-info {
-  background: #dbeafe;
-  color: #1e40af;
-  border: 1px solid #93c5fd;
-}
-</style>
-
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
 {% block form_scripts %}{% endblock %}
 {% endblock %}
 

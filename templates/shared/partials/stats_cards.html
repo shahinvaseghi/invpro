@@ -1,20 +1,21 @@
 {% load i18n %}
 {% load view_tags %}
+{% load static %}
 
 {% if stats %}
-<div class="stats-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+<div class="stats-cards">
   {% for key, value in stats.items %}
-    <div class="stat-card" style="background: white; padding: 1.5rem; border-radius: 8px; border: 1px solid #dee2e6; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-      <div class="stat-label" style="font-size: 0.875rem; color: #6c757d; margin-bottom: 0.5rem; font-weight: 500;">
+    <div class="stat-card">
+      <div class="stat-label">
         {{ stats_labels|get_item:key|default:key|title }}
       </div>
-      <div class="stat-value" style="font-size: 2rem; font-weight: 700; color: #212529;">
+      <div class="stat-value">
         {{ value|default:0 }}
       </div>
       {% if stats_icons %}
         {% with icon=stats_icons|get_item:key %}
           {% if icon %}
-            <div class="stat-icon" style="margin-top: 0.5rem; font-size: 1.5rem;">
+            <div class="stat-icon">
               {{ icon|safe }}
             </div>
           {% endif %}
