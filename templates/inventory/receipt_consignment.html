@@ -44,9 +44,12 @@
 <th>{% trans "Actions" %}</th>
 {% endblock %}
 
-{% block table_rows %}
+{% block before_table %}
 {% load static %}
 <link rel="stylesheet" href="{% static 'css/shared.css' %}">
+{% endblock %}
+
+{% block table_rows %}
 {% for receipt in object_list %}
 <tr>
   <td><code>{{ receipt.document_code }}</code></td>
@@ -55,14 +58,14 @@
     {% if receipt.created_by %}
       {{ receipt.created_by.get_full_name|default:receipt.created_by.username }}
     {% else %}
-      <span style="color: #6b7280;">—</span>
+      <span class="text-muted">—</span>
     {% endif %}
   </td>
   <td>
     {% if receipt.enabled_lines %}
       {% for line in receipt.enabled_lines|slice:":3" %}
         <strong>{{ line.item.name }}</strong><br>
-        <small style="color: #6b7280;"><code>{{ line.item.item_code }}</code></small>{% if not forloop.last %}<br><br>{% endif %}
+        <small class="text-muted"><code>{{ line.item.item_code }}</code></small>{% if not forloop.last %}<br><br>{% endif %}
       {% endfor %}
       {% if receipt.enabled_lines|length > 3 %}
         <small class="muted">+ {{ receipt.enabled_lines|length|add:"-3" }} {% trans "more" %}</small>
@@ -71,7 +74,7 @@
       —
     {% endif %}
   </td>
-  <td style="text-align: right;">
+  <td class="table-cell-right">
     {% if receipt.enabled_lines %}
       {% for line in receipt.enabled_lines|slice:":3" %}
         {% if line.entered_quantity %}
@@ -126,14 +129,14 @@
       {% if detail_url_name %}
         {% can_view_object receipt feature_code|default:"" as can_view %}
         {% if can_view or user.is_superuser %}
-          <a href="{% url detail_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+          <a href="{% url detail_url_name receipt.pk %}" class="btn btn-info btn-xs">
             {% trans "View" %}
           </a>
         {% endif %}
       {% elif view_url_name %}
         {% can_view_object receipt feature_code|default:"" as can_view %}
         {% if can_view or user.is_superuser %}
-          <a href="{% url view_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+          <a href="{% url view_url_name receipt.pk %}" class="btn btn-info btn-xs">
             {% trans "View" %}
           </a>
         {% endif %}
@@ -143,7 +146,7 @@
         {% can_edit_object receipt feature_code|default:"" as can_edit %}
         {% if can_edit or user.is_superuser %}
           {% if not receipt.is_locked %}
-            <a href="{% url edit_url_name receipt.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+            <a href="{% url edit_url_name receipt.pk %}" class="btn btn-secondary btn-xs">
               {% trans "Edit" %}
             </a>
           {% endif %}
@@ -151,21 +154,21 @@
       {% endif %}
       {# Lock status and unlock button #}
       {% if receipt.is_locked %}
-        <span class="badge badge-locked" style="margin-top:4px;">{% trans "Locked" %}</span>
+        <span class="badge badge-locked badge-mt">{% trans "Locked" %}</span>
         {% if receipt.created_by == user %}
           {% if can_unlock_own %}
-            <form method="post" action="{% url unlock_url_name receipt.pk %}" style="display: inline; margin: 0;">
+            <form method="post" action="{% url unlock_url_name receipt.pk %}" class="form-inline">
               {% csrf_token %}
-              <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;" data-confirm="{% trans 'Are you sure you want to unlock this receipt?' %}">
+              <button type="submit" class="btn btn-warning btn-xs" data-confirm="{% trans 'Are you sure you want to unlock this receipt?' %}">
                 {% trans "Unlock" %}
               </button>
             </form>
           {% endif %}
         {% else %}
           {% if can_unlock_other %}
-            <form method="post" action="{% url unlock_url_name receipt.pk %}" style="display: inline; margin: 0;">
+            <form method="post" action="{% url unlock_url_name receipt.pk %}" class="form-inline">
               {% csrf_token %}
-              <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;" data-confirm="{% trans 'Are you sure you want to unlock this receipt?' %}">
+              <button type="submit" class="btn btn-warning btn-xs" data-confirm="{% trans 'Are you sure you want to unlock this receipt?' %}">
                 {% trans "Unlock" %}
               </button>
             </form>
@@ -177,22 +180,22 @@
         {% if delete_url_name %}
           {% if receipt.created_by == user %}
             {% if can_delete_own %}
-              <a href="{% url delete_url_name receipt.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" data-confirm="{% trans 'Are you sure you want to delete this receipt?' %}">
+              <a href="{% url delete_url_name receipt.pk %}" class="btn btn-danger btn-xs" data-confirm="{% trans 'Are you sure you want to delete this receipt?' %}">
                 {% trans "Delete" %}
               </a>
             {% endif %}
           {% else %}
             {% if can_delete_other %}
-              <a href="{% url delete_url_name receipt.pk %}" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;" data-confirm="{% trans 'Are you sure you want to delete this receipt?' %}">
+              <a href="{% url delete_url_name receipt.pk %}" class="btn btn-danger btn-xs" data-confirm="{% trans 'Are you sure you want to delete this receipt?' %}">
                 {% trans "Delete" %}
               </a>
             {% endif %}
           {% endif %}
         {% endif %}
         {% if lock_url_name %}
-        <form method="post" action="{% url lock_url_name receipt.pk %}" class="inline-lock-form" style="display:inline-flex; margin-left:0.5rem;">
+        <form method="post" action="{% url lock_url_name receipt.pk %}" class="inline-lock-form form-inline-flex-ml">
           {% csrf_token %}
-          <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem;">
+          <button type="submit" class="btn btn-warning btn-xs">
             {% trans "Lock" %}
           </button>
         </form>
@@ -200,7 +203,7 @@
         {% if serial_url_name and receipt.enabled_lines %}
           {% with first_line=receipt.enabled_lines|first %}
             {% if first_line.item.has_lot_tracking == 1 %}
-              <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
+              <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info btn-xs">
                 {% trans "Manage Serials" %}
               </a>
             {% endif %}
@@ -210,7 +213,7 @@
         {% if serial_url_name and receipt.enabled_lines %}
           {% with first_line=receipt.enabled_lines|first %}
             {% if first_line.item.has_lot_tracking == 1 %}
-              <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem;">
+              <a href="{% url serial_url_name receipt.pk %}" class="btn btn-info btn-xs">
                 {% trans "View Serials" %}
               </a>
             {% endif %}
