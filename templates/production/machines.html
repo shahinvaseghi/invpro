@@ -82,21 +82,5 @@
 {% endblock %}
 
 {% block pagination %}
-{% if is_paginated %}
-<div class="pagination">
-  {% if page_obj.has_previous %}
-    <a href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">&laquo; {% trans "First" %}</a>
-    <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{% trans "Previous" %}</a>
-  {% endif %}
-
-  <span class="current">
-    {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
-  </span>
-
-  {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{% trans "Next" %}</a>
-    <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{% trans "Last" %} &raquo;</a>
-  {% endif %}
-</div>
-{% endif %}
+{% include 'shared/partials/pagination.html' %}
 {% endblock %}

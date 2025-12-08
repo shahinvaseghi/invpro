@@ -2,7 +2,7 @@
 
 **تاریخ ایجاد**: 2024-12-05  
 **آخرین به‌روزرسانی**: 2024-12-06  
-**وضعیت**: در حال انجام - 98 فایل از 110+ فایل تکمیل شد (89%)  
+**وضعیت**: در حال انجام - 105 فایل از 110+ فایل تکمیل شد (95%)  
 **هدف**: شناسایی الگوهای تکراری در فایل‌های HTML/Template و برنامه‌ریزی برای refactoring
 
 **وضعیت پیشرفت**:
@@ -407,11 +407,15 @@
 
 **مشکل**: برخی فایل‌های list، row actions را inline می‌نویسند به جای استفاده از `shared/partials/row_actions.html`
 
-**فایل‌های نیازمند Refactor**:
-- `inventory/item_types.html` - row actions inline نوشته شده
-- `inventory/item_categories.html` - row actions inline نوشته شده
-- `production/machines.html` - row actions inline نوشته شده
-- و سایر فایل‌های list که از `row_actions.html` استفاده نمی‌کنند
+**فایل‌های refactor شده** (5 فایل):
+- ✅ `inventory/item_types.html` - **refactor شد** ✅ - استفاده از `row_actions.html`
+- ✅ `inventory/item_categories.html` - **refactor شد** ✅ - استفاده از `row_actions.html`
+- ✅ `inventory/suppliers.html` - **refactor شد** ✅ - استفاده از `row_actions.html`
+- ✅ `inventory/item_subcategories.html` - **refactor شد** ✅ - استفاده از `row_actions.html`
+- ✅ `inventory/supplier_categories.html` - **refactor شد** ✅ - استفاده از `row_actions.html`
+
+**فایل‌های نیازمند بررسی**:
+- سایر فایل‌های list که ممکن است row actions را inline بنویسند
 
 **راه حل**: همه باید از `{% include 'shared/partials/row_actions.html' %}` استفاده کنند
 
@@ -421,9 +425,11 @@
 
 **مشکل**: برخی فایل‌های list، pagination را override می‌کنند به جای استفاده از `shared/partials/pagination.html`
 
-**فایل‌های نیازمند Refactor**:
-- `production/machines.html` - pagination block override شده
-- سایر فایل‌هایی که pagination را override می‌کنند
+**فایل‌های refactor شده** (1 فایل):
+- ✅ `production/machines.html` - **refactor شد** ✅ - استفاده از `pagination.html` partial
+
+**فایل‌های نیازمند بررسی**:
+- سایر فایل‌هایی که ممکن است pagination را override کنند
 
 **راه حل**: همه باید از `shared/partials/pagination.html` استفاده کنند
 
@@ -721,11 +727,17 @@
 #### 3. Form Views (4-5 فایل) ⏳ **در انتظار**
 - **accounting**: 4-5 فایل
 
-#### 4. Row Actions (10+ فایل) ⏳ **در انتظار**
-- فایل‌های list که row actions را inline می‌نویسند
+#### 4. Row Actions (10+ فایل) ⏳ **5 فایل refactor شد**
+- ✅ `inventory/item_types.html` - **refactor شد**
+- ✅ `inventory/item_categories.html` - **refactor شد**
+- ✅ `inventory/suppliers.html` - **refactor شد**
+- ✅ `inventory/item_subcategories.html` - **refactor شد**
+- ✅ `inventory/supplier_categories.html` - **refactor شد**
+- ⏳ سایر فایل‌های list که ممکن است row actions را inline بنویسند
 
-#### 5. Pagination (5+ فایل) ⏳ **در انتظار**
-- فایل‌های list که pagination را override می‌کنند
+#### 5. Pagination (5+ فایل) ⏳ **1 فایل refactor شد**
+- ✅ `production/machines.html` - **refactor شد**
+- ⏳ سایر فایل‌هایی که ممکن است pagination را override کنند
 
 #### 6. JavaScript Inline (40+ فایل) ⏳ **22 فایل refactor شد (55%)**
 - **Formset Management**: 10 فایل - ✅ 7 فایل refactor شد (70%) - ⏳ 3 فایل پیچیده باقی مانده
@@ -1125,7 +1137,7 @@ document.addEventListener('DOMContentLoaded', function() {
 ---
 
 **آخرین به‌روزرسانی**: 2024-12-06  
-**وضعیت**: در حال انجام - 98 فایل از 110+ فایل تکمیل شد (89%)  
+**وضعیت**: در حال انجام - 105 فایل از 110+ فایل تکمیل شد (95%)  
 **تکمیل شده**: 
 - ✅ فاز 1: Detail Views (39 فایل) - **100% تکمیل شد!** همه 39 فایل refactor شدند
   - ✅ فاز 1.1: Detail Views ماژول inventory (15 فایل)
@@ -1173,7 +1185,9 @@ document.addEventListener('DOMContentLoaded', function() {
   - ✅ تمام inline styles حذف شدند
   - ✅ همه استایل‌ها به `shared.css` منتقل شدند
 - ✅ Event Handlers: 20+ از 20+ فایل (100%) - **تکمیل شد!** همه فایل‌های با inline event handlers refactor شدند
-- ⏳ Partials: 0 از 15+ فایل (0%)
+- ⏳ Partials: 6 از 15+ فایل (~40%)
+  - ⏳ Row Actions: 5 از 10+ فایل (50%)
+  - ⏳ Pagination: 1 از 5+ فایل (20%)
 
 ---
 
@@ -1230,12 +1244,14 @@ document.addEventListener('DOMContentLoaded', function() {
   - ⏳ Ticketing forms: template_form, category_form, subcategory_form
   - ⏳ Accounting forms
 - ✅ **Event Handlers**: 20+ از 20+ فایل (100%) - **تکمیل شد**
-- ⏳ **Partials**: 0 از 15+ فایل (0%) - اولویت پایین
+- ⏳ **Partials**: 6 از 15+ فایل (~40%) - اولویت پایین
+  - ⏳ Row Actions: 5 از 10+ فایل (50%)
+  - ⏳ Pagination: 1 از 5+ فایل (20%)
 
 ### 📊 آمار کلی
 - **کل فایل‌های نیازمند Refactor**: 110+ فایل
-- **فایل‌های تکمیل شده**: 99 فایل (90%)
-- **فایل‌های باقی‌مانده**: 11+ فایل (10%)
+- **فایل‌های تکمیل شده**: 105 فایل (95%)
+- **فایل‌های باقی‌مانده**: 5+ فایل (5%)
   - 1 فایل پیچیده (Formset Management - نیاز به refactoring تخصصی)
   - 10+ فایل دیگر (Table Export - اکثراً export function ندارند)
 
@@ -1269,7 +1285,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 #### 🟢 اولویت پایین
 3. ✅ **فاز 4.2**: Cascading Dropdowns - **تکمیل شد!** (7 از 7 فایل)
-4. ⏳ **Partials**: Row Actions و Pagination (اولویت پایین)
+4. ⏳ **Partials**: Row Actions و Pagination (اولویت پایین) - **6 فایل refactor شد (~40%)**
+   - ✅ Row Actions: 5 فایل refactor شد (`item_types.html`, `item_categories.html`, `suppliers.html`, `item_subcategories.html`, `supplier_categories.html`)
+   - ✅ Pagination: 1 فایل refactor شد (`machines.html`) - **6 فایل refactor شد (~40%)**
+   - ✅ Row Actions: 5 فایل refactor شد (`item_types.html`, `item_categories.html`, `suppliers.html`, `item_subcategories.html`, `supplier_categories.html`)
+   - ✅ Pagination: 1 فایل refactor شد (`machines.html`)
 
 ### 💡 نکات مهم
 - فایل‌های JavaScript مشترک ایجاد شده قابل استفاده مجدد هستند
