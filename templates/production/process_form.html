@@ -322,145 +322,18 @@
 {{ block.super }}
 <link rel="stylesheet" href="{% static 'css/shared.css' %}">
 <link rel="stylesheet" href="{% static 'css/formset-table.css' %}">
-<style>
-.entity-form select[multiple] {
-  min-height: 200px;
-  padding: 0.5rem;
-}
-
-.form-help-text {
-  color: #6b7280;
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-}
-
-/* Operation Styles */
-.operation-row {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  background: #f9fafb;
-}
-
-.operation-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.operation-header h4 {
-  margin: 0;
-  font-size: 1.125rem;
-  color: #1f2937;
-}
-
-.delete-operation-label {
-  cursor: pointer;
-  color: #dc2626;
-  font-size: 0.875rem;
-}
-
-.btn-remove-operation {
-  background: #dc2626;
-  color: white;
-  border: none;
-  padding: 0.375rem 0.75rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-}
-
-.btn-remove-operation:hover {
-  background: #b91c1c;
-}
-
-.operation-form-fields {
-  display: grid;
-  gap: 1rem;
-}
-
-.operation-materials-section {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-.operation-materials-section h5 {
-  margin: 0 0 1rem 0;
-  font-size: 1rem;
-  color: #374151;
-}
-
-.materials-table-wrapper {
-  overflow-x: auto;
-  margin-bottom: 1rem;
-}
-
-.materials-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.materials-table th {
-  background: #f3f4f6;
-  padding: 0.75rem;
-  text-align: right;
-  font-weight: 600;
-  font-size: 0.875rem;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.materials-table td {
-  padding: 0.5rem;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.materials-table input,
-.materials-table select {
-  width: 100%;
-  padding: 0.375rem 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-
-.add-material-btn {
-  margin-top: 0.5rem;
-}
-
-.text-center {
-  text-align: center;
-}
-
-.btn-remove-material {
-  background: #dc2626;
-  color: white;
-  border: none;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-}
-
-.btn-remove-material:hover {
-  background: #b91c1c;
-}
-
-.formset-actions {
-  margin-top: 1rem;
-}
-</style>
 {% endblock %}
 
 {% block form_scripts %}
 <script>
+// Add process-form class to entity-form
+document.addEventListener('DOMContentLoaded', function() {
+  const entityForm = document.querySelector('.entity-form');
+  if (entityForm) {
+    entityForm.classList.add('process-form');
+  }
+});
+
 // Define global variables for process and BOM
 const processIdGlobal = {% if process_id %}{{ process_id }}{% else %}null{% endif %};
 const bomSelectId = '{{ form.bom.id_for_label }}';

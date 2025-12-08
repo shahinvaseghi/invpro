@@ -957,6 +957,9 @@
 
 ### فاز 5: CSS و Event Handlers (اولویت متوسط) ⏳ **در حال انجام**
 1. ✅ انتقال Inline CSS به فایل‌های مشترک (25+ فایل) - **30 فایل refactor شد (100%)** ✅ **تکمیل شد!**
+   - ✅ تمام style tag‌ها حذف شدند (~400+ خط CSS)
+   - ✅ تمام inline styles حذف شدند
+   - ✅ همه استایل‌ها به `shared.css` منتقل شدند
    - ✅ `shared/generic/generic_detail.html` - refactor شد
    - ✅ `shared/generic/generic_list.html` - refactor شد
    - ✅ `shared/generic/generic_form.html` - refactor شد
@@ -1180,6 +1183,9 @@ document.addEventListener('DOMContentLoaded', function() {
 - ✅ List Views: 9 از 9 فایل (100%)
 - ✅ Form Views: 6 از 6 فایل (100%)
 - ✅ CSS Refactoring: 30 از 25+ فایل (100%) - **تکمیل شد!** ✅
+  - ✅ تمام style tag‌ها حذف شدند (~400+ خط CSS)
+  - ✅ تمام inline styles حذف شدند
+  - ✅ همه استایل‌ها به `shared.css` منتقل شدند
 - ✅ Event Handlers: 20+ از 20+ فایل (100%) - **تکمیل شد!** همه فایل‌های با inline event handlers refactor شدند
 - ⏳ Partials: 0 از 15+ فایل (0%)
 
@@ -1260,8 +1266,8 @@ document.addEventListener('DOMContentLoaded', function() {
    - ✅ `inventory/warehouse_request_form.html` - **refactor شد** ✅ (inline styles حذف شد)
    - ✅ `ticketing/subcategory_form.html` - **refactor شد** ✅ (style tag + inline styles حذف شد)
    - ✅ **Production forms** (2 فایل):
-     - ✅ `production/bom_form.html` - **refactor شد** ✅ (تمام inline styles حذف شد)
-     - ✅ `production/process_form.html` - **refactor شد** ✅ (تمام inline styles حذف شد)
+     - ✅ `production/bom_form.html` - **refactor شد** ✅ (تمام inline styles و style tag حذف شد - ~250 خط CSS)
+     - ✅ `production/process_form.html` - **refactor شد** ✅ (تمام inline styles و style tag حذف شد - ~135 خط CSS)
    - ✅ **Ticketing forms** (2 فایل):
      - ✅ `ticketing/template_form.html` - **refactor شد** ✅ (تمام inline styles حذف شد)
      - ✅ `ticketing/category_form.html` - **بررسی شد** ✅ (از قبل refactor شده بود)
