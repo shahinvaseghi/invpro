@@ -96,9 +96,11 @@ baseline = get_last_stocktaking_baseline(
 - `ReceiptPermanentLine` where `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
 - `ReceiptConsignmentLine` where `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
 - `StocktakingSurplusLine` where `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
+- `IssueWarehouseTransferLine` where `destination_warehouse_id=warehouse_id` (as receipt) and `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
 - `IssuePermanentLine` where `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
 - `IssueConsumptionLine` where `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
 - `IssueConsignmentLine` where `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
+- `IssueWarehouseTransferLine` where `source_warehouse_id=warehouse_id` (as issue) and `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
 - `StocktakingDeficitLine` where `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
 
 **منطق**:
@@ -118,13 +120,15 @@ baseline = get_last_stocktaking_baseline(
    - `ReceiptPermanentLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_locked=1, document__is_enabled=1).aggregate(total=Sum('quantity'))`
    - `ReceiptConsignmentLine`: مشابه بالا (نیاز به `document__is_locked=1`)
    - `StocktakingSurplusLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_locked=1, document__is_enabled=1).aggregate(total=Sum('quantity_adjusted'))`
-   - `receipts_total = (receipts_perm['total'] or Decimal('0')) + (receipts_consignment['total'] or Decimal('0')) + (surplus['total'] or Decimal('0'))`
+   - `IssueWarehouseTransferLine`: `filter(company_id, destination_warehouse_id=warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_locked=1, document__is_enabled=1).aggregate(total=Sum('quantity'))` (انتقال به این انبار = receipt)
+   - `receipts_total = (receipts_perm['total'] or Decimal('0')) + (receipts_consignment['total'] or Decimal('0')) + (surplus['total'] or Decimal('0')) + (warehouse_transfer_receipts['total'] or Decimal('0'))`
 5. **محاسبه Issues** (negative movements):
    - `IssuePermanentLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_locked=1, document__is_enabled=1).aggregate(total=Sum('quantity'))`
    - `IssueConsumptionLine`: مشابه بالا (نیاز به `document__is_locked=1`)
    - `IssueConsignmentLine`: مشابه بالا (نیاز به `document__is_locked=1`)
+   - `IssueWarehouseTransferLine`: `filter(company_id, source_warehouse_id=warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_locked=1, document__is_enabled=1).aggregate(total=Sum('quantity'))` (انتقال از این انبار = issue)
    - `StocktakingDeficitLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_locked=1, document__is_enabled=1).aggregate(total=Sum('quantity_adjusted'))`
-   - `issues_total = (issues_permanent['total'] or Decimal('0')) + (issues_consumption['total'] or Decimal('0')) + (issues_consignment['total'] or Decimal('0')) + (deficit['total'] or Decimal('0'))`
+   - `issues_total = (issues_permanent['total'] or Decimal('0')) + (issues_consumption['total'] or Decimal('0')) + (issues_consignment['total'] or Decimal('0')) + (warehouse_transfer_issues['total'] or Decimal('0')) + (deficit['total'] or Decimal('0'))`
 6. بازگشت: `{'receipts_total': Decimal, 'issues_total': Decimal, 'surplus_total': Decimal, 'deficit_total': Decimal}`
 
 **Important Notes**:
@@ -237,14 +241,16 @@ balance = calculate_item_balance(
    - **Items با actual transactions** (فقط locked و enabled documents و `document_date__lte=as_of_date`):
      * `ReceiptPermanentLine`: `filter(company_id, warehouse_id, document__is_locked=1, document__is_enabled=1, document__document_date__lte=as_of_date).values_list('item_id', flat=True).distinct()`
      * `ReceiptConsignmentLine`: مشابه بالا (نیاز به `document__is_locked=1`)
+     * `IssueWarehouseTransferLine`: `filter(company_id, destination_warehouse_id=warehouse_id, document__is_locked=1, document__is_enabled=1, document__document_date__lte=as_of_date).values_list('item_id', flat=True).distinct()` (items transferred TO this warehouse)
      * `IssuePermanentLine`: مشابه بالا (نیاز به `document__is_locked=1`)
      * `IssueConsumptionLine`: مشابه بالا (نیاز به `document__is_locked=1`)
      * `IssueConsignmentLine`: مشابه بالا (نیاز به `document__is_locked=1`)
+     * `IssueWarehouseTransferLine`: `filter(company_id, source_warehouse_id=warehouse_id, document__is_locked=1, document__is_enabled=1, document__document_date__lte=as_of_date).values_list('item_id', flat=True).distinct()` (items transferred FROM this warehouse)
      * `StocktakingSurplusLine`: مشابه بالا (نیاز به `document__is_locked=1` و `document__is_enabled=1`)
      * `StocktakingDeficitLine`: مشابه بالا (نیاز به `document__is_locked=1` و `document__is_enabled=1`)
 3. **ترکیب item IDs**:
-   - `all_item_ids = set(items_with_assignment) | set(items_with_receipts) | set(items_with_consignment_receipts) | set(items_with_issues) | set(items_with_consumption) | set(items_with_consignment_issues) | set(items_with_surplus) | set(items_with_deficit)`
-   - `items_with_transactions = set(items_with_receipts) | set(items_with_consignment_receipts) | set(items_with_issues) | set(items_with_consumption) | set(items_with_consignment_issues) | set(items_with_surplus) | set(items_with_deficit)`
+   - `all_item_ids = set(items_with_assignment) | set(items_with_receipts) | set(items_with_consignment_receipts) | set(items_with_warehouse_transfer_receipts) | set(items_with_issues) | set(items_with_consumption) | set(items_with_consignment_issues) | set(items_with_warehouse_transfer_issues) | set(items_with_surplus) | set(items_with_deficit)`
+   - `items_with_transactions = set(items_with_receipts) | set(items_with_consignment_receipts) | set(items_with_warehouse_transfer_receipts) | set(items_with_issues) | set(items_with_consumption) | set(items_with_consignment_issues) | set(items_with_warehouse_transfer_issues) | set(items_with_surplus) | set(items_with_deficit)`
 4. **ساخت query**:
    - `items_query = Item.objects.filter(id__in=all_item_ids, company_id=company_id).filter(Q(id__in=items_with_transactions) | Q(is_enabled=1))`
    - **نکته مهم**: Items با actual transactions حتی اگر disabled باشند (`is_enabled=0`) شامل می‌شوند (برای audit trail)
@@ -346,9 +352,11 @@ Template: `templates/inventory/inventory_balance_details.html`
 - Transaction types displayed:
   - Permanent Receipt (رسید دائم)
   - Consignment Receipt (رسید امانی)
+  - Warehouse Transfer (as receipt when destination_warehouse matches)
   - Permanent Issue (حواله دائم)
   - Consumption Issue (حواله مصرف)
   - Consignment Issue (حواله امانی)
+  - Warehouse Transfer (as issue when source_warehouse matches)
 
 **URL**: `/inventory/balance/details/<item_id>/<warehouse_id>/?as_of_date=YYYY-MM-DD`
 

@@ -267,15 +267,50 @@ def get_operation_materials(
     ).select_related('material_item', 'bom_material').order_by('id')
 
 
-def select_source_warehouse_by_priority(
+def get_warehouse_inventory_balance(
+    company_id: int,
+    warehouse_id: int,
+    item_id: int,
+    as_of_date: Optional[date] = None
+) -> Decimal:
+    """
+    Get inventory balance for an item in a warehouse.
+    
+    Args:
+        company_id: Company ID
+        warehouse_id: Warehouse ID
+        item_id: Item ID
+        as_of_date: Date for inventory calculation (optional)
+        
+    Returns:
+        Current balance as Decimal, or Decimal('0') if error
+    """
+    from inventory.inventory_balance import calculate_item_balance
+    
+    try:
+        balance_info = calculate_item_balance(
+            company_id=company_id,
+            warehouse_id=warehouse_id,
+            item_id=item_id,
+            as_of_date=as_of_date,
+        )
+        return Decimal(str(balance_info.get('current_balance', 0)))
+    except Exception:
+        return Decimal('0')
+
+
+def select_source_warehouses_by_priority(
     company_id: int,
     item_id: int,
     source_warehouses_list: List[Dict],
     quantity_required: Decimal,
     as_of_date: Optional[date] = None
-) -> Tuple[Optional[Any], Optional[str]]:
+) -> Tuple[List[Tuple[Any, Decimal]], Optional[str]]:
     """
-    Select source warehouse based on priority and inventory availability.
+    Select source warehouses based on priority and inventory availability.
+    This function implements the logic:
+    - Step 2: If entire quantity is in one warehouse, return that warehouse
+    - Step 3: If quantity is spread across multiple warehouses, return all needed warehouses
     
     Args:
         company_id: Company ID
@@ -286,14 +321,13 @@ def select_source_warehouse_by_priority(
         as_of_date: Date for inventory calculation (optional)
         
     Returns:
-        Tuple of (selected_warehouse, error_message)
-        If no warehouse found with sufficient inventory, returns (None, error_message)
+        Tuple of (list of (warehouse, quantity) tuples, error_message)
+        If no warehouses found with sufficient inventory, returns ([], error_message)
     """
     from inventory.models import Warehouse
-    from inventory.inventory_balance import calculate_item_balance
     
     if not source_warehouses_list:
-        return None, _('No source warehouses configured for this item.')
+        return [], _('No source warehouses configured for this item.')
     
     # Sort warehouses by priority (1, 2, 3...)
     sorted_warehouses = sorted(
@@ -301,7 +335,10 @@ def select_source_warehouse_by_priority(
         key=lambda x: x.get('priority', 999)
     )
     
-    # Check each warehouse in priority order
+    selected_warehouses = []
+    remaining_quantity = quantity_required
+    
+    # Step 2: Check if entire quantity is in one warehouse (by priority)
     for warehouse_info in sorted_warehouses:
         warehouse_id = warehouse_info.get('warehouse_id')
         if not warehouse_id:
@@ -317,25 +354,284 @@ def select_source_warehouse_by_priority(
             continue
         
         # Check inventory balance
-        try:
-            balance_info = calculate_item_balance(
+        current_balance = get_warehouse_inventory_balance(
+            company_id=company_id,
+            warehouse_id=warehouse_id,
+            item_id=item_id,
+            as_of_date=as_of_date,
+        )
+        
+        # If this warehouse has enough for entire quantity, return it
+        if current_balance >= quantity_required:
+            return [(warehouse, quantity_required)], None
+        
+        # Step 3: If not enough in one warehouse, collect from multiple warehouses
+        if current_balance > 0:
+            quantity_from_this_warehouse = min(current_balance, remaining_quantity)
+            selected_warehouses.append((warehouse, quantity_from_this_warehouse))
+            remaining_quantity -= quantity_from_this_warehouse
+            
+            if remaining_quantity <= 0:
+                # We have enough from multiple warehouses
+                return selected_warehouses, None
+    
+    # Not enough inventory in all warehouses
+    if selected_warehouses:
+        # We found some inventory but not enough
+        total_available = sum(qty for _, qty in selected_warehouses)
+        warehouse_codes = [w.get('warehouse_code', 'Unknown') for w in sorted_warehouses]
+        return [], _('Insufficient inventory in source warehouses: {warehouses}. Available: {available}, Required: {required}').format(
+            warehouses=', '.join(warehouse_codes),
+            available=total_available,
+            required=quantity_required
+        )
+    else:
+        warehouse_codes = [w.get('warehouse_code', 'Unknown') for w in sorted_warehouses]
+        return [], _('Insufficient inventory in all source warehouses: {warehouses}').format(
+            warehouses=', '.join(warehouse_codes)
+        )
+
+
+def select_source_warehouse_by_priority(
+    company_id: int,
+    item_id: int,
+    source_warehouses_list: List[Dict],
+    quantity_required: Decimal,
+    as_of_date: Optional[date] = None
+) -> Tuple[Optional[Any], Optional[str]]:
+    """
+    Select source warehouse based on priority and inventory availability.
+    DEPRECATED: Use select_source_warehouses_by_priority instead for multi-warehouse support.
+    
+    This function is kept for backward compatibility but only returns the first warehouse
+    that has sufficient inventory.
+    """
+    warehouses, error_msg = select_source_warehouses_by_priority(
+        company_id=company_id,
+        item_id=item_id,
+        source_warehouses_list=source_warehouses_list,
+        quantity_required=quantity_required,
+        as_of_date=as_of_date,
+    )
+    
+    if error_msg:
+        return None, error_msg
+    
+    if warehouses:
+        # Return first warehouse (for backward compatibility)
+        return warehouses[0][0], None
+    
+    return None, _('No warehouse found with sufficient inventory.')
+
+
+def process_item_with_substitutes(
+    company_id: int,
+    main_item_id: int,
+    main_item_code: str,
+    quantity_required: Decimal,
+    unit: str,
+    source_warehouses_list: List[Dict],
+    destination_warehouse: Any,
+    as_of_date: Optional[date],
+    bom_material_id: Optional[int] = None
+) -> Tuple[List[Dict], Optional[str]]:
+    """
+    Process an item with substitute logic (Steps 1-5).
+    
+    Returns:
+        Tuple of (list of transfer line data dicts, error_message)
+    """
+    from production.models import BOMMaterial, BOMMaterialAlternative
+    
+    transfer_lines_data = []
+    
+    # Step 1: Check main item and source warehouses by priority
+    warehouses_with_quantities, error_msg = select_source_warehouses_by_priority(
+        company_id=company_id,
+        item_id=main_item_id,
+        source_warehouses_list=source_warehouses_list,
+        quantity_required=quantity_required,
+        as_of_date=as_of_date,
+    )
+    
+    if not error_msg and warehouses_with_quantities:
+        # Steps 2 & 3: We have enough inventory (single or multiple warehouses)
+        total_available = sum(qty for _, qty in warehouses_with_quantities)
+        if total_available >= quantity_required:
+            # Create lines for each warehouse
+            remaining_qty = quantity_required
+            for warehouse, available_qty in warehouses_with_quantities:
+                if remaining_qty <= 0:
+                    break
+                qty_to_use = min(available_qty, remaining_qty)
+                transfer_lines_data.append({
+                    'item_id': main_item_id,
+                    'item_code': main_item_code,
+                    'source_warehouse': warehouse,
+                    'destination_warehouse': destination_warehouse,
+                    'quantity': qty_to_use,
+                    'unit': unit,
+                })
+                remaining_qty -= qty_to_use
+            return transfer_lines_data, None
+    
+    # Step 4 & 5: Not enough inventory, check substitutes
+    if not bom_material_id:
+        # No BOM material, can't check alternatives
+        return [], error_msg or _('Insufficient inventory for item {item_code}').format(
+            item_code=main_item_code
+        )
+    
+    # Get BOM material alternatives
+    bom_material = BOMMaterial.objects.filter(id=bom_material_id).first()
+    if not bom_material:
+        return [], error_msg or _('BOM material not found')
+    
+    alternatives = BOMMaterialAlternative.objects.filter(
+        bom_material=bom_material,
+        is_enabled=1,
+    ).select_related('alternative_item').order_by('priority')
+    
+    if not alternatives.exists():
+        return [], error_msg or _('No substitute items configured for item {item_code}').format(
+            item_code=main_item_code
+        )
+    
+    # Calculate how much we got from main item
+    main_item_available = sum(qty for _, qty in warehouses_with_quantities) if warehouses_with_quantities else Decimal('0')
+    remaining_quantity = quantity_required - main_item_available
+    
+    # Step 4 & 5: Not enough inventory, check substitutes
+    # First, separate alternatives by combination flag
+    combinable_alternatives = []
+    non_combinable_alternatives = []
+    
+    for alternative in alternatives:
+        if alternative.is_combinable == 1:
+            combinable_alternatives.append(alternative)
+        else:
+            non_combinable_alternatives.append(alternative)
+    
+    # Step 5: Check combinable alternatives FIRST (if main item doesn't have enough)
+    # According to logic: ابتدا باید کالاهایی که تیک ترکیب دارند بررسی شوند
+    if main_item_available < quantity_required:
+        # Try combinable alternatives first
+        if combinable_alternatives:
+            # If main item has some inventory, try combination
+            if main_item_available > 0:
+                for alternative in combinable_alternatives:
+                    # Add main item lines first
+                    main_lines = []
+                    main_remaining = main_item_available
+                    for warehouse, available_qty in warehouses_with_quantities:
+                        if main_remaining <= 0:
+                            break
+                        qty_to_use = min(available_qty, main_remaining)
+                        main_lines.append({
+                            'item_id': main_item_id,
+                            'item_code': main_item_code,
+                            'source_warehouse': warehouse,
+                            'destination_warehouse': destination_warehouse,
+                            'quantity': qty_to_use,
+                            'unit': unit,
+                        })
+                        main_remaining -= qty_to_use
+                    
+                    # Check if alternative can cover the remainder
+                    alt_warehouses, alt_error = select_source_warehouses_by_priority(
+                        company_id=company_id,
+                        item_id=alternative.alternative_item_id,
+                        source_warehouses_list=alternative.source_warehouses or [],
+                        quantity_required=remaining_quantity,
+                        as_of_date=as_of_date,
+                    )
+                    
+                    if not alt_error and alt_warehouses:
+                        alt_total = sum(qty for _, qty in alt_warehouses)
+                        if alt_total >= remaining_quantity:
+                            # We have a solution: main item + alternative
+                            transfer_lines_data.extend(main_lines)
+                            alt_remaining = remaining_quantity
+                            for warehouse, available_qty in alt_warehouses:
+                                if alt_remaining <= 0:
+                                    break
+                                qty_to_use = min(available_qty, alt_remaining)
+                                transfer_lines_data.append({
+                                    'item_id': alternative.alternative_item_id,
+                                    'item_code': alternative.alternative_item_code,
+                                    'source_warehouse': warehouse,
+                                    'destination_warehouse': destination_warehouse,
+                                    'quantity': qty_to_use,
+                                    'unit': alternative.unit,
+                                })
+                                alt_remaining -= qty_to_use
+                            return transfer_lines_data, None
+            else:
+                # Main item has NO inventory, use combinable alternative for full quantity
+                for alternative in combinable_alternatives:
+                    alt_warehouses, alt_error = select_source_warehouses_by_priority(
+                        company_id=company_id,
+                        item_id=alternative.alternative_item_id,
+                        source_warehouses_list=alternative.source_warehouses or [],
+                        quantity_required=quantity_required,
+                        as_of_date=as_of_date,
+                    )
+                    
+                    if not alt_error and alt_warehouses:
+                        alt_total = sum(qty for _, qty in alt_warehouses)
+                        if alt_total >= quantity_required:
+                            # Use alternative for full quantity
+                            alt_remaining = quantity_required
+                            for warehouse, available_qty in alt_warehouses:
+                                if alt_remaining <= 0:
+                                    break
+                                qty_to_use = min(available_qty, alt_remaining)
+                                transfer_lines_data.append({
+                                    'item_id': alternative.alternative_item_id,
+                                    'item_code': alternative.alternative_item_code,
+                                    'source_warehouse': warehouse,
+                                    'destination_warehouse': destination_warehouse,
+                                    'quantity': qty_to_use,
+                                    'unit': alternative.unit,
+                                })
+                                alt_remaining -= qty_to_use
+                            return transfer_lines_data, None
+        
+        # Step 4: If combinable alternatives didn't work, check non-combinable alternatives
+        # According to logic: اگر با ترکیب اصلی و جایگزین نشد، بعد برود سراغ کالاهای جایگزین
+        for alternative in non_combinable_alternatives:
+            # For each alternative, apply same logic (Steps 1 & 2)
+            alt_warehouses, alt_error = select_source_warehouses_by_priority(
                 company_id=company_id,
-                warehouse_id=warehouse_id,
-                item_id=item_id,
+                item_id=alternative.alternative_item_id,
+                source_warehouses_list=alternative.source_warehouses or [],
+                quantity_required=quantity_required,  # Full quantity required
                 as_of_date=as_of_date,
             )
-            current_balance = Decimal(str(balance_info.get('current_balance', 0)))
             
-            if current_balance >= quantity_required:
-                return warehouse, None
-        except Exception:
-            # If calculation fails, skip this warehouse
-            continue
+            if not alt_error and alt_warehouses:
+                alt_total = sum(qty for _, qty in alt_warehouses)
+                if alt_total >= quantity_required:
+                    # Use this alternative for full quantity
+                    alt_remaining = quantity_required
+                    for warehouse, available_qty in alt_warehouses:
+                        if alt_remaining <= 0:
+                            break
+                        qty_to_use = min(available_qty, alt_remaining)
+                        transfer_lines_data.append({
+                            'item_id': alternative.alternative_item_id,
+                            'item_code': alternative.alternative_item_code,
+                            'source_warehouse': warehouse,
+                            'destination_warehouse': destination_warehouse,
+                            'quantity': qty_to_use,
+                            'unit': alternative.unit,
+                        })
+                        alt_remaining -= qty_to_use
+                    return transfer_lines_data, None
     
-    # No warehouse found with sufficient inventory
-    warehouse_codes = [w.get('warehouse_code', 'Unknown') for w in sorted_warehouses]
-    return None, _('Insufficient inventory in all source warehouses: {warehouses}').format(
-        warehouses=', '.join(warehouse_codes)
+    # No solution found
+    return transfer_lines_data, error_msg or _('Insufficient inventory for item {item_code} and its substitutes').format(
+        item_code=main_item_code
     )
 
 
@@ -347,9 +643,12 @@ def create_warehouse_transfer_for_transfer_to_line(
     """
     Create a warehouse transfer issue document for a transfer to line request.
     
-    This function creates an IssueWarehouseTransfer document with lines for each
-    item in the transfer request, selecting source warehouses based on priority
-    and inventory availability.
+    This function implements the complete 5-step logic:
+    1. Check main item and source warehouses by priority
+    2. If entire quantity is in one warehouse, issue from that warehouse
+    3. If quantity is spread across multiple warehouses, issue from those warehouses
+    4. If not available and combination flag is off, check substitute items
+    5. If combination flag is on, use main item + substitute combination
     
     Args:
         transfer: TransferToLine instance
@@ -364,9 +663,10 @@ def create_warehouse_transfer_for_transfer_to_line(
         IssueWarehouseTransferLine,
         Warehouse,
         ItemWarehouse,
+        Item,
     )
-    from inventory.inventory_balance import calculate_item_balance
     from inventory.forms.base import generate_document_code
+    from production.models import BOMMaterial
     
     # Get all transfer items
     transfer_items = transfer.items.filter(is_enabled=1).select_related(
@@ -396,10 +696,10 @@ def create_warehouse_transfer_for_transfer_to_line(
         
         # Get source warehouses list from BOM material (if available)
         source_warehouses_list = []
+        bom_material_id = None
+        
         if not item.is_extra:
             # For BOM items, get source_warehouses from BOM material
-            # We need to find the BOM material for this item
-            from production.models import BOMMaterial
             bom_material = BOMMaterial.objects.filter(
                 bom=transfer.order.bom,
                 material_item=item.material_item,
@@ -407,6 +707,7 @@ def create_warehouse_transfer_for_transfer_to_line(
             ).first()
             
             if bom_material:
+                bom_material_id = bom_material.id
                 source_warehouses_list = bom_material.source_warehouses or []
                 
                 # Backward compatibility
@@ -416,11 +717,14 @@ def create_warehouse_transfer_for_transfer_to_line(
                         'warehouse_code': bom_material.source_warehouse.public_code,
                         'priority': 1
                     }]
-        
-        # For extra items, use the source_warehouse from the item itself
-        if item.is_extra:
+        else:
+            # For extra items, use the source_warehouse from the item itself
             if item.source_warehouse:
-                source_warehouse = item.source_warehouse
+                source_warehouses_list = [{
+                    'warehouse_id': item.source_warehouse.id,
+                    'warehouse_code': item.source_warehouse.public_code,
+                    'priority': 1
+                }]
             else:
                 errors.append(
                     _('Item {item_code}: No source warehouse specified for extra item.').format(
@@ -428,87 +732,69 @@ def create_warehouse_transfer_for_transfer_to_line(
                     )
                 )
                 continue
-        else:
-            # For BOM items, select source warehouse based on priority and inventory
-            if source_warehouses_list:
-                source_warehouse, error_msg = select_source_warehouse_by_priority(
-                    company_id=transfer.company_id,
-                    item_id=item.material_item_id,
-                    source_warehouses_list=source_warehouses_list,
-                    quantity_required=item.quantity_required,
-                    as_of_date=transfer.transfer_date,
-                )
-                
-                if not source_warehouse:
-                    errors.append(
-                        _('Item {item_code}: {error}').format(
-                            item_code=item.material_item_code,
-                            error=error_msg
-                        )
-                    )
-                    continue
-            else:
-                # Fallback: use source_warehouse from item
-                if item.source_warehouse:
-                    source_warehouse = item.source_warehouse
-                else:
-                    # Try to get from ItemWarehouse
-                    item_warehouse = ItemWarehouse.objects.filter(
-                        item=item.material_item,
-                        company_id=transfer.company_id,
-                        is_enabled=1,
-                    ).select_related('warehouse').first()
-                    
-                    if not item_warehouse:
-                        errors.append(
-                            _('Item {item_code}: No source warehouse found. Please configure ItemWarehouse or BOM source_warehouses.').format(
-                                item_code=item.material_item_code
-                            )
-                        )
-                        continue
-                    
-                    source_warehouse = item_warehouse.warehouse
         
-        # Check inventory for all items (source_warehouse is already selected)
-        # Note: For BOM items with source_warehouses_list, inventory check is also done in select_source_warehouse_by_priority
-        # But we check here again to ensure consistency and catch any edge cases
-        try:
-            balance_info = calculate_item_balance(
+        # If no source warehouses configured, try ItemWarehouse
+        if not source_warehouses_list:
+            item_warehouse = ItemWarehouse.objects.filter(
+                item=item.material_item,
                 company_id=transfer.company_id,
-                warehouse_id=source_warehouse.id,
-                item_id=item.material_item_id,
-                as_of_date=transfer.transfer_date,
-            )
-            current_balance = Decimal(str(balance_info.get('current_balance', 0)))
+                is_enabled=1,
+            ).select_related('warehouse').first()
             
-            if current_balance < item.quantity_required:
+            if item_warehouse:
+                source_warehouses_list = [{
+                    'warehouse_id': item_warehouse.warehouse.id,
+                    'warehouse_code': item_warehouse.warehouse.public_code,
+                    'priority': 1
+                }]
+            else:
                 errors.append(
-                    _('Item {item_code}: Insufficient inventory in warehouse {warehouse_code}. Available: {available}, Required: {required}').format(
-                        item_code=item.material_item_code,
-                        warehouse_code=source_warehouse.public_code,
-                        available=current_balance,
-                        required=item.quantity_required
+                    _('Item {item_code}: No source warehouse found. Please configure ItemWarehouse or BOM source_warehouses.').format(
+                        item_code=item.material_item_code
                     )
                 )
                 continue
-        except Exception as e:
+        
+        # Process item with substitute logic
+        item_lines, error_msg = process_item_with_substitutes(
+            company_id=transfer.company_id,
+            main_item_id=item.material_item_id,
+            main_item_code=item.material_item_code,
+            quantity_required=item.quantity_required,
+            unit=item.unit,
+            source_warehouses_list=source_warehouses_list,
+            destination_warehouse=destination_warehouse,
+            as_of_date=transfer.transfer_date,
+            bom_material_id=bom_material_id if not item.is_extra else None,
+        )
+        
+        if error_msg:
             errors.append(
-                _('Item {item_code}: Error checking inventory: {error}').format(
+                _('Item {item_code}: {error}').format(
                     item_code=item.material_item_code,
-                    error=str(e)
+                    error=error_msg
                 )
             )
             continue
         
-        # Add to transfer lines data
-        transfer_lines_data.append({
-            'item': item.material_item,
-            'item_code': item.material_item_code,
-            'source_warehouse': source_warehouse,
-            'destination_warehouse': destination_warehouse,
-            'quantity': item.quantity_required,
-            'unit': item.unit,
-        })
+        # Convert item_ids to Item objects
+        for line_data in item_lines:
+            try:
+                item_obj = Item.objects.get(id=line_data['item_id'])
+                transfer_lines_data.append({
+                    'item': item_obj,
+                    'item_code': line_data['item_code'],
+                    'source_warehouse': line_data['source_warehouse'],
+                    'destination_warehouse': line_data['destination_warehouse'],
+                    'quantity': line_data['quantity'],
+                    'unit': line_data['unit'],
+                })
+            except Item.DoesNotExist:
+                errors.append(
+                    _('Item {item_code}: Item not found.').format(
+                        item_code=line_data['item_code']
+                    )
+                )
     
     # If there are errors, don't create the transfer
     if errors:

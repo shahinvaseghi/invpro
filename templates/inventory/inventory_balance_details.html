@@ -152,6 +152,10 @@
             <a href="{% url 'inventory:stocktaking_deficit_edit' transaction.document_id %}" class="document-link">
               <code>{{ transaction.document_code }}</code>
             </a>
+          {% elif transaction.document_type == 'warehouse_transfer' %}
+            <a href="{% url 'inventory:issue_warehouse_transfer_detail' transaction.document_id %}" class="document-link">
+              <code>{{ transaction.document_code }}</code>
+            </a>
           {% else %}
             <code>{{ transaction.document_code }}</code>
           {% endif %}

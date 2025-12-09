@@ -133,10 +133,22 @@ def calculate_movements_after_baseline(
         document__is_enabled=1,
     ).aggregate(total=Sum('quantity_adjusted'))
     
+    # Warehouse transfers: destination_warehouse receives items (receipt)
+    warehouse_transfer_receipts = models.IssueWarehouseTransferLine.objects.filter(
+        company_id=company_id,
+        destination_warehouse_id=warehouse_id,
+        item_id=item_id,
+        document__document_date__gte=baseline_date,
+        document__document_date__lte=as_of_date,
+        document__is_locked=1,
+        document__is_enabled=1,
+    ).aggregate(total=Sum('quantity'))
+    
     receipts_total = (
         (receipts_perm['total'] or Decimal('0')) + 
         (receipts_consignment['total'] or Decimal('0')) + 
-        (surplus['total'] or Decimal('0'))
+        (surplus['total'] or Decimal('0')) +
+        (warehouse_transfer_receipts['total'] or Decimal('0'))
     )
     
     # Calculate issues (negative movements) from line items
@@ -181,11 +193,23 @@ def calculate_movements_after_baseline(
         document__is_enabled=1,
     ).aggregate(total=Sum('quantity_adjusted'))
     
+    # Warehouse transfers: source_warehouse issues items (issue)
+    warehouse_transfer_issues = models.IssueWarehouseTransferLine.objects.filter(
+        company_id=company_id,
+        source_warehouse_id=warehouse_id,
+        item_id=item_id,
+        document__document_date__gte=baseline_date,
+        document__document_date__lte=as_of_date,
+        document__is_locked=1,
+        document__is_enabled=1,
+    ).aggregate(total=Sum('quantity'))
+    
     issues_total = (
         (issues_permanent['total'] or Decimal('0')) +
         (issues_consumption['total'] or Decimal('0')) +
         (issues_consignment['total'] or Decimal('0')) +
-        (deficit['total'] or Decimal('0'))
+        (deficit['total'] or Decimal('0')) +
+        (warehouse_transfer_issues['total'] or Decimal('0'))
     )
     
     return {
@@ -362,6 +386,24 @@ def calculate_warehouse_balances(
         document__document_date__lte=as_of_date,
     ).values_list('item_id', flat=True).distinct()
     
+    # Warehouse transfers: items transferred TO this warehouse (as destination)
+    items_with_warehouse_transfer_receipts = models.IssueWarehouseTransferLine.objects.filter(
+        company_id=company_id,
+        destination_warehouse_id=warehouse_id,
+        document__is_locked=1,
+        document__is_enabled=1,
+        document__document_date__lte=as_of_date,
+    ).values_list('item_id', flat=True).distinct()
+    
+    # Warehouse transfers: items transferred FROM this warehouse (as source)
+    items_with_warehouse_transfer_issues = models.IssueWarehouseTransferLine.objects.filter(
+        company_id=company_id,
+        source_warehouse_id=warehouse_id,
+        document__is_locked=1,
+        document__is_enabled=1,
+        document__document_date__lte=as_of_date,
+    ).values_list('item_id', flat=True).distinct()
+    
     # Combine all item IDs
     all_item_ids = (
         set(items_with_assignment) | 
@@ -371,7 +413,9 @@ def calculate_warehouse_balances(
         set(items_with_consumption) |
         set(items_with_consignment_issues) |
         set(items_with_surplus) |
-        set(items_with_deficit)
+        set(items_with_deficit) |
+        set(items_with_warehouse_transfer_receipts) |
+        set(items_with_warehouse_transfer_issues)
     )
     
     # Build final query
@@ -384,7 +428,9 @@ def calculate_warehouse_balances(
         set(items_with_consumption) |
         set(items_with_consignment_issues) |
         set(items_with_surplus) |
-        set(items_with_deficit)
+        set(items_with_deficit) |
+        set(items_with_warehouse_transfer_receipts) |
+        set(items_with_warehouse_transfer_issues)
     )
     
     # For items with transactions, include them regardless of enabled status
