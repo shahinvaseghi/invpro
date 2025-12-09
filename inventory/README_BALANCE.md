@@ -93,12 +93,12 @@ baseline = get_last_stocktaking_baseline(
 ```
 
 **Queries**:
-- `ReceiptPermanentLine` where `document__is_enabled=1` and `document_date` in range
-- `ReceiptConsignmentLine` where `document__is_enabled=1` and `document_date` in range
+- `ReceiptPermanentLine` where `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
+- `ReceiptConsignmentLine` where `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
 - `StocktakingSurplusLine` where `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
-- `IssuePermanentLine` where `document__is_enabled=1` and `document_date` in range
-- `IssueConsumptionLine` where `document__is_enabled=1` and `document_date` in range
-- `IssueConsignmentLine` where `document__is_enabled=1` and `document_date` in range
+- `IssuePermanentLine` where `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
+- `IssueConsumptionLine` where `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
+- `IssueConsignmentLine` where `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
 - `StocktakingDeficitLine` where `document__is_locked=1` and `document__is_enabled=1` and `document_date` in range
 
 **منطق**:
@@ -115,23 +115,24 @@ baseline = get_last_stocktaking_baseline(
      - در غیر این صورت: `date(1900, 1, 1)`
      - اگر exception رخ دهد: `date(1900, 1, 1)`
 4. **محاسبه Receipts** (positive movements):
-   - `ReceiptPermanentLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_enabled=1).aggregate(total=Sum('quantity'))`
-   - `ReceiptConsignmentLine`: مشابه بالا
+   - `ReceiptPermanentLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_locked=1, document__is_enabled=1).aggregate(total=Sum('quantity'))`
+   - `ReceiptConsignmentLine`: مشابه بالا (نیاز به `document__is_locked=1`)
    - `StocktakingSurplusLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_locked=1, document__is_enabled=1).aggregate(total=Sum('quantity_adjusted'))`
    - `receipts_total = (receipts_perm['total'] or Decimal('0')) + (receipts_consignment['total'] or Decimal('0')) + (surplus['total'] or Decimal('0'))`
 5. **محاسبه Issues** (negative movements):
-   - `IssuePermanentLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_enabled=1).aggregate(total=Sum('quantity'))`
-   - `IssueConsumptionLine`: مشابه بالا
-   - `IssueConsignmentLine`: مشابه بالا
+   - `IssuePermanentLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_locked=1, document__is_enabled=1).aggregate(total=Sum('quantity'))`
+   - `IssueConsumptionLine`: مشابه بالا (نیاز به `document__is_locked=1`)
+   - `IssueConsignmentLine`: مشابه بالا (نیاز به `document__is_locked=1`)
    - `StocktakingDeficitLine`: `filter(company_id, warehouse_id, item_id, document__document_date__gte=baseline_date, document__document_date__lte=as_of_date, document__is_locked=1, document__is_enabled=1).aggregate(total=Sum('quantity_adjusted'))`
    - `issues_total = (issues_permanent['total'] or Decimal('0')) + (issues_consumption['total'] or Decimal('0')) + (issues_consignment['total'] or Decimal('0')) + (deficit['total'] or Decimal('0'))`
 6. بازگشت: `{'receipts_total': Decimal, 'issues_total': Decimal, 'surplus_total': Decimal, 'deficit_total': Decimal}`
 
 **Important Notes**:
-- Receipts and Issues: Only enabled documents are included (`document__is_enabled=1`)
-- Stocktaking (Deficit/Surplus): Both `document__is_locked=1` AND `document__is_enabled=1` are required
+- **All documents (Receipts, Issues, Stocktaking)**: Both `document__is_locked=1` AND `document__is_enabled=1` are required
+- **Lock Requirement**: Documents must be locked (`is_locked=1`) to affect inventory balance. Unlocked documents are excluded from calculations.
+- **Lock Behavior**: Once a document is locked, it affects inventory. If unlocked and re-locked, it will be included again in calculations (current implementation checks `is_locked` status at calculation time).
 - Consignment receipts/issues ARE included (they affect inventory balance)
-- Temporary receipts are excluded (not included in the queries)
+- Temporary receipts are excluded (not included in the queries - they are only for QC and don't affect inventory)
 - Date range: `document__document_date__gte=baseline_date` AND `document__document_date__lte=as_of_date`
 
 **Example**:
@@ -233,14 +234,14 @@ balance = calculate_item_balance(
 1. اگر `as_of_date` None باشد: `as_of_date = timezone.now().date()`
 2. **یافتن items با activity در warehouse**:
    - **Items با warehouse assignment**: `Item.objects.filter(company_id=company_id, is_enabled=1, warehouses__warehouse_id=warehouse_id, warehouses__is_enabled=1).values_list('id', flat=True)`
-   - **Items با actual transactions** (فقط enabled documents و `document_date__lte=as_of_date`):
-     * `ReceiptPermanentLine`: `filter(company_id, warehouse_id, document__is_enabled=1, document__document_date__lte=as_of_date).values_list('item_id', flat=True).distinct()`
-     * `ReceiptConsignmentLine`: مشابه بالا
-     * `IssuePermanentLine`: مشابه بالا
-     * `IssueConsumptionLine`: مشابه بالا
-     * `IssueConsignmentLine`: مشابه بالا
-     * `StocktakingSurplusLine`: مشابه بالا (فقط `document__is_enabled=1`)
-     * `StocktakingDeficitLine`: مشابه بالا (فقط `document__is_enabled=1`)
+   - **Items با actual transactions** (فقط locked و enabled documents و `document_date__lte=as_of_date`):
+     * `ReceiptPermanentLine`: `filter(company_id, warehouse_id, document__is_locked=1, document__is_enabled=1, document__document_date__lte=as_of_date).values_list('item_id', flat=True).distinct()`
+     * `ReceiptConsignmentLine`: مشابه بالا (نیاز به `document__is_locked=1`)
+     * `IssuePermanentLine`: مشابه بالا (نیاز به `document__is_locked=1`)
+     * `IssueConsumptionLine`: مشابه بالا (نیاز به `document__is_locked=1`)
+     * `IssueConsignmentLine`: مشابه بالا (نیاز به `document__is_locked=1`)
+     * `StocktakingSurplusLine`: مشابه بالا (نیاز به `document__is_locked=1` و `document__is_enabled=1`)
+     * `StocktakingDeficitLine`: مشابه بالا (نیاز به `document__is_locked=1` و `document__is_enabled=1`)
 3. **ترکیب item IDs**:
    - `all_item_ids = set(items_with_assignment) | set(items_with_receipts) | set(items_with_consignment_receipts) | set(items_with_issues) | set(items_with_consumption) | set(items_with_consignment_issues) | set(items_with_surplus) | set(items_with_deficit)`
    - `items_with_transactions = set(items_with_receipts) | set(items_with_consignment_receipts) | set(items_with_issues) | set(items_with_consumption) | set(items_with_consignment_issues) | set(items_with_surplus) | set(items_with_deficit)`
@@ -574,6 +575,70 @@ Document codes link to edit/view pages:
 - `consumption_issue` → `inventory:issue_consumption_edit`
 - `consignment_issue` → `inventory:issue_consignment_edit`
 
+## Dependencies
+
+### Direct Dependencies
+
+- `inventory.models`: All inventory model classes (ReceiptPermanentLine, IssuePermanentLine, etc.)
+- `django.db.models`: Query utilities (Sum, Q, F)
+- `django.utils.timezone`: Date/time utilities
+- Standard library: `decimal.Decimal`, `datetime.date`, `typing`
+
+### Indirect Dependencies (via Models)
+
+The models used in balance calculations inherit from base classes in `shared.models`:
+
+#### 1. **LockableModel** (from `shared.models`)
+- Provides `is_locked` field (PositiveSmallIntegerField)
+- Used by `InventoryDocumentBase` which is inherited by:
+  - `ReceiptPermanent`, `ReceiptConsignment`
+  - `IssuePermanent`, `IssueConsumption`, `IssueConsignment`, `IssueWarehouseTransfer`
+  - `StocktakingDeficit`, `StocktakingSurplus`, `StocktakingRecord`
+- **Critical**: The `document__is_locked=1` filter in all queries depends on this field
+
+#### 2. **ActivatableModel** (from `shared.models`)
+- Provides `is_enabled` field (PositiveSmallIntegerField)
+- Used by `InventoryBaseModel` which is inherited by all inventory models
+- **Critical**: The `document__is_enabled=1` filter in all queries depends on this field
+
+#### 3. **CompanyScopedModel** (from `shared.models`)
+- Provides `company` (ForeignKey) and `company_code` (CharField) fields
+- Used by `InventoryBaseModel` which is inherited by all inventory models
+- **Critical**: The `company_id` filter in all queries depends on this field
+
+#### 4. **TimeStampedModel** (from `shared.models`)
+- Provides `created_at`, `created_by`, `edited_at`, `edited_by` fields
+- Used by `InventoryBaseModel` for audit trail
+
+#### 5. **MetadataModel** (from `shared.models`)
+- Provides `metadata` (JSONField) for flexible data storage
+- Used by `InventoryBaseModel`
+
+### Model Inheritance Chain
+
+```
+shared.models.LockableModel
+    ↓
+inventory.models.InventoryDocumentBase (inherits LockableModel)
+    ↓
+ReceiptPermanent, IssuePermanent, StocktakingDeficit, etc.
+
+shared.models.CompanyScopedModel + ActivatableModel + TimeStampedModel + MetadataModel
+    ↓
+inventory.models.InventoryBaseModel
+    ↓
+ReceiptPermanentLine, IssuePermanentLine, StocktakingDeficitLine, etc.
+```
+
+### Important Notes
+
+- **No direct imports**: `inventory_balance.py` does not directly import from `shared`
+- **Indirect dependency**: All critical fields (`is_locked`, `is_enabled`, `company_id`) come from shared mixins
+- **Breaking changes**: If shared models change field names or types, balance calculations will break
+- **Testing**: When testing balance calculations, ensure shared models are properly set up
+
+---
+
 ## Related Files
 
 - `inventory/views/balance.py`: `InventoryBalanceView`, `InventoryBalanceDetailsView`, `InventoryBalanceAPIView`
@@ -581,4 +646,5 @@ Document codes link to edit/view pages:
 - `templates/inventory/inventory_balance_details.html`: UI for transaction history details
 - `inventory_module_db_design_plan.md`: Balance calculation specification
 - `README.md`: Overall system documentation
+- `shared/models.py`: Base model classes (LockableModel, ActivatableModel, CompanyScopedModel, etc.)
 

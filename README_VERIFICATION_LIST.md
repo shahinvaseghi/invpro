@@ -48,6 +48,7 @@
 
 تاریخ‌های اجرای این فرآیند در زیر ثبت می‌شوند (جدیدترین در بالا):
 
+- **2025-12-09** - به‌روزرسانی `inventory/forms/README_MASTER_DATA.md` با اضافه شدن مستندات برای فیلدهای جدید `serial_in_qc` (IntegerCheckboxField)، `supply_type`، `planning_type`، و `lead_time` در `ItemForm`. به‌روزرسانی README_VERIFICATION_LIST.md
 - **2025-12-08** - به‌روزرسانی `inventory/views/README_BASE.md` با اضافه شدن مستندات کامل برای کلاس `BaseCreateDocumentFromRequestView` (7 متد و hook methods). به‌روزرسانی README_VERIFICATION_LIST.md
 - **2025-12-08** - تکمیل کامل `shared/views/README_BASE.md` با اضافه شدن Best Practices، Troubleshooting Guide، Advanced Examples، Common Patterns، و Quick Reference. به‌روزرسانی README_VERIFICATION_LIST.md
 - **2025-12-08** - تکمیل تمام فایل‌های README Pending: production/views/README_REWORK.md, production/views/README_QCOPERATIONS.md, production/forms/README_PROCESS_OPERATIONS.md, shared/views/README_API.md, shared/views/README_BASE_ADDITIONAL.md, shared/forms/README_BASE.md, shared/utils/README_VIEW_HELPERS.md, shared/templatetags/README_GENERIC_TAGS.md, shared/templatetags/README_VIEW_TAGS.md. به‌روزرسانی README_VERIFICATION_LIST.md
@@ -141,7 +142,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 ### Forms
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
 |-------------|-------------|--------|---------------------|---------------------|-----------|-------|
-| `inventory/forms/README_MASTER_DATA.md` | `inventory/forms/master_data.py` | ✅ Updated | 2025-12-06 18:37:51 | 2025-11-28 03:55:30 | ⚠️ Source newer | بررسی شد - مستندات کامل است. تمام متدهای IntegerCheckboxField و IntegerCheckboxInput (از جمله get_context, value_omitted_from_data) مستندسازی شده‌اند |
+| `inventory/forms/README_MASTER_DATA.md` | `inventory/forms/master_data.py` | ✅ Updated | 2025-12-06 18:37:51 | 2025-11-28 03:55:30 | ⚠️ Source newer | به‌روزرسانی شد - اضافه کردن مستندات برای فیلدهای جدید `serial_in_qc` (IntegerCheckboxField)، `supply_type`، `planning_type`، و `lead_time` در `ItemForm` |
 | `inventory/forms/README_RECEIPT.md` | `inventory/forms/receipt.py` | ✅ Updated | 2025-12-01 02:29:31 | 2025-12-01 02:29:31 | ✅ Same date | به‌روزرسانی شد - جزئیات کامل منطق برای `ReceiptPermanentForm.__init__` (با Exists برای خطوط) و `save()` (با temporary receipt conversion) اضافه شد |
 | `inventory/forms/README_ISSUE.md` | `inventory/forms/issue.py` | ✅ Updated | 2025-12-03 18:01:10 | 2025-12-09 09:54:27 | ✅ README newer | به‌روزرسانی شد - مستندات کامل برای `IssueWarehouseTransferForm` و `IssueWarehouseTransferLineForm` اضافه شد. جزئیات کامل برای `IssueLineSerialAssignmentForm` (__init__ با status filtering، clean_serials با quantity validation، save با sync_issue_line_serials). جزئیات کامل برای `IssueLineBaseForm` (__init__ با restore logic، clean_item، clean_warehouse، clean_unit، clean با inventory balance validation، save، و تمام helper methods با منطق کامل) |
 | `inventory/forms/README_REQUEST.md` | `inventory/forms/request.py` | ✅ Updated | 2025-12-05 23:15:08 | 2025-12-09 09:54:27 | ✅ README newer | به‌روزرسانی شد - جزئیات کامل برای فیلترها (از request.GET یا request.POST)، جستجو در full_item_code، unit restore logic، warehouse validation logic کامل (با fallback به تمام warehouse های company)، و PurchaseRequestLineFormSet اضافه شد |

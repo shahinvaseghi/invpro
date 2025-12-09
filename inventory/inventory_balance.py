@@ -102,12 +102,14 @@ def calculate_movements_after_baseline(
             baseline_date = date(1900, 1, 1)
     
     # Calculate receipts (positive movements) from line items
+    # Only include locked documents (documents must be locked to affect inventory)
     receipts_perm = models.ReceiptPermanentLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
         item_id=item_id,
         document__document_date__gte=baseline_date,
         document__document_date__lte=as_of_date,
+        document__is_locked=1,
         document__is_enabled=1,
     ).aggregate(total=Sum('quantity'))
     
@@ -117,6 +119,7 @@ def calculate_movements_after_baseline(
         item_id=item_id,
         document__document_date__gte=baseline_date,
         document__document_date__lte=as_of_date,
+        document__is_locked=1,
         document__is_enabled=1,
     ).aggregate(total=Sum('quantity'))
     
@@ -137,12 +140,14 @@ def calculate_movements_after_baseline(
     )
     
     # Calculate issues (negative movements) from line items
+    # Only include locked documents (documents must be locked to affect inventory)
     issues_permanent = models.IssuePermanentLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
         item_id=item_id,
         document__document_date__gte=baseline_date,
         document__document_date__lte=as_of_date,
+        document__is_locked=1,
         document__is_enabled=1,
     ).aggregate(total=Sum('quantity'))
     
@@ -152,6 +157,7 @@ def calculate_movements_after_baseline(
         item_id=item_id,
         document__document_date__gte=baseline_date,
         document__document_date__lte=as_of_date,
+        document__is_locked=1,
         document__is_enabled=1,
     ).aggregate(total=Sum('quantity'))
     
@@ -161,6 +167,7 @@ def calculate_movements_after_baseline(
         item_id=item_id,
         document__document_date__gte=baseline_date,
         document__document_date__lte=as_of_date,
+        document__is_locked=1,
         document__is_enabled=1,
     ).aggregate(total=Sum('quantity'))
     
@@ -295,11 +302,13 @@ def calculate_warehouse_balances(
         warehouses__is_enabled=1,
     ).values_list('id', flat=True)
     
-    # Second, get items with actual transactions in this warehouse (only enabled documents)
+    # Second, get items with actual transactions in this warehouse (only locked and enabled documents)
     # Filter by as_of_date to only include items with activity up to that date
+    # Only locked documents affect inventory, so we only consider locked documents
     items_with_receipts = models.ReceiptPermanentLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
+        document__is_locked=1,
         document__is_enabled=1,
         document__document_date__lte=as_of_date,
     ).values_list('item_id', flat=True).distinct()
@@ -307,6 +316,7 @@ def calculate_warehouse_balances(
     items_with_consignment_receipts = models.ReceiptConsignmentLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
+        document__is_locked=1,
         document__is_enabled=1,
         document__document_date__lte=as_of_date,
     ).values_list('item_id', flat=True).distinct()
@@ -314,6 +324,7 @@ def calculate_warehouse_balances(
     items_with_issues = models.IssuePermanentLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
+        document__is_locked=1,
         document__is_enabled=1,
         document__document_date__lte=as_of_date,
     ).values_list('item_id', flat=True).distinct()
@@ -321,6 +332,7 @@ def calculate_warehouse_balances(
     items_with_consumption = models.IssueConsumptionLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
+        document__is_locked=1,
         document__is_enabled=1,
         document__document_date__lte=as_of_date,
     ).values_list('item_id', flat=True).distinct()
@@ -328,6 +340,7 @@ def calculate_warehouse_balances(
     items_with_consignment_issues = models.IssueConsignmentLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
+        document__is_locked=1,
         document__is_enabled=1,
         document__document_date__lte=as_of_date,
     ).values_list('item_id', flat=True).distinct()
@@ -336,6 +349,7 @@ def calculate_warehouse_balances(
     items_with_surplus = models.StocktakingSurplusLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
+        document__is_locked=1,
         document__is_enabled=1,
         document__document_date__lte=as_of_date,
     ).values_list('item_id', flat=True).distinct()
@@ -343,6 +357,7 @@ def calculate_warehouse_balances(
     items_with_deficit = models.StocktakingDeficitLine.objects.filter(
         company_id=company_id,
         warehouse_id=warehouse_id,
+        document__is_locked=1,
         document__is_enabled=1,
         document__document_date__lte=as_of_date,
     ).values_list('item_id', flat=True).distinct()
