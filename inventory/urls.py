@@ -79,6 +79,7 @@ urlpatterns = [
     # Purchase Requests
     path('purchase-requests/', views.PurchaseRequestListView.as_view(), name='purchase_requests'),
     path('purchase-requests/create/', views.PurchaseRequestCreateView.as_view(), name='purchase_request_create'),
+    path('purchase-requests/create-from-transfer-request/<int:transfer_id>/', views.PurchaseRequestCreateFromTransferRequestView.as_view(), name='purchase_request_create_from_transfer_request'),
     path('purchase-requests/<int:pk>/', views.PurchaseRequestDetailView.as_view(), name='purchase_request_detail'),
     path('purchase-requests/<int:pk>/edit/', views.PurchaseRequestUpdateView.as_view(), name='purchase_request_edit'),
     path('purchase-requests/<int:pk>/approve/', views.PurchaseRequestApproveView.as_view(), name='purchase_request_approve'),

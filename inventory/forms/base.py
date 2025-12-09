@@ -777,6 +777,23 @@ class BaseLineFormSet(forms.BaseInlineFormSet):
                 logger.info(f"Instance: pk={getattr(instance, 'pk', None)}, is_locked={getattr(instance, 'is_locked', 'N/A')}")
             else:
                 logger.info("Instance: None")
+        else:
+            instance = None
+        
+        # Store initial data for get_extra() method - set BEFORE super().__init__()
+        # because Django may call get_extra() during initialization
+        initial = kwargs.get('initial')
+        if initial and instance is None and 'data' not in kwargs:
+            initial_count = len(initial) if isinstance(initial, (list, tuple)) else 0
+            if initial_count > 0:
+                # Store initial count to use in get_extra()
+                self._dynamic_extra = initial_count
+                logger.info(f"Will adjust extra to {initial_count} based on initial data count")
+            else:
+                self._dynamic_extra = None
+        else:
+            self._dynamic_extra = None
+        
         self.company_id = company_id
         self.request = request
         super().__init__(*args, **kwargs)
@@ -829,6 +846,23 @@ class BaseLineFormSet(forms.BaseInlineFormSet):
                 except Exception as e:
                     logger.warning(f"  Form {i} error checking item in queryset: {e}")
         return form
+    
+    def get_extra(self):
+        """Return extra count, dynamically adjusted based on initial data if needed."""
+        logger.info("BaseLineFormSet.get_extra() called")
+        # Check if we have dynamic extra set in __init__
+        if hasattr(self, '_dynamic_extra') and self._dynamic_extra is not None:
+            logger.info(f"Using _dynamic_extra: {self._dynamic_extra}")
+            return self._dynamic_extra
+        # Also check self.initial (set by Django after __init__)
+        if hasattr(self, 'initial') and self.initial:
+            initial_count = len(self.initial) if isinstance(self.initial, (list, tuple)) else 0
+            logger.info(f"Using self.initial count: {initial_count}")
+            if initial_count > 0:
+                return initial_count
+        default_extra = super().get_extra()
+        logger.info(f"Using default extra: {default_extra}")
+        return default_extra
     
     @property
     def empty_form(self):

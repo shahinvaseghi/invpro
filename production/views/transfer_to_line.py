@@ -12,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, UpdateView
 from django.views import View
 from django.db.models import Prefetch
+from django.shortcuts import get_object_or_404, render
 
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.views.base import (
@@ -1222,4 +1223,115 @@ class TransferToLineUnlockView(FeaturePermissionRequiredMixin, View):
         
         messages.success(request, _('Transfer request unlocked successfully.'))
         return JsonResponse({'success': True, 'message': _('Transfer request unlocked successfully.')})
+
+
+class CreatePurchaseRequestFromTransferRequestView(FeaturePermissionRequiredMixin, View):
+    """View to select items from transfer request to create purchase request."""
+    feature_code = 'production.transfer_requests'
+    required_action = 'view_own'
+    
+    def get(self, request, *args, **kwargs):
+        """Display form to select items from transfer request."""
+        
+        transfer_id = kwargs.get('pk')
+        active_company_id: Optional[int] = request.session.get('active_company_id')
+        
+        if not active_company_id:
+            messages.error(request, _('Please select a company first.'))
+            return HttpResponseRedirect(reverse('production:transfer_requests'))
+        
+        transfer = get_object_or_404(
+            TransferToLine,
+            id=transfer_id,
+            company_id=active_company_id,
+            is_enabled=1
+        )
+        
+        # Check if transfer is approved and locked
+        if transfer.status != TransferToLine.Status.APPROVED or transfer.is_locked != 1:
+            messages.error(request, _('Transfer request must be approved and locked before creating purchase request.'))
+            return HttpResponseRedirect(reverse('production:transfer_requests'))
+        
+        # Get transfer items
+        items = transfer.items.filter(is_enabled=1).order_by('material_item_code')
+        
+        context = {
+            'transfer': transfer,
+            'items': items,
+        }
+        
+        return render(request, 'production/create_purchase_request_from_transfer_request.html', context)
+    
+    def post(self, request, *args, **kwargs):
+        """Process selected items and redirect to purchase request creation."""
+        from decimal import InvalidOperation
+        
+        transfer_id = kwargs.get('pk')
+        active_company_id: Optional[int] = request.session.get('active_company_id')
+        
+        if not active_company_id:
+            messages.error(request, _('Please select a company first.'))
+            return HttpResponseRedirect(reverse('production:transfer_requests'))
+        
+        transfer = get_object_or_404(
+            TransferToLine,
+            id=transfer_id,
+            company_id=active_company_id,
+            is_enabled=1
+        )
+        
+        # Check if transfer is approved and locked
+        if transfer.status != TransferToLine.Status.APPROVED or transfer.is_locked != 1:
+            messages.error(request, _('Transfer request must be approved and locked before creating purchase request.'))
+            return HttpResponseRedirect(reverse('production:transfer_requests'))
+        
+        # Process selected items
+        selected_items = []
+        for item in transfer.items.filter(is_enabled=1):
+            item_id = str(item.pk)
+            quantity_key = f'quantity_{item_id}'
+            selected_key = f'selected_{item_id}'
+            
+            if request.POST.get(selected_key) == 'on':
+                quantity = request.POST.get(quantity_key, '0')
+                try:
+                    quantity = Decimal(str(quantity))
+                    if quantity > 0:
+                        # Use quantity_required as max
+                        if quantity > item.quantity_required:
+                            quantity = item.quantity_required
+                        selected_items.append({
+                            'item': item.material_item,
+                            'item_code': item.material_item_code,
+                            'quantity': quantity,
+                            'unit': item.unit,
+                            'notes': request.POST.get(f'notes_{item_id}', '').strip(),
+                        })
+                except (ValueError, InvalidOperation):
+                    pass
+        
+        if not selected_items:
+            messages.error(request, _('Please select at least one item.'))
+            return HttpResponseRedirect(reverse('production:transfer_request_create_purchase_request', kwargs={'pk': transfer_id}))
+        
+        # Store in session
+        session_key = f'transfer_request_{transfer_id}_purchase_request_lines'
+        session_data = [
+            {
+                'item_id': item['item'].id,
+                'item_code': item['item_code'],
+                'quantity': str(item['quantity']),
+                'unit': item['unit'],
+                'notes': item['notes'],
+            }
+            for item in selected_items
+        ]
+        request.session[session_key] = session_data
+        request.session[f'transfer_request_{transfer_id}_purchase_request_reference'] = {
+            'transfer_code': transfer.transfer_code,
+            'transfer_id': transfer.id,
+        }
+        
+        # Redirect to purchase request creation
+        return HttpResponseRedirect(reverse('inventory:purchase_request_create_from_transfer_request', kwargs={'transfer_id': transfer_id}))
 

@@ -55,9 +55,14 @@
       {% endfor %}
     {% else %}
       {% if object.status == 'approved' and object.is_locked == 1 %}
-        <button type="button" class="btn btn-sm btn-primary" onclick="createWarehouseTransfer({{ object.pk }})" title="{% trans 'Create Warehouse Transfer' %}">
+        <button type="button" class="btn btn-sm btn-primary" onclick="createWarehouseTransfer({{ object.pk }})" title="{% trans 'Create Warehouse Transfer' %}" style="margin-left: 0.25rem;">
           {% trans "Issue Transfer" %}
         </button>
+        {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase:create' or user.is_superuser %}
+        <a href="{% url 'production:transfer_request_create_purchase_request' object.pk %}" class="btn btn-sm btn-success" title="{% trans 'Create Purchase Request' %}" style="margin-left: 0.25rem;">
+          {% trans "Create Purchase Request" %}
+        </a>
+        {% endif %}
       {% else %}
         -
       {% endif %}

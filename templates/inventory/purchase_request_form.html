@@ -86,7 +86,7 @@
       {{ lines_formset.management_form }}
       {% for hidden in lines_formset.hidden_fields %}{{ hidden }}{% endfor %}
 
-      <div class="lines-formset" id="lines-formset" data-can-delete="{% if lines_formset.can_delete %}true{% else %}false{% endif %}">image.png
+      <div class="lines-formset" id="lines-formset" data-can-delete="{% if lines_formset.can_delete %}true{% else %}false{% endif %}">
         <div class="lines-table-header">
           <div class="line-cell line-number">#</div>
           <div class="line-cell line-item">{% trans "Item" %} *</div>
@@ -99,8 +99,7 @@
         </div>
         {% for line_form in lines_formset %}
           {% if not form.instance.pk %}
-            {# Create mode: only show first empty form (extra=1) #}
-            {% if forloop.counter0 < 1 %}
+            {# Create mode: show all forms with initial data #}
           <div class="line-row" data-form-index="{{ forloop.counter0 }}">
             {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
             
@@ -169,7 +168,6 @@
               <div class="error full-width">{{ line_form.non_field_errors|join:", " }}</div>
             {% endif %}
           </div>
-            {% endif %}
           {% else %}
             {# Edit mode: show all existing lines #}
           <div class="line-row" data-form-index="{{ forloop.counter0 }}">

@@ -59,6 +59,7 @@ urlpatterns = [
     path('transfer-requests/<int:pk>/qc-approve/', views.TransferToLineQCApproveView.as_view(), name='transfer_request_qc_approve'),
     path('transfer-requests/<int:pk>/qc-reject/', views.TransferToLineQCRejectView.as_view(), name='transfer_request_qc_reject'),
     path('transfer-requests/<int:pk>/create-warehouse-transfer/', views.TransferToLineCreateWarehouseTransferView.as_view(), name='transfer_request_create_warehouse_transfer'),
+    path('transfer-requests/<int:pk>/create-purchase-request/', views.CreatePurchaseRequestFromTransferRequestView.as_view(), name='transfer_request_create_purchase_request'),
     path('transfer-requests/<int:pk>/unlock/', views.TransferToLineUnlockView.as_view(), name='transfer_request_unlock'),
     
     # Performance Records (سند عملکرد)

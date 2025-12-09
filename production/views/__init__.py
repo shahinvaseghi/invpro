@@ -83,6 +83,7 @@ from production.views.transfer_to_line import (
     TransferToLineQCRejectView,
     TransferToLineCreateWarehouseTransferView,
     TransferToLineUnlockView,
+    CreatePurchaseRequestFromTransferRequestView,
 )
 
 # Import performance record views
@@ -165,6 +166,7 @@ __all__ = [
     'TransferToLineQCRejectView',
     'TransferToLineCreateWarehouseTransferView',
     'TransferToLineUnlockView',
+    'CreatePurchaseRequestFromTransferRequestView',
     # Performance Record views
     'PerformanceRecordListView',
     'PerformanceRecordCreateView',

@@ -1114,3 +1114,119 @@ class CreateConsignmentReceiptFromPurchaseRequestView(CreateReceiptFromPurchaseR
     document_subtype = 'consignment'
     feature_code = 'inventory.receipts.consignment'
 
+
+class PurchaseRequestCreateFromTransferRequestView(PurchaseRequestCreateView):
+    """Create purchase request from transfer request with pre-filled data from session."""
+    
+    def get_initial(self):
+        """Get initial data from session."""
+        initial = super().get_initial()
+        transfer_id = self.kwargs.get('transfer_id')
+        
+        if transfer_id:
+            # Set reference to transfer request
+            reference_key = f'transfer_request_{transfer_id}_purchase_request_reference'
+            reference = self.request.session.get(reference_key, {})
+            if reference:
+                initial['reference_document_type'] = 'transfer_request'
+                initial['reference_document_code'] = reference.get('transfer_code', '')
+        
+        return initial
+    
+    def get_context_data(self, **kwargs):
+        """Add context data with formset initial data from session."""
+        transfer_id = self.kwargs.get('transfer_id')
+        
+        # Get initial data from session for formset
+        formset_initial = []
+        if transfer_id:
+            session_key = f'transfer_request_{transfer_id}_purchase_request_lines'
+            session_data = self.request.session.get(session_key, [])
+            
+            if session_data:
+                for item_data in session_data:
+                    formset_initial.append({
+                        'item': item_data.get('item_id'),
+                        'quantity_requested': item_data.get('quantity', '0'),
+                        'unit': item_data.get('unit', 'EA'),
+                        'line_notes': item_data.get('notes', ''),
+                    })
+        
+        # Override formset building to use initial data
+        context = super().get_context_data(**kwargs)
+        
+        # Rebuild formset with initial data if we have session data
+        if formset_initial and self.request.method == 'GET':
+            company_id = self.request.session.get('active_company_id')
+            # Create formset with dynamic extra based on initial data count
+            from django.forms import inlineformset_factory
+            from ..models import PurchaseRequest, PurchaseRequestLine
+            from ..forms.request import PurchaseRequestLineForm
+            from ..forms.base import BaseLineFormSet
+            import logging
+            
+            logger = logging.getLogger(__name__)
+            logger.info(f"Creating formset with {len(formset_initial)} initial items")
+            logger.info(f"Initial data: {formset_initial}")
+            
+            # Create formset class with extra matching initial data count
+            initial_count = len(formset_initial)
+            DynamicFormSet = inlineformset_factory(
+                PurchaseRequest,
+                PurchaseRequestLine,
+                form=PurchaseRequestLineForm,
+                formset=BaseLineFormSet,
+                extra=initial_count,
+                can_delete=True,
+                min_num=1,
+                validate_min=True,
+            )
+            
+            # Build formset with initial data
+            # Django distributes initial data to extra forms automatically
+            # So if extra=len(initial), all initial items should be distributed
+            formset = DynamicFormSet(
+                instance=None,
+                prefix=self.formset_prefix,
+                company_id=company_id,
+                request=self.request,
+                initial=formset_initial
+            )
+            
+            logger.info(f"Formset created with {len(formset.forms)} forms")
+            logger.info(f"Expected {initial_count} forms, got {len(formset.forms)}")
+            logger.info(f"Initial data count: {len(formset_initial)}")
+            
+            # Verify that initial data is properly distributed
+            # Django should automatically distribute initial to extra forms
+            # But we'll verify and log for debugging
+            for i, form in enumerate(formset.forms):
+                form_initial = form.initial
+                item_value = form['item'].value()
+                logger.info(f"  Form {i}: initial={form_initial}, item value={item_value}")
+            
+            context['lines_formset'] = formset
+        
+        if transfer_id:
+            reference_key = f'transfer_request_{transfer_id}_purchase_request_reference'
+            reference = self.request.session.get(reference_key, {})
+            context['transfer_reference'] = reference
+        
+        return context
+    
+    def form_valid(self, form):
+        """Set reference to transfer request and clear session."""
+        result = super().form_valid(form)
+        
+        # Clear session data after successful creation
+        transfer_id = self.kwargs.get('transfer_id')
+        if transfer_id:
+            session_key = f'transfer_request_{transfer_id}_purchase_request_lines'
+            reference_key = f'transfer_request_{transfer_id}_purchase_request_reference'
+            if session_key in self.request.session:
+                del self.request.session[session_key]
+            if reference_key in self.request.session:
+                del self.request.session[reference_key]
+        
+        return result
+
