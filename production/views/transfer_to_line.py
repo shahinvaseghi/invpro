@@ -1122,29 +1122,56 @@ class TransferToLineCreateWarehouseTransferView(FeaturePermissionRequiredMixin, 
     feature_code = 'production.transfer_requests'
     required_action = 'approve'
     
+    def dispatch(self, request, *args, **kwargs):
+        """Override dispatch to return JSON response for permission errors."""
+        from django.core.exceptions import PermissionDenied
+        
+        if not self.has_feature_permission():
+            return JsonResponse({
+                'error': _('You do not have permission to perform this action.')
+            }, status=403)
+        
+        return super().dispatch(request, *args, **kwargs)
+    
     def post(self, request, *args, **kwargs):
         """Create warehouse transfer for the transfer request."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info("=" * 80)
+        logger.info("TransferToLineCreateWarehouseTransferView: Request received")
+        logger.info(f"  User: {request.user.username}")
+        logger.info(f"  Method: {request.method}")
+        logger.info(f"  Transfer ID: {kwargs.get('pk')}")
+        
         transfer_id = kwargs.get('pk')
         active_company_id: Optional[int] = request.session.get('active_company_id')
         
         if not active_company_id:
+            logger.error("TransferToLineCreateWarehouseTransferView: No active company")
             return JsonResponse({'error': _('Please select a company first.')}, status=400)
+        
+        logger.info(f"TransferToLineCreateWarehouseTransferView: Company ID: {active_company_id}")
         
         try:
             transfer = TransferToLine.objects.get(
                 id=transfer_id,
                 company_id=active_company_id,
             )
+            logger.info(f"TransferToLineCreateWarehouseTransferView: Transfer found: {transfer.transfer_code}")
         except TransferToLine.DoesNotExist:
+            logger.error(f"TransferToLineCreateWarehouseTransferView: Transfer {transfer_id} not found")
             return JsonResponse({'error': _('Transfer request not found.')}, status=404)
         
         # Check if transfer is approved
         if transfer.status != TransferToLine.Status.APPROVED:
+            logger.warning(f"TransferToLineCreateWarehouseTransferView: Transfer {transfer.transfer_code} status is {transfer.status}, not APPROVED")
             return JsonResponse({'error': _('Transfer request must be approved before creating warehouse transfer.')}, status=400)
         
         # Check if warehouse transfer already exists (only active ones)
         existing_wt = transfer.warehouse_transfers.filter(is_enabled=1).first()
         if existing_wt:
+            logger.warning(f"TransferToLineCreateWarehouseTransferView: Warehouse transfer already exists: {existing_wt.document_code}")
             return JsonResponse({
                 'error': _('Warehouse transfer already exists: %(code)s') % {'code': existing_wt.document_code},
                 'warehouse_transfer_code': existing_wt.document_code,
@@ -1155,38 +1182,52 @@ class TransferToLineCreateWarehouseTransferView(FeaturePermissionRequiredMixin, 
         try:
             from production.utils.transfer import create_warehouse_transfer_for_transfer_to_line
             
+            logger.info(f"TransferToLineCreateWarehouseTransferView: Calling create_warehouse_transfer_for_transfer_to_line")
             warehouse_transfer, error_msg = create_warehouse_transfer_for_transfer_to_line(
                 transfer=transfer,
                 user=request.user,
             )
             
             if warehouse_transfer:
+                logger.info(f"TransferToLineCreateWarehouseTransferView: Warehouse transfer created successfully: {warehouse_transfer.document_code}")
                 messages.success(
                     request,
                     _('Warehouse transfer %(code)s created successfully.')
                     % {'code': warehouse_transfer.document_code}
                 )
-                return JsonResponse({
+                response_data = {
                     'success': True,
                     'message': _('Warehouse transfer created successfully.'),
                     'warehouse_transfer_code': warehouse_transfer.document_code,
                     'warehouse_transfer_url': reverse('inventory:issue_warehouse_transfer_detail', kwargs={'pk': warehouse_transfer.pk}),
-                })
+                }
+                logger.info(f"TransferToLineCreateWarehouseTransferView: Returning success response: {response_data}")
+                logger.info("=" * 80)
+                return JsonResponse(response_data)
             elif error_msg:
-                return JsonResponse({
+                logger.error(f"TransferToLineCreateWarehouseTransferView: Error creating warehouse transfer: {error_msg}")
+                error_response = {
                     'error': _('Failed to create warehouse transfer: %(error)s') % {'error': error_msg}
-                }, status=400)
+                }
+                logger.info(f"TransferToLineCreateWarehouseTransferView: Returning error response: {error_response}")
+                logger.info("=" * 80)
+                return JsonResponse(error_response, status=400)
             else:
-                return JsonResponse({
+                logger.error("TransferToLineCreateWarehouseTransferView: Warehouse transfer was not created and no error message")
+                error_response = {
                     'error': _('Warehouse transfer was not created. Please check the logs for details.')
-                }, status=400)
+                }
+                logger.info(f"TransferToLineCreateWarehouseTransferView: Returning error response: {error_response}")
+                logger.info("=" * 80)
+                return JsonResponse(error_response, status=400)
         except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f'Error creating warehouse transfer for transfer {transfer.transfer_code}: {e}', exc_info=True)
-            return JsonResponse({
+            logger.error(f'TransferToLineCreateWarehouseTransferView: Exception creating warehouse transfer for transfer {transfer.transfer_code}: {e}', exc_info=True)
+            error_response = {
                 'error': _('Error creating warehouse transfer: %(error)s') % {'error': str(e)}
-            }, status=500)
+            }
+            logger.info(f"TransferToLineCreateWarehouseTransferView: Returning exception response: {error_response}")
+            logger.info("=" * 80)
+            return JsonResponse(error_response, status=500)
 
 
 class TransferToLineUnlockView(FeaturePermissionRequiredMixin, View):

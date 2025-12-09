@@ -778,7 +778,47 @@
   - `table_headers`: هدرهای جدول
   - `table_rows`: ردیف‌های جدول با status badges و action buttons
   - `pagination`: صفحه‌بندی
-  - `extra_scripts`: JavaScript برای approve/reject functions
+  - `extra_scripts`: JavaScript برای approve/reject functions و warehouse transfer creation
+
+#### JavaScript Functions
+
+**CSRF Token Management**:
+- `getCSRFToken()`: تابع کمکی برای دریافت CSRF token از سه منبع:
+  1. Cookie (اولویت اول - قابل اعتمادترین روش)
+  2. Hidden input با نام `csrfmiddlewaretoken` (fallback)
+  3. Meta tag با نام `csrf-token` (آخرین راه حل)
+- **نکته مهم**: این تابع باید در یک تگ `<script>` جداگانه تعریف شود و قبل از لود شدن فایل `approval-actions.js` قرار گیرد تا در scope global در دسترس باشد.
+
+**Approval/Rejection Functions**:
+- `approveTransfer(transferId)`: تایید transfer request
+- `rejectTransfer(transferId)`: رد transfer request
+- `approveQCTransfer(transferId)`: تایید QC برای scrap replacement transfers
+- `rejectQCTransfer(transferId)`: رد QC برای scrap replacement transfers
+- این توابع از `approval-actions.js` استفاده می‌کنند و با `useFetch: true` از fetch API استفاده می‌کنند.
+
+**Warehouse Transfer Functions**:
+- `createWarehouseTransfer(transferId)`: ایجاد دستی warehouse transfer برای یک transfer request
+  - بررسی confirmation از کاربر
+  - دریافت CSRF token با `getCSRFToken()`
+  - ارسال POST request به `/production/transfer-requests/<pk>/create-warehouse-transfer/`
+  - نمایش پیام موفقیت/خطا
+  - Reload صفحه در صورت موفقیت
+- `unlockTransfer(transferId)`: باز کردن قفل transfer request
+  - بررسی confirmation از کاربر
+  - دریافت CSRF token با `getCSRFToken()`
+  - ارسال POST request به `/production/transfer-requests/<pk>/unlock/`
+  - Reload صفحه در صورت موفقیت
+
+**Script Loading Order**:
+1. تعریف `getCSRFToken()` در یک تگ `<script>` جداگانه
+2. بستن تگ `<script>` قبل از لود شدن فایل‌های خارجی
+3. لود شدن `approval-actions.js`
+4. تعریف wrapper functions در تگ `<script>` بعدی
+
+**نکات مهم**:
+- تگ `<script>` که `getCSRFToken()` را تعریف می‌کند باید به درستی بسته شود تا تابع در scope global در دسترس باشد
+- اگر تگ `<script>` بسته نشود، خطای `ReferenceError: getCSRFToken is not defined` رخ می‌دهد
+- تمام توابع از fetch API استفاده می‌کنند و JSON response را پردازش می‌کنند
 
 ### Transfer to Line Delete
 - **Template**: `shared/generic/generic_confirm_delete.html`
@@ -815,4 +855,62 @@
 2. **Permission Checking**: تمام views از `FeaturePermissionRequiredMixin` استفاده می‌کنند
 3. **Transaction Management**: از `@transaction.atomic` برای atomic operations استفاده می‌شود
 4. **BOM Integration**: Items از BOM به صورت خودکار ایجاد می‌شوند
+
+---
+
+## Troubleshooting
+
+### مشکل: `ReferenceError: getCSRFToken is not defined`
+
+**علت**: تگ `<script>` که تابع `getCSRFToken()` را تعریف می‌کند به درستی بسته نشده است.
+
+**علائم**:
+- خطای `Uncaught ReferenceError: getCSRFToken is not defined` در console
+- دکمه‌های "Issue Transfer" و "Create Purchase Request" کار نمی‌کنند
+- خطای `SyntaxError: Unexpected token '<'` در console
+
+**راه حل**:
+1. اطمینان حاصل کنید که تگ `<script>` که `getCSRFToken()` را تعریف می‌کند به درستی بسته شده است:
+```html
+<script>
+function getCSRFToken() {
+  // ... function code ...
+}
+</script>  <!-- این تگ باید بسته شود -->
+```
+
+2. ترتیب لود شدن اسکریپت‌ها باید به این صورت باشد:
+   - ابتدا تعریف `getCSRFToken()` و بستن تگ `<script>`
+   - سپس لود شدن `approval-actions.js`
+   - در نهایت تعریف wrapper functions
+
+**مثال صحیح**:
+```html
+{% block extra_scripts %}
+{% csrf_token %}
+<script>
+function getCSRFToken() {
+  // ... function code ...
+}
+</script>
+
+{% load static %}
+<script src="{% static 'js/approval-actions.js' %}"></script>
+<script>
+function createWarehouseTransfer(transferId) {
+  const csrfToken = getCSRFToken();  // حالا در دسترس است
+  // ... rest of function ...
+}
+</script>
+{% endblock %}
+```
+
+### مشکل: دکمه‌های Approve/Reject کار نمی‌کنند
+
+**علت**: فایل `approval-actions.js` لود نشده یا توابع `approveObject`/`rejectObject` در دسترس نیستند.
+
+**راه حل**:
+1. بررسی کنید که فایل `approval-actions.js` در مسیر `static/js/approval-actions.js` وجود دارد
+2. بررسی کنید که تگ `<script src="...">` به درستی لود می‌شود
+3. در console مرورگر بررسی کنید که آیا خطای 404 برای فایل JavaScript وجود دارد
 

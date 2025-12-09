@@ -143,11 +143,7 @@
 {% csrf_token %}
 <script>
 function getCSRFToken() {
-  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-  if (csrfToken) {
-    return csrfToken.value;
-  }
-  // Try to get from cookies (Django sets csrftoken cookie)
+  // First try to get from cookies (Django sets csrftoken cookie) - most reliable
   const cookies = document.cookie.split(';');
   for (let cookie of cookies) {
     const [name, value] = cookie.trim().split('=');
@@ -155,8 +151,19 @@ function getCSRFToken() {
       return decodeURIComponent(value);
     }
   }
+  // Fallback: try to get from hidden input
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (csrfToken) {
+    return csrfToken.value;
+  }
+  // Last resort: try meta tag
+  const metaToken = document.querySelector('meta[name=csrf-token]');
+  if (metaToken) {
+    return metaToken.getAttribute('content');
+  }
   return null;
 }
+</script>
 
 {% load static %}
 <script src="{% static 'js/approval-actions.js' %}"></script>
@@ -206,6 +213,14 @@ function createWarehouseTransfer(transferId) {
   const url = `{% url 'production:transfer_request_create_warehouse_transfer' 0 %}`.replace('0', transferId);
   const csrfToken = getCSRFToken();
   
+  if (!csrfToken) {
+    alert('{% trans "CSRF token not found. Please refresh the page and try again." %}');
+    return;
+  }
+  
+  console.log('Creating warehouse transfer for transfer ID:', transferId);
+  console.log('URL:', url);
+  
   fetch(url, {
     method: 'POST',
     headers: {
@@ -213,19 +228,47 @@ function createWarehouseTransfer(transferId) {
       'Content-Type': 'application/json',
     },
   })
-  .then(response => response.json())
+  .then(response => {
+    console.log('Response status:', response.status);
+    console.log('Response ok:', response.ok);
+    
+    // Try to parse JSON response regardless of status
+    return response.json().then(data => {
+      console.log('Response data:', data);
+      
+      // Check if response is ok (status 200-299)
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return data;
+    }).catch(parseError => {
+      console.error('JSON parse error:', parseError);
+      // If JSON parsing fails, throw with status text
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      throw new Error('{% trans "Invalid response from server." %}');
+    });
+  })
   .then(data => {
+    console.log('Processing response data:', data);
+    
     if (data.success) {
-      alert(data.message || '{% trans "Warehouse transfer created successfully." %}');
+      const message = data.message || '{% trans "Warehouse transfer created successfully." %}';
+      console.log('Success:', message);
+      alert(message);
       // Reload page to show updated status
       window.location.reload();
     } else {
-      alert(data.error || '{% trans "An error occurred while creating warehouse transfer." %}');
+      const errorMsg = data.error || '{% trans "An error occurred while creating warehouse transfer." %}';
+      console.error('Error in response:', errorMsg);
+      alert(errorMsg);
     }
   })
   .catch(error => {
-    console.error('Error:', error);
-    alert('{% trans "An error occurred while creating warehouse transfer." %}');
+    console.error('Error creating warehouse transfer:', error);
+    alert(error.message || '{% trans "An error occurred while creating warehouse transfer." %}');
   });
 }
 
