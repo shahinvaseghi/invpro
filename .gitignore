@@ -17,6 +17,11 @@ ENV/
 .idea/
 *.swp
 
+# Temporary files
+.temp_*.txt
+temp_*.txt
+*.tmp
+
 # Databases / local files
 db.sqlite3
 

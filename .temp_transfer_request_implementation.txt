@@ -1,8 +1,0 @@
-I need to update the _create_transfer_request method in both CreateView and UpdateView to handle transfer_type and selected_operations. The method should:
-
-1. Accept transfer_type and selected_operations as parameters
-2. Use the same logic as TransferToLineCreateView.form_valid
-3. Handle 'full' and 'operations' transfer types
-
-Since the file is very large, I'll need to do targeted replacements.
-
