@@ -5,7 +5,7 @@
 این فایل شامل:
 - **1 Dataclass**: `FeaturePermissionState`
 - **3 Helper Functions**: `_feature_key`, `_collect_access_level_ids_for_user`, `_resolve_feature_permissions`
-- **2 Public Functions**: `get_user_feature_permissions`, `has_feature_permission`
+- **3 Public Functions**: `get_user_feature_permissions`, `are_users_in_same_primary_group`, `has_feature_permission`
 
 ---
 
@@ -135,6 +135,39 @@ _feature_key('inventory.items')  # Returns: 'inventory__items'
 
 ## Public Functions
 
+### `are_users_in_same_primary_group(user1: User, user2: User) -> bool`
+
+**توضیح**: بررسی اینکه آیا دو کاربر حداقل یک primary group مشترک دارند.
+
+**پارامترهای ورودی**:
+- `user1` (User): کاربر اول
+- `user2` (User): کاربر دوم
+
+**مقدار بازگشتی**:
+- `bool`: True اگر کاربران حداقل یک primary group مشترک داشته باشند، در غیر این صورت False
+
+**منطق**:
+1. اگر `user1` یا `user2` موجود نباشد، return `False`
+2. دریافت primary groups برای هر دو کاربر:
+   - `user1_groups = set(user1.primary_groups.all().values_list('id', flat=True))`
+   - `user2_groups = set(user2.primary_groups.all().values_list('id', flat=True))`
+3. بررسی intersection:
+   - `return bool(user1_groups & user2_groups)`
+
+**نکات مهم**:
+- از `primary_groups` (نه `groups`) استفاده می‌کند
+- برای same-group permissions استفاده می‌شود
+- اگر intersection موجود باشد، کاربران در same primary group هستند
+
+**مثال**:
+```python
+if are_users_in_same_primary_group(current_user, resource_owner):
+    # Users are in same primary group
+    pass
+```
+
+---
+
 ### `get_user_feature_permissions(user: User, company_id: Optional[int]) -> Dict[str, FeaturePermissionState]`
 
 **توضیح**: Public helper to resolve feature permissions for templates and views.
@@ -171,7 +204,7 @@ if permissions.get('inventory__items'):
 
 ---
 
-### `has_feature_permission(permissions: Mapping[str, FeaturePermissionState], feature_code: str, action: str = 'view', allow_own_scope: bool = True) -> bool`
+### `has_feature_permission(permissions: Mapping[str, FeaturePermissionState], feature_code: str, action: str = 'view', allow_own_scope: bool = True, current_user: Optional[User] = None, resource_owner: Optional[User] = None) -> bool`
 
 **توضیح**: Utility for validating a particular feature/action combination.
 
@@ -180,6 +213,8 @@ if permissions.get('inventory__items'):
 - `feature_code` (str): Feature code (e.g., `'inventory.items'`)
 - `action` (str): Action to check (default: `'view'`)
 - `allow_own_scope` (bool): Whether to allow 'own' scope for own-scope actions (default: `True`)
+- `current_user` (Optional[User]): Current user (required for same_group checks)
+- `resource_owner` (Optional[User]): Owner of the resource (required for same_group checks)
 
 **مقدار بازگشتی**:
 - `bool`: Whether user has permission for the feature/action
@@ -188,20 +223,29 @@ if permissions.get('inventory__items'):
 1. اگر `__superuser__` در permissions باشد، return `True`
 2. Normalize feature code با `_feature_key`
 3. دریافت `FeaturePermissionState` از permissions
-4. اگر state موجود نباشد، return `False`
+4. اگر state موجود نباشد， return `False`
 5. **Special action handling**:
    - `action == 'view'`: return `state.can_view`
    - `action == 'view_all'`: return `state.view_scope == 'all'`
    - `action == 'view_own'`: return `state.view_scope in {'own', 'all'}`
-6. **Regular action handling**:
-   - دریافت action value از `state.actions`
+6. **Same group action handling**:
+   - اگر action در `{'view_same_group', 'edit_same_group', 'delete_same_group', 'lock_same_group', 'unlock_same_group'}` باشد:
+     - بررسی action value از `state.actions.get(action)`
+     - اگر action enabled نباشد، return `False`
+     - اگر `current_user` و `resource_owner` موجود باشند:
+       - فراخوانی `are_users_in_same_primary_group(current_user, resource_owner)`
+       - اگر True باشد، return `True`
+     - return `False`
+7. **Regular action handling**:
+   - دریافت action value از `state.actions.get(action)`
    - اگر action enabled باشد، return `True`
-7. **Own scope fallback**:
+8. **Own scope fallback**:
    - اگر `allow_own_scope=True` و action در `{'edit_own', 'delete_own', 'lock_own', 'unlock_own'}` باشد:
      - return `state.view_scope in {'own', 'all'}`
 
 **نکات مهم**:
 - Superuser bypass: superusers همیشه `True` return می‌کنند
+- Same group actions: نیاز به `current_user` و `resource_owner` دارند
 - Own scope fallback: برای own-scope actions، اگر action enabled نباشد، از view_scope استفاده می‌کند
 
 **مثال**:
@@ -209,6 +253,17 @@ if permissions.get('inventory__items'):
 permissions = get_user_feature_permissions(user, company_id)
 if has_feature_permission(permissions, 'inventory.items', 'create'):
     # User can create items
+    pass
+
+# Same group permission check
+if has_feature_permission(
+    permissions, 
+    'inventory.items', 
+    'edit_same_group',
+    current_user=current_user,
+    resource_owner=item.created_by
+):
+    # User can edit items created by users in same primary group
     pass
 ```
 
@@ -238,11 +293,16 @@ if has_feature_permission(permissions, 'inventory.items', 'create'):
 - برای own-scope actions (`edit_own`, `delete_own`, etc.)، اگر action enabled نباشد، از `view_scope` استفاده می‌کند
 - اگر `view_scope in {'own', 'all'}` باشد، permission granted است
 
-### 6. Template-Friendly Keys
+### 6. Same Group Permissions
+- برای same_group actions (`view_same_group`, `edit_same_group`, etc.)، نیاز به `current_user` و `resource_owner` دارند
+- از `are_users_in_same_primary_group` برای بررسی استفاده می‌کند
+- فقط اگر کاربران در same primary group باشند، permission granted است
+
+### 7. Template-Friendly Keys
 - Feature codes با `.` به `__` تبدیل می‌شوند (برای استفاده در templates)
 - مثال: `'inventory.items'` → `'inventory__items'`
 
-### 7. Company vs Global
+### 8. Company vs Global
 - Company-scoped: از `UserCompanyAccess` استفاده می‌کند
 - Global: از `GroupProfile` و global `AccessLevel` استفاده می‌کند
 

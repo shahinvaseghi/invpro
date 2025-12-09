@@ -17,7 +17,7 @@
 
 ## AccessLevelForm
 
-**Type**: `forms.ModelForm`
+**Type**: `BaseModelForm` (از `shared.forms.base`)
 
 **Model**: `AccessLevel`
 
@@ -32,6 +32,7 @@
 **Note**: `code` field در Meta.fields نیست (auto-generated از name)
 
 **Widgets**:
+- BaseModelForm به صورت خودکار `form-control` class اضافه می‌کند
 - Text input برای name
 - Textarea برای description (3 rows)
 - Select برای is_enabled و is_global
@@ -46,10 +47,15 @@
 **توضیح**: Initialize form با choices و read-only code field.
 
 **منطق**:
-1. تنظیم choices برای `is_enabled` و `is_global` از `ENABLED_FLAG_CHOICES`
-2. اگر instance موجود باشد (editing):
-   - اضافه کردن `code` field به صورت read-only
-   - نمایش code با help text: "Auto-generated from name. Cannot be changed."
+1. حذف `company_id` از kwargs (AccessLevels company-scoped نیستند)
+2. فراخوانی `super().__init__()`
+3. تنظیم choices برای `is_enabled` و `is_global` از `ENABLED_FLAG_CHOICES`
+4. اگر instance موجود باشد و `instance.pk` موجود باشد (editing):
+   - اضافه کردن `code` field به صورت read-only:
+     - `forms.CharField` با `required=False`
+     - `widget=forms.TextInput(attrs={'readonly': True})`
+     - `initial=self.instance.code`
+     - `help_text=_('Auto-generated from name. Cannot be changed.')`
 
 **نکات مهم**:
 - `code` field فقط در edit mode نمایش داده می‌شود (read-only)

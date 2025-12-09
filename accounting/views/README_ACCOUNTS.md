@@ -2,10 +2,11 @@
 
 **هدف**: CRUD views برای مدیریت حساب‌ها (Chart of Accounts) در ماژول accounting
 
-این فایل شامل **4 کلاس view**:
+این فایل شامل **5 کلاس view**:
 - `AccountListView`: فهرست حساب‌ها
 - `AccountCreateView`: ایجاد حساب جدید
 - `AccountUpdateView`: ویرایش حساب
+- `AccountDetailView`: مشاهده جزئیات حساب (read-only)
 - `AccountDeleteView`: حذف حساب
 
 ---
@@ -16,8 +17,7 @@
 - `accounting.forms`: `AccountForm`
 - `accounting.views.base`: `AccountingBaseView`
 - `shared.mixins`: `FeaturePermissionRequiredMixin`
-- `shared.views.base`: `EditLockProtectedMixin`
-- `django.views.generic`: `CreateView`, `DeleteView`, `ListView`, `UpdateView`
+- `shared.views.base`: `BaseListView`, `BaseCreateView`, `BaseUpdateView`, `BaseDetailView`, `BaseDeleteView`, `EditLockProtectedMixin`
 - `django.contrib`: `messages`
 - `django.db.models`: `Q`
 - `django.http`: `HttpResponseRedirect`
@@ -29,7 +29,7 @@
 
 ## AccountListView
 
-**Type**: `FeaturePermissionRequiredMixin`, `AccountingBaseView`, `ListView`
+**Type**: `BaseListView`
 
 **Template**: `shared/generic/generic_list.html`
 
@@ -41,35 +41,49 @@
 - `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 - `feature_code`: `'accounting.accounts'`
+- `required_action`: `'view_all'`
+- `active_module`: `'accounting'`
+- `default_order_by`: `['account_code']`
+- `default_status_filter`: `True`
 
 **متدها**:
 
-#### `get_queryset(self) -> QuerySet`
+#### `get_base_queryset(self) -> QuerySet`
 
-**توضیح**: queryset را بر اساس active company، permissions، search، status، account_type و account_level filter می‌کند.
+**توضیح**: queryset را بر اساس active company و permissions filter می‌کند.
 
 **مقدار بازگشتی**:
 - `QuerySet`: queryset فیلتر شده
 
 **منطق**:
-1. ابتدا `super().get_queryset()` را فراخوانی می‌کند (company filtering)
-2. `filter_queryset_by_permissions()` را با feature code `'accounting.accounts'` فراخوانی می‌کند
-3. `search` را از GET parameters می‌گیرد
-4. اگر `search` وجود دارد:
-   - queryset را بر اساس `account_code`, `account_name`, یا `account_name_en` فیلتر می‌کند (case-insensitive)
-5. `status` را از GET parameters می‌گیرد
-6. اگر `status` در `('0', '1')` باشد:
-   - queryset را بر اساس `is_enabled` فیلتر می‌کند
-7. در غیر این صورت (default):
-   - فقط حساب‌های فعال (`is_enabled=1`) را نمایش می‌دهد
-8. `account_type` را از GET parameters می‌گیرد
-9. اگر `account_type` وجود دارد:
-   - queryset را بر اساس `account_type` فیلتر می‌کند
-10. `account_level` را از GET parameters می‌گیرد
-11. اگر `account_level` وجود دارد:
-    - queryset را بر اساس `account_level` فیلتر می‌کند
-12. queryset را بر اساس `account_code` مرتب می‌کند
-13. queryset را برمی‌گرداند
+1. فراخوانی `super().get_base_queryset()` (company filtering از BaseListView)
+2. ایجاد instance از `AccountingBaseView` و تنظیم `request`
+3. فراخوانی `filter_queryset_by_permissions(queryset, self.feature_code)` برای permission filtering
+4. return queryset
+
+#### `get_search_fields(self) -> list`
+
+**توضیح**: لیست fields برای search را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `list`: `['account_code', 'account_name', 'account_name_en']`
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس account_type و account_level filter می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده
+
+**منطق**:
+1. فراخوانی `super().get_queryset()` (که search و status filtering را انجام می‌دهد)
+2. دریافت `account_type` از GET parameters
+3. اگر `account_type` موجود باشد:
+   - `queryset = queryset.filter(account_type=account_type)`
+4. دریافت `account_level` از GET parameters
+5. اگر `account_level` موجود باشد:
+   - `queryset = queryset.filter(account_level=int(account_level))`
+6. return queryset
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
 
@@ -99,7 +113,7 @@
 
 ## AccountCreateView
 
-**Type**: `FeaturePermissionRequiredMixin`, `AccountingBaseView`, `CreateView`
+**Type**: `BaseCreateView`
 
 **Template**: `shared/generic/generic_form.html`
 
@@ -114,6 +128,8 @@
 - `success_url`: `reverse_lazy('accounting:accounts')`
 - `feature_code`: `'accounting.accounts'`
 - `required_action`: `'create'`
+- `active_module`: `'accounting'`
+- `success_message`: `_('Account created successfully.')`
 
 **متدها**:
 
@@ -132,7 +148,7 @@
 
 #### `form_valid(self, form: AccountForm) -> HttpResponseRedirect`
 
-**توضیح**: قبل از ذخیره، `created_by` را تنظیم می‌کند و پیام موفقیت نمایش می‌دهد.
+**توضیح**: قبل از ذخیره، `created_by` را تنظیم می‌کند.
 
 **پارامترهای ورودی**:
 - `form`: فرم معتبر `AccountForm`
@@ -142,17 +158,28 @@
 
 **منطق**:
 1. `form.instance.created_by` را به `self.request.user` تنظیم می‌کند
-2. پیام موفقیت را با `messages.success()` نمایش می‌دهد
-3. `super().form_valid(form)` را فراخوانی می‌کند
+2. `super().form_valid(form)` را فراخوانی می‌کند (که پیام موفقیت را نمایش می‌دهد)
 
-#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+#### `get_breadcrumbs(self) -> list`
 
-**توضیح**: context variables را برای generic_form template اضافه می‌کند.
+**توضیح**: لیست breadcrumbs را برمی‌گرداند.
 
-**Context Variables اضافه شده**:
-- `form_title`: `_('Create Account')`
-- `breadcrumbs`: لیست breadcrumb items (Dashboard → Accounting → Chart of Accounts)
-- `cancel_url`: URL برای cancel (بازگشت به لیست)
+**مقدار بازگشتی**:
+- `list`: `[{'label': _('Dashboard'), 'url': reverse('ui:dashboard')}, {'label': _('Accounting'), 'url': reverse('accounting:dashboard')}, {'label': _('Chart of Accounts'), 'url': reverse('accounting:accounts')}, {'label': _('Create'), 'url': None}]`
+
+#### `get_cancel_url(self) -> str`
+
+**توضیح**: URL برای cancel را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `reverse('accounting:accounts')`
+
+#### `get_form_title(self) -> str`
+
+**توضیح**: عنوان فرم را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `_('Create Account')`
 
 **URL**: `/accounting/accounts/create/`
 
@@ -160,7 +187,7 @@
 
 ## AccountUpdateView
 
-**Type**: `EditLockProtectedMixin`, `FeaturePermissionRequiredMixin`, `AccountingBaseView`, `UpdateView`
+**Type**: `BaseUpdateView`, `EditLockProtectedMixin`
 
 **Template**: `shared/generic/generic_form.html`
 
@@ -175,6 +202,8 @@
 - `success_url`: `reverse_lazy('accounting:accounts')`
 - `feature_code`: `'accounting.accounts'`
 - `required_action`: `'edit_own'`
+- `active_module`: `'accounting'`
+- `success_message`: `_('Account updated successfully.')`
 
 **متدها**:
 
@@ -197,7 +226,7 @@
 
 #### `form_valid(self, form: AccountForm) -> HttpResponseRedirect`
 
-**توضیح**: قبل از ذخیره، `edited_by` را تنظیم می‌کند و پیام موفقیت نمایش می‌دهد.
+**توضیح**: قبل از ذخیره، `edited_by` را تنظیم می‌کند.
 
 **پارامترهای ورودی**:
 - `form`: فرم معتبر `AccountForm`
@@ -207,27 +236,134 @@
 
 **منطق**:
 1. `form.instance.edited_by` را به `self.request.user` تنظیم می‌کند
-2. پیام موفقیت را با `messages.success()` نمایش می‌دهد
-3. `super().form_valid(form)` را فراخوانی می‌کند
+2. `super().form_valid(form)` را فراخوانی می‌کند (که پیام موفقیت را نمایش می‌دهد)
 
 **نکته**: این view از `EditLockProtectedMixin` استفاده می‌کند که از concurrent editing جلوگیری می‌کند.
 
-#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+#### `get_breadcrumbs(self) -> list`
 
-**توضیح**: context variables را برای generic_form template اضافه می‌کند.
+**توضیح**: لیست breadcrumbs را برمی‌گرداند.
 
-**Context Variables اضافه شده**:
-- `form_title`: `_('Edit Account')`
-- `breadcrumbs`: لیست breadcrumb items (Dashboard → Accounting → Chart of Accounts)
-- `cancel_url`: URL برای cancel (بازگشت به لیست)
+**مقدار بازگشتی**:
+- `list`: `[{'label': _('Dashboard'), 'url': reverse('ui:dashboard')}, {'label': _('Accounting'), 'url': reverse('accounting:dashboard')}, {'label': _('Chart of Accounts'), 'url': reverse('accounting:accounts')}, {'label': _('Edit'), 'url': None}]`
+
+#### `get_cancel_url(self) -> str`
+
+**توضیح**: URL برای cancel را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `reverse('accounting:accounts')`
+
+#### `get_form_title(self) -> str`
+
+**توضیح**: عنوان فرم را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `_('Edit Account')`
 
 **URL**: `/accounting/accounts/<int:pk>/edit/`
 
 ---
 
+## AccountDetailView
+
+**Type**: `BaseDetailView`
+
+**Template**: `shared/generic/generic_detail.html`
+
+**توضیح**: مشاهده جزئیات حساب (read-only)
+
+**Attributes**:
+- `model`: `Account`
+- `template_name`: `'shared/generic/generic_detail.html'`
+- `context_object_name`: `'object'`
+- `feature_code`: `'accounting.accounts'`
+- `required_action`: `'view_own'`
+- `active_module`: `'accounting'`
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس active company و permissions filter می‌کند و optimize می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده با `select_related` برای `parent_account`, `created_by`, `edited_by` و `prefetch_related` برای `child_accounts`
+
+**منطق**:
+1. فراخوانی `super().get_queryset()`
+2. ایجاد instance از `AccountingBaseView` و تنظیم `request`
+3. فراخوانی `filter_queryset_by_permissions(queryset, self.feature_code)`
+4. `select_related('parent_account', 'created_by', 'edited_by')` برای optimization
+5. `prefetch_related('child_accounts')` برای child accounts
+6. return queryset
+
+#### `get_page_title(self) -> str`
+
+**توضیح**: عنوان صفحه را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `_('View Account')`
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic_detail template اضافه می‌کند.
+
+**Context Variables اضافه شده**:
+- `detail_title`: `_('View Account')`
+- `info_banner`: لیست اطلاعات اصلی (Account Code, Account Level, Status, Current Balance)
+- `detail_sections`: لیست sections با fields (Basic Information, Child Accounts)
+- `list_url`: URL برای بازگشت به لیست
+- `edit_url`: URL برای ویرایش
+
+**منطق**:
+1. `info_banner` شامل:
+   - `{'label': _('Account Code'), 'value': account.account_code, 'type': 'code'}`
+   - `{'label': _('Account Level'), 'value': str(account.account_level)}`
+   - `{'label': _('Status'), 'value': account.is_enabled, 'type': 'badge'}`
+   - اگر `account.current_balance`: `{'label': _('Current Balance'), 'value': f"{account.current_balance:.2f}"}`
+2. `detail_sections` شامل:
+   - Basic Information: `account_name`, `account_name_en` (اگر موجود باشد), `account_type`, `normal_balance`, `parent_account` (اگر موجود باشد), `description` (اگر موجود باشد)
+   - Child Accounts: اگر `account.child_accounts.exists()` باشد، نمایش child accounts به صورت HTML با format: `<code>{code}</code> - {name} ({Level} {level})`
+
+#### `get_list_url(self) -> str`
+
+**توضیح**: URL برای بازگشت به لیست را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `reverse_lazy('accounting:accounts')`
+
+#### `get_edit_url(self) -> str`
+
+**توضیح**: URL برای ویرایش را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `reverse_lazy('accounting:account_edit', kwargs={'pk': self.object.pk})`
+
+#### `can_edit_object(self, obj=None, feature_code=None) -> bool`
+
+**توضیح**: بررسی می‌کند که آیا object قابل ویرایش است یا نه.
+
+**پارامترهای ورودی**:
+- `obj` (optional): Object برای بررسی (default: `self.object`)
+- `feature_code` (optional): Feature code (استفاده نمی‌شود)
+
+**مقدار بازگشتی**:
+- `bool`: `True` اگر object قفل نباشد، `False` در غیر این صورت
+
+**منطق**:
+1. اگر `obj` موجود نباشد، از `self.object` استفاده می‌کند
+2. اگر object دارای `is_locked` attribute باشد:
+   - return `not bool(obj.is_locked)`
+3. در غیر این صورت: return `True`
+
+**URL**: `/accounting/accounts/<int:pk>/`
+
+---
+
 ## AccountDeleteView
 
-**Type**: `FeaturePermissionRequiredMixin`, `AccountingBaseView`, `DeleteView`
+**Type**: `BaseDeleteView`
 
 **Template**: `shared/generic/generic_confirm_delete.html`
 
@@ -239,49 +375,55 @@
 - `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `feature_code`: `'accounting.accounts'`
 - `required_action`: `'delete_own'`
+- `active_module`: `'accounting'`
+- `success_message`: `_('Account deleted successfully.')`
 
 **متدها**:
 
-#### `delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect`
+#### `validate_deletion(self) -> tuple[bool, Optional[str]]`
 
-**توضیح**: حساب را حذف می‌کند با بررسی‌های امنیتی.
-
-**پارامترهای ورودی**:
-- `request`: HttpRequest
-- `*args`: Additional arguments
-- `**kwargs`: Additional keyword arguments
+**توضیح**: بررسی می‌کند که آیا حساب قابل حذف است یا نه.
 
 **مقدار بازگشتی**:
-- `HttpResponseRedirect`: redirect به success_url
+- `tuple[bool, Optional[str]]`: `(True, None)` اگر قابل حذف باشد، `(False, error_message)` در غیر این صورت
 
 **منطق**:
-1. `self.get_object()` را فراخوانی می‌کند تا object را بگیرد
-2. بررسی می‌کند که آیا حساب system account است (`is_system_account`):
-   - اگر باشد، پیام خطا نمایش می‌دهد و redirect می‌کند (بدون حذف)
-3. بررسی می‌کند که آیا حساب دارای child accounts است (`child_accounts.exists()`):
-   - اگر باشد، پیام خطا نمایش می‌دهد و redirect می‌کند (بدون حذف)
-4. اگر همه بررسی‌ها پاس شدند:
-   - پیام موفقیت را با `messages.success()` نمایش می‌دهد
-   - `super().delete(request, *args, **kwargs)` را فراخوانی می‌کند
+1. دریافت object با `self.get_object()`
+2. بررسی `is_system_account`:
+   - اگر `obj.is_system_account` باشد: return `(False, _('System accounts cannot be deleted.'))`
+3. بررسی child accounts:
+   - اگر `obj.child_accounts.exists()` باشد: return `(False, _('Cannot delete account with child accounts.'))`
+4. return `(True, None)`
 
-**نکته**: System accounts و حساب‌های دارای child accounts قابل حذف نیستند.
+**نکته**: System accounts و حساب‌های دارای child accounts قابل حذف نیستند. BaseDeleteView از این متد برای validation استفاده می‌کند.
 
-#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+#### `get_delete_title(self) -> str`
 
-**توضیح**: context variables را برای generic_confirm_delete template اضافه می‌کند.
+**توضیح**: عنوان صفحه حذف را برمی‌گرداند.
 
-**Context Variables اضافه شده**:
-- `delete_title`: `_('Delete Account')`
-- `confirmation_message`: `_('Do you really want to delete this account?')`
-- `breadcrumbs`: لیست breadcrumb items (Dashboard → Accounting → Chart of Accounts → Delete)
-- `object_details`: لیست جزئیات object برای نمایش در صفحه حذف
-- `cancel_url`: URL برای cancel (بازگشت به لیست)
+**مقدار بازگشتی**:
+- `str`: `_('Delete Account')`
 
-**Object Details**:
-- Code: `self.object.account_code`
-- Name: `self.object.account_name`
-- Type: `self.object.get_account_type_display()`
-- Level: `self.object.get_account_level_display()`
+#### `get_confirmation_message(self) -> str`
+
+**توضیح**: پیام تایید حذف را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `_('Do you really want to delete this account?')`
+
+#### `get_object_details(self) -> list`
+
+**توضیح**: لیست جزئیات object برای نمایش در صفحه حذف را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `list`: `[{'label': _('Code'), 'value': self.object.account_code, 'type': 'code'}, {'label': _('Name'), 'value': self.object.account_name}, {'label': _('Type'), 'value': self.object.get_account_type_display()}, {'label': _('Level'), 'value': self.object.get_account_level_display()}]`
+
+#### `get_breadcrumbs(self) -> list`
+
+**توضیح**: لیست breadcrumbs را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `list`: `[{'label': _('Dashboard'), 'url': reverse('ui:dashboard')}, {'label': _('Accounting'), 'url': reverse('accounting:dashboard')}, {'label': _('Chart of Accounts'), 'url': reverse('accounting:accounts')}, {'label': _('Delete'), 'url': None}]`
 
 **URL**: `/accounting/accounts/<int:pk>/delete/`
 
@@ -293,6 +435,7 @@
 ```python
 path('accounts/', AccountListView.as_view(), name='accounts'),
 path('accounts/create/', AccountCreateView.as_view(), name='account_create'),
+path('accounts/<int:pk>/', AccountDetailView.as_view(), name='account_detail'),
 path('accounts/<int:pk>/edit/', AccountUpdateView.as_view(), name='account_edit'),
 path('accounts/<int:pk>/delete/', AccountDeleteView.as_view(), name='account_delete'),
 ```
@@ -304,6 +447,7 @@ path('accounts/<int:pk>/delete/', AccountDeleteView.as_view(), name='account_del
 تمام views از تمپلیت‌های generic استفاده می‌کنند:
 - List: `shared/generic/generic_list.html`
 - Form: `shared/generic/generic_form.html`
+- Detail: `shared/generic/generic_detail.html`
 - Delete: `shared/generic/generic_confirm_delete.html`
 
 ---

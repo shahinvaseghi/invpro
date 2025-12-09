@@ -2,10 +2,11 @@
 
 **هدف**: CRUD views برای مدیریت سال‌های مالی در ماژول accounting
 
-این فایل شامل **4 کلاس view**:
+این فایل شامل **5 کلاس view**:
 - `FiscalYearListView`: فهرست سال‌های مالی
 - `FiscalYearCreateView`: ایجاد سال مالی جدید
 - `FiscalYearUpdateView`: ویرایش سال مالی
+- `FiscalYearDetailView`: مشاهده جزئیات سال مالی (read-only)
 - `FiscalYearDeleteView`: حذف سال مالی
 
 ---
@@ -16,8 +17,7 @@
 - `accounting.forms`: `FiscalYearForm`
 - `accounting.views.base`: `AccountingBaseView`
 - `shared.mixins`: `FeaturePermissionRequiredMixin`
-- `shared.views.base`: `EditLockProtectedMixin`
-- `django.views.generic`: `CreateView`, `DeleteView`, `ListView`, `UpdateView`
+- `shared.views.base`: `BaseListView`, `BaseCreateView`, `BaseUpdateView`, `BaseDetailView`, `BaseDeleteView`, `EditLockProtectedMixin`
 - `django.contrib`: `messages`
 - `django.db.models`: `Q`
 - `django.http`: `HttpResponseRedirect`
@@ -29,7 +29,7 @@
 
 ## FiscalYearListView
 
-**Type**: `FeaturePermissionRequiredMixin`, `AccountingBaseView`, `ListView`
+**Type**: `BaseListView`
 
 **Template**: `shared/generic/generic_list.html`
 
@@ -41,29 +41,102 @@
 - `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 - `feature_code`: `'accounting.fiscal_years'`
+- `required_action`: `'view_all'`
+- `active_module`: `'accounting'`
+- `default_order_by`: `['-fiscal_year_code']`
+- `default_status_filter`: `True`
 
 **متدها**:
 
-#### `get_queryset(self) -> QuerySet`
+#### `get_base_queryset(self) -> QuerySet`
 
-**توضیح**: queryset را بر اساس active company، permissions، search و status filter می‌کند.
+**توضیح**: queryset را بر اساس active company و permissions filter می‌کند.
 
 **مقدار بازگشتی**:
 - `QuerySet`: queryset فیلتر شده
 
 **منطق**:
-1. ابتدا `super().get_queryset()` را فراخوانی می‌کند (company filtering)
-2. `filter_queryset_by_permissions()` را با feature code `'accounting.fiscal_years'` فراخوانی می‌کند
-3. `search` را از GET parameters می‌گیرد
-4. اگر `search` وجود دارد:
-   - queryset را بر اساس `fiscal_year_code` یا `fiscal_year_name` فیلتر می‌کند (case-insensitive)
-5. `status` را از GET parameters می‌گیرد
-6. اگر `status` در `('0', '1')` باشد:
-   - queryset را بر اساس `is_enabled` فیلتر می‌کند
-7. در غیر این صورت (default):
-   - فقط سال‌های مالی فعال (`is_enabled=1`) را نمایش می‌دهد
-8. queryset را بر اساس `-fiscal_year_code` مرتب می‌کند (جدیدترین اول)
-9. queryset را برمی‌گرداند
+1. فراخوانی `super().get_base_queryset()` (company filtering از BaseListView)
+2. ایجاد instance از `AccountingBaseView` و تنظیم `request`
+3. فراخوانی `filter_queryset_by_permissions(queryset, self.feature_code)` برای permission filtering
+4. return queryset
+
+#### `get_search_fields(self) -> list`
+
+**توضیح**: لیست fields برای search را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `list`: `['fiscal_year_code', 'fiscal_year_name']`
+
+#### `get_page_title(self) -> str`
+
+**توضیح**: عنوان صفحه را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `_('Fiscal Years')`
+
+#### `get_breadcrumbs(self) -> list`
+
+**توضیح**: لیست breadcrumbs را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `list`: `[{'label': _('Dashboard'), 'url': reverse('ui:dashboard')}, {'label': _('Accounting'), 'url': reverse('accounting:dashboard')}, {'label': _('Fiscal Years'), 'url': None}]`
+
+#### `get_create_url(self) -> str`
+
+**توضیح**: URL برای ایجاد سال مالی جدید را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `reverse('accounting:fiscal_year_create')`
+
+#### `get_create_button_text(self) -> str`
+
+**توضیح**: متن دکمه ایجاد را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `_('Create Fiscal Year')`
+
+#### `get_detail_url_name(self) -> str`
+
+**توضیح**: نام URL برای detail view را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `'accounting:fiscal_year_detail'`
+
+#### `get_edit_url_name(self) -> str`
+
+**توضیح**: نام URL برای edit view را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `'accounting:fiscal_year_edit'`
+
+#### `get_delete_url_name(self) -> str`
+
+**توضیح**: نام URL برای delete view را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `'accounting:fiscal_year_delete'`
+
+#### `get_empty_state_title(self) -> str`
+
+**توضیح**: عنوان empty state را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `_('No Fiscal Years Found')`
+
+#### `get_empty_state_message(self) -> str`
+
+**توضیح**: پیام empty state را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `_('Start by adding your first fiscal year.')`
+
+#### `get_empty_state_icon(self) -> str`
+
+**توضیح**: آیکون empty state را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `'📅'`
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
 
@@ -99,7 +172,7 @@
 
 ## FiscalYearCreateView
 
-**Type**: `FeaturePermissionRequiredMixin`, `AccountingBaseView`, `CreateView`
+**Type**: `BaseCreateView`
 
 **Template**: `shared/generic/generic_form.html`
 
@@ -114,6 +187,8 @@
 - `success_url`: `reverse_lazy('accounting:fiscal_years')`
 - `feature_code`: `'accounting.fiscal_years'`
 - `required_action`: `'create'`
+- `active_module`: `'accounting'`
+- `success_message`: `_('Fiscal year created successfully.')`
 
 **متدها**:
 
@@ -132,7 +207,7 @@
 
 #### `form_valid(self, form: FiscalYearForm) -> HttpResponseRedirect`
 
-**توضیح**: قبل از ذخیره، `created_by` را تنظیم می‌کند و پیام موفقیت نمایش می‌دهد.
+**توضیح**: قبل از ذخیره، `created_by` را تنظیم می‌کند.
 
 **پارامترهای ورودی**:
 - `form`: فرم معتبر `FiscalYearForm`
@@ -142,17 +217,28 @@
 
 **منطق**:
 1. `form.instance.created_by` را به `self.request.user` تنظیم می‌کند
-2. پیام موفقیت را با `messages.success()` نمایش می‌دهد
-3. `super().form_valid(form)` را فراخوانی می‌کند
+2. `super().form_valid(form)` را فراخوانی می‌کند (که پیام موفقیت را نمایش می‌دهد)
 
-#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+#### `get_breadcrumbs(self) -> list`
 
-**توضیح**: context variables را برای generic_form template اضافه می‌کند.
+**توضیح**: لیست breadcrumbs را برمی‌گرداند.
 
-**Context Variables اضافه شده**:
-- `form_title`: `_('Create Fiscal Year')`
-- `breadcrumbs`: لیست breadcrumb items (Dashboard → Accounting → Fiscal Years)
-- `cancel_url`: URL برای cancel (بازگشت به لیست)
+**مقدار بازگشتی**:
+- `list`: `[{'label': _('Dashboard'), 'url': reverse('ui:dashboard')}, {'label': _('Accounting'), 'url': reverse('accounting:dashboard')}, {'label': _('Fiscal Years'), 'url': reverse('accounting:fiscal_years')}, {'label': _('Create'), 'url': None}]`
+
+#### `get_cancel_url(self) -> str`
+
+**توضیح**: URL برای cancel را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `reverse('accounting:fiscal_years')`
+
+#### `get_form_title(self) -> str`
+
+**توضیح**: عنوان فرم را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `_('Create Fiscal Year')`
 
 **URL**: `/accounting/fiscal-years/create/`
 
@@ -160,7 +246,7 @@
 
 ## FiscalYearUpdateView
 
-**Type**: `EditLockProtectedMixin`, `FeaturePermissionRequiredMixin`, `AccountingBaseView`, `UpdateView`
+**Type**: `BaseUpdateView`, `EditLockProtectedMixin`
 
 **Template**: `shared/generic/generic_form.html`
 
@@ -175,6 +261,8 @@
 - `success_url`: `reverse_lazy('accounting:fiscal_years')`
 - `feature_code`: `'accounting.fiscal_years'`
 - `required_action`: `'edit_own'`
+- `active_module`: `'accounting'`
+- `success_message`: `_('Fiscal year updated successfully.')`
 
 **متدها**:
 
@@ -189,7 +277,7 @@
 
 #### `form_valid(self, form: FiscalYearForm) -> HttpResponseRedirect`
 
-**توضیح**: قبل از ذخیره، `edited_by` را تنظیم می‌کند و پیام موفقیت نمایش می‌دهد.
+**توضیح**: قبل از ذخیره، `edited_by` را تنظیم می‌کند.
 
 **پارامترهای ورودی**:
 - `form`: فرم معتبر `FiscalYearForm`
@@ -199,27 +287,131 @@
 
 **منطق**:
 1. `form.instance.edited_by` را به `self.request.user` تنظیم می‌کند
-2. پیام موفقیت را با `messages.success()` نمایش می‌دهد
-3. `super().form_valid(form)` را فراخوانی می‌کند
+2. `super().form_valid(form)` را فراخوانی می‌کند (که پیام موفقیت را نمایش می‌دهد)
 
 **نکته**: این view از `EditLockProtectedMixin` استفاده می‌کند که از concurrent editing جلوگیری می‌کند.
 
-#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+#### `get_breadcrumbs(self) -> list`
 
-**توضیح**: context variables را برای generic_form template اضافه می‌کند.
+**توضیح**: لیست breadcrumbs را برمی‌گرداند.
 
-**Context Variables اضافه شده**:
-- `form_title`: `_('Edit Fiscal Year')`
-- `breadcrumbs`: لیست breadcrumb items (Dashboard → Accounting → Fiscal Years)
-- `cancel_url`: URL برای cancel (بازگشت به لیست)
+**مقدار بازگشتی**:
+- `list`: `[{'label': _('Dashboard'), 'url': reverse('ui:dashboard')}, {'label': _('Accounting'), 'url': reverse('accounting:dashboard')}, {'label': _('Fiscal Years'), 'url': reverse('accounting:fiscal_years')}, {'label': _('Edit'), 'url': None}]`
+
+#### `get_cancel_url(self) -> str`
+
+**توضیح**: URL برای cancel را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `reverse('accounting:fiscal_years')`
+
+#### `get_form_title(self) -> str`
+
+**توضیح**: عنوان فرم را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `_('Edit Fiscal Year')`
 
 **URL**: `/accounting/fiscal-years/<int:pk>/edit/`
 
 ---
 
+## FiscalYearDetailView
+
+**Type**: `BaseDetailView`
+
+**Template**: `shared/generic/generic_detail.html`
+
+**توضیح**: مشاهده جزئیات سال مالی (read-only)
+
+**Attributes**:
+- `model`: `FiscalYear`
+- `template_name`: `'shared/generic/generic_detail.html'`
+- `context_object_name`: `'object'`
+- `feature_code`: `'accounting.fiscal_years'`
+- `required_action`: `'view_own'`
+- `active_module`: `'accounting'`
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس active company و permissions filter می‌کند و optimize می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده با `select_related` برای `created_by`, `edited_by`
+
+**منطق**:
+1. فراخوانی `super().get_queryset()`
+2. ایجاد instance از `AccountingBaseView` و تنظیم `request`
+3. فراخوانی `filter_queryset_by_permissions(queryset, self.feature_code)`
+4. `select_related('created_by', 'edited_by')` برای optimization
+5. return queryset
+
+#### `get_page_title(self) -> str`
+
+**توضیح**: عنوان صفحه را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `_('View Fiscal Year')`
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic_detail template اضافه می‌کند.
+
+**Context Variables اضافه شده**:
+- `detail_title`: `_('View Fiscal Year')`
+- `info_banner`: لیست اطلاعات اصلی (Fiscal Year Code, Status, Current)
+- `detail_sections`: لیست sections با fields (Basic Information)
+- `list_url`: URL برای بازگشت به لیست
+- `edit_url`: URL برای ویرایش
+
+**منطق**:
+1. `info_banner` شامل:
+   - `{'label': _('Fiscal Year Code'), 'value': fiscal_year.fiscal_year_code, 'type': 'code'}`
+   - `{'label': _('Status'), 'value': fiscal_year.is_enabled, 'type': 'badge'}`
+   - اگر `fiscal_year.is_current`: `{'label': _('Current'), 'value': True, 'type': 'badge', 'true_label': _('Yes')}`
+2. `detail_sections` شامل:
+   - Basic Information: `fiscal_year_name`, `start_date`, `end_date`, `description` (اگر موجود باشد)
+
+#### `get_list_url(self) -> str`
+
+**توضیح**: URL برای بازگشت به لیست را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `reverse_lazy('accounting:fiscal_years')`
+
+#### `get_edit_url(self) -> str`
+
+**توضیح**: URL برای ویرایش را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `str`: `reverse_lazy('accounting:fiscal_year_edit', kwargs={'pk': self.object.pk})`
+
+#### `can_edit_object(self, obj=None, feature_code=None) -> bool`
+
+**توضیح**: بررسی می‌کند که آیا object قابل ویرایش است یا نه.
+
+**پارامترهای ورودی**:
+- `obj` (optional): Object برای بررسی (default: `self.object`)
+- `feature_code` (optional): Feature code (استفاده نمی‌شود)
+
+**مقدار بازگشتی**:
+- `bool`: `True` اگر object قفل نباشد، `False` در غیر این صورت
+
+**منطق**:
+1. اگر `obj` موجود نباشد، از `self.object` استفاده می‌کند
+2. اگر object دارای `is_locked` attribute باشد:
+   - return `not bool(obj.is_locked)`
+3. در غیر این صورت: return `True`
+
+**URL**: `/accounting/fiscal-years/<int:pk>/`
+
+---
+
 ## FiscalYearDeleteView
 
-**Type**: `FeaturePermissionRequiredMixin`, `AccountingBaseView`, `DeleteView`
+**Type**: `BaseDeleteView`
 
 **Template**: `shared/generic/generic_confirm_delete.html`
 
@@ -231,41 +423,38 @@
 - `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `feature_code`: `'accounting.fiscal_years'`
 - `required_action`: `'delete_own'`
+- `active_module`: `'accounting'`
+- `success_message`: `_('Fiscal year deleted successfully.')`
 
 **متدها**:
 
-#### `delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect`
+#### `get_delete_title(self) -> str`
 
-**توضیح**: سال مالی را حذف می‌کند و پیام موفقیت نمایش می‌دهد.
-
-**پارامترهای ورودی**:
-- `request`: HttpRequest
-- `*args`: Additional arguments
-- `**kwargs`: Additional keyword arguments
+**توضیح**: عنوان صفحه حذف را برمی‌گرداند.
 
 **مقدار بازگشتی**:
-- `HttpResponseRedirect`: redirect به success_url
+- `str`: `_('Delete Fiscal Year')`
 
-**منطق**:
-1. پیام موفقیت را با `messages.success()` نمایش می‌دهد
-2. `super().delete(request, *args, **kwargs)` را فراخوانی می‌کند
+#### `get_confirmation_message(self) -> str`
 
-#### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
+**توضیح**: پیام تایید حذف را برمی‌گرداند.
 
-**توضیح**: context variables را برای generic_confirm_delete template اضافه می‌کند.
+**مقدار بازگشتی**:
+- `str`: `_('Do you really want to delete this fiscal year?')`
 
-**Context Variables اضافه شده**:
-- `delete_title`: `_('Delete Fiscal Year')`
-- `confirmation_message`: `_('Do you really want to delete this fiscal year?')`
-- `breadcrumbs`: لیست breadcrumb items (Dashboard → Accounting → Fiscal Years → Delete)
-- `object_details`: لیست جزئیات object برای نمایش در صفحه حذف
-- `cancel_url`: URL برای cancel (بازگشت به لیست)
+#### `get_object_details(self) -> list`
 
-**Object Details**:
-- Code: `self.object.fiscal_year_code`
-- Name: `self.object.fiscal_year_name`
-- Start Date: `self.object.start_date`
-- End Date: `self.object.end_date`
+**توضیح**: لیست جزئیات object برای نمایش در صفحه حذف را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `list`: `[{'label': _('Code'), 'value': self.object.fiscal_year_code, 'type': 'code'}, {'label': _('Name'), 'value': self.object.fiscal_year_name}, {'label': _('Start Date'), 'value': self.object.start_date}, {'label': _('End Date'), 'value': self.object.end_date}]`
+
+#### `get_breadcrumbs(self) -> list`
+
+**توضیح**: لیست breadcrumbs را برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `list`: `[{'label': _('Dashboard'), 'url': reverse('ui:dashboard')}, {'label': _('Accounting'), 'url': reverse('accounting:dashboard')}, {'label': _('Fiscal Years'), 'url': reverse('accounting:fiscal_years')}, {'label': _('Delete'), 'url': None}]`
 
 **URL**: `/accounting/fiscal-years/<int:pk>/delete/`
 
@@ -277,6 +466,7 @@
 ```python
 path('fiscal-years/', FiscalYearListView.as_view(), name='fiscal_years'),
 path('fiscal-years/create/', FiscalYearCreateView.as_view(), name='fiscal_year_create'),
+path('fiscal-years/<int:pk>/', FiscalYearDetailView.as_view(), name='fiscal_year_detail'),
 path('fiscal-years/<int:pk>/edit/', FiscalYearUpdateView.as_view(), name='fiscal_year_edit'),
 path('fiscal-years/<int:pk>/delete/', FiscalYearDeleteView.as_view(), name='fiscal_year_delete'),
 ```
@@ -288,6 +478,7 @@ path('fiscal-years/<int:pk>/delete/', FiscalYearDeleteView.as_view(), name='fisc
 تمام views از تمپلیت‌های generic استفاده می‌کنند:
 - List: `shared/generic/generic_list.html`
 - Form: `shared/generic/generic_form.html`
+- Detail: `shared/generic/generic_detail.html`
 - Delete: `shared/generic/generic_confirm_delete.html`
 
 ---

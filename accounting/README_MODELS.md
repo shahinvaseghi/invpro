@@ -35,6 +35,37 @@
 
 ---
 
+## Helper Functions
+
+### `get_fiscal_year_from_date(company_id: int, document_date) -> Optional[FiscalYear]`
+
+**توضیح**: دریافت سال مالی برای یک company و date مشخص.
+
+**پارامترهای ورودی**:
+- `company_id` (int): شناسه شرکت
+- `document_date`: تاریخ سند (Date)
+
+**مقدار بازگشتی**:
+- `Optional[FiscalYear]`: سال مالی که شامل `document_date` است، یا `None` اگر پیدا نشود
+
+**منطق**:
+1. جستجو برای `FiscalYear` با:
+   - `company_id=company_id`
+   - `start_date__lte=document_date`
+   - `end_date__gte=document_date`
+   - `is_enabled=1`
+2. اگر یک سال مالی پیدا شود، return آن
+3. اگر `FiscalYear.DoesNotExist` رخ دهد، return `None`
+4. اگر `FiscalYear.MultipleObjectsReturned` رخ دهد:
+   - فیلتر و مرتب‌سازی بر اساس `-start_date`
+   - return اولین (most recent)
+
+**نکات مهم**:
+- فقط enabled fiscal years در نظر گرفته می‌شوند
+- اگر چند سال مالی match کنند، most recent (بزرگترین start_date) انتخاب می‌شود
+
+---
+
 ## Base Models (Abstract)
 
 ### `AccountingBaseModel`
@@ -69,20 +100,65 @@
 
 ---
 
+### `FiscalYearMixin`
+
+**Inheritance**: `models.Model` (abstract mixin)
+
+**توضیح**: Mixin برای auto-populate کردن `fiscal_year_id` از `document_date`.
+
+**Fields**:
+- `fiscal_year` (ForeignKey to FiscalYear, null=True, blank=True): سال مالی (auto-populated)
+
+**Methods**:
+
+#### `get_document_date_field_name(self) -> str`
+- **Returns**: نام field برای document date (default: `'document_date'`)
+- **Logic**: می‌تواند override شود اگر field name متفاوت باشد
+
+#### `save(self, *args, **kwargs) -> None`
+- **Logic**:
+  1. اگر `fiscal_year_id` موجود نباشد:
+     - دریافت `document_date` از field (از `get_document_date_field_name()`)
+     - اگر `document_date` و `company_id` موجود باشند:
+       - فراخوانی `get_fiscal_year_from_date(company_id, document_date)`
+       - اگر fiscal year پیدا شود: `self.fiscal_year = fiscal_year`
+  2. فراخوانی `super().save()`
+
+#### `clean(self) -> None`
+- **Logic**:
+  1. دریافت `document_date` از field
+  2. اگر `document_date` و `fiscal_year` موجود باشند:
+     - بررسی: `document_date >= fiscal_year.start_date`
+     - اگر نه: raise `ValidationError` ("Document date is before fiscal year start date")
+     - بررسی: `document_date <= fiscal_year.end_date`
+     - اگر نه: raise `ValidationError` ("Document date is after fiscal year end date")
+  3. فراخوانی `super().clean()`
+
+**نکات مهم**:
+- برای models با `document_date` استفاده می‌شود
+- `fiscal_year` به صورت خودکار از `document_date` populate می‌شود
+- Validation: `document_date` باید در range `fiscal_year` باشد
+
+---
+
 ### `AccountingDocumentBase`
 
-**Inheritance**: `AccountingBaseModel`, `LockableModel`
+**Inheritance**: `AccountingBaseModel`, `LockableModel`, `FiscalYearMixin`
 
-**توضیح**: Base model برای document-style models
+**توضیح**: Base model برای document-style models با fiscal year support
 
 **Fields**:
 - `document_code` (CharField, max_length=30, blank=True, editable=False): کد سند (auto-generated)
 - `document_date` (DateField, default=timezone.now): تاریخ سند
 - `notes` (TextField, blank=True): یادداشت‌ها
+- `fiscal_year` (ForeignKey to FiscalYear, null=True, blank=True): سال مالی (auto-populated از `document_date` - از `FiscalYearMixin`)
 - `is_locked` (PositiveSmallIntegerField): Lock status (از LockableModel)
 - `locked_at`, `unlocked_at` (DateTime): Lock timestamps
 - `locked_by`, `unlocked_by` (ForeignKey): Lock user references
 - `editing_by`, `editing_started_at`, `editing_session_key` (از LockableModel): Edit lock fields
+
+**Methods**:
+- از `FiscalYearMixin` استفاده می‌کند که `fiscal_year` را از `document_date` auto-populate می‌کند
 
 ---
 
@@ -291,7 +367,7 @@
 
 ### `AccountingDocument`
 
-**Inheritance**: `AccountingDocumentBase`
+**Inheritance**: `AccountingDocumentBase` (که شامل `FiscalYearMixin` است)
 
 **توضیح**: سند حسابداری - رکورد تراکنشی اصلی که از اصول دفترداری دوطرفه پیروی می‌کند
 
@@ -302,7 +378,7 @@
 **Fields**:
 - `document_number` (CharField, max_length=30, unique=True, editable=False): شماره سند (auto-generated)
 - `document_type` (CharField, max_length=30, choices=DOCUMENT_TYPE_CHOICES): نوع سند
-- `fiscal_year` (ForeignKey to FiscalYear, on_delete=PROTECT): سال مالی سند
+- `fiscal_year` (ForeignKey to FiscalYear, on_delete=PROTECT, null=False): سال مالی سند (required - override از FiscalYearMixin که null=True بود)
 - `period` (ForeignKey to Period, on_delete=SET_NULL, null=True, blank=True): ارجاع اختیاری به دوره
 - `description` (TextField): توضیحات/شرح سند
 - `reference_number` (CharField, max_length=100, blank=True): شماره مرجع خارجی (شماره فاکتور، شماره رسید و غیره)
@@ -313,9 +389,9 @@
 - `status` (CharField, max_length=20, choices=STATUS_CHOICES, default='DRAFT'): وضعیت workflow سند
 - `posted_at` (DateTimeField, null=True, blank=True): زمان ثبت سند
 - `posted_by` (ForeignKey to User, null=True, blank=True): کاربری که سند را ثبت کرده است
-- `locked_at` (DateTimeField, null=True, blank=True): زمان قفل شدن سند
-- `locked_by` (ForeignKey to User, null=True, blank=True): کاربری که سند را قفل کرده است
-- `reversed_document` (ForeignKey to 'self', on_delete=SET_NULL, null=True, blank=True): ارجاع به سند معکوس در صورت معکوس شدن
+- `locked_at` (DateTimeField, null=True, blank=True): زمان قفل شدن سند (override از LockableModel)
+- `locked_by` (ForeignKey to User, null=True, blank=True): کاربری که سند را قفل کرده است (override از LockableModel)
+- `reversed_document` (ForeignKey to 'self', on_delete=SET_NULL, null=True, blank=True, related_name='reversal_documents'): ارجاع به سند معکوس در صورت معکوس شدن
 - `attachment_count` (PositiveSmallIntegerField, default=0): تعداد فایل‌های پیوست شده
 
 **Constraints**:
@@ -355,27 +431,24 @@
 
 **Inheritance**: `AccountingBaseModel`
 
-**توضیح**: خطوط سند حسابداری
+**توضیح**: خطوط سند حسابداری با support برای account hierarchy (کل، معین، تفصیلی)
 
 **Fields**:
-- `document` (ForeignKey to AccountingDocument, on_delete=CASCADE): سند والد
+- `document` (ForeignKey to AccountingDocument, on_delete=CASCADE, related_name='lines'): سند والد
 - `line_number` (PositiveSmallIntegerField): شماره خط متوالی درون سند
-- `account` (ForeignKey to Account, on_delete=PROTECT): حسابی که بدهکار یا بستانکار می‌شود
-- `debit_amount` (DecimalField, max_digits=18, decimal_places=2, default=Decimal('0.00'), validators=[POSITIVE_DECIMAL]): مبلغ بدهکار (باید 0 باشد اگر credit_amount > 0)
-- `credit_amount` (DecimalField, max_digits=18, decimal_places=2, default=Decimal('0.00'), validators=[POSITIVE_DECIMAL]): مبلغ بستانکار (باید 0 باشد اگر debit_amount > 0)
-- `description` (TextField, blank=True): توضیحات خط
-- `party_id` (BigIntegerField, null=True, blank=True): ارجاع اختیاری به طرف حساب (در آینده FK به accounting_party)
-- `cost_center_id` (BigIntegerField, null=True, blank=True): تخصیص اختیاری مرکز هزینه (در آینده FK به accounting_cost_center)
-- `project_id` (BigIntegerField, null=True, blank=True): ارجاع اختیاری به پروژه
-- `vat_rate` (DecimalField, max_digits=5, decimal_places=2, null=True, blank=True): نرخ درصد مالیات بر ارزش افزوده در صورت وجود
-- `vat_amount` (DecimalField, max_digits=18, decimal_places=2, null=True, blank=True): مبلغ مالیات بر ارزش افزوده در صورت وجود
-- `reference` (CharField, max_length=100, blank=True): مرجع اضافی برای خط
+- `gl_account` (ForeignKey to Account, on_delete=PROTECT, related_name='document_lines_as_gl', limit_choices_to={'account_level': 1}, null=True, blank=True): حساب کل (GL Account)
+- `sub_account` (ForeignKey to Account, on_delete=PROTECT, related_name='document_lines_as_sub', limit_choices_to={'account_level': 2}, null=True, blank=True): حساب معین (Sub Account) - Optional
+- `tafsili_account` (ForeignKey to Account, on_delete=PROTECT, related_name='document_lines_as_tafsili', limit_choices_to={'account_level': 3}, null=True, blank=True): حساب تفصیلی (Tafsili Account) - Optional
+- `description` (CharField, max_length=255, blank=True): توضیحات خط
+- `debit` (DecimalField, max_digits=18, decimal_places=2, default=Decimal('0.00'), validators=[POSITIVE_DECIMAL]): مبلغ بدهکار
+- `credit` (DecimalField, max_digits=18, decimal_places=2, default=Decimal('0.00'), validators=[POSITIVE_DECIMAL]): مبلغ بستانکار
+- `sort_order` (PositiveSmallIntegerField, default=0): ترتیب نمایش
 
 **Constraints**:
 - Unique: `(company, document, line_number)`
-- Check: `(debit_amount > 0 AND credit_amount = 0) OR (debit_amount = 0 AND credit_amount > 0)` - هر خط باید یا بدهکار یا بستانکار باشد، نه هر دو
+- Check: `(debit > 0 AND credit = 0) OR (debit = 0 AND credit > 0)` - هر خط باید یا بدهکار یا بستانکار باشد، نه هر دو
 
-**Ordering**: `("company", "document", "line_number")`
+**Ordering**: `("company", "document", "sort_order", "line_number")`
 
 **Methods**:
 
@@ -388,12 +461,24 @@
 
 #### `clean(self) -> None`
 
-**توضیح**: اعتبارسنجی مبالغ خط
+**توضیح**: اعتبارسنجی مبالغ خط و account hierarchy
 
 **منطق**:
-1. بررسی می‌کند که اگر `debit_amount > 0` و `credit_amount > 0` نباشد (هر دو نمی‌توانند مثبت باشند)
-2. بررسی می‌کند که `debit_amount` یا `credit_amount` حداقل یکی مثبت باشد (هر دو نمی‌توانند صفر باشند)
-3. در صورت عدم اعتبار، `ValidationError` می‌اندازد
+1. **بررسی debit/credit**:
+   - اگر `debit > 0` و `credit > 0` باشد: raise `ValidationError` ("Line must be either debit or credit, not both.")
+   - اگر `debit == 0` و `credit == 0` باشد: raise `ValidationError` ("Line must have either debit or credit amount.")
+2. **بررسی account hierarchy**:
+   - اگر `sub_account` موجود باشد:
+     - بررسی: `sub_account.gl_account_relations.filter(gl_account=self.gl_account).exists()`
+     - اگر نه: raise `ValidationError` ("Selected sub account is not related to the selected GL account.")
+   - اگر `tafsili_account` موجود باشد:
+     - اگر `sub_account` موجود باشد:
+       - بررسی: `tafsili_account.tafsili_sub_relations.filter(sub_account=self.sub_account).exists()`
+       - اگر نه: raise `ValidationError` ("Selected tafsili account is not related to the selected sub account.")
+     - اگر `sub_account` موجود نباشد:
+       - دریافت sub_accounts از `gl_account`: `Account.objects.filter(gl_account_relations__gl_account=self.gl_account)`
+       - بررسی: `tafsili_account.tafsili_sub_relations.filter(sub_account__in=sub_accounts).exists()`
+       - اگر نه: raise `ValidationError` ("Selected tafsili account is not related to any sub account of the selected GL account.")
 
 #### `save(self, *args, **kwargs) -> None`
 
@@ -402,6 +487,10 @@
 **منطق**:
 1. `clean()` را فراخوانی می‌کند
 2. `super().save()` را فراخوانی می‌کند
+
+**نکات مهم**:
+- Account hierarchy validation: sub_account باید به gl_account مرتبط باشد، tafsili_account باید به sub_account (یا sub_accounts از gl_account) مرتبط باشد
+- از `SubAccountGLAccountRelation` و `TafsiliSubAccountRelation` برای validation استفاده می‌شود
 
 ---
 
@@ -432,10 +521,12 @@
 2. **Account Hierarchy**: حساب‌ها می‌توانند ساختار سلسله‌مراتبی داشته باشند (parent_account)
 3. **Normal Balance Validation**: `normal_balance` بر اساس `account_type` اعتبارسنجی می‌شود
 4. **System Accounts**: حساب‌های سیستم (`is_system_account=1`) قابل حذف نیستند
-5. **Document Line Validation**: هر خط باید یا بدهکار یا بستانکار باشد، نه هر دو
-6. **Fiscal Year Constraints**: دوره‌ها باید در محدوده سال مالی مربوطه باشند
-7. **Company Scoping**: تمام models بر اساس `company` ایزوله می‌شوند
-8. **Forward References**: `opening_document_id`, `closing_document_id`, `party_id`, `cost_center_id` به صورت BigIntegerField هستند و در آینده به ForeignKey تبدیل می‌شوند
+5. **Document Line Validation**: هر خط باید یا بدهکار یا بستانکار باشد، نه هر دو (constraint در database)
+6. **Account Hierarchy Validation**: در `AccountingDocumentLine`، sub_account باید به gl_account مرتبط باشد و tafsili_account باید به sub_account مرتبط باشد
+7. **Fiscal Year Auto-Population**: از `FiscalYearMixin` برای auto-populate کردن `fiscal_year` از `document_date` استفاده می‌شود
+8. **Fiscal Year Constraints**: دوره‌ها باید در محدوده سال مالی مربوطه باشند
+9. **Company Scoping**: تمام models بر اساس `company` ایزوله می‌شوند
+10. **Forward References**: `opening_document_id`, `closing_document_id`, `party_id`, `cost_center_id` به صورت BigIntegerField هستند و در آینده به ForeignKey تبدیل می‌شوند
 
 ---
 

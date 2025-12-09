@@ -10,7 +10,7 @@
 ## وابستگی‌ها
 
 - `inventory.fields`: `JalaliDateField`
-- `production.models`: `ProductOrder`, `BOM`
+- `production.models`: `ProductOrder`, `BOM`, `Process`
 - `shared.models`: `UserCompanyAccess`, `AccessLevelPermission`
 - `django.forms`
 - `django.contrib.auth.get_user_model`
@@ -39,13 +39,28 @@
   - Help Text: `_('Select the user who can approve the transfer request')`
   - **نکته**: فقط زمانی نمایش داده می‌شود که `create_transfer_request` checked باشد
   - **نکته**: فقط کاربرانی که permission approve برای `production.transfer_requests` دارند نمایش داده می‌شوند
+- `transfer_type` (ChoiceField): نوع انتقال
+  - Widget: `RadioSelect` با `class='form-check-input'`
+  - Required: `False`
+  - Initial: `'full'`
+  - Label: `_('نوع انتقال')`
+  - Help Text: `_('انتخاب کنید که آیا همه مواد انتقال داده شوند یا مواد از عملیات خاص')`
+  - Choices:
+    - `'full'`: `_('انتقال همه مواد')`
+    - `'operations'`: `_('انتقال عملیات انتخابی')`
+- `selected_operations` (MultipleChoiceField): عملیات‌های انتخابی (برای `transfer_type='operations'`)
+  - Widget: `CheckboxSelectMultiple` با `class='form-check-input'`
+  - Required: `False`
+  - Label: `_('انتخاب عملیات')`
+  - Help Text: `_('عملیات‌هایی که مواد آنها باید انتقال داده شود را انتخاب کنید')`
+  - **نکته**: choices از طریق JavaScript populate می‌شوند
 
 **Fields**:
-- `bom` (ModelChoiceField): فهرست مواد اولیه (BOM) (FK to BOM)
-  - Widget: `Select`
+- `process` (ModelChoiceField): فرآیند تولید (FK to Process)
+  - Widget: `Select` با `id='id_process'`
   - Required: `True`
-  - Label: `_('BOM (Bill of Materials)')`
-  - Help Text: `_('Select the BOM for this production order')`
+  - Label: `_('Process (فرایند)')`
+  - Help Text: `_('Select the process for this production order')`
 - `quantity_planned` (DecimalField): مقدار برنامه‌ریزی شده
   - Widget: `NumberInput` با `step='0.000001'`, `min='0'`
   - Required: `True`
@@ -91,11 +106,18 @@
 1. `super().__init__()` را فراخوانی می‌کند
 2. `self.company_id` را از `company_id` یا `instance.company_id` تنظیم می‌کند
 3. اگر `company_id` وجود دارد:
-   - queryset `bom` را فیلتر می‌کند (بر اساس company و `is_enabled=1`)
-   - queryset `approved_by` را فیلتر می‌کند (permission-based برای `production.product_orders`)
-   - queryset `transfer_approved_by` را فیلتر می‌کند (permission-based برای `production.transfer_requests`)
+   - queryset `process` را فیلتر می‌کند (بر اساس company و `is_enabled=1`) با `select_related('finished_item', 'bom')` و مرتب‌سازی بر اساس `finished_item__item_code` و `revision`
+   - queryset `approved_by` را فیلتر می‌کند (permission-based برای `production.product_orders`):
+     - Access levels با `can_approve=1` برای `production.product_orders` را پیدا می‌کند
+     - User IDs با آن access levels را پیدا می‌کند
+     - User queryset را فیلتر می‌کند (شامل superusers)
+   - queryset `transfer_approved_by` را فیلتر می‌کند (permission-based برای `production.transfer_requests`):
+     - Access levels با `can_approve=1` برای `production.transfer_requests` را پیدا می‌کند
+     - User IDs با آن access levels را پیدا می‌کند
+     - User queryset را فیلتر می‌کند (شامل superusers)
 4. اگر `company_id` وجود ندارد:
    - تمام queryset ها را به `objects.none()` تنظیم می‌کند
+5. `selected_operations.choices` را به empty list تنظیم می‌کند (از طریق JavaScript populate می‌شود)
 
 ---
 
@@ -110,22 +132,29 @@
 
 **منطق**:
 1. `super().clean()` را فراخوانی می‌کند
-2. `bom`, `quantity_planned`, `create_transfer_request`, `transfer_approved_by` را دریافت می‌کند
-3. اگر `bom` انتخاب نشده است:
-   - `ValidationError` می‌اندازد: "BOM is required."
+2. `process`, `quantity_planned`, `create_transfer_request`, `transfer_approved_by`, `transfer_type`, `selected_operations` را دریافت می‌کند
+3. اگر `process` انتخاب نشده است:
+   - `ValidationError` می‌اندازد: "Process is required."
 4. اگر `quantity_planned` وجود دارد و `<= 0` است:
    - `ValidationError` می‌اندازد: "Quantity must be greater than zero."
 5. اگر `create_transfer_request` checked است و `transfer_approved_by` انتخاب نشده است:
    - `ValidationError` می‌اندازد: "Transfer Request Approver is required when creating a transfer request."
-6. اگر `bom` انتخاب شده و `instance.finished_item_id` تنظیم نشده است:
-   - `instance.finished_item = bom.finished_item` تنظیم می‌کند (auto-set)
-7. `cleaned_data` را برمی‌گرداند
+6. اگر `create_transfer_request` checked است و `transfer_type == 'operations'` و `selected_operations` خالی است:
+   - `ValidationError` می‌اندازد (field-specific): "Please select at least one operation when transferring specific operations."
+7. اگر `process` انتخاب شده است:
+   - اگر `instance.finished_item_id` تنظیم نشده است:
+     - `instance.finished_item = process.finished_item` تنظیم می‌کند (auto-set)
+   - اگر `process.bom` وجود دارد و `instance.bom_id` تنظیم نشده است:
+     - `instance.bom = process.bom` تنظیم می‌کند (auto-set)
+8. `cleaned_data` را برمی‌گرداند
 
 **نکات مهم**:
-- `bom` باید انتخاب شود
+- `process` باید انتخاب شود
 - `quantity_planned` باید بیشتر از صفر باشد
 - اگر `create_transfer_request` checked باشد، `transfer_approved_by` باید انتخاب شود
-- `finished_item` به صورت خودکار از `bom.finished_item` تنظیم می‌شود
+- اگر `transfer_type == 'operations'` باشد، حداقل یک عملیات باید انتخاب شود
+- `finished_item` به صورت خودکار از `process.finished_item` تنظیم می‌شود
+- `bom` به صورت خودکار از `process.bom` تنظیم می‌شود (اگر وجود داشته باشد)
 
 ---
 
@@ -159,13 +188,16 @@ class ProductOrderCreateView(CreateView):
 
 ## نکات مهم
 
-### 1. BOM Selection
-- `bom` باید انتخاب شود
-- `finished_item` به صورت خودکار از `bom.finished_item` تنظیم می‌شود
+### 1. Process Selection
+- `process` باید انتخاب شود
+- `finished_item` به صورت خودکار از `process.finished_item` تنظیم می‌شود
+- `bom` به صورت خودکار از `process.bom` تنظیم می‌شود (اگر وجود داشته باشد)
 
 ### 2. Transfer Request Creation
 - اگر checkbox `create_transfer_request` checked باشد، می‌تواند درخواست انتقال ایجاد کند
 - در این صورت، `transfer_approved_by` باید انتخاب شود
+- `transfer_type` می‌تواند `'full'` (همه مواد) یا `'operations'` (عملیات انتخابی) باشد
+- اگر `transfer_type == 'operations'` باشد، `selected_operations` باید حداقل یک عملیات داشته باشد
 
 ### 3. Permission-based Filtering
 - `approved_by`: فقط کاربرانی که permission approve برای `production.product_orders` دارند
@@ -180,5 +212,7 @@ class ProductOrderCreateView(CreateView):
 
 1. **Company Filtering**: تمام queryset ها بر اساس `company_id` فیلتر می‌شوند
 2. **Permission-based Filtering**: `approved_by` و `transfer_approved_by` بر اساس permission filtering می‌شوند
-3. **Auto-set Fields**: `finished_item` به صورت خودکار از `bom.finished_item` تنظیم می‌شود
+3. **Auto-set Fields**: `finished_item` به صورت خودکار از `process.finished_item` و `bom` از `process.bom` تنظیم می‌شوند
+4. **Transfer Type**: می‌تواند `'full'` (همه مواد) یا `'operations'` (عملیات انتخابی) باشد
+5. **Selected Operations**: choices از طریق JavaScript populate می‌شوند و فقط زمانی required است که `transfer_type == 'operations'` باشد
 

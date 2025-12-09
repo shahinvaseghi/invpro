@@ -6,6 +6,7 @@
 - WorkLineListView: فهرست خطوط کاری
 - WorkLineCreateView: ایجاد خط کاری جدید
 - WorkLineUpdateView: ویرایش خط کاری
+- WorkLineDetailView: نمایش جزئیات خط کاری
 - WorkLineDeleteView: حذف خط کاری
 
 ---
@@ -25,7 +26,7 @@
 
 ## WorkLineListView
 
-**Type**: `FeaturePermissionRequiredMixin, ListView`
+**Type**: `BaseListView` (از `shared.views.base`)
 
 **Template**: `production/work_lines.html`
 
@@ -83,7 +84,7 @@
 
 ## WorkLineCreateView
 
-**Type**: `FeaturePermissionRequiredMixin, CreateView`
+**Type**: `BaseCreateView` (از `shared.views.base`)
 
 **Template**: `production/work_line_form.html`
 
@@ -118,22 +119,12 @@
 ---
 
 #### `form_valid(self, form: WorkLineForm) -> HttpResponseRedirect`
-
-**توضیح**: WorkLine را ذخیره می‌کند، M2M relationships را ذخیره می‌کند، و پیام موفقیت نمایش می‌دهد.
-
-**پارامترهای ورودی**:
-- `form`: فرم معتبر `WorkLineForm`
-
-**مقدار بازگشتی**:
-- `HttpResponseRedirect`: redirect به `success_url`
-
-**منطق**:
-1. تنظیم `form.instance.company_id = request.session.get('active_company_id')`
-2. تنظیم `form.instance.created_by = request.user`
-3. ذخیره WorkLine: `response = super().form_valid(form)`
-4. **ذخیره M2M relationships**: `form.save_m2m()` (برای `personnel` و `machines`)
-5. نمایش پیام موفقیت: "Work line created successfully."
-6. بازگشت `response`
+- **Parameters**: `form`: فرم معتبر `WorkLineForm`
+- **Returns**: redirect به `success_url`
+- **Logic**:
+  1. فراخوانی `super().form_valid(form)` (ذخیره instance)
+  2. **ذخیره M2M relationships**: `form.save_m2m()` (برای `personnel` و `machines`)
+  3. بازگشت response
 
 **نکات مهم**:
 - `save_m2m()` برای ذخیره ManyToMany relationships (`personnel` و `machines`) فراخوانی می‌شود
@@ -141,21 +132,11 @@
 ---
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
-
-**توضیح**: context variables را برای template اضافه می‌کند.
-
-**پارامترهای ورودی**:
-- `**kwargs`: متغیرهای context اضافی
-
-**مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `active_module` و `form_title`
-
-**Context Variables اضافه شده**:
-- `active_module`: `'production'`
-- `form_title`: `_('Create Work Line')`
-
-**نکات مهم**:
-- `save_m2m()` برای ذخیره `personnel` و `machines` (ManyToMany) فراخوانی می‌شود
+- **Returns**: context با form_id
+- **Logic**:
+  1. دریافت context از `super().get_context_data()`
+  2. اضافه کردن `form_id = 'work-line-form'`
+  3. بازگشت context
 
 **URL**: `/production/work-lines/create/`
 
@@ -163,7 +144,7 @@
 
 ## WorkLineUpdateView
 
-**Type**: `FeaturePermissionRequiredMixin, UpdateView`
+**Type**: `BaseUpdateView` (از `shared.views.base`)
 
 **Template**: `production/work_line_form.html`
 
@@ -215,21 +196,12 @@
 ---
 
 #### `form_valid(self, form: WorkLineForm) -> HttpResponseRedirect`
-
-**توضیح**: WorkLine را ذخیره می‌کند، M2M relationships را ذخیره می‌کند، و پیام موفقیت نمایش می‌دهد.
-
-**پارامترهای ورودی**:
-- `form`: فرم معتبر `WorkLineForm`
-
-**مقدار بازگشتی**:
-- `HttpResponseRedirect`: redirect به `success_url`
-
-**منطق**:
-1. تنظیم `form.instance.edited_by = request.user`
-2. ذخیره WorkLine: `response = super().form_valid(form)`
-3. **ذخیره M2M relationships**: `form.save_m2m()` (برای `personnel` و `machines`)
-4. نمایش پیام موفقیت: "Work line updated successfully."
-5. بازگشت `response`
+- **Parameters**: `form`: فرم معتبر `WorkLineForm`
+- **Returns**: redirect به `success_url`
+- **Logic**:
+  1. فراخوانی `super().form_valid(form)` (ذخیره instance)
+  2. **ذخیره M2M relationships**: `form.save_m2m()` (برای `personnel` و `machines`)
+  3. بازگشت response
 
 **نکات مهم**:
 - `save_m2m()` برای ذخیره ManyToMany relationships (`personnel` و `machines`) فراخوانی می‌شود
@@ -237,26 +209,95 @@
 ---
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
-
-**توضیح**: context variables را برای template اضافه می‌کند.
-
-**پارامترهای ورودی**:
-- `**kwargs`: متغیرهای context اضافی
-
-**مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `active_module` و `form_title`
-
-**Context Variables اضافه شده**:
-- `active_module`: `'production'`
-- `form_title`: `_('Edit Work Line')`
+- **Returns**: context با form_id
+- **Logic**:
+  1. دریافت context از `super().get_context_data()`
+  2. اضافه کردن `form_id = 'work-line-form'`
+  3. بازگشت context
 
 **URL**: `/production/work-lines/<pk>/edit/`
 
 ---
 
+## WorkLineDetailView
+
+### `WorkLineDetailView`
+
+**توضیح**: نمایش جزئیات Work Line (read-only)
+
+**Type**: `BaseDetailView` (از `shared.views.base`)
+
+**Template**: `shared/generic/generic_detail.html`
+
+**Attributes**:
+- `model`: `WorkLine`
+- `template_name`: `'shared/generic/generic_detail.html'`
+- `context_object_name`: `'object'`
+- `feature_code`: `'production.work_lines'`
+- `required_action`: `'view_own'`
+- `active_module`: `'production'`
+
+**Context Variables**:
+- `object`: WorkLine instance
+- `detail_title`: `_('View Work Line')`
+- `info_banner`: لیست اطلاعات اصلی (code, status)
+- `detail_sections`: لیست sections برای نمایش:
+  - Basic Information: name, name_en (اگر موجود باشد), warehouse (اگر موجود باشد), description (اگر موجود باشد)
+  - Assigned Personnel: اگر personnel موجود باشد (comma-separated list)
+  - Assigned Machines: اگر machines موجود باشد (comma-separated list)
+  - Notes: اگر notes موجود باشد
+- `list_url`, `edit_url`: URLs برای navigation
+- `can_edit_object`: بررسی اینکه آیا Work Line قفل است یا نه
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+- **Returns**: queryset بهینه شده با select_related و prefetch_related
+- **Logic**:
+  1. دریافت queryset از `super().get_queryset()`
+  2. **Optional select_related**:
+     - تلاش برای `select_related('warehouse', 'created_by', 'edited_by')`
+     - اگر خطا رخ دهد (مثلاً warehouse field موجود نباشد): `select_related('created_by', 'edited_by')`
+  3. اعمال `prefetch_related('personnel', 'machines')`
+  4. بازگشت queryset
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+- **Returns**: context با detail sections
+- **Logic**:
+  1. دریافت context از `super().get_context_data()`
+  2. ساخت `info_banner`:
+     - Code (type: 'code')
+     - Status (type: 'badge')
+  3. ساخت `detail_sections`:
+     - **Basic Information**: name, name_en (اگر موجود باشد), warehouse (اگر موجود باشد), description (اگر موجود باشد)
+     - **Assigned Personnel**: اگر `personnel.exists()` باشد:
+       - ساخت comma-separated text از `first_name last_name` برای هر person
+       - اضافه کردن section
+     - **Assigned Machines**: اگر `machines.exists()` باشد:
+       - ساخت comma-separated text از `machine.name` برای هر machine
+       - اضافه کردن section
+     - **Notes**: اگر notes موجود باشد
+  4. بازگشت context
+
+#### `get_list_url(self) -> str`
+- **Returns**: URL برای لیست Work Lines
+
+#### `get_edit_url(self) -> str`
+- **Returns**: URL برای ویرایش Work Line
+
+#### `can_edit_object(self, obj=None, feature_code=None) -> bool`
+- **Returns**: True اگر Work Line قفل نباشد
+- **Logic**:
+  - بررسی `is_locked` attribute
+  - اگر `is_locked=True` باشد، return False
+
+**URL**: `/production/work-lines/<pk>/`
+
+---
+
 ## WorkLineDeleteView
 
-**Type**: `FeaturePermissionRequiredMixin, DeleteView`
+**Type**: `BaseDeleteView` (از `shared.views.base`)
 
 **Template**: `shared/generic/generic_confirm_delete.html`
 
@@ -272,51 +313,24 @@
 **متدها**:
 
 #### `get_queryset(self) -> QuerySet`
-
-**توضیح**: queryset را با company filtering برمی‌گرداند.
-
-**پارامترهای ورودی**: ندارد
-
-**مقدار بازگشتی**:
-- `QuerySet`: queryset فیلتر شده بر اساس company
-
-**منطق**:
-1. دریافت `active_company_id` از session
-2. اگر `active_company_id` وجود ندارد، `WorkLine.objects.none()` برمی‌گرداند
-3. فیلتر: `WorkLine.objects.filter(company_id=active_company_id)`
-4. queryset را برمی‌گرداند
-
----
+- **Returns**: queryset بهینه شده با optional select_related
+- **Logic**:
+  1. دریافت queryset از `super().get_queryset()`
+  2. **Optional select_related**:
+     - تلاش برای `select_related('warehouse')`
+     - اگر خطا رخ دهد، skip می‌کند
+  3. بازگشت queryset
 
 #### `delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect`
-
-**توضیح**: WorkLine را حذف می‌کند و پیام موفقیت نمایش می‌دهد.
-
-**پارامترهای ورودی**:
-- `request`: HTTP request
-- `*args`, `**kwargs`: آرگومان‌های اضافی
-
-**مقدار بازگشتی**:
-- `HttpResponseRedirect`: redirect به `success_url`
-
-**منطق**:
-1. نمایش پیام موفقیت: "Work line deleted successfully."
-2. فراخوانی `super().delete(request, *args, **kwargs)` (که WorkLine را حذف می‌کند و redirect می‌کند)
-
----
+- **Parameters**: `request`, `*args`, `**kwargs`
+- **Returns**: redirect به `success_url`
+- **Logic**:
+  - فراخوانی `super().delete()` که WorkLine را حذف می‌کند و پیام موفقیت نمایش می‌دهد
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
-
-**توضیح**: context variables را برای template اضافه می‌کند.
-
-**پارامترهای ورودی**:
-- `**kwargs`: متغیرهای context اضافی
-
-**مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `active_module`
-
-**Context Variables اضافه شده**:
-- `active_module`: `'production'`
+- **Returns**: context با delete title، confirmation message، object details، و breadcrumbs
+- **Logic**:
+  - از base class استفاده می‌کند که تمام context variables لازم را اضافه می‌کند
 
 **URL**: `/production/work-lines/<pk>/delete/`
 

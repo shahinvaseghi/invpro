@@ -101,7 +101,7 @@
 
 **توضیح**: ایجاد BOM جدید با مواد اولیه (multi-line)
 
-**Type**: `FeaturePermissionRequiredMixin, CreateView`
+**Type**: `BaseNestedFormsetCreateView` (از `shared.views.base`)
 
 **Template**: `production/bom_form.html`
 
@@ -165,59 +165,59 @@
 
 ---
 
+#### `get_formset_kwargs(self) -> Dict[str, Any]`
+- **Returns**: kwargs برای formset
+- **Logic**:
+  - اضافه کردن `form_kwargs` با `company_id` از session
+
+#### `get_nested_formset_kwargs(self, parent_instance) -> Dict[str, Any]`
+- **Parameters**: `parent_instance`: BOMMaterial instance
+- **Returns**: kwargs برای nested formset
+- **Logic**:
+  - اضافه کردن `form_kwargs` با `company_id` و `bom_material_id`
+
+#### `process_formset_instance(self, instance) -> Optional[BOMMaterial]`
+- **Parameters**: `instance`: BOMMaterial instance
+- **Returns**: instance پردازش شده یا None (اگر validation fail شود)
+- **Logic**:
+  1. **Validation**: بررسی `material_item` و `unit` (اگر وجود ندارد، return None)
+  2. Initialize `_line_number` counter (از 1 شروع می‌شود)
+  3. تنظیم `instance.bom = self.object`
+  4. تنظیم `instance.line_number = self._line_number` (sequential)
+  5. تنظیم `instance.company_id = active_company_id`
+  6. تنظیم `instance.created_by = request.user`
+  7. **Auto-fill `material_item_code`**: `instance.material_item_code = instance.material_item.item_code`
+  8. **Auto-set `material_type`**:
+     - اگر `material_type` تنظیم نشده باشد
+     - از `instance.material_item.type` استفاده می‌کند
+     - اگر type وجود ندارد: error message و return None
+  9. افزایش `self._line_number` برای instance بعدی
+  10. بازگشت instance
+
 #### `form_valid(self, form: BOMForm) -> HttpResponseRedirect`
-
-**توضیح**: BOM و خطوط مواد را ذخیره می‌کند.
-
-**پارامترهای ورودی**:
-- `form`: فرم معتبر `BOMForm`
-
-**مقدار بازگشتی**:
-- `HttpResponseRedirect`: redirect به `success_url`
-
-**منطق**:
-1. دریافت `active_company_id` از session
-2. اگر `active_company_id` وجود ندارد:
-   - خطا: "Please select a company first."
-   - `form_invalid()` برمی‌گرداند
-3. تنظیم `form.instance.company_id = active_company_id`
-4. تنظیم `form.instance.created_by = request.user`
-5. تنظیم `form.instance.is_enabled = 1` (اگر تنظیم نشده باشد)
-6. **ذخیره BOM**:
-   - `self.object = form.save()` (با error handling)
-   - اگر خطا رخ دهد، خطا نمایش می‌دهد و `form_invalid()` برمی‌گرداند
-7. **ساخت formset با instance**:
-   - `BOMMaterialLineFormSet(self.request.POST, instance=self.object, prefix='materials', form_kwargs={'company_id': active_company_id})`
-8. **Validate formset**:
-   - `is_valid = formset.is_valid()`
-   - اگر معتبر نیست:
-     - **حذف BOM**: `self.object.delete()` (چون formset معتبر نیست)
-     - **نمایش خطاها**:
-       - خطاهای `non_form_errors()` را نمایش می‌دهد
-       - برای هر form در formset: خطاهای هر field را با label نمایش می‌دهد (format: "❌ ردیف {i+1} - {field_label}: {error}")
-       - اگر هیچ خطای خاصی نیست: "Please fill in all required fields in the material lines."
-     - **بازگشت response**: `render_to_response(context)` با form و formset
-9. **ذخیره formset**:
-   - `instances = formset.save(commit=False)`
-   - برای هر `line_instance`:
-     - **Validation**: بررسی `material_item` و `unit` (اگر وجود ندارد، skip)
-     - تنظیم `line_instance.bom = self.object`
-     - تنظیم `line_instance.line_number = line_number` (sequential از 1)
-     - تنظیم `line_instance.company_id = active_company_id`
-     - تنظیم `line_instance.created_by = request.user`
-     - **Auto-fill `material_item_code`**: `line_instance.material_item_code = line_instance.material_item.item_code`
-     - **Auto-set `material_type`**: اگر تنظیم نشده باشد، از `line_instance.material_item.type` (اگر type وجود ندارد، خطا و skip)
-     - ذخیره `line_instance.save()` (با error handling)
-     - افزایش `line_number` و `saved_count`
-   - **حذف خطوط**: `formset.deleted_objects` را حذف می‌کند
-   - اگر خطا در save رخ دهد: BOM را حذف می‌کند و response با errors برمی‌گرداند
-10. **پیام‌ها**:
-    - اگر `saved_count == 0`: warning: "BOM created but no material lines were saved."
-    - در غیر این صورت: success: "BOM created successfully with {count} material line(s)."
-11. Redirect به `success_url`
+- **Parameters**: `form`: فرم معتبر `BOMForm`
+- **Returns**: redirect به `success_url`
+- **Logic**:
+  1. دریافت `active_company_id` از session
+  2. اگر `active_company_id` وجود ندارد:
+     - error message: "Please select a company first."
+     - return `self.form_invalid(form)`
+  3. تنظیم `form.instance.company_id = active_company_id`
+  4. تنظیم `form.instance.created_by = request.user`
+  5. تنظیم `form.instance.is_enabled = 1` (اگر تنظیم نشده باشد)
+  6. Initialize `self._line_number = 1` (برای `process_formset_instance`)
+  7. **فراخوانی `super().form_valid(form)`**:
+     - base class (`BaseNestedFormsetCreateView`) منطق formset و nested formsets را مدیریت می‌کند
+     - از `process_formset_instance` برای هر instance استفاده می‌کند
+  8. **Count saved instances**: `saved_count = self.object.materials.count()`
+  9. **پیام‌ها**:
+     - اگر `saved_count == 0`: warning: "BOM created but no material lines were saved. Please check the form data."
+     - در غیر این صورت: success: "BOM created successfully with {count} material line(s)."
+  10. بازگشت response
 
 **نکات مهم**:
-- اگر formset معتبر نیست، BOM حذف می‌شود
+- از `BaseNestedFormsetCreateView` استفاده می‌کند که منطق formset را خودکار مدیریت می‌کند
+- `process_formset_instance` برای هر material line فراخوانی می‌شود
 - `line_number` به صورت sequential تنظیم می‌شود
 - `material_item_code` و `material_type` به صورت خودکار populate می‌شوند
 
@@ -231,7 +231,7 @@
 
 **توضیح**: ویرایش BOM موجود
 
-**Type**: `FeaturePermissionRequiredMixin, UpdateView`
+**Type**: `BaseNestedFormsetUpdateView, EditLockProtectedMixin` (از `shared.views.base`)
 
 **Template**: `production/bom_form.html`
 
@@ -297,50 +297,131 @@
 
 ---
 
+#### `get_formset_kwargs(self) -> Dict[str, Any]`
+- **Returns**: kwargs برای formset
+- **Logic**:
+  - اضافه کردن `form_kwargs` با `company_id` از `self.object.company_id`
+
+#### `get_nested_formset_kwargs(self, parent_instance) -> Dict[str, Any]`
+- **Parameters**: `parent_instance`: BOMMaterial instance
+- **Returns**: kwargs برای nested formset
+- **Logic**:
+  - اضافه کردن `form_kwargs` با `company_id` و `bom_material_id`
+
+#### `process_formset_instance(self, instance) -> Optional[BOMMaterial]`
+- **Parameters**: `instance`: BOMMaterial instance
+- **Returns**: instance پردازش شده یا None (اگر validation fail شود)
+- **Logic**:
+  1. **Validation**: بررسی `material_item` و `unit` (اگر وجود ندارد، return None)
+  2. Initialize `_line_number` counter:
+     - اگر قبلاً initialize نشده باشد
+     - دریافت max `line_number` از existing materials
+     - `self._line_number = existing_max + 1`
+  3. تنظیم `instance.bom = self.object`
+  4. تنظیم `instance.line_number = self._line_number` (sequential)
+  5. تنظیم `instance.edited_by = request.user`
+  6. **Auto-fill `material_item_code`**: `instance.material_item_code = instance.material_item.item_code`
+  7. **Auto-set `material_type`**:
+     - اگر `material_type` تنظیم نشده باشد
+     - از `instance.material_item.type` استفاده می‌کند
+     - اگر type وجود ندارد: error message و return None
+  8. افزایش `self._line_number` برای instance بعدی
+  9. بازگشت instance
+
 #### `form_valid(self, form: BOMForm) -> HttpResponseRedirect`
-
-**توضیح**: BOM و خطوط مواد را ذخیره می‌کند.
-
-**پارامترهای ورودی**:
-- `form`: فرم معتبر `BOMForm`
-
-**مقدار بازگشتی**:
-- `HttpResponseRedirect`: redirect به `success_url`
-
-**منطق**:
-1. دریافت formset از `self.get_context_data()['formset']`
-2. **Validate formset**:
-   - `is_valid = formset.is_valid()`
-   - اگر معتبر نیست:
-     - **نمایش خطاها**:
-       - خطاهای `non_form_errors()` را نمایش می‌دهد
-       - برای هر form در formset: خطاهای هر field را با label نمایش می‌دهد (format: "❌ ردیف {i+1} - {field_label}: {error}")
-     - `form_invalid()` برمی‌گرداند
-3. تنظیم `form.instance.edited_by = request.user`
-4. **ذخیره BOM**:
-   - `self.object = form.save()` (با error handling)
-   - اگر خطا رخ دهد، خطا نمایش می‌دهد و `form_invalid()` برمی‌گرداند
-5. **ذخیره formset**:
-   - `instances = formset.save(commit=False)`
-   - برای هر `line_instance`:
-     - **Validation**: بررسی `material_item` و `unit` (اگر وجود ندارد، skip)
-     - تنظیم `line_instance.bom = self.object`
-     - تنظیم `line_instance.line_number = line_number` (sequential از 1)
-     - تنظیم `line_instance.edited_by = request.user`
-     - **Auto-fill `material_item_code`**: `line_instance.material_item_code = line_instance.material_item.item_code`
-     - **Auto-set `material_type`**: اگر تنظیم نشده باشد، از `line_instance.material_item.type` (اگر type وجود ندارد، خطا و skip)
-     - ذخیره `line_instance.save()` (با error handling)
-     - افزایش `line_number`
-   - **حذف خطوط**: `formset.deleted_objects` را حذف می‌کند
-   - اگر خطا در save رخ دهد، خطا نمایش می‌دهد و `form_invalid()` برمی‌گرداند
-6. پیام موفقیت: "BOM updated successfully."
-7. `super().form_valid(form)` را فراخوانی می‌کند (redirect)
+- **Parameters**: `form`: فرم معتبر `BOMForm`
+- **Returns**: redirect به `success_url`
+- **Logic**:
+  1. تنظیم `form.instance.edited_by = request.user`
+  2. Initialize `self._line_number = 1` (برای `process_formset_instance`)
+  3. **فراخوانی `super().form_valid(form)`**:
+     - base class (`BaseNestedFormsetUpdateView`) منطق formset و nested formsets را مدیریت می‌کند
+     - از `process_formset_instance` برای هر instance استفاده می‌کند
+  4. **Count saved instances**: `saved_count = self.object.materials.count()`
+  5. **پیام‌ها**:
+     - اگر `saved_count == 0`: warning: "BOM updated but no material lines were saved. Please check the form data."
+     - در غیر این صورت: success: "BOM updated successfully with {count} material line(s)."
+  6. بازگشت response
 
 **نکات مهم**:
-- `line_number` به صورت sequential تنظیم می‌شود
-- خطوط marked for deletion حذف می‌شوند
+- از `BaseNestedFormsetUpdateView` استفاده می‌کند که منطق formset را خودکار مدیریت می‌کند
+- `process_formset_instance` برای هر material line فراخوانی می‌شود
+- `line_number` برای instances جدید از max existing + 1 شروع می‌شود
+- `material_item_code` و `material_type` به صورت خودکار populate می‌شوند
 
 **URL**: `/production/bom/<pk>/edit/`
+
+---
+
+## BOMDetailView
+
+### `BOMDetailView`
+
+**توضیح**: نمایش جزئیات BOM (read-only)
+
+**Type**: `BaseDetailView` (از `shared.views.base`)
+
+**Template**: `shared/generic/generic_detail.html`
+
+**Attributes**:
+- `model`: `BOM`
+- `template_name`: `'shared/generic/generic_detail.html'`
+- `context_object_name`: `'object'`
+- `feature_code`: `'production.bom'`
+- `required_action`: `'view_own'`
+- `active_module`: `'production'`
+
+**Context Variables**:
+- `object`: BOM instance
+- `detail_title`: `_('View BOM')`
+- `info_banner`: لیست اطلاعات اصلی (bom_code, version, status)
+- `detail_sections`: لیست sections برای نمایش:
+  - Basic Information: finished_item, description
+  - Material Lines: جدول materials با headers و data
+  - Notes: اگر notes موجود باشد
+- `list_url`, `edit_url`: URLs برای navigation
+- `can_edit_object`: بررسی اینکه آیا BOM قفل است یا نه
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+- **Returns**: queryset بهینه شده با select_related و prefetch_related
+- **Logic**:
+  1. دریافت queryset از `super().get_queryset()`
+  2. اعمال `select_related('finished_item', 'created_by', 'edited_by')`
+  3. اعمال `prefetch_related('materials__material_item', 'materials__material_type')`
+  4. بازگشت queryset
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+- **Returns**: context با detail sections
+- **Logic**:
+  1. دریافت context از `super().get_context_data()`
+  2. ساخت `info_banner`:
+     - BOM Code (type: 'code')
+     - Version
+     - Status (type: 'badge')
+  3. ساخت `detail_sections`:
+     - **Basic Information**: finished_item (name + code), description (اگر موجود باشد)
+     - **Material Lines** (table):
+       - بررسی `has_description` برای اضافه کردن column
+       - Headers: Line, Material Item, Material Type, Quantity per Unit, Unit, Scrap Allowance, Optional, Description (optional)
+       - Data: برای هر material، row با تمام اطلاعات
+     - **Notes**: اگر notes موجود باشد
+  4. بازگشت context
+
+#### `get_list_url(self) -> str`
+- **Returns**: URL برای لیست BOM ها
+
+#### `get_edit_url(self) -> str`
+- **Returns**: URL برای ویرایش BOM
+
+#### `can_edit_object(self, obj=None, feature_code=None) -> bool`
+- **Returns**: True اگر BOM قفل نباشد
+- **Logic**:
+  - بررسی `is_locked` attribute
+  - اگر `is_locked=True` باشد، return False
+
+**URL**: `/production/bom/<pk>/`
 
 ---
 
@@ -374,37 +455,20 @@
 **متدها**:
 
 #### `get_queryset(self) -> QuerySet`
-
-**توضیح**: queryset را با company filtering برمی‌گرداند.
-
-**پارامترهای ورودی**: ندارد
-
-**مقدار بازگشتی**:
-- `QuerySet`: queryset فیلتر شده بر اساس company
-
-**منطق**:
-1. دریافت `active_company_id` از session
-2. اگر `active_company_id` وجود ندارد، `BOM.objects.none()` برمی‌گرداند
-3. فیلتر: `BOM.objects.filter(company_id=active_company_id)`
-4. queryset را برمی‌گرداند
+- **Returns**: queryset فیلتر شده بر اساس company
+- **Logic**:
+  1. دریافت `active_company_id` از session
+  2. اگر `active_company_id` وجود ندارد، `BOM.objects.none()` برمی‌گرداند
+  3. فیلتر: `BOM.objects.filter(company_id=active_company_id)`
+  4. بازگشت queryset
 
 ---
 
 #### `delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect`
-
-**توضیح**: BOM را حذف می‌کند و پیام موفقیت نمایش می‌دهد.
-
-**پارامترهای ورودی**:
-- `request`: درخواست HTTP
-- `*args, **kwargs`: آرگومان‌های اضافی
-
-**مقدار بازگشتی**:
-- `HttpResponseRedirect`: redirect به `success_url`
-
-**منطق**:
-1. نمایش پیام موفقیت: "BOM deleted successfully."
-2. فراخوانی `super().delete(request, *args, **kwargs)` (که BOM را حذف می‌کند و redirect می‌کند)
-2. `super().delete()` را فراخوانی می‌کند
+- **Parameters**: `request`, `*args`, `**kwargs`
+- **Returns**: redirect به `success_url`
+- **Logic**:
+  - فراخوانی `super().delete()` که BOM را حذف می‌کند و پیام موفقیت نمایش می‌دهد
 
 ---
 
@@ -436,6 +500,7 @@
 ```python
 path('bom/', BOMListView.as_view(), name='bom_list'),
 path('bom/create/', BOMCreateView.as_view(), name='bom_create'),
+path('bom/<int:pk>/', BOMDetailView.as_view(), name='bom_detail'),
 path('bom/<int:pk>/edit/', BOMUpdateView.as_view(), name='bom_edit'),
 path('bom/<int:pk>/delete/', BOMDeleteView.as_view(), name='bom_delete'),
 ```
@@ -445,7 +510,9 @@ path('bom/<int:pk>/delete/', BOMDeleteView.as_view(), name='bom_delete'),
 ## نکات مهم
 
 ### 1. Formset Handling
-- در `BOMCreateView`، اگر formset معتبر نیست، BOM حذف می‌شود
+- از `BaseNestedFormsetCreateView` و `BaseNestedFormsetUpdateView` استفاده می‌کند
+- منطق formset و nested formsets به صورت خودکار مدیریت می‌شود
+- `process_formset_instance` برای هر material line فراخوانی می‌شود
 - در `BOMUpdateView`، خطوط marked for deletion حذف می‌شوند
 
 ### 2. Line Number Management

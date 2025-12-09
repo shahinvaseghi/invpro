@@ -6,6 +6,7 @@
 - PersonnelListView: فهرست پرسنل
 - PersonCreateView: ایجاد پرسنل جدید
 - PersonUpdateView: ویرایش پرسنل
+- PersonDetailView: نمایش جزئیات پرسنل
 - PersonDeleteView: حذف پرسنل
 
 ---
@@ -26,7 +27,7 @@
 
 ## PersonnelListView
 
-**Type**: `FeaturePermissionRequiredMixin, ListView`
+**Type**: `BaseListView` (از `shared.views.base`)
 
 **Template**: `production/personnel.html`
 
@@ -78,7 +79,7 @@
 
 ## PersonCreateView
 
-**Type**: `FeaturePermissionRequiredMixin, CreateView`
+**Type**: `BaseCreateView` (از `shared.views.base`)
 
 **Template**: `production/person_form.html`
 
@@ -113,40 +114,15 @@
 ---
 
 #### `form_valid(self, form: PersonForm) -> HttpResponseRedirect`
-
-**توضیح**: Person را ذخیره می‌کند و پیام موفقیت نمایش می‌دهد.
-
-**پارامترهای ورودی**:
-- `form`: فرم معتبر `PersonForm`
-
-**مقدار بازگشتی**:
-- `HttpResponseRedirect`: redirect به `success_url`
-
-**منطق**:
-1. دریافت `active_company_id` از session
-2. اگر `active_company_id` وجود ندارد:
-   - خطا: "Please select a company first."
-   - `form_invalid()` برمی‌گرداند
-3. تنظیم `form.instance.company_id = active_company_id`
-4. تنظیم `form.instance.created_by = request.user`
-5. نمایش پیام موفقیت: "Person created successfully."
-6. فراخوانی `super().form_valid(form)` (ذخیره و redirect)
-
----
+- **Parameters**: `form`: فرم معتبر `PersonForm`
+- **Returns**: redirect به `success_url`
+- **Logic**:
+  - از base class استفاده می‌کند که منطق ذخیره و پیام موفقیت را مدیریت می‌کند
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
-
-**توضیح**: context variables را برای template اضافه می‌کند.
-
-**پارامترهای ورودی**:
-- `**kwargs`: متغیرهای context اضافی
-
-**مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `active_module` و `form_title`
-
-**Context Variables اضافه شده**:
-- `active_module`: `'production'`
-- `form_title`: `_('Create Person')`
+- **Returns**: context با form_title و breadcrumbs
+- **Logic**:
+  - از base class استفاده می‌کند که تمام context variables لازم را اضافه می‌کند
 
 **URL**: `/production/personnel/create/`
 
@@ -154,7 +130,7 @@
 
 ## PersonUpdateView
 
-**Type**: `FeaturePermissionRequiredMixin, UpdateView`
+**Type**: `BaseUpdateView` (از `shared.views.base`)
 
 **Template**: `production/person_form.html`
 
@@ -206,43 +182,95 @@
 ---
 
 #### `form_valid(self, form: PersonForm) -> HttpResponseRedirect`
-
-**توضیح**: Person را ذخیره می‌کند و پیام موفقیت نمایش می‌دهد.
-
-**پارامترهای ورودی**:
-- `form`: فرم معتبر `PersonForm`
-
-**مقدار بازگشتی**:
-- `HttpResponseRedirect`: redirect به `success_url`
-
-**منطق**:
-1. تنظیم `form.instance.edited_by = request.user`
-2. نمایش پیام موفقیت: "Person updated successfully."
-3. فراخوانی `super().form_valid(form)` (ذخیره و redirect)
-
----
+- **Parameters**: `form`: فرم معتبر `PersonForm`
+- **Returns**: redirect به `success_url`
+- **Logic**:
+  - از base class استفاده می‌کند که منطق ذخیره و پیام موفقیت را مدیریت می‌کند
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
-
-**توضیح**: context variables را برای template اضافه می‌کند.
-
-**پارامترهای ورودی**:
-- `**kwargs`: متغیرهای context اضافی
-
-**مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `active_module` و `form_title`
-
-**Context Variables اضافه شده**:
-- `active_module`: `'production'`
-- `form_title`: `_('Edit Person')`
+- **Returns**: context با form_title و breadcrumbs
+- **Logic**:
+  - از base class استفاده می‌کند که تمام context variables لازم را اضافه می‌کند
 
 **URL**: `/production/personnel/<pk>/edit/`
 
 ---
 
+## PersonDetailView
+
+### `PersonDetailView`
+
+**توضیح**: نمایش جزئیات Person (read-only)
+
+**Type**: `BaseDetailView` (از `shared.views.base`)
+
+**Template**: `shared/generic/generic_detail.html`
+
+**Attributes**:
+- `model`: `Person`
+- `template_name`: `'shared/generic/generic_detail.html'`
+- `context_object_name`: `'object'`
+- `feature_code`: `'production.personnel'`
+- `required_action`: `'view_own'`
+- `active_module`: `'production'`
+
+**Context Variables**:
+- `object`: Person instance
+- `detail_title`: `_('View Person')`
+- `info_banner`: لیست اطلاعات اصلی (code, status)
+- `detail_sections`: لیست sections برای نمایش:
+  - Personal Information: first_name, last_name, national_id (اگر موجود باشد), email (اگر موجود باشد), phone_number (اگر موجود باشد), mobile_number (اگر موجود باشد), username (اگر موجود باشد), personnel_code (اگر موجود باشد), linked_user (اگر موجود باشد)
+  - Company Units: اگر company_units موجود باشد (comma-separated list)
+  - Description: اگر description موجود باشد
+  - Notes: اگر notes موجود باشد
+- `list_url`, `edit_url`: URLs برای navigation
+- `can_edit_object`: بررسی اینکه آیا Person قفل است یا نه
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+- **Returns**: queryset بهینه شده با select_related و prefetch_related
+- **Logic**:
+  1. دریافت queryset از `super().get_queryset()`
+  2. اعمال `select_related('user', 'created_by', 'edited_by')`
+  3. اعمال `prefetch_related('company_units')`
+  4. بازگشت queryset
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+- **Returns**: context با detail sections
+- **Logic**:
+  1. دریافت context از `super().get_context_data()`
+  2. ساخت `info_banner`:
+     - Code (type: 'code')
+     - Status (type: 'badge')
+  3. ساخت `detail_sections`:
+     - **Personal Information**: first_name, last_name, national_id (اگر موجود باشد), email (اگر موجود باشد), phone_number (اگر موجود باشد), mobile_number (اگر موجود باشد), username (اگر موجود باشد), personnel_code (اگر موجود باشد), linked_user (اگر موجود باشد - با `get_full_name()` یا `username`)
+     - **Company Units**: اگر `company_units.exists()` باشد:
+       - ساخت comma-separated text از `unit.name` برای هر unit
+       - اضافه کردن section
+     - **Description**: اگر description موجود باشد
+     - **Notes**: اگر notes موجود باشد
+  4. بازگشت context
+
+#### `get_list_url(self) -> str`
+- **Returns**: URL برای لیست Personnel
+
+#### `get_edit_url(self) -> str`
+- **Returns**: URL برای ویرایش Person
+
+#### `can_edit_object(self, obj=None, feature_code=None) -> bool`
+- **Returns**: True اگر Person قفل نباشد
+- **Logic**:
+  - بررسی `is_locked` attribute
+  - اگر `is_locked=True` باشد، return False
+
+**URL**: `/production/personnel/<pk>/`
+
+---
+
 ## PersonDeleteView
 
-**Type**: `FeaturePermissionRequiredMixin, DeleteView`
+**Type**: `BaseDeleteView` (از `shared.views.base`)
 
 **Template**: `shared/generic/generic_confirm_delete.html`
 
@@ -258,51 +286,20 @@
 **متدها**:
 
 #### `get_queryset(self) -> QuerySet`
-
-**توضیح**: queryset را با company filtering برمی‌گرداند.
-
-**پارامترهای ورودی**: ندارد
-
-**مقدار بازگشتی**:
-- `QuerySet`: queryset فیلتر شده بر اساس company
-
-**منطق**:
-1. دریافت `active_company_id` از session
-2. اگر `active_company_id` وجود ندارد، `Person.objects.none()` برمی‌گرداند
-3. فیلتر: `Person.objects.filter(company_id=active_company_id)`
-4. queryset را برمی‌گرداند
-
----
+- **Returns**: queryset فیلتر شده بر اساس company
+- **Logic**:
+  - از base class استفاده می‌کند که company filtering را مدیریت می‌کند
 
 #### `delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect`
-
-**توضیح**: Person را حذف می‌کند و پیام موفقیت نمایش می‌دهد.
-
-**پارامترهای ورودی**:
-- `request`: HTTP request
-- `*args`, `**kwargs`: آرگومان‌های اضافی
-
-**مقدار بازگشتی**:
-- `HttpResponseRedirect`: redirect به `success_url`
-
-**منطق**:
-1. نمایش پیام موفقیت: "Person deleted successfully."
-2. فراخوانی `super().delete(request, *args, **kwargs)` (که Person را حذف می‌کند و redirect می‌کند)
-
----
+- **Parameters**: `request`, `*args`, `**kwargs`
+- **Returns**: redirect به `success_url`
+- **Logic**:
+  - فراخوانی `super().delete()` که Person را حذف می‌کند و پیام موفقیت نمایش می‌دهد
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
-
-**توضیح**: context variables را برای template اضافه می‌کند.
-
-**پارامترهای ورودی**:
-- `**kwargs`: متغیرهای context اضافی
-
-**مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `active_module`
-
-**Context Variables اضافه شده**:
-- `active_module`: `'production'`
+- **Returns**: context با delete title، confirmation message، object details، و breadcrumbs
+- **Logic**:
+  - از base class استفاده می‌کند که تمام context variables لازم را اضافه می‌کند
 
 **URL**: `/production/personnel/<pk>/delete/`
 

@@ -13,13 +13,61 @@
 ## وابستگی‌ها
 
 - `shared.mixins`: `FeaturePermissionRequiredMixin`
-- `production.forms`: `ProcessForm`
-- `production.models`: `Process`
-- `django.views.generic`: `CreateView`, `DeleteView`, `ListView`, `UpdateView`
+- `shared.views.base`: `BaseListView`, `BaseDetailView`, `BaseDeleteView`, `BaseFormsetCreateView`, `BaseFormsetUpdateView`, `EditLockProtectedMixin`
+- `production.forms`: `ProcessForm`, `ProcessOperationFormSet`, `ProcessOperationMaterialFormSet`
+- `production.models`: `Process`, `ProcessOperation`, `ProcessOperationMaterial`, `BOMMaterial`, `WorkLine`
 - `django.contrib.messages`
+- `django.db.transaction`: `transaction.atomic`
 - `django.http.HttpResponseRedirect`
 - `django.urls.reverse_lazy`
 - `django.utils.translation.gettext_lazy`
+
+---
+
+## Helper Functions
+
+### `save_operation_materials_from_post(request, operation, operation_index, company_id, bom_id=None)`
+
+**توضیح**: ذخیره materials برای یک operation با پارس کردن manual POST data.
+
+**Parameters**:
+- `request`: HTTP request object
+- `operation`: ProcessOperation instance
+- `operation_index`: index operation در formset
+- `company_id`: شناسه شرکت
+- `bom_id`: شناسه BOM (اختیاری)
+
+**Returns**: `bool` (True اگر موفق باشد)
+
+**Format در POST**: `materials-{operation_index}-{material_index}-{field_name}`
+
+**Logic**:
+1. **پارس کردن POST data**:
+   - جمع‌آوری تمام keys که با `materials-{operation_index}-` شروع می‌شوند
+   - استخراج `material_index` و `field_name` از key
+   - ساخت `materials_data` dictionary
+2. **Track kept materials**: `kept_material_ids = set()`
+3. **ذخیره materials**:
+   - برای هر material در `materials_data`:
+     - دریافت `bom_material_id` و `quantity_used`
+     - اگر هر دو موجود باشند:
+       - دریافت `BOMMaterial` از database
+       - **اگر `material_id` موجود باشد**:
+         - دریافت existing material از database
+         - Update fields: `bom_material`, `material_item`, `material_item_code`, `quantity_used`, `unit`, `is_enabled`, `edited_by`
+         - `material.save()`
+       - **در غیر این صورت**:
+         - Create new material با تمام fields
+       - اضافه کردن `material.id` به `kept_material_ids`
+     - اگر خطا رخ دهد: error message و return False
+4. **حذف materials حذف شده**:
+   - دریافت تمام existing material IDs
+   - حذف materials که در `kept_material_ids` نیستند
+5. بازگشت True
+
+**نکات مهم**:
+- Materials که در POST نیستند، hard delete می‌شوند
+- Fields از `bom_material` auto-populate می‌شوند
 
 ---
 
@@ -87,7 +135,7 @@
 
 ## ProcessCreateView
 
-**Type**: `FeaturePermissionRequiredMixin, CreateView`
+**Type**: `BaseFormsetCreateView` (از `shared.views.base`)
 
 **Template**: `production/process_form.html`
 
@@ -121,91 +169,93 @@
 
 ---
 
+#### `get_formset_kwargs(self) -> Dict[str, Any]`
+- **Returns**: kwargs برای formset
+- **Logic**:
+  1. دریافت `company_id` از session
+  2. دریافت `bom_id`:
+     - از `form.cleaned_data.get('bom')` (اگر form validated شده)
+     - یا از `request.POST.get('bom')` (اگر POST request)
+  3. اضافه کردن `form_kwargs` با `bom_id` و `company_id`
+
+#### `process_formset_instance(self, instance) -> Optional[ProcessOperation]`
+- **Parameters**: `instance`: ProcessOperation instance
+- **Returns**: instance پردازش شده یا None (اگر validation fail شود)
+- **Logic**:
+  1. **Validation**: بررسی `name` یا `sequence_order` (اگر هیچکدام وجود ندارد، return None)
+  2. تنظیم `instance.process = self.object`
+  3. تنظیم `instance.company_id = active_company_id`
+  4. تنظیم `instance.created_by = request.user`
+  5. بازگشت instance
+
 #### `form_valid(self, form: ProcessForm) -> HttpResponseRedirect`
-
-**توضیح**: Process، M2M relationships، operations، و materials را ذخیره می‌کند.
-
-**پارامترهای ورودی**:
-- `form`: فرم معتبر `ProcessForm`
-
-**مقدار بازگشتی**:
-- `HttpResponseRedirect`: redirect به `success_url`
-
-**Decorator**: `@transaction.atomic` (تمام عملیات در یک transaction)
-
-**منطق**:
-1. دریافت `active_company_id` از session
-2. اگر `active_company_id` وجود ندارد:
-   - خطا: "Please select a company first."
-   - `form_invalid()` برمی‌گرداند
-3. تنظیم `form.instance.company_id = active_company_id`
-4. تنظیم `form.instance.created_by = request.user`
-5. **تنظیم `finished_item` از BOM**:
-   - `bom = form.cleaned_data.get('bom')`
-   - اگر `bom` وجود دارد: `form.instance.finished_item = bom.finished_item`
-6. **ذخیره Process**: `response = super().form_valid(form)`
-7. **ذخیره M2M relationships**: `form.save_m2m()` (برای `work_lines`)
-8. **دریافت BOM ID**: `bom_id = bom.id if bom else None`
-9. **ساخت operations formset**:
-   - `ProcessOperationFormSet(self.request.POST, prefix='operations', form_kwargs={'bom_id': bom_id})`
-10. **Validate operations formset**:
-    - اگر معتبر است:
-      - **ذخیره operations**:
-        - برای هر `operation_form`:
-          - بررسی `cleaned_data` و `DELETE` flag
-          - بررسی `name` یا `sequence_order`
-          - اگر وجود دارد:
-            - `operation = operation_form.save(commit=False)`
-            - تنظیم `operation.process = self.object`
-            - تنظیم `operation.company_id = active_company_id`
-            - تنظیم `operation.created_by = request.user`
-            - `operation.save()`
-            - اضافه به لیست `operations`
-      - **ذخیره materials برای هر operation**:
-        - برای هر `operation_form` (با index):
-          - ساخت `ProcessOperationMaterialFormSet` با prefix `f'materials-{operation_index}'`
-          - اگر formset معتبر است: `materials_formset.save()`
-          - اگر معتبر نیست: نمایش خطاها
-    - اگر معتبر نیست:
-      - نمایش خطاهای `non_form_errors()`
-      - نمایش خطاهای هر field در هر operation form
-11. پیام موفقیت: "Process created successfully."
-12. بازگشت `response`
+- **Parameters**: `form`: فرم معتبر `ProcessForm`
+- **Returns**: redirect به `success_url`
+- **Decorator**: `@transaction.atomic`
+- **Logic**:
+  1. دریافت `active_company_id` از session
+  2. اگر `active_company_id` وجود ندارد:
+     - error message: "Please select a company first."
+     - return `self.form_invalid(form)`
+  3. تنظیم `form.instance.company_id = active_company_id`
+  4. تنظیم `form.instance.created_by = request.user`
+  5. **تنظیم `finished_item` از BOM**:
+     - `bom = form.cleaned_data.get('bom')`
+     - اگر `bom` موجود باشد: `form.instance.finished_item = bom.finished_item`
+  6. **ذخیره Process**: `self.object = form.save()`
+  7. **ذخیره M2M relationships**: `form.save_m2m()` (برای `work_lines`)
+  8. **دریافت BOM ID**: `bom_id = bom.id if bom else None`
+  9. **ساخت operations formset**:
+     - `ProcessOperationFormSet(self.request.POST, instance=self.object, prefix='operations', **self.get_formset_kwargs())`
+  10. **Validate operations formset**:
+      - اگر معتبر است:
+        - **ذخیره operations**:
+          - برای هر `operation_form`:
+            - بررسی `cleaned_data` و `DELETE` flag
+            - بررسی `name` یا `sequence_order`
+            - اگر وجود دارد:
+              - `operation = operation_form.save(commit=False)`
+              - فراخوانی `self.process_formset_instance(operation)`
+              - اگر operation معتبر است: `operation.save()`
+              - اضافه به لیست `operations`
+        - **ذخیره materials برای هر operation** (custom nested logic):
+          - برای هر `operation_form` (با `operation_index`):
+            - فراخوانی `save_operation_materials_from_post()`:
+              - پارس کردن POST data با format: `materials-{operation_index}-{material_index}-{field_name}`
+              - برای هر material:
+                - دریافت `bom_material_id` و `quantity_used`
+                - اگر `material_id` موجود باشد: update existing
+                - در غیر این صورت: create new
+                - تنظیم fields از `bom_material`
+                - حذف materials که در POST نیستند
+      - اگر معتبر نیست:
+        - نمایش خطاهای `non_form_errors()`
+        - نمایش خطاهای هر field در هر operation form (با format: "❌ Operation {i+1} - {field_label}: {error}")
+        - return `self.form_invalid(form)`
+  11. success message: "Process created successfully."
+  12. return `HttpResponseRedirect(self.get_success_url())`
 
 **نکات مهم**:
+- از `BaseFormsetCreateView` استفاده می‌کند که منطق formset را خودکار مدیریت می‌کند
+- `process_formset_instance` برای هر operation فراخوانی می‌شود
+- Materials به صورت manual از POST data پارس و ذخیره می‌شوند (با `save_operation_materials_from_post`)
 - تمام عملیات در یک `@transaction.atomic` انجام می‌شود
-- `finished_item` به صورت خودکار از `bom.finished_item` تنظیم می‌شود
-- Operations و materials به صورت nested formsets ذخیره می‌شوند
 
 ---
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
-
-**توضیح**: context variables را برای template اضافه می‌کند.
-
-**پارامترهای ورودی**:
-- `**kwargs`: متغیرهای context اضافی
-
-**مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `active_module`, `form_title`, و `operations_formset`
-
-**منطق**:
-1. context را از `super().get_context_data()` دریافت می‌کند
-2. اضافه کردن `active_module = 'production'`
-3. اضافه کردن `form_title = _('Create Process')`
-4. **دریافت BOM ID**:
-   - از `form.cleaned_data.get('bom')` (اگر form validated شده)
-   - یا از `request.POST.get('bom')` (اگر POST request)
-5. **ساخت operations formset**:
-   - اگر `request.POST`: از POST data
-   - در غیر این صورت: formset خالی
-   - `form_kwargs={'bom_id': bom_id}`
-6. اضافه کردن `operations_formset` به context
-7. context را برمی‌گرداند
-
-**نکات مهم**:
-- `finished_item` به صورت خودکار از `bom.finished_item` تنظیم می‌شود
-- `save_m2m()` برای ذخیره `work_lines` فراخوانی می‌شود
+- **Returns**: context با work_lines و process_id
+- **Logic**:
+  1. دریافت context از `super().get_context_data()`
+  2. **اضافه کردن work_lines** (برای JavaScript):
+     - دریافت `active_company_id` از session
+     - اگر موجود باشد:
+       - فیلتر `WorkLine.objects.filter(company_id=active_company_id, is_enabled=1).order_by('name')`
+       - ساخت لیست dictionaries با `id`, `name`, `public_code`
+     - در غیر این صورت: لیست خالی
+  3. اضافه کردن `process_id` (اگر object موجود باشد)
+  4. اضافه کردن `form_id = 'process-form'`
+  5. بازگشت context
 
 **URL**: `/production/processes/create/`
 
@@ -213,7 +263,7 @@
 
 ## ProcessUpdateView
 
-**Type**: `FeaturePermissionRequiredMixin, UpdateView`
+**Type**: `BaseFormsetUpdateView, EditLockProtectedMixin` (از `shared.views.base`)
 
 **Template**: `production/process_form.html`
 
@@ -264,95 +314,110 @@
 
 ---
 
+#### `get_formset_kwargs(self) -> Dict[str, Any]`
+- **Returns**: kwargs برای formset
+- **Logic**:
+  1. دریافت `bom_id`:
+     - از `self.object.bom_id` (اگر object موجود است)
+     - یا از `request.POST.get('bom')` (اگر POST request)
+  2. اضافه کردن `form_kwargs` با `bom_id` و `company_id` از `self.object.company_id`
+
+#### `process_formset_instance(self, instance) -> Optional[ProcessOperation]`
+- **Parameters**: `instance`: ProcessOperation instance
+- **Returns**: instance پردازش شده یا None (اگر validation fail شود)
+- **Logic**:
+  1. **Validation**: بررسی `name` یا `sequence_order` (اگر هیچکدام وجود ندارد، return None)
+  2. تنظیم `instance.process = self.object`
+  3. تنظیم `instance.edited_by = request.user`
+  4. بازگشت instance
+
 #### `form_valid(self, form: ProcessForm) -> HttpResponseRedirect`
-
-**توضیح**: Process، M2M relationships، operations (با update/create/delete)، و materials را ذخیره می‌کند.
-
-**پارامترهای ورودی**:
-- `form`: فرم معتبر `ProcessForm`
-
-**مقدار بازگشتی**:
-- `HttpResponseRedirect`: redirect به `success_url`
-
-**Decorator**: `@transaction.atomic` (تمام عملیات در یک transaction)
-
-**منطق**:
-1. دریافت `active_company_id` از session
-2. اگر `active_company_id` وجود ندارد:
-   - خطا: "Please select a company first."
-   - `form_invalid()` برمی‌گرداند
-3. تنظیم `form.instance.edited_by = request.user`
-4. **تنظیم `finished_item` از BOM** (اگر تغییر کرده باشد):
-   - `bom = form.cleaned_data.get('bom')`
-   - اگر `bom` وجود دارد: `form.instance.finished_item = bom.finished_item`
-5. **ذخیره Process**: `response = super().form_valid(form)`
-6. **ذخیره M2M relationships**: `form.save_m2m()` (برای `work_lines`)
-7. **دریافت BOM ID**: `bom_id = bom.id if bom else (self.object.bom_id if self.object else None)`
-8. **ساخت operations formset**:
-   - `ProcessOperationFormSet(self.request.POST, prefix='operations', form_kwargs={'bom_id': bom_id})`
-9. **Validate operations formset**:
-   - اگر معتبر است:
-     - **دریافت existing operations**: `ProcessOperation.objects.filter(process=self.object).values_list('id', flat=True)`
-     - **ذخیره operations** (update/create):
-       - برای هر `operation_form`:
-         - بررسی `cleaned_data` و `DELETE` flag
-         - بررسی `name` یا `sequence_order`
-         - اگر وجود دارد:
-           - **بررسی operation_id از POST**: `self.request.POST.get(f'{operation_form.prefix}-id')`
-           - اگر `operation_id` وجود دارد:
-             - **Update existing**: دریافت operation از DB، update fields، `operation.edited_by = request.user`، `operation.save()`
-             - حذف از `existing_operation_ids`
-           - در غیر این صورت:
-             - **Create new**: `operation = operation_form.save(commit=False)`، تنظیم `process`, `company_id`, `created_by`، `operation.save()`
-           - اضافه به لیست `operations`
-     - **حذف operations حذف شده**: `ProcessOperation.objects.filter(id__in=existing_operation_ids).delete()`
-     - **ذخیره materials برای هر operation**:
-       - برای هر `operation_form` (با index):
-         - ساخت `ProcessOperationMaterialFormSet` با prefix `f'materials-{operation_index}'`
-         - اگر formset معتبر است: `materials_formset.save()`
-         - اگر معتبر نیست: نمایش خطاها
-   - اگر معتبر نیست:
-     - نمایش خطاهای `non_form_errors()`
-     - نمایش خطاهای هر field در هر operation form
-10. پیام موفقیت: "Process updated successfully."
-11. بازگشت `response`
+- **Parameters**: `form`: فرم معتبر `ProcessForm`
+- **Returns**: redirect به `success_url`
+- **Decorator**: `@transaction.atomic`
+- **Logic**:
+  1. دریافت `active_company_id` از session
+  2. اگر `active_company_id` وجود ندارد:
+     - error message: "Please select a company first."
+     - return `self.form_invalid(form)`
+  3. تنظیم `form.instance.edited_by = request.user`
+  4. **تنظیم `finished_item` از BOM**:
+     - `bom = form.cleaned_data.get('bom')`
+     - اگر `bom` موجود باشد: `form.instance.finished_item = bom.finished_item`
+  5. **ذخیره Process**: `self.object = form.save()`
+  6. **ذخیره M2M relationships**: `form.save_m2m()` (برای `work_lines`)
+  7. **دریافت BOM ID**: `bom_id = bom.id if bom else (self.object.bom_id if self.object else None)`
+  8. **ساخت operations formset**:
+     - `ProcessOperationFormSet(self.request.POST, instance=self.object, prefix='operations', **self.get_formset_kwargs())`
+  9. **Validate operations formset**:
+     - اگر معتبر است:
+       - **دریافت existing operations**: `ProcessOperation.objects.filter(process=self.object).values_list('id', flat=True)`
+       - **ذخیره operations** (update/create):
+         - برای هر `operation_form`:
+           - بررسی `cleaned_data` و `DELETE` flag
+           - بررسی `name` یا `sequence_order`
+           - اگر وجود دارد:
+             - **بررسی operation_id از POST**: `self.request.POST.get(f'{operation_form.prefix}-id')`
+             - اگر `operation_id` موجود باشد:
+               - **Update existing**: دریافت operation از DB، update fields (`name`, `description`, `sequence_order`, `labor_minutes_per_unit`, `machine_minutes_per_unit`, `work_line`, `notes`)، `operation.edited_by = request.user`، `operation.save()`
+               - حذف از `existing_operation_ids`
+             - در غیر این صورت:
+               - **Create new**: `operation = operation_form.save(commit=False)`، فراخوانی `self.process_formset_instance(operation)`، `operation.save()`
+             - اضافه به لیست `operations`
+       - **حذف operations حذف شده**: `ProcessOperation.objects.filter(id__in=existing_operation_ids, process=self.object).delete()`
+       - **ذخیره materials برای هر operation** (custom nested logic):
+         - برای هر `operation_form` (با `operation_index`):
+           - فراخوانی `save_operation_materials_from_post()`:
+             - پارس کردن POST data با format: `materials-{operation_index}-{material_index}-{field_name}`
+             - برای هر material:
+               - دریافت `bom_material_id` و `quantity_used`
+               - اگر `material_id` موجود باشد: update existing
+               - در غیر این صورت: create new
+               - تنظیم fields از `bom_material`
+               - حذف materials که در POST نیستند
+     - اگر معتبر نیست:
+       - نمایش خطاهای `non_form_errors()`
+       - نمایش خطاهای هر field در هر operation form (با format: "❌ Operation {i+1} - {field_label}: {error}")
+       - return `self.form_invalid(form)`
+  10. success message: "Process updated successfully."
+  11. return `HttpResponseRedirect(self.get_success_url())`
 
 **نکات مهم**:
-- تمام عملیات در یک `@transaction.atomic` انجام می‌شود
+- از `BaseFormsetUpdateView` استفاده می‌کند که منطق formset را خودکار مدیریت می‌کند
+- `process_formset_instance` برای هر operation جدید فراخوانی می‌شود
 - Operations می‌توانند update، create، یا delete شوند
-- `finished_item` به صورت خودکار از `bom.finished_item` تنظیم می‌شود (اگر تغییر کرده باشد)
+- Materials به صورت manual از POST data پارس و ذخیره می‌شوند (با `save_operation_materials_from_post`)
+- تمام عملیات در یک `@transaction.atomic` انجام می‌شود
 
 ---
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
-
-**توضیح**: context variables را برای template اضافه می‌کند.
-
-**پارامترهای ورودی**:
-- `**kwargs`: متغیرهای context اضافی
-
-**مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `active_module`, `form_title`, `operations_formset`, و `existing_operations_data`
-
-**منطق**:
-1. context را از `super().get_context_data()` دریافت می‌کند
-2. اضافه کردن `active_module = 'production'`
-3. اضافه کردن `form_title = _('Edit Process')`
-4. **دریافت BOM ID**:
-   - از `self.object.bom_id` (اگر object موجود است)
-   - یا از `form.cleaned_data.get('bom')` (اگر form validated شده)
-   - یا از `request.POST.get('bom')` (اگر POST request)
-5. **ساخت operations formset**:
-   - اگر `request.POST`: از POST data
-   - در غیر این صورت:
-     - **بارگذاری existing operations**: `ProcessOperation.objects.filter(process=self.object, is_enabled=1).order_by('sequence_order', 'id')`
-     - ساخت `initial_data` از existing operations
-     - ساخت formset با `initial=initial_data`
-     - **بارگذاری existing materials**: برای هر operation، `ProcessOperationMaterial.objects.filter(operation=op, is_enabled=1).select_related('bom_material', 'material_item').order_by('id')`
-     - ساخت `existing_operations_data` با operation و materials
-     - اضافه کردن `existing_operations_data` به context
-6. اضافه کردن `operations_formset` به context
-7. context را برمی‌گرداند
+- **Returns**: context با operations_formset، existing_operations_data، و work_lines
+- **Logic**:
+  1. دریافت context از `super().get_context_data()`
+  2. اضافه کردن `form_title`, `breadcrumbs`, `cancel_url`, `form_id`
+  3. **دریافت BOM ID**:
+     - از `self.object.bom_id` (اولویت)
+     - یا از `form.cleaned_data.get('bom')` (اگر form validated شده)
+     - یا از `request.POST.get('bom')` (اگر POST request)
+  4. **ساخت operations formset**:
+     - اگر `request.POST`:
+       - ساخت formset از POST data
+       - `existing_operations_data = None`
+       - `operation_id_to_index = {}`
+     - در غیر این صورت:
+       - **بارگذاری existing operations**: `ProcessOperation.objects.filter(process=self.object, is_enabled=1).order_by('sequence_order', 'id')`
+       - ساخت `initial_data` از existing operations (با تمام fields)
+       - ساخت `operation_id_to_index` mapping
+       - ساخت formset با `initial=initial_data`
+       - **بارگذاری existing materials**: برای هر operation، `ProcessOperationMaterial.objects.filter(operation=op, is_enabled=1).select_related('bom_material', 'material_item').order_by('id')`
+       - ساخت `existing_operations_data` با operation و materials (با `id`, `bom_material_id`, `quantity_used`, `unit`)
+  5. اضافه کردن `operations_formset`, `existing_operations_data`, `operation_id_to_index`, `process_id` به context
+  6. **اضافه کردن work_lines** (برای JavaScript):
+     - دریافت `active_company_id` از session
+     - فیلتر `WorkLine.objects.filter(company_id=active_company_id, is_enabled=1).order_by('name')`
+     - ساخت لیست dictionaries با `id`, `name`, `public_code`
+  7. بازگشت context
 
 **URL**: `/production/processes/<pk>/edit/`
 

@@ -5,6 +5,7 @@
 این فایل شامل views برای:
 - TicketListView: فهرست tickets
 - TicketCreateView: ایجاد ticket جدید
+- TicketDetailView: نمایش جزئیات ticket
 - TicketEditView: ویرایش ticket
 
 ---
@@ -23,7 +24,7 @@
 
 ## TicketListView
 
-**Type**: `TicketingBaseView, ListView`
+**Type**: `BaseListView` (از `shared.views.base`)
 
 **Template**: `ticketing/ticket_list.html`
 
@@ -49,10 +50,7 @@
 - `page_title`: `_('Tickets')`
 
 **نکات مهم**:
-- از `FeaturePermissionRequiredMixin` استفاده نمی‌کند (فقط `TicketingBaseView`)
-
-**نکات مهم**:
-- از `FeaturePermissionRequiredMixin` استفاده نمی‌کند (فقط `TicketingBaseView`)
+- از `BaseListView` استفاده می‌کند که permission checking را مدیریت می‌کند
 
 **URL**: `/ticketing/tickets/`
 
@@ -60,7 +58,7 @@
 
 ## TicketCreateView
 
-**Type**: `TicketingBaseView, CreateView`
+**Type**: `BaseCreateView` (از `shared.views.base`)
 
 **Template**: `ticketing/ticket_create.html`
 
@@ -192,9 +190,80 @@
 
 ---
 
+## TicketDetailView
+
+### `TicketDetailView`
+
+**توضیح**: نمایش جزئیات Ticket (read-only)
+
+**Type**: `BaseDetailView` (از `shared.views.base`)
+
+**Template**: `shared/generic/generic_detail.html`
+
+**Attributes**:
+- `model`: `Ticket`
+- `template_name`: `'shared/generic/generic_detail.html'`
+- `context_object_name`: `'object'`
+- `feature_code`: `'ticketing.tickets'`
+- `required_action`: `'view_all'`
+- `active_module`: `'ticketing'`
+
+**Context Variables**:
+- `object`: Ticket instance
+- `detail_title`: `_('View Ticket')`
+- `info_banner`: لیست اطلاعات اصلی (ticket_code, status, priority (اگر موجود باشد))
+- `detail_sections`: لیست sections برای نمایش:
+  - Basic Information: title, description (اگر موجود باشد), template (اگر موجود باشد), category (اگر موجود باشد), subcategory (اگر موجود باشد)
+  - Assignment Information: reported_by (اگر موجود باشد), assigned_to (اگر موجود باشد)
+- `list_url`, `edit_url`: URLs برای navigation
+- `can_edit_object`: بررسی اینکه آیا Ticket قفل است یا نه
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+- **Returns**: queryset بهینه شده با select_related
+- **Logic**:
+  1. دریافت `company_id` از session
+  2. اگر موجود نباشد: `Ticket.objects.none()`
+  3. فیلتر: `Ticket.objects.filter(company_id=company_id)`
+  4. اعمال `select_related('template', 'category', 'subcategory', 'priority', 'reported_by', 'assigned_to', 'created_by', 'edited_by')`
+  5. بازگشت queryset
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+- **Returns**: context با detail sections
+- **Logic**:
+  1. دریافت context از `super().get_context_data()`
+  2. ساخت `info_banner`:
+     - Ticket Code (type: 'code')
+     - Status (از `get_status_display()`)
+     - Priority (اگر موجود باشد)
+  3. ساخت `detail_sections`:
+     - **Basic Information**: title, description (اگر موجود باشد), template (اگر موجود باشد), category (اگر موجود باشد), subcategory (اگر موجود باشد)
+     - **Assignment Information**: اگر `reported_by` یا `assigned_to` موجود باشد:
+       - reported_by (از `get_full_name()` یا `username`)
+       - assigned_to (از `get_full_name()` یا `username`)
+       - اضافه کردن section
+  4. بازگشت context
+
+#### `get_list_url(self) -> str`
+- **Returns**: URL برای لیست Tickets
+
+#### `get_edit_url(self) -> str`
+- **Returns**: URL برای ویرایش Ticket
+
+#### `can_edit_object(self, obj=None, feature_code=None) -> bool`
+- **Returns**: True اگر Ticket قفل نباشد
+- **Logic**:
+  - بررسی `is_locked` attribute
+  - اگر `is_locked=True` باشد، return False
+
+**URL**: `/ticketing/tickets/<pk>/`
+
+---
+
 ## TicketEditView
 
-**Type**: `TicketingBaseView, UpdateView`
+**Type**: `BaseUpdateView, EditLockProtectedMixin` (از `shared.views.base`)
 
 **Template**: `ticketing/ticket_edit.html`
 
@@ -255,14 +324,18 @@
 
 ## نکات مهم
 
-1. **Permission Mixin**: این views از `FeaturePermissionRequiredMixin` استفاده نمی‌کنند (فقط `TicketingBaseView`)
-2. **Reported By**: در create mode، `reported_by` به صورت خودکار تنظیم می‌شود
-3. **Fields**: در create mode، `status` و `assigned_to` نمایش داده نمی‌شوند
+1. **Base Classes**: تمام views از base classes استفاده می‌کنند (`BaseListView`, `BaseCreateView`, `BaseUpdateView`, `BaseDetailView`)
+2. **Reported By**: در create mode، `reported_by` به صورت خودکار از `request.user` تنظیم می‌شود
+3. **Fields**: در create mode، `status` و `assigned_to` نمایش داده نمی‌شوند (فقط در edit mode)
+4. **Template Selection**: کاربر می‌تواند template را از لیست انتخاب کند یا مستقیماً با `template_id` در URL
+5. **Permission-based Template Filtering**: فقط templates با permission نمایش داده می‌شوند
+6. **Options Extraction**: برای dropdown/radio/checkbox/multi_select fields، options از `field_config` (manual) یا `TicketTemplateFieldOption` model استخراج می‌شوند
 
 ---
 
 ## الگوهای مشترک
 
-1. **Base View**: از `TicketingBaseView` استفاده می‌کنند
+1. **Base View**: از base classes استفاده می‌کنند (`BaseListView`, `BaseCreateView`, `BaseUpdateView`, `BaseDetailView`)
 2. **Success URL**: همه به `ticketing:ticket_list` redirect می‌کنند
+3. **Company Filtering**: تمام queryset ها بر اساس `active_company_id` فیلتر می‌شوند
 

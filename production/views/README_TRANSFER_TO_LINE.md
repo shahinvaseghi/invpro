@@ -6,9 +6,14 @@
 - TransferToLineListView: فهرست درخواست‌های انتقال
 - TransferToLineCreateView: ایجاد درخواست انتقال جدید
 - TransferToLineUpdateView: ویرایش درخواست انتقال (فقط extra items)
+- TransferToLineDetailView: نمایش جزئیات درخواست انتقال
 - TransferToLineDeleteView: حذف درخواست انتقال
 - TransferToLineApproveView: تایید درخواست انتقال
 - TransferToLineRejectView: رد درخواست انتقال
+- TransferToLineQCApproveView: تایید QC برای درخواست انتقال (scrap replacement)
+- TransferToLineQCRejectView: رد QC برای درخواست انتقال (scrap replacement)
+- TransferToLineCreateWarehouseTransferView: ایجاد دستی warehouse transfer
+- TransferToLineUnlockView: باز کردن قفل درخواست انتقال
 
 ---
 
@@ -31,7 +36,7 @@
 
 ## TransferToLineListView
 
-**Type**: `FeaturePermissionRequiredMixin, ListView`
+**Type**: `BaseDocumentListView` (از `shared.views.base`)
 
 **Template**: `production/transfer_to_line_list.html` (extends `shared/generic/generic_list.html`)
 
@@ -84,7 +89,7 @@
 
 ## TransferToLineCreateView
 
-**Type**: `FeaturePermissionRequiredMixin, CreateView`
+**Type**: `BaseMultipleDocumentCreateView` (از `shared.views.base_additional`)
 
 **Template**: `production/transfer_to_line_form.html`
 
@@ -196,7 +201,7 @@
 
 ## TransferToLineUpdateView
 
-**Type**: `FeaturePermissionRequiredMixin, UpdateView`
+**Type**: `BaseFormsetUpdateView, EditLockProtectedMixin` (از `shared.views.base`)
 
 **Template**: `production/transfer_to_line_form.html`
 
@@ -303,9 +308,82 @@
 
 ---
 
+## TransferToLineDetailView
+
+### `TransferToLineDetailView`
+
+**توضیح**: نمایش جزئیات Transfer to Line Request (read-only)
+
+**Type**: `BaseDetailView` (از `shared.views.base`)
+
+**Template**: `shared/generic/generic_detail.html`
+
+**Attributes**:
+- `model`: `TransferToLine`
+- `template_name`: `'shared/generic/generic_detail.html'`
+- `context_object_name`: `'object'`
+- `feature_code`: `'production.transfer_requests'`
+- `required_action`: `'view_own'`
+- `active_module`: `'production'`
+
+**Context Variables**:
+- `object`: TransferToLine instance
+- `detail_title`: `_('View Transfer Request')`
+- `info_banner`: لیست اطلاعات اصلی (transfer_code, transfer_date, status, qc_status اگر موجود باشد)
+- `detail_sections`: لیست sections برای نمایش:
+  - Request Information: product_order (با finished_item اگر موجود باشد), approved_by (اگر موجود باشد), notes (اگر موجود باشد)
+  - Transfer Items: table با headers (Material Item, Quantity Required, Unit, Source Warehouse, Scrap Allowance, Extra) و data rows
+  - Notes: اگر notes موجود باشد
+- `list_url`, `edit_url`: URLs برای navigation
+- `can_edit_object`: بررسی اینکه آیا Transfer قفل است یا نه
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+- **Returns**: queryset بهینه شده با select_related و prefetch_related
+- **Logic**:
+  1. دریافت queryset از `super().get_queryset()`
+  2. اعمال `select_related('order', 'order__bom', 'order__finished_item', 'approved_by', 'qc_approved_by', 'created_by', 'edited_by')`
+  3. اعمال `prefetch_related('items__material_item', 'items__source_warehouse', 'items__destination_work_center')`
+  4. بازگشت queryset
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+- **Returns**: context با detail sections
+- **Logic**:
+  1. دریافت context از `super().get_context_data()`
+  2. ساخت `info_banner`:
+     - Transfer Code (type: 'code')
+     - Transfer Date
+     - Status
+     - QC Status (اگر موجود باشد)
+  3. ساخت `detail_sections`:
+     - **Request Information**: product_order (با finished_item اگر موجود باشد), approved_by (اگر موجود باشد), notes (اگر موجود باشد)
+     - **Transfer Items**: اگر `items.exists()` باشد:
+       - ساخت table با headers: Material Item, Quantity Required, Unit, Source Warehouse, Scrap Allowance, Extra
+       - ساخت data rows از `items.all()`
+       - اضافه کردن section با type='table'
+     - **Notes**: اگر notes موجود باشد
+  4. بازگشت context
+
+#### `get_list_url(self) -> str`
+- **Returns**: URL برای لیست Transfer Requests
+
+#### `get_edit_url(self) -> str`
+- **Returns**: URL برای ویرایش Transfer Request
+
+#### `can_edit_object(self, obj=None, feature_code=None) -> bool`
+- **Returns**: True اگر Transfer قفل نباشد
+- **Logic**:
+  - بررسی `is_locked` attribute
+  - اگر `is_locked=True` باشد، return False
+
+**URL**: `/production/transfer-requests/<pk>/`
+
+---
+
 ## TransferToLineDeleteView
 
-**Type**: `FeaturePermissionRequiredMixin, DeleteView`
+**Type**: `BaseDeleteView` (از `shared.views.base`)
 
 **Template**: `shared/generic/generic_confirm_delete.html`
 
@@ -321,19 +399,11 @@
 **متدها**:
 
 #### `get_queryset(self) -> QuerySet`
-
-**توضیح**: queryset را با company filtering برمی‌گرداند.
-
-**پارامترهای ورودی**: ندارد
-
-**مقدار بازگشتی**:
-- `QuerySet`: queryset فیلتر شده بر اساس company
-
-**منطق**:
-1. دریافت `active_company_id` از session
-2. اگر `active_company_id` وجود ندارد، `TransferToLine.objects.none()` برمی‌گرداند
-3. فیلتر: `TransferToLine.objects.filter(company_id=active_company_id)`
-4. queryset را برمی‌گرداند
+- **Returns**: queryset بهینه شده با select_related
+- **Logic**:
+  1. دریافت queryset از `super().get_queryset()`
+  2. اعمال `select_related('order')`
+  3. بازگشت queryset
 
 ---
 
@@ -402,14 +472,30 @@
      - بازگشت `JsonResponse` با error و status `400`
    - اگر `status == REJECTED`:
      - بازگشت `JsonResponse` با error و status `400`
-6. Approve و lock در `transaction.atomic()`:
-   - تنظیم `status = APPROVED`
-   - تنظیم `is_locked = 1`
-   - تنظیم `locked_at = timezone.now()`
-   - تنظیم `locked_by = request.user`
-   - ذخیره transfer
-7. نمایش پیام موفقیت
-8. بازگشت `JsonResponse` با success message
+6. Approve در `transaction.atomic()`:
+   - **بررسی scrap replacement**:
+     - اگر `is_scrap_replacement == 1`:
+       - تنظیم `status = PENDING_QC_APPROVAL`
+       - تنظیم `qc_status = PENDING_APPROVAL`
+       - ذخیره transfer
+       - نمایش پیام: "Transfer request approved. Waiting for QC approval."
+     - در غیر این صورت (regular approval):
+       - تنظیم `status = APPROVED`
+       - تنظیم `is_locked = 1`
+       - تنظیم `locked_at = timezone.now()`
+       - تنظیم `locked_by = request.user`
+       - ذخیره transfer
+       - **ایجاد IssueConsumption document**:
+         - ساخت IssueConsumption header با `generate_document_code`
+         - ساخت IssueConsumptionLine برای هر TransferToLineItem
+         - تنظیم `consumption_type='production_transfer'`
+         - تنظیم `production_transfer_id` و `production_transfer_code`
+         - تنظیم `work_line` از `destination_work_center`
+       - **ایجاد Warehouse Transfer document**:
+         - فراخوانی `create_warehouse_transfer_for_transfer_to_line()`
+         - اگر موفق باشد، نمایش پیام موفقیت
+         - اگر خطا باشد، نمایش warning (بدون fail کردن approval)
+7. بازگشت `JsonResponse` با success message و warehouse_transfer info (اگر ایجاد شده باشد)
 
 **Error Responses**:
 - `400`: Company not selected یا already approved/rejected
@@ -418,8 +504,10 @@
 
 **نکات مهم**:
 - از `transaction.atomic()` استفاده می‌کند
-- بعد از approve، transfer قفل می‌شود (`is_locked=1`)
+- **Scrap Replacement Workflow**: اگر `is_scrap_replacement=1` باشد، status به `PENDING_QC_APPROVAL` تغییر می‌کند و نیاز به QC approval دارد
+- **Regular Approval**: بعد از approve، transfer قفل می‌شود (`is_locked=1`) و IssueConsumption و Warehouse Transfer ایجاد می‌شوند
 - فقط `approved_by` می‌تواند approve کند
+- ایجاد IssueConsumption و Warehouse Transfer ممکن است fail شود (warning نمایش داده می‌شود اما approval موفق است)
 
 **URL**: `/production/transfer-requests/<pk>/approve/`
 
@@ -481,6 +569,176 @@
 - فقط `approved_by` می‌تواند reject کند
 
 **URL**: `/production/transfer-requests/<pk>/reject/`
+
+---
+
+## TransferToLineQCApproveView
+
+**Type**: `FeaturePermissionRequiredMixin, View`
+
+**Method**: `POST`
+
+**Attributes**:
+- `feature_code`: `'production.transfer_requests.qc_approval'`
+- `required_action`: `'approve'`
+
+**متدها**:
+
+#### `post(self, request, *args, **kwargs) -> JsonResponse`
+- **Parameters**: `request`, `*args`, `**kwargs` (شامل `pk`)
+- **Returns**: `JsonResponse` با success یا error message
+- **Logic**:
+  1. دریافت `transfer_id` از `kwargs.get('pk')`
+  2. بررسی `active_company_id` (اگر وجود نداشته باشد، return error 400)
+  3. دریافت transfer object (اگر پیدا نشد، return error 404)
+  4. بررسی scrap replacement: اگر `is_scrap_replacement != 1` باشد، return error 400
+  5. بررسی authorization: اگر `transfer.qc_approved_by != request.user` باشد، return error 403
+  6. بررسی QC status: اگر already approved/rejected باشد، return error 400
+  7. بررسی status: اگر `status != PENDING_QC_APPROVAL` باشد، return error 400
+  8. Approve QC در `transaction.atomic()`:
+     - تنظیم `qc_status = APPROVED`
+     - تنظیم `status = APPROVED`
+     - تنظیم `is_locked = 1`
+     - تنظیم `locked_at = timezone.now()`
+     - تنظیم `locked_by = request.user`
+     - ذخیره transfer
+     - **ایجاد IssueConsumption document** (مشابه regular approval)
+     - **ایجاد Warehouse Transfer document** (مشابه regular approval)
+  9. بازگشت `JsonResponse` با success message
+
+**Error Responses**:
+- `400`: Company not selected، not scrap replacement، already QC approved/rejected، یا status not pending QC approval
+- `403`: User not authorized
+- `404`: Transfer not found
+
+**نکات مهم**:
+- فقط برای scrap replacement transfers (`is_scrap_replacement=1`)
+- فقط `qc_approved_by` می‌تواند QC approve کند
+- بعد از QC approve، transfer قفل می‌شود و IssueConsumption و Warehouse Transfer ایجاد می‌شوند
+
+**URL**: `/production/transfer-requests/<pk>/qc-approve/`
+
+---
+
+## TransferToLineQCRejectView
+
+**Type**: `FeaturePermissionRequiredMixin, View`
+
+**Method**: `POST`
+
+**Attributes**:
+- `feature_code`: `'production.transfer_requests.qc_approval'`
+- `required_action`: `'reject'`
+
+**متدها**:
+
+#### `post(self, request, *args, **kwargs) -> JsonResponse`
+- **Parameters**: `request`, `*args`, `**kwargs` (شامل `pk`)
+- **Returns**: `JsonResponse` با success یا error message
+- **Logic**:
+  1. دریافت `transfer_id` از `kwargs.get('pk')`
+  2. بررسی `active_company_id` (اگر وجود نداشته باشد، return error 400)
+  3. دریافت transfer object (اگر پیدا نشد، return error 404)
+  4. بررسی scrap replacement: اگر `is_scrap_replacement != 1` باشد، return error 400
+  5. بررسی authorization: اگر `transfer.qc_approved_by != request.user` باشد، return error 403
+  6. بررسی QC status: اگر already approved/rejected باشد، return error 400
+  7. Reject QC در `transaction.atomic()`:
+     - تنظیم `qc_status = REJECTED`
+     - تنظیم `status = REJECTED`
+     - ذخیره transfer
+  8. بازگشت `JsonResponse` با success message
+
+**Error Responses**:
+- `400`: Company not selected، not scrap replacement، یا already QC approved/rejected
+- `403`: User not authorized
+- `404`: Transfer not found
+
+**نکات مهم**:
+- فقط برای scrap replacement transfers (`is_scrap_replacement=1`)
+- فقط `qc_approved_by` می‌تواند QC reject کند
+- بعد از QC reject، transfer status به REJECTED تغییر می‌کند
+
+**URL**: `/production/transfer-requests/<pk>/qc-reject/`
+
+---
+
+## TransferToLineCreateWarehouseTransferView
+
+**Type**: `FeaturePermissionRequiredMixin, View`
+
+**Method**: `POST`
+
+**Attributes**:
+- `feature_code`: `'production.transfer_requests'`
+- `required_action`: `'approve'`
+
+**متدها**:
+
+#### `post(self, request, *args, **kwargs) -> JsonResponse`
+- **Parameters**: `request`, `*args`, `**kwargs` (شامل `pk`)
+- **Returns**: `JsonResponse` با success یا error message
+- **Logic**:
+  1. دریافت `transfer_id` از `kwargs.get('pk')`
+  2. بررسی `active_company_id` (اگر وجود نداشته باشد، return error 400)
+  3. دریافت transfer object (اگر پیدا نشد， return error 404)
+  4. بررسی status: اگر `status != APPROVED` باشد، return error 400
+  5. بررسی existing warehouse transfer: اگر active warehouse transfer موجود باشد، return error 400 با warehouse_transfer_code و warehouse_transfer_url
+  6. ایجاد Warehouse Transfer:
+     - فراخوانی `create_warehouse_transfer_for_transfer_to_line()`
+     - اگر موفق باشد، return success با warehouse_transfer_code و warehouse_transfer_url
+     - اگر خطا باشد، return error 400/500
+  7. بازگشت `JsonResponse` با success message
+
+**Error Responses**:
+- `400`: Company not selected، status not approved، یا warehouse transfer already exists
+- `404`: Transfer not found
+- `500`: Error creating warehouse transfer
+
+**نکات مهم**:
+- فقط برای approved transfers (`status=APPROVED`)
+- فقط یک active warehouse transfer می‌تواند وجود داشته باشد
+- برای ایجاد دستی warehouse transfer استفاده می‌شود (اگر در approve ایجاد نشده باشد)
+
+**URL**: `/production/transfer-requests/<pk>/create-warehouse-transfer/`
+
+---
+
+## TransferToLineUnlockView
+
+**Type**: `FeaturePermissionRequiredMixin, View`
+
+**Method**: `POST`
+
+**Attributes**:
+- `feature_code`: `'production.transfer_requests'`
+- `required_action`: `'unlock'`
+
+**متدها**:
+
+#### `post(self, request, *args, **kwargs) -> JsonResponse`
+- **Parameters**: `request`, `*args`, `**kwargs` (شامل `pk`)
+- **Returns**: `JsonResponse` با success یا error message
+- **Logic**:
+  1. دریافت `transfer_id` از `kwargs.get('pk')`
+  2. بررسی `active_company_id` (اگر وجود نداشته باشد، return error 400)
+  3. دریافت transfer object (اگر پیدا نشد، return error 404)
+  4. بررسی lock status: اگر `is_locked != 1` باشد، return error 400
+  5. Unlock transfer در `transaction.atomic()`:
+     - تنظیم `is_locked = 0`
+     - تنظیم `locked_at = None`
+     - تنظیم `locked_by = None`
+     - ذخیره transfer
+  6. بازگشت `JsonResponse` با success message
+
+**Error Responses**:
+- `400`: Company not selected یا transfer not locked
+- `404`: Transfer not found
+
+**نکات مهم**:
+- فقط برای locked transfers (`is_locked=1`)
+- بعد از unlock، transfer قابل ویرایش می‌شود
+
+**URL**: `/production/transfer-requests/<pk>/unlock/`
 
 ---
 

@@ -6,10 +6,12 @@
 - PerformanceRecordListView: فهرست ثبت‌های عملکرد
 - PerformanceRecordCreateView: ایجاد ثبت عملکرد جدید
 - PerformanceRecordUpdateView: ویرایش ثبت عملکرد
+- PerformanceRecordDetailView: نمایش جزئیات ثبت عملکرد
 - PerformanceRecordDeleteView: حذف ثبت عملکرد
 - PerformanceRecordApproveView: تایید ثبت عملکرد
 - PerformanceRecordRejectView: رد ثبت عملکرد
 - PerformanceRecordCreateReceiptView: ایجاد receipt از ثبت عملکرد تایید شده
+- PerformanceRecordGetOperationsView: AJAX view برای دریافت operations یک order
 
 ---
 
@@ -34,7 +36,7 @@
 
 ## PerformanceRecordListView
 
-**Type**: `FeaturePermissionRequiredMixin, ListView`
+**Type**: `BaseDocumentListView` (از `shared.views.base`)
 
 **Template**: `production/performance_record_list.html` (extends `shared/generic/generic_list.html`)
 
@@ -75,24 +77,16 @@
 ---
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
-
-**توضیح**: context variables را برای template اضافه می‌کند.
-
-**پارامترهای ورودی**:
-- `**kwargs`: متغیرهای context اضافی
-
-**مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `active_module`
-
-**Context Variables اضافه شده**:
-- `page_title`: `_('Performance Records')`
-- `breadcrumbs`: لیست breadcrumbs برای navigation
-- `create_url`, `create_button_text`: برای دکمه ایجاد (در صورت داشتن permission)
-- `show_filters`: `False` (فیلتر ندارد)
-- `show_actions`: `True` برای نمایش دکمه‌های action
-- `edit_url_name`, `delete_url_name`: نام URL برای action buttons
-- `empty_state_*`: پیام‌های empty state
-- `user_feature_permissions`: permissions کاربر برای بررسی در template
+- **Returns**: context با show_filters و user_feature_permissions
+- **Logic**:
+  1. دریافت context از `super().get_context_data()`
+  2. اضافه کردن `show_filters = False`
+  3. **اضافه کردن user_feature_permissions**:
+     - دریافت `active_company_id` از session
+     - اگر موجود باشد:
+       - فراخوانی `get_user_feature_permissions(request.user, active_company_id)`
+       - اضافه کردن به context
+  4. بازگشت context
 
 **URL**: `/production/performance-records/`
 
@@ -100,7 +94,7 @@
 
 ## PerformanceRecordCreateView
 
-**Type**: `FeaturePermissionRequiredMixin, CreateView`
+**Type**: `BaseMultipleFormsetCreateView` (از `shared.views.base_additional`)
 
 **Template**: `production/performance_record_form.html` (extends `shared/generic/generic_form.html`)
 
@@ -137,55 +131,58 @@
 ---
 
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
-
-**توضیح**: context variables را برای template اضافه می‌کند (با 3 formsets).
-
-**پارامترهای ورودی**:
-- `**kwargs`: متغیرهای context اضافی
-
-**مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `form_title`, `active_module`, و 3 formsets
-
-**منطق**:
-1. context را از `super().get_context_data()` دریافت می‌کند
-2. اضافه کردن `form_title = _('Create Performance Record')`
-3. اضافه کردن `active_module = 'production'`
-4. دریافت `instance` (در CreateView، `self.object` ممکن است None باشد)
-5. دریافت `active_company_id` از session
-6. **ساخت 3 formsets**:
-   - اگر `request.POST`: از POST data
-   - در غیر این صورت: empty formsets
-   - `material_formset`: `form_kwargs={'company_id': active_company_id}`, prefix='materials'
-   - `person_formset`: `form_kwargs={'company_id': active_company_id, 'process_id': None}`, prefix='persons' (process_id از order تنظیم می‌شود)
-   - `machine_formset`: `form_kwargs={'company_id': active_company_id, 'process_id': None}`, prefix='machines' (process_id از order تنظیم می‌شود)
-7. اضافه کردن formsets به context
-8. context را برمی‌گرداند
-
-**Context Variables اضافه شده**:
-- `form_title`: `_('Create Performance Record')`
-- `active_module`: `'production'`
-- `material_formset`: `PerformanceRecordMaterialFormSet`
-- `person_formset`: `PerformanceRecordPersonFormSet`
-- `machine_formset`: `PerformanceRecordMachineFormSet`
+- **Returns**: context با form_id، user_feature_permissions، document_type، و is_general_document
+- **Logic**:
+  1. دریافت context از `super().get_context_data()`
+  2. اضافه کردن `form_id = 'performance-form'`
+  3. **اضافه کردن user_feature_permissions**:
+     - دریافت `active_company_id` از session
+     - اگر موجود باشد:
+       - فراخوانی `get_user_feature_permissions(request.user, active_company_id)`
+       - اضافه کردن به context
+  4. **تعیین document_type**:
+     - اگر `request.POST`: از POST data
+     - در غیر این صورت: از form cleaned_data
+     - در غیر این صورت: default `OPERATIONAL`
+  5. اضافه کردن `document_type` و `is_general_document = (document_type == GENERAL)`
+  6. بازگشت context
 
 #### `form_valid(form: PerformanceRecordForm) -> HttpResponseRedirect`
-**منطق**:
-1. تنظیم `company_id`, `created_by`
-2. تولید `performance_code` با prefix `'PR-'`
-3. Auto-populate از order: `quantity_planned`, `finished_item`, `unit`
-4. ذخیره performance record header
-5. اگر transfer انتخاب شده باشد:
-   - حذف materials موجود
-   - ایجاد materials از transfer items
-6. اگر transfer انتخاب نشده باشد:
-   - ذخیره materials از formset
-7. ذخیره persons و machines از formsets
-8. نمایش پیام موفقیت
+- **Parameters**: `form`: فرم معتبر `PerformanceRecordForm`
+- **Returns**: redirect به `success_url`
+- **Logic** (در `@transaction.atomic`):
+  1. بررسی `active_company_id` (اگر وجود نداشته باشد، return error)
+  2. تنظیم `company_id`, `created_by`
+  3. تولید `performance_code` با prefix `'PR-'` (اگر موجود نباشد)
+  4. دریافت `order` و `document_type` از form cleaned_data
+  5. **بررسی General Document Requirements** (اگر `document_type == GENERAL`):
+     - بررسی که تمام operations با `requires_qc=1` دارای approved QC status باشند
+     - اگر نه، return error
+  6. Auto-populate از order:
+     - `finished_item = order.finished_item`
+     - `unit = order.unit`
+     - اگر `document_type == GENERAL`: `quantity_planned = order.quantity_planned`
+  7. ذخیره performance record header با `super().form_valid(form)`
+  8. **Custom formsets handling**:
+     - `process_formset()`: برای materials، return [] (skip default saving)
+     - `validate_formsets()`: فقط persons و machines را برای operational documents validate می‌کند
+     - `save_formsets()`: فقط persons و machines را برای operational documents save می‌کند
+  9. **after_formsets_save()** - منطق custom:
+     - **برای OPERATIONAL documents**:
+       - جمع‌آوری materials از تمام approved transfers برای order
+       - حذف materials موجود و ایجاد جدید از transfer items
+       - ایجاد `OperationQCStatus` اگر operation `requires_qc=1` باشد
+     - **برای GENERAL documents**:
+       - اگر transfer انتخاب شده باشد: ایجاد materials از transfer items
+       - در غیر این صورت: استفاده از material formset
+       - جمع‌آوری و aggregate کردن persons، machines، و materials از تمام operational records برای order
+       - ایجاد aggregated records
 
 **نکات مهم**:
 - از `@transaction.atomic` استفاده می‌کند
-- اگر transfer انتخاب شود، materials از transfer auto-populate می‌شوند
-- `process_id` برای person و machine formsets از order تنظیم می‌شود
+- **Document Types**: OPERATIONAL (برای یک operation) و GENERAL (aggregate از تمام operations)
+- برای GENERAL documents، تمام QC-required operations باید approved باشند
+- `process_id` برای person و machine formsets از order تنظیم می‌شود (در `get_formset_kwargs()`)
 
 **URL**: `/production/performance-records/create/`
 
@@ -193,7 +190,7 @@
 
 ## PerformanceRecordUpdateView
 
-**Type**: `FeaturePermissionRequiredMixin, UpdateView`
+**Type**: `BaseMultipleFormsetUpdateView, EditLockProtectedMixin` (از `shared.views.base_additional` و `shared.views.base`)
 
 **Template**: `production/performance_record_form.html` (extends `shared/generic/generic_form.html`)
 
@@ -292,9 +289,99 @@
 
 ---
 
+## PerformanceRecordDetailView
+
+### `PerformanceRecordDetailView`
+
+**توضیح**: نمایش جزئیات Performance Record (read-only)
+
+**Type**: `BaseDetailView` (از `shared.views.base`)
+
+**Template**: `shared/generic/generic_detail.html`
+
+**Attributes**:
+- `model`: `PerformanceRecord`
+- `template_name`: `'shared/generic/generic_detail.html'`
+- `context_object_name`: `'object'`
+- `feature_code`: `'production.performance_records'`
+- `required_action`: `'view_own'`
+- `active_module`: `'production'`
+
+**Context Variables**:
+- `object`: PerformanceRecord instance
+- `detail_title`: `_('View Performance Record')`
+- `info_banner`: لیست اطلاعات اصلی (performance_code, performance_date, status)
+- `detail_sections`: لیست sections برای نمایش:
+  - Order Information: product_order (با finished_item اگر موجود باشد), transfer_request (اگر موجود باشد)
+  - Production Quantities: quantity_produced, quantity_received, quantity_scrapped
+  - Time Information: unit_cycle_minutes, total_run_minutes, machine_usage_minutes
+  - Material Usage: table با headers (Material Item, Quantity Used, Unit, Scrap Quantity) و data rows
+  - Personnel Usage: table با headers (Person, Minutes) و data rows
+  - Machine Usage: table با headers (Machine, Minutes) و data rows
+  - Approval Information: approved_by (اگر موجود باشد), approved_at (اگر موجود باشد)
+  - Notes: اگر notes موجود باشد
+- `list_url`, `edit_url`: URLs برای navigation
+- `can_edit_object`: بررسی اینکه آیا Performance Record قفل است یا نه
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+- **Returns**: queryset بهینه شده با select_related و prefetch_related
+- **Logic**:
+  1. دریافت queryset از `super().get_queryset()`
+  2. اعمال `select_related('order', 'order__bom', 'order__finished_item', 'order__process', 'transfer', 'approved_by', 'created_by', 'edited_by')`
+  3. اعمال `prefetch_related('materials__material_item', 'persons__person', 'machines__machine')`
+  4. بازگشت queryset
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+- **Returns**: context با detail sections
+- **Logic**:
+  1. دریافت context از `super().get_context_data()`
+  2. ساخت `info_banner`:
+     - Performance Code (type: 'code')
+     - Performance Date
+     - Status
+  3. ساخت `detail_sections`:
+     - **Order Information**: product_order (با finished_item اگر موجود باشد), transfer_request (اگر موجود باشد)
+     - **Production Quantities**: quantity_produced, quantity_received, quantity_scrapped
+     - **Time Information**: unit_cycle_minutes, total_run_minutes, machine_usage_minutes
+     - **Material Usage**: اگر `materials.exists()` باشد:
+       - ساخت table با headers: Material Item, Quantity Used, Unit, Scrap Quantity
+       - ساخت data rows از `materials.all()`
+       - اضافه کردن section با type='table'
+     - **Personnel Usage**: اگر `persons.exists()` باشد:
+       - ساخت table با headers: Person, Minutes
+       - ساخت data rows از `persons.all()`
+       - اضافه کردن section با type='table'
+     - **Machine Usage**: اگر `machines.exists()` باشد:
+       - ساخت table با headers: Machine, Minutes
+       - ساخت data rows از `machines.all()`
+       - اضافه کردن section با type='table'
+     - **Approval Information**: اگر approved_by موجود باشد:
+       - approved_by (با `get_full_name()` یا `username`)
+       - approved_at (اگر موجود باشد)
+     - **Notes**: اگر notes موجود باشد
+  4. بازگشت context
+
+#### `get_list_url(self) -> str`
+- **Returns**: URL برای لیست Performance Records
+
+#### `get_edit_url(self) -> str`
+- **Returns**: URL برای ویرایش Performance Record
+
+#### `can_edit_object(self, obj=None, feature_code=None) -> bool`
+- **Returns**: True اگر Performance Record قفل نباشد
+- **Logic**:
+  - بررسی `is_locked` attribute
+  - اگر `is_locked=True` باشد، return False
+
+**URL**: `/production/performance-records/<pk>/`
+
+---
+
 ## PerformanceRecordDeleteView
 
-**Type**: `FeaturePermissionRequiredMixin, DeleteView`
+**Type**: `BaseDeleteView` (از `shared.views.base`)
 
 **Template**: `shared/generic/generic_confirm_delete.html`
 
@@ -332,6 +419,43 @@
 - `breadcrumbs`: لیست breadcrumbs
 
 **URL**: `/production/performance-records/<pk>/delete/`
+
+---
+
+## PerformanceRecordGetOperationsView
+
+**Type**: `FeaturePermissionRequiredMixin, View`
+
+**Method**: `GET` (AJAX)
+
+**Attributes**:
+- `feature_code`: `'production.performance_records'`
+- `required_action`: `'view_own'`
+
+**متدها**:
+
+#### `get(self, request, *args, **kwargs) -> JsonResponse`
+- **Parameters**: `request` (با `order_id` در GET params)
+- **Returns**: `JsonResponse` با لیست operations
+- **Logic**:
+  1. بررسی `active_company_id` (اگر وجود نداشته باشد، return error 400)
+  2. دریافت `order_id` از `request.GET.get('order_id')`
+  3. اگر `order_id` موجود نباشد، return error 400
+  4. دریافت order object
+  5. اگر order موجود نباشد، return error 404
+  6. دریافت operations از `order.process.operations.filter(company_id=active_company_id, is_enabled=1).order_by('sequence_order')`
+  7. ساخت JSON response با لیست operations (id, name, sequence_order)
+  8. بازگشت `JsonResponse`
+
+**Error Responses**:
+- `400`: Company not selected یا order_id not provided
+- `404`: Order not found
+
+**نکات مهم**:
+- برای AJAX requests استفاده می‌شود
+- operations بر اساس `sequence_order` مرتب می‌شوند
+
+**URL**: `/production/performance-records/get-operations/?order_id=<order_id>`
 
 ---
 

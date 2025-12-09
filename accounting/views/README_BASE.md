@@ -11,7 +11,7 @@
 
 - `django.contrib.auth.mixins`: `LoginRequiredMixin`
 - `django.views.generic`: `View`
-- `shared.utils.permissions`: `get_user_feature_permissions`, `has_feature_permission`
+- `shared.utils.permissions`: `get_user_feature_permissions`, `has_feature_permission`, `are_users_in_same_primary_group`
 - `typing`: `Optional`, `Dict`, `Any`
 
 ---
@@ -80,13 +80,21 @@
 1. اگر کاربر superuser باشد، queryset را بدون تغییر برمی‌گرداند
 2. `get_user_feature_permissions` را فراخوانی می‌کند تا permissions کاربر را بگیرد
 3. `active_company_id` را از session می‌گیرد
-4. بررسی می‌کند که کاربر `view_all` permission دارد:
-   - اگر دارد، queryset را بدون تغییر برمی‌گرداند
-5. بررسی می‌کند که کاربر `view_own` permission دارد:
-   - اگر دارد و model دارای فیلد `owner_field` است:
-     - queryset را بر اساس `owner_field` فیلتر می‌کند (فقط records متعلق به کاربر)
-6. اگر کاربر هیچ view permission ندارد:
-   - queryset خالی (`queryset.none()`) را برمی‌گرداند
+4. بررسی permissions:
+   - `can_view_all`: بررسی `view_all` permission
+   - `can_view_own`: بررسی `view_own` permission
+   - `can_view_same_group`: بررسی `view_same_group` permission
+5. اگر `can_view_all` باشد، queryset را بدون تغییر برمی‌گرداند
+6. ایجاد `filter_conditions` (Q object) برای ترکیب conditions
+7. اگر `can_view_own` باشد و model دارای فیلد `owner_field` است:
+   - اضافه کردن condition: `Q(**{owner_field: self.request.user})`
+8. اگر `can_view_same_group` باشد و model دارای فیلد `owner_field` است:
+   - دریافت primary groups کاربر فعلی: `set(self.request.user.primary_groups.all().values_list('id', flat=True))`
+   - دریافت users که در same primary group هستند: `User.objects.filter(primary_groups__id__in=current_user_primary_groups).distinct()`
+   - اضافه کردن condition: `Q(**{f'{owner_field}__in': same_group_users})`
+9. اگر هیچ condition وجود نداشته باشد:
+   - return `queryset.none()`
+10. اعمال filter و return `queryset.filter(filter_conditions).distinct()`
 
 **نکته**: این متد برای ListView ها استفاده می‌شود تا فقط records قابل مشاهده برای کاربر نمایش داده شوند.
 

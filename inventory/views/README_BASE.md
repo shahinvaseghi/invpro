@@ -2,30 +2,33 @@
 
 **هدف**: Base classes و mixins قابل استفاده مجدد برای تمام inventory views
 
-این فایل شامل 6 کلاس:
+این فایل شامل 7 کلاس:
 - `InventoryBaseView`: Base view با context مشترک
 - `DocumentLockProtectedMixin`: محافظت از سندهای قفل شده (فقط برای modification methods)
 - `DocumentLockView`: View برای lock کردن سندها
 - `DocumentUnlockView`: View برای unlock کردن سندها با permission checking
 - `LineFormsetMixin`: Mixin برای مدیریت line formsets
 - `ItemUnitFormsetMixin`: Mixin برای مدیریت item unit formsets
+- `BaseCreateDocumentFromRequestView`: Base view برای ایجاد سندها از درخواست‌ها (PurchaseRequest/WarehouseRequest)
 
 ---
 
 ## وابستگی‌ها
 
-- `inventory.models`: `Item`, `ItemUnit`, `ItemSerial`, `ItemWarehouse`
+- `inventory.models`: `Item`, `ItemUnit`, `ItemSerial`, `ItemWarehouse`, `PurchaseRequest`, `WarehouseRequest`
 - `inventory.forms`: `ItemUnitFormSet`
 - `inventory.services.serials`: `sync_issue_line_serials`
 - `shared.utils.permissions`: `get_user_feature_permissions`, `has_feature_permission`
+- `shared.mixins`: `FeaturePermissionRequiredMixin`
 - `django.contrib.auth.mixins.LoginRequiredMixin`
-- `django.views.generic.View`
-- `django.http.HttpResponseRedirect`
+- `django.views.generic.View`, `django.views.generic.TemplateView`
+- `django.http.HttpResponseRedirect`, `django.http.Http404`
 - `django.urls.reverse`
 - `django.utils.timezone`
 - `django.utils.translation.gettext_lazy`
 - `django.shortcuts.get_object_or_404`
 - `django.contrib.messages`
+- `decimal.Decimal`, `decimal.InvalidOperation`
 
 ---
 
@@ -487,6 +490,238 @@
 1. دریافت warehouses از `cleaned_data`
 2. دریافت order از POST data
 3. مرتب‌سازی بر اساس order
+
+---
+
+## BaseCreateDocumentFromRequestView
+
+### `BaseCreateDocumentFromRequestView(FeaturePermissionRequiredMixin, InventoryBaseView, TemplateView)`
+
+**توضیح**: Base view برای ایجاد سندها (receipts/issues) از درخواست‌ها (PurchaseRequest/WarehouseRequest)
+
+**Inheritance**: `FeaturePermissionRequiredMixin`, `InventoryBaseView`, `TemplateView`
+
+**هدف**: این کلاس flow مشترک ایجاد سند از درخواست را handle می‌کند:
+1. دریافت request object (PurchaseRequest یا WarehouseRequest)
+2. نمایش فرم انتخاب خطوط/مقدار (برای درخواست‌های چندخطی) یا فرم مقدار (برای درخواست‌های تک‌خطی)
+3. پردازش ارسال فرم و ذخیره داده در session
+4. Redirect به view ایجاد سند
+
+**Attributes (باید در subclasses تنظیم شوند)**:
+- `document_type`: `'receipt'` یا `'issue'`
+- `document_subtype`: `'temporary'`, `'permanent'`, `'consignment'`, `'consumption'`
+- `request_model`: کلاس مدل درخواست (`PurchaseRequest` یا `WarehouseRequest`)
+- `is_multi_line`: `True` برای `PurchaseRequest` (دارای خطوط)، `False` برای `WarehouseRequest` (تک خط)
+- `template_name`: Template برای render
+- `feature_code`: کد feature برای permissions
+- `required_action`: Action مورد نیاز برای permissions
+
+**متدها**:
+
+#### `get_company_id(self) -> int`
+
+**توضیح**: دریافت شناسه شرکت فعال از session.
+
+**مقدار بازگشتی**:
+- `int`: شناسه شرکت فعال
+
+**Exception**:
+- `Http404`: اگر شرکت فعال مشخص نشده باشد
+
+---
+
+#### `get_request_status_filter(self) -> str`
+
+**توضیح**: دریافت فیلتر وضعیت برای درخواست. می‌تواند در subclasses override شود.
+
+**مقدار بازگشتی**:
+- `str`: وضعیت فیلتر (پیش‌فرض: `'approved'`)
+
+---
+
+#### `get_request_object(self, pk: int) -> Model`
+
+**توضیح**: دریافت object درخواست و بررسی permissions. می‌تواند در subclasses override شود.
+
+**پارامترهای ورودی**:
+- `pk`: شناسه درخواست
+
+**مقدار بازگشتی**:
+- `Model`: instance درخواست
+
+**منطق**:
+1. دریافت `company_id` از `get_company_id()`
+2. دریافت `status_filter` از `get_request_status_filter()`
+3. ساخت `filter_kwargs` با `pk`, `company_id`, `is_enabled=1`
+4. اگر `status_filter` تنظیم شده باشد:
+   - برای `PurchaseRequest` با `Status` enum: `status = Status.APPROVED`
+   - برای `WarehouseRequest` با string status: `request_status = 'approved'`
+5. استفاده از `get_object_or_404()` برای دریافت object
+
+---
+
+#### `get_type_name(self) -> str`
+
+**توضیح**: دریافت نام نمایشی برای نوع سند. می‌تواند در subclasses override شود.
+
+**مقدار بازگشتی**:
+- `str`: نام فارسی نوع سند
+
+**منطق**:
+- استفاده از dictionary برای mapping `document_type` و `document_subtype` به نام فارسی
+
+---
+
+#### `get_session_key(self, request_obj) -> str`
+
+**توضیح**: دریافت کلید session برای ذخیره داده. می‌تواند در subclasses override شود.
+
+**پارامترهای ورودی**:
+- `request_obj`: instance درخواست
+
+**مقدار بازگشتی**:
+- `str`: کلید session
+
+**منطق**:
+- برای receipts: `f'purchase_request_{pk}_receipt_{subtype}_lines'`
+- برای issues: `f'warehouse_request_{pk}_issue_{subtype}_data'`
+
+---
+
+#### `get_redirect_url(self, request_obj) -> str`
+
+**توضیح**: دریافت URL برای redirect بعد از پردازش. می‌تواند در subclasses override شود.
+
+**پارامترهای ورودی**:
+- `request_obj`: instance درخواست
+
+**مقدار بازگشتی**:
+- `str`: URL برای redirect
+
+**منطق**:
+- استفاده از dictionary برای mapping `document_type` و `document_subtype` به URL name
+- استفاده از `reverse()` برای ساخت URL
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: نمایش فرم برای انتخاب خطوط/مقدار از درخواست.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی (باید شامل `pk` باشد)
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با داده‌های درخواست
+
+**Context Variables**:
+- `{document_type}_type`: نوع سند (مثلاً `receipt_type`, `issue_type`)
+- `{document_type}_type_name`: نام فارسی نوع سند
+- برای multi-line (`PurchaseRequest`):
+  - `lines`: خطوط درخواست (queryset)
+  - `purchase_request`: instance درخواست
+- برای single-line (`WarehouseRequest`):
+  - `warehouse_request`: instance درخواست
+  - `remaining_quantity`: مقدار باقیمانده
+  - `default_quantity`: مقدار پیش‌فرض
+
+**منطق**:
+1. دریافت `request_obj` از `get_request_object(kwargs['pk'])`
+2. اضافه کردن `document_type` و `document_type_name` به context
+3. اگر `is_multi_line` باشد:
+   - دریافت خطوط از `request_obj.lines.filter(is_enabled=1).order_by('sort_order', 'id')`
+   - اضافه کردن `lines` و `purchase_request` به context
+4. اگر `is_multi_line` نباشد:
+   - محاسبه `remaining_quantity` از `quantity_requested - quantity_issued`
+   - اضافه کردن `warehouse_request`, `remaining_quantity`, `default_quantity` به context
+
+---
+
+#### `process_multi_line_post(self, request, request_obj) -> Optional[bool]`
+
+**توضیح**: پردازش POST برای درخواست‌های چندخطی (`PurchaseRequest`).
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `request_obj`: instance درخواست
+
+**مقدار بازگشتی**:
+- `bool`: `True` اگر موفق باشد، `None` اگر خطا باشد
+
+**منطق**:
+1. دریافت خطوط انتخاب شده از POST data:
+   - برای هر خط: بررسی `selected_{line_id}` checkbox
+   - دریافت `quantity_{line_id}` از POST
+   - تبدیل به `Decimal` و بررسی `quantity > 0`
+   - بررسی `quantity <= remaining` (از `quantity_remaining` یا `quantity_requested`)
+2. اگر هیچ خطی انتخاب نشده باشد، نمایش پیام خطا و return `None`
+3. ساخت session data:
+   - لیست dicts با `line_id` و `quantity` (string)
+4. ذخیره در session با `get_session_key()`
+5. Return `True`
+
+---
+
+#### `process_single_line_post(self, request, request_obj) -> Optional[bool]`
+
+**توضیح**: پردازش POST برای درخواست‌های تک‌خطی (`WarehouseRequest`).
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `request_obj`: instance درخواست
+
+**مقدار بازگشتی**:
+- `bool`: `True` اگر موفق باشد، `None` اگر خطا باشد
+
+**منطق**:
+1. دریافت `quantity` از POST data
+2. تبدیل به `Decimal`
+3. محاسبه `remaining_quantity` از `quantity_requested - quantity_issued`
+4. بررسی `quantity > 0` (اگر نباشد، نمایش خطا)
+5. بررسی `quantity <= remaining_quantity` (اگر بیشتر باشد، تنظیم به `remaining_quantity` و نمایش warning)
+6. دریافت `notes` از POST (optional)
+7. ساخت session data:
+   - dict با `warehouse_request_id`, `quantity` (string), `notes`
+8. ذخیره در session با `get_session_key()`
+9. Return `True`
+
+---
+
+#### `post(self, request, *args, **kwargs) -> HttpResponse`
+
+**توضیح**: پردازش خطوط/مقدار انتخاب شده و redirect به view ایجاد سند.
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی (باید شامل `pk` باشد)
+
+**مقدار بازگشتی**:
+- `HttpResponse`: redirect به URL ایجاد سند یا re-render فرم در صورت خطا
+
+**منطق**:
+1. دریافت `request_obj` از `get_request_object(kwargs['pk'])`
+2. اگر `is_multi_line` باشد:
+   - فراخوانی `process_multi_line_post()`
+3. اگر `is_multi_line` نباشد:
+   - فراخوانی `process_single_line_post()`
+4. اگر result `None` باشد (خطا):
+   - Re-render فرم با `self.get()`
+5. اگر موفق باشد:
+   - دریافت `redirect_url` از `get_redirect_url()`
+   - اگر `redirect_url` موجود باشد، redirect
+   - در غیر این صورت، redirect به لیست درخواست‌ها
+
+---
+
+**Hook Methods (می‌توانند در subclasses override شوند)**:
+- `get_request_object(pk)`: دریافت و validate کردن object درخواست
+- `get_request_status_filter()`: دریافت فیلتر وضعیت (پیش‌فرض: `'approved'`)
+- `get_context_data(**kwargs)`: اضافه کردن context data اضافی
+- `process_multi_line_post(request, request_obj)`: پردازش POST برای درخواست‌های چندخطی
+- `process_single_line_post(request, request_obj)`: پردازش POST برای درخواست‌های تک‌خطی
+- `get_redirect_url(request_obj)`: دریافت URL برای redirect
+- `get_session_key(request_obj)`: دریافت کلید session
+- `get_type_name()`: دریافت نام نمایشی نوع سند
 
 ---
 
