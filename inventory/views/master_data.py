@@ -48,6 +48,8 @@ class ItemTypeListView(InventoryBaseView, BaseListView):
     feature_code = 'inventory.master.item_types'
     permission_field = 'created_by'
     paginate_by = 50
+    search_fields = ['public_code', 'name', 'name_en']
+    default_order_by = ['sort_order', 'public_code']
 
     def get_page_title(self) -> str:
         """Return page title."""
@@ -93,6 +95,10 @@ class ItemTypeListView(InventoryBaseView, BaseListView):
         """Return empty state icon."""
         return '🏷️'
 
+    def get_search_placeholder(self) -> str:
+        """Return search placeholder."""
+        return _('Search by code or name...')
+    
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
         """Add item type specific context."""
         context = super().get_context_data(**kwargs)
@@ -207,8 +213,8 @@ class ItemTypeDeleteView(InventoryBaseView, BaseDeleteView):
     success_message = _('Item Type deleted successfully.')
     owner_field = 'created_by'
 
-    def delete(self, request, *args, **kwargs):
-        """Handle deletion with ProtectedError handling."""
+    def post(self, request, *args, **kwargs):
+        """Handle POST request for deletion with ProtectedError handling."""
         self.object = self.get_object()
         logger.info(f"Attempting to delete item type: {self.object}")
         logger.info(f"Item Type ID: {self.object.pk}, Name: {self.object.name}")
@@ -223,32 +229,36 @@ class ItemTypeDeleteView(InventoryBaseView, BaseDeleteView):
             logger.error(f"ProtectedError when deleting item type {self.object.pk}: {e}")
             logger.error(f"Protected objects: {e.protected_objects}")
             
-            # Model name mapping to Persian
-            model_name_map = {
-                'Item': _('کالا'),
-                'Items': _('کالاها'),
-                'BOMMaterial': _('ماده اولیه BOM'),
-                'BOMMaterials': _('مواد اولیه BOM'),
-            }
+            # Count items and BOM materials
+            items_count = 0
+            bom_materials_count = 0
             
-            # Extract model names from protected objects
-            protected_models = set()
-            protected_count = {}
             for obj in e.protected_objects:
-                model_name = obj._meta.verbose_name
-                # Use Persian name if available, otherwise use original
-                persian_name = model_name_map.get(model_name, model_name)
-                protected_models.add(persian_name)
-                protected_count[persian_name] = protected_count.get(persian_name, 0) + 1
+                if obj._meta.model_name == 'item':
+                    items_count += 1
+                elif obj._meta.model_name == 'bommaterial':
+                    bom_materials_count += 1
             
             # Create user-friendly error message
             error_parts = []
-            for model_name, count in protected_count.items():
-                error_parts.append(f"{count} {model_name}")
+            if items_count > 0:
+                if items_count == 1:
+                    error_parts.append(_('1 کالا'))
+                else:
+                    error_parts.append(_('{count} کالا').format(count=items_count))
             
-            error_message = _('Cannot delete this item type because it is used in {models}.').format(
-                models=', '.join(error_parts)
-            )
+            if bom_materials_count > 0:
+                if bom_materials_count == 1:
+                    error_parts.append(_('1 ماده اولیه BOM'))
+                else:
+                    error_parts.append(_('{count} ماده اولیه BOM').format(count=bom_materials_count))
+            
+            if error_parts:
+                error_message = _('نمی‌توان این نوع کالا را حذف کرد چون در {models} استفاده شده است.').format(
+                    models=' و '.join(error_parts)
+                )
+            else:
+                error_message = _('نمی‌توان این نوع کالا را حذف کرد چون در موارد دیگر استفاده شده است.')
             
             messages.error(self.request, error_message)
             logger.error(f"Error message shown to user: {error_message}")
@@ -298,6 +308,8 @@ class ItemCategoryListView(InventoryBaseView, BaseListView):
     feature_code = 'inventory.master.item_categories'
     permission_field = 'created_by'
     paginate_by = 50
+    search_fields = ['public_code', 'name', 'name_en']
+    default_order_by = ['sort_order', 'public_code']
 
     def get_page_title(self) -> str:
         """Return page title."""
@@ -343,6 +355,10 @@ class ItemCategoryListView(InventoryBaseView, BaseListView):
         """Return empty state icon."""
         return '📦'
 
+    def get_search_placeholder(self) -> str:
+        """Return search placeholder."""
+        return _('Search by code or name...')
+    
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
         """Add item category specific context."""
         context = super().get_context_data(**kwargs)
@@ -457,8 +473,8 @@ class ItemCategoryDeleteView(InventoryBaseView, BaseDeleteView):
     success_message = _('Item Category deleted successfully.')
     owner_field = 'created_by'
 
-    def delete(self, request, *args, **kwargs):
-        """Handle deletion with ProtectedError handling."""
+    def post(self, request, *args, **kwargs):
+        """Handle POST request for deletion with ProtectedError handling."""
         self.object = self.get_object()
         logger.info(f"Attempting to delete item category: {self.object}")
         logger.info(f"Item Category ID: {self.object.pk}, Name: {self.object.name}")
@@ -473,31 +489,36 @@ class ItemCategoryDeleteView(InventoryBaseView, BaseDeleteView):
             logger.error(f"ProtectedError when deleting item category {self.object.pk}: {e}")
             logger.error(f"Protected objects: {e.protected_objects}")
             
-            # Model name mapping
-            model_name_map = {
-                'Item': _('Item'),
-                'Items': _('Items'),
-                'Item Subcategory': _('Item Subcategory'),
-                'Item Subcategories': _('Item Subcategories'),
-            }
+            # Count items and subcategories
+            items_count = 0
+            subcategories_count = 0
             
-            # Extract model names from protected objects
-            protected_models = set()
-            protected_count = {}
             for obj in e.protected_objects:
-                model_name = obj._meta.verbose_name
-                persian_name = model_name_map.get(model_name, model_name)
-                protected_models.add(persian_name)
-                protected_count[persian_name] = protected_count.get(persian_name, 0) + 1
+                if obj._meta.model_name == 'item':
+                    items_count += 1
+                elif obj._meta.model_name == 'itemsubcategory':
+                    subcategories_count += 1
             
             # Create user-friendly error message
             error_parts = []
-            for model_name, count in protected_count.items():
-                error_parts.append(f"{count} {model_name}")
+            if items_count > 0:
+                if items_count == 1:
+                    error_parts.append(_('1 کالا'))
+                else:
+                    error_parts.append(_('{count} کالا').format(count=items_count))
             
-            error_message = _('Cannot delete this item category because it is used in {models}.').format(
-                models=', '.join(error_parts)
-            )
+            if subcategories_count > 0:
+                if subcategories_count == 1:
+                    error_parts.append(_('1 زیردسته‌بندی'))
+                else:
+                    error_parts.append(_('{count} زیردسته‌بندی').format(count=subcategories_count))
+            
+            if error_parts:
+                error_message = _('نمی‌توان این دسته‌بندی را حذف کرد چون در {models} استفاده شده است.').format(
+                    models=' و '.join(error_parts)
+                )
+            else:
+                error_message = _('نمی‌توان این دسته‌بندی را حذف کرد چون در موارد دیگر استفاده شده است.')
             
             messages.error(self.request, error_message)
             logger.error(f"Error message shown to user: {error_message}")
@@ -529,7 +550,6 @@ class ItemCategoryDeleteView(InventoryBaseView, BaseDeleteView):
             {'label': _('Code'), 'value': self.object.public_code},
             {'label': _('Name'), 'value': self.object.name},
             {'label': _('Name (EN)'), 'value': self.object.name_en or '-'},
-            {'label': _('Item Type'), 'value': self.object.item_type.name if self.object.item_type else '-'},
         ]
 
     def get_cancel_url(self):
@@ -548,6 +568,8 @@ class ItemSubcategoryListView(InventoryBaseView, BaseListView):
     feature_code = 'inventory.master.item_subcategories'
     permission_field = 'created_by'
     paginate_by = 50
+    search_fields = ['public_code', 'name', 'name_en', 'category__name']
+    default_order_by = ['category__name', 'sort_order', 'public_code']
 
     def get_select_related(self):
         """Select related category."""
@@ -597,6 +619,10 @@ class ItemSubcategoryListView(InventoryBaseView, BaseListView):
         """Return empty state icon."""
         return '📋'
 
+    def get_search_placeholder(self) -> str:
+        """Return search placeholder."""
+        return _('Search by code, name, or category...')
+    
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
         """Add item subcategory specific context."""
         context = super().get_context_data(**kwargs)
@@ -742,8 +768,8 @@ class ItemSubcategoryDeleteView(InventoryBaseView, BaseDeleteView):
         
         return super().dispatch(request, *args, **kwargs)
 
-    def delete(self, request, *args, **kwargs):
-        """Handle deletion with ProtectedError handling."""
+    def post(self, request, *args, **kwargs):
+        """Handle POST request for deletion with ProtectedError handling."""
         self.object = self.get_object()
         logger.info(f"Attempting to delete item subcategory: {self.object}")
         logger.info(f"Item Subcategory ID: {self.object.pk}, Name: {self.object.name}")
@@ -758,30 +784,23 @@ class ItemSubcategoryDeleteView(InventoryBaseView, BaseDeleteView):
             logger.error(f"ProtectedError when deleting item subcategory {self.object.pk}: {e}")
             logger.error(f"Protected objects: {e.protected_objects}")
             
-            # Model name mapping to Persian
-            model_name_map = {
-                'Item': _('کالا'),
-                'Items': _('کالاها'),
-            }
+            # Count items
+            items_count = 0
             
-            # Extract model names from protected objects
-            protected_models = set()
-            protected_count = {}
             for obj in e.protected_objects:
-                model_name = obj._meta.verbose_name
-                # Use Persian name if available, otherwise use original
-                persian_name = model_name_map.get(model_name, model_name)
-                protected_models.add(persian_name)
-                protected_count[persian_name] = protected_count.get(persian_name, 0) + 1
+                if obj._meta.model_name == 'item':
+                    items_count += 1
             
             # Create user-friendly error message
-            error_parts = []
-            for model_name, count in protected_count.items():
-                error_parts.append(f"{count} {model_name}")
-            
-            error_message = _('نمی‌توان این زیر دسته‌بندی کالا را حذف کرد چون در ساختار {models} استفاده شده است.').format(
-                models=', '.join(error_parts)
-            )
+            if items_count > 0:
+                if items_count == 1:
+                    error_message = _('نمی‌توان این زیردسته‌بندی را حذف کرد چون در 1 کالا استفاده شده است.')
+                else:
+                    error_message = _('نمی‌توان این زیردسته‌بندی را حذف کرد چون در {count} کالا استفاده شده است.').format(
+                        count=items_count
+                    )
+            else:
+                error_message = _('نمی‌توان این زیردسته‌بندی را حذف کرد چون در موارد دیگر استفاده شده است.')
             
             messages.error(self.request, error_message)
             logger.error(f"Error message shown to user: {error_message}")
@@ -810,9 +829,10 @@ class ItemSubcategoryDeleteView(InventoryBaseView, BaseDeleteView):
     def get_object_details(self):
         """Return object details."""
         return [
+            {'label': _('Code'), 'value': self.object.public_code},
             {'label': _('Name'), 'value': self.object.name},
+            {'label': _('Name (EN)'), 'value': self.object.name_en or '-'},
             {'label': _('Category'), 'value': str(self.object.category) if self.object.category else '-'},
-            {'label': _('Item Type'), 'value': str(self.object.item_type) if self.object.item_type else '-'},
         ]
 
     def get_cancel_url(self):

@@ -107,7 +107,7 @@ def get_item_allowed_units(request: HttpRequest) -> JsonResponse:
 @require_http_methods(["GET"])
 @login_required
 def get_filtered_categories(request: HttpRequest) -> JsonResponse:
-    """API endpoint to get categories that have items of specific type."""
+    """API endpoint to get all categories (optionally filtered by type)."""
     company_id = request.session.get('active_company_id')
     if not company_id:
         return JsonResponse({'error': 'No active company'}, status=400)
@@ -115,31 +115,21 @@ def get_filtered_categories(request: HttpRequest) -> JsonResponse:
     try:
         type_id = request.GET.get('type_id')
 
-        # Get categories that have at least one item
-        categories_with_items = models.ItemCategory.objects.filter(
+        # Get all enabled categories for the company
+        categories_qs = models.ItemCategory.objects.filter(
             company_id=company_id,
             is_enabled=1
         )
         
-        if type_id:
-            # Filter to only categories that have items of this type
-            categories_with_items = categories_with_items.filter(
-                items__type_id=type_id,
-                items__is_enabled=1,
-                items__company_id=company_id
-            ).distinct()
-        else:
-            # Get all categories that have any items
-            categories_with_items = categories_with_items.filter(
-                items__is_enabled=1,
-                items__company_id=company_id
-            ).distinct()
-
-        categories_with_items = categories_with_items.order_by('name')
+        # Note: We return all categories regardless of type_id
+        # because categories are independent of types in the current schema
+        # If filtering by type is needed in the future, it can be added here
+        
+        categories_qs = categories_qs.order_by('name')
 
         categories_data = [
             {'value': str(cat.pk), 'label': cat.name}
-            for cat in categories_with_items
+            for cat in categories_qs
         ]
 
         return JsonResponse({'categories': categories_data})

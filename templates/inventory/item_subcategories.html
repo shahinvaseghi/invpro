@@ -5,7 +5,6 @@
 <th>{% trans "Code" %}</th>
 <th>{% trans "Name" %} (FA)</th>
 <th>{% trans "Name" %} (EN)</th>
-<th>{% trans "Item Type" %}</th>
 <th>{% trans "Category" %}</th>
 <th>Sort Order</th>
 <th>{% trans "Status" %}</th>
@@ -20,7 +19,6 @@
   <td><code>{{ subcategory.public_code }}</code></td>
   <td><strong>{{ subcategory.name }}</strong></td>
   <td>{{ subcategory.name_en|default:"-" }}</td>
-  <td>{{ subcategory.item_type.name|default:"-" }}</td>
   <td>{{ subcategory.category.name|default:"-" }}</td>
   <td style="text-align: center;">{{ subcategory.sort_order }}</td>
   <td>

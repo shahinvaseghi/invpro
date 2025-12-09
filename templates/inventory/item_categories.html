@@ -5,7 +5,6 @@
 <th>{% trans "Code" %}</th>
 <th>{% trans "Name" %} (FA)</th>
 <th>{% trans "Name" %} (EN)</th>
-<th>{% trans "Item Type" %}</th>
 <th>Sort Order</th>
 <th>{% trans "Status" %}</th>
 {% if show_actions %}
@@ -19,7 +18,6 @@
   <td><code>{{ category.public_code }}</code></td>
   <td><strong>{{ category.name }}</strong></td>
   <td>{{ category.name_en|default:"-" }}</td>
-  <td>{{ category.item_type.name|default:"-" }}</td>
   <td style="text-align: center;">{{ category.sort_order }}</td>
   <td>
     {% if category.is_enabled %}

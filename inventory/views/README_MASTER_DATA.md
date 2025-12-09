@@ -282,6 +282,8 @@
 - `template_name`: `'inventory/item_categories.html'`
 - `context_object_name`: `'object_list'` (برای consistency با generic template)
 - `paginate_by`: `50`
+- `search_fields`: `['public_code', 'name', 'name_en']`
+- `default_order_by`: `['sort_order', 'public_code']`
 
 **Context Variables**:
 - `object_list`: queryset دسته‌های کالا (paginated)
@@ -297,6 +299,11 @@
 - `empty_state_message`: `_('Start by creating your first item category.')`
 - `empty_state_icon`: `'📦'`
 - `active_module`: `'inventory'` (از `InventoryBaseView`)
+
+**Template Blocks Overridden**:
+- `table_headers`: Code, Name (FA), Name (EN), Sort Order, Status
+- `table_rows`: نمایش item categories با تمام فیلدها
+- `empty_state_title`, `empty_state_message`, `empty_state_icon`: override برای empty state
 
 **متدها**:
 
@@ -502,17 +509,35 @@
 
 **Type**: `InventoryBaseView, ListView`
 
-**Template**: `inventory/item_subcategories.html`
+**Template**: `inventory/item_subcategories.html` (extends `shared/generic/generic_list.html`)
 
 **Attributes**:
 - `model`: `models.ItemSubcategory`
 - `template_name`: `'inventory/item_subcategories.html'`
-- `context_object_name`: `'item_subcategories'`
+- `context_object_name`: `'object_list'` (برای consistency با generic template)
 - `paginate_by`: `50`
+- `search_fields`: `['public_code', 'name', 'name_en', 'category__name']`
+- `default_order_by`: `['category__name', 'sort_order', 'public_code']`
 
 **Context Variables**:
-- `item_subcategories`: queryset زیردسته‌های کالا (paginated)
+- `object_list`: queryset زیردسته‌های کالا (paginated)
+- `page_title`: `_('Item Subcategories')`
+- `breadcrumbs`: لیست breadcrumb items
+- `create_url`: URL برای ایجاد Item Subcategory جدید
+- `create_button_text`: `_('Create Item Subcategory')`
+- `table_headers`: [] (overridden in template)
+- `show_actions`: `True`
+- `edit_url_name`: `'inventory:itemsubcategory_edit'`
+- `delete_url_name`: `'inventory:itemsubcategory_delete'`
+- `empty_state_title`: `_('No Item Subcategories Found')`
+- `empty_state_message`: `_('Start by creating your first item subcategory.')`
+- `empty_state_icon`: `'📋'`
 - `active_module`: `'inventory'` (از `InventoryBaseView`)
+
+**Template Blocks Overridden**:
+- `table_headers`: Code, Name (FA), Name (EN), Category, Sort Order, Status
+- `table_rows`: نمایش item subcategories با تمام فیلدها
+- `empty_state_title`, `empty_state_message`, `empty_state_icon`: override برای empty state
 
 **متدها**:
 
@@ -1988,10 +2013,11 @@
 ### Item Categories List
 - **Template**: `inventory/item_categories.html` extends `shared/generic/generic_list.html`
 - **Blocks Overridden**: 
-  - `table_headers`: Code, Name (FA), Name (EN), Item Type, Sort Order, Status
+  - `table_headers`: Code, Name (FA), Name (EN), Sort Order, Status
   - `table_rows`: نمایش item categories با تمام فیلدها
   - `empty_state_title`, `empty_state_message`, `empty_state_icon`: override برای empty state
 - **Context Variables**: تمام متغیرهای لازم در `get_context_data` تنظیم شده‌اند
+- **نکته**: ستون "Item Type" از table headers حذف شده است (categories مستقل از types هستند)
 
 ### Item Categories Form
 - **Template**: `inventory/itemcategory_form.html` extends `shared/generic/generic_form.html`
@@ -2016,10 +2042,11 @@
 ### Item Subcategories List
 - **Template**: `inventory/item_subcategories.html` extends `shared/generic/generic_list.html`
 - **Blocks Overridden**: 
-  - `table_headers`: Code, Name (FA), Name (EN), Item Type, Category, Sort Order, Status
+  - `table_headers`: Code, Name (FA), Name (EN), Category, Sort Order, Status
   - `table_rows`: نمایش item subcategories با تمام فیلدها
   - `empty_state_title`, `empty_state_message`, `empty_state_icon`: override برای empty state
 - **Context Variables**: تمام متغیرهای لازم در `get_context_data` تنظیم شده‌اند
+- **نکته**: ستون "Item Type" از table headers حذف شده است (subcategories مستقل از types هستند)
 
 ### Item Subcategories Form
 - **Template**: `inventory/itemsubcategory_form.html` extends `shared/generic/generic_form.html`

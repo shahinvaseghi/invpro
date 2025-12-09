@@ -67,7 +67,7 @@
 **Method**: `GET`
 
 **Query Parameters**:
-- `type_id` (optional): فیلتر بر اساس نوع کالا
+- `type_id` (optional): این پارامتر در حال حاضر استفاده نمی‌شود (برای سازگاری با آینده نگه داشته شده)
 
 **Response**:
 ```json
@@ -77,8 +77,10 @@
 ```
 
 **منطق**:
-- دریافت دسته‌بندی‌هایی که حداقل یک کالا دارند
-- اگر `type_id` داده شود، فقط دسته‌بندی‌هایی که کالاهای این نوع دارند
+- دریافت **همه** دسته‌بندی‌های enabled برای company
+- دسته‌بندی‌ها مستقل از type هستند (در schema فعلی)
+- مرتب‌سازی بر اساس `name`
+- **نکته**: `type_id` در حال حاضر نادیده گرفته می‌شود. اگر در آینده نیاز به فیلتر بر اساس type باشد، می‌توان اضافه کرد
 
 **URL**: `/inventory/api/categories/`
 
@@ -91,8 +93,8 @@
 **Method**: `GET`
 
 **Query Parameters**:
-- `category_id` (required): شناسه دسته‌بندی
-- `type_id` (optional): فیلتر بر اساس نوع کالا
+- `category_id` (required): شناسه دسته‌بندی - **الزامی است**
+- `type_id` (optional): این پارامتر در حال حاضر استفاده نمی‌شود (فقط hint است، strict filter نیست)
 
 **Response**:
 ```json
@@ -102,9 +104,11 @@
 ```
 
 **منطق**:
-- اگر `category_id` داده نشود، empty list برمی‌گرداند
+- اگر `category_id` داده نشود، **فوراً empty list برمی‌گرداند** (category الزامی است)
 - فیلتر بر اساس `category_id` (required)
-- `type_id` فقط hint است (strict filter نیست)
+- دریافت همه زیردسته‌بندی‌های enabled برای company که به category مربوط هستند
+- `type_id` فقط hint است و استفاده نمی‌شود - همه زیردسته‌بندی‌های category برگردانده می‌شوند حتی اگر کالایی نداشته باشند
+- مرتب‌سازی بر اساس `name`
 
 **URL**: `/inventory/api/subcategories/`
 
