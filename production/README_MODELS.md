@@ -2,7 +2,7 @@
 
 **هدف**: تمام model classes برای ماژول production
 
-این فایل شامل 21 model class است که به دسته‌های زیر تقسیم می‌شوند:
+این فایل شامل 23 model class است که به دسته‌های زیر تقسیم می‌شوند:
 - Base Models (Abstract)
 - Core Resources (Work Centers, Work Lines, Machines)
 - Personnel Management
@@ -11,6 +11,8 @@
 - Production Orders
 - Material Transfer
 - Performance Records
+- QC Status Models
+- Rework Models
 
 ---
 
@@ -452,15 +454,104 @@
 
 ---
 
+## QC Status Models
+
+### `OperationQCStatus`
+**Inheritance**: `ProductionBaseModel`
+
+**توضیح**: وضعیت QC عملیات - ردیابی وضعیت تایید/رد QC برای عملیات‌هایی که نیاز به QC دارند. فقط عملیات با `requires_qc=1` و دارای performance document واجد شرایط هستند.
+
+**Fields**:
+- `order` (ForeignKey → ProductOrder): سفارش تولید
+- `order_code` (CharField, max_length=30): کد سفارش (cache)
+- `operation` (ForeignKey → ProcessOperation): عملیات فرآیند
+- `performance` (ForeignKey → PerformanceRecord): سند عملکرد
+- `performance_code` (CharField, max_length=30): کد عملکرد (cache)
+- `qc_status` (CharField, max_length=20): وضعیت QC
+  - Choices: `PENDING`, `APPROVED`, `REJECTED`
+  - Default: `PENDING`
+- `qc_approved_by` (ForeignKey → User, null=True, blank=True): تایید کننده QC
+- `qc_status_date` (DateTimeField, null=True, blank=True): تاریخ وضعیت QC
+- `qc_notes` (TextField, blank=True): یادداشت‌های QC
+
+**Meta**:
+- `verbose_name`: "Operation QC Status"
+- `verbose_name_plural`: "Operation QC Statuses"
+- `ordering`: `("-qc_status_date", "order", "operation")`
+- `constraints`: Unique constraint on `(company, order, operation, performance)`
+- `indexes`: 
+  - `["order", "operation", "qc_status"]`
+  - `["qc_status", "qc_status_date"]`
+
+**Methods**:
+
+#### `save(self, *args, **kwargs) -> None`
+**توضیح**: Auto-fill کردن `order_code` و `performance_code` و تنظیم `qc_status_date`.
+**منطق**:
+1. اگر `order_code` تنظیم نشده است: `self.order_code = self.order.order_code`
+2. اگر `performance_code` تنظیم نشده است: `self.performance_code = self.performance.performance_code`
+3. اگر `qc_status != PENDING` و `qc_status_date` تنظیم نشده است: `self.qc_status_date = timezone.now()`
+
+---
+
+## Rework Models
+
+### `ReworkDocument`
+**Inheritance**: `ProductionBaseModel`, `LockableModel`
+
+**توضیح**: سند دوباره کاری - ثبت عملیات دوباره کاری برای سفارشات زمانی که عملیات performance document ندارند یا performance document توسط QC رد شده است.
+
+**Fields**:
+- `rework_code` (CharField, max_length=30, unique=True): کد دوباره کاری
+- `order` (ForeignKey → ProductOrder): سفارش تولید
+- `order_code` (CharField, max_length=30): کد سفارش (cache)
+- `rework_date` (DateField, default=timezone.now): تاریخ دوباره کاری
+- `operation` (ForeignKey → ProcessOperation, null=True, blank=True): عملیات فرآیند
+  - **نکته**: null اگر دوباره کاری برای عملیات بدون performance document باشد
+- `original_performance` (ForeignKey → PerformanceRecord, null=True, blank=True): سند عملکرد اصلی
+  - **نکته**: null اگر عملیات performance document نداشته باشد
+- `reason` (TextField): دلیل دوباره کاری
+- `status` (CharField, max_length=20): وضعیت
+  - Choices: `PENDING_APPROVAL`, `APPROVED`, `REJECTED`
+  - Default: `PENDING_APPROVAL`
+- `approved_by` (ForeignKey → User, null=True, blank=True): تایید کننده
+- `approved_at` (DateTimeField, null=True, blank=True): تاریخ تایید
+- `notes` (TextField, blank=True): یادداشت‌ها
+- `is_locked` (IntegerField): قفل شده (از LockableModel)
+
+**Meta**:
+- `verbose_name`: "Rework Document"
+- `verbose_name_plural`: "Rework Documents"
+- `ordering`: `("-rework_date", "rework_code")`
+- `indexes`:
+  - `["order", "rework_date"]`
+  - `["status", "rework_date"]`
+
+**Methods**:
+
+#### `save(self, *args, **kwargs) -> None`
+**توضیح**: Auto-fill کردن `order_code`.
+**منطق**:
+1. اگر `order_code` تنظیم نشده است: `self.order_code = self.order.order_code`
+
+**نکات مهم**:
+- برای عملیات بدون performance document یا performance document رد شده توسط QC استفاده می‌شود
+- `operation` می‌تواند null باشد اگر دوباره کاری برای عملیات بدون performance document باشد
+- `original_performance` می‌تواند null باشد اگر عملیات performance document نداشته باشد
+
+---
+
 ## نکات مهم
 
 1. **Code Generation**: بسیاری از models کدها را به صورت خودکار generate می‌کنند (با `generate_sequential_code`)
-2. **Caching**: برخی models کدهای مرتبط را cache می‌کنند
+2. **Caching**: برخی models کدهای مرتبط را cache می‌کنند (`order_code`, `performance_code`, `rework_code`)
 3. **Company Scoping**: تمام models از `CompanyScopedModel` استفاده می‌کنند
 4. **Activation**: تمام models از `ActivatableModel` استفاده می‌کنند (`is_enabled`)
-5. **Locking**: برخی models از `LockableModel` استفاده می‌کنند (`is_locked`)
+5. **Locking**: برخی models از `LockableModel` استفاده می‌کنند (`is_locked`) - `TransferToLine`, `PerformanceRecord`, `ReworkDocument`
 6. **Edit Locking**: تمام models از `EditableModel` استفاده می‌کنند
 7. **Optional Dependencies**: `Warehouse` از inventory module (optional)
+8. **QC Workflow**: `OperationQCStatus` برای ردیابی وضعیت QC عملیات استفاده می‌شود
+9. **Rework Workflow**: `ReworkDocument` برای ثبت دوباره کاری استفاده می‌شود
 
 ---
 

@@ -2,8 +2,8 @@
 
 **هدف**: تمام model classes برای ماژول inventory
 
-این فایل شامل 43 model class است که به دسته‌های زیر تقسیم می‌شوند:
-- Base Models (Abstract)
+این فایل شامل 43 model class و 1 mixin است که به دسته‌های زیر تقسیم می‌شوند:
+- Base Models (Abstract) - شامل `FiscalYearMixin`
 - Master Data Models
 - Item Definition Models
 - Supplier Relations Models
@@ -16,10 +16,12 @@
 ## وابستگی‌ها
 
 - `shared.models`: `ActivatableModel`, `CompanyScopedModel`, `LockableModel`, `MetadataModel`, `SortableModel`, `TimeStampedModel`, `User`, `CompanyUnit`
+- `accounting.models`: `get_fiscal_year_from_date`
 - `inventory.utils.codes`: `generate_sequential_code`
 - `django.db.models`
 - `django.core.validators`: `MinValueValidator`, `RegexValidator`
 - `django.utils.timezone`
+- `django.core.exceptions`: `ValidationError`
 - `decimal.Decimal`
 
 ---
@@ -64,8 +66,55 @@
 
 ---
 
+### `FiscalYearMixin`
+**Inheritance**: `models.Model` (abstract)
+
+**توضیح**: Mixin برای auto-populate کردن `fiscal_year_id` از `document_date` یا `request_date`.
+
+**Fields**:
+- `fiscal_year` (ForeignKey to `accounting.FiscalYear`): سال مالی
+  - `null=True`, `blank=True`
+  - `db_index=True`: Index برای queries سریع‌تر
+  - Auto-populated از `document_date` یا `request_date`
+
+**متدها**:
+
+#### `get_document_date_field_name(self) -> str`
+**توضیح**: نام فیلد تاریخ را برمی‌گرداند.
+**منطق**:
+- اگر `document_date` وجود دارد: `'document_date'`
+- اگر `request_date` وجود دارد: `'request_date'`
+- در غیر این صورت: `'document_date'`
+
+#### `save(self, *args, **kwargs) -> None`
+**توضیح**: Auto-populate کردن `fiscal_year_id` از تاریخ.
+**منطق**:
+1. اگر `fiscal_year_id` تنظیم نشده است:
+   - دریافت نام فیلد تاریخ از `get_document_date_field_name()`
+   - دریافت تاریخ از instance
+   - اگر تاریخ و `company_id` وجود دارند:
+     - دریافت fiscal year با `get_fiscal_year_from_date()`
+     - تنظیم `self.fiscal_year`
+
+#### `clean(self) -> None`
+**توضیح**: Validate کردن که تاریخ در محدوده fiscal year باشد.
+**منطق**:
+1. دریافت نام فیلد تاریخ
+2. دریافت تاریخ از instance
+3. اگر تاریخ و `fiscal_year` وجود دارند:
+   - بررسی که تاریخ قبل از `start_date` نباشد
+   - بررسی که تاریخ بعد از `end_date` نباشد
+   - در صورت خطا، `ValidationError` می‌اندازد
+
+**نکات مهم**:
+- این mixin برای models با `document_date` یا `request_date` استفاده می‌شود
+- `fiscal_year` به صورت خودکار از تاریخ populate می‌شود
+- Validation در `clean()` انجام می‌شود
+
+---
+
 ### `InventoryDocumentBase`
-**Inheritance**: `InventoryBaseModel`, `LockableModel`
+**Inheritance**: `InventoryBaseModel`, `LockableModel`, `FiscalYearMixin`
 
 **توضیح**: Base model برای document-style models
 
@@ -75,6 +124,7 @@
 - `notes` (TextField, blank=True): یادداشت‌ها
 - `is_locked` (IntegerField): Lock status (از LockableModel)
 - `editing_by`, `editing_started_at`, `editing_session_key` (از LockableModel)
+- `fiscal_year` (ForeignKey): سال مالی (از FiscalYearMixin، auto-populated از `document_date`)
 
 ---
 
