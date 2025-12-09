@@ -105,19 +105,72 @@
         {% if operation.description %}
           <p style="margin: 0.5rem 0; color: #6b7280; font-size: 0.875rem;">{{ operation.description }}</p>
         {% endif %}
+        {% if operation.work_line %}
+          <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #f3f4f6;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 0.75rem;">
+              <div>
+                <strong style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">{% trans "Work Line" %}:</strong>
+                <span style="color: #374151; font-size: 0.875rem;">{{ operation.work_line.name }}</span>
+              </div>
+              {% if operation.work_line.warehouse %}
+                <div>
+                  <strong style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">{% trans "Warehouse" %}:</strong>
+                  <span style="color: #374151; font-size: 0.875rem;">{{ operation.work_line.warehouse.public_code }} - {{ operation.work_line.warehouse.name }}</span>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+        
         {% if operation.operation_materials.exists %}
           <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #f3f4f6;">
-            <strong style="font-size: 0.875rem; color: #374151;">{% trans "Materials Used" %}:</strong>
-            <ul style="margin: 0.5rem 0 0 0; padding-right: 1.5rem; list-style: none; font-size: 0.875rem;">
+            <strong style="font-size: 0.875rem; color: #374151; display: block; margin-bottom: 0.5rem;">{% trans "Materials Used" %}:</strong>
+            <ul style="margin: 0; padding-right: 1.5rem; list-style: none; font-size: 0.875rem;">
               {% for material in operation.operation_materials.all %}
-              <li style="margin-bottom: 0.25rem;">
-                <code style="font-size: 0.8rem;">{{ material.bom_material.material_item_code }}</code>
-                <span style="color: #6b7280;">{{ material.bom_material.material_item.name|default:material.bom_material.material_item_code }}</span>
-                <span style="color: #9ca3af; margin-right: 0.5rem;">({{ material.quantity_used }} {{ material.unit }})</span>
+              <li style="margin-bottom: 0.5rem; padding: 0.5rem; background: #f9fafb; border-radius: 4px;">
+                <code style="font-size: 0.8rem; background: #e5e7eb; padding: 0.125rem 0.375rem; border-radius: 3px;">{{ material.bom_material.material_item_code }}</code>
+                <span style="color: #374151; margin-right: 0.5rem;">{{ material.bom_material.material_item.name|default:material.bom_material.material_item_code }}</span>
+                <span style="color: #9ca3af;">({{ material.quantity_used }} {{ material.unit }})</span>
               </li>
               {% endfor %}
             </ul>
           </div>
+        {% endif %}
+        
+        {% if operation.work_line %}
+          {% with work_line=operation.work_line %}
+            {% if work_line.personnel.exists %}
+              <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #f3f4f6;">
+                <strong style="font-size: 0.875rem; color: #374151; display: block; margin-bottom: 0.5rem;">{% trans "Personnel" %}:</strong>
+                <ul style="margin: 0; padding-right: 1.5rem; list-style: none; font-size: 0.875rem;">
+                  {% for person in work_line.personnel.all %}
+                  <li style="margin-bottom: 0.5rem; padding: 0.5rem; background: #f9fafb; border-radius: 4px;">
+                    <span style="color: #374151;">{{ person.name }}</span>
+                    {% if person.public_code %}
+                      <code style="font-size: 0.8rem; background: #e5e7eb; padding: 0.125rem 0.375rem; border-radius: 3px; margin-right: 0.5rem;">{{ person.public_code }}</code>
+                    {% endif %}
+                  </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+            
+            {% if work_line.machines.exists %}
+              <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #f3f4f6;">
+                <strong style="font-size: 0.875rem; color: #374151; display: block; margin-bottom: 0.5rem;">{% trans "Machines" %}:</strong>
+                <ul style="margin: 0; padding-right: 1.5rem; list-style: none; font-size: 0.875rem;">
+                  {% for machine in work_line.machines.all %}
+                  <li style="margin-bottom: 0.5rem; padding: 0.5rem; background: #f9fafb; border-radius: 4px;">
+                    <span style="color: #374151;">{{ machine.name }}</span>
+                    {% if machine.public_code %}
+                      <code style="font-size: 0.8rem; background: #e5e7eb; padding: 0.125rem 0.375rem; border-radius: 3px; margin-right: 0.5rem;">{{ machine.public_code }}</code>
+                    {% endif %}
+                  </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+          {% endwith %}
         {% endif %}
       </div>
       {% endfor %}

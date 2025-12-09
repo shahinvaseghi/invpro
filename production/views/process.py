@@ -174,6 +174,11 @@ class ProcessListView(BaseListView):
                     'operations',
                     'operations__operation_materials',
                     'operations__operation_materials__bom_material',
+                    'operations__operation_materials__material_item',
+                    'operations__work_line',
+                    'operations__work_line__warehouse',
+                    'operations__work_line__personnel',
+                    'operations__work_line__machines',
                 ])
         except Exception:
             pass
@@ -747,6 +752,11 @@ class ProcessDetailView(BaseDetailView):
             'operations',
             'operations__operation_materials',
             'operations__operation_materials__bom_material',
+            'operations__operation_materials__material_item',
+            'operations__work_line',
+            'operations__work_line__warehouse',
+            'operations__work_line__personnel',
+            'operations__work_line__machines',
         )
         return queryset
     
@@ -827,34 +837,23 @@ class ProcessDetailView(BaseDetailView):
                 ],
             })
         
-        # Operations section (table)
+        # Operations section (detailed with materials, personnel, machines, warehouse)
         if process.operations.exists():
-            operations_headers = [
-                _('Name'),
-                _('Sequence'),
-                _('Work Line'),
-                _('Labor Minutes'),
-                _('Machine Minutes'),
-                _('Materials'),
-            ]
             operations_data = []
-            for operation in process.operations.all():
-                materials_count = operation.operation_materials.count()
-                materials_text = f"{materials_count} {_('material(s)')}" if materials_count > 0 else "—"
-                operations_data.append([
-                    operation.name or "—",
-                    str(operation.sequence_order),
-                    operation.work_line.name if operation.work_line else "—",
-                    f"{operation.labor_minutes_per_unit:.2f}",
-                    f"{operation.machine_minutes_per_unit:.2f}",
-                    materials_text,
-                ])
+            for operation in process.operations.all().order_by('sequence_order', 'id'):
+                operation_info = {
+                    'operation': operation,
+                    'materials': list(operation.operation_materials.all().select_related('bom_material', 'material_item')),
+                    'personnel': list(operation.work_line.personnel.all()) if operation.work_line else [],
+                    'machines': list(operation.work_line.machines.all()) if operation.work_line else [],
+                    'warehouse': operation.work_line.warehouse if operation.work_line and operation.work_line.warehouse else None,
+                }
+                operations_data.append(operation_info)
             
             detail_sections.append({
                 'title': _('Operations'),
-                'type': 'table',
-                'headers': operations_headers,
-                'data': operations_data,
+                'type': 'operations_detail',
+                'operations': operations_data,
             })
         
         # Approval Information section

@@ -6,6 +6,7 @@
 - ProcessListView: فهرست فرآیندها
 - ProcessCreateView: ایجاد فرآیند جدید
 - ProcessUpdateView: ویرایش فرآیند
+- ProcessDetailView: مشاهده جزئیات فرآیند (read-only)
 - ProcessDeleteView: حذف فرآیند
 
 ---
@@ -14,6 +15,7 @@
 
 - `shared.mixins`: `FeaturePermissionRequiredMixin`
 - `shared.views.base`: `BaseListView`, `BaseDetailView`, `BaseDeleteView`, `BaseFormsetCreateView`, `BaseFormsetUpdateView`, `EditLockProtectedMixin`
+- `production.models`: `WorkLine` (برای personnel, machines, warehouse)
 - `production.forms`: `ProcessForm`, `ProcessOperationFormSet`, `ProcessOperationMaterialFormSet`
 - `production.models`: `Process`, `ProcessOperation`, `ProcessOperationMaterial`, `BOMMaterial`, `WorkLine`
 - `django.contrib.messages`
@@ -105,7 +107,15 @@
 6. **Table existence check** (برای `ProcessOperation`):
    - بررسی وجود جدول `production_processoperation` با SQL query
    - اگر جدول وجود دارد:
-     - **prefetch_related**: `'operations'`, `'operations__operation_materials'`, `'operations__operation_materials__bom_material'`
+     - **prefetch_related**: 
+       - `'operations'`
+       - `'operations__operation_materials'`
+       - `'operations__operation_materials__bom_material'`
+       - `'operations__operation_materials__material_item'`
+       - `'operations__work_line'`
+       - `'operations__work_line__warehouse'`
+       - `'operations__work_line__personnel'`
+       - `'operations__work_line__machines'`
    - اگر خطا رخ دهد (مثلاً migration اجرا نشده)، skip می‌کند
 7. مرتب‌سازی: `order_by('finished_item__name', 'revision', 'sort_order')`
 8. queryset را برمی‌گرداند
@@ -491,6 +501,104 @@
 
 ---
 
+## ProcessDetailView
+
+**Type**: `BaseDetailView` (از `shared.views.base`)
+
+**Template**: `shared/generic/generic_detail.html` (extended by `production/process_detail.html`)
+
+**Attributes**:
+- `model`: `Process`
+- `template_name`: `'shared/generic/generic_detail.html'`
+- `context_object_name`: `'object'`
+- `feature_code`: `'production.processes'`
+- `required_action`: `'view_own'`
+- `active_module`: `'production'`
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را با company filtering و query optimizations برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده با select_related و prefetch_related
+
+**منطق**:
+1. دریافت queryset از `super().get_queryset()`
+2. **select_related**: 
+   - `'finished_item'`
+   - `'bom'`
+   - `'approved_by'`
+   - `'created_by'`
+   - `'edited_by'`
+3. **prefetch_related**:
+   - `'work_lines'`
+   - `'operations'`
+   - `'operations__operation_materials'`
+   - `'operations__operation_materials__bom_material'`
+   - `'operations__operation_materials__material_item'`
+   - `'operations__work_line'`
+   - `'operations__work_line__warehouse'`
+   - `'operations__work_line__personnel'`
+   - `'operations__work_line__machines'`
+4. queryset را برمی‌گرداند
+
+**نکات مهم**:
+- تمام relationships برای نمایش operations details بهینه‌سازی شده‌اند
+- Personnel و Machines از WorkLine prefetch می‌شوند
+- Warehouse از WorkLine prefetch می‌شود
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic detail template آماده می‌کند.
+
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `detail_sections` شامل operations با جزئیات کامل
+
+**Context Variables**:
+- `detail_title`: `_('View Process')`
+- `info_banner`: لیست اطلاعات اصلی (Process Code, Revision, Status, Primary)
+- `detail_sections`: لیست sections برای نمایش:
+  - **Basic Information**: Finished Item, BOM, Description
+  - **Work Lines**: لیست خطوط کار
+  - **Operations** (type: `'operations_detail'`): لیست operations با جزئیات کامل:
+    - برای هر operation:
+      - `operation`: ProcessOperation instance
+      - `materials`: لیست ProcessOperationMaterial (مواد BOM استفاده شده)
+      - `personnel`: لیست Person (پرسنل مرتبط با work_line)
+      - `machines`: لیست Machine (ماشین‌های مرتبط با work_line)
+      - `warehouse`: Warehouse instance (انبار مرتبط با work_line)
+  - **Approval Information**: Approved By, Approved At
+  - **Notes**: یادداشت‌های فرآیند
+
+**منطق**:
+1. دریافت process از `self.object`
+2. ساخت `info_banner` با Process Code, Revision, Status, Primary
+3. ساخت `detail_sections`:
+   - **Basic Information**: Finished Item, BOM, Description
+   - **Work Lines**: اگر work_lines وجود دارد
+   - **Operations**: ساخت لیست operations با جزئیات:
+     - برای هر operation:
+       - دریافت materials از `operation.operation_materials.all()`
+       - دریافت personnel از `operation.work_line.personnel.all()` (اگر work_line موجود باشد)
+       - دریافت machines از `operation.work_line.machines.all()` (اگر work_line موجود باشد)
+       - دریافت warehouse از `operation.work_line.warehouse` (اگر work_line موجود باشد)
+   - **Approval Information**: اگر approved_by موجود باشد
+   - **Notes**: اگر notes موجود باشد
+4. بازگشت context
+
+**URL**: `/production/processes/<pk>/`
+
+---
+
 ## Generic Templates
 
 تمام templates به generic templates منتقل شده‌اند:
@@ -516,7 +624,32 @@
 - **Features**:
   - Expandable rows برای نمایش operations details
   - نمایش operations count و materials used برای هر operation
+  - نمایش Work Line و Warehouse برای هر operation
+  - نمایش Personnel و Machines مرتبط با Work Line هر operation
   - JavaScript function `toggleOperations()` برای show/hide operations
+
+### Process Detail
+- **Template**: `production/process_detail.html` extends `shared/generic/generic_detail.html`
+- **Blocks Overridden**: 
+  - `detail_sections`: Override برای نمایش operations با جزئیات کامل
+- **Context Variables**:
+  - `detail_title`: "View Process"
+  - `info_banner`: Process Code, Revision, Status, Primary
+  - `detail_sections`: لیست sections شامل:
+    - Basic Information (Finished Item, BOM, Description)
+    - Work Lines
+    - Operations (type: `'operations_detail'`) با جزئیات کامل:
+      - برای هر operation: نام، ترتیب، زمان کار/ماشین، Work Line، Warehouse، Materials، Personnel، Machines
+    - Approval Information
+    - Notes
+- **Features**:
+  - نمایش کامل اطلاعات هر operation شامل:
+    - **Materials**: مواد BOM استفاده شده با کد، نام و مقدار
+    - **Personnel**: پرسنل مرتبط با Work Line (از ManyToMany)
+    - **Machines**: ماشین‌های مرتبط با Work Line (از ManyToMany)
+    - **Warehouse**: انبار مرتبط با Work Line (از ForeignKey)
+  - استفاده از prefetch_related برای بهینه‌سازی query
+  - نمایش زیبا و سازمان‌یافته با card-based layout
 
 ### Process Delete
 - **Template**: `shared/generic/generic_confirm_delete.html`
@@ -552,4 +685,12 @@
 2. **Permission Checking**: تمام views از `FeaturePermissionRequiredMixin` استفاده می‌کنند
 3. **ManyToMany Handling**: `work_lines` با `save_m2m()` ذخیره می‌شود
 4. **Auto-set finished_item**: `finished_item` به صورت خودکار از `bom.finished_item` تنظیم می‌شود
+5. **Query Optimization**: استفاده از `select_related` و `prefetch_related` برای بهینه‌سازی نمایش operations details:
+   - Operations با materials, work_line, warehouse, personnel, machines prefetch می‌شوند
+   - این بهینه‌سازی در `ProcessListView` و `ProcessDetailView` اعمال شده است
+6. **Operations Details Display**: در لیست و جزئیات، برای هر operation نمایش داده می‌شود:
+   - مواد BOM استفاده شده (از `ProcessOperationMaterial`)
+   - پرسنل مرتبط (از `WorkLine.personnel` ManyToMany)
+   - ماشین‌های مرتبط (از `WorkLine.machines` ManyToMany)
+   - انبار مرتبط (از `WorkLine.warehouse` ForeignKey)
 
