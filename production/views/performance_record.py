@@ -1585,5 +1585,17 @@ class PerformanceRecordGetOperationDataView(FeaturePermissionRequiredMixin, View
                 'warehouse_id': operation.work_line.warehouse_id if operation.work_line.warehouse else None,
             }
         
+        # Add operation info (labor_minutes_per_unit, machine_minutes_per_unit)
+        response_data['operation'] = {
+            'id': operation.id,
+            'labor_minutes_per_unit': float(operation.labor_minutes_per_unit) if operation.labor_minutes_per_unit else 0,
+            'machine_minutes_per_unit': float(operation.machine_minutes_per_unit) if operation.machine_minutes_per_unit else 0,
+        }
+        
+        # Add order quantity for calculation
+        response_data['order'] = {
+            'quantity_planned': float(order.quantity_planned) if order.quantity_planned else 0,
+        }
+        
         return JsonResponse(response_data)
 

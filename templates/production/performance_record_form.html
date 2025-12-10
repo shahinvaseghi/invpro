@@ -213,6 +213,28 @@
           </td>
         </tr>
         {% endfor %}
+        <!-- Empty template row for JavaScript to clone (only if formset is empty) -->
+        {% if not material_formset.forms %}
+        <tr class="formset-row formset-template" style="display: none;">
+          <td>
+            <select name="materials-__prefix__-material_item" id="id_materials-__prefix__-material_item" class="form-control">
+              <option value="">--------</option>
+            </select>
+          </td>
+          <td>
+            <input type="number" name="materials-__prefix__-quantity_required" id="id_materials-__prefix__-quantity_required" class="form-control" step="0.000001" min="0">
+          </td>
+          <td>
+            <input type="number" name="materials-__prefix__-quantity_waste" id="id_materials-__prefix__-quantity_waste" class="form-control" step="0.000001" min="0">
+          </td>
+          <td>
+            <input type="text" name="materials-__prefix__-unit" id="id_materials-__prefix__-unit" class="form-control">
+          </td>
+          <td>
+            <textarea name="materials-__prefix__-notes" id="id_materials-__prefix__-notes" class="form-control" rows="1"></textarea>
+          </td>
+        </tr>
+        {% endif %}
       </tbody>
     </table>
   </div>
@@ -225,7 +247,7 @@
     {% if is_general_document %}
     <p>{% trans "Personnel data is automatically aggregated from operational performance records." %}</p>
     {% else %}
-    <p>{% trans "Add personnel who worked on this order and enter their work minutes." %}</p>
+    <p>{% trans "Select personnel who worked on this operation and enter their work minutes." %}</p>
     {% endif %}
   </header>
   
@@ -243,19 +265,27 @@
     <table class="data-table formset-table" id="persons-table">
       <thead>
         <tr>
+          <th style="width: 50px;">{% trans "Used" %}</th>
           <th>{% trans "Person" %}</th>
           <th>{% trans "Work Minutes" %}</th>
           <th>{% trans "Work Line" %}</th>
           <th>{% trans "Notes" %}</th>
-          <th>{% trans "Actions" %}</th>
         </tr>
       </thead>
       <tbody id="persons-formset-container">
         {% for person_form in person_formset %}
-        <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
+        <tr class="formset-row person-row" data-row-index="{{ forloop.counter0 }}" data-person-id="{{ person_form.person.value|default:'' }}">
           {% for hidden in person_form.hidden_fields %}{{ hidden }}{% endfor %}
           <td>
-            {{ person_form.person }}
+            <input type="checkbox" class="person-used-checkbox" 
+                   {% if person_form.person.value %}checked{% endif %}
+                   data-person-id="{{ person_form.person.value|default:'' }}">
+            <input type="hidden" name="persons-{{ forloop.counter0 }}-person" 
+                   value="{{ person_form.person.value|default:'' }}" 
+                   class="person-id-input">
+          </td>
+          <td>
+            <span class="person-name-display">{{ person_form.person.value|default:'' }}</span>
             {% if person_form.person.errors %}
               <div class="field-error">{{ person_form.person.errors.0 }}</div>
             {% endif %}
@@ -278,25 +308,18 @@
               <div class="field-error">{{ person_form.notes.errors.0 }}</div>
             {% endif %}
           </td>
-          <td>
-            {% if not is_general_document and person_formset.can_delete %}
-              {{ person_form.DELETE }}
-              {% if person_form.DELETE %}
-                <label for="{{ person_form.DELETE.id_for_label }}" class="delete-label">
-                  {% trans "Delete" %}
-                </label>
-              {% endif %}
-            {% endif %}
+        </tr>
+        {% empty %}
+        <!-- Empty state - will be populated by JavaScript -->
+        <tr class="no-personnel-message">
+          <td colspan="5" class="text-center muted-text-cell">
+            {% trans "Select an operation to see available personnel." %}
           </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
-  
-  {% if not is_general_document %}
-  <button type="button" id="add-person-btn" class="btn btn-secondary">+ {% trans "Add Person" %}</button>
-  {% endif %}
 </div>
 
 <!-- Machines Section -->
@@ -306,7 +329,7 @@
     {% if is_general_document %}
     <p>{% trans "Machine data is automatically aggregated from operational performance records." %}</p>
     {% else %}
-    <p>{% trans "Add machines used in this order and enter their work minutes." %}</p>
+    <p>{% trans "Select machines used in this operation and enter their work minutes." %}</p>
     {% endif %}
   </header>
   
@@ -324,19 +347,27 @@
     <table class="data-table formset-table" id="machines-table">
       <thead>
         <tr>
+          <th style="width: 50px;">{% trans "Used" %}</th>
           <th>{% trans "Machine" %}</th>
           <th>{% trans "Work Minutes" %}</th>
           <th>{% trans "Work Line" %}</th>
           <th>{% trans "Notes" %}</th>
-          <th>{% trans "Actions" %}</th>
         </tr>
       </thead>
       <tbody id="machines-formset-container">
         {% for machine_form in machine_formset %}
-        <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
+        <tr class="formset-row machine-row" data-row-index="{{ forloop.counter0 }}" data-machine-id="{{ machine_form.machine.value|default:'' }}">
           {% for hidden in machine_form.hidden_fields %}{{ hidden }}{% endfor %}
           <td>
-            {{ machine_form.machine }}
+            <input type="checkbox" class="machine-used-checkbox" 
+                   {% if machine_form.machine.value %}checked{% endif %}
+                   data-machine-id="{{ machine_form.machine.value|default:'' }}">
+            <input type="hidden" name="machines-{{ forloop.counter0 }}-machine" 
+                   value="{{ machine_form.machine.value|default:'' }}" 
+                   class="machine-id-input">
+          </td>
+          <td>
+            <span class="machine-name-display">{{ machine_form.machine.value|default:'' }}</span>
             {% if machine_form.machine.errors %}
               <div class="field-error">{{ machine_form.machine.errors.0 }}</div>
             {% endif %}
@@ -359,25 +390,18 @@
               <div class="field-error">{{ machine_form.notes.errors.0 }}</div>
             {% endif %}
           </td>
-          <td>
-            {% if not is_general_document and machine_formset.can_delete %}
-              {{ machine_form.DELETE }}
-              {% if machine_form.DELETE %}
-                <label for="{{ machine_form.DELETE.id_for_label }}" class="delete-label">
-                  {% trans "Delete" %}
-                </label>
-              {% endif %}
-            {% endif %}
+        </tr>
+        {% empty %}
+        <!-- Empty state - will be populated by JavaScript -->
+        <tr class="no-machines-message">
+          <td colspan="5" class="text-center muted-text-cell">
+            {% trans "Select an operation to see available machines." %}
           </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
-  
-  {% if not is_general_document %}
-  <button type="button" id="add-machine-btn" class="btn btn-secondary">+ {% trans "Add Machine" %}</button>
-  {% endif %}
 </div>
 
 <!-- Create Receipt Section (only for approved and locked records) -->
@@ -518,15 +542,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Toggle persons and machines sections
     var personsSection = document.getElementById('persons-section');
     var machinesSection = document.getElementById('machines-section');
-    var addPersonBtn = document.getElementById('add-person-btn');
-    var addMachineBtn = document.getElementById('add-machine-btn');
     
     if (isGeneral) {
       // Disable all person and machine inputs
       if (personsSection) {
         var personInputs = personsSection.querySelectorAll('input, select, textarea');
         personInputs.forEach(function(input) {
-          if (input.type !== 'hidden' && !input.name.includes('DELETE')) {
+          if (input.type !== 'hidden' && !input.classList.contains('person-used-checkbox')) {
             input.disabled = true;
             input.readOnly = true;
           }
@@ -536,44 +558,26 @@ document.addEventListener('DOMContentLoaded', function() {
       if (machinesSection) {
         var machineInputs = machinesSection.querySelectorAll('input, select, textarea');
         machineInputs.forEach(function(input) {
-          if (input.type !== 'hidden' && !input.name.includes('DELETE')) {
+          if (input.type !== 'hidden' && !input.classList.contains('machine-used-checkbox')) {
             input.disabled = true;
             input.readOnly = true;
           }
         });
-      }
-      
-      // Hide add buttons
-      if (addPersonBtn) {
-        addPersonBtn.style.display = 'none';
-      }
-      if (addMachineBtn) {
-        addMachineBtn.style.display = 'none';
       }
     } else {
-      // Enable all person and machine inputs
+      // Enable checkboxes (fields will be enabled/disabled based on checkbox state)
       if (personsSection) {
-        var personInputs = personsSection.querySelectorAll('input, select, textarea');
-        personInputs.forEach(function(input) {
-          input.disabled = false;
-          input.readOnly = false;
+        var personCheckboxes = personsSection.querySelectorAll('.person-used-checkbox');
+        personCheckboxes.forEach(function(checkbox) {
+          checkbox.disabled = false;
         });
       }
       
       if (machinesSection) {
-        var machineInputs = machinesSection.querySelectorAll('input, select, textarea');
-        machineInputs.forEach(function(input) {
-          input.disabled = false;
-          input.readOnly = false;
+        var machineCheckboxes = machinesSection.querySelectorAll('.machine-used-checkbox');
+        machineCheckboxes.forEach(function(checkbox) {
+          checkbox.disabled = false;
         });
-      }
-      
-      // Show add buttons
-      if (addPersonBtn) {
-        addPersonBtn.style.display = '';
-      }
-      if (addMachineBtn) {
-        addMachineBtn.style.display = '';
       }
     }
   }
@@ -594,10 +598,16 @@ document.addEventListener('DOMContentLoaded', function() {
       if (this.value === 'general' && operationSelect) {
         operationSelect.value = '';
         operationSelect.innerHTML = '<option value="">--------</option>';
+        // Clear operation data when switching to general
+        clearOperationData();
       }
       // Reload operations when switching to operational
       if (this.value === 'operational' && orderSelect && orderSelect.value) {
         loadOperationsForOrder(orderSelect.value);
+        // If operation is already selected, reload its data
+        if (operationSelect && operationSelect.value) {
+          loadOperationData(operationSelect.value, orderSelect.value);
+        }
       }
     });
   }
@@ -710,12 +720,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleOrderChange() {
       var orderId = orderSelect.value;
       console.log('Order changed/input to:', orderId);
+      // Clear operation and its data when order changes
+      if (operationSelect) {
+        operationSelect.value = '';
+        operationSelect.innerHTML = '<option value="">--------</option>';
+      }
+      clearOperationData();
+      
       if (orderId) {
         loadOperationsForOrder(orderId);
-      } else {
-        if (operationSelect) {
-          operationSelect.innerHTML = '<option value="">--------</option>';
-        }
       }
     }
     
@@ -748,6 +761,609 @@ document.addEventListener('DOMContentLoaded', function() {
     console.error('orderSelect or operationSelect not found!');
     console.log('orderSelect:', orderSelect);
     console.log('operationSelect:', operationSelect);
+  }
+
+  // Load operation data (materials, personnel, machines) when operation changes
+  function loadOperationData(operationId, orderId) {
+    console.log('loadOperationData called with operationId:', operationId, 'orderId:', orderId);
+    
+    if (!operationId || !orderId) {
+      console.log('No operationId or orderId, clearing data');
+      clearOperationData();
+      return;
+    }
+
+    // Only fetch data if document type is operational
+    if (documentTypeSelect && documentTypeSelect.value !== 'operational') {
+      console.log('Document type is not operational, skipping');
+      return;
+    }
+
+    // Build URL
+    var baseUrl = '{% url "production:performance_record_get_operation_data" %}';
+    if (!baseUrl.startsWith('/fa/') && !baseUrl.startsWith('http')) {
+      baseUrl = '/fa' + baseUrl;
+    }
+    var url = baseUrl + '?operation_id=' + operationId + '&order_id=' + orderId;
+    console.log('Fetching operation data from:', url);
+
+    // Fetch operation data via AJAX
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+      },
+      credentials: 'same-origin',
+    })
+      .then(function(response) {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+          throw new Error('Network response was not ok: ' + response.status);
+        }
+        return response.json();
+      })
+      .then(function(data) {
+        console.log('Received operation data:', data);
+        
+        if (data.error) {
+          console.error('Error fetching operation data:', data.error);
+          return;
+        }
+        
+        // Store operation data globally for use in populate functions
+        window.currentOperationData = data;
+        
+        // Populate materials
+        if (data.materials && data.materials.length > 0) {
+          populateMaterials(data.materials);
+        } else {
+          clearMaterials();
+        }
+        
+        // Populate personnel (wait a bit to ensure template is ready)
+        setTimeout(function() {
+          if (data.personnel && data.personnel.length > 0) {
+            populatePersonnel(data.personnel);
+          } else {
+            clearPersonnel();
+          }
+        }, 100);
+        
+        // Populate machines (wait a bit to ensure template is ready)
+        setTimeout(function() {
+          if (data.machines && data.machines.length > 0) {
+            populateMachines(data.machines);
+          } else {
+            clearMachines();
+          }
+        }, 150);
+      })
+      .catch(function(error) {
+        console.error('Error fetching operation data:', error);
+      });
+  }
+
+  function clearOperationData() {
+    clearMaterials();
+    clearPersonnel();
+    clearMachines();
+  }
+
+  function clearMaterials() {
+    var materialsContainer = document.getElementById('materials-formset-container');
+    if (materialsContainer) {
+      // Keep only the first empty row or template
+      var rows = materialsContainer.querySelectorAll('.formset-row');
+      rows.forEach(function(row, index) {
+        if (index > 0) {
+          row.remove();
+        } else {
+          // Clear the first row
+          row.querySelectorAll('input, select, textarea').forEach(function(field) {
+            if (field.type !== 'hidden' && field.name && !field.name.includes('DELETE')) {
+              field.value = '';
+            }
+          });
+        }
+      });
+      // Update TOTAL_FORMS
+      var totalFormsInput = document.querySelector('#id_materials-TOTAL_FORMS');
+      if (totalFormsInput) {
+        totalFormsInput.value = '1';
+      }
+    }
+  }
+
+  function populateMaterials(materials) {
+    console.log('Populating materials:', materials);
+    var materialsContainer = document.getElementById('materials-formset-container');
+    if (!materialsContainer) {
+      console.error('Materials container not found');
+      return;
+    }
+
+    // Clear existing rows (except template)
+    var existingRows = materialsContainer.querySelectorAll('.formset-row:not(.formset-template)');
+    existingRows.forEach(function(row) {
+      row.remove();
+    });
+
+    // Get template row - try multiple selectors
+    var templateRow = materialsContainer.querySelector('.formset-template') || 
+                     materialsContainer.querySelector('tr.formset-row');
+    
+    if (!templateRow) {
+      console.error('Template row not found for materials');
+      return;
+    }
+
+    // Create rows for each material
+    var totalFormsInput = document.querySelector('#id_materials-TOTAL_FORMS');
+    var currentIndex = 0;
+    
+    materials.forEach(function(material) {
+      var newRow = templateRow.cloneNode(true);
+      newRow.classList.remove('formset-template');
+      newRow.style.display = '';
+      
+      // Update field names with correct index (handle both __prefix__ and numeric patterns)
+      newRow.querySelectorAll('input, select, textarea').forEach(function(field) {
+        if (field.name) {
+          field.name = field.name.replace(/materials-__prefix__-/, 'materials-' + currentIndex + '-')
+                                 .replace(/materials-\d+-/, 'materials-' + currentIndex + '-');
+          if (field.id) {
+            field.id = field.id.replace(/id_materials-__prefix__-/, 'id_materials-' + currentIndex + '-')
+                               .replace(/id_materials-\d+-/, 'id_materials-' + currentIndex + '-');
+          }
+        }
+      });
+      
+      // Set values
+      var materialItemSelect = newRow.querySelector('select[name*="material_item"]');
+      var quantityRequiredInput = newRow.querySelector('input[name*="quantity_required"]');
+      var quantityWasteInput = newRow.querySelector('input[name*="quantity_waste"]');
+      var unitInput = newRow.querySelector('input[name*="unit"]');
+      
+      if (materialItemSelect) {
+        // Find option with matching item_id or create new option
+        var option = materialItemSelect.querySelector('option[value="' + material.item_id + '"]');
+        if (!option) {
+          option = document.createElement('option');
+          option.value = material.item_id;
+          option.textContent = material.item_code + ' - ' + material.item_name;
+          materialItemSelect.appendChild(option);
+        }
+        materialItemSelect.value = material.item_id;
+      }
+      
+      if (quantityRequiredInput) {
+        quantityRequiredInput.value = material.quantity_required || '';
+      }
+      
+      if (quantityWasteInput) {
+        quantityWasteInput.value = '';
+      }
+      
+      if (unitInput) {
+        unitInput.value = material.unit || '';
+      }
+      
+      materialsContainer.appendChild(newRow);
+      currentIndex++;
+    });
+
+    // Update TOTAL_FORMS
+    if (totalFormsInput) {
+      totalFormsInput.value = currentIndex.toString();
+    }
+  }
+
+  function clearPersonnel() {
+    var personsContainer = document.getElementById('persons-formset-container');
+    if (personsContainer) {
+      var rows = personsContainer.querySelectorAll('.formset-row:not(.formset-template)');
+      rows.forEach(function(row) {
+        row.remove();
+      });
+      var totalFormsInput = document.querySelector('#id_persons-TOTAL_FORMS');
+      if (totalFormsInput) {
+        totalFormsInput.value = '0';
+      }
+    }
+  }
+
+  function populatePersonnel(personnel) {
+    console.log('Populating personnel:', personnel);
+    var personsContainer = document.getElementById('persons-formset-container');
+    if (!personsContainer) {
+      console.error('Persons container not found');
+      return;
+    }
+
+    // Clear existing rows
+    personsContainer.innerHTML = '';
+    
+    if (!personnel || personnel.length === 0) {
+      personsContainer.innerHTML = '<tr class="no-personnel-message"><td colspan="5" class="text-center muted-text-cell">{% trans "No personnel available for this work line." %}</td></tr>';
+      var totalFormsInput = document.querySelector('#id_persons-TOTAL_FORMS');
+      if (totalFormsInput) {
+        totalFormsInput.value = '0';
+      }
+      return;
+    }
+
+    var totalFormsInput = document.querySelector('#id_persons-TOTAL_FORMS');
+    var currentIndex = 0;
+    var workLineId = window.currentOperationData && window.currentOperationData.work_line ? window.currentOperationData.work_line.id : null;
+    
+    personnel.forEach(function(person) {
+      var row = document.createElement('tr');
+      row.className = 'formset-row person-row';
+      row.setAttribute('data-person-id', person.id);
+      
+      // Checkbox column
+      var checkboxTd = document.createElement('td');
+      var checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'person-used-checkbox';
+      checkbox.setAttribute('data-person-id', person.id);
+      checkbox.addEventListener('change', function() {
+        togglePersonRowFields(row, this.checked);
+      });
+      checkboxTd.appendChild(checkbox);
+      
+      // Hidden person ID input
+      var personIdInput = document.createElement('input');
+      personIdInput.type = 'hidden';
+      personIdInput.name = 'persons-' + currentIndex + '-person';
+      personIdInput.value = person.id;
+      personIdInput.className = 'person-id-input';
+      checkboxTd.appendChild(personIdInput);
+      row.appendChild(checkboxTd);
+      
+      // Person name display
+      var nameTd = document.createElement('td');
+      var nameSpan = document.createElement('span');
+      nameSpan.className = 'person-name-display';
+      nameSpan.textContent = person.code + ' - ' + person.name;
+      nameTd.appendChild(nameSpan);
+      row.appendChild(nameTd);
+      
+      // Work minutes input (readonly, calculated automatically)
+      var minutesTd = document.createElement('td');
+      var minutesInput = document.createElement('input');
+      minutesInput.type = 'number';
+      minutesInput.name = 'persons-' + currentIndex + '-work_minutes';
+      minutesInput.id = 'id_persons-' + currentIndex + '-work_minutes';
+      minutesInput.className = 'form-control';
+      minutesInput.step = '0.000001';
+      minutesInput.min = '0';
+      minutesInput.readOnly = true;
+      minutesInput.disabled = true;
+      minutesInput.style.backgroundColor = '#f5f5f5';
+      // Calculate work minutes: labor_minutes_per_unit * quantity_planned
+      var laborMinutesPerUnit = window.currentOperationData && window.currentOperationData.operation ? 
+                                 (window.currentOperationData.operation.labor_minutes_per_unit || 0) : 0;
+      // Use order quantity_planned (from operation data)
+      var quantity = window.currentOperationData && window.currentOperationData.order ? 
+                     (window.currentOperationData.order.quantity_planned || 0) : 0;
+      var calculatedMinutes = laborMinutesPerUnit * quantity;
+      minutesInput.value = calculatedMinutes > 0 ? calculatedMinutes.toFixed(6) : '';
+      minutesTd.appendChild(minutesInput);
+      row.appendChild(minutesTd);
+      
+      // Work line (hidden input, will be set automatically)
+      var workLineTd = document.createElement('td');
+      var workLineInput = document.createElement('input');
+      workLineInput.type = 'hidden';
+      workLineInput.name = 'persons-' + currentIndex + '-work_line';
+      workLineInput.value = workLineId || '';
+      workLineInput.className = 'work-line-input';
+      var workLineDisplay = document.createElement('span');
+      if (window.currentOperationData && window.currentOperationData.work_line) {
+        workLineDisplay.textContent = window.currentOperationData.work_line.code + ' - ' + window.currentOperationData.work_line.name;
+      }
+      workLineTd.appendChild(workLineInput);
+      workLineTd.appendChild(workLineDisplay);
+      row.appendChild(workLineTd);
+      
+      // Notes input
+      var notesTd = document.createElement('td');
+      var notesInput = document.createElement('textarea');
+      notesInput.name = 'persons-' + currentIndex + '-notes';
+      notesInput.id = 'id_persons-' + currentIndex + '-notes';
+      notesInput.className = 'form-control';
+      notesInput.rows = 1;
+      notesInput.disabled = true;
+      notesTd.appendChild(notesInput);
+      row.appendChild(notesTd);
+      
+      personsContainer.appendChild(row);
+      currentIndex++;
+    });
+
+    if (totalFormsInput) {
+      totalFormsInput.value = currentIndex.toString();
+    }
+  }
+  
+  function togglePersonRowFields(row, enabled) {
+    var minutesInput = row.querySelector('input[name*="work_minutes"]');
+    var notesInput = row.querySelector('textarea[name*="notes"]');
+    var personIdInput = row.querySelector('.person-id-input');
+    
+    // Work minutes is always readonly (calculated automatically)
+    // Just enable/disable for form submission
+    if (minutesInput) {
+      minutesInput.disabled = !enabled;
+      // Recalculate when enabled
+      if (enabled) {
+        updatePersonWorkMinutes(row);
+      } else {
+        minutesInput.value = '';
+      }
+    }
+    if (notesInput) {
+      notesInput.disabled = !enabled;
+      if (!enabled) {
+        notesInput.value = '';
+      }
+    }
+    if (personIdInput) {
+      personIdInput.disabled = !enabled;
+    }
+  }
+  
+  function updatePersonWorkMinutes(row) {
+    if (!window.currentOperationData || !window.currentOperationData.operation) {
+      return;
+    }
+    var minutesInput = row.querySelector('input[name*="work_minutes"]');
+    if (!minutesInput) return;
+    
+    var laborMinutesPerUnit = window.currentOperationData.operation.labor_minutes_per_unit || 0;
+    // Use order quantity_planned (from operation data)
+    var quantity = window.currentOperationData.order ? 
+                   (window.currentOperationData.order.quantity_planned || 0) : 0;
+    var calculatedMinutes = laborMinutesPerUnit * quantity;
+    minutesInput.value = calculatedMinutes > 0 ? calculatedMinutes.toFixed(6) : '';
+  }
+
+  function clearMachines() {
+    var machinesContainer = document.getElementById('machines-formset-container');
+    if (machinesContainer) {
+      var rows = machinesContainer.querySelectorAll('.formset-row:not(.formset-template)');
+      rows.forEach(function(row) {
+        row.remove();
+      });
+      var totalFormsInput = document.querySelector('#id_machines-TOTAL_FORMS');
+      if (totalFormsInput) {
+        totalFormsInput.value = '0';
+      }
+    }
+  }
+
+  function populateMachines(machines) {
+    console.log('Populating machines:', machines);
+    var machinesContainer = document.getElementById('machines-formset-container');
+    if (!machinesContainer) {
+      console.error('Machines container not found');
+      return;
+    }
+
+    // Clear existing rows
+    machinesContainer.innerHTML = '';
+    
+    if (!machines || machines.length === 0) {
+      machinesContainer.innerHTML = '<tr class="no-machines-message"><td colspan="5" class="text-center muted-text-cell">{% trans "No machines available for this work line." %}</td></tr>';
+      var totalFormsInput = document.querySelector('#id_machines-TOTAL_FORMS');
+      if (totalFormsInput) {
+        totalFormsInput.value = '0';
+      }
+      return;
+    }
+
+    var totalFormsInput = document.querySelector('#id_machines-TOTAL_FORMS');
+    var currentIndex = 0;
+    var workLineId = window.currentOperationData && window.currentOperationData.work_line ? window.currentOperationData.work_line.id : null;
+    
+    machines.forEach(function(machine) {
+      var row = document.createElement('tr');
+      row.className = 'formset-row machine-row';
+      row.setAttribute('data-machine-id', machine.id);
+      
+      // Checkbox column
+      var checkboxTd = document.createElement('td');
+      var checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'machine-used-checkbox';
+      checkbox.setAttribute('data-machine-id', machine.id);
+      checkbox.addEventListener('change', function() {
+        toggleMachineRowFields(row, this.checked);
+      });
+      checkboxTd.appendChild(checkbox);
+      
+      // Hidden machine ID input
+      var machineIdInput = document.createElement('input');
+      machineIdInput.type = 'hidden';
+      machineIdInput.name = 'machines-' + currentIndex + '-machine';
+      machineIdInput.value = machine.id;
+      machineIdInput.className = 'machine-id-input';
+      checkboxTd.appendChild(machineIdInput);
+      row.appendChild(checkboxTd);
+      
+      // Machine name display
+      var nameTd = document.createElement('td');
+      var nameSpan = document.createElement('span');
+      nameSpan.className = 'machine-name-display';
+      nameSpan.textContent = machine.code + ' - ' + machine.name;
+      nameTd.appendChild(nameSpan);
+      row.appendChild(nameTd);
+      
+      // Work minutes input (readonly, calculated automatically)
+      var minutesTd = document.createElement('td');
+      var minutesInput = document.createElement('input');
+      minutesInput.type = 'number';
+      minutesInput.name = 'machines-' + currentIndex + '-work_minutes';
+      minutesInput.id = 'id_machines-' + currentIndex + '-work_minutes';
+      minutesInput.className = 'form-control';
+      minutesInput.step = '0.000001';
+      minutesInput.min = '0';
+      minutesInput.readOnly = true;
+      minutesInput.disabled = true;
+      minutesInput.style.backgroundColor = '#f5f5f5';
+      // Calculate work minutes: machine_minutes_per_unit * quantity
+      var machineMinutesPerUnit = window.currentOperationData && window.currentOperationData.operation ? 
+                                  (window.currentOperationData.operation.machine_minutes_per_unit || 0) : 0;
+      // For operational documents, use order quantity_planned
+      var quantity = window.currentOperationData && window.currentOperationData.order ? 
+                     (window.currentOperationData.order.quantity_planned || 0) : 0;
+      var calculatedMinutes = machineMinutesPerUnit * quantity;
+      minutesInput.value = calculatedMinutes > 0 ? calculatedMinutes.toFixed(6) : '';
+      minutesTd.appendChild(minutesInput);
+      row.appendChild(minutesTd);
+      
+      // Work line (hidden input, will be set automatically)
+      var workLineTd = document.createElement('td');
+      var workLineInput = document.createElement('input');
+      workLineInput.type = 'hidden';
+      workLineInput.name = 'machines-' + currentIndex + '-work_line';
+      workLineInput.value = workLineId || '';
+      workLineInput.className = 'work-line-input';
+      var workLineDisplay = document.createElement('span');
+      if (window.currentOperationData && window.currentOperationData.work_line) {
+        workLineDisplay.textContent = window.currentOperationData.work_line.code + ' - ' + window.currentOperationData.work_line.name;
+      }
+      workLineTd.appendChild(workLineInput);
+      workLineTd.appendChild(workLineDisplay);
+      row.appendChild(workLineTd);
+      
+      // Notes input
+      var notesTd = document.createElement('td');
+      var notesInput = document.createElement('textarea');
+      notesInput.name = 'machines-' + currentIndex + '-notes';
+      notesInput.id = 'id_machines-' + currentIndex + '-notes';
+      notesInput.className = 'form-control';
+      notesInput.rows = 1;
+      notesInput.disabled = true;
+      notesTd.appendChild(notesInput);
+      row.appendChild(notesTd);
+      
+      machinesContainer.appendChild(row);
+      currentIndex++;
+    });
+
+    if (totalFormsInput) {
+      totalFormsInput.value = currentIndex.toString();
+    }
+  }
+  
+  function toggleMachineRowFields(row, enabled) {
+    var minutesInput = row.querySelector('input[name*="work_minutes"]');
+    var notesInput = row.querySelector('textarea[name*="notes"]');
+    var machineIdInput = row.querySelector('.machine-id-input');
+    
+    // Work minutes is always readonly (calculated automatically)
+    // Just enable/disable for form submission
+    if (minutesInput) {
+      minutesInput.disabled = !enabled;
+      // Recalculate when enabled
+      if (enabled) {
+        updateMachineWorkMinutes(row);
+      } else {
+        minutesInput.value = '';
+      }
+    }
+    if (notesInput) {
+      notesInput.disabled = !enabled;
+      if (!enabled) {
+        notesInput.value = '';
+      }
+    }
+    if (machineIdInput) {
+      machineIdInput.disabled = !enabled;
+    }
+  }
+  
+  function updateMachineWorkMinutes(row) {
+    if (!window.currentOperationData || !window.currentOperationData.operation) {
+      return;
+    }
+    var minutesInput = row.querySelector('input[name*="work_minutes"]');
+    if (!minutesInput) return;
+    
+    var machineMinutesPerUnit = window.currentOperationData.operation.machine_minutes_per_unit || 0;
+    // For operational documents, use order quantity_planned
+    var quantity = window.currentOperationData.order ? 
+                   (window.currentOperationData.order.quantity_planned || 0) : 0;
+    var calculatedMinutes = machineMinutesPerUnit * quantity;
+    minutesInput.value = calculatedMinutes > 0 ? calculatedMinutes.toFixed(6) : '';
+  }
+  
+  // Update work minutes when quantity changes (if quantity_actual exists for general documents)
+  var quantityActualInput = document.getElementById('id_quantity_actual');
+  if (quantityActualInput) {
+    quantityActualInput.addEventListener('input', function() {
+      updateAllWorkMinutes();
+    });
+    quantityActualInput.addEventListener('change', function() {
+      updateAllWorkMinutes();
+    });
+  }
+  
+  function updateAllWorkMinutes() {
+    if (!window.currentOperationData || !window.currentOperationData.operation) {
+      return;
+    }
+    
+    // For operational documents, use order quantity_planned
+    // For general documents, use quantity_actual if available
+    var quantity = window.currentOperationData.order ? 
+                   (window.currentOperationData.order.quantity_planned || 0) : 0;
+    var quantityActualInput = document.getElementById('id_quantity_actual');
+    if (quantityActualInput && quantityActualInput.value) {
+      quantity = parseFloat(quantityActualInput.value) || quantity;
+    }
+    
+    // Update all checked personnel work minutes
+    document.querySelectorAll('.person-used-checkbox:checked').forEach(function(checkbox) {
+      var row = checkbox.closest('.person-row');
+      if (row) {
+        updatePersonWorkMinutes(row);
+      }
+    });
+    
+    // Update all checked machine work minutes
+    document.querySelectorAll('.machine-used-checkbox:checked').forEach(function(checkbox) {
+      var row = checkbox.closest('.machine-row');
+      if (row) {
+        updateMachineWorkMinutes(row);
+      }
+    });
+  }
+
+  // Listen for operation changes
+  if (operationSelect && orderSelect) {
+    operationSelect.addEventListener('change', function() {
+      var operationId = this.value;
+      var orderId = orderSelect.value;
+      console.log('Operation changed to:', operationId);
+      if (operationId && orderId) {
+        loadOperationData(operationId, orderId);
+      } else {
+        clearOperationData();
+      }
+    });
+    
+    // Also load on page load if operation is already selected
+    setTimeout(function() {
+      if (operationSelect && operationSelect.value && orderSelect && orderSelect.value && 
+          documentTypeSelect && documentTypeSelect.value === 'operational') {
+        console.log('Operation already selected on page load:', operationSelect.value);
+        loadOperationData(operationSelect.value, orderSelect.value);
+      }
+    }, 1500);
   }
 
   if (orderSelect && transferSelect) {
@@ -786,119 +1402,65 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Formset management for persons - use formset.js
-  var addPersonBtn = document.getElementById('add-person-btn');
-  var personsFormsetContainer = document.getElementById('persons-formset-container');
-  var totalPersonsInput = document.querySelector('#id_persons-TOTAL_FORMS');
-
-  if (addPersonBtn && personsFormsetContainer && totalPersonsInput) {
-    // Create template row from last row
-    var lastPersonRow = personsFormsetContainer.lastElementChild;
-    if (lastPersonRow) {
-      var personTemplateRow = lastPersonRow.cloneNode(true);
-      personTemplateRow.id = 'persons-formset-template';
-      personTemplateRow.style.display = 'none';
-      personTemplateRow.classList.add('formset-template');
-      personsFormsetContainer.appendChild(personTemplateRow);
-      
-      // Initialize formset using formset.js
-      initFormset('persons', '#persons-formset-template', {
-        minRows: 0,
-        maxRows: null,
-        addButtonSelector: '#add-person-btn',
-        removeButtonSelector: 'input[name*="-DELETE"]'
-      });
-      
-      // After adding row, clear values
-      document.addEventListener('formset:row-added', function(e) {
-        if (e.detail.prefix === 'persons') {
-          var newRow = e.detail.row;
-          if (newRow) {
-            newRow.querySelectorAll('input, select, textarea').forEach(function(field) {
-              if (field.type !== 'hidden' && field.type !== 'checkbox') {
-                field.value = '';
-              }
-              if (field.type === 'checkbox') {
-                field.checked = false;
-              }
-            });
-            newRow.querySelectorAll('.field-error').forEach(function(error) {
-              error.textContent = '';
-            });
-          }
+  // Handle form submission - only include checked personnel and machines
+  var performanceForm = document.getElementById('performance-form') || document.querySelector('form');
+  if (performanceForm) {
+    performanceForm.addEventListener('submit', function(e) {
+      // Filter out unchecked personnel rows
+      var personRows = document.querySelectorAll('.person-row');
+      var personIndex = 0;
+      personRows.forEach(function(row) {
+        var checkbox = row.querySelector('.person-used-checkbox');
+        if (checkbox && checkbox.checked) {
+          // Reindex this row
+          row.querySelectorAll('input, textarea').forEach(function(field) {
+            if (field.name) {
+              field.name = field.name.replace(/persons-\d+-/, 'persons-' + personIndex + '-');
+              field.disabled = false; // Ensure enabled for submission
+            }
+          });
+          personIndex++;
+        } else {
+          // Disable all inputs in unchecked rows
+          row.querySelectorAll('input, textarea').forEach(function(field) {
+            field.disabled = true;
+            field.name = ''; // Remove name so it won't be submitted
+          });
         }
       });
-    }
-  }
-
-  // Formset management for machines - use formset.js
-  var addMachineBtn = document.getElementById('add-machine-btn');
-  var machinesFormsetContainer = document.getElementById('machines-formset-container');
-  var totalMachinesInput = document.querySelector('#id_machines-TOTAL_FORMS');
-
-  if (addMachineBtn && machinesFormsetContainer && totalMachinesInput) {
-    // Create template row from last row
-    var lastMachineRow = machinesFormsetContainer.lastElementChild;
-    if (lastMachineRow) {
-      var machineTemplateRow = lastMachineRow.cloneNode(true);
-      machineTemplateRow.id = 'machines-formset-template';
-      machineTemplateRow.style.display = 'none';
-      machineTemplateRow.classList.add('formset-template');
-      machinesFormsetContainer.appendChild(machineTemplateRow);
       
-      // Initialize formset using formset.js
-      initFormset('machines', '#machines-formset-template', {
-        minRows: 0,
-        maxRows: null,
-        addButtonSelector: '#add-machine-btn',
-        removeButtonSelector: 'input[name*="-DELETE"]'
-      });
-      
-      // After adding row, clear values
-      document.addEventListener('formset:row-added', function(e) {
-        if (e.detail.prefix === 'machines') {
-          var newRow = e.detail.row;
-          if (newRow) {
-            newRow.querySelectorAll('input, select, textarea').forEach(function(field) {
-              if (field.type !== 'hidden' && field.type !== 'checkbox') {
-                field.value = '';
-              }
-              if (field.type === 'checkbox') {
-                field.checked = false;
-              }
-            });
-            newRow.querySelectorAll('.field-error').forEach(function(error) {
-              error.textContent = '';
-            });
-          }
+      // Filter out unchecked machine rows
+      var machineRows = document.querySelectorAll('.machine-row');
+      var machineIndex = 0;
+      machineRows.forEach(function(row) {
+        var checkbox = row.querySelector('.machine-used-checkbox');
+        if (checkbox && checkbox.checked) {
+          // Reindex this row
+          row.querySelectorAll('input, textarea').forEach(function(field) {
+            if (field.name) {
+              field.name = field.name.replace(/machines-\d+-/, 'machines-' + machineIndex + '-');
+              field.disabled = false; // Ensure enabled for submission
+            }
+          });
+          machineIndex++;
+        } else {
+          // Disable all inputs in unchecked rows
+          row.querySelectorAll('input, textarea').forEach(function(field) {
+            field.disabled = true;
+            field.name = ''; // Remove name so it won't be submitted
+          });
         }
       });
-    }
-  }
-
-  // Handle DELETE checkboxes
-  if (personsFormsetContainer) {
-    personsFormsetContainer.addEventListener('change', function(e) {
-      if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
-        var row = e.target.closest('.formset-row');
-        if (row && e.target.checked) {
-          row.style.display = 'none';
-        } else if (row && !e.target.checked) {
-          row.style.display = '';
-        }
+      
+      // Update TOTAL_FORMS based on checked items
+      var totalPersonsInput = document.querySelector('#id_persons-TOTAL_FORMS');
+      if (totalPersonsInput) {
+        totalPersonsInput.value = personIndex.toString();
       }
-    });
-  }
-
-  if (machinesFormsetContainer) {
-    machinesFormsetContainer.addEventListener('change', function(e) {
-      if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
-        var row = e.target.closest('.formset-row');
-        if (row && e.target.checked) {
-          row.style.display = 'none';
-        } else if (row && !e.target.checked) {
-          row.style.display = '';
-        }
+      
+      var totalMachinesInput = document.querySelector('#id_machines-TOTAL_FORMS');
+      if (totalMachinesInput) {
+        totalMachinesInput.value = machineIndex.toString();
       }
     });
   }

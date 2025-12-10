@@ -459,6 +459,107 @@
 
 ---
 
+## PerformanceRecordGetOperationDataView
+
+**Type**: `FeaturePermissionRequiredMixin, View`
+
+**Method**: `GET` (AJAX)
+
+**Attributes**:
+- `feature_code`: `'production.performance_records'`
+- `required_action`: `'view_own'`
+
+**متدها**:
+
+#### `get(self, request, *args, **kwargs) -> JsonResponse`
+- **Parameters**: `request` (با `operation_id` و `order_id` در GET params)
+- **Returns**: `JsonResponse` با materials، personnel، machines، work_line، operation، و order data
+- **Logic**:
+  1. بررسی `active_company_id` (اگر وجود نداشته باشد، return error 400)
+  2. دریافت `operation_id` و `order_id` از `request.GET`
+  3. اگر `operation_id` یا `order_id` موجود نباشد، return error 400
+  4. دریافت operation object با `select_related('work_line', 'work_line__warehouse')`
+  5. اگر operation موجود نباشد، return error 404
+  6. دریافت order object
+  7. اگر order موجود نباشد， return error 404
+  8. **جمع‌آوری materials**:
+     - از `IssueWarehouseTransferLine` برای approved transfers مربوط به order
+     - فیلتر بر اساس `destination_warehouse` از operation's work_line
+     - گروه‌بندی بر اساس item و جمع کردن quantities
+  9. **جمع‌آوری personnel**:
+     - از `operation.work_line.personnel` (فیلتر شده با company و is_enabled)
+     - شامل id، code (public_code)، و name
+  10. **جمع‌آوری machines**:
+     - از `operation.work_line.machines` (فیلتر شده با company و is_enabled)
+     - شامل id، code (public_code)، و name
+  11. **اضافه کردن work_line info**:
+     - id، code، name، و warehouse_id
+  12. **اضافه کردن operation info** (جدید):
+     - id
+     - `labor_minutes_per_unit`: برای محاسبه خودکار work minutes پرسنل
+     - `machine_minutes_per_unit`: برای محاسبه خودکار work minutes ماشین‌ها
+  13. **اضافه کردن order info** (جدید):
+     - `quantity_planned`: برای محاسبه خودکار work minutes بر اساس مقدار سفارش
+  14. بازگشت `JsonResponse` با تمام داده‌ها
+
+**Response Structure**:
+```json
+{
+  "materials": [
+    {
+      "item_id": 1,
+      "item_code": "MAT-001",
+      "item_name": "Material Name",
+      "quantity_required": 10.5,
+      "unit": "kg"
+    }
+  ],
+  "personnel": [
+    {
+      "id": 1,
+      "code": "PER-00001",
+      "name": "John Doe"
+    }
+  ],
+  "machines": [
+    {
+      "id": 1,
+      "code": "MCH-00000001",
+      "name": "Machine Name"
+    }
+  ],
+  "work_line": {
+    "id": 1,
+    "code": "WL-001",
+    "name": "Work Line Name",
+    "warehouse_id": 5
+  },
+  "operation": {
+    "id": 1,
+    "labor_minutes_per_unit": 2.5,
+    "machine_minutes_per_unit": 1.8
+  },
+  "order": {
+    "quantity_planned": 100.0
+  }
+}
+```
+
+**Error Responses**:
+- `400`: Company not selected، operation_id not provided، یا order_id not provided
+- `404`: Operation not found یا Order not found
+
+**نکات مهم**:
+- برای AJAX requests استفاده می‌شود
+- Materials از approved transfer documents جمع‌آوری می‌شوند
+- Personnel و machines از work_line مربوط به operation جمع‌آوری می‌شوند
+- **عملکرد جدید**: operation info (labor_minutes_per_unit, machine_minutes_per_unit) و order info (quantity_planned) برای محاسبه خودکار work minutes در frontend اضافه شده‌اند
+- Work minutes به صورت خودکار محاسبه می‌شود: `labor_minutes_per_unit * quantity_planned` برای پرسنل و `machine_minutes_per_unit * quantity_planned` برای ماشین‌ها
+
+**URL**: `/production/performance-records/get-operation-data/?operation_id=<operation_id>&order_id=<order_id>`
+
+---
+
 ## PerformanceRecordApproveView
 
 **Type**: `FeaturePermissionRequiredMixin, View`
@@ -603,4 +704,94 @@
    - Performance Record List از `shared/generic/generic_list.html` extends می‌کند
    - Performance Record Form از `shared/generic/generic_form.html` extends می‌کند (با 3 formsets پیچیده: materials, persons, machines)
    - Performance Record Delete از `shared/generic/generic_confirm_delete.html` استفاده می‌کند
+
+---
+
+## Template و JavaScript Functionality
+
+### performance_record_form.html
+
+**Template**: `production/performance_record_form.html`
+
+**Extends**: `shared/generic/generic_form.html`
+
+**ویژگی‌های UI و JavaScript**:
+
+#### 1. Operation-based Data Loading
+- با انتخاب operation، داده‌های materials، personnel، و machines به صورت خودکار از `PerformanceRecordGetOperationDataView` بارگذاری می‌شوند
+- JavaScript function `loadOperationData(operationId, orderId)` مسئول بارگذاری داده‌هاست
+- داده‌ها در `window.currentOperationData` ذخیره می‌شوند برای استفاده در محاسبات
+
+#### 2. Personnel و Machines Selection (تغییرات جدید)
+- **قبل**: دکمه‌های "Add Person" و "Add Machine" برای اضافه کردن دستی
+- **حالا**: 
+  - لیست کامل personnel و machines از work_line operation به صورت خودکار نمایش داده می‌شود
+  - هر ردیف دارای یک checkbox "Used" است
+  - فقط ردیف‌های checked در فرم submit می‌شوند
+  - دکمه‌های "Add Person" و "Add Machine" حذف شده‌اند
+
+#### 3. Automatic Work Minutes Calculation
+- **برای Personnel**: 
+  - Work minutes به صورت خودکار محاسبه می‌شود: `labor_minutes_per_unit * quantity_planned`
+  - فیلد work_minutes readonly است و به صورت خودکار پر می‌شود
+  - مقدار از `operation.labor_minutes_per_unit` و `order.quantity_planned` استفاده می‌کند
+- **برای Machines**:
+  - Work minutes به صورت خودکار محاسبه می‌شود: `machine_minutes_per_unit * quantity_planned`
+  - فیلد work_minutes readonly است و به صورت خودکار پر می‌شود
+  - مقدار از `operation.machine_minutes_per_unit` و `order.quantity_planned` استفاده می‌کند
+
+#### 4. Materials Formset
+- **Template Row**: اگر formset خالی باشد، یک template row مخفی برای JavaScript اضافه می‌شود
+- با انتخاب operation، materials از approved transfer documents به صورت خودکار populate می‌شوند
+- JavaScript function `populateMaterials(materials)` مسئول پر کردن materials است
+
+#### 5. Form Submission Handling
+- قبل از submit، JavaScript ردیف‌های unchecked را disable می‌کند
+- فقط ردیف‌های checked در فرم submit می‌شوند
+- `TOTAL_FORMS` به صورت خودکار بر اساس تعداد checked items تنظیم می‌شود
+
+#### 6. JavaScript Functions
+- `loadOperationData(operationId, orderId)`: بارگذاری داده‌های operation
+- `clearOperationData()`: پاک کردن تمام داده‌ها
+- `populateMaterials(materials)`: پر کردن materials formset
+- `populatePersonnel(personnel)`: پر کردن personnel table
+- `populateMachines(machines)`: پر کردن machines table
+- `togglePersonRowFields(row, enabled)`: فعال/غیرفعال کردن فیلدهای یک ردیف personnel
+- `toggleMachineRowFields(row, enabled)`: فعال/غیرفعال کردن فیلدهای یک ردیف machine
+- `updatePersonWorkMinutes(row)`: به‌روزرسانی work minutes برای یک personnel
+- `updateMachineWorkMinutes(row)`: به‌روزرسانی work minutes برای یک machine
+- `updateAllWorkMinutes()`: به‌روزرسانی work minutes برای تمام checked items
+
+#### 7. Event Listeners
+- `operationSelect.change`: بارگذاری داده‌های operation هنگام تغییر
+- `orderSelect.change`: پاک کردن operation و داده‌ها هنگام تغییر order
+- `documentTypeSelect.change`: مدیریت نمایش/مخفی کردن sections بر اساس document type
+- `person-used-checkbox.change`: toggle کردن فیلدهای personnel row
+- `machine-used-checkbox.change`: toggle کردن فیلدهای machine row
+- `quantity_actual.input/change`: به‌روزرسانی work minutes برای general documents
+
+#### 8. UI Changes Summary
+- **Personnel Section**:
+  - اضافه شدن ستون "Used" با checkbox
+  - حذف ستون "Actions" و دکمه DELETE
+  - حذف دکمه "Add Person"
+  - نمایش نام personnel به صورت read-only span
+  - Work minutes به صورت خودکار محاسبه و readonly
+  
+- **Machines Section**:
+  - اضافه شدن ستون "Used" با checkbox
+  - حذف ستون "Actions" و دکمه DELETE
+  - حذف دکمه "Add Machine"
+  - نمایش نام machine به صورت read-only span
+  - Work minutes به صورت خودکار محاسبه و readonly
+
+- **Materials Section**:
+  - اضافه شدن template row برای JavaScript (اگر formset خالی باشد)
+  - Auto-population از transfer documents
+
+**نکات مهم**:
+- برای operational documents، personnel و machines از work_line operation جمع‌آوری می‌شوند
+- Work minutes به صورت خودکار بر اساس `labor_minutes_per_unit` / `machine_minutes_per_unit` و `quantity_planned` محاسبه می‌شود
+- فقط checked personnel و machines در فرم submit می‌شوند
+- برای general documents، quantity_actual می‌تواند برای محاسبه work minutes استفاده شود
 
