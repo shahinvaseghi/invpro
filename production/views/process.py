@@ -524,10 +524,9 @@ class ProcessUpdateView(BaseFormsetUpdateView, EditLockProtectedMixin):
         # Get BOM ID for operations
         bom_id = bom.id if bom else (self.object.bom_id if self.object else None)
         
-        # Get formset
+        # Get formset (without 'instance' parameter because ProcessOperationFormSet doesn't accept it)
         formset = self.formset_class(
             self.request.POST,
-            instance=self.object,
             prefix=self.formset_prefix,
             **self.get_formset_kwargs()
         )
@@ -624,7 +623,10 @@ class ProcessUpdateView(BaseFormsetUpdateView, EditLockProtectedMixin):
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add form title, breadcrumbs, and operations formset to context."""
-        context = super().get_context_data(**kwargs)
+        # Don't call BaseFormsetUpdateView.get_context_data() because it tries to pass 'instance'
+        # which ProcessOperationFormSet doesn't accept. Call BaseUpdateView instead.
+        from django.views.generic.edit import UpdateView
+        context = super(BaseFormsetUpdateView, self).get_context_data(**kwargs)
         context['form_title'] = _('Edit Process')
         context['breadcrumbs'] = [
             {'label': _('Production'), 'url': None},
@@ -678,6 +680,7 @@ class ProcessUpdateView(BaseFormsetUpdateView, EditLockProtectedMixin):
                     'labor_minutes_per_unit': op.labor_minutes_per_unit,
                     'machine_minutes_per_unit': op.machine_minutes_per_unit,
                     'work_line': op.work_line_id,
+                    'requires_qc': bool(op.requires_qc == 1),
                     'notes': op.notes,
                 })
                 operation_id_to_index[op.id] = index
