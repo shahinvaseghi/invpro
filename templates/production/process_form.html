@@ -144,14 +144,16 @@
 
 {% block form_extra %}
 <!-- Production Operations Section -->
+{% if operations_formset %}
+{{ operations_formset.management_form }}
+{% endif %}
+
 {% if form.bom %}
 <div class="form-section">
   <header class="section-header">
     <h2>{% trans "Production Operations" %}</h2>
     <p class="form-help-text">{% trans "Define production operations and materials used in each operation" %}</p>
   </header>
-  
-  {{ operations_formset.management_form }}
   
   {% if operations_formset.non_form_errors %}
     <div class="alert alert-error">
@@ -470,24 +472,25 @@ function validateAllMaterialQuantities() {
   return !hasErrors;
 }
 
+// Function to enable/disable add material buttons (defined in global scope)
+function updateAddMaterialButtons() {
+  const bomSelect = document.getElementById(bomSelectId);
+  const addMaterialBtns = document.querySelectorAll('.add-material-btn');
+  const currentBomId = bomSelect ? bomSelect.value : '';
+  const hasBOM = currentBomId || processIdGlobal; // Enable if BOM selected or process_id exists
+  
+  console.log('updateAddMaterialButtons - hasBOM:', hasBOM, 'currentBomId:', currentBomId, 'processId:', processIdGlobal);
+  console.log('Found', addMaterialBtns.length, 'Add Material buttons');
+  
+  addMaterialBtns.forEach((btn, index) => {
+    btn.disabled = !hasBOM;
+    console.log(`Button ${index} (operation ${btn.getAttribute('data-operation-index') || 'unknown'}): disabled = ${btn.disabled}`);
+  });
+}
+
 // BOM change handler - load materials when BOM is selected
 document.addEventListener('DOMContentLoaded', function() {
   const bomSelect = document.getElementById(bomSelectId);
-  
-  // Function to enable/disable add material buttons
-  function updateAddMaterialButtons() {
-    const addMaterialBtns = document.querySelectorAll('.add-material-btn');
-    const currentBomId = bomSelect ? bomSelect.value : '';
-    const hasBOM = currentBomId || processIdGlobal; // Enable if BOM selected or process_id exists
-    
-    console.log('updateAddMaterialButtons - hasBOM:', hasBOM, 'currentBomId:', currentBomId, 'processId:', processIdGlobal);
-    console.log('Found', addMaterialBtns.length, 'Add Material buttons');
-    
-    addMaterialBtns.forEach((btn, index) => {
-      btn.disabled = !hasBOM;
-      console.log(`Button ${index} (operation ${btn.getAttribute('data-operation-index') || 'unknown'}): disabled = ${btn.disabled}`);
-    });
-  }
   
   if (bomSelect) {
     bomSelect.addEventListener('change', function() {
@@ -797,65 +800,161 @@ function updateMaterialSelect(selectElement, materials, targetValue = null) {
 
 // Initialize operations formset using formset.js
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialize operations formset
-  initFormset('operations', '#operation-template-row', {
-    minRows: 0,
-    rowSelector: '.operation-row',
-    addButtonSelector: '.add-formset-row[data-prefix="operations"]',
-    removeButtonSelector: '.remove-formset-row[data-prefix="operations"]',
-    usePrefixPattern: true,
-    tbodyId: 'operations-container' // Using div container with id operations-container
-  });
+  // Wait a bit to ensure all elements are ready
+  setTimeout(function() {
+    // Check if required elements exist
+    const template = document.querySelector('#operation-template-row');
+    const container = document.getElementById('operations-container');
+    const addButton = document.querySelector('.add-formset-row[data-prefix="operations"]');
+    
+    console.log('Formset initialization check:');
+    console.log('Template found:', !!template);
+    console.log('Container found:', !!container);
+    console.log('Add button found:', !!addButton);
+    
+    if (!template) {
+      console.error('Template #operation-template-row not found!');
+      return;
+    }
+    
+    if (!container) {
+      console.error('Container #operations-container not found!');
+      return;
+    }
+    
+    if (!addButton) {
+      console.error('Add button not found!');
+      return;
+    }
+    
+    // Initialize operations formset
+    initFormset('operations', '#operation-template-row', {
+      minRows: 0,
+      rowSelector: '.operation-row',
+      addButtonSelector: '.add-formset-row[data-prefix="operations"]',
+      removeButtonSelector: '.remove-formset-row[data-prefix="operations"]',
+      usePrefixPattern: true,
+      tbodyId: 'operations-container' // Using div container with id operations-container
+    });
+  }, 100);
   
   // Listen for formset row added event to initialize new operations
   document.addEventListener('formset:row-added', function(e) {
     if (e.detail.prefix === 'operations') {
-      const newRow = e.detail.row;
-      const operationIndex = e.detail.index;
-      
-      // Update operation number
-      const numberSpan = newRow.querySelector('.operation-number');
-      if (numberSpan) {
-        numberSpan.textContent = operationIndex + 1;
-      }
-      
-      // Update sequence order default value
-      const sequenceInput = newRow.querySelector('.operation-sequence');
-      if (sequenceInput) {
-        sequenceInput.value = operationIndex + 1;
-      }
-      
-      // Populate work line dropdown
-      const workLineSelect = newRow.querySelector('.operation-work-line');
-      if (workLineSelect && workLinesData) {
-        workLinesData.forEach(wl => {
-          const option = document.createElement('option');
-          option.value = wl.id;
-          option.textContent = `${wl.public_code} - ${wl.name}`;
-          workLineSelect.appendChild(option);
-        });
-      }
-      
-      // Update data-operation-index for materials tbody
-      const materialsTbody = newRow.querySelector('.operation-materials-tbody');
-      if (materialsTbody) {
-        materialsTbody.setAttribute('data-operation-index', operationIndex);
-      }
-      
-      // Update add material button data-operation-index
-      const addMaterialBtn = newRow.querySelector('.add-material-btn');
-      if (addMaterialBtn) {
-        addMaterialBtn.setAttribute('data-operation-index', operationIndex);
-        // Attach click handler
-        addMaterialBtn.addEventListener('click', function() {
-          addMaterialToOperation(operationIndex);
-        });
-      }
-      
-      // Update add material buttons state
+      // Wait a bit for reindex to complete
       setTimeout(function() {
+        const newRow = e.detail.row;
+        
+        // Get the actual operation index from the row's name attribute (most reliable after reindex)
+        let operationIndex = null;
+        
+        // Try to get index from any input field's name attribute
+        const nameInput = newRow.querySelector('input[name*="operations-"][name*="-name"]');
+        if (nameInput && nameInput.name) {
+          const match = nameInput.name.match(/operations-(\d+)-/);
+          if (match) {
+            operationIndex = parseInt(match[1]);
+          }
+        }
+        
+        // Fallback: try sequence input
+        if (operationIndex === null) {
+          const seqInput = newRow.querySelector('input[name*="operations-"][name*="-sequence_order"]');
+          if (seqInput && seqInput.name) {
+            const match = seqInput.name.match(/operations-(\d+)-/);
+            if (match) {
+              operationIndex = parseInt(match[1]);
+            }
+          }
+        }
+        
+        // Fallback: try data-operation-index attribute
+        if (operationIndex === null && newRow.hasAttribute('data-operation-index')) {
+          operationIndex = parseInt(newRow.getAttribute('data-operation-index'));
+        }
+        
+        // Last fallback: use event detail index
+        if (operationIndex === null || isNaN(operationIndex)) {
+          operationIndex = e.detail.index;
+        }
+        
+        console.log('formset:row-added - operationIndex:', operationIndex, 'row:', newRow);
+        console.log('Row HTML length:', newRow.outerHTML.length);
+        console.log('Row has operation-form-fields:', !!newRow.querySelector('.operation-form-fields'));
+        console.log('Row has operation-header:', !!newRow.querySelector('.operation-header'));
+        console.log('Row children:', newRow.children.length);
+        console.log('Full Row HTML:', newRow.outerHTML);
+        
+        // Update operation number
+        const numberSpan = newRow.querySelector('.operation-number');
+        console.log('numberSpan found:', !!numberSpan);
+        if (numberSpan) {
+          numberSpan.textContent = operationIndex + 1;
+          console.log('Updated operation number to:', operationIndex + 1);
+        }
+        
+        // Update sequence order default value
+        const sequenceInput = newRow.querySelector('.operation-sequence');
+        console.log('sequenceInput found:', !!sequenceInput, sequenceInput ? sequenceInput.name : 'N/A');
+        if (sequenceInput) {
+          sequenceInput.value = operationIndex + 1;
+          console.log('Updated sequence order to:', operationIndex + 1);
+        }
+        
+        // Populate work line dropdown (clear first to avoid duplicates)
+        const workLineSelect = newRow.querySelector('.operation-work-line');
+        console.log('workLineSelect found:', !!workLineSelect);
+        if (workLineSelect) {
+          // Clear existing options except the default one
+          workLineSelect.innerHTML = '<option value="">---</option>';
+          
+          if (workLinesData && workLinesData.length > 0) {
+            console.log('Populating work line dropdown with', workLinesData.length, 'options');
+            workLinesData.forEach(wl => {
+              const option = document.createElement('option');
+              option.value = wl.id;
+              option.textContent = `${wl.public_code} - ${wl.name}`;
+              workLineSelect.appendChild(option);
+            });
+            console.log('Work line dropdown populated. Options count:', workLineSelect.options.length);
+          } else {
+            console.warn('workLinesData is empty or undefined');
+          }
+        } else {
+          console.error('workLineSelect not found in row!');
+        }
+        
+        // Update data-operation-index for materials tbody
+        const materialsTbody = newRow.querySelector('.operation-materials-tbody');
+        console.log('materialsTbody found:', !!materialsTbody);
+        if (materialsTbody) {
+          materialsTbody.setAttribute('data-operation-index', operationIndex);
+        }
+        
+        // Update add material button data-operation-index
+        const addMaterialBtn = newRow.querySelector('.add-material-btn');
+        console.log('addMaterialBtn found:', !!addMaterialBtn);
+        if (addMaterialBtn) {
+          addMaterialBtn.setAttribute('data-operation-index', operationIndex);
+          // Remove existing click handlers and attach new one
+          const newBtn = addMaterialBtn.cloneNode(true);
+          addMaterialBtn.parentNode.replaceChild(newBtn, addMaterialBtn);
+          newBtn.addEventListener('click', function() {
+            addMaterialToOperation(operationIndex);
+          });
+          console.log('Add material button updated with index:', operationIndex);
+        } else {
+          console.error('addMaterialBtn not found in row!');
+        }
+        
+        // Update row's data-operation-index attribute
+        newRow.setAttribute('data-operation-index', operationIndex);
+        
+        // Update add material buttons state
+        console.log('Calling updateAddMaterialButtons...');
         updateAddMaterialButtons();
-      }, 50);
+        console.log('After updateAddMaterialButtons, found buttons:', document.querySelectorAll('.add-material-btn').length);
+      }, 100); // Wait for reindex to complete
     }
   });
   

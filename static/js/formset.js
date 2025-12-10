@@ -45,7 +45,11 @@ function addFormsetRow(prefix, templateSelector, options = {}) {
     if (templateElement.tagName === 'TEMPLATE') {
         // For template tag, get the first row from content
         const templateContent = templateElement.content;
-        templateRow = templateContent.querySelector('tr') || templateContent.firstElementChild;
+        // Try to find row by class first (more reliable), then try tr, then firstElementChild
+        templateRow = templateContent.querySelector('.formset-row') || 
+                     templateContent.querySelector('.operation-row') ||
+                     templateContent.querySelector('tr') || 
+                     templateContent.firstElementChild;
         if (!templateRow) {
             console.error(`No row found in template: ${templateSelector}`);
             return false;
@@ -57,6 +61,18 @@ function addFormsetRow(prefix, templateSelector, options = {}) {
     // Clone template row
     const newRow = templateRow.cloneNode(true);
     newRow.style.display = ''; // Make visible (template is usually hidden)
+    
+    // Ensure all child elements are visible (in case template had display:none)
+    const allChildren = newRow.querySelectorAll('*');
+    allChildren.forEach(child => {
+      if (child.style && child.style.display === 'none') {
+        child.style.display = '';
+      }
+    });
+    
+    console.log('Cloned row HTML length:', newRow.outerHTML.length);
+    console.log('Cloned row has operation-form-fields:', !!newRow.querySelector('.operation-form-fields'));
+    console.log('Cloned row children count:', newRow.children.length);
     
     // Get current form count
     const totalFormsInput = document.getElementById(`id_${prefix}-TOTAL_FORMS`);
@@ -81,20 +97,38 @@ function addFormsetRow(prefix, templateSelector, options = {}) {
     if (templateElement.tagName === 'TEMPLATE' || options.tbodyId) {
         // Find the tbody that should contain the rows
         const tbodyId = options.tbodyId || `${prefix}-formset-body`;
-        formsetContainer = document.getElementById(tbodyId) || 
-                          document.querySelector(`#${prefix}-formset-body`) ||
-                          document.querySelector(`tbody[id*="${prefix}"]`);
+        formsetContainer = document.getElementById(tbodyId);
+        
+        if (!formsetContainer) {
+            // Try alternative selectors
+            formsetContainer = document.querySelector(`#${prefix}-formset-body`) ||
+                              document.querySelector(`tbody[id*="${prefix}"]`) ||
+                              document.querySelector(`[data-formset-prefix="${prefix}"]`);
+        }
+        
         if (!formsetContainer) {
             // Fallback: find closest tbody or table
             const templateParent = templateElement.parentElement;
             formsetContainer = templateParent.querySelector('tbody') || 
                               templateParent.querySelector(`[id*="${prefix}"]`) ||
+                              templateParent.querySelector(`[data-formset-prefix="${prefix}"]`) ||
                               templateParent;
         }
+        
+        if (!formsetContainer) {
+            console.error(`Formset container not found for prefix: ${prefix}, tbodyId: ${tbodyId}`);
+            return false;
+        }
+        
+        console.log(`Adding row to container:`, formsetContainer);
         formsetContainer.appendChild(newRow);
     } else {
         // Regular element - insert before template
         formsetContainer = templateRow.closest('.formset-container') || templateRow.parentElement;
+        if (!formsetContainer) {
+            console.error(`Formset container not found for regular element`);
+            return false;
+        }
         formsetContainer.insertBefore(newRow, templateRow);
     }
     
@@ -102,7 +136,7 @@ function addFormsetRow(prefix, templateSelector, options = {}) {
     totalFormsInput.value = currentFormCount + 1;
     
     // Reindex all rows (to ensure sequential indices)
-    reindexFormset(prefix, rowSelector);
+    reindexFormset(prefix, rowSelector, usePrefixPattern);
     
     // Trigger custom event
     const event = new CustomEvent('formset:row-added', {
@@ -155,7 +189,8 @@ function removeFormsetRow(button, prefix, options = {}) {
     updateFormsetTotal(prefix, rowSelector);
     
     // Reindex all rows
-    reindexFormset(prefix, rowSelector);
+    // Note: usePrefixPattern is not available here, but reindexFormset defaults to false
+    reindexFormset(prefix, rowSelector, false);
     
     // Trigger custom event
     const event = new CustomEvent('formset:row-removed', {
@@ -207,8 +242,9 @@ function updateFormsetTotal(prefix, rowSelector = '.formset-row') {
  * 
  * @param {string} prefix - Formset prefix
  * @param {string} rowSelector - CSS selector for row elements (default: '.formset-row')
+ * @param {boolean} usePrefixPattern - Whether to use __prefix__ pattern
  */
-function reindexFormset(prefix, rowSelector = '.formset-row') {
+function reindexFormset(prefix, rowSelector = '.formset-row', usePrefixPattern = false) {
     const formsetContainer = document.querySelector(`[data-formset-prefix="${prefix}"]`) || 
                             document.querySelector(`.formset-container`);
     if (!formsetContainer) {
@@ -227,12 +263,17 @@ function reindexFormset(prefix, rowSelector = '.formset-row') {
         }
         
         // Update all fields in this row
-        updateRowFields(row, prefix, currentIndex);
+        updateRowFields(row, prefix, currentIndex, usePrefixPattern);
         
         // Update line number if exists
         const lineNumberElement = row.querySelector('.line-number');
         if (lineNumberElement) {
             lineNumberElement.textContent = currentIndex + 1;
+        }
+        
+        // Update data-operation-index attribute on the row itself
+        if (row.hasAttribute('data-operation-index')) {
+            row.setAttribute('data-operation-index', currentIndex);
         }
         
         currentIndex++;
@@ -251,8 +292,8 @@ function reindexFormset(prefix, rowSelector = '.formset-row') {
  * @param {boolean} usePrefixPattern - If true, use __prefix__ pattern instead of numeric pattern
  */
 function updateRowFields(row, prefix, index, usePrefixPattern = false) {
-    // Update all inputs, selects, textareas, buttons
-    const fields = row.querySelectorAll('input, select, textarea, label, button');
+    // Update all inputs, selects, textareas, buttons, and divs with data attributes
+    const fields = row.querySelectorAll('input, select, textarea, label, button, div, tbody, span');
     
     fields.forEach(field => {
         if (usePrefixPattern) {
@@ -272,6 +313,9 @@ function updateRowFields(row, prefix, index, usePrefixPattern = false) {
             }
             if (field.hasAttribute('data-permission-index') && field.getAttribute('data-permission-index') === '__prefix__') {
                 field.setAttribute('data-permission-index', index);
+            }
+            if (field.hasAttribute('data-operation-index') && field.getAttribute('data-operation-index') === '__prefix__') {
+                field.setAttribute('data-operation-index', index);
             }
         } else {
             // Use numeric pattern (prefix-N-)
@@ -330,9 +374,15 @@ function initFormset(prefix, templateSelector, options = {}) {
     const addButtonSelector = options.addButtonSelector || `.add-formset-row[data-prefix="${prefix}"]`;
     const removeButtonSelector = options.removeButtonSelector || `.remove-formset-row[data-prefix="${prefix}"]`;
     const rowSelector = options.rowSelector || '.formset-row';
+    const usePrefixPattern = options.usePrefixPattern !== false;
     
     // Set formset prefix on container for easy selection
     const templateRow = document.querySelector(templateSelector);
+    if (!templateRow) {
+        console.error(`Template not found: ${templateSelector}`);
+        return;
+    }
+    
     if (templateRow) {
         const container = templateRow.closest('.formset-container') || templateRow.parentElement;
         if (container) {
@@ -343,12 +393,23 @@ function initFormset(prefix, templateSelector, options = {}) {
     
     // Add event listener for add button
     const addButton = document.querySelector(addButtonSelector);
-    if (addButton) {
-        addButton.addEventListener('click', function(e) {
-            e.preventDefault();
-            addFormsetRow(prefix, templateSelector, options);
-        });
+    if (!addButton) {
+        console.error(`Add button not found with selector: ${addButtonSelector}`);
+        console.log('Available buttons:', document.querySelectorAll('.add-formset-row'));
+        return;
     }
+    
+    console.log(`Formset initialized: ${prefix}, template: ${templateSelector}, button found:`, addButton);
+    
+    addButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log(`Add button clicked for formset: ${prefix}`);
+        const result = addFormsetRow(prefix, templateSelector, options);
+        if (!result) {
+            console.error('Failed to add formset row');
+        }
+    });
     
     // Add event listeners for remove buttons (existing and future)
     document.addEventListener('click', function(e) {
@@ -368,7 +429,7 @@ function initFormset(prefix, templateSelector, options = {}) {
     }
     
     // Initial reindex
-    reindexFormset(prefix, rowSelector);
+    reindexFormset(prefix, rowSelector, usePrefixPattern);
 }
 
 
