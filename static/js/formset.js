@@ -346,7 +346,7 @@ function initFormset(prefix, templateSelector, options = {}) {
     if (addButton) {
         addButton.addEventListener('click', function(e) {
             e.preventDefault();
-            addFormsetRow(prefix, templateSelector, { minRows, maxRows, rowSelector });
+            addFormsetRow(prefix, templateSelector, options);
         });
     }
     
@@ -363,7 +363,7 @@ function initFormset(prefix, templateSelector, options = {}) {
     if (currentRows < minRows) {
         const rowsToAdd = minRows - currentRows;
         for (let i = 0; i < rowsToAdd; i++) {
-            addFormsetRow(prefix, templateSelector, { minRows, maxRows, rowSelector });
+            addFormsetRow(prefix, templateSelector, options);
         }
     }
     

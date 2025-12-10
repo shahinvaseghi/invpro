@@ -12,19 +12,10 @@ from production.models import Process, BOM, WorkLine
 class ProcessForm(forms.ModelForm):
     """Form for creating/editing production processes."""
     
-    work_lines = forms.ModelMultipleChoiceField(
-        queryset=None,  # Will be set in __init__
-        required=False,
-        label=_('خطوط کاری'),
-        widget=forms.SelectMultiple(attrs={'class': 'form-control', 'size': '10'}),
-        help_text=_('یک یا چند خط کاری را برای این فرایند انتخاب کنید'),
-    )
-    
     class Meta:
         model = Process
         fields = [
             'bom',  # Optional
-            'work_lines',
             'revision',  # Optional
             'description',
             'is_primary',
@@ -68,12 +59,6 @@ class ProcessForm(forms.ModelForm):
             self.fields['revision'].required = False  # Optional
             self.fields['is_primary'].required = False  # Optional
             
-            # Filter work lines by company
-            self.fields['work_lines'].queryset = WorkLine.objects.filter(
-                company_id=company_id,
-                is_enabled=1,
-            ).order_by('name')
-            
             # Filter approved_by (User) - only users with approve permission for production.processes
             from shared.models import UserCompanyAccess, AccessLevelPermission
             from django.contrib.auth import get_user_model
@@ -111,12 +96,7 @@ class ProcessForm(forms.ModelForm):
             User = get_user_model()
             
             self.fields['bom'].queryset = BOM.objects.none()
-            self.fields['work_lines'].queryset = WorkLine.objects.none()
             self.fields['approved_by'].queryset = User.objects.none()
-        
-        # Set initial values for edit mode
-        if self.instance.pk:
-            self.fields['work_lines'].initial = self.instance.work_lines.all()
     
     def save(self, commit: bool = True) -> Process:
         """Save process instance."""
@@ -129,6 +109,4 @@ class ProcessForm(forms.ModelForm):
     def save_m2m(self) -> None:
         """Save many-to-many relationships."""
         super().save_m2m()
-        if self.instance.pk:
-            self.instance.work_lines.set(self.cleaned_data['work_lines'])
 

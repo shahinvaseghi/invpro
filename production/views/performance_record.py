@@ -178,22 +178,31 @@ class PerformanceRecordCreateView(BaseMultipleFormsetCreateView):
         active_company_id = self.request.session.get('active_company_id')
         kwargs = {'form_kwargs': {'company_id': active_company_id}}
         
-        # Get order and process_id from form if available
+        # Get order, process_id, and operation_id from form if available
         if hasattr(self, 'form') and self.form and hasattr(self.form, 'cleaned_data') and self.form.cleaned_data:
             order = self.form.cleaned_data.get('order')
+            operation = self.form.cleaned_data.get('operation')
             if order:
                 kwargs['form_kwargs']['process_id'] = order.process_id if order else None
+            if operation:
+                kwargs['form_kwargs']['operation_id'] = operation.id if operation else None
         elif self.request.POST:
             order_id = self.request.POST.get('order')
+            operation_id = self.request.POST.get('operation')
             if order_id:
                 try:
                     order = ProductOrder.objects.get(id=int(order_id))
                     kwargs['form_kwargs']['process_id'] = order.process_id if order else None
                 except (ProductOrder.DoesNotExist, ValueError, TypeError):
                     pass
+            if operation_id:
+                kwargs['form_kwargs']['operation_id'] = int(operation_id)
         
         if hasattr(self, 'object') and self.object:
             kwargs['instance'] = self.object
+            # If object exists and has operation, add operation_id
+            if self.object.operation_id:
+                kwargs['form_kwargs']['operation_id'] = self.object.operation_id
         
         return kwargs
     
@@ -376,29 +385,58 @@ class PerformanceRecordCreateView(BaseMultipleFormsetCreateView):
         
         # Handle materials based on document type
         if document_type == PerformanceRecord.DocumentType.OPERATIONAL:
-            # For operational documents: get actual materials from transfer documents
-            transfers = TransferToLine.objects.filter(
-                company_id=active_company_id,
-                order=order,
-                status='approved',
-                is_enabled=1,
-            )
+            # For operational documents: get actual materials from warehouse transfer documents
+            # Materials come from IssueWarehouseTransferLine where destination_warehouse == operation.work_line.warehouse
+            if not operation:
+                messages.warning(self.request, _('Operation must be selected for operational performance records.'))
+                return
             
-            # Collect all materials from all transfers
+            # Refresh operation from database to get work_line relationship
+            try:
+                operation = ProcessOperation.objects.select_related('work_line', 'work_line__warehouse').get(
+                    pk=operation.pk,
+                    company_id=active_company_id,
+                )
+            except ProcessOperation.DoesNotExist:
+                messages.error(self.request, _('Operation not found.'))
+                return
+            
+            if not operation.work_line:
+                messages.warning(self.request, _('Operation must have a work line assigned to populate materials.'))
+                return
+            
+            if not operation.work_line.warehouse:
+                messages.warning(self.request, _('Operation work line must have a warehouse assigned to populate materials.'))
+                return
+            
+            from inventory.models import IssueWarehouseTransferLine
+            
+            # Get warehouse transfer lines for this operation's work line warehouse
+            warehouse_transfer_lines = IssueWarehouseTransferLine.objects.filter(
+                company_id=active_company_id,
+                destination_warehouse=operation.work_line.warehouse,
+                document__production_transfer__order=order,
+                document__production_transfer__status='approved',
+                document__production_transfer__is_enabled=1,
+            ).select_related('item', 'document', 'document__production_transfer')
+            
+            if not warehouse_transfer_lines.exists():
+                messages.info(self.request, _('No warehouse transfer documents found for this operation. Materials will be empty.'))
+            
+            # Collect all materials from warehouse transfer lines
             materials_dict = {}
-            for transfer_obj in transfers:
-                for transfer_item in transfer_obj.items.all():
-                    material_item_id = transfer_item.material_item_id
-                    if material_item_id not in materials_dict:
-                        materials_dict[material_item_id] = {
-                            'material_item': transfer_item.material_item,
-                            'material_item_code': transfer_item.material_item_code,
-                            'quantity_required': transfer_item.quantity_required,
-                            'unit': transfer_item.unit,
-                            'is_extra': transfer_item.is_extra,
-                        }
-                    else:
-                        materials_dict[material_item_id]['quantity_required'] += transfer_item.quantity_required
+            for transfer_line in warehouse_transfer_lines:
+                material_item_id = transfer_line.item_id
+                if material_item_id not in materials_dict:
+                    materials_dict[material_item_id] = {
+                        'material_item': transfer_line.item,
+                        'material_item_code': transfer_line.item_code,
+                        'quantity_required': transfer_line.quantity,
+                        'unit': transfer_line.unit,
+                        'is_extra': 0,  # Materials from warehouse transfer are from BOM (not extra)
+                    }
+                else:
+                    materials_dict[material_item_id]['quantity_required'] += transfer_line.quantity
             
             # Create performance record materials
             PerformanceRecordMaterial.objects.filter(performance=self.object).delete()
@@ -1425,4 +1463,127 @@ class PerformanceRecordGetOperationsView(FeaturePermissionRequiredMixin, View):
             'order_id': order_id,
             'process_id': order.process_id if order.process else None,
         })
+
+
+class PerformanceRecordGetOperationDataView(FeaturePermissionRequiredMixin, View):
+    """AJAX view to get materials, personnel, and machines for a selected operation."""
+    feature_code = 'production.performance_records'
+    required_action = 'view_own'
+    
+    def get(self, request, *args, **kwargs):
+        """Return materials, personnel, and machines for the selected operation."""
+        active_company_id = request.session.get('active_company_id')
+        if not active_company_id:
+            return JsonResponse({'error': _('Please select a company first.')}, status=400)
+        
+        operation_id = request.GET.get('operation_id')
+        order_id = request.GET.get('order_id')
+        
+        if not operation_id:
+            return JsonResponse({'error': _('Operation ID is required.')}, status=400)
+        
+        if not order_id:
+            return JsonResponse({'error': _('Order ID is required.')}, status=400)
+        
+        try:
+            operation = ProcessOperation.objects.select_related('work_line', 'work_line__warehouse').get(
+                pk=operation_id,
+                company_id=active_company_id,
+            )
+        except ProcessOperation.DoesNotExist:
+            return JsonResponse({'error': _('Operation not found.')}, status=404)
+        
+        try:
+            order = ProductOrder.objects.get(
+                pk=order_id,
+                company_id=active_company_id,
+                is_enabled=1,
+            )
+        except ProductOrder.DoesNotExist:
+            return JsonResponse({'error': _('Order not found.')}, status=404)
+        
+        response_data = {
+            'materials': [],
+            'personnel': [],
+            'machines': [],
+        }
+        
+        # Get materials from IssueWarehouseTransferLine
+        if operation.work_line and operation.work_line.warehouse:
+            from inventory.models import IssueWarehouseTransferLine
+            
+            warehouse_transfer_lines = IssueWarehouseTransferLine.objects.filter(
+                company_id=active_company_id,
+                destination_warehouse=operation.work_line.warehouse,
+                document__production_transfer__order=order,
+                document__production_transfer__status='approved',
+                document__production_transfer__is_enabled=1,
+            ).select_related('item', 'document', 'document__production_transfer').order_by('item_code')
+            
+            # Group materials by item (sum quantities)
+            materials_dict = {}
+            for transfer_line in warehouse_transfer_lines:
+                material_item_id = transfer_line.item_id
+                if material_item_id not in materials_dict:
+                    materials_dict[material_item_id] = {
+                        'item_id': transfer_line.item_id,
+                        'item_code': transfer_line.item_code,
+                        'item_name': transfer_line.item.name,
+                        'quantity_required': float(transfer_line.quantity),
+                        'unit': transfer_line.unit,
+                    }
+                else:
+                    materials_dict[material_item_id]['quantity_required'] += float(transfer_line.quantity)
+            
+            response_data['materials'] = list(materials_dict.values())
+        else:
+            response_data['error'] = _('Operation must have a work line with warehouse to get materials.')
+        
+        # Get personnel from work_line
+        if operation.work_line:
+            personnel = operation.work_line.personnel.filter(
+                company_id=active_company_id,
+                is_enabled=1,
+            ).order_by('first_name', 'last_name')
+            
+            response_data['personnel'] = [
+                {
+                    'id': person.id,
+                    'code': person.public_code,
+                    'name': f"{person.first_name} {person.last_name}",
+                }
+                for person in personnel
+            ]
+        else:
+            response_data['warning'] = _('Operation must have a work line to get personnel.')
+        
+        # Get machines from work_line
+        if operation.work_line:
+            machines = operation.work_line.machines.filter(
+                company_id=active_company_id,
+                is_enabled=1,
+            ).order_by('name')
+            
+            response_data['machines'] = [
+                {
+                    'id': machine.id,
+                    'code': machine.public_code,
+                    'name': machine.name,
+                }
+                for machine in machines
+            ]
+        else:
+            if 'warning' not in response_data:
+                response_data['warning'] = _('Operation must have a work line to get machines.')
+        
+        # Add work_line info
+        if operation.work_line:
+            response_data['work_line'] = {
+                'id': operation.work_line.id,
+                'code': operation.work_line.public_code,
+                'name': operation.work_line.name,
+                'warehouse_id': operation.work_line.warehouse_id if operation.work_line.warehouse else None,
+            }
+        
+        return JsonResponse(response_data)
 

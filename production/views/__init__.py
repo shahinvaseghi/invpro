@@ -91,6 +91,7 @@ from production.views.performance_record import (
     PerformanceRecordListView,
     PerformanceRecordCreateView,
     PerformanceRecordGetOperationsView,
+    PerformanceRecordGetOperationDataView,
     PerformanceRecordDetailView,
     PerformanceRecordUpdateView,
     PerformanceRecordDeleteView,
@@ -177,6 +178,7 @@ __all__ = [
     'PerformanceRecordRejectView',
     'PerformanceRecordCreateReceiptView',
     'PerformanceRecordGetOperationsView',
+    'PerformanceRecordGetOperationDataView',
     # QC Operations views
     'QCOperationsListView',
     'QCOperationApproveView',

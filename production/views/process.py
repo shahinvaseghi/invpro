@@ -399,7 +399,7 @@ class ProcessCreateView(BaseFormsetCreateView):
         """Add form title, breadcrumbs, and operations formset to context."""
         context = super().get_context_data(**kwargs)
         
-        # Add work lines to context for JavaScript
+        # Add work lines to context for JavaScript (for operations work_line field)
         active_company_id = self.request.session.get('active_company_id')
         if active_company_id:
             from production.models import WorkLine

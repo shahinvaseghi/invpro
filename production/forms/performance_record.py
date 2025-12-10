@@ -385,34 +385,71 @@ class PerformanceRecordPersonForm(forms.ModelForm):
             'notes': _('Notes'),
         }
     
-    def __init__(self, *args: tuple, company_id: Optional[int] = None, process_id: Optional[int] = None, **kwargs: dict):
+    def __init__(self, *args: tuple, company_id: Optional[int] = None, process_id: Optional[int] = None, operation_id: Optional[int] = None, **kwargs: dict):
         """Initialize form with company filtering."""
         super().__init__(*args, **kwargs)
         self.company_id = company_id
         
         if self.company_id:
-            # Filter Person by company
-            self.fields['person'].queryset = Person.objects.filter(
-                company_id=self.company_id,
-                is_enabled=1,
-            ).order_by('first_name', 'last_name')
-            
-            # Filter WorkLine by company and process work lines
-            work_line_queryset = WorkLine.objects.filter(
-                company_id=self.company_id,
-                is_enabled=1,
-            )
-            
-            # If process is provided, filter to work lines in that process
-            if process_id:
-                from production.models import Process
+            # If operation_id is provided, filter by operation's work line personnel
+            if operation_id:
                 try:
-                    process = Process.objects.get(pk=process_id, company_id=self.company_id)
-                    work_line_queryset = work_line_queryset.filter(processes=process)
-                except Process.DoesNotExist:
-                    pass
-            
-            self.fields['work_line'].queryset = work_line_queryset.order_by('name')
+                    operation = ProcessOperation.objects.select_related('work_line').get(
+                        pk=operation_id,
+                        company_id=self.company_id,
+                    )
+                    if operation.work_line:
+                        # Filter Person by work line personnel
+                        self.fields['person'].queryset = operation.work_line.personnel.filter(
+                            company_id=self.company_id,
+                            is_enabled=1,
+                        ).order_by('first_name', 'last_name')
+                        # Set work_line to operation's work_line (read-only)
+                        self.fields['work_line'].queryset = WorkLine.objects.filter(
+                            pk=operation.work_line_id,
+                            company_id=self.company_id,
+                        )
+                        # Set initial value for work_line
+                        self.fields['work_line'].initial = operation.work_line_id
+                        # Make work_line read-only since it's determined by operation
+                        self.fields['work_line'].widget.attrs['readonly'] = True
+                    else:
+                        # No work line assigned to operation
+                        self.fields['person'].queryset = Person.objects.none()
+                        self.fields['work_line'].queryset = WorkLine.objects.none()
+                except ProcessOperation.DoesNotExist:
+                    # Fallback to company-wide filter
+                    self.fields['person'].queryset = Person.objects.filter(
+                        company_id=self.company_id,
+                        is_enabled=1,
+                    ).order_by('first_name', 'last_name')
+                    self.fields['work_line'].queryset = WorkLine.objects.filter(
+                        company_id=self.company_id,
+                        is_enabled=1,
+                    ).order_by('name')
+            else:
+                # Filter Person by company
+                self.fields['person'].queryset = Person.objects.filter(
+                    company_id=self.company_id,
+                    is_enabled=1,
+                ).order_by('first_name', 'last_name')
+                
+                # Filter WorkLine by company and process work lines
+                work_line_queryset = WorkLine.objects.filter(
+                    company_id=self.company_id,
+                    is_enabled=1,
+                )
+                
+                # If process is provided, filter to work lines in that process
+                if process_id:
+                    from production.models import Process
+                    try:
+                        process = Process.objects.get(pk=process_id, company_id=self.company_id)
+                        work_line_queryset = work_line_queryset.filter(processes=process)
+                    except Process.DoesNotExist:
+                        pass
+                
+                self.fields['work_line'].queryset = work_line_queryset.order_by('name')
         else:
             self.fields['person'].queryset = Person.objects.none()
             self.fields['work_line'].queryset = WorkLine.objects.none()
@@ -456,34 +493,71 @@ class PerformanceRecordMachineForm(forms.ModelForm):
             'notes': _('Notes'),
         }
     
-    def __init__(self, *args: tuple, company_id: Optional[int] = None, process_id: Optional[int] = None, **kwargs: dict):
+    def __init__(self, *args: tuple, company_id: Optional[int] = None, process_id: Optional[int] = None, operation_id: Optional[int] = None, **kwargs: dict):
         """Initialize form with company filtering."""
         super().__init__(*args, **kwargs)
         self.company_id = company_id
         
         if self.company_id:
-            # Filter Machine by company
-            self.fields['machine'].queryset = Machine.objects.filter(
-                company_id=self.company_id,
-                is_enabled=1,
-            ).order_by('name')
-            
-            # Filter WorkLine by company and process work lines
-            work_line_queryset = WorkLine.objects.filter(
-                company_id=self.company_id,
-                is_enabled=1,
-            )
-            
-            # If process is provided, filter to work lines in that process
-            if process_id:
-                from production.models import Process
+            # If operation_id is provided, filter by operation's work line machines
+            if operation_id:
                 try:
-                    process = Process.objects.get(pk=process_id, company_id=self.company_id)
-                    work_line_queryset = work_line_queryset.filter(processes=process)
-                except Process.DoesNotExist:
-                    pass
-            
-            self.fields['work_line'].queryset = work_line_queryset.order_by('name')
+                    operation = ProcessOperation.objects.select_related('work_line').get(
+                        pk=operation_id,
+                        company_id=self.company_id,
+                    )
+                    if operation.work_line:
+                        # Filter Machine by work line machines
+                        self.fields['machine'].queryset = operation.work_line.machines.filter(
+                            company_id=self.company_id,
+                            is_enabled=1,
+                        ).order_by('name')
+                        # Set work_line to operation's work_line (read-only)
+                        self.fields['work_line'].queryset = WorkLine.objects.filter(
+                            pk=operation.work_line_id,
+                            company_id=self.company_id,
+                        )
+                        # Set initial value for work_line
+                        self.fields['work_line'].initial = operation.work_line_id
+                        # Make work_line read-only since it's determined by operation
+                        self.fields['work_line'].widget.attrs['readonly'] = True
+                    else:
+                        # No work line assigned to operation
+                        self.fields['machine'].queryset = Machine.objects.none()
+                        self.fields['work_line'].queryset = WorkLine.objects.none()
+                except ProcessOperation.DoesNotExist:
+                    # Fallback to company-wide filter
+                    self.fields['machine'].queryset = Machine.objects.filter(
+                        company_id=self.company_id,
+                        is_enabled=1,
+                    ).order_by('name')
+                    self.fields['work_line'].queryset = WorkLine.objects.filter(
+                        company_id=self.company_id,
+                        is_enabled=1,
+                    ).order_by('name')
+            else:
+                # Filter Machine by company
+                self.fields['machine'].queryset = Machine.objects.filter(
+                    company_id=self.company_id,
+                    is_enabled=1,
+                ).order_by('name')
+                
+                # Filter WorkLine by company and process work lines
+                work_line_queryset = WorkLine.objects.filter(
+                    company_id=self.company_id,
+                    is_enabled=1,
+                )
+                
+                # If process is provided, filter to work lines in that process
+                if process_id:
+                    from production.models import Process
+                    try:
+                        process = Process.objects.get(pk=process_id, company_id=self.company_id)
+                        work_line_queryset = work_line_queryset.filter(processes=process)
+                    except Process.DoesNotExist:
+                        pass
+                
+                self.fields['work_line'].queryset = work_line_queryset.order_by('name')
         else:
             self.fields['machine'].queryset = Machine.objects.none()
             self.fields['work_line'].queryset = WorkLine.objects.none()
