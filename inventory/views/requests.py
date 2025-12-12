@@ -17,6 +17,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.safestring import mark_safe
 from django.db.models import Q
 import json
+import re
 
 from .base import InventoryBaseView, LineFormsetMixin, BaseCreateDocumentFromRequestView
 from shared.mixins import FeaturePermissionRequiredMixin
@@ -609,25 +610,41 @@ class WarehouseRequestFormMixin(InventoryBaseView):
         
         # Add formset to context (for BaseFormsetCreateView compatibility)
         # Use LineFormsetMixin's build_line_formset method
-        if hasattr(self, 'formset_class') and self.formset_class and hasattr(self, 'build_line_formset'):
+        # Note: LineFormsetMixin.get_context_data() will also build formset, so we check if it's already there
+        if 'lines_formset' not in context and hasattr(self, 'formset_class') and self.formset_class and hasattr(self, 'build_line_formset'):
             if self.request.method == 'POST':
                 formset = self.build_line_formset(data=self.request.POST, request=self.request)
             else:
                 formset = self.build_line_formset(request=self.request)
             context['lines_formset'] = formset
             context['formset'] = formset  # Also add as 'formset' for generic_form compatibility
+        elif 'lines_formset' in context:
+            # Formset already built by LineFormsetMixin, just add as 'formset' for compatibility
+            context['formset'] = context['lines_formset']
 
-        if form and 'item' in form.fields:
-            unit_map: Dict[str, list] = {}
-            warehouse_map: Dict[str, list] = {}
-            for item in form.fields['item'].queryset:
-                unit_map[str(item.pk)] = form._get_item_allowed_units(item)
-                warehouse_map[str(item.pk)] = form._get_item_allowed_warehouses(item)
-            context['unit_options_json'] = mark_safe(json.dumps(unit_map, ensure_ascii=False))
-            context['warehouse_options_json'] = mark_safe(json.dumps(warehouse_map, ensure_ascii=False))
-        else:
-            context['unit_options_json'] = mark_safe('{}')
-            context['warehouse_options_json'] = mark_safe('{}')
+        # Build unit and warehouse maps from formset (not form, since form doesn't have item field)
+        unit_map: Dict[str, list] = {}
+        warehouse_map: Dict[str, list] = {}
+        
+        # Get formset from context (either lines_formset or formset)
+        formset = context.get('lines_formset') or context.get('formset')
+        if formset and formset.forms:
+            # Get the form class from first form in formset
+            line_form = formset.forms[0] if formset.forms else None
+            
+            # Check if form has the required methods
+            if line_form and hasattr(line_form, '_get_item_allowed_units'):
+                # Get items from formset's item field queryset
+                if 'item' in line_form.fields:
+                    items = line_form.fields['item'].queryset
+                    for item in items:
+                        if hasattr(line_form, '_get_item_allowed_units'):
+                            unit_map[str(item.pk)] = line_form._get_item_allowed_units(item)
+                        if hasattr(line_form, '_get_item_allowed_warehouses'):
+                            warehouse_map[str(item.pk)] = line_form._get_item_allowed_warehouses(item)
+        
+        context['unit_options_json'] = mark_safe(json.dumps(unit_map, ensure_ascii=False))
+        context['warehouse_options_json'] = mark_safe(json.dumps(warehouse_map, ensure_ascii=False))
         context['unit_placeholder'] = str(forms.UNIT_CHOICES[0][1])
         context['warehouse_placeholder'] = _('--- انتخاب کنید ---')
         
@@ -807,76 +824,323 @@ class WarehouseRequestCreateView(LineFormsetMixin, WarehouseRequestFormMixin, Ba
 
     def form_valid(self, form):
         """Set company, requester, and status before saving."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info("=" * 100)
+        logger.info("=" * 100)
+        logger.info("🚀 WAREHOUSE REQUEST CREATE - FORM VALID STARTED")
+        logger.info("=" * 100)
+        logger.info(f"📋 User: {self.request.user.username} (ID: {self.request.user.id})")
+        logger.info(f"📋 Request Method: {self.request.method}")
+        
+        # Log ALL POST data keys
+        all_post_keys = list(self.request.POST.keys())
+        logger.info(f"📋 Total POST keys: {len(all_post_keys)}")
+        logger.info(f"📋 POST Data Keys (first 50): {all_post_keys[:50]}")
+        
+        # Log formset data specifically - DETAILED
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("📋 DETAILED FORMSET POST DATA ANALYSIS:")
+        logger.info("=" * 100)
+        formset_keys = [k for k in self.request.POST.keys() if k.startswith('lines-')]
+        logger.info(f"   Total formset keys: {len(formset_keys)}")
+        
+        # Group by form index
+        form_indices = set()
+        for key in formset_keys:
+            match = re.match(r'lines-(\d+)-', key)
+            if match:
+                form_indices.add(int(match.group(1)))
+        
+        logger.info(f"   Found form indices: {sorted(form_indices)}")
+        logger.info("")
+        
+        # Log each form's data
+        for form_idx in sorted(form_indices):
+            logger.info(f"   --- Form {form_idx} Data ---")
+            form_keys = [k for k in formset_keys if k.startswith(f'lines-{form_idx}-')]
+            for key in sorted(form_keys):
+                value = self.request.POST.get(key, '')
+                # Check if it's a list (multiple values)
+                if key in self.request.POST.lists():
+                    values = self.request.POST.getlist(key)
+                    logger.info(f"      {key}: {values} (multiple values)")
+                else:
+                    logger.info(f"      {key}: '{value}' (length: {len(value) if value else 0})")
+            
+            # Check for DELETE flag
+            delete_key = f'lines-{form_idx}-DELETE'
+            if delete_key in self.request.POST:
+                logger.info(f"      {delete_key}: {self.request.POST.get(delete_key)}")
+        
+        # Log formset management fields
+        logger.info("")
+        logger.info("   --- Formset Management Fields ---")
+        for mgmt_key in ['lines-TOTAL_FORMS', 'lines-INITIAL_FORMS', 'lines-MIN_NUM_FORMS', 'lines-MAX_NUM_FORMS']:
+            if mgmt_key in self.request.POST:
+                logger.info(f"      {mgmt_key}: {self.request.POST.get(mgmt_key)}")
+        
+        # Specifically check for select fields that should have values
+        logger.info("")
+        logger.info("   --- Critical Fields Check ---")
+        for form_idx in sorted(form_indices):
+            item_key = f'lines-{form_idx}-item'
+            unit_key = f'lines-{form_idx}-unit'
+            warehouse_key = f'lines-{form_idx}-warehouse'
+            quantity_key = f'lines-{form_idx}-quantity_requested'
+            
+            item_value = self.request.POST.get(item_key, '')
+            unit_value = self.request.POST.get(unit_key, '')
+            warehouse_value = self.request.POST.get(warehouse_key, '')
+            quantity_value = self.request.POST.get(quantity_key, '')
+            
+            logger.info(f"      Form {form_idx}:")
+            logger.info(f"         item: '{item_value}' (exists: {item_key in self.request.POST})")
+            logger.info(f"         unit: '{unit_value}' (exists: {unit_key in self.request.POST})")
+            logger.info(f"         warehouse: '{warehouse_value}' (exists: {warehouse_key in self.request.POST})")
+            logger.info(f"         quantity: '{quantity_value}' (exists: {quantity_key in self.request.POST})")
+        
+        logger.info("=" * 100)
+        
         company_id: Optional[int] = self.request.session.get('active_company_id')
+        logger.info(f"🏢 Company ID from session: {company_id}")
+        
         if not company_id:
+            logger.error("❌ ERROR: Company ID not found in session!")
             form.add_error(None, _('شرکت فعال مشخص نشده است.'))
             return self.form_invalid(form)
+        
+        logger.info(f"✅ Company ID validated: {company_id}")
         
         form.instance.company_id = company_id
         form.instance.requester = self.request.user
         form.instance.request_date = timezone.now().date()
         form.instance.request_status = 'draft'
         
+        logger.info(f"📝 Form instance prepared:")
+        logger.info(f"   - Company ID: {form.instance.company_id}")
+        logger.info(f"   - Requester: {form.instance.requester.username}")
+        logger.info(f"   - Request Date: {form.instance.request_date}")
+        logger.info(f"   - Status: {form.instance.request_status}")
+        
         # Build and validate formset
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("📦 STEP 1: Building formset from POST data...")
+        logger.info("=" * 100)
         lines_formset = self.build_line_formset(data=self.request.POST, request=self.request)
+        logger.info(f"✅ Formset built. Total forms: {len(lines_formset.forms)}")
+        
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("🔍 STEP 2: Validating formset...")
+        logger.info("=" * 100)
         if not lines_formset.is_valid():
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
+            logger.error("❌ FORMSET VALIDATION FAILED!")
+            logger.error(f"   Formset errors: {lines_formset.errors}")
+            logger.error(f"   Non-form errors: {lines_formset.non_form_errors()}")
+            
+            for i, line_form in enumerate(lines_formset.forms):
+                logger.info(f"")
+                logger.info(f"   📄 Form {i}:")
+                logger.info(f"      - Has data: {line_form.is_bound}")
+                logger.info(f"      - Has errors: {bool(line_form.errors)}")
+                if line_form.errors:
+                    logger.error(f"      - Errors: {line_form.errors}")
+                if line_form.is_bound:
+                    logger.info(f"      - Raw data from POST:")
+                    for field_name in ['item', 'unit', 'quantity_requested', 'warehouse']:
+                        # Try both with prefix and without
+                        key_with_prefix = f'{line_form.prefix}-{field_name}'
+                        value = self.request.POST.get(key_with_prefix, '')
+                        if not value and hasattr(line_form, 'data'):
+                            # Fallback to form.data if POST doesn't have it
+                            value = line_form.data.get(key_with_prefix, '')
+                        logger.info(f"         {field_name} ({key_with_prefix}): {value if value else '(empty)'}")
+                    
+                    # Also log cleaned_data if available
+                    if line_form.cleaned_data:
+                        logger.info(f"      - Cleaned data:")
+                        for field_name in ['item', 'unit', 'quantity_requested', 'warehouse']:
+                            cleaned_value = line_form.cleaned_data.get(field_name)
+                            if cleaned_value:
+                                if hasattr(cleaned_value, 'id'):
+                                    logger.info(f"         {field_name}: {cleaned_value} (ID: {cleaned_value.id})")
+                                else:
+                                    logger.info(f"         {field_name}: {cleaned_value}")
+            
+            logger.error("")
+            logger.error("=" * 100)
+            logger.error("❌ RETURNING FORM WITH ERRORS")
+            logger.error("=" * 100)
+            # IMPORTANT: Pass lines_formset in context to prevent LineFormsetMixin from rebuilding it
+            context = self.get_context_data(form=form)
+            context['lines_formset'] = lines_formset
+            context['formset'] = lines_formset  # Also add as 'formset' for compatibility
+            return self.render_to_response(context)
+        
+        logger.info("✅ Formset validation PASSED!")
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("📊 STEP 3: Analyzing formset forms...")
+        logger.info("=" * 100)
         
         # Check if we have at least one valid line before saving document
         valid_lines = []
         first_item = None
         first_unit = None
         first_warehouse = None
-        for line_form in lines_formset.forms:
-            if line_form.cleaned_data and line_form.cleaned_data.get('item') and not line_form.cleaned_data.get('DELETE', False):
-                valid_lines.append(line_form)
-                if first_item is None:
-                    first_item = line_form.cleaned_data.get('item')
-                    first_unit = line_form.cleaned_data.get('unit', 'EA')
-                    first_warehouse = line_form.cleaned_data.get('warehouse')
+        
+        logger.info(f"   Total forms in formset: {len(lines_formset.forms)}")
+        
+        for i, line_form in enumerate(lines_formset.forms):
+            logger.info(f"")
+            logger.info(f"   📄 Form {i}:")
+            logger.info(f"      - Has cleaned_data: {bool(line_form.cleaned_data)}")
+            
+            if line_form.cleaned_data:
+                item = line_form.cleaned_data.get('item')
+                unit = line_form.cleaned_data.get('unit')
+                quantity = line_form.cleaned_data.get('quantity_requested')
+                warehouse = line_form.cleaned_data.get('warehouse')
+                is_deleted = line_form.cleaned_data.get('DELETE', False)
+                
+                logger.info(f"      - Item: {item} (ID: {item.id if item else None})")
+                logger.info(f"      - Unit: {unit}")
+                logger.info(f"      - Quantity: {quantity}")
+                logger.info(f"      - Warehouse: {warehouse} (ID: {warehouse.id if warehouse else None})")
+                logger.info(f"      - Is Deleted: {is_deleted}")
+                
+                if item and not is_deleted:
+                    valid_lines.append(line_form)
+                    logger.info(f"      ✅ VALID LINE")
+                    if first_item is None:
+                        first_item = item
+                        first_unit = unit or 'EA'
+                        first_warehouse = warehouse
+                        logger.info(f"      ⭐ SET AS FIRST LINE")
+                else:
+                    logger.info(f"      ⚠️  NOT VALID (no item or deleted)")
+            else:
+                logger.info(f"      ⚠️  NO CLEANED DATA")
+        
+        logger.info(f"")
+        logger.info(f"   📊 Summary: {len(valid_lines)} valid line(s) found")
         
         if not valid_lines:
+            logger.error("")
+            logger.error("❌ ERROR: No valid lines found!")
+            logger.error("=" * 100)
             form.add_error(None, _('Please add at least one line with an item.'))
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
+            context = self.get_context_data(form=form)
+            context['lines_formset'] = lines_formset
+            context['formset'] = lines_formset
+            return self.render_to_response(context)
         
         # Set legacy fields from first valid line (for backward compatibility)
         from decimal import Decimal
         if not first_item:
+            logger.error("")
+            logger.error("❌ ERROR: First item is None!")
+            logger.error("=" * 100)
             form.add_error(None, _('Please add at least one line with an item.'))
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
+            context = self.get_context_data(form=form)
+            context['lines_formset'] = lines_formset
+            context['formset'] = lines_formset
+            return self.render_to_response(context)
+        
+        if not first_warehouse:
+            logger.error("")
+            logger.error("❌ ERROR: First warehouse is None!")
+            logger.error("=" * 100)
+            form.add_error(None, _('Please select a warehouse for at least one line.'))
+            context = self.get_context_data(form=form)
+            context['lines_formset'] = lines_formset
+            context['formset'] = lines_formset
+            return self.render_to_response(context)
+        
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("📝 STEP 4: Setting legacy fields from first valid line...")
+        logger.info("=" * 100)
+        logger.info(f"   First Item: {first_item.name} (ID: {first_item.id}, Code: {first_item.item_code})")
+        logger.info(f"   First Unit: {first_unit}")
+        logger.info(f"   First Warehouse: {first_warehouse.name} (ID: {first_warehouse.id}, Code: {first_warehouse.public_code})")
         
         form.instance.item = first_item
         form.instance.item_code = first_item.item_code or first_item.full_item_code or ''
         form.instance.unit = first_unit or 'EA'
         form.instance.warehouse = first_warehouse
-        if first_warehouse:
-            form.instance.warehouse_code = first_warehouse.public_code or ''
+        form.instance.warehouse_code = first_warehouse.public_code or ''
         # quantity_requested will be calculated from lines
         form.instance.quantity_requested = Decimal("0")
         
+        logger.info(f"✅ Legacy fields set")
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("💾 STEP 5: Saving main document...")
+        logger.info("=" * 100)
         # Save document first
         self.object = form.save()
+        logger.info(f"✅ Document saved! ID: {self.object.id}")
+        logger.info(f"   Request Code: {self.object.request_code}")
         
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("📦 STEP 6: Rebuilding formset with document instance...")
+        logger.info("=" * 100)
         # Now set instance for formset and validate before saving
         lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object, request=self.request)
-        if not lines_formset.is_valid():
-            return self.render_to_response(
-                self.get_context_data(form=form, lines_formset=lines_formset)
-            )
-        self._save_line_formset(lines_formset)
+        logger.info(f"✅ Formset rebuilt with instance. Total forms: {len(lines_formset.forms)}")
         
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("🔍 STEP 7: Validating formset again (with instance)...")
+        logger.info("=" * 100)
+        if not lines_formset.is_valid():
+            logger.error("❌ FORMSET VALIDATION FAILED (with instance)!")
+            logger.error(f"   Formset errors: {lines_formset.errors}")
+            for i, line_form in enumerate(lines_formset.forms):
+                if line_form.errors:
+                    logger.error(f"   Form {i} errors: {line_form.errors}")
+            logger.error("=" * 100)
+            context = self.get_context_data(form=form)
+            context['lines_formset'] = lines_formset
+            context['formset'] = lines_formset
+            return self.render_to_response(context)
+        
+        logger.info("✅ Formset validation PASSED (with instance)!")
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("💾 STEP 8: Saving formset lines...")
+        logger.info("=" * 100)
+        self._save_line_formset(lines_formset)
+        logger.info(f"✅ Formset lines saved!")
+        
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("📊 STEP 9: Calculating total quantity and updating document...")
+        logger.info("=" * 100)
         # Calculate total quantity from lines and update legacy fields
         total_quantity = sum(
             line.quantity_requested for line in self.object.lines.all()
         )
+        logger.info(f"   Total quantity from lines: {total_quantity}")
         self.object.quantity_requested = total_quantity
         self.object.save()
+        logger.info(f"✅ Document updated with total quantity")
+        
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("✅ SUCCESS! Warehouse Request created successfully!")
+        logger.info(f"   Request ID: {self.object.id}")
+        logger.info(f"   Request Code: {self.object.request_code}")
+        logger.info(f"   Total Lines: {self.object.lines.count()}")
+        logger.info(f"   Total Quantity: {self.object.quantity_requested}")
+        logger.info("=" * 100)
+        logger.info("=" * 100)
         
         messages.success(self.request, _('درخواست انبار با موفقیت ثبت شد.'))
         return HttpResponseRedirect(self.get_success_url())
@@ -957,43 +1221,124 @@ class WarehouseRequestUpdateView(LineFormsetMixin, WarehouseRequestFormMixin, Ba
 
     def form_valid(self, form):
         """Set company_id before saving."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info("=" * 100)
+        logger.info("=" * 100)
+        logger.info("🚀 WAREHOUSE REQUEST UPDATE - FORM VALID STARTED")
+        logger.info("=" * 100)
+        logger.info(f"📋 User: {self.request.user.username} (ID: {self.request.user.id})")
+        logger.info(f"📋 Request Method: {self.request.method}")
+        logger.info(f"📋 Object ID: {self.object.pk if hasattr(self, 'object') and self.object else 'New'}")
+        
         company_id: Optional[int] = self.request.session.get('active_company_id')
+        logger.info(f"🏢 Company ID from session: {company_id}")
+        
         if not company_id:
+            logger.error("❌ ERROR: Company ID not found in session!")
             form.add_error(None, _('شرکت فعال مشخص نشده است.'))
             return self.form_invalid(form)
+        
+        logger.info(f"✅ Company ID validated: {company_id}")
         form.instance.company_id = company_id
         form.instance.edited_by = self.request.user
         
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("💾 STEP 1: Saving main document...")
+        logger.info("=" * 100)
         # Save document first
         self.object = form.save()
+        logger.info(f"✅ Document saved! ID: {self.object.id}")
+        logger.info(f"   Request Code: {self.object.request_code}")
         
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("📦 STEP 2: Building formset from POST data...")
+        logger.info("=" * 100)
         # Handle line formset
         lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object, request=self.request)
+        logger.info(f"✅ Formset built. Total forms: {len(lines_formset.forms)}")
+        
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("🔍 STEP 3: Validating formset...")
+        logger.info("=" * 100)
         if not lines_formset.is_valid():
+            logger.error("❌ FORMSET VALIDATION FAILED!")
+            logger.error(f"   Formset errors: {lines_formset.errors}")
+            logger.error(f"   Non-form errors: {lines_formset.non_form_errors()}")
+            
+            for i, line_form in enumerate(lines_formset.forms):
+                if line_form.errors:
+                    logger.error(f"   Form {i} errors: {line_form.errors}")
+            
+            logger.error("=" * 100)
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
         
+        logger.info("✅ Formset validation PASSED!")
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("📊 STEP 4: Analyzing formset forms...")
+        logger.info("=" * 100)
+        
         # Check if we have at least one valid line before saving
         valid_lines = []
-        for line_form in lines_formset.forms:
-            if line_form.cleaned_data and line_form.cleaned_data.get('item') and not line_form.cleaned_data.get('DELETE', False):
-                valid_lines.append(line_form)
+        logger.info(f"   Total forms in formset: {len(lines_formset.forms)}")
+        
+        for i, line_form in enumerate(lines_formset.forms):
+            logger.info(f"")
+            logger.info(f"   📄 Form {i}:")
+            logger.info(f"      - Has cleaned_data: {bool(line_form.cleaned_data)}")
+            
+            if line_form.cleaned_data:
+                item = line_form.cleaned_data.get('item')
+                is_deleted = line_form.cleaned_data.get('DELETE', False)
+                
+                logger.info(f"      - Item: {item.name if item else 'None'} (ID: {item.id if item else None})")
+                logger.info(f"      - Is Deleted: {is_deleted}")
+                
+                if item and not is_deleted:
+                    valid_lines.append(line_form)
+                    logger.info(f"      ✅ VALID LINE")
+                else:
+                    logger.info(f"      ⚠️  NOT VALID (no item or deleted)")
+            else:
+                logger.info(f"      ⚠️  NO CLEANED DATA")
+        
+        logger.info(f"")
+        logger.info(f"   📊 Summary: {len(valid_lines)} valid line(s) found")
         
         if not valid_lines:
+            logger.error("")
+            logger.error("❌ ERROR: No valid lines found!")
+            logger.error("=" * 100)
             # No valid lines, show error
             lines_formset.add_error(None, _('Please add at least one line with an item.'))
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
         
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("💾 STEP 5: Saving formset lines...")
+        logger.info("=" * 100)
         self._save_line_formset(lines_formset)
+        logger.info(f"✅ Formset lines saved!")
         
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("📊 STEP 6: Calculating total quantity and updating document...")
+        logger.info("=" * 100)
         # Calculate total quantity from lines and update legacy fields
         from decimal import Decimal
         total_quantity = sum(
             line.quantity_requested for line in self.object.lines.all()
         )
+        logger.info(f"   Total quantity from lines: {total_quantity}")
         self.object.quantity_requested = total_quantity
         
         # Update legacy fields from first valid line
@@ -1002,15 +1347,33 @@ class WarehouseRequestUpdateView(LineFormsetMixin, WarehouseRequestFormMixin, Ba
             first_item = first_line.cleaned_data.get('item')
             first_unit = first_line.cleaned_data.get('unit', 'EA')
             first_warehouse = first_line.cleaned_data.get('warehouse')
+            
+            logger.info(f"   First Item: {first_item.name if first_item else 'None'} (ID: {first_item.id if first_item else None})")
+            logger.info(f"   First Unit: {first_unit}")
+            logger.info(f"   First Warehouse: {first_warehouse.name if first_warehouse else 'None'} (ID: {first_warehouse.id if first_warehouse else None})")
+            
             if first_item:
                 self.object.item = first_item
                 self.object.item_code = first_item.item_code or first_item.full_item_code or ''
                 self.object.unit = first_unit
+                logger.info(f"   ✅ Legacy item fields updated")
             if first_warehouse:
                 self.object.warehouse = first_warehouse
                 self.object.warehouse_code = first_warehouse.public_code or ''
+                logger.info(f"   ✅ Legacy warehouse fields updated")
         
         self.object.save()
+        logger.info(f"✅ Document updated with total quantity and legacy fields")
+        
+        logger.info("")
+        logger.info("=" * 100)
+        logger.info("✅ SUCCESS! Warehouse Request updated successfully!")
+        logger.info(f"   Request ID: {self.object.id}")
+        logger.info(f"   Request Code: {self.object.request_code}")
+        logger.info(f"   Total Lines: {self.object.lines.count()}")
+        logger.info(f"   Total Quantity: {self.object.quantity_requested}")
+        logger.info("=" * 100)
+        logger.info("=" * 100)
         
         messages.success(self.request, _('درخواست انبار با موفقیت بروزرسانی شد.'))
         return HttpResponseRedirect(self.get_success_url())

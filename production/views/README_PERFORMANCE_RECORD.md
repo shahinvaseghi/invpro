@@ -47,8 +47,39 @@
 - `paginate_by`: `50`
 - `feature_code`: `'production.performance_records'`
 - `required_action`: `'view_own'`
+- `active_module`: `'production'`
+- `default_status_filter`: `False`
+- `default_order_by`: `['-performance_date', 'performance_code']`
 
 **متدها**:
+
+#### `get_select_related(self) -> List[str]`
+
+**توضیح**: لیست فیلدهای مربوطه برای select_related را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `List[str]`: لیست فیلدها برای select_related
+
+**منطق**:
+- برمی‌گرداند: `['order', 'order__bom', 'order__finished_item', 'order__process', 'transfer', 'approved_by']`
+
+---
+
+#### `get_prefetch_related(self) -> List[str]`
+
+**توضیح**: لیست فیلدهای مربوطه برای prefetch_related را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `List[str]`: لیست فیلدها برای prefetch_related
+
+**منطق**:
+- برمی‌گرداند: `['materials', 'persons', 'machines']`
+
+---
 
 #### `get_queryset(self) -> QuerySet`
 
@@ -73,6 +104,125 @@
 
 **نکات مهم**:
 - اگر user permission `view_all` نداشته باشد، فقط records خودش را می‌بیند
+
+---
+
+#### `get_page_title(self) -> str`
+
+**توضیح**: عنوان صفحه را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `str`: `_('Performance Records')`
+
+---
+
+#### `get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]`
+
+**توضیح**: لیست breadcrumbs را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `List[Dict[str, Optional[str]]]`: لیست breadcrumbs
+
+**منطق**:
+- برمی‌گرداند: `[{'label': _('Production'), 'url': None}, {'label': _('Performance Records'), 'url': None}]`
+
+---
+
+#### `get_create_url(self) -> Optional[str]`
+
+**توضیح**: URL برای ایجاد record جدید را برمی‌گرداند (اگر user permission داشته باشد).
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `Optional[str]`: URL برای create یا None
+
+**منطق**:
+1. بررسی `active_company_id` از session
+2. بررسی permission `create` با `has_feature_permission()`
+3. اگر permission داشته باشد یا superuser باشد: `reverse_lazy('production:performance_record_create')`
+4. در غیر این صورت: `None`
+
+---
+
+#### `get_create_button_text(self) -> str`
+
+**توضیح**: متن دکمه ایجاد را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `str`: `_('Create Performance Record')`
+
+---
+
+#### `get_detail_url_name(self) -> Optional[str]`
+
+**توضیح**: نام URL برای detail view را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `Optional[str]`: `'production:performance_record_detail'`
+
+---
+
+#### `get_edit_url_name(self) -> Optional[str]`
+
+**توضیح**: نام URL برای edit view را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `Optional[str]`: `'production:performance_record_edit'`
+
+---
+
+#### `get_delete_url_name(self) -> Optional[str]`
+
+**توضیح**: نام URL برای delete view را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `Optional[str]`: `'production:performance_record_delete'`
+
+---
+
+#### `get_empty_state_title(self) -> str`
+
+**توضیح**: عنوان برای حالت خالی را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `str`: `_('No Performance Records Found')`
+
+---
+
+#### `get_empty_state_message(self) -> str`
+
+**توضیح**: پیام برای حالت خالی را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `str`: `_('Create your first performance record to get started.')`
+
+---
+
+#### `get_empty_state_icon(self) -> str`
+
+**توضیح**: آیکون برای حالت خالی را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `str`: `'📊'`
 
 ---
 
@@ -105,12 +255,22 @@
 **Success URL**: `production:performance_records`
 
 **Attributes**:
+- `formsets`: Dictionary mapping formset names to formset classes:
+  - `'materials'`: `PerformanceRecordMaterialFormSet`
+  - `'persons'`: `PerformanceRecordPersonFormSet`
+  - `'machines'`: `PerformanceRecordMachineFormSet`
+- `formset_prefixes`: Dictionary mapping formset names to prefixes:
+  - `'materials'`: `'materials'`
+  - `'persons'`: `'persons'`
+  - `'machines'`: `'machines'`
 - `model`: `PerformanceRecord`
 - `form_class`: `PerformanceRecordForm`
 - `template_name`: `'production/performance_record_form.html'`
 - `success_url`: `reverse_lazy('production:performance_records')`
 - `feature_code`: `'production.performance_records'`
 - `required_action`: `'create'`
+- `active_module`: `'production'`
+- `success_message`: `_('Performance record created successfully.')`
 
 **متدها**:
 
@@ -127,6 +287,69 @@
 1. kwargs را از `super().get_form_kwargs()` دریافت می‌کند
 2. `company_id` را از `request.session.get('active_company_id')` اضافه می‌کند
 3. kwargs را برمی‌گرداند
+
+---
+
+#### `get_formset_kwargs(self, formset_name: str) -> Dict[str, Any]`
+
+**توضیح**: kwargs برای یک formset خاص را برمی‌گرداند.
+
+**پارامترهای ورودی**:
+- `formset_name`: نام formset (`'materials'`, `'persons'`, `'machines'`)
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: kwargs شامل `form_kwargs` با `company_id`, `process_id`, و `operation_id` (در صورت نیاز)
+
+**منطق**:
+1. دریافت `active_company_id` از session
+2. ساخت kwargs با `form_kwargs={'company_id': active_company_id}`
+3. **برای persons و machines formsets**:
+   - اگر form cleaned_data موجود باشد: دریافت `order` و `operation` از form
+   - اگر POST data موجود باشد: دریافت `order_id` و `operation_id` از POST
+   - اگر order موجود باشد: اضافه کردن `process_id` از order
+   - اگر operation موجود باشد: اضافه کردن `operation_id`
+4. اگر object موجود باشد: اضافه کردن `instance` و `operation_id` (اگر موجود باشد)
+5. بازگشت kwargs
+
+**نکات مهم**:
+- `process_id` برای فیلتر کردن work lines در person و machine formsets استفاده می‌شود
+- `operation_id` برای فیلتر کردن personnel و machines از work_line operation استفاده می‌شود
+
+---
+
+#### `get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]`
+
+**توضیح**: لیست breadcrumbs را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `List[Dict[str, Optional[str]]]`: لیست breadcrumbs
+
+**منطق**:
+- برمی‌گرداند: `[{'label': _('Production'), 'url': None}, {'label': _('Performance Records'), 'url': reverse_lazy('production:performance_records')}, {'label': _('Create'), 'url': None}]`
+
+---
+
+#### `get_cancel_url(self) -> str`
+
+**توضیح**: URL برای cancel را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `str`: `reverse_lazy('production:performance_records')`
+
+---
+
+#### `get_form_title(self) -> str`
+
+**توضیح**: عنوان فرم را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `str`: `_('Create Performance Record')`
 
 ---
 
@@ -201,12 +424,22 @@
 **Success URL**: `production:performance_records`
 
 **Attributes**:
+- `formsets`: Dictionary mapping formset names to formset classes:
+  - `'materials'`: `PerformanceRecordMaterialFormSet`
+  - `'persons'`: `PerformanceRecordPersonFormSet`
+  - `'machines'`: `PerformanceRecordMachineFormSet`
+- `formset_prefixes`: Dictionary mapping formset names to prefixes:
+  - `'materials'`: `'materials'`
+  - `'persons'`: `'persons'`
+  - `'machines'`: `'machines'`
 - `model`: `PerformanceRecord`
 - `form_class`: `PerformanceRecordForm`
 - `template_name`: `'production/performance_record_form.html'`
 - `success_url`: `reverse_lazy('production:performance_records')`
 - `feature_code`: `'production.performance_records'`
 - `required_action`: `'edit_own'`
+- `active_module`: `'production'`
+- `success_message`: `_('Performance record updated successfully.')`
 
 **متدها**:
 
@@ -246,6 +479,65 @@
 1. kwargs را از `super().get_form_kwargs()` دریافت می‌کند
 2. `company_id` را از `request.session.get('active_company_id')` اضافه می‌کند
 3. kwargs را برمی‌گرداند
+
+---
+
+#### `get_formset_kwargs(self, formset_name: str) -> Dict[str, Any]`
+
+**توضیح**: kwargs برای یک formset خاص را برمی‌گرداند.
+
+**پارامترهای ورودی**:
+- `formset_name`: نام formset (`'materials'`, `'persons'`, `'machines'`)
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: kwargs شامل `form_kwargs` با `company_id` و `process_id` (در صورت نیاز)
+
+**منطق**:
+1. دریافت `active_company_id` از session
+2. ساخت kwargs با `form_kwargs={'company_id': active_company_id}`
+3. **برای persons و machines formsets**:
+   - اگر object موجود باشد و order داشته باشد: دریافت `process_id` از order
+4. اضافه کردن `instance` (object)
+5. بازگشت kwargs
+
+**نکات مهم**:
+- `process_id` برای فیلتر کردن work lines در person و machine formsets استفاده می‌شود
+
+---
+
+#### `get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]`
+
+**توضیح**: لیست breadcrumbs را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `List[Dict[str, Optional[str]]]`: لیست breadcrumbs
+
+**منطق**:
+- برمی‌گرداند: `[{'label': _('Production'), 'url': None}, {'label': _('Performance Records'), 'url': reverse_lazy('production:performance_records')}, {'label': _('Edit'), 'url': None}]`
+
+---
+
+#### `get_cancel_url(self) -> str`
+
+**توضیح**: URL برای cancel را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `str`: `reverse_lazy('production:performance_records')`
+
+---
+
+#### `get_form_title(self) -> str`
+
+**توضیح**: عنوان فرم را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `str`: `_('Edit Performance Record')`
 
 ---
 
@@ -333,6 +625,19 @@
   3. اعمال `prefetch_related('materials__material_item', 'persons__person', 'machines__machine')`
   4. بازگشت queryset
 
+---
+
+#### `get_page_title(self) -> str`
+
+**توضیح**: عنوان صفحه را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `str`: `_('View Performance Record')`
+
+---
+
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 - **Returns**: context با detail sections
 - **Logic**:
@@ -364,16 +669,43 @@
   4. بازگشت context
 
 #### `get_list_url(self) -> str`
-- **Returns**: URL برای لیست Performance Records
+
+**توضیح**: URL برای لیست Performance Records را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `str`: `reverse_lazy('production:performance_records')`
+
+---
 
 #### `get_edit_url(self) -> str`
-- **Returns**: URL برای ویرایش Performance Record
+
+**توضیح**: URL برای ویرایش Performance Record را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `str`: `reverse_lazy('production:performance_record_edit', kwargs={'pk': self.object.pk})`
+
+---
 
 #### `can_edit_object(self, obj=None, feature_code=None) -> bool`
-- **Returns**: True اگر Performance Record قفل نباشد
-- **Logic**:
-  - بررسی `is_locked` attribute
-  - اگر `is_locked=True` باشد، return False
+
+**توضیح**: بررسی می‌کند که آیا object قابل ویرایش است یا نه.
+
+**پارامترهای ورودی**:
+- `obj`: PerformanceRecord instance (اختیاری، اگر None باشد از `self.object` استفاده می‌شود)
+- `feature_code`: کد feature (استفاده نمی‌شود)
+
+**مقدار بازگشتی**:
+- `bool`: True اگر Performance Record قفل نباشد
+
+**منطق**:
+1. اگر `obj` None باشد، از `self.object` استفاده می‌کند
+2. بررسی `is_locked` attribute
+3. اگر `is_locked=True` باشد، return False
+4. در غیر این صورت return True
 
 **URL**: `/production/performance-records/<pk>/`
 
@@ -393,30 +725,116 @@
 - `success_url`: `reverse_lazy('production:performance_records')`
 - `feature_code`: `'production.performance_records'`
 - `required_action`: `'delete_own'`
+- `active_module`: `'production'`
+- `success_message`: `_('Performance record deleted successfully.')`
 
 **متدها**:
 
-#### `get_queryset() -> QuerySet`
-- فیلتر بر اساس company
-- اگر user permission `delete_other` نداشته باشد، فقط records خودش را نمایش می‌دهد
+#### `get_queryset(self) -> QuerySet`
 
-#### `delete(request, *args, **kwargs) -> HttpResponseRedirect`
+**توضیح**: queryset را با company filtering و permission-based filtering برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده با permission filtering
+
+**منطق**:
+1. دریافت queryset از `super().get_queryset()`
+2. دریافت `active_company_id` از session
+3. اگر `active_company_id` موجود باشد:
+   - بررسی permission `delete_other` با `has_feature_permission()`
+   - اگر permission ندارد: فیلتر `queryset.filter(created_by=request.user)` (فقط records خودش)
+4. queryset را برمی‌گرداند
+
+**نکات مهم**:
+- اگر user permission `delete_other` نداشته باشد، فقط records خودش را می‌بیند
+
+---
+
+#### `delete(self, request, *args, **kwargs) -> HttpResponseRedirect`
 **منطق**:
 1. بررسی `is_locked` (اگر قفل شده باشد، قابل حذف نیست)
 2. بررسی `status` (فقط `pending_approval` قابل حذف است)
 3. حذف record
 
+#### `get_delete_title(self) -> str`
+
+**توضیح**: عنوان صفحه حذف را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `str`: `_('Delete Performance Record')`
+
+---
+
+#### `get_confirmation_message(self) -> str`
+
+**توضیح**: پیام تأیید حذف را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `str`: `_('Are you sure you want to delete this performance record?')`
+
+---
+
+#### `get_object_details(self) -> List[Dict[str, str]]`
+
+**توضیح**: جزئیات object برای نمایش در صفحه تأیید حذف را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `List[Dict[str, str]]`: لیست جزئیات شامل:
+  - Performance Code (با HTML code tag)
+  - Product Order
+  - Performance Date (با فرمت جلالی)
+  - Status
+  - Planned Quantity
+  - Actual Quantity
+
+**منطق**:
+1. تبدیل تاریخ به جلالی با استفاده از `gregorian_to_jalali()`
+2. ساخت لیست جزئیات با label و value
+3. بازگشت لیست
+
+---
+
+#### `get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]`
+
+**توضیح**: لیست breadcrumbs را برمی‌گرداند.
+
+**پارامترهای ورودی**: ندارد
+
+**مقدار بازگشتی**:
+- `List[Dict[str, Optional[str]]]`: لیست breadcrumbs
+
+**منطق**:
+- برمی‌گرداند: `[{'label': _('Production'), 'url': None}, {'label': _('Performance Records'), 'url': reverse_lazy('production:performance_records')}, {'label': _('Delete'), 'url': None}]`
+
+---
+
 #### `get_context_data(self, **kwargs: Any) -> Dict[str, Any]`
 
 **توضیح**: context variables را برای generic delete template اضافه می‌کند.
 
+**پارامترهای ورودی**:
+- `**kwargs`: متغیرهای context اضافی
+
+**مقدار بازگشتی**:
+- `Dict[str, Any]`: context با `warning_message` (در صورت وجود materials, persons, یا machines)
+
+**منطق**:
+1. دریافت context از `super().get_context_data()`
+2. اگر materials، persons، یا machines وجود داشته باشند:
+   - ساخت `warning_message` با تعداد هر کدام
+   - اضافه کردن به context
+3. بازگشت context
+
 **Context Variables اضافه شده**:
-- `delete_title`: `_('Delete Performance Record')`
-- `confirmation_message`: پیام تأیید حذف
-- `object_details`: لیست جزئیات performance record (code, order, date, status, quantities)
 - `warning_message`: هشدار در مورد materials, persons, machines (اگر وجود داشته باشند)
-- `cancel_url`: URL برای cancel
-- `breadcrumbs`: لیست breadcrumbs
 
 **URL**: `/production/performance-records/<pk>/delete/`
 
@@ -435,17 +853,32 @@
 **متدها**:
 
 #### `get(self, request, *args, **kwargs) -> JsonResponse`
-- **Parameters**: `request` (با `order_id` در GET params)
-- **Returns**: `JsonResponse` با لیست operations
-- **Logic**:
-  1. بررسی `active_company_id` (اگر وجود نداشته باشد، return error 400)
-  2. دریافت `order_id` از `request.GET.get('order_id')`
-  3. اگر `order_id` موجود نباشد، return error 400
-  4. دریافت order object
-  5. اگر order موجود نباشد، return error 404
-  6. دریافت operations از `order.process.operations.filter(company_id=active_company_id, is_enabled=1).order_by('sequence_order')`
-  7. ساخت JSON response با لیست operations (id, name, sequence_order)
-  8. بازگشت `JsonResponse`
+
+**توضیح**: لیست operations برای یک order را برمی‌گرداند (فقط operations که هنوز performance record ندارند).
+
+**پارامترهای ورودی**:
+- `request`: HttpRequest با `order_id` در GET params
+
+**مقدار بازگشتی**:
+- `JsonResponse`: با لیست operations (id, name, sequence_order, description) و metadata
+
+**منطق**:
+1. بررسی `active_company_id` (اگر وجود نداشته باشد، return error 400)
+2. دریافت `order_id` از `request.GET.get('order_id')`
+3. اگر `order_id` موجود نباشد، return error 400
+4. دریافت order object (با فیلتر `company_id` و `is_enabled=1`)
+5. اگر order موجود نباشد، return error 404
+6. اگر order process نداشته باشد، return empty list
+7. **فیلتر کردن operations**:
+   - دریافت لیست operation_id های operations که قبلاً performance record دارند
+   - فیلتر کردن operations: فقط operations که در لیست بالا نیستند
+8. مرتب‌سازی: `order_by('sequence_order', 'id')`
+9. ساخت JSON response با لیست operations (id, name, sequence_order, description)
+10. بازگشت `JsonResponse` با `operations`, `total`, `order_id`, و `process_id`
+
+**نکات مهم**:
+- فقط operations که هنوز performance record ندارند نمایش داده می‌شوند
+- برای جلوگیری از ایجاد performance record تکراری برای یک operation
 
 **Error Responses**:
 - `400`: Company not selected یا order_id not provided
@@ -541,9 +974,16 @@
   },
   "order": {
     "quantity_planned": 100.0
-  }
+  },
+  "error": "Error message (optional)",
+  "warning": "Warning message (optional)"
 }
 ```
+
+**نکات مهم در Response**:
+- اگر operation work_line نداشته باشد: `warning` اضافه می‌شود
+- اگر operation work_line.warehouse نداشته باشد: `error` برای materials اضافه می‌شود
+- Materials از `IssueWarehouseTransferLine` جمع‌آوری می‌شوند و بر اساس item گروه‌بندی می‌شوند (quantities جمع می‌شوند)
 
 **Error Responses**:
 - `400`: Company not selected، operation_id not provided، یا order_id not provided

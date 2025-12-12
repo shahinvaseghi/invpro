@@ -790,9 +790,13 @@ class BaseLineFormSet(forms.BaseInlineFormSet):
                 self._dynamic_extra = initial_count
                 logger.info(f"Will adjust extra to {initial_count} based on initial data count")
             else:
+                # Don't set _dynamic_extra to None if initial is empty - let default extra be used
                 self._dynamic_extra = None
+                logger.info("Initial is empty, will use default extra from formset factory")
         else:
+            # Don't set _dynamic_extra if no initial - let default extra be used
             self._dynamic_extra = None
+            logger.info("No initial data, will use default extra from formset factory")
         
         self.company_id = company_id
         self.request = request
@@ -896,26 +900,65 @@ class BaseLineFormSet(forms.BaseInlineFormSet):
     
     def clean(self) -> Dict[str, Any]:
         """Validate that at least one line has an item."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"")
+        logger.info(f"🧹 CLEANING BaseLineFormSet...")
+        logger.info(f"   Formset prefix: {self.prefix}")
+        logger.info(f"   Total forms: {len(self.forms)}")
+        logger.info(f"   Has errors: {any(self.errors)}")
+        
         if any(self.errors):
+            logger.warning(f"   ⚠️  Formset already has errors, skipping clean")
             return
         
         # Count non-empty forms (forms with an item)
         non_empty_forms = 0
-        for form in self.forms:
-            # Check if form is marked for deletion
-            if form.cleaned_data.get('DELETE', False):
-                continue
-            # Check if form has an item
-            if form.cleaned_data and form.cleaned_data.get('item'):
-                non_empty_forms += 1
+        logger.info(f"")
+        logger.info(f"   📊 Analyzing forms:")
+        
+        for i, form in enumerate(self.forms):
+            logger.info(f"      Form {i}:")
+            logger.info(f"         - Has cleaned_data: {bool(form.cleaned_data)}")
+            
+            if form.cleaned_data:
+                is_deleted = form.cleaned_data.get('DELETE', False)
+                item = form.cleaned_data.get('item')
+                
+                logger.info(f"         - Is deleted: {is_deleted}")
+                logger.info(f"         - Has item: {bool(item)}")
+                if item:
+                    logger.info(f"         - Item: {item.name} (ID: {item.id})")
+                
+                # Check if form is marked for deletion
+                if is_deleted:
+                    logger.info(f"         ⚠️  Form marked for deletion, skipping")
+                    continue
+                # Check if form has an item
+                if item:
+                    non_empty_forms += 1
+                    logger.info(f"         ✅ VALID FORM (counted)")
+                else:
+                    logger.info(f"         ⚠️  Form has no item, not counted")
+            else:
+                logger.info(f"         ⚠️  Form has no cleaned_data, not counted")
+        
+        logger.info(f"")
+        logger.info(f"   📊 Summary: {non_empty_forms} non-empty form(s) found")
         
         # If min_num is set and we don't have enough non-empty forms, raise validation error
         # Django's validate_min might not catch empty forms correctly, so we check manually
         min_num = getattr(self, 'min_num', 0)
+        logger.info(f"   Required minimum: {min_num}")
+        
         if min_num and non_empty_forms < min_num:
+            logger.error(f"   ❌ ERROR: Not enough forms! Required: {min_num}, Found: {non_empty_forms}")
             raise forms.ValidationError(
                 _('Please add at least %(min_num)d line(s) with an item.') % {'min_num': min_num}
             )
+        
+        logger.info(f"   ✅ Formset clean validation passed")
 
 
 # Note: IssueLineBaseForm and ReceiptLineBaseForm are very large classes

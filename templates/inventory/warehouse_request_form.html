@@ -145,106 +145,17 @@
 {% block extra_styles %}
 {{ block.super }}
 <link rel="stylesheet" href="{% static 'css/formset-table.css' %}">
+<link rel="stylesheet" href="{% static 'css/warehouse-request-form.css' %}">
 {% endblock %}
 
 {% block form_scripts %}
 {{ block.super }}
+<!-- Jalali DatePicker Library -->
+<link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">
+<script src="{% static 'js/jalali-datepicker/jalali-datepicker.min.js' %}"></script>
 <script src="{% static 'js/formset.js' %}"></script>
 <script src="{% static 'js/cascading-dropdowns.js' %}"></script>
 <script src="{% static 'js/item-filters.js' %}"></script>
 <script src="{% static 'js/formset-table.js' %}"></script>
-<script>
-// Main initialization
-document.addEventListener('DOMContentLoaded', function() {
-  const formsetContainer = document.getElementById('lines-formset');
-  if (!formsetContainer) return;
-  
-  // Use shared function for consistency
-  initFormsetTableLayout(formsetContainer, {
-    columnsWithDelete: '50px 3fr 1.5fr 1.5fr 2fr 2fr 80px',
-    columnsWithoutDelete: '50px 3fr 1.5fr 1.5fr 2fr 2fr',
-  });
-  
-  // Configuration for item filters
-  const filterOptions = {
-    placeholder: "--- {% trans 'Select' %} ---",
-    allCategoriesText: "{% trans 'All Categories' %}",
-    allSubcategoriesText: "{% trans 'All Subcategories' %}",
-  };
-  
-  // Initialize item filters for existing rows
-  function initializeLineForms() {
-    formsetContainer.querySelectorAll('.line-row').forEach(function(lineRow, index) {
-      const lineNumber = lineRow.querySelector('.line-number');
-      if (lineNumber) {
-        lineNumber.textContent = index + 1;
-      }
-      
-      // Use shared item-filters.js function
-      initializeItemFiltersForRow(lineRow, filterOptions);
-    });
-  }
-  
-  // Initialize existing rows
-  setTimeout(function() {
-    initializeLineForms();
-  }, 100);
-  
-  // Handle add line button - use formset.js
-  const addLineBtn = document.getElementById('add-line-btn');
-  const totalFormsInput = document.querySelector('input[name="lines-TOTAL_FORMS"]');
-  
-  if (addLineBtn && formsetContainer && totalFormsInput) {
-    // Clone first row as template
-    const firstRow = formsetContainer.querySelector('.line-row');
-    if (firstRow) {
-      const templateRow = firstRow.cloneNode(true);
-      templateRow.id = 'lines-formset-template';
-      templateRow.style.display = 'none';
-      templateRow.classList.add('formset-template');
-      formsetContainer.appendChild(templateRow);
-      
-      // Initialize formset
-      initFormset('lines', '#lines-formset-template', {
-        minRows: 1,
-        maxRows: null,
-        addButtonSelector: '#add-line-btn',
-        removeButtonSelector: '.line-delete input[type="checkbox"]'
-      });
-      
-      // After adding row, initialize filters and update layout
-      document.addEventListener('formset:row-added', function(e) {
-        if (e.detail.prefix === 'lines') {
-          setTimeout(function() {
-            const newRow = formsetContainer.querySelector('.line-row:not(.formset-template)');
-            if (newRow) {
-              initializeItemFiltersForRow(newRow, filterOptions);
-              initializeLineForms(); // Re-index all rows
-              updateFormsetTableLayout(formsetContainer, {
-                columnsWithDelete: '50px 3fr 1.5fr 1.5fr 2fr 2fr 80px',
-                columnsWithoutDelete: '50px 3fr 1.5fr 1.5fr 2fr 2fr',
-              });
-            }
-          }, 50);
-        }
-      });
-    }
-  }
-  
-  // Handle delete checkboxes
-  formsetContainer.addEventListener('change', function(e) {
-    if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
-      const lineRow = e.target.closest('.line-row');
-      if (lineRow) {
-        if (e.target.checked) {
-          lineRow.classList.add('deleted');
-        } else {
-          lineRow.classList.remove('deleted');
-        }
-        initializeLineForms();
-      }
-    }
-  });
-});
-</script>
+<script src="{% static 'js/warehouse-request-form.js' %}"></script>
 {% endblock %}

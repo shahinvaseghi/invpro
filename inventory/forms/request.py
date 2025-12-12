@@ -330,7 +330,7 @@ class WarehouseRequestForm(forms.ModelForm):
             self.fields['approver'].queryset = User.objects.none()
 
         if 'approver' in self.fields:
-            self.fields['approver'].required = True
+            self.fields['approver'].required = False
 
     def clean_approver(self) -> Any:
         """Validate approver has access to company."""
@@ -441,6 +441,7 @@ class WarehouseRequestLineForm(forms.ModelForm):
             if 'warehouse' in self.fields:
                 self.fields['warehouse'].queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1).order_by('name')
                 self.fields['warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
+                self.fields['warehouse'].empty_label = _("--- انتخاب کنید ---")
         
         # Set unit choices
         if 'unit' in self.fields:
@@ -474,30 +475,6 @@ class WarehouseRequestLineForm(forms.ModelForm):
             return self.instance.item
         return None
     
-    def _get_item_allowed_units(self, item: Optional[Item]) -> list:
-        """Get list of allowed units for an item."""
-        if not item:
-            return []
-        codes = []
-
-        def add(code: str) -> None:
-            if code and code not in codes:
-                codes.append(code)
-
-        add(item.default_unit)
-        add(item.primary_unit)
-
-        for unit in ItemUnit.objects.filter(item=item, company_id=item.company_id):
-            add(unit.from_unit)
-            add(unit.to_unit)
-
-        # If no units found, add default unit 'EA' as fallback
-        if not codes:
-            codes.append('EA')
-        
-        label_map = {value: str(label) for value, label in UNIT_CHOICES}
-        return [{'value': code, 'label': label_map.get(code, code)} for code in codes if code]
-    
     def _set_unit_choices_for_item(self, item: Optional[Item]) -> None:
         """Set unit field choices based on selected item."""
         unit_field = self.fields.get('unit')
@@ -523,8 +500,17 @@ class WarehouseRequestLineForm(forms.ModelForm):
     
     def clean_warehouse(self) -> Warehouse:
         """Validate warehouse belongs to item's allowed warehouses."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         warehouse = self.cleaned_data.get('warehouse')
         item = self._resolve_item(self.cleaned_data.get('item'))
+        
+        logger.info(f"")
+        logger.info(f"🔍 VALIDATING WAREHOUSE in clean_warehouse()")
+        logger.info(f"   Warehouse: {warehouse.name if warehouse else 'None'} (ID: {warehouse.id if warehouse else None})")
+        logger.info(f"   Item: {item.name if item else 'None'} (ID: {item.id if item else None})")
+        
         if item and warehouse:
             # Get allowed warehouses from ItemWarehouse relations
             relations = item.warehouses.select_related('warehouse').filter(
@@ -532,24 +518,113 @@ class WarehouseRequestLineForm(forms.ModelForm):
                 warehouse__is_enabled=1
             )
             allowed_warehouse_ids = {rel.warehouse_id for rel in relations}
+            logger.info(f"   Allowed warehouse IDs: {allowed_warehouse_ids}")
             
             # If no explicit warehouses configured, allow all warehouses for the company
             if not allowed_warehouse_ids:
+                logger.info(f"   ⚠️  No explicit warehouses configured, allowing all company warehouses")
                 # Check that warehouse belongs to the company and is enabled
                 if warehouse.company_id != self.company_id or not warehouse.is_enabled:
+                    logger.error(f"   ❌ VALIDATION ERROR: Warehouse not valid for company or disabled")
                     raise forms.ValidationError(_('Selected warehouse is not valid for this company or is disabled.'))
+                logger.info(f"   ✅ Warehouse validated (fallback to all company warehouses)")
             else:
                 # Check if selected warehouse is in allowed list
                 if warehouse.id not in allowed_warehouse_ids:
+                    logger.error(f"   ❌ VALIDATION ERROR: Warehouse {warehouse.id} not in allowed list {allowed_warehouse_ids}")
                     raise forms.ValidationError(_('Selected warehouse is not allowed for this item.'))
+                logger.info(f"   ✅ Warehouse validated (in allowed list)")
+        else:
+            if not item:
+                logger.warning(f"   ⚠️  No item selected, skipping warehouse validation")
+            if not warehouse:
+                logger.warning(f"   ⚠️  No warehouse selected, skipping validation")
+        
+        logger.info(f"   ✅ Warehouse validation PASSED")
         return warehouse
+    
+    def _get_item_allowed_units(self, item: Optional[Item]) -> list:
+        """Get list of allowed units for an item."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        if not item:
+            logger.warning(f"⚠️  _get_item_allowed_units: Item is None")
+            return []
+        
+        codes = []
+        def add(code: str) -> None:
+            if code and code not in codes:
+                codes.append(code)
+        
+        add(item.default_unit)
+        add(item.primary_unit)
+        
+        item_units = ItemUnit.objects.filter(item=item, company_id=item.company_id)
+        for unit in item_units:
+            add(unit.from_unit)
+            add(unit.to_unit)
+        
+        if not codes:
+            codes.append('EA')
+        
+        label_map = {value: str(label) for value, label in UNIT_CHOICES}
+        result = [{'value': code, 'label': label_map.get(code, code)} for code in codes if code]
+        
+        return result
+    
+    def _get_item_allowed_warehouses(self, item: Optional[Item]) -> list:
+        """Get list of allowed warehouses for an item."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        if not item:
+            logger.warning(f"⚠️  _get_item_allowed_warehouses: Item is None")
+            return []
+        
+        company_id = self.company_id or (item.company_id if item else None)
+        if not company_id:
+            logger.warning(f"⚠️  _get_item_allowed_warehouses: Company ID is None")
+            return []
+        
+        # Get warehouses from item relations if available
+        if hasattr(item, 'warehouses'):
+            relations = item.warehouses.select_related('warehouse')
+            warehouses = [rel.warehouse for rel in relations if rel.warehouse.is_enabled]
+            if warehouses:
+                result = [
+                    {'value': str(w.pk), 'label': f"{w.public_code} - {w.name}"}
+                    for w in warehouses
+                ]
+                return result
+        
+        # Fallback: get all warehouses for company
+        warehouses = Warehouse.objects.filter(company_id=company_id, is_enabled=1)
+        result = [
+            {'value': str(w.pk), 'label': f"{w.public_code} - {w.name}"}
+            for w in warehouses
+        ]
+        return result
     
     def clean(self) -> Dict[str, Any]:
         """Validate form data."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"")
+        logger.info(f"🧹 CLEANING WarehouseRequestLineForm...")
         cleaned_data = super().clean()
         item = self._resolve_item(cleaned_data.get('item'))
+        
+        logger.info(f"   Item: {item.name if item else 'None'} (ID: {item.id if item else None})")
+        logger.info(f"   Has unit field: {'unit' in self.fields if hasattr(self, 'fields') else False}")
+        
         if item and 'unit' in self.fields:
+            logger.info(f"   Setting unit choices for item...")
             self._set_unit_choices_for_item(item)
+            logger.info(f"   ✅ Unit choices set")
+        
+        logger.info(f"   ✅ Form cleaning completed")
         return cleaned_data
 
 
@@ -558,7 +633,7 @@ WarehouseRequestLineFormSet = inlineformset_factory(
     WarehouseRequestLine,
     form=WarehouseRequestLineForm,
     formset=BaseLineFormSet,
-    extra=1,
+    extra=1,  # Start with 1 empty row
     can_delete=True,
     min_num=1,
     validate_min=True,

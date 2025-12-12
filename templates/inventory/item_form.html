@@ -244,16 +244,36 @@ document.addEventListener('DOMContentLoaded', function() {
       const url = new URL(categoryApiUrl, window.location.origin);
       url.searchParams.set('type_id', typeId);
       
-      fetch(url)
-        .then(response => response.json())
+      fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'same-origin',
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
         .then(data => {
           if (data.categories) {
+            const selectedCategoryId = categorySelect.value;
             updateDropdownOptions(categorySelect, data.categories, '--- {% trans "Please select" %} ---', 'value', 'label');
             categorySelect.disabled = false;
-            // Trigger category change to update subcategories
-            if (categorySelect.value) {
-              categorySelect.dispatchEvent(new Event('change'));
+            // Restore selected category if it exists in new options
+            if (selectedCategoryId && data.categories.some(cat => cat.value === selectedCategoryId)) {
+              categorySelect.value = selectedCategoryId;
             }
+            // Trigger category change to update subcategories
+            categorySelect.dispatchEvent(new Event('change'));
+          } else {
+            clearDropdown(categorySelect, '--- {% trans "Please select" %} ---');
+            if (subcategorySelect) {
+              clearDropdown(subcategorySelect, '--- {% trans "Please select" %} ---');
+            }
+            categorySelect.disabled = false;
           }
         })
         .catch(error => {
@@ -267,64 +287,69 @@ document.addEventListener('DOMContentLoaded', function() {
   if (categorySelect && subcategorySelect) {
     const subcategoryApiUrl = '{% url "inventory:filtered_subcategories" %}';
     
-    initCascadingDropdown(categorySelect, subcategorySelect, subcategoryApiUrl, {
-      parentField: 'category_id',
-      placeholder: '--- {% trans "Please select" %} ---',
-      valueField: 'value',
-      labelField: 'label',
-      onChange: function(value, element) {
-        // Additional handling if needed
+    // Custom handler for Category → Subcategory (handles both with and without type)
+    categorySelect.addEventListener('change', function() {
+      const categoryId = this.value;
+      const typeId = typeSelect ? typeSelect.value : null;
+      
+      if (!categoryId) {
+        clearDropdown(subcategorySelect, '--- {% trans "Please select" %} ---');
+        return;
       }
-    });
-    
-    // Also handle type_id parameter if type is selected
-    if (typeSelect) {
-      const originalChangeHandler = categorySelect.onchange;
-      categorySelect.addEventListener('change', function() {
-        const categoryId = this.value;
-        const typeId = typeSelect.value;
-        
-        if (!categoryId) {
+      
+      subcategorySelect.disabled = true;
+      const url = new URL(subcategoryApiUrl, window.location.origin);
+      url.searchParams.set('category_id', categoryId);
+      if (typeId) {
+        url.searchParams.set('type_id', typeId);
+      }
+      
+      fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'same-origin',
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.error) {
+            console.error('API error:', data.error);
+            clearDropdown(subcategorySelect, '--- {% trans "Please select" %} ---');
+            subcategorySelect.disabled = false;
+            return;
+          }
+          
+          const options = data.subcategories || [];
+          const selectedSubcategoryId = subcategorySelect.value;
+          updateDropdownOptions(subcategorySelect, options, '--- {% trans "Please select" %} ---', 'value', 'label');
+          
+          // Restore selected value if it exists
+          if (selectedSubcategoryId && options.some(opt => opt.value === selectedSubcategoryId)) {
+            subcategorySelect.value = selectedSubcategoryId;
+          }
+          
+          subcategorySelect.disabled = false;
+        })
+        .catch(error => {
+          console.error('Error loading subcategories:', error);
           clearDropdown(subcategorySelect, '--- {% trans "Please select" %} ---');
-          return;
-        }
-        
-        subcategorySelect.disabled = true;
-        const url = new URL(subcategoryApiUrl, window.location.origin);
-        url.searchParams.set('category_id', categoryId);
-        if (typeId) {
-          url.searchParams.set('type_id', typeId);
-        }
-        
-        fetch(url)
-          .then(response => response.json())
-          .then(data => {
-            if (data.error) {
-              subcategorySelect.disabled = false;
-              return;
-            }
-            
-            const options = data.subcategories || [];
-            const selectedSubcategoryId = subcategorySelect.value;
-            updateDropdownOptions(subcategorySelect, options, '--- {% trans "Please select" %} ---', 'value', 'label');
-            
-            // Restore selected value if it exists
-            if (selectedSubcategoryId && options.some(opt => opt.value === selectedSubcategoryId)) {
-              subcategorySelect.value = selectedSubcategoryId;
-            }
-            
-            subcategorySelect.disabled = false;
-          })
-          .catch(error => {
-            console.error('Error loading subcategories:', error);
-            subcategorySelect.disabled = false;
-          });
-      });
-    }
+          subcategorySelect.disabled = false;
+        });
+    });
   }
   
   // Load initial values on page load
-  if (categorySelect && categorySelect.value && typeSelect) {
+  if (categorySelect && categorySelect.value) {
+    // If category is already selected, trigger change to load subcategories
+    categorySelect.dispatchEvent(new Event('change'));
+  } else if (typeSelect && typeSelect.value) {
+    // If type is selected but category is not, load categories first
     typeSelect.dispatchEvent(new Event('change'));
   }
 });
