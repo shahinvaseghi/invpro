@@ -210,10 +210,25 @@
     document.addEventListener('formset:row-added', function(e) {
       if (e.detail.prefix === 'lines') {
         setTimeout(function() {
-          const newRow = formsetContainer.querySelector('.line-row:not(.formset-template)');
+          // Use the row from event detail if available, otherwise find the last row
+          let newRow = null;
+          if (e.detail && e.detail.row) {
+            newRow = e.detail.row;
+            console.log('Using row from event detail');
+          } else {
+            // Get ALL rows (not just the first one)
+            const allRows = Array.from(formsetContainer.querySelectorAll('.line-row:not(.formset-template)'));
+            // The new row is the last one (most recently added)
+            newRow = allRows[allRows.length - 1];
+            console.log('Found new row by finding last row in container');
+          }
+          
           if (newRow) {
+            console.log('Initializing filters for newly added row');
             if (typeof initializeItemFiltersForRow === 'function') {
               initializeItemFiltersForRow(newRow, filterOptions);
+            } else {
+              console.warn('initializeItemFiltersForRow function not found. Make sure item-filters.js is loaded.');
             }
             initializeLineForms(formsetContainer, filterOptions);
             if (typeof updateFormsetTableLayout === 'function') {
@@ -224,6 +239,8 @@
             } else {
               applyFormsetLayout(formsetContainer);
             }
+          } else {
+            console.error('New row not found after formset:row-added event');
           }
         }, 50);
       }
