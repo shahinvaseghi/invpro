@@ -680,6 +680,7 @@ class WarehouseRequestListView(InventoryBaseView, BaseListView):
     permission_field = 'requester'
     paginate_by = 50
     stats_enabled = True
+    default_order_by = ['-id', '-request_date', 'request_code']  # جدیدترین به قدیمی‌ترین
 
     def get_select_related(self):
         """Select related objects."""

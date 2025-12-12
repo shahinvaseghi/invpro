@@ -457,9 +457,10 @@ document.addEventListener('DOMContentLoaded', function() {
       valueField: 'value',
       labelField: 'label',
       onChange: function(value, element) {
-        // Clear finished item when subcategory changes
+        // Don't clear finished_item - let filterFinishedItems handle it
+        // This preserves the current selection in edit mode
         if (finishedItemSelect) {
-          finishedItemSelect.innerHTML = '<option value="">--- Please select ---</option>';
+          filterFinishedItems();
         }
       }
     });
@@ -474,6 +475,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectedSubcategory = itemSubcategorySelect ? itemSubcategorySelect.value : '';
     const searchTerm = finishedItemSearchInput ? finishedItemSearchInput.value.trim() : '';
     
+    // CRITICAL: Preserve current finished_item value in edit mode
+    const currentValue = finishedItemSelect.value;
+    
     // Build API URL with filters
     let apiUrl = '/inventory/api/filtered-items/';
     const params = new URLSearchParams();
@@ -481,13 +485,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (selectedCategory) params.append('category_id', selectedCategory);
     if (selectedSubcategory) params.append('subcategory_id', selectedSubcategory);
     if (searchTerm) params.append('search', searchTerm);
+    // Include current finished_item in API call to ensure it's in the list
+    if (currentValue) {
+      params.append('include_item_id', currentValue);
+    }
     
     if (params.toString()) {
       apiUrl += '?' + params.toString();
     }
     
     // Show loading
-    const currentValue = finishedItemSelect.value;
     finishedItemSelect.innerHTML = '<option value="">{% trans "Loading items..." %}</option>';
     finishedItemSelect.disabled = true;
     
@@ -545,11 +552,17 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Load all items initially if no filters are selected
-  if (finishedItemSelect && 
-      (!(itemTypeSelect && itemTypeSelect.value) && 
-       !(itemCategorySelect && itemCategorySelect.value) && 
-       !(itemSubcategorySelect && itemSubcategorySelect.value))) {
-    filterFinishedItems();
+  // OR if finished_item is already selected (edit mode), ensure it's in the list
+  if (finishedItemSelect) {
+    const hasCurrentValue = finishedItemSelect.value && finishedItemSelect.value !== '';
+    const hasNoFilters = (!(itemTypeSelect && itemTypeSelect.value) && 
+                          !(itemCategorySelect && itemCategorySelect.value) && 
+                          !(itemSubcategorySelect && itemSubcategorySelect.value));
+    
+    // Load items if no filters OR if finished_item is already selected (to ensure it's in the list)
+    if (hasNoFilters || hasCurrentValue) {
+      filterFinishedItems();
+    }
   }
   
   
@@ -2147,4 +2160,6 @@ function updateAltWarehousesJSON(container, materialPk, altIndex) {
 }
 
 </script>
+{% endblock %}
+
 {% endblock %}
