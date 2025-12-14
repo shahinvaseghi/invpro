@@ -801,10 +801,46 @@ class ItemUnitFormsetMixin:
             if not unit.public_code:
                 unit.public_code = self._generate_unit_code(self.object.company)
             
-            logger.info(f"  Saving unit: from_unit={unit.from_unit}, to_unit={unit.to_unit}, from_quantity={unit.from_quantity}, to_quantity={unit.to_quantity}")
-            unit.save()
-            saved_count += 1
-            logger.info(f"  Unit saved successfully (pk={unit.pk})")
+            # Check for duplicate conversion before saving
+            # Unique constraint: (company, item, from_unit, to_unit)
+            existing_unit = models.ItemUnit.objects.filter(
+                company=unit.company,
+                item=unit.item,
+                from_unit=unit.from_unit,
+                to_unit=unit.to_unit
+            ).exclude(pk=unit.pk if unit.pk else None).first()
+            
+            if existing_unit:
+                logger.warning(f"  Skipping: duplicate conversion already exists (pk={existing_unit.pk}): {unit.from_unit} -> {unit.to_unit}")
+                from django.contrib import messages
+                from django.utils.translation import gettext_lazy as _
+                messages.warning(
+                    self.request,
+                    _("Unit conversion from '{from_unit}' to '{to_unit}' already exists and was skipped.").format(
+                        from_unit=unit.from_unit,
+                        to_unit=unit.to_unit
+                    )
+                )
+                continue
+            
+            try:
+                logger.info(f"  Saving unit: from_unit={unit.from_unit}, to_unit={unit.to_unit}, from_quantity={unit.from_quantity}, to_quantity={unit.to_quantity}")
+                unit.save()
+                saved_count += 1
+                logger.info(f"  Unit saved successfully (pk={unit.pk})")
+            except Exception as e:
+                logger.error(f"  Error saving unit: {str(e)}")
+                from django.contrib import messages
+                from django.utils.translation import gettext_lazy as _
+                messages.error(
+                    self.request,
+                    _("Error saving unit conversion from '{from_unit}' to '{to_unit}': {error}").format(
+                        from_unit=unit.from_unit,
+                        to_unit=unit.to_unit,
+                        error=str(e)
+                    )
+                )
+                continue
         
         logger.info(f"=== FINAL RESULT: Saved {saved_count} unit(s), deleted {deleted_count} unit(s) ===")
 

@@ -183,7 +183,41 @@
   
   <!-- Empty form template for cloning -->
   <div id="empty-unit-form" class="hidden">
-    {{ units_formset.empty_form }}
+    <div class="unit-form">
+      {% for hidden in units_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+      <div class="unit-row">
+        <div class="unit-field">
+          <label>{{ units_formset.empty_form.from_quantity.label }}</label>
+          {{ units_formset.empty_form.from_quantity }}
+        </div>
+        <div class="unit-field">
+          <label>{{ units_formset.empty_form.from_unit.label }}</label>
+          {{ units_formset.empty_form.from_unit }}
+        </div>
+        <div class="unit-field">
+          <label>{{ units_formset.empty_form.to_quantity.label }}</label>
+          {{ units_formset.empty_form.to_quantity }}
+        </div>
+        <div class="unit-field">
+          <label>{{ units_formset.empty_form.to_unit.label }}</label>
+          {{ units_formset.empty_form.to_unit }}
+        </div>
+        <div class="unit-field">
+          <label>{{ units_formset.empty_form.description.label }}</label>
+          {{ units_formset.empty_form.description }}
+        </div>
+        <div class="unit-field">
+          <label>{{ units_formset.empty_form.notes.label }}</label>
+          {{ units_formset.empty_form.notes }}
+        </div>
+        {% if units_formset.can_delete %}
+        <div class="unit-field unit-delete">
+          <label>{{ units_formset.empty_form.DELETE.label }}</label>
+          {{ units_formset.empty_form.DELETE }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -235,201 +269,60 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
     
-    // CRITICAL: Update TOTAL_FORMS before form submission
+    // CRITICAL: Prepare formset for submission (convert __prefix__ to numeric indices and update TOTAL_FORMS)
     const form = document.querySelector('form');
     if (form) {
+      let isSubmitting = false; // Flag to prevent infinite loop
+      
       form.addEventListener('submit', function(e) {
-        console.log('=== UNIT FORMSET SUBMIT HANDLER (CAPTURE PHASE) ===');
-        
-        // Count all unit forms (excluding empty template)
-        const unitForms = formsetContainer.querySelectorAll('.unit-form:not(.formset-template)');
-        console.log(`Total unit forms found: ${unitForms.length}`);
-        
-        const totalFormsInput = document.getElementById('id_units-TOTAL_FORMS');
-        console.log(`TOTAL_FORMS input found: ${totalFormsInput ? 'YES' : 'NO'}`);
-        if (totalFormsInput) {
-          console.log(`Current TOTAL_FORMS value: ${totalFormsInput.value}`);
+        // If already submitting, let it proceed
+        if (isSubmitting) {
+          console.log('Form is already submitting, allowing default behavior...');
+          return true;
         }
         
-        // CRITICAL: Check for __prefix__ fields BEFORE any processing
-        const prefixFields = formsetContainer.querySelectorAll('input[name*="__prefix__"], select[name*="__prefix__"], textarea[name*="__prefix__"]');
-        console.log(`Found ${prefixFields.length} fields with __prefix__ BEFORE processing`);
-        if (prefixFields.length > 0) {
-          console.log('Fields with __prefix__:');
-          prefixFields.forEach(function(field, idx) {
-            if (idx < 5) { // Only log first 5
-              console.log(`  ${field.name}: ${field.value}`);
-            }
+        console.log('=== PREPARING UNIT FORMSET FOR SUBMISSION (CAPTURE PHASE) ===');
+        console.log('Formset container:', formsetContainer);
+        console.log('prepareFormsetForSubmit function exists:', typeof prepareFormsetForSubmit === 'function');
+        
+        // CRITICAL: Prevent default submission until we've prepared the formset
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Use the shared function from formset.js
+        if (typeof prepareFormsetForSubmit === 'function') {
+          const result = prepareFormsetForSubmit('units', '.unit-form', {
+            countOnlyNonDeleted: true
           });
+          
+          console.log('prepareFormsetForSubmit result:', result);
+          
+          // Double-check TOTAL_FORMS
+          const totalFormsInput = document.getElementById('id_units-TOTAL_FORMS');
+          if (totalFormsInput) {
+            console.log(`Final TOTAL_FORMS value after prepareFormsetForSubmit: ${totalFormsInput.value}`);
+          }
+          
+          // Set flag to prevent loop
+          isSubmitting = true;
+          
+          if (result.success) {
+            console.log(`✓ Formset prepared successfully: TOTAL_FORMS=${result.totalForms}, reindexed=${result.reindexedCount}`);
+          } else {
+            console.error(`✗ Failed to prepare formset: TOTAL_FORMS=${result.totalForms}, reindexed=${result.reindexedCount}`);
+          }
+          
+          // Now submit the form manually (will not trigger this handler again due to flag)
+          console.log('Submitting form manually after preparing formset...');
+          form.submit();
+        } else {
+          console.error('prepareFormsetForSubmit function not found in formset.js');
+          // Set flag and submit anyway
+          isSubmitting = true;
+          form.submit();
         }
         
-        if (totalFormsInput) {
-          // Count only non-deleted forms and log each form's state
-          let actualCount = 0;
-          const formsWithPrefix = [];
-          
-          unitForms.forEach(function(unitForm, idx) {
-            const deleteCheckbox = unitForm.querySelector('input[type="checkbox"][name*="-DELETE"]');
-            const fromUnit = unitForm.querySelector('select[name*="-from_unit"]');
-            const toUnit = unitForm.querySelector('select[name*="-to_unit"]');
-            const fromQuantity = unitForm.querySelector('input[name*="-from_quantity"]');
-            const toQuantity = unitForm.querySelector('input[name*="-to_quantity"]');
-            
-            const isDeleted = deleteCheckbox && deleteCheckbox.checked;
-            const hasData = (fromUnit && fromUnit.value) || (toUnit && toUnit.value) || 
-                          (fromQuantity && fromQuantity.value && parseFloat(fromQuantity.value) > 0) || 
-                          (toQuantity && toQuantity.value && parseFloat(toQuantity.value) > 0);
-            
-            // Check if form has __prefix__ in any field name
-            const allFields = unitForm.querySelectorAll('input, select, textarea');
-            let hasPrefix = false;
-            allFields.forEach(function(field) {
-              if (field.name && field.name.includes('__prefix__')) {
-                hasPrefix = true;
-                console.log(`  Found field with __prefix__: ${field.name} = ${field.value}`);
-              }
-            });
-            
-            // Get form prefix to check if it's a real form (not empty template)
-            const idInput = unitForm.querySelector('input[type="hidden"][name*="-id"]');
-            const formPrefix = idInput ? idInput.name.split('-')[0] : 'unknown';
-            const isRealForm = !formPrefix.includes('__prefix__') && !hasPrefix;
-            
-            console.log(`Form ${idx}: deleted=${isDeleted}, hasData=${hasData}, isRealForm=${isRealForm}, hasPrefix=${hasPrefix}, fromUnit=${fromUnit ? fromUnit.value : 'N/A'}, toUnit=${toUnit ? toUnit.value : 'N/A'}, prefix=${formPrefix}`);
-            
-            // Count if not deleted
-            // For new forms: must have data (from_unit and to_unit selected)
-            // For existing forms: count if not deleted (even if empty, Django will handle it)
-            if (!isDeleted) {
-              if (isRealForm) {
-                // Existing form - always count (even if empty, Django needs it for deletion)
-                actualCount++;
-              } else if (hasData || hasPrefix) {
-                // New form - count if has data OR has __prefix__ (needs reindexing)
-                actualCount++;
-                if (hasPrefix) {
-                  formsWithPrefix.push(idx);
-                  console.log(`  Added form ${idx} to formsWithPrefix array`);
-                }
-              }
-            }
-          });
-          
-          console.log(`Found ${formsWithPrefix.length} form(s) with __prefix__ that need reindexing: ${formsWithPrefix.join(', ')}`);
-          console.log(`Actual count before reindexing: ${actualCount}`);
-          
-          // CRITICAL: Manually reindex forms with __prefix__ BEFORE updating TOTAL_FORMS
-          // This ensures __prefix__ is converted to numeric indices
-          if (formsWithPrefix.length > 0) {
-            console.log('=== MANUAL REINDEXING FORMS WITH __prefix__ ===');
-            // Find the highest existing index to start reindexing from
-            let maxExistingIndex = -1;
-            unitForms.forEach(function(unitForm) {
-              const allFields = unitForm.querySelectorAll('input, select, textarea');
-              allFields.forEach(function(field) {
-                if (field.name && !field.name.includes('__prefix__')) {
-                  // Extract index from field name (e.g., "units-0-from_unit" -> 0)
-                  const match = field.name.match(/units-(\d+)-/);
-                  if (match) {
-                    const idx = parseInt(match[1]);
-                    if (idx > maxExistingIndex) {
-                      maxExistingIndex = idx;
-                    }
-                  }
-                }
-              });
-            });
-            
-            let reindexCounter = maxExistingIndex + 1; // Start from index after existing forms
-            console.log(`Max existing index: ${maxExistingIndex}, starting reindex from: ${reindexCounter}`);
-            
-            formsWithPrefix.forEach(function(formIdx) {
-              const unitForm = unitForms[formIdx];
-              const allFields = unitForm.querySelectorAll('input, select, textarea, label');
-              
-              console.log(`Reindexing form ${formIdx} (with __prefix__) to index ${reindexCounter}...`);
-              let reindexedCount = 0;
-              allFields.forEach(function(field) {
-                if (field.name && field.name.includes('__prefix__')) {
-                  const oldName = field.name;
-                  field.name = field.name.replace(/__prefix__/g, reindexCounter);
-                  console.log(`  Reindexed name: ${oldName} -> ${field.name}`);
-                  reindexedCount++;
-                }
-                if (field.id && field.id.includes('__prefix__')) {
-                  const oldId = field.id;
-                  field.id = field.id.replace(/__prefix__/g, reindexCounter);
-                  console.log(`  Reindexed id: ${oldId} -> ${field.id}`);
-                }
-                if (field.tagName === 'LABEL' && field.getAttribute('for') && field.getAttribute('for').includes('__prefix__')) {
-                  const oldFor = field.getAttribute('for');
-                  field.setAttribute('for', field.getAttribute('for').replace(/__prefix__/g, reindexCounter));
-                  console.log(`  Reindexed for: ${oldFor} -> ${field.getAttribute('for')}`);
-                }
-              });
-              console.log(`  Reindexed ${reindexedCount} field(s) in form ${formIdx}`);
-              
-              reindexCounter++;
-            });
-            console.log(`Reindexed ${formsWithPrefix.length} form(s) with __prefix__`);
-          } else {
-            console.log('No forms with __prefix__ found, skipping reindexing');
-          }
-          
-          // Also try calling reindexFormset from formset.js as a backup
-          console.log('=== CALLING reindexFormset FROM formset.js (BACKUP) ===');
-          if (typeof reindexFormset === 'function') {
-            try {
-              reindexFormset('units', '.unit-form', true); // Force usePrefixPattern=true
-              console.log('reindexFormset called successfully');
-            } catch (err) {
-              console.error('Error calling reindexFormset:', err);
-            }
-          } else {
-            console.warn('reindexFormset function not found in formset.js');
-          }
-          
-          // CRITICAL: Re-count after reindexing to get accurate count
-          const unitFormsAfterReindex = formsetContainer.querySelectorAll('.unit-form:not(.formset-template)');
-          let finalCount = 0;
-          unitFormsAfterReindex.forEach(function(unitForm) {
-            const deleteCheckbox = unitForm.querySelector('input[type="checkbox"][name*="-DELETE"]');
-            if (!deleteCheckbox || !deleteCheckbox.checked) {
-              finalCount++;
-            }
-          });
-          
-          // CRITICAL: Always update TOTAL_FORMS to finalCount (after reindexing)
-          totalFormsInput.value = finalCount;
-          totalFormsInput.removeAttribute('disabled'); // Ensure it's enabled
-          console.log(`Updated units TOTAL_FORMS to ${finalCount} (found ${unitFormsAfterReindex.length} form(s) in DOM after reindex)`);
-          
-          // Verify no __prefix__ remains
-          const remainingPrefix = formsetContainer.querySelectorAll('input[name*="__prefix__"], select[name*="__prefix__"], textarea[name*="__prefix__"]');
-          if (remainingPrefix.length > 0) {
-            console.error(`ERROR: Still found ${remainingPrefix.length} fields with __prefix__ after reindex!`);
-            remainingPrefix.forEach(function(field) {
-              console.error(`  Field with __prefix__: ${field.name}`);
-            });
-          } else {
-            console.log('✓ All fields properly reindexed, no __prefix__ remaining');
-          }
-          
-          // Final safety check: if we have forms in DOM but TOTAL_FORMS is 0, fix it
-          if (unitForms.length > 0 && actualCount === 0) {
-            console.warn('WARNING: Found forms in DOM but actualCount is 0! Re-counting...');
-            // Re-count without checking hasData - just count non-deleted forms
-            let simpleCount = 0;
-            unitForms.forEach(function(unitForm) {
-              const deleteCheckbox = unitForm.querySelector('input[type="checkbox"][name*="-DELETE"]');
-              if (!deleteCheckbox || !deleteCheckbox.checked) {
-                simpleCount++;
-              }
-            });
-            totalFormsInput.value = simpleCount;
-            console.log(`Fixed TOTAL_FORMS to ${simpleCount} based on simple count`);
-          }
-        }
+        return false;
       }, true); // Use capture phase to run before other handlers
     }
   }

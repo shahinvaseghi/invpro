@@ -186,7 +186,6 @@ function removeFormsetRow(button, prefix, options = {}) {
     }
     
     // Check minimum rows requirement
-    const rowSelector = options.rowSelector || '.formset-row';
     const currentRows = getFormsetRowCount(prefix, rowSelector);
     if (currentRows <= minRows) {
         console.warn(`Minimum ${minRows} rows required`);
@@ -529,6 +528,175 @@ function initFormset(prefix, templateSelector, options = {}) {
     // Initial reindex
     // CRITICAL: Always use prefix pattern for Django formsets (they use __prefix__ in empty forms)
     reindexFormset(prefix, rowSelector, true);
+}
+
+/**
+ * Prepare formset for submission by converting __prefix__ to numeric indices and updating TOTAL_FORMS.
+ * This function should be called in a form submit handler before the form is submitted.
+ * 
+ * @param {string} prefix - Formset prefix (e.g., 'units', 'lines')
+ * @param {string} rowSelector - CSS selector for row elements (default: '.formset-row')
+ * @param {Object} options - Configuration options
+ * @param {boolean} options.countOnlyNonDeleted - Only count non-deleted rows (default: true)
+ * @returns {Object} - Object with {success: boolean, totalForms: number, reindexedCount: number}
+ */
+function prepareFormsetForSubmit(prefix, rowSelector = '.formset-row', options = {}) {
+    const countOnlyNonDeleted = options.countOnlyNonDeleted !== false; // Default: true
+    
+    console.log(`prepareFormsetForSubmit called: prefix=${prefix}, rowSelector=${rowSelector}`);
+    
+    // Try multiple selectors to find the formset container
+    const formsetContainer = document.querySelector(`[data-formset-prefix="${prefix}"]`) || 
+                            document.querySelector(`#${prefix}-formset`) ||
+                            document.querySelector(`#unit-formset`) || // Fallback for item form
+                            document.querySelector(`.${prefix}-formset`) ||
+                            document.querySelector(`.formset-container`);
+    
+    console.log(`Formset container found: ${formsetContainer ? 'YES' : 'NO'}`);
+    if (formsetContainer) {
+        console.log(`Container ID: ${formsetContainer.id}, classes: ${formsetContainer.className}`);
+    }
+    
+    if (!formsetContainer) {
+        console.warn(`Formset container not found for prefix: ${prefix}`);
+        return { success: false, totalForms: 0, reindexedCount: 0 };
+    }
+    
+    const totalFormsInput = document.getElementById(`id_${prefix}-TOTAL_FORMS`);
+    if (!totalFormsInput) {
+        console.warn(`TOTAL_FORMS input not found for prefix: ${prefix}`);
+        return { success: false, totalForms: 0, reindexedCount: 0 };
+    }
+    
+    // Get all rows (excluding template)
+    const rows = formsetContainer.querySelectorAll(`${rowSelector}:not(.formset-template)`);
+    console.log(`Found ${rows.length} row(s) in formset container`);
+    
+    // Find forms with __prefix__ that need reindexing
+    const formsWithPrefix = [];
+    let maxExistingIndex = -1;
+    
+    rows.forEach((row, idx) => {
+        // Skip deleted rows
+        const deleteInput = row.querySelector(`input[name*="-DELETE"]`);
+        if (deleteInput && deleteInput.checked) {
+            console.log(`Row ${idx}: Skipping deleted row`);
+            return;
+        }
+        
+        // Check if form has __prefix__ in any field name
+        const allFields = row.querySelectorAll('input, select, textarea');
+        let hasPrefix = false;
+        allFields.forEach(field => {
+            if (field.name && field.name.includes('__prefix__')) {
+                hasPrefix = true;
+                console.log(`Row ${idx}: Found field with __prefix__: ${field.name}`);
+            }
+        });
+        
+        if (hasPrefix) {
+            formsWithPrefix.push(idx);
+            console.log(`Row ${idx}: Added to formsWithPrefix array`);
+        } else {
+            // Find max existing index from non-__prefix__ fields
+            allFields.forEach(field => {
+                if (field.name && !field.name.includes('__prefix__')) {
+                    const match = field.name.match(new RegExp(`${prefix}-(\\d+)-`));
+                    if (match) {
+                        const idx = parseInt(match[1]);
+                        if (idx > maxExistingIndex) {
+                            maxExistingIndex = idx;
+                        }
+                    }
+                }
+            });
+        }
+    });
+    
+    console.log(`Found ${formsWithPrefix.length} form(s) with __prefix__, maxExistingIndex=${maxExistingIndex}`);
+    
+    // Reindex forms with __prefix__
+    let reindexCounter = maxExistingIndex + 1;
+    let reindexedCount = 0;
+    
+    if (formsWithPrefix.length > 0) {
+        console.log(`Preparing formset ${prefix}: Found ${formsWithPrefix.length} form(s) with __prefix__ that need reindexing`);
+        console.log(`Starting reindex from: ${reindexCounter}`);
+        
+        formsWithPrefix.forEach(formIdx => {
+            const row = rows[formIdx];
+            const allFields = row.querySelectorAll('input, select, textarea, label');
+            
+            console.log(`Reindexing form ${formIdx} to index ${reindexCounter}...`);
+            let fieldCount = 0;
+            allFields.forEach(field => {
+                if (field.name && field.name.includes('__prefix__')) {
+                    const oldName = field.name;
+                    field.name = field.name.replace(/__prefix__/g, reindexCounter);
+                    console.log(`  Reindexed name: ${oldName} -> ${field.name}`);
+                    fieldCount++;
+                }
+                if (field.id && field.id.includes('__prefix__')) {
+                    const oldId = field.id;
+                    field.id = field.id.replace(/__prefix__/g, reindexCounter);
+                    console.log(`  Reindexed id: ${oldId} -> ${field.id}`);
+                }
+                if (field.tagName === 'LABEL' && field.getAttribute('for') && field.getAttribute('for').includes('__prefix__')) {
+                    const oldFor = field.getAttribute('for');
+                    field.setAttribute('for', field.getAttribute('for').replace(/__prefix__/g, reindexCounter));
+                    console.log(`  Reindexed for: ${oldFor} -> ${field.getAttribute('for')}`);
+                }
+            });
+            console.log(`  Reindexed ${fieldCount} field(s) in form ${formIdx}`);
+            
+            reindexCounter++;
+            reindexedCount++;
+        });
+        
+        console.log(`Reindexed ${reindexedCount} form(s) with __prefix__`);
+    } else {
+        console.log(`No forms with __prefix__ found, skipping reindexing`);
+    }
+    
+    // Re-count after reindexing
+    const rowsAfterReindex = formsetContainer.querySelectorAll(`${rowSelector}:not(.formset-template)`);
+    console.log(`After reindexing: Found ${rowsAfterReindex.length} row(s)`);
+    let finalCount = 0;
+    
+    rowsAfterReindex.forEach((row, idx) => {
+        if (countOnlyNonDeleted) {
+            const deleteInput = row.querySelector(`input[name*="-DELETE"]`);
+            if (!deleteInput || !deleteInput.checked) {
+                finalCount++;
+                console.log(`  Row ${idx}: Counted (not deleted)`);
+            } else {
+                console.log(`  Row ${idx}: Skipped (deleted)`);
+            }
+        } else {
+            finalCount++;
+        }
+    });
+    
+    console.log(`Final count: ${finalCount}`);
+    
+    // Update TOTAL_FORMS
+    const oldTotalForms = totalFormsInput.value;
+    totalFormsInput.value = finalCount;
+    totalFormsInput.removeAttribute('disabled');
+    console.log(`Updated TOTAL_FORMS from ${oldTotalForms} to ${finalCount}`);
+    
+    // Verify no __prefix__ remains
+    const remainingPrefix = formsetContainer.querySelectorAll('input[name*="__prefix__"], select[name*="__prefix__"], textarea[name*="__prefix__"]');
+    if (remainingPrefix.length > 0) {
+        console.error(`ERROR: Still found ${remainingPrefix.length} fields with __prefix__ after reindex!`);
+        remainingPrefix.forEach(field => {
+            console.error(`  Field with __prefix__: ${field.name}`);
+        });
+        return { success: false, totalForms: finalCount, reindexedCount: reindexedCount };
+    }
+    
+    console.log(`✓ Formset ${prefix} prepared for submit: TOTAL_FORMS=${finalCount}, reindexed=${reindexedCount}`);
+    return { success: true, totalForms: finalCount, reindexedCount: reindexedCount };
 }
 
 

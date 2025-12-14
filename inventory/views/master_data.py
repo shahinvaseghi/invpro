@@ -1258,6 +1258,7 @@ class ItemUpdateView(ItemUnitFormsetMixin, InventoryBaseView, BaseFormsetUpdateV
         
         # Build and validate formset
         import logging
+        from django.http import QueryDict
         logger = logging.getLogger('inventory.views.master_data')
         logger.info(f"=== BUILDING UNIT FORMSET FOR ITEM {self.object.pk} ===")
         
@@ -1268,7 +1269,66 @@ class ItemUpdateView(ItemUnitFormsetMixin, InventoryBaseView, BaseFormsetUpdateV
             value = self.request.POST.get(key, '')
             logger.info(f"  {key} = {value}")
         
-        units_formset = self.build_unit_formset(data=self.request.POST, instance=self.object)
+        # Convert __prefix__ forms to numeric indices before building formset
+        post_data = self.request.POST
+        has_prefix_form = any(
+            key.startswith('units-__prefix__-') 
+            for key in post_data.keys()
+        )
+        
+        if has_prefix_form:
+            logger.info("Found form with __prefix__, converting to numeric index...")
+            # Find the highest existing form index
+            max_index = -1
+            for key in post_data.keys():
+                if key.startswith('units-') and not key.startswith('units-__prefix__') and not key.startswith('units-TOTAL_FORMS') and not key.startswith('units-INITIAL_FORMS') and not key.startswith('units-MIN_NUM_FORMS') and not key.startswith('units-MAX_NUM_FORMS'):
+                    # Extract index from key like 'units-0-field'
+                    parts = key.split('-')
+                    if len(parts) >= 2:
+                        try:
+                            idx = int(parts[1])
+                            if idx > max_index:
+                                max_index = idx
+                        except ValueError:
+                            pass
+            
+            # Convert __prefix__ to next available index
+            new_index = max_index + 1
+            prefix_pattern = 'units-__prefix__-'
+            new_prefix = f'units-{new_index}-'
+            
+            logger.info(f"Converting __prefix__ to index {new_index}")
+            
+            # Create a new QueryDict with converted keys
+            new_data = QueryDict(mutable=True)
+            
+            # Copy all existing data, converting __prefix__ to numeric index
+            for key, value_list in post_data.lists():
+                if key.startswith(prefix_pattern):
+                    new_key = key.replace(prefix_pattern, new_prefix)
+                    new_data.setlist(new_key, value_list)
+                    logger.info(f"  Converted: {key} -> {new_key}")
+                else:
+                    new_data.setlist(key, value_list)
+            
+            # Update TOTAL_FORMS if needed
+            total_forms_key = 'units-TOTAL_FORMS'
+            if total_forms_key in new_data:
+                try:
+                    current_total = int(new_data[total_forms_key])
+                    if current_total <= new_index:
+                        new_data[total_forms_key] = str(new_index + 1)
+                        logger.info(f"  Updated TOTAL_FORMS to {new_index + 1}")
+                except (ValueError, TypeError):
+                    new_data[total_forms_key] = str(new_index + 1)
+            else:
+                new_data[total_forms_key] = str(new_index + 1)
+            
+            # Make it immutable like original POST
+            new_data._mutable = False
+            post_data = new_data
+        
+        units_formset = self.build_unit_formset(data=post_data, instance=self.object)
         
         # Debug: Log formset state
         logger.info(f"Unit formset validation for item {self.object.pk}:")

@@ -682,7 +682,7 @@ class ItemUnitFormSet(forms.BaseInlineFormSet):
                 form.set_company_id(self.company_id)
     
     def clean(self) -> Dict[str, Any]:
-        """Override clean to skip validation for completely empty forms."""
+        """Override clean to skip validation for completely empty forms and check for duplicates."""
         cleaned_data = super().clean()
         # Mark completely empty forms as valid (they will be ignored in save)
         for form in self.forms:
@@ -692,7 +692,49 @@ class ItemUnitFormSet(forms.BaseInlineFormSet):
                 if not any(v for v in non_delete_fields.values() if v):
                     # Form is empty - clear errors
                     form._errors = {}
+                # Check for duplicate conversions (if form has from_unit and to_unit)
+                elif not form.cleaned_data.get('DELETE'):
+                    from_unit = form.cleaned_data.get('from_unit')
+                    to_unit = form.cleaned_data.get('to_unit')
+                    if from_unit and to_unit and hasattr(self, 'instance') and self.instance:
+                        # Check if this conversion already exists (excluding current instance)
+                        from ..models import ItemUnit
+                        existing = ItemUnit.objects.filter(
+                            company=self.instance.company,
+                            item=self.instance,
+                            from_unit=from_unit,
+                            to_unit=to_unit
+                        ).exclude(pk=form.instance.pk if form.instance and form.instance.pk else None).first()
+                        
+                        if existing:
+                            from django.core.exceptions import ValidationError
+                            from django.utils.translation import gettext_lazy as _
+                            form.add_error(
+                                None,
+                                ValidationError(
+                                    _("Unit conversion from '%(from_unit)s' to '%(to_unit)s' already exists."),
+                                    params={'from_unit': from_unit, 'to_unit': to_unit},
+                                    code='duplicate_conversion'
+                                )
+                            )
         return cleaned_data
+    
+    
+    def save_new(self, form, commit=True):
+        """Override save_new to set company before creating instance."""
+        instance = super().save_new(form, commit=False)
+        # Set company from item if available
+        if hasattr(self, 'instance') and self.instance and self.instance.company:
+            instance.company = self.instance.company
+        elif self.company_id:
+            from shared.models import Company
+            try:
+                instance.company = Company.objects.get(pk=self.company_id)
+            except Company.DoesNotExist:
+                pass
+        if commit:
+            instance.save()
+        return instance
     
     def is_valid(self) -> bool:
         """Override is_valid to allow empty formsets and handle DELETE properly."""
