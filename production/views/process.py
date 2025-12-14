@@ -336,10 +336,9 @@ class ProcessCreateView(BaseFormsetCreateView):
         # Get BOM ID for operations
         bom_id = bom.id if bom else None
         
-        # Get formset
+        # Get formset (without 'instance' parameter because ProcessOperationFormSet doesn't accept it)
         formset = self.formset_class(
             self.request.POST,
-            instance=self.object,
             prefix=self.formset_prefix,
             **self.get_formset_kwargs()
         )

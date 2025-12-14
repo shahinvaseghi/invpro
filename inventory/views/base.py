@@ -749,18 +749,64 @@ class ItemUnitFormsetMixin:
 
     def _save_unit_formset(self, formset) -> None:
         """Save unit formset instances."""
+        import logging
+        logger = logging.getLogger('inventory.views.base')
+        
+        logger.info(f"=== SAVING UNIT FORMSET FOR ITEM {self.object.pk} ===")
+        logger.info(f"Total forms in formset: {len(formset.forms)}")
+        
+        # CRITICAL: deleted_objects is only available after save() is called
+        # So we need to manually identify deleted forms before calling save()
+        deleted_count = 0
+        
+        # First, identify forms marked for deletion
+        forms_to_delete = []
+        for idx, form in enumerate(formset.forms):
+            logger.info(f"Form {idx}: has_cleaned_data={bool(form.cleaned_data)}, instance_pk={form.instance.pk if form.instance and form.instance.pk else None}")
+            if form.cleaned_data:
+                logger.info(f"  cleaned_data keys: {list(form.cleaned_data.keys())}")
+                logger.info(f"  DELETE flag: {form.cleaned_data.get('DELETE')}")
+                if form.cleaned_data.get('DELETE'):
+                    if form.instance and form.instance.pk:
+                        forms_to_delete.append(form.instance)
+                        logger.info(f"  Marked for deletion: {form.instance.pk}")
+        
+        # Delete identified objects
+        for obj in forms_to_delete:
+            logger.info(f"Deleting unit {obj.pk}")
+            obj.delete()
+            deleted_count += 1
+        
+        # Now save new and updated instances
+        logger.info("Calling formset.save(commit=False)...")
         instances = formset.save(commit=False)
-        for unit in instances:
+        logger.info(f"formset.save() returned {len(instances)} instances")
+        
+        saved_count = 0
+        for idx, unit in enumerate(instances):
+            logger.info(f"Processing instance {idx}: from_unit={unit.from_unit}, to_unit={unit.to_unit}, from_quantity={unit.from_quantity}, to_quantity={unit.to_quantity}")
+            
+            # Skip if essential fields are missing
             if not unit.from_unit or not unit.to_unit:
+                logger.warning(f"  Skipping: missing from_unit or to_unit")
                 continue
+            # Skip if quantities are not set or zero
+            if not unit.from_quantity or not unit.to_quantity:
+                logger.warning(f"  Skipping: missing from_quantity or to_quantity")
+                continue
+            
             unit.company = self.object.company
             unit.item = self.object
             unit.item_code = self.object.item_code
             if not unit.public_code:
                 unit.public_code = self._generate_unit_code(self.object.company)
+            
+            logger.info(f"  Saving unit: from_unit={unit.from_unit}, to_unit={unit.to_unit}, from_quantity={unit.from_quantity}, to_quantity={unit.to_quantity}")
             unit.save()
-        for obj in formset.deleted_objects:
-            obj.delete()
+            saved_count += 1
+            logger.info(f"  Unit saved successfully (pk={unit.pk})")
+        
+        logger.info(f"=== FINAL RESULT: Saved {saved_count} unit(s), deleted {deleted_count} unit(s) ===")
 
     def _sync_item_warehouses(self, item, warehouses, user) -> None:
         """Sync item-warehouse relationships."""

@@ -565,6 +565,8 @@ class ItemForm(BaseModelForm):
         subcategory = cleaned_data.get('subcategory')
         user_segment = cleaned_data.get('user_segment')
         warehouses = cleaned_data.get('allowed_warehouses')
+        name = cleaned_data.get('name')
+        name_en = cleaned_data.get('name_en')
 
         if item_type and category and item_type.company_id != category.company_id:
             raise forms.ValidationError(_('نوع کالا و دسته‌بندی انتخاب‌شده مربوط به شرکت‌های متفاوت هستند.'))
@@ -582,6 +584,21 @@ class ItemForm(BaseModelForm):
             self.add_error('allowed_warehouses', _('حداقل یک انبار باید انتخاب شود.'))
         elif self.company_id and warehouses.filter(~Q(company_id=self.company_id)).exists():
             self.add_error('allowed_warehouses', _('انبارهای انتخاب شده باید متعلق به همان شرکت فعال باشند.'))
+
+        # Validate unique name and name_en (exclude current instance if editing)
+        if name:
+            qs = Item.objects.filter(name=name)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                self.add_error('name', _('کالا با این Name از قبل موجود است.'))
+        
+        if name_en:
+            qs = Item.objects.filter(name_en=name_en)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                self.add_error('name_en', _('کالا با این Name (English) از قبل موجود است.'))
 
         # IntegerCheckboxField already handles conversion to 0/1 in its clean() method
         # But we need to ensure fields are ALWAYS in cleaned_data, even if not in POST
@@ -678,7 +695,7 @@ class ItemUnitFormSet(forms.BaseInlineFormSet):
         return cleaned_data
     
     def is_valid(self) -> bool:
-        """Override is_valid to allow empty formsets."""
+        """Override is_valid to allow empty formsets and handle DELETE properly."""
         # If formset is completely empty (no forms), it's still valid
         if not self.forms or self.total_form_count() == 0:
             return True
@@ -690,6 +707,10 @@ class ItemUnitFormSet(forms.BaseInlineFormSet):
         if not valid:
             all_empty = True
             for form in self.forms:
+                # Check if form is marked for deletion - if so, it's valid even if empty
+                if form.cleaned_data and form.cleaned_data.get('DELETE'):
+                    continue  # Deleted forms are always valid
+                
                 # Check if form has any non-empty fields (excluding DELETE and hidden fields)
                 if form.cleaned_data:
                     non_delete_fields = {k: v for k, v in form.cleaned_data.items() 
@@ -727,5 +748,8 @@ ItemUnitFormSet = inlineformset_factory(
     formset=_ItemUnitFormSetBase,
     extra=0,  # No empty rows by default - user adds rows as needed
     can_delete=True,
+    min_num=0,  # Allow empty formset (no minimum required)
+    validate_min=False,  # Don't validate minimum (units are optional)
+    max_num=None,  # No maximum limit
 )
 

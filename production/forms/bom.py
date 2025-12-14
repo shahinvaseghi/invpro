@@ -100,6 +100,32 @@ class BOMForm(forms.ModelForm):
             self.fields['item_category'].queryset = ItemCategory.objects.none()
             self.fields['item_subcategory'].queryset = ItemSubcategory.objects.none()
             self.fields['finished_item'].queryset = Item.objects.none()
+    
+    def clean_version(self):
+        """Validate version uniqueness for the same finished_item and company."""
+        version = self.cleaned_data.get('version')
+        finished_item = self.cleaned_data.get('finished_item')
+        company_id = self.company_id
+        
+        if not version or not finished_item or not company_id:
+            return version
+        
+        # Check if another BOM with same company, finished_item, and version exists
+        from production.models import BOM
+        existing_bom = BOM.objects.filter(
+            company_id=company_id,
+            finished_item_id=finished_item.pk if hasattr(finished_item, 'pk') else finished_item,
+            version=version
+        ).exclude(pk=self.instance.pk if self.instance.pk else None)
+        
+        if existing_bom.exists():
+            raise forms.ValidationError(
+                _('A BOM with version "{version}" already exists for this finished product. Please choose a different version.').format(
+                    version=version
+                )
+            )
+        
+        return version
 
 
 class BOMMaterialLineForm(forms.ModelForm):
@@ -295,13 +321,15 @@ class BOMMaterialLineFormSetBase(forms.BaseInlineFormSet):
     """Custom formset with better validation for BOM materials."""
     
     def clean(self) -> None:
-        """Validate that at least one complete material line exists."""
+        """Validate that at least one complete material line exists and no duplicates."""
         if any(self.errors):
             return
         
-        # Count non-empty forms (forms with material_item selected)
+        # Count non-empty forms (forms with material_item selected) and check for duplicates
         non_empty_forms = 0
-        for form in self.forms:
+        material_items = {}  # Track material_item IDs: {material_item_id: [form_indexes]}
+        
+        for form_index, form in enumerate(self.forms):
             # Check if form has cleaned_data (validation passed)
             if hasattr(form, 'cleaned_data') and form.cleaned_data:
                 # Check if form is not marked for deletion
@@ -309,6 +337,29 @@ class BOMMaterialLineFormSetBase(forms.BaseInlineFormSet):
                     material_item = form.cleaned_data.get('material_item')
                     if material_item:
                         non_empty_forms += 1
+                        
+                        # Get material_item ID
+                        material_item_id = material_item.pk if hasattr(material_item, 'pk') else material_item
+                        
+                        # Get instance ID (if this is an existing record)
+                        instance_id = form.instance.pk if form.instance and form.instance.pk else None
+                        
+                        # Check for duplicate material_item (excluding the same instance)
+                        if material_item_id in material_items:
+                            # Check if this is the same instance (allowed - no change)
+                            existing_forms = material_items[material_item_id]
+                            is_same_instance = any(
+                                self.forms[idx].instance.pk == instance_id 
+                                for idx in existing_forms 
+                                if self.forms[idx].instance and self.forms[idx].instance.pk
+                            )
+                            
+                            if not is_same_instance:
+                                # This is a duplicate - add error to this form
+                                form.add_error('material_item', _('This material item is already added to this BOM. Each material can only appear once per BOM.'))
+                        else:
+                            # First occurrence of this material_item
+                            material_items[material_item_id] = [form_index]
         
         if non_empty_forms == 0:
             raise forms.ValidationError(

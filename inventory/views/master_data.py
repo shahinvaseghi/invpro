@@ -1071,8 +1071,13 @@ class ItemCreateView(ItemUnitFormsetMixin, BaseCreateView):
         from django.http import HttpResponseRedirect
         
         company_id = self.request.session.get('active_company_id')
+        if not company_id:
+            messages.error(self.request, _('Please select a company first.'))
+            return self.form_invalid(form)
         
-        # company_id and created_by are set by AutoSetFieldsMixin
+        # Explicitly set company_id (AutoSetFieldsMixin might not be in inheritance chain)
+        form.instance.company_id = company_id
+        form.instance.created_by = self.request.user
         form.instance.edited_by = self.request.user
         
         # Build formset with instance=None for new items
@@ -1135,10 +1140,19 @@ class ItemCreateView(ItemUnitFormsetMixin, BaseCreateView):
         self.object = form.save()
         
         # Now rebuild formset with the saved instance and save units
-        if has_forms_with_data:
-            units_formset = self.build_unit_formset(data=self.request.POST, instance=self.object, company_id=company_id)
-            if units_formset.is_valid():
-                self._save_unit_formset(units_formset)
+        # Always try to build and save formset (even if has_forms_with_data is False, 
+        # because formset might have empty forms that need to be handled)
+        units_formset = self.build_unit_formset(data=self.request.POST, instance=self.object, company_id=company_id)
+        
+        # Validate formset
+        if units_formset.is_valid():
+            # Save formset (will skip empty forms in _save_unit_formset)
+            self._save_unit_formset(units_formset)
+        else:
+            # If formset is invalid, return form with errors
+            return self.render_to_response(
+                self.get_context_data(form=form, units_formset=units_formset)
+            )
         
         ordered = self._get_ordered_warehouses(form)
         self._sync_item_warehouses(self.object, ordered, self.request.user)
@@ -1243,8 +1257,57 @@ class ItemUpdateView(ItemUnitFormsetMixin, InventoryBaseView, BaseFormsetUpdateV
         self.object = form.save()
         
         # Build and validate formset
+        import logging
+        logger = logging.getLogger('inventory.views.master_data')
+        logger.info(f"=== BUILDING UNIT FORMSET FOR ITEM {self.object.pk} ===")
+        
+        # Log ALL POST data related to units
+        units_post_keys = [k for k in self.request.POST.keys() if 'units' in k]
+        logger.info(f"POST data keys related to units ({len(units_post_keys)} keys):")
+        for key in sorted(units_post_keys):
+            value = self.request.POST.get(key, '')
+            logger.info(f"  {key} = {value}")
+        
         units_formset = self.build_unit_formset(data=self.request.POST, instance=self.object)
-        if not units_formset.is_valid():
+        
+        # Debug: Log formset state
+        logger.info(f"Unit formset validation for item {self.object.pk}:")
+        logger.info(f"  - Total forms: {units_formset.total_form_count()}")
+        logger.info(f"  - Forms count: {len(units_formset.forms)}")
+        
+        # Log each form's state BEFORE validation
+        logger.info("Forms BEFORE is_valid():")
+        for idx, f in enumerate(units_formset.forms):
+            logger.info(f"  Form {idx}: prefix={f.prefix}")
+            if f.data:
+                form_data_keys = [k for k in f.data.keys() if k.startswith(f.prefix)]
+                logger.info(f"    POST data keys ({len(form_data_keys)}): {form_data_keys[:5]}...")  # Show first 5
+                # Log actual values for key fields
+                for field_name in ['from_unit', 'to_unit', 'from_quantity', 'to_quantity', 'id', 'DELETE']:
+                    field_key = f"{f.prefix}-{field_name}"
+                    if field_key in f.data:
+                        logger.info(f"    {field_key} = {f.data[field_key]}")
+        
+        logger.info("Calling units_formset.is_valid()...")
+        is_valid = units_formset.is_valid()
+        logger.info(f"Formset is_valid() result: {is_valid}")
+        
+        # Log each form's state AFTER validation
+        logger.info("Forms AFTER is_valid():")
+        for idx, f in enumerate(units_formset.forms):
+            has_cleaned_data = hasattr(f, 'cleaned_data') and f.cleaned_data is not None
+            logger.info(f"  Form {idx}: prefix={f.prefix}, has_cleaned_data={has_cleaned_data}")
+            if has_cleaned_data:
+                logger.info(f"    cleaned_data: {f.cleaned_data}")
+        
+        # Count forms marked for deletion manually (deleted_objects only available after save)
+        # CRITICAL: cleaned_data only exists after is_valid() is called
+        deleted_forms_count = sum(1 for f in units_formset.forms if hasattr(f, 'cleaned_data') and f.cleaned_data and f.cleaned_data.get('DELETE'))
+        logger.info(f"  - Forms marked for deletion: {deleted_forms_count}")
+        
+        if not is_valid:
+            logger.error(f"Unit formset is invalid: {units_formset.errors}")
+            logger.error(f"Form errors: {[f.errors for f in units_formset.forms if f.errors]}")
             return self.render_to_response(
                 self.get_context_data(form=form, units_formset=units_formset)
             )
@@ -1266,11 +1329,26 @@ class ItemUpdateView(ItemUnitFormsetMixin, InventoryBaseView, BaseFormsetUpdateV
         
         # Override formset from BaseFormsetUpdateView with ItemUnitFormsetMixin formset
         if 'units_formset' not in context:
+            # Build formset with instance - Django will automatically add forms for existing units
+            # Since extra=0, only existing units will be shown (no empty rows)
             context['units_formset'] = self.build_unit_formset(instance=self.object)
         
-        # Add empty form for JavaScript
+        # Add empty form for JavaScript (for cloning when user clicks "Add Unit Conversion")
         if 'units_formset' in context:
             context['units_formset_empty'] = context['units_formset'].empty_form
+        
+        # Debug: Log how many unit forms are being displayed
+        import logging
+        logger = logging.getLogger('inventory.views.master_data')
+        if 'units_formset' in context:
+            units_formset = context['units_formset']
+            existing_units_count = self.object.units.count() if self.object.pk else 0
+            logger.info(f"Item {self.object.pk if self.object.pk else 'NEW'}: Displaying {len(units_formset.forms)} unit form(s) (existing units: {existing_units_count})")
+            
+            # Log each form's details
+            for idx, form in enumerate(units_formset.forms):
+                form_instance_pk = form.instance.pk if form.instance and form.instance.pk else None
+                logger.info(f"  Form {idx}: instance_pk={form_instance_pk}, prefix={form.prefix}")
         
         return context
     
@@ -1306,7 +1384,11 @@ class ItemDetailView(InventoryBaseView, BaseDetailView):
 
     def get_prefetch_related(self):
         """Prefetch related objects."""
-        return ['warehouses__warehouse', 'units']
+        from django.db.models import Prefetch
+        return [
+            'warehouses__warehouse',
+            Prefetch('units', queryset=models.ItemUnit.objects.filter(is_enabled=1).order_by('sort_order', 'from_unit'))
+        ]
 
     def get_page_title(self) -> str:
         """Return page title."""
@@ -1335,6 +1417,15 @@ class ItemDetailView(InventoryBaseView, BaseDetailView):
         context['detail_title'] = self.get_page_title()
         # Add empty info_banner list to enable info_banner_extra block
         context['info_banner'] = []
+        
+        # Ensure units are loaded (in case prefetch didn't work)
+        if hasattr(self.object, 'units'):
+            # Force evaluation of units queryset to ensure it's loaded
+            try:
+                _ = list(self.object.units.all())
+            except Exception:
+                pass
+        
         return context
 
 

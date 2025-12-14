@@ -26,7 +26,7 @@ function addFormsetRow(prefix, templateSelector, options = {}) {
     
     // Check max rows limit
     if (maxRows !== null) {
-        const currentRows = getFormsetRowCount(prefix);
+        const currentRows = getFormsetRowCount(prefix, rowSelector);
         if (currentRows >= maxRows) {
             console.warn(`Maximum ${maxRows} rows allowed`);
             return false;
@@ -85,11 +85,28 @@ function addFormsetRow(prefix, templateSelector, options = {}) {
     const newFormIndex = currentFormCount;
     
     // Update all field names and IDs in the new row
-    // Check if template uses __prefix__ pattern
-    const usePrefixPattern = options.usePrefixPattern !== false && 
-                             (templateRow.textContent.includes('__prefix__') || 
-                              templateElement.tagName === 'TEMPLATE');
+    // CRITICAL: Django formsets always use __prefix__ pattern for empty forms
+    // So we should always use prefix pattern when adding new rows
+    const usePrefixPattern = true;  // Always use __prefix__ pattern for Django formsets
+    
+    // Log field names before update
+    const inputsBefore = newRow.querySelectorAll('input, select, textarea');
+    const namesBefore = Array.from(inputsBefore).map(inp => inp.name).filter(n => n && n.includes('__prefix__'));
+    if (namesBefore.length > 0) {
+        console.log(`Before updateRowFields: Found ${namesBefore.length} fields with __prefix__: ${namesBefore.slice(0, 3).join(', ')}...`);
+    }
+    
     updateRowFields(newRow, prefix, newFormIndex, usePrefixPattern);
+    
+    // Log field names after update
+    const inputsAfter = newRow.querySelectorAll('input, select, textarea');
+    const namesAfter = Array.from(inputsAfter).map(inp => inp.name).filter(n => n);
+    const namesWithPrefix = namesAfter.filter(n => n.includes('__prefix__'));
+    if (namesWithPrefix.length > 0) {
+        console.error(`ERROR: After updateRowFields, still found ${namesWithPrefix.length} fields with __prefix__: ${namesWithPrefix.slice(0, 3).join(', ')}...`);
+    } else {
+        console.log(`After updateRowFields: All fields reindexed. Sample names: ${namesAfter.slice(0, 3).join(', ')}...`);
+    }
     
     // Insert new row into formset container
     // For template tag or when tbodyId is specified, find the tbody or container
@@ -169,7 +186,8 @@ function removeFormsetRow(button, prefix, options = {}) {
     }
     
     // Check minimum rows requirement
-    const currentRows = getFormsetRowCount(prefix);
+    const rowSelector = options.rowSelector || '.formset-row';
+    const currentRows = getFormsetRowCount(prefix, rowSelector);
     if (currentRows <= minRows) {
         console.warn(`Minimum ${minRows} rows required`);
         return false;
@@ -245,8 +263,13 @@ function updateFormsetTotal(prefix, rowSelector = '.formset-row') {
  * @param {boolean} usePrefixPattern - Whether to use __prefix__ pattern
  */
 function reindexFormset(prefix, rowSelector = '.formset-row', usePrefixPattern = false) {
+    // CRITICAL: For Django formsets, always use prefix pattern
+    usePrefixPattern = true;
+    
     const formsetContainer = document.querySelector(`[data-formset-prefix="${prefix}"]`) || 
-                            document.querySelector(`.formset-container`);
+                            document.querySelector(`.formset-container`) ||
+                            document.querySelector(`#${prefix}-formset`) ||
+                            document.querySelector(`.${prefix}-formset`);
     if (!formsetContainer) {
         console.warn(`Formset container not found for prefix: ${prefix}`);
         return;
@@ -255,15 +278,32 @@ function reindexFormset(prefix, rowSelector = '.formset-row', usePrefixPattern =
     const rows = formsetContainer.querySelectorAll(`${rowSelector}:not(.formset-template)`);
     let currentIndex = 0;
     
+    console.log(`Reindexing formset ${prefix}: found ${rows.length} rows, usePrefixPattern=${usePrefixPattern}`);
+    
     rows.forEach((row, index) => {
         // Skip deleted rows
         const deleteInput = row.querySelector(`input[name*="-DELETE"]`);
         if (deleteInput && deleteInput.checked) {
+            console.log(`Skipping deleted row ${index}`);
             return; // Skip deleted rows
         }
         
         // Update all fields in this row
+        console.log(`Reindexing row ${index} to index ${currentIndex} (usePrefixPattern=${usePrefixPattern})`);
+        // Log field names before update
+        const inputsBefore = row.querySelectorAll('input, select, textarea');
+        const namesBefore = Array.from(inputsBefore).map(inp => inp.name).filter(n => n);
+        if (namesBefore.length > 0) {
+            console.log(`  Field names before: ${namesBefore.join(', ')}`);
+        }
         updateRowFields(row, prefix, currentIndex, usePrefixPattern);
+        // Log field names after update
+        const inputsAfter = row.querySelectorAll('input, select, textarea');
+        const namesAfter = Array.from(inputsAfter).map(inp => inp.name).filter(n => n);
+        if (namesAfter.length > 0) {
+            console.log(`  Field names after: ${namesAfter.join(', ')}`);
+        }
+        console.log(`Reindexed row ${index} to index ${currentIndex}`);
         
         // Update line number if exists
         const lineNumberElement = row.querySelector('.line-number');
@@ -281,6 +321,7 @@ function reindexFormset(prefix, rowSelector = '.formset-row', usePrefixPattern =
     
     // Update TOTAL_FORMS
     updateFormsetTotal(prefix, rowSelector);
+    console.log(`Reindexing complete: TOTAL_FORMS set to ${currentIndex}`);
 }
 
 /**
@@ -295,17 +336,31 @@ function updateRowFields(row, prefix, index, usePrefixPattern = false) {
     // Update all inputs, selects, textareas, buttons, and divs with data attributes
     const fields = row.querySelectorAll('input, select, textarea, label, button, div, tbody, span');
     
+    let updatedCount = 0;
     fields.forEach(field => {
         if (usePrefixPattern) {
             // Use __prefix__ pattern (Django's default for empty forms)
             if (field.name && field.name.includes('__prefix__')) {
+                const oldName = field.name;
                 field.name = field.name.replace(/__prefix__/g, index);
+                if (oldName !== field.name) {
+                    updatedCount++;
+                    console.log(`  Updated field name: ${oldName} -> ${field.name}`);
+                }
             }
             if (field.id && field.id.includes('__prefix__')) {
+                const oldId = field.id;
                 field.id = field.id.replace(/__prefix__/g, index);
+                if (oldId !== field.id) {
+                    console.log(`  Updated field id: ${oldId} -> ${field.id}`);
+                }
             }
             if (field.getAttribute('for') && field.getAttribute('for').includes('__prefix__')) {
+                const oldFor = field.getAttribute('for');
                 field.setAttribute('for', field.getAttribute('for').replace(/__prefix__/g, index));
+                if (oldFor !== field.getAttribute('for')) {
+                    console.log(`  Updated field for: ${oldFor} -> ${field.getAttribute('for')}`);
+                }
             }
             // Update data attributes
             if (field.hasAttribute('data-field-index') && field.getAttribute('data-field-index') === '__prefix__') {
@@ -319,24 +374,43 @@ function updateRowFields(row, prefix, index, usePrefixPattern = false) {
             }
         } else {
             // Use numeric pattern (prefix-N-)
+            // Also handle __prefix__ pattern as fallback
             if (field.name) {
-                field.name = field.name.replace(
-                    new RegExp(`${prefix}-\\d+-`),
-                    `${prefix}-${index}-`
-                );
+                // First try numeric pattern
+                if (field.name.match(new RegExp(`${prefix}-\\d+-`))) {
+                    field.name = field.name.replace(
+                        new RegExp(`${prefix}-\\d+-`),
+                        `${prefix}-${index}-`
+                    );
+                } else if (field.name.includes('__prefix__')) {
+                    // Fallback to __prefix__ pattern
+                    field.name = field.name.replace(/__prefix__/g, index);
+                }
             }
             if (field.id) {
-                field.id = field.id.replace(
-                    new RegExp(`${prefix}-\\d+-`),
-                    `${prefix}-${index}-`
-                );
+                // First try numeric pattern
+                if (field.id.match(new RegExp(`${prefix}-\\d+-`))) {
+                    field.id = field.id.replace(
+                        new RegExp(`${prefix}-\\d+-`),
+                        `${prefix}-${index}-`
+                    );
+                } else if (field.id.includes('__prefix__')) {
+                    // Fallback to __prefix__ pattern
+                    field.id = field.id.replace(/__prefix__/g, index);
+                }
             }
             if (field.tagName === 'LABEL' && field.getAttribute('for')) {
                 const forAttr = field.getAttribute('for');
-                field.setAttribute('for', forAttr.replace(
-                    new RegExp(`${prefix}-\\d+-`),
-                    `${prefix}-${index}-`
-                ));
+                // First try numeric pattern
+                if (forAttr.match(new RegExp(`${prefix}-\\d+-`))) {
+                    field.setAttribute('for', forAttr.replace(
+                        new RegExp(`${prefix}-\\d+-`),
+                        `${prefix}-${index}-`
+                    ));
+                } else if (forAttr.includes('__prefix__')) {
+                    // Fallback to __prefix__ pattern
+                    field.setAttribute('for', forAttr.replace(/__prefix__/g, index));
+                }
             }
         }
     });
@@ -348,7 +422,27 @@ function updateRowFields(row, prefix, index, usePrefixPattern = false) {
  * @param {string} prefix - Formset prefix
  * @returns {number} - Number of visible rows
  */
-function getFormsetRowCount(prefix) {
+function getFormsetRowCount(prefix, rowSelector = '.formset-row') {
+    // First try to count actual DOM rows (more reliable)
+    const formsetContainer = document.querySelector(`[data-formset-prefix="${prefix}"]`) || 
+                            document.querySelector(`.formset-container`) ||
+                            document.querySelector(`#${prefix}-formset`) ||
+                            document.querySelector(`.${prefix}-formset`);
+    
+    if (formsetContainer) {
+        const actualRows = formsetContainer.querySelectorAll(`${rowSelector}:not(.formset-template)`);
+        const actualCount = Array.from(actualRows).filter(row => {
+            // Exclude deleted rows
+            const deleteInput = row.querySelector(`input[name*="-DELETE"]`);
+            return !deleteInput || !deleteInput.checked;
+        }).length;
+        
+        // Always use actual DOM count if container exists (even if 0)
+        // This is more reliable than TOTAL_FORMS which might be incorrect
+        return actualCount;
+    }
+    
+    // Fallback to TOTAL_FORMS input only if container not found
     const totalFormsInput = document.getElementById(`id_${prefix}-TOTAL_FORMS`);
     if (totalFormsInput) {
         return parseInt(totalFormsInput.value) || 0;
@@ -420,16 +514,21 @@ function initFormset(prefix, templateSelector, options = {}) {
     });
     
     // Ensure minimum rows
-    const currentRows = getFormsetRowCount(prefix);
+    const currentRows = getFormsetRowCount(prefix, rowSelector);
+    console.log(`Formset ${prefix}: currentRows=${currentRows}, minRows=${minRows}`);
     if (currentRows < minRows) {
         const rowsToAdd = minRows - currentRows;
+        console.log(`Formset ${prefix}: Adding ${rowsToAdd} row(s) to meet minimum`);
         for (let i = 0; i < rowsToAdd; i++) {
             addFormsetRow(prefix, templateSelector, options);
         }
+    } else {
+        console.log(`Formset ${prefix}: Already has ${currentRows} row(s), no need to add more`);
     }
     
     // Initial reindex
-    reindexFormset(prefix, rowSelector, usePrefixPattern);
+    // CRITICAL: Always use prefix pattern for Django formsets (they use __prefix__ in empty forms)
+    reindexFormset(prefix, rowSelector, true);
 }
 
 

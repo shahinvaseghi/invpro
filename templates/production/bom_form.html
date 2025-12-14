@@ -1240,6 +1240,234 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
       
+      // CRITICAL: Update all nested formset management forms (alternatives) before submission
+      // Find ALL management form inputs, not just visible ones (alternatives-row might be hidden)
+      const allManagementFormInputs = form.querySelectorAll('input[name*="alternatives_"][name*="-TOTAL_FORMS"], input[name*="alternatives_"][name*="-INITIAL_FORMS"]');
+      const processedMaterialPks = new Set();
+      
+      // Process all management form inputs
+      allManagementFormInputs.forEach(function(input) {
+        // Extract material_pk from name (e.g., "alternatives_21-TOTAL_FORMS" -> "21")
+        const nameMatch = input.name.match(/alternatives_(\d+)-(TOTAL_FORMS|INITIAL_FORMS)/);
+        if (!nameMatch) return;
+        
+        const materialPk = nameMatch[1];
+        const fieldType = nameMatch[2];
+        
+        // Skip if already processed
+        if (processedMaterialPks.has(materialPk)) return;
+        
+        // Find the alternatives-row for this material (even if hidden)
+        const alternativesRow = form.querySelector(`.alternatives-row[data-material-pk="${materialPk}"]`);
+        if (!alternativesRow) {
+          console.warn(`Alternatives row not found for material ${materialPk}, but management form exists. This might be a new material line.`);
+          // For new material lines, set to 0 if no alternatives exist
+          if (fieldType === 'TOTAL_FORMS') {
+            input.removeAttribute('disabled');
+            input.value = '0';
+          } else if (fieldType === 'INITIAL_FORMS') {
+            input.removeAttribute('disabled');
+            input.value = '0';
+          }
+          processedMaterialPks.add(materialPk);
+          return;
+        }
+        
+        const totalFormsInput = form.querySelector(`#id_alternatives_${materialPk}-TOTAL_FORMS`);
+        const initialFormsInput = form.querySelector(`#id_alternatives_${materialPk}-INITIAL_FORMS`);
+        const tbody = alternativesRow.querySelector(`.alternatives-tbody-${materialPk}`);
+        
+        if (!totalFormsInput) {
+          console.error(`Management form TOTAL_FORMS not found for material ${materialPk}`);
+          processedMaterialPks.add(materialPk);
+          return;
+        }
+        
+        if (!tbody) {
+          console.error(`Alternatives tbody not found for material ${materialPk}`);
+          processedMaterialPks.add(materialPk);
+          return;
+        }
+        
+        // Ensure management form inputs are enabled (disabled fields are not submitted!)
+        totalFormsInput.removeAttribute('disabled');
+        if (initialFormsInput) {
+          initialFormsInput.removeAttribute('disabled');
+        }
+        
+        // Count all alternative rows that are not empty-form-template and not marked for deletion
+        const alternativeRows = tbody.querySelectorAll('.alternative-row:not(.empty-form-template)');
+        let actualCount = 0;
+        let initialCount = 0;
+        
+        alternativeRows.forEach(function(row) {
+          const deleteCheckbox = row.querySelector('input[type="checkbox"][name*="-DELETE"]');
+          const idInput = row.querySelector('input[type="hidden"][name*="-id"]');
+          
+          // Count only if not marked for deletion
+          if (!deleteCheckbox || !deleteCheckbox.checked) {
+            actualCount++;
+            
+            // Count as initial if it has an ID (exists in database)
+            if (idInput && idInput.value) {
+              initialCount++;
+            }
+          }
+        });
+        
+        // Update TOTAL_FORMS
+        totalFormsInput.value = actualCount;
+        
+        // Also ensure INITIAL_FORMS is set correctly (if it exists)
+        if (initialFormsInput) {
+          initialFormsInput.value = initialCount;
+        }
+        
+        console.log(`Updated alternatives management form for material ${materialPk}: TOTAL_FORMS=${actualCount}, INITIAL_FORMS=${initialCount}`);
+        processedMaterialPks.add(materialPk);
+      });
+      
+      // Also check for any material lines that have alternatives-toggle-row but no alternatives-row
+      // This means they have alternatives in DB but the row is not rendered
+      const allToggleRows = form.querySelectorAll('.alternatives-toggle-row[data-material-pk]');
+      allToggleRows.forEach(function(toggleRow) {
+        const materialPk = toggleRow.dataset.materialPk;
+        if (!processedMaterialPks.has(materialPk)) {
+          // This material has alternatives in DB but alternatives-row might not be rendered
+          // Ensure management form exists and is set to 0 or correct value
+          let totalFormsInput = form.querySelector(`#id_alternatives_${materialPk}-TOTAL_FORMS`);
+          let initialFormsInput = form.querySelector(`#id_alternatives_${materialPk}-INITIAL_FORMS`);
+          
+          // If management form doesn't exist, create it
+          if (!totalFormsInput) {
+            // Find the material row to attach management form to
+            const materialRow = form.querySelector(`.material-row input[name*="materials-"][name*="-id"][value="${materialPk}"]`)?.closest('.material-row');
+            if (materialRow) {
+              // Create a hidden container for management form
+              const managementContainer = document.createElement('div');
+              managementContainer.style.display = 'none';
+              
+              // Create TOTAL_FORMS input
+              totalFormsInput = document.createElement('input');
+              totalFormsInput.type = 'hidden';
+              totalFormsInput.name = `alternatives_${materialPk}-TOTAL_FORMS`;
+              totalFormsInput.id = `id_alternatives_${materialPk}-TOTAL_FORMS`;
+              totalFormsInput.value = '0';
+              
+              // Create INITIAL_FORMS input
+              initialFormsInput = document.createElement('input');
+              initialFormsInput.type = 'hidden';
+              initialFormsInput.name = `alternatives_${materialPk}-INITIAL_FORMS`;
+              initialFormsInput.id = `id_alternatives_${materialPk}-INITIAL_FORMS`;
+              initialFormsInput.value = '0';
+              
+              // Create MIN_NUM and MAX_NUM inputs (Django formsets need these)
+              const minNumInput = document.createElement('input');
+              minNumInput.type = 'hidden';
+              minNumInput.name = `alternatives_${materialPk}-MIN_NUM_FORMS`;
+              minNumInput.id = `id_alternatives_${materialPk}-MIN_NUM_FORMS`;
+              minNumInput.value = '0';
+              
+              const maxNumInput = document.createElement('input');
+              maxNumInput.type = 'hidden';
+              maxNumInput.name = `alternatives_${materialPk}-MAX_NUM_FORMS`;
+              maxNumInput.id = `id_alternatives_${materialPk}-MAX_NUM_FORMS`;
+              maxNumInput.value = '1000';
+              
+              // Append all inputs to container
+              managementContainer.appendChild(totalFormsInput);
+              managementContainer.appendChild(initialFormsInput);
+              managementContainer.appendChild(minNumInput);
+              managementContainer.appendChild(maxNumInput);
+              
+              // Insert container into form (before submit button or at end)
+              const submitButton = form.querySelector('button[type="submit"], input[type="submit"]');
+              if (submitButton) {
+                form.insertBefore(managementContainer, submitButton);
+              } else {
+                form.appendChild(managementContainer);
+              }
+              
+              console.log(`Created missing management form for material ${materialPk}`);
+            }
+          } else {
+            totalFormsInput.removeAttribute('disabled');
+            // If no alternatives-row exists, set to 0
+            if (!form.querySelector(`.alternatives-row[data-material-pk="${materialPk}"]`)) {
+              totalFormsInput.value = '0';
+            }
+          }
+          
+          if (initialFormsInput) {
+            initialFormsInput.removeAttribute('disabled');
+            if (!form.querySelector(`.alternatives-row[data-material-pk="${materialPk}"]`)) {
+              initialFormsInput.value = '0';
+            }
+          }
+        }
+      });
+      
+      // Final check: Find all material rows with IDs and ensure they have management forms
+      const allMaterialRows = form.querySelectorAll('.material-row');
+      allMaterialRows.forEach(function(materialRow) {
+        const materialIdInput = materialRow.querySelector('input[type="hidden"][name*="-id"]');
+        if (materialIdInput && materialIdInput.value) {
+          const materialPk = materialIdInput.value;
+          const totalFormsInput = form.querySelector(`#id_alternatives_${materialPk}-TOTAL_FORMS`);
+          
+          if (!totalFormsInput) {
+            // Create management form for this material
+            const managementContainer = document.createElement('div');
+            managementContainer.style.display = 'none';
+            
+            const totalInput = document.createElement('input');
+            totalInput.type = 'hidden';
+            totalInput.name = `alternatives_${materialPk}-TOTAL_FORMS`;
+            totalInput.id = `id_alternatives_${materialPk}-TOTAL_FORMS`;
+            totalInput.value = '0';
+            
+            const initialInput = document.createElement('input');
+            initialInput.type = 'hidden';
+            initialInput.name = `alternatives_${materialPk}-INITIAL_FORMS`;
+            initialInput.id = `id_alternatives_${materialPk}-INITIAL_FORMS`;
+            initialInput.value = '0';
+            
+            const minNumInput = document.createElement('input');
+            minNumInput.type = 'hidden';
+            minNumInput.name = `alternatives_${materialPk}-MIN_NUM_FORMS`;
+            minNumInput.id = `id_alternatives_${materialPk}-MIN_NUM_FORMS`;
+            minNumInput.value = '0';
+            
+            const maxNumInput = document.createElement('input');
+            maxNumInput.type = 'hidden';
+            maxNumInput.name = `alternatives_${materialPk}-MAX_NUM_FORMS`;
+            maxNumInput.id = `id_alternatives_${materialPk}-MAX_NUM_FORMS`;
+            maxNumInput.value = '1000';
+            
+            managementContainer.appendChild(totalInput);
+            managementContainer.appendChild(initialInput);
+            managementContainer.appendChild(minNumInput);
+            managementContainer.appendChild(maxNumInput);
+            
+            const submitButton = form.querySelector('button[type="submit"], input[type="submit"]');
+            if (submitButton) {
+              form.insertBefore(managementContainer, submitButton);
+            } else {
+              form.appendChild(managementContainer);
+            }
+            
+            console.log(`Created missing management form for material ${materialPk} (final check)`);
+          } else {
+            // Ensure it's enabled
+            totalFormsInput.removeAttribute('disabled');
+            const initialFormsInput = form.querySelector(`#id_alternatives_${materialPk}-INITIAL_FORMS`);
+            if (initialFormsInput) {
+              initialFormsInput.removeAttribute('disabled');
+            }
+          }
+        }
+      });
+      
       // Check if at least one material is added
       const materialRows = tbody.querySelectorAll('.material-row');
       let validRowCount = 0;
