@@ -889,6 +889,26 @@ class WarehouseExpenseView(FeaturePermissionRequiredMixin, TemplateView):
         ).order_by('-document_date', '-id')
         context['expense_documents'] = expense_documents
         
+        # Get existing expense document receipt IDs for filtering
+        existing_permanent_ids = set(
+            WarehouseExpenseDocument.objects.filter(
+                company_id=company_id,
+                receipt_type='PERMANENT'
+            ).values_list('receipt_id', flat=True)
+        )
+        existing_temporary_ids = set(
+            WarehouseExpenseDocument.objects.filter(
+                company_id=company_id,
+                receipt_type='TEMPORARY'
+            ).values_list('receipt_id', flat=True)
+        )
+        existing_consignment_ids = set(
+            WarehouseExpenseDocument.objects.filter(
+                company_id=company_id,
+                receipt_type='CONSIGNMENT'
+            ).values_list('receipt_id', flat=True)
+        )
+        
         # Get receipts (permanent, temporary, consignment)
         permanent_receipts = ReceiptPermanent.objects.filter(
             company_id=company_id
@@ -901,6 +921,16 @@ class WarehouseExpenseView(FeaturePermissionRequiredMixin, TemplateView):
         consignment_receipts = ReceiptConsignment.objects.filter(
             company_id=company_id
         ).order_by('-document_date', '-id')[:100]
+        
+        # Add has_expense_document attribute to each receipt
+        for receipt in permanent_receipts:
+            receipt.has_expense_document = receipt.pk in existing_permanent_ids
+        
+        for receipt in temporary_receipts:
+            receipt.has_expense_document = receipt.pk in existing_temporary_ids
+        
+        for receipt in consignment_receipts:
+            receipt.has_expense_document = receipt.pk in existing_consignment_ids
         
         context['permanent_receipts'] = permanent_receipts
         context['temporary_receipts'] = temporary_receipts

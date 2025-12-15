@@ -93,6 +93,21 @@
                 <h2>{% trans "لیست رسیدها" %}</h2>
             </div>
             <div class="card-body">
+                <!-- Filter Section -->
+                <div class="filter-section" style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="receipt_accounting_filter">{% trans "فیلتر بر اساس سند حسابداری" %}</label>
+                                <select id="receipt_accounting_filter" class="form-control">
+                                    <option value="all">{% trans "همه" %}</option>
+                                    <option value="with">{% trans "دارای سند حسابداری" %}</option>
+                                    <option value="without">{% trans "بدون سند حسابداری" %}</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <!-- Permanent Receipts -->
                 <div class="receipt-section collapsible-section">
                     <button type="button" class="receipt-section-header" data-toggle="receipt-permanent">
@@ -112,10 +127,13 @@
                                 </thead>
                                 <tbody>
                                     {% for receipt in permanent_receipts %}
-                                    <tr>
+                                    <tr data-receipt-type="permanent" data-receipt-id="{{ receipt.pk }}" data-has-accounting="{{ receipt.has_expense_document|yesno:'1,0' }}">
                                         <td>{{ receipt.document_code }}</td>
                                         <td>{{ receipt.document_date|jalali_date }}</td>
                                         <td>
+                                            {% if receipt.has_expense_document %}
+                                                <span class="badge badge-success" style="margin-left: 0.5rem;">{% trans "دارای سند" %}</span>
+                                            {% endif %}
                                             <a href="{% url 'accounting:warehouse_expense_create_from_receipt' receipt_type='permanent' receipt_id=receipt.pk %}" 
                                                class="btn btn-sm btn-primary">
                                                 {% trans "ایجاد سند هزینه" %}
@@ -151,10 +169,13 @@
                                 </thead>
                                 <tbody>
                                     {% for receipt in temporary_receipts %}
-                                    <tr>
+                                    <tr data-receipt-type="temporary" data-receipt-id="{{ receipt.pk }}" data-has-accounting="{{ receipt.has_expense_document|yesno:'1,0' }}">
                                         <td>{{ receipt.document_code }}</td>
                                         <td>{{ receipt.document_date|jalali_date }}</td>
                                         <td>
+                                            {% if receipt.has_expense_document %}
+                                                <span class="badge badge-success" style="margin-left: 0.5rem;">{% trans "دارای سند" %}</span>
+                                            {% endif %}
                                             <a href="{% url 'accounting:warehouse_expense_create_from_receipt' receipt_type='temporary' receipt_id=receipt.pk %}" 
                                                class="btn btn-sm btn-primary">
                                                 {% trans "ایجاد سند هزینه" %}
@@ -190,10 +211,13 @@
                                 </thead>
                                 <tbody>
                                     {% for receipt in consignment_receipts %}
-                                    <tr>
+                                    <tr data-receipt-type="consignment" data-receipt-id="{{ receipt.pk }}" data-has-accounting="{{ receipt.has_expense_document|yesno:'1,0' }}">
                                         <td>{{ receipt.document_code }}</td>
                                         <td>{{ receipt.document_date|jalali_date }}</td>
                                         <td>
+                                            {% if receipt.has_expense_document %}
+                                                <span class="badge badge-success" style="margin-left: 0.5rem;">{% trans "دارای سند" %}</span>
+                                            {% endif %}
                                             <a href="{% url 'accounting:warehouse_expense_create_from_receipt' receipt_type='consignment' receipt_id=receipt.pk %}" 
                                                class="btn btn-sm btn-primary">
                                                 {% trans "ایجاد سند هزینه" %}
@@ -254,6 +278,27 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+    
+    // Filter by accounting document status
+    const accountingFilter = document.getElementById('receipt_accounting_filter');
+    if (accountingFilter) {
+        accountingFilter.addEventListener('change', function() {
+            const filterValue = this.value;
+            const allRows = document.querySelectorAll('#tab-receipts tbody tr[data-receipt-type]');
+            
+            allRows.forEach(function(row) {
+                const hasAccounting = row.dataset.hasAccounting === '1';
+                
+                if (filterValue === 'all') {
+                    row.style.display = '';
+                } else if (filterValue === 'with') {
+                    row.style.display = hasAccounting ? '' : 'none';
+                } else if (filterValue === 'without') {
+                    row.style.display = hasAccounting ? 'none' : '';
+                }
+            });
+        });
+    }
 });
 </script>
 {% endblock %}
