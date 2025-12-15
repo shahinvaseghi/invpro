@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پنل مدیریت</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-crown"></i>
+                <span>پنل مدیریت</span>
+            </div>
+            <button class="close-btn" id="closeSidebar">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <ul>
+                <li class="active">
+                    <a href="#dashboard">
+                        <i class="fas fa-home"></i>
+                        <span>داشبورد</span>
+                    </a>
+                </li>
+                
+                <!-- Dropdown Menu Item -->
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle">
+                        <i class="fas fa-users"></i>
+                        <span>کاربران</span>
+                        <i class="fas fa-chevron-down arrow"></i>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a href="#users-list"><i class="fas fa-list"></i> لیست کاربران</a></li>
+                        <li><a href="#add-user"><i class="fas fa-user-plus"></i> افزودن کاربر</a></li>
+                        <li><a href="#user-roles"><i class="fas fa-user-tag"></i> نقش‌ها</a></li>
+                    </ul>
+                </li>
+
+                <!-- Another Dropdown -->
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle">
+                        <i class="fas fa-box"></i>
+                        <span>محصولات</span>
+                        <i class="fas fa-chevron-down arrow"></i>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a href="#products-list"><i class="fas fa-list"></i> لیست محصولات</a></li>
+                        <li><a href="#add-product"><i class="fas fa-plus"></i> افزودن محصول</a></li>
+                        <li><a href="#categories"><i class="fas fa-tags"></i> دسته‌بندی‌ها</a></li>
+                        <li><a href="#inventory"><i class="fas fa-warehouse"></i> موجودی انبار</a></li>
+                    </ul>
+                </li>
+
+                <li>
+                    <a href="#orders">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span>سفارشات</span>
+                        <span class="badge">12</span>
+                    </a>
+                </li>
+
+                <!-- Settings Dropdown -->
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle">
+                        <i class="fas fa-cog"></i>
+                        <span>تنظیمات</span>
+                        <i class="fas fa-chevron-down arrow"></i>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a href="#general"><i class="fas fa-sliders-h"></i> تنظیمات عمومی</a></li>
+                        <li><a href="#security"><i class="fas fa-shield-alt"></i> امنیت</a></li>
+                        <li><a href="#notifications"><i class="fas fa-bell"></i> اعلان‌ها</a></li>
+                    </ul>
+                </li>
+
+                <li>
+                    <a href="#analytics">
+                        <i class="fas fa-chart-line"></i>
+                        <span>تحلیل و گزارش</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="#messages">
+                        <i class="fas fa-envelope"></i>
+                        <span>پیام‌ها</span>
+                        <span class="badge">5</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <img src="https://i.pravatar.cc/150?img=33" alt="پروفایل">
+                <div class="user-info">
+                    <h4>حسن خسروجردی</h4>
+                    <p>مدیر سیستم</p>
+                </div>
+            </div>
+            <button class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <button class="menu-toggle" id="menuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="جستجو...">
+            </div>
+
+            <div class="header-actions">
+                <button class="header-btn">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-dot"></span>
+                </button>
+                <button class="header-btn">
+                    <i class="fas fa-envelope"></i>
+                </button>
+                <button class="header-btn">
+                    <i class="fas fa-user-circle"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard-content">
+            <div class="page-title">
+                <h1>داشبورد</h1>
+                <p>خوش آمدید به پنل مدیریت</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>۱,۲۳۴</h3>
+                        <p>کاربران فعال</p>
+                        <span class="stat-change positive">
+                            <i class="fas fa-arrow-up"></i> ۱۲٪
+                        </span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>۴۵,۶۷۸</h3>
+                        <p>درآمد (تومان)</p>
+                        <span class="stat-change positive">
+                            <i class="fas fa-arrow-up"></i> ۸٪
+                        </span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon orange">
+                        <i class="fas fa-shopping-bag"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>۸۹۲</h3>
+                        <p>سفارشات جدید</p>
+                        <span class="stat-change negative">
+                            <i class="fas fa-arrow-down"></i> ۳٪
+                        </span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon purple">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>۹۵٪</h3>
+                        <p>رضایت مشتریان</p>
+                        <span class="stat-change positive">
+                            <i class="fas fa-arrow-up"></i> ۵٪
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts and Tables Section -->
+            <div class="content-grid">
+                <!-- Recent Orders -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2>سفارشات اخیر</h2>
+                        <button class="btn-secondary">مشاهده همه</button>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>شماره سفارش</th>
+                                    <th>مشتری</th>
+                                    <th>محصول</th>
+                                    <th>مبلغ</th>
+                                    <th>وضعیت</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>#۱۲۳۴۵</td>
+                                    <td>علی احمدی</td>
+                                    <td>لپ تاپ ایسوس</td>
+                                    <td>۲۵,۰۰۰,۰۰۰ تومان</td>
+                                    <td><span class="status success">تکمیل شده</span></td>
+                                </tr>
+                                <tr>
+                                    <td>#۱۲۳۴۴</td>
+                                    <td>سارا محمدی</td>
+                                    <td>گوشی سامسونگ</td>
+                                    <td>۱۵,۰۰۰,۰۰۰ تومان</td>
+                                    <td><span class="status pending">در حال پردازش</span></td>
+                                </tr>
+                                <tr>
+                                    <td>#۱۲۳۴۳</td>
+                                    <td>محمد رضایی</td>
+                                    <td>هدفون بلوتوثی</td>
+                                    <td>۱,۵۰۰,۰۰۰ تومان</td>
+                                    <td><span class="status success">تکمیل شده</span></td>
+                                </tr>
+                                <tr>
+                                    <td>#۱۲۳۴۲</td>
+                                    <td>زهرا کریمی</td>
+                                    <td>تبلت اپل</td>
+                                    <td>۲۰,۰۰۰,۰۰۰ تومان</td>
+                                    <td><span class="status cancelled">لغو شده</span></td>
+                                </tr>
+                                <tr>
+                                    <td>#۱۲۳۴۱</td>
+                                    <td>حسین نوری</td>
+                                    <td>ساعت هوشمند</td>
+                                    <td>۳,۵۰۰,۰۰۰ تومان</td>
+                                    <td><span class="status pending">در حال پردازش</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Top Products -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2>محصولات پرفروش</h2>
+                        <button class="btn-secondary">مشاهده همه</button>
+                    </div>
+                    <div class="products-list">
+                        <div class="product-item">
+                            <img src="https://via.placeholder.com/60" alt="محصول">
+                            <div class="product-info">
+                                <h4>لپ تاپ ایسوس ROG</h4>
+                                <p>۱۲۳ فروش</p>
+                            </div>
+                            <div class="product-price">
+                                <span>۲۵,۰۰۰,۰۰۰ تومان</span>
+                            </div>
+                        </div>
+                        <div class="product-item">
+                            <img src="https://via.placeholder.com/60" alt="محصول">
+                            <div class="product-info">
+                                <h4>گوشی آیفون ۱۵ پرو</h4>
+                                <p>۹۸ فروش</p>
+                            </div>
+                            <div class="product-price">
+                                <span>۴۵,۰۰۰,۰۰۰ تومان</span>
+                            </div>
+                        </div>
+                        <div class="product-item">
+                            <img src="https://via.placeholder.com/60" alt="محصول">
+                            <div class="product-info">
+                                <h4>ایرپاد پرو</h4>
+                                <p>۸۵ فروش</p>
+                            </div>
+                            <div class="product-price">
+                                <span>۸,۰۰۰,۰۰۰ تومان</span>
+                            </div>
+                        </div>
+                        <div class="product-item">
+                            <img src="https://via.placeholder.com/60" alt="محصول">
+                            <div class="product-info">
+                                <h4>اپل واچ سری ۹</h4>
+                                <p>۷۲ فروش</p>
+                            </div>
+                            <div class="product-price">
+                                <span>۱۲,۰۰۰,۰۰۰ تومان</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2>عملیات سریع</h2>
+                    </div>
+                    <div class="quick-actions">
+                        <button class="action-btn">
+                            <i class="fas fa-plus"></i>
+                            <span>افزودن محصول</span>
+                        </button>
+                        <button class="action-btn">
+                            <i class="fas fa-user-plus"></i>
+                            <span>افزودن کاربر</span>
+                        </button>
+                        <button class="action-btn">
+                            <i class="fas fa-file-invoice"></i>
+                            <span>ایجاد فاکتور</span>
+                        </button>
+                        <button class="action-btn">
+                            <i class="fas fa-download"></i>
+                            <span>دریافت گزارش</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Recent Activities -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2>فعالیت‌های اخیر</h2>
+                        <button class="btn-secondary">مشاهده همه</button>
+                    </div>
+                    <div class="activities-list">
+                        <div class="activity-item">
+                            <div class="activity-icon blue">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <div class="activity-info">
+                                <h4>کاربر جدید ثبت نام کرد</h4>
+                                <p>۲ دقیقه پیش</p>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon green">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <div class="activity-info">
+                                <h4>سفارش جدید دریافت شد</h4>
+                                <p>۱۵ دقیقه پیش</p>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon orange">
+                                <i class="fas fa-box"></i>
+                            </div>
+                            <div class="activity-info">
+                                <h4>محصول جدید اضافه شد</h4>
+                                <p>۱ ساعت پیش</p>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon purple">
+                                <i class="fas fa-comment"></i>
+                            </div>
+                            <div class="activity-info">
+                                <h4>نظر جدید دریافت شد</h4>
+                                <p>۲ ساعت پیش</p>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon blue">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="activity-info">
+                                <h4>گزارش ماهانه آماده شد</h4>
+                                <p>۳ ساعت پیش</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistics Chart -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2>آمار فروش ماهانه</h2>
+                        <select class="select-dropdown">
+                            <option>این ماه</option>
+                            <option>ماه گذشته</option>
+                            <option>۳ ماه اخیر</option>
+                        </select>
+                    </div>
+                    <div class="stats-chart">
+                        <div class="chart-bars">
+                            <div class="chart-bar-item">
+                                <div class="chart-bar" style="height: 45%"></div>
+                                <span>هفته ۱</span>
+                            </div>
+                            <div class="chart-bar-item">
+                                <div class="chart-bar" style="height: 65%"></div>
+                                <span>هفته ۲</span>
+                            </div>
+                            <div class="chart-bar-item">
+                                <div class="chart-bar" style="height: 80%"></div>
+                                <span>هفته ۳</span>
+                            </div>
+                            <div class="chart-bar-item">
+                                <div class="chart-bar" style="height: 55%"></div>
+                                <span>هفته ۴</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Customers -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2>مشتریان برتر</h2>
+                        <button class="btn-secondary">مشاهده همه</button>
+                    </div>
+                    <div class="customers-list">
+                        <div class="customer-item">
+                            <img src="https://i.pravatar.cc/150?img=12" alt="مشتری">
+                            <div class="customer-info">
+                                <h4>علی احمدی</h4>
+                                <p>۱۲ سفارش • ۵,۲۰۰,۰۰۰ تومان</p>
+                            </div>
+                            <div class="customer-badge">
+                                <i class="fas fa-star"></i>
+                                <span>VIP</span>
+                            </div>
+                        </div>
+                        <div class="customer-item">
+                            <img src="https://i.pravatar.cc/150?img=33" alt="مشتری">
+                            <div class="customer-info">
+                                <h4>سارا محمدی</h4>
+                                <p>۸ سفارش • ۳,۸۰۰,۰۰۰ تومان</p>
+                            </div>
+                            <div class="customer-badge">
+                                <i class="fas fa-star"></i>
+                                <span>VIP</span>
+                            </div>
+                        </div>
+                        <div class="customer-item">
+                            <img src="https://i.pravatar.cc/150?img=47" alt="مشتری">
+                            <div class="customer-info">
+                                <h4>محمد رضایی</h4>
+                                <p>۱۵ سفارش • ۷,۵۰۰,۰۰۰ تومان</p>
+                            </div>
+                            <div class="customer-badge">
+                                <i class="fas fa-crown"></i>
+                                <span>Premium</span>
+                            </div>
+                        </div>
+                        <div class="customer-item">
+                            <img src="https://i.pravatar.cc/150?img=51" alt="مشتری">
+                            <div class="customer-info">
+                                <h4>زهرا کریمی</h4>
+                                <p>۶ سفارش • ۲,۹۰۰,۰۰۰ تومان</p>
+                            </div>
+                            <div class="customer-badge">
+                                <i class="fas fa-star"></i>
+                                <span>VIP</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2>اعلان‌ها</h2>
+                        <span class="notification-count">۵</span>
+                    </div>
+                    <div class="notifications-list">
+                        <div class="notification-item unread">
+                            <div class="notification-icon blue">
+                                <i class="fas fa-bell"></i>
+                            </div>
+                            <div class="notification-info">
+                                <h4>سفارش جدید</h4>
+                                <p>سفارش شماره #۱۲۳۴۵ ثبت شد</p>
+                                <span class="notification-time">الان</span>
+                            </div>
+                        </div>
+                        <div class="notification-item unread">
+                            <div class="notification-icon green">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="notification-info">
+                                <h4>پرداخت موفق</h4>
+                                <p>پرداخت سفارش #۱۲۳۴۴ تکمیل شد</p>
+                                <span class="notification-time">۵ دقیقه پیش</span>
+                            </div>
+                        </div>
+                        <div class="notification-item">
+                            <div class="notification-icon orange">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="notification-info">
+                                <h4>موجودی کم</h4>
+                                <p>محصول لپ تاپ ایسوس موجودی کمی دارد</p>
+                                <span class="notification-time">۱ ساعت پیش</span>
+                            </div>
+                        </div>
+                        <div class="notification-item">
+                            <div class="notification-icon purple">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="notification-info">
+                                <h4>کاربر جدید</h4>
+                                <p>کاربر جدید در سیستم ثبت نام کرد</p>
+                                <span class="notification-time">۲ ساعت پیش</span>
+                            </div>
+                        </div>
+                        <div class="notification-item">
+                            <div class="notification-icon blue">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div class="notification-info">
+                                <h4>پیام جدید</h4>
+                                <p>پیام جدید از مشتری دریافت شد</p>
+                                <span class="notification-time">۳ ساعت پیش</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Revenue Summary -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2>خلاصه درآمد</h2>
+                        <button class="btn-secondary">جزئیات</button>
+                    </div>
+                    <div class="revenue-summary">
+                        <div class="revenue-item">
+                            <div class="revenue-label">امروز</div>
+                            <div class="revenue-value">۱۲,۵۰۰,۰۰۰ تومان</div>
+                            <div class="revenue-change positive">
+                                <i class="fas fa-arrow-up"></i> ۱۵٪
+                            </div>
+                        </div>
+                        <div class="revenue-item">
+                            <div class="revenue-label">این هفته</div>
+                            <div class="revenue-value">۸۵,۳۰۰,۰۰۰ تومان</div>
+                            <div class="revenue-change positive">
+                                <i class="fas fa-arrow-up"></i> ۲۲٪
+                            </div>
+                        </div>
+                        <div class="revenue-item">
+                            <div class="revenue-label">این ماه</div>
+                            <div class="revenue-value">۳۲۰,۱۵۰,۰۰۰ تومان</div>
+                            <div class="revenue-change positive">
+                                <i class="fas fa-arrow-up"></i> ۱۸٪
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Overlay for mobile -->
+    <div class="overlay" id="overlay"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+

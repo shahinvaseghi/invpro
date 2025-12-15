@@ -807,36 +807,120 @@
           });
         });
 
-        // Top menu dropdowns
+        // Top menu dropdowns and mega menus
         const menuButtons = document.querySelectorAll('.top-menu-btn');
         const dropdowns = document.querySelectorAll('.dropdown-menu');
+        const megaMenus = document.querySelectorAll('.mega-menu');
         
         menuButtons.forEach(btn => {
-          btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const menuId = this.getAttribute('data-menu');
-            const dropdown = document.getElementById(`menu-${menuId}`);
+          const menuId = btn.getAttribute('data-menu');
+          const dropdown = document.getElementById(`menu-${menuId}`);
+          const isMegaMenu = dropdown && dropdown.classList.contains('mega-menu');
+          
+          if (isMegaMenu) {
+            // Mega menu: hover and click for desktop, click for mobile
+            const menuItem = btn.closest('.top-menu-item');
             
-            // Close other dropdowns
-            dropdowns.forEach(d => {
-              if (d !== dropdown) {
-                d.classList.remove('open');
-              }
-            });
-            
-            // Toggle current dropdown
-            if (dropdown) {
+            // Click handler for both desktop and mobile
+            btn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              
+              // Close other menus
+              megaMenus.forEach(m => {
+                if (m !== dropdown) {
+                  m.classList.remove('open');
+                  m.setAttribute('data-click-opened', 'false');
+                }
+              });
+              dropdowns.forEach(d => {
+                if (d !== dropdown) {
+                  d.classList.remove('open');
+                }
+              });
+              
               const isOpening = !dropdown.classList.contains('open');
               dropdown.classList.toggle('open');
               
-              // Toggle button active state
+              // Mark if opened by click
               if (isOpening) {
-                this.classList.add('active');
+                dropdown.setAttribute('data-click-opened', 'true');
+                btn.classList.add('active');
               } else {
-                this.classList.remove('active');
+                dropdown.setAttribute('data-click-opened', 'false');
+                btn.classList.remove('active');
               }
+            });
+            
+            // Desktop: hover to show (but don't close if opened by click)
+            if (window.innerWidth > 768) {
+              menuItem.addEventListener('mouseenter', function() {
+                const clickOpened = dropdown.getAttribute('data-click-opened') === 'true';
+                if (!clickOpened) {
+                  // Close other menus
+                  megaMenus.forEach(m => {
+                    if (m !== dropdown) {
+                      m.classList.remove('open');
+                      m.setAttribute('data-click-opened', 'false');
+                    }
+                  });
+                  dropdowns.forEach(d => {
+                    if (d !== dropdown) {
+                      d.classList.remove('open');
+                    }
+                  });
+                  
+                  dropdown.classList.add('open');
+                  btn.classList.add('active');
+                }
+              });
+              
+              menuItem.addEventListener('mouseleave', function(e) {
+                const clickOpened = dropdown.getAttribute('data-click-opened') === 'true';
+                // Don't close if mouse is moving to mega menu or if opened by click
+                if (!clickOpened && !dropdown.contains(e.relatedTarget)) {
+                  dropdown.classList.remove('open');
+                  btn.classList.remove('active');
+                }
+              });
+              
+              dropdown.addEventListener('mouseleave', function(e) {
+                const clickOpened = dropdown.getAttribute('data-click-opened') === 'true';
+                // Close when leaving mega menu (but not if opened by click)
+                if (!clickOpened && !menuItem.contains(e.relatedTarget)) {
+                  dropdown.classList.remove('open');
+                  btn.classList.remove('active');
+                }
+              });
             }
-          });
+          } else {
+            // Regular dropdown: click to toggle
+            btn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              
+              // Close other dropdowns and mega menus
+              dropdowns.forEach(d => {
+                if (d !== dropdown) {
+                  d.classList.remove('open');
+                }
+              });
+              megaMenus.forEach(m => {
+                m.classList.remove('open');
+              });
+              
+              // Toggle current dropdown
+              if (dropdown) {
+                const isOpening = !dropdown.classList.contains('open');
+                dropdown.classList.toggle('open');
+                
+                // Toggle button active state
+                if (isOpening) {
+                  this.classList.add('active');
+                } else {
+                  this.classList.remove('active');
+                }
+              }
+            });
+          }
         });
         
         // Prevent dropdown-item-sub clicks from closing dropdowns
@@ -848,29 +932,131 @@
             e.stopImmediatePropagation();
           });
         });
+        
+        // Handle window resize for mega menus
+        window.addEventListener('resize', function() {
+          if (window.innerWidth > 768) {
+            // Desktop: close all mega menus opened by click
+            megaMenus.forEach(menu => {
+              menu.classList.remove('open');
+            });
+          } else {
+            // Mobile: ensure hover events don't interfere
+            megaMenus.forEach(menu => {
+              // Keep open state if it was opened by click
+            });
+          }
+        });
+        
+        // Add hover effects to mega menu items (desktop only)
+        document.querySelectorAll('.mega-menu-section ul li a').forEach(item => {
+          item.addEventListener('mouseenter', function() {
+            if (window.innerWidth > 768) {
+              this.style.transform = 'translateX(5px)';
+              if (document.dir === 'rtl') {
+                this.style.transform = 'translateX(-5px)';
+              }
+            }
+          });
+          
+          item.addEventListener('mouseleave', function() {
+            if (window.innerWidth > 768) {
+              this.style.transform = 'none';
+            }
+          });
+        });
+        
+        // Handle mega menu section toggle
+        document.querySelectorAll('.mega-menu-section-toggle').forEach(toggle => {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const sectionId = this.getAttribute('data-section');
+            const section = this.closest('.mega-menu-section');
+            const sectionContent = document.getElementById(sectionId);
+            
+            if (!section || !sectionContent) return;
+            
+            const isCollapsed = section.classList.contains('collapsed');
+            
+            // Toggle section
+            if (isCollapsed) {
+              section.classList.remove('collapsed');
+            } else {
+              section.classList.add('collapsed');
+            }
+          });
+        });
+        
+        // Handle mega menu submenu toggle
+        document.querySelectorAll('.mega-menu-toggle').forEach(toggle => {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const submenuId = this.getAttribute('data-submenu');
+            const submenuItem = this.closest('.mega-menu-submenu-item');
+            const submenu = document.getElementById(submenuId);
+            
+            if (!submenu || !submenuItem) return;
+            
+            const isActive = submenuItem.classList.contains('active');
+            
+            // Close all other submenus in the same section
+            const section = submenuItem.closest('.mega-menu-section');
+            if (section) {
+              section.querySelectorAll('.mega-menu-submenu-item').forEach(item => {
+                if (item !== submenuItem) {
+                  item.classList.remove('active');
+                }
+              });
+            }
+            
+            // Toggle current submenu
+            if (isActive) {
+              submenuItem.classList.remove('active');
+            } else {
+              submenuItem.classList.add('active');
+            }
+          });
+        });
 
-        // Close dropdowns when clicking outside
+        // Close dropdowns and mega menus when clicking outside
         // This runs in bubble phase (AFTER capture phase handlers)
         document.addEventListener('click', function(e) {
-          // Don't close if clicking on ANY dropdown element
+          // Don't close if clicking on ANY dropdown or mega menu element
           // Check thoroughly - including nested elements and buttons
           const clickedOnDropdown = e.target.closest('.dropdown-toggle') || 
                                     e.target.closest('.dropdown-menu-sub') || 
                                     e.target.closest('.dropdown-item-sub') ||
                                     e.target.closest('.dropdown-submenu') ||
                                     e.target.closest('.dropdown-menu') ||
+                                    e.target.closest('.mega-menu') ||
+                                    e.target.closest('.mega-menu-section') ||
+                                    e.target.closest('.mega-menu-toggle') ||
+                                    e.target.closest('.mega-menu-submenu') ||
                                     e.target.closest('.top-menu-item') ||
                                     e.target.closest('.dropdown-item') ||
                                     e.target.closest('button[data-submenu]') ||
                                     e.target.closest('.top-menu-btn');
           
           if (clickedOnDropdown) {
-            return; // Don't close dropdown
+            return; // Don't close dropdown/mega menu
           }
           
           // Only close if we're really outside
           dropdowns.forEach(d => {
             d.classList.remove('open');
+          });
+          megaMenus.forEach(m => {
+            m.classList.remove('open');
+            m.setAttribute('data-click-opened', 'false');
+          });
+          
+          // Remove active state from buttons
+          menuButtons.forEach(btn => {
+            btn.classList.remove('active');
           });
         }); // Bubble phase - runs AFTER capture phase
 
