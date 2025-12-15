@@ -121,7 +121,6 @@ class TafsiliAccountListView(BaseListView):
             {'label': _('کد تفصیلی'), 'field': 'account_code', 'type': 'code'},
             {'label': _('نام تفصیلی'), 'field': 'account_name'},
             {'label': _('حساب‌های معین مرتبط'), 'field': 'sub_accounts_display', 'type': 'custom'},
-            {'label': _('طرف تراز'), 'field': 'normal_balance'},
             {'label': _('مانده جاری'), 'field': 'current_balance'},
             {'label': _('وضعیت'), 'field': 'is_enabled', 'type': 'badge',
              'true_label': _('فعال'), 'false_label': _('غیرفعال')},
@@ -295,10 +294,6 @@ class TafsiliAccountDetailView(BaseDetailView):
                 'label': _('Parent Account'),
                 'value': f"{account.parent_account.account_code} - {account.parent_account.account_name}",
             })
-        basic_fields.append({
-            'label': _('Normal Balance'),
-            'value': account.get_normal_balance_display() or account.normal_balance,
-        })
         if account.description:
             basic_fields.append({'label': _('Description'), 'value': account.description})
         

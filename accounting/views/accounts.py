@@ -54,11 +54,7 @@ class AccountListView(BaseListView):
         """Filter accounts by active company and search/filter criteria."""
         queryset = super().get_queryset()
         
-        account_type: str = self.request.GET.get('account_type', '')
         account_level: str = self.request.GET.get('account_level', '')
-        
-        if account_type:
-            queryset = queryset.filter(account_type=account_type)
         
         if account_level:
             queryset = queryset.filter(account_level=int(account_level))
@@ -115,10 +111,8 @@ class AccountListView(BaseListView):
         context['table_headers'] = [
             {'label': _('CODE'), 'field': 'account_code', 'type': 'code'},
             {'label': _('Account Name'), 'field': 'account_name'},
-            {'label': _('Type'), 'field': 'account_type'},
             {'label': _('Level'), 'field': 'account_level'},
             {'label': _('Parent'), 'field': 'parent_account.account_code'},
-            {'label': _('Normal Balance'), 'field': 'normal_balance'},
             {'label': _('Current Balance'), 'field': 'current_balance'},
             {'label': _('Status'), 'field': 'is_enabled', 'type': 'badge',
              'true_label': _('Active'), 'false_label': _('Inactive')},
@@ -261,14 +255,6 @@ class AccountDetailView(BaseDetailView):
         ]
         if account.account_name_en:
             basic_fields.append({'label': _('Account Name (EN)'), 'value': account.account_name_en})
-        basic_fields.append({
-            'label': _('Account Type'),
-            'value': account.get_account_type_display() or account.account_type,
-        })
-        basic_fields.append({
-            'label': _('Normal Balance'),
-            'value': account.get_normal_balance_display() or account.normal_balance,
-        })
         if account.parent_account:
             basic_fields.append({
                 'label': _('Parent Account'),
@@ -351,7 +337,6 @@ class AccountDeleteView(BaseDeleteView):
         return [
             {'label': _('Code'), 'value': self.object.account_code, 'type': 'code'},
             {'label': _('Name'), 'value': self.object.account_name},
-            {'label': _('Type'), 'value': self.object.get_account_type_display()},
             {'label': _('Level'), 'value': self.object.get_account_level_display()},
         ]
     

@@ -570,6 +570,12 @@
           {% if user_feature_permissions|feature_allowed:'accounting.warehouse.income' or request.user.is_superuser %}
             <a href="{% url 'accounting:warehouse_income' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "سند درآمد انبار" %}</a>
           {% endif %}
+          {% if user_feature_permissions|feature_allowed:'accounting.warehouse.opening_closing' or request.user.is_superuser %}
+            <a href="{% url 'accounting:warehouse_opening_closing' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "افتتاحیه و اختتامیه" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'accounting.warehouse.settings' or request.user.is_superuser %}
+            <a href="{% url 'accounting:warehouse_settings' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "تنظیمات حسابداری انبار" %}</a>
+          {% endif %}
         </div>
       </div>
 
@@ -604,7 +610,7 @@
     </button>
     <div class="section-content" id="sales">
       <a href="{% url 'sales:dashboard' %}" class="nav-link">{% trans "Dashboard" %}</a>
-      <a href="{% url 'sales:invoice_create' %}" class="nav-link">{% trans "Create Sales Invoice" %}</a>
+      <a href="{% url 'sales:invoice_create' %}" class="nav-link">صدور فاکتور</a>
     </div>
   </div>
 

@@ -49,7 +49,9 @@ class Account(AccountingSortableModel):
     account_type = models.CharField(
         max_length=30,
         choices=ACCOUNT_TYPE_CHOICES,
-        help_text=_("نوع حساب"),
+        null=True,
+        blank=True,
+        help_text=_("نوع حساب (در سند حسابداری تعریف می‌شود)"),
     )
     account_level = models.PositiveSmallIntegerField(
         choices=ACCOUNT_LEVEL_CHOICES,
@@ -66,7 +68,9 @@ class Account(AccountingSortableModel):
     normal_balance = models.CharField(
         max_length=10,
         choices=NORMAL_BALANCE_CHOICES,
-        help_text=_("طرف تراز مورد انتظار"),
+        null=True,
+        blank=True,
+        help_text=_("طرف تراز مورد انتظار (در سند حسابداری تعریف می‌شود)"),
     )
     is_system_account = models.PositiveSmallIntegerField(
         choices=ENABLED_FLAG_CHOICES,
@@ -113,14 +117,6 @@ class Account(AccountingSortableModel):
                 raise ValidationError(_("Parent account must belong to the same company."))
             if self.parent_account.account_level >= self.account_level:
                 raise ValidationError(_("Parent account level must be less than child account level."))
-        
-        # Validate normal balance based on account type
-        if self.account_type in ['ASSET', 'EXPENSE']:
-            if self.normal_balance != 'DEBIT':
-                raise ValidationError(_("Assets and Expenses must have DEBIT normal balance."))
-        elif self.account_type in ['LIABILITY', 'EQUITY', 'REVENUE']:
-            if self.normal_balance != 'CREDIT':
-                raise ValidationError(_("Liabilities, Equity, and Revenue must have CREDIT normal balance."))
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -178,8 +174,6 @@ class SubAccountGLAccountRelation(AccountingBaseModel):
             raise ValidationError(_("GL account must be level 1 (کل)."))
         if self.sub_account.company_id != self.gl_account.company_id:
             raise ValidationError(_("Both accounts must belong to the same company."))
-        if self.sub_account.account_type != self.gl_account.account_type:
-            raise ValidationError(_("Sub account and GL account must have the same account type."))
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -237,8 +231,6 @@ class TafsiliSubAccountRelation(AccountingBaseModel):
             raise ValidationError(_("Sub account must be level 2 (معین)."))
         if self.tafsili_account.company_id != self.sub_account.company_id:
             raise ValidationError(_("Both accounts must belong to the same company."))
-        if self.tafsili_account.account_type != self.sub_account.account_type:
-            raise ValidationError(_("Tafsili account and Sub account must have the same account type."))
 
     def save(self, *args, **kwargs):
         self.clean()

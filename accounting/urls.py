@@ -200,4 +200,6 @@ urlpatterns = [
     path('warehouse/expense/api/receipts/', views_module.WarehouseExpenseReceiptsAPIView.as_view(), name='warehouse_expense_api_receipts'),
     path('warehouse/expense/api/receipt-lines/', views_module.WarehouseExpenseReceiptLinesAPIView.as_view(), name='warehouse_expense_api_receipt_lines'),
     path('warehouse/income/', views_module.WarehouseIncomeView.as_view(), name='warehouse_income'),
+    path('warehouse/opening-closing/', views_module.WarehouseOpeningClosingView.as_view(), name='warehouse_opening_closing'),
+    path('warehouse/settings/', views_module.WarehouseSettingsView.as_view(), name='warehouse_settings'),
 ]

@@ -16,8 +16,6 @@ class GLAccountForm(forms.ModelForm):
             'account_code',
             'account_name',
             'account_name_en',
-            'account_type',
-            'normal_balance',
             'opening_balance',
             'description',
             'is_enabled',
@@ -26,8 +24,6 @@ class GLAccountForm(forms.ModelForm):
             'account_code': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '20', 'placeholder': 'مثال: 1 یا 10'}),
             'account_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'مثال: دارایی'}),
             'account_name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'account_type': forms.Select(attrs={'class': 'form-control'}),
-            'normal_balance': forms.Select(attrs={'class': 'form-control'}),
             'opening_balance': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'is_enabled': forms.Select(attrs={'class': 'form-control'}),
@@ -36,8 +32,6 @@ class GLAccountForm(forms.ModelForm):
             'account_code': _('کد کل'),
             'account_name': _('نام کل'),
             'account_name_en': _('نام کل (انگلیسی)'),
-            'account_type': _('نوع حساب'),
-            'normal_balance': _('طرف تراز'),
             'opening_balance': _('مانده ابتدای دوره'),
             'description': _('شرح'),
             'is_enabled': _('وضعیت'),
@@ -67,18 +61,7 @@ class GLAccountForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
-        account_type = cleaned_data.get('account_type')
-        normal_balance = cleaned_data.get('normal_balance')
         account_code = cleaned_data.get('account_code')
-        
-        # Validate normal balance based on account type
-        if account_type and normal_balance:
-            if account_type in ['ASSET', 'EXPENSE']:
-                if normal_balance != 'DEBIT':
-                    raise forms.ValidationError(_('دارایی‌ها و هزینه‌ها باید طرف تراز بدهکار داشته باشند.'))
-            elif account_type in ['LIABILITY', 'EQUITY', 'REVENUE']:
-                if normal_balance != 'CREDIT':
-                    raise forms.ValidationError(_('بدهی‌ها، حقوق صاحبان سهام و درآمد باید طرف تراز بستانکار داشته باشند.'))
         
         # Validate unique code within company
         if account_code and self.company_id:

@@ -1310,3 +1310,29 @@ class WarehouseIncomeView(FeaturePermissionRequiredMixin, TemplateView):
         return context
 
 
+class WarehouseOpeningClosingView(FeaturePermissionRequiredMixin, TemplateView):
+    """Warehouse opening and closing entries view."""
+    template_name = 'accounting/warehouse/opening_closing.html'
+    feature_code = 'accounting.warehouse.opening_closing'
+    required_action = 'view'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'accounting'
+        context['page_title'] = 'افتتاحیه و اختتامیه'
+        return context
+
+
+class WarehouseSettingsView(FeaturePermissionRequiredMixin, TemplateView):
+    """Warehouse accounting settings view."""
+    template_name = 'accounting/warehouse/settings.html'
+    feature_code = 'accounting.warehouse.settings'
+    required_action = 'view'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'accounting'
+        context['page_title'] = 'تنظیمات حسابداری انبار'
+        return context
+
+

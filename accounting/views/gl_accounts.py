@@ -54,12 +54,6 @@ class GLAccountListView(BaseListView):
     def get_queryset(self):
         """Filter GL accounts by active company and search/filter criteria."""
         queryset = super().get_queryset()
-        
-        account_type: str = self.request.GET.get('account_type', '')
-        
-        if account_type:
-            queryset = queryset.filter(account_type=account_type)
-        
         return queryset
     
     def get_page_title(self) -> str:
@@ -112,8 +106,6 @@ class GLAccountListView(BaseListView):
         context['table_headers'] = [
             {'label': _('کد کل'), 'field': 'account_code', 'type': 'code'},
             {'label': _('نام کل'), 'field': 'account_name'},
-            {'label': _('نوع حساب'), 'field': 'account_type'},
-            {'label': _('طرف تراز'), 'field': 'normal_balance'},
             {'label': _('مانده جاری'), 'field': 'current_balance'},
             {'label': _('وضعیت'), 'field': 'is_enabled', 'type': 'badge',
              'true_label': _('فعال'), 'false_label': _('غیرفعال')},
@@ -256,14 +248,6 @@ class GLAccountDetailView(BaseDetailView):
         ]
         if account.account_name_en:
             basic_fields.append({'label': _('Account Name (EN)'), 'value': account.account_name_en})
-        basic_fields.append({
-            'label': _('Account Type'),
-            'value': account.get_account_type_display() or account.account_type,
-        })
-        basic_fields.append({
-            'label': _('Normal Balance'),
-            'value': account.get_normal_balance_display() or account.normal_balance,
-        })
         if account.description:
             basic_fields.append({'label': _('Description'), 'value': account.description})
         
@@ -345,7 +329,6 @@ class GLAccountDeleteView(BaseDeleteView):
         return [
             {'label': _('کد کل'), 'value': self.object.account_code, 'type': 'code'},
             {'label': _('نام کل'), 'value': self.object.account_name},
-            {'label': _('نوع حساب'), 'value': self.object.get_account_type_display()},
         ]
     
     def get_breadcrumbs(self) -> list:

@@ -5845,6 +5845,9 @@ msgstr ""
 msgid "Create Sales Invoice"
 msgstr "صدور فاکتور فروش"
 
+msgid "صدور فاکتور"
+msgstr "صدور فاکتور"
+
 msgid "Delete Access Level"
 msgstr "حذف سطح دسترسی"
 

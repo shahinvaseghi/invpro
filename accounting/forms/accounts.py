@@ -16,10 +16,8 @@ class AccountForm(forms.ModelForm):
             'account_code',
             'account_name',
             'account_name_en',
-            'account_type',
             'account_level',
             'parent_account',
-            'normal_balance',
             'opening_balance',
             'description',
             'is_enabled',
@@ -28,10 +26,8 @@ class AccountForm(forms.ModelForm):
             'account_code': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '20'}),
             'account_name': forms.TextInput(attrs={'class': 'form-control'}),
             'account_name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'account_type': forms.Select(attrs={'class': 'form-control'}),
             'account_level': forms.Select(attrs={'class': 'form-control'}),
             'parent_account': forms.Select(attrs={'class': 'form-control'}),
-            'normal_balance': forms.Select(attrs={'class': 'form-control'}),
             'opening_balance': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'is_enabled': forms.Select(attrs={'class': 'form-control'}),
@@ -40,10 +36,8 @@ class AccountForm(forms.ModelForm):
             'account_code': _('کد حساب'),
             'account_name': _('نام حساب'),
             'account_name_en': _('نام حساب (انگلیسی)'),
-            'account_type': _('نوع حساب'),
             'account_level': _('سطح حساب'),
             'parent_account': _('حساب والد'),
-            'normal_balance': _('طرف تراز'),
             'opening_balance': _('مانده ابتدای دوره'),
             'description': _('توضیحات'),
             'is_enabled': _('وضعیت'),
@@ -77,19 +71,8 @@ class AccountForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
-        account_type = cleaned_data.get('account_type')
-        normal_balance = cleaned_data.get('normal_balance')
         parent_account = cleaned_data.get('parent_account')
         account_level = cleaned_data.get('account_level')
-        
-        # Validate normal balance based on account type
-        if account_type and normal_balance:
-            if account_type in ['ASSET', 'EXPENSE']:
-                if normal_balance != 'DEBIT':
-                    raise forms.ValidationError(_('دارایی‌ها و هزینه‌ها باید طرف تراز بدهکار داشته باشند.'))
-            elif account_type in ['LIABILITY', 'EQUITY', 'REVENUE']:
-                if normal_balance != 'CREDIT':
-                    raise forms.ValidationError(_('بدهی‌ها، حقوق صاحبان سهام و درآمد باید طرف تراز بستانکار داشته باشند.'))
         
         # Validate parent account
         if parent_account:
