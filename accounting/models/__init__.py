@@ -49,6 +49,13 @@ from .parties import Party, PartyAccount
 # Treasury Accounts
 from .treasury_accounts import TreasuryAccount
 
+# Warehouse Accounting
+from .warehouse import (
+    WarehouseExpenseDocument,
+    WarehouseExpenseDocumentLine,
+    WarehouseIncomeDocument,
+)
+
 # Export all models for backward compatibility
 __all__ = [
     # Base
@@ -83,5 +90,9 @@ __all__ = [
     'PartyAccount',
     # Treasury Accounts
     'TreasuryAccount',
+    # Warehouse Accounting
+    'WarehouseExpenseDocument',
+    'WarehouseExpenseDocumentLine',
+    'WarehouseIncomeDocument',
 ]
 

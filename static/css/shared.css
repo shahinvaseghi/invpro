@@ -2286,3 +2286,122 @@ td code {
   margin-top: 1rem;
 }
 
+/* ====================================================================
+   Tab Navigation Styles
+   ==================================================================== */
+
+.tab-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.tab-button {
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  color: #374151;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.tab-button:hover {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+}
+
+.tab-button.active {
+  background: #3b82f6;
+  color: white;
+  border-bottom-color: #3b82f6;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.card-header h2 {
+  margin: 0;
+}
+
+.card-body {
+  padding: 1rem;
+}
+
+.receipt-section {
+  margin-bottom: 1rem;
+}
+
+.receipt-section h3 {
+  margin-bottom: 1rem;
+  color: #374151;
+}
+
+.collapsible-section {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.receipt-section-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: #f9fafb;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  text-align: right;
+  transition: background-color 0.2s ease;
+}
+
+.receipt-section-header:hover {
+  background: #f3f4f6;
+}
+
+.receipt-section-header .section-toggle-icon {
+  transition: transform 0.3s ease;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.receipt-section-header.active .section-toggle-icon {
+  transform: rotate(180deg);
+}
+
+.receipt-section-content {
+  display: none;
+  padding: 1rem 1.25rem;
+  background: white;
+}
+
+.receipt-section-content.active {
+  display: block;
+}
+
+.empty-state {
+  padding: 3rem;
+  text-align: center;
+  color: #6b7280;
+}
+

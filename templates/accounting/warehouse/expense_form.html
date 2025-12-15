@@ -1,0 +1,417 @@
+{% extends "shared/generic/generic_form.html" %}
+{% load i18n %}
+{% load jalali_tags %}
+{% load static %}
+
+{% block form_title %}
+{% if receipt %}
+    {% trans "ایجاد سند هزینه از رسید" %}: {{ receipt.document_code }}
+{% else %}
+    {% trans "ایجاد سند هزینه انبار" %}
+{% endif %}
+{% endblock %}
+
+{% block form_sections %}
+<div class="form-section">
+    <h3>{% trans "اطلاعات رسید" %}</h3>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="id_receipt_type">{% trans "نوع رسید" %}</label>
+                {{ form.receipt_type }}
+                {{ form.receipt_type.errors }}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="id_receipt_id">{% trans "انتخاب رسید" %}</label>
+                {{ form.receipt_id }}
+                {{ form.receipt_id.errors }}
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="id_receipt_code">{% trans "کد رسید" %}</label>
+                {{ form.receipt_code }}
+                {{ form.receipt_code.errors }}
+            </div>
+        </div>
+    </div>
+    {% if receipt %}
+    <div class="info-banner" style="margin-top: 1rem; padding: 0.75rem; background: #e0f2fe; border: 1px solid #0ea5e9; border-radius: 4px;">
+        <strong>{% trans "رسید انتخاب شده" %}:</strong> {{ receipt.document_code }} - 
+        {% if receipt.document_date %}
+            {{ receipt.document_date|jalali_date }}
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<div class="form-section">
+    <h3>{% trans "اطلاعات سند هزینه" %}</h3>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="id_document_date">{% trans "تاریخ سند" %}</label>
+                {{ form.document_date }}
+                {{ form.document_date.errors }}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="id_status">{% trans "وضعیت" %}</label>
+                {{ form.status }}
+                {{ form.status.errors }}
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label for="id_description">{% trans "توضیحات" %}</label>
+                {{ form.description }}
+                {{ form.description.errors }}
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="id_total_amount">{% trans "مبلغ کل" %}</label>
+                {{ form.total_amount }}
+                {{ form.total_amount.errors }}
+                <small class="form-text text-muted">{% trans "به صورت خودکار از مجموع قیمت خطوط محاسبه می‌شود" %}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="form-section" id="receipt-lines-section" style="display: none;">
+    <h3>{% trans "جزئیات رسید" %}</h3>
+    <p class="form-text">{% trans "لطفاً برای هر خط رسید قیمت واحد را وارد کنید" %}</p>
+    
+    {{ formset.management_form }}
+    {% for hidden in formset.hidden_fields %}{{ hidden }}{% endfor %}
+    
+    <div class="table-responsive">
+        <table class="table table-bordered" id="expense-lines-table">
+            <thead>
+                <tr>
+                    <th>{% trans "کد کالا" %}</th>
+                    <th>{% trans "نام کالا" %}</th>
+                    <th>{% trans "انبار" %}</th>
+                    <th>{% trans "واحد" %}</th>
+                    <th>{% trans "مقدار" %}</th>
+                    <th>{% trans "قیمت واحد" %} *</th>
+                    <th>{% trans "واحد اصلی" %}</th>
+                    <th>{% trans "قیمت واحد اصلی" %}</th>
+                    <th>{% trans "قیمت کل" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for line_form in formset %}
+                <tr>
+                    <td>
+                        {{ line_form.item }}
+                        {{ line_form.item_code }}
+                        {% if line_form.item_code.errors %}
+                            <span class="text-danger">{{ line_form.item_code.errors.0 }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if line_form.item.value %}
+                            {% for line in receipt_lines %}
+                                {% if line.item.id == line_form.item.value %}
+                                    {{ line.item.name }}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ line_form.warehouse }}
+                        {{ line_form.warehouse_code }}
+                        {% if line_form.warehouse_code.errors %}
+                            <span class="text-danger">{{ line_form.warehouse_code.errors.0 }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ line_form.unit }}
+                        {% if line_form.unit.errors %}
+                            <span class="text-danger">{{ line_form.unit.errors.0 }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ line_form.quantity }}
+                        {% if line_form.quantity.errors %}
+                            <span class="text-danger">{{ line_form.quantity.errors.0 }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ line_form.unit_price }}
+                        {% if line_form.unit_price.errors %}
+                            <span class="text-danger">{{ line_form.unit_price.errors.0 }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ line_form.base_unit }}
+                        {% if line_form.base_unit.errors %}
+                            <span class="text-danger">{{ line_form.base_unit.errors.0 }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ line_form.base_unit_price }}
+                        {% if line_form.base_unit_price.errors %}
+                            <span class="text-danger">{{ line_form.base_unit_price.errors.0 }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ line_form.total_price }}
+                        {% if line_form.total_price.errors %}
+                            <span class="text-danger">{{ line_form.total_price.errors.0 }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% if line_form.non_field_errors %}
+                <tr>
+                    <td colspan="9" class="text-danger">
+                        {{ line_form.non_field_errors }}
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if formset.non_form_errors %}
+    <div class="alert alert-danger">
+        {{ formset.non_form_errors }}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const receiptTypeSelect = document.getElementById('id_receipt_type');
+    const receiptIdSelect = document.getElementById('id_receipt_id');
+    const receiptCodeInput = document.getElementById('id_receipt_code');
+    const receiptLinesSection = document.getElementById('receipt-lines-section');
+    
+    // Load receipts when receipt type changes
+    if (receiptTypeSelect) {
+        receiptTypeSelect.addEventListener('change', function() {
+            const receiptType = this.value;
+            
+            // Clear receipt selection
+            if (receiptIdSelect) {
+                receiptIdSelect.innerHTML = '<option value="">--- انتخاب کنید ---</option>';
+                receiptIdSelect.disabled = !receiptType;
+            }
+            if (receiptCodeInput) {
+                receiptCodeInput.value = '';
+            }
+            
+            // Hide receipt lines section
+            if (receiptLinesSection) {
+                receiptLinesSection.style.display = 'none';
+            }
+            
+            if (!receiptType) {
+                return;
+            }
+            
+            // Load receipts list
+            fetch(`{% url 'accounting:warehouse_expense_api_receipts' %}?receipt_type=${receiptType}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (receiptIdSelect && data.receipts) {
+                        receiptIdSelect.innerHTML = '<option value="">--- انتخاب کنید ---</option>';
+                        data.receipts.forEach(receipt => {
+                            const option = document.createElement('option');
+                            option.value = receipt.id;
+                            option.textContent = `${receipt.code} - ${receipt.date}`;
+                            receiptIdSelect.appendChild(option);
+                        });
+                        receiptIdSelect.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading receipts:', error);
+                });
+        });
+    }
+    
+    // Load receipt lines when receipt is selected
+    if (receiptIdSelect) {
+        receiptIdSelect.addEventListener('change', function() {
+            const receiptId = this.value;
+            const receiptType = receiptTypeSelect ? receiptTypeSelect.value : '';
+            
+            if (!receiptId || !receiptType) {
+                if (receiptCodeInput) {
+                    receiptCodeInput.value = '';
+                }
+                if (receiptLinesSection) {
+                    receiptLinesSection.style.display = 'none';
+                }
+                return;
+            }
+            
+            // Update receipt code
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption && receiptCodeInput) {
+                const receiptCode = selectedOption.textContent.split(' - ')[0];
+                receiptCodeInput.value = receiptCode;
+            }
+            
+            // Load receipt lines
+            fetch(`{% url 'accounting:warehouse_expense_api_receipt_lines' %}?receipt_type=${receiptType}&receipt_id=${receiptId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.lines && data.lines.length > 0) {
+                        // Populate formset
+                        populateFormset(data.lines);
+                        
+                        // Show receipt lines section
+                        if (receiptLinesSection) {
+                            receiptLinesSection.style.display = 'block';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading receipt lines:', error);
+                });
+        });
+    }
+    
+    function populateFormset(lines) {
+        const formsetContainer = document.getElementById('expense-lines-table');
+        if (!formsetContainer) {
+            return;
+        }
+        
+        const tbody = formsetContainer.querySelector('tbody');
+        if (!tbody) {
+            return;
+        }
+        
+        // Clear existing rows (except first empty form if exists)
+        const existingRows = tbody.querySelectorAll('tr');
+        existingRows.forEach(row => row.remove());
+        
+        // Get formset management form
+        const totalFormsInput = document.querySelector('input[name="lines-TOTAL_FORMS"]');
+        if (!totalFormsInput) {
+            return;
+        }
+        
+        // Create rows for each line
+        lines.forEach((line, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <input type="hidden" name="lines-${index}-item" value="${line.item_id || ''}" />
+                    <input type="text" name="lines-${index}-item_code" value="${line.item_code || ''}" class="form-control" readonly />
+                </td>
+                <td>${line.item_name || ''}</td>
+                <td>
+                    <input type="hidden" name="lines-${index}-warehouse" value="${line.warehouse_id || ''}" />
+                    <input type="text" name="lines-${index}-warehouse_code" value="${line.warehouse_code || ''}" class="form-control" readonly />
+                </td>
+                <td>
+                    <input type="text" name="lines-${index}-unit" value="${line.unit || ''}" class="form-control" readonly />
+                </td>
+                <td>
+                    <input type="number" name="lines-${index}-quantity" value="${line.quantity || ''}" class="form-control" readonly step="0.000001" />
+                </td>
+                <td>
+                    <input type="number" name="lines-${index}-unit_price" value="" class="form-control" step="0.01" required />
+                </td>
+                <td>
+                    <input type="text" name="lines-${index}-base_unit" value="${line.base_unit || ''}" class="form-control" readonly />
+                </td>
+                <td>
+                    <input type="number" name="lines-${index}-base_unit_price" value="" class="form-control" readonly step="0.01" />
+                </td>
+                <td>
+                    <input type="number" name="lines-${index}-total_price" value="" class="form-control" readonly step="0.01" />
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+        
+        // Update TOTAL_FORMS
+        totalFormsInput.value = lines.length;
+        
+        // Re-attach event listeners
+        attachPriceCalculators();
+    }
+    
+    function attachPriceCalculators() {
+        // Auto-calculate base_unit_price and total_price when unit_price changes
+        const unitPriceInputs = document.querySelectorAll('input[name*="unit_price"]');
+        const quantityInputs = document.querySelectorAll('input[name*="quantity"]');
+        
+        function calculateLinePrice(input) {
+            const row = input.closest('tr');
+            const unitPriceInput = row.querySelector('input[name*="unit_price"]');
+            const quantityInput = row.querySelector('input[name*="quantity"]');
+            const baseUnitPriceInput = row.querySelector('input[name*="base_unit_price"]');
+            const totalPriceInput = row.querySelector('input[name*="total_price"]');
+            
+            if (unitPriceInput && quantityInput) {
+                const unitPrice = parseFloat(unitPriceInput.value) || 0;
+                const quantity = parseFloat(quantityInput.value) || 0;
+                const totalPrice = unitPrice * quantity;
+                
+                if (totalPriceInput) {
+                    totalPriceInput.value = totalPrice.toFixed(2);
+                }
+                
+                // Base unit price will be calculated on server side
+            }
+        }
+        
+        unitPriceInputs.forEach(input => {
+            input.removeEventListener('input', calculateLinePrice);
+            input.addEventListener('input', function() {
+                calculateLinePrice(this);
+                calculateTotalAmount();
+            });
+        });
+        
+        quantityInputs.forEach(input => {
+            input.removeEventListener('input', calculateLinePrice);
+            input.addEventListener('input', function() {
+                calculateLinePrice(this);
+                calculateTotalAmount();
+            });
+        });
+    }
+    
+    // Calculate total amount from all lines
+    function calculateTotalAmount() {
+        const totalPriceInputs = document.querySelectorAll('input[name*="total_price"]');
+        let total = 0;
+        
+        totalPriceInputs.forEach(input => {
+            const value = parseFloat(input.value) || 0;
+            total += value;
+        });
+        
+        const totalAmountInput = document.getElementById('id_total_amount');
+        if (totalAmountInput) {
+            totalAmountInput.value = total.toFixed(2);
+        }
+    }
+    
+    // Initial attachment for existing forms
+    attachPriceCalculators();
+});
+</script>
+{% endblock %}
+

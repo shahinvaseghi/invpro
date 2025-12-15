@@ -557,6 +557,22 @@
         </div>
       {% endif %}
 
+      <!-- حسابداری انبار (Warehouse Accounting) -->
+      <div class="nav-group">
+        <button type="button" class="nav-group-header" data-submenu="accounting-warehouse">
+          <span>{% trans "حسابداری انبار" %}</span>
+          <span class="nav-group-icon">▼</span>
+        </button>
+        <div class="nav-group-content" id="accounting-warehouse">
+          {% if user_feature_permissions|feature_allowed:'accounting.warehouse.expense' or request.user.is_superuser %}
+            <a href="{% url 'accounting:warehouse_expense' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "سند هزینه انبار" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'accounting.warehouse.income' or request.user.is_superuser %}
+            <a href="{% url 'accounting:warehouse_income' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "سند درآمد انبار" %}</a>
+          {% endif %}
+        </div>
+      </div>
+
       <!-- Settings -->
       {% if user_feature_permissions|feature_allowed:'accounting.settings' or user_feature_permissions|feature_allowed:'accounting.settings.treasury' or user_feature_permissions|feature_allowed:'accounting.settings.tax' or request.user.is_superuser %}
         <div class="nav-group">

@@ -1,13 +1,14 @@
 """
 Views for accounting module.
 """
-from django.views.generic import TemplateView, CreateView
+from django.views.generic import TemplateView, CreateView, View
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse, reverse_lazy, NoReverseMatch
 from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_http_methods
 from shared.mixins import FeaturePermissionRequiredMixin
+from shared.views.base import BaseCreateView, BaseFormsetCreateView
 from accounting.views.base import AccountingBaseView
 from accounting.models import CostCenter, IncomeExpenseCategory, Party, PartyAccount, TreasuryAccount
 from accounting.forms import CostCenterForm, IncomeExpenseCategoryForm, PartyForm, PartyAccountForm, TreasuryAccountForm
@@ -859,5 +860,423 @@ class SettingsTaxView(FeaturePermissionRequiredMixin, TemplateView):
     template_name = 'accounting/settings/tax.html'
     feature_code = 'accounting.settings.tax'
     required_action = 'view'
+
+
+# Warehouse Accounting (حسابداری انبار)
+class WarehouseExpenseView(FeaturePermissionRequiredMixin, TemplateView):
+    """Warehouse expense document view with tabs for documents and receipts."""
+    template_name = 'accounting/warehouse/expense.html'
+    feature_code = 'accounting.warehouse.expense'
+    required_action = 'view'
+
+    def get_context_data(self, **kwargs):
+        from .models import WarehouseExpenseDocument
+        from inventory.models import ReceiptPermanent, ReceiptTemporary, ReceiptConsignment
+        
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'accounting'
+        context['page_title'] = 'سند هزینه انبار'
+        
+        # Get active tab from query parameter (default: 'documents')
+        active_tab = self.request.GET.get('tab', 'documents')
+        context['active_tab'] = active_tab
+        
+        company_id = self.request.session.get('active_company_id')
+        
+        # Get warehouse expense documents
+        expense_documents = WarehouseExpenseDocument.objects.filter(
+            company_id=company_id
+        ).order_by('-document_date', '-id')
+        context['expense_documents'] = expense_documents
+        
+        # Get receipts (permanent, temporary, consignment)
+        permanent_receipts = ReceiptPermanent.objects.filter(
+            company_id=company_id
+        ).order_by('-document_date', '-id')[:100]  # Limit to 100 most recent
+        
+        temporary_receipts = ReceiptTemporary.objects.filter(
+            company_id=company_id
+        ).order_by('-document_date', '-id')[:100]
+        
+        consignment_receipts = ReceiptConsignment.objects.filter(
+            company_id=company_id
+        ).order_by('-document_date', '-id')[:100]
+        
+        context['permanent_receipts'] = permanent_receipts
+        context['temporary_receipts'] = temporary_receipts
+        context['consignment_receipts'] = consignment_receipts
+        
+        return context
+
+
+class WarehouseExpenseCreateView(BaseFormsetCreateView):
+    """Create warehouse expense document view."""
+    from .models import WarehouseExpenseDocument
+    from .forms import WarehouseExpenseDocumentForm, WarehouseExpenseDocumentLineFormSet
+    
+    model = WarehouseExpenseDocument
+    form_class = WarehouseExpenseDocumentForm
+    formset_class = WarehouseExpenseDocumentLineFormSet
+    formset_prefix = 'lines'
+    template_name = 'accounting/warehouse/expense_form.html'
+    feature_code = 'accounting.warehouse.expense'
+    success_url = reverse_lazy('accounting:warehouse_expense')
+    success_message = _('سند هزینه انبار با موفقیت ایجاد شد.')
+    
+    def get_breadcrumbs(self):
+        return [
+            {'label': _('حسابداری'), 'url': reverse('accounting:dashboard')},
+            {'label': _('سند هزینه انبار'), 'url': reverse('accounting:warehouse_expense')},
+            {'label': _('ایجاد سند هزینه'), 'url': None},
+        ]
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        return kwargs
+    
+    def form_valid(self, form):
+        """Save form and formset, calculate total_amount."""
+        from django.db import transaction
+        from decimal import Decimal
+        
+        with transaction.atomic():
+            # Save main document first
+            response = super().form_valid(form)
+            
+            # Save formset
+            formset = self.formset_class(
+                self.request.POST,
+                instance=self.object,
+                prefix=self.formset_prefix,
+                **self.get_formset_kwargs()
+            )
+            
+            if formset.is_valid():
+                formset.save()
+                
+                # Calculate total_amount from lines
+                total = Decimal('0.00')
+                for line in self.object.lines.all():
+                    if line.total_price:
+                        total += line.total_price
+                
+                self.object.total_amount = total
+                self.object.save(update_fields=['total_amount'])
+            else:
+                # Formset validation failed
+                return self.form_invalid(form)
+        
+        return response
+
+
+class WarehouseExpenseDetailView(FeaturePermissionRequiredMixin, TemplateView):
+    """Detail view for warehouse expense document."""
+    template_name = 'accounting/warehouse/expense_detail.html'
+    feature_code = 'accounting.warehouse.expense'
+    required_action = 'view'
+
+    def get_context_data(self, **kwargs):
+        from .models import WarehouseExpenseDocument
+        from django.shortcuts import get_object_or_404
+        
+        context = super().get_context_data(**kwargs)
+        company_id = self.request.session.get('active_company_id')
+        expense_doc = get_object_or_404(
+            WarehouseExpenseDocument.objects.filter(company_id=company_id),
+            pk=kwargs['pk']
+        )
+        context['expense_document'] = expense_doc
+        context['active_module'] = 'accounting'
+        context['page_title'] = f'مشاهده سند هزینه: {expense_doc.document_code}'
+        return context
+
+
+class WarehouseExpenseCreateFromReceiptView(BaseFormsetCreateView):
+    """Create warehouse expense document from receipt."""
+    from .models import WarehouseExpenseDocument
+    from .forms import WarehouseExpenseDocumentForm, WarehouseExpenseDocumentLineFormSet
+    
+    model = WarehouseExpenseDocument
+    form_class = WarehouseExpenseDocumentForm
+    formset_class = WarehouseExpenseDocumentLineFormSet
+    formset_prefix = 'lines'
+    template_name = 'accounting/warehouse/expense_form.html'
+    feature_code = 'accounting.warehouse.expense'
+    success_url = reverse_lazy('accounting:warehouse_expense')
+    success_message = _('سند هزینه انبار با موفقیت ایجاد شد.')
+    
+    def get_receipt(self):
+        """Get receipt object from URL parameters."""
+        from django.shortcuts import get_object_or_404
+        from django.http import Http404
+        from inventory.models import ReceiptPermanent, ReceiptTemporary, ReceiptConsignment
+        
+        company_id = self.request.session.get('active_company_id')
+        receipt_type = self.kwargs.get('receipt_type')
+        receipt_id = self.kwargs.get('receipt_id')
+        
+        if receipt_type == 'permanent':
+            return get_object_or_404(
+                ReceiptPermanent.objects.filter(company_id=company_id),
+                pk=receipt_id
+            )
+        elif receipt_type == 'temporary':
+            return get_object_or_404(
+                ReceiptTemporary.objects.filter(company_id=company_id),
+                pk=receipt_id
+            )
+        elif receipt_type == 'consignment':
+            return get_object_or_404(
+                ReceiptConsignment.objects.filter(company_id=company_id),
+                pk=receipt_id
+            )
+        else:
+            raise Http404("Invalid receipt type")
+    
+    def get_receipt_lines(self):
+        """Get receipt lines based on receipt type."""
+        receipt = self.get_receipt()
+        
+        if hasattr(receipt, 'lines'):
+            return receipt.lines.all().order_by('sort_order', 'id')
+        return []
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        receipt = self.get_receipt()
+        kwargs['receipt'] = receipt
+        return kwargs
+    
+    def get_formset_kwargs(self):
+        """Initialize formset with receipt lines data."""
+        kwargs = super().get_formset_kwargs()
+        
+        if self.request.method == 'GET':
+            # Pre-populate formset with receipt lines
+            receipt = self.get_receipt()
+            receipt_lines = self.get_receipt_lines()
+            
+            initial_data = []
+            for line in receipt_lines:
+                # Determine unit: use entered_unit if exists, otherwise unit
+                unit = line.entered_unit if line.entered_unit else line.unit
+                quantity = line.entered_quantity if line.entered_quantity else line.quantity
+                
+                initial_data.append({
+                    'item': line.item,
+                    'item_code': line.item_code,
+                    'warehouse': line.warehouse,
+                    'warehouse_code': line.warehouse_code,
+                    'unit': unit,
+                    'quantity': quantity,
+                    'base_unit': line.item.default_unit if line.item else '',
+                })
+            
+            kwargs['initial'] = initial_data
+        
+        return kwargs
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        receipt = self.get_receipt()
+        receipt_lines = self.get_receipt_lines()
+        
+        context['receipt'] = receipt
+        context['receipt_type'] = self.kwargs.get('receipt_type')
+        context['receipt_lines'] = receipt_lines
+        
+        return context
+    
+    def get_breadcrumbs(self):
+        receipt = self.get_receipt()
+        return [
+            {'label': _('حسابداری'), 'url': reverse('accounting:dashboard')},
+            {'label': _('سند هزینه انبار'), 'url': reverse('accounting:warehouse_expense')},
+            {'label': _('ایجاد سند هزینه از رسید'), 'url': None},
+        ]
+    
+    def form_valid(self, form):
+        """Save form and formset, calculate total_amount."""
+        from django.db import transaction
+        from decimal import Decimal
+        
+        receipt = self.get_receipt()
+        form.instance.receipt_id = receipt.pk
+        form.instance.receipt_code = receipt.document_code
+        
+        with transaction.atomic():
+            # Save main document first
+            response = super().form_valid(form)
+            
+            # Save formset
+            formset = self.formset_class(
+                self.request.POST,
+                instance=self.object,
+                prefix=self.formset_prefix,
+                **self.get_formset_kwargs()
+            )
+            
+            if formset.is_valid():
+                formset.save()
+                
+                # Calculate total_amount from lines
+                total = Decimal('0.00')
+                for line in self.object.lines.all():
+                    if line.total_price:
+                        total += line.total_price
+                
+                self.object.total_amount = total
+                self.object.save(update_fields=['total_amount'])
+            else:
+                # Formset validation failed
+                return self.form_invalid(form)
+        
+        return response
+
+
+class WarehouseExpenseReceiptsAPIView(FeaturePermissionRequiredMixin, View):
+    """API endpoint to get receipts list by type for warehouse expense document."""
+    feature_code = 'accounting.warehouse.expense'
+    required_action = 'view'
+    
+    def get(self, request):
+        """Return list of receipts by type that don't have expense document yet."""
+        from django.http import JsonResponse
+        from inventory.models import ReceiptPermanent, ReceiptTemporary, ReceiptConsignment
+        
+        receipt_type = request.GET.get('receipt_type')
+        company_id = request.session.get('active_company_id')
+        
+        if not receipt_type or not company_id:
+            return JsonResponse({'error': 'Missing receipt_type or company_id'}, status=400)
+        
+        # Get existing expense documents to exclude
+        from .models import WarehouseExpenseDocument
+        existing_receipt_ids = set(
+            WarehouseExpenseDocument.objects.filter(
+                company_id=company_id,
+                receipt_type=receipt_type.upper()
+            ).values_list('receipt_id', flat=True)
+        )
+        
+        receipts = []
+        
+        if receipt_type.upper() == 'PERMANENT':
+            queryset = ReceiptPermanent.objects.filter(
+                company_id=company_id
+            ).exclude(pk__in=existing_receipt_ids).order_by('-document_date', '-id')[:100]
+            
+            for receipt in queryset:
+                receipts.append({
+                    'id': receipt.pk,
+                    'code': receipt.document_code,
+                    'date': receipt.document_date.strftime('%Y-%m-%d') if receipt.document_date else '',
+                })
+        
+        elif receipt_type.upper() == 'TEMPORARY':
+            queryset = ReceiptTemporary.objects.filter(
+                company_id=company_id
+            ).exclude(pk__in=existing_receipt_ids).order_by('-document_date', '-id')[:100]
+            
+            for receipt in queryset:
+                receipts.append({
+                    'id': receipt.pk,
+                    'code': receipt.document_code,
+                    'date': receipt.document_date.strftime('%Y-%m-%d') if receipt.document_date else '',
+                })
+        
+        elif receipt_type.upper() == 'CONSIGNMENT':
+            queryset = ReceiptConsignment.objects.filter(
+                company_id=company_id
+            ).exclude(pk__in=existing_receipt_ids).order_by('-document_date', '-id')[:100]
+            
+            for receipt in queryset:
+                receipts.append({
+                    'id': receipt.pk,
+                    'code': receipt.document_code,
+                    'date': receipt.document_date.strftime('%Y-%m-%d') if receipt.document_date else '',
+                })
+        
+        return JsonResponse({'receipts': receipts})
+
+
+class WarehouseExpenseReceiptLinesAPIView(FeaturePermissionRequiredMixin, View):
+    """API endpoint to get receipt lines for warehouse expense document."""
+    feature_code = 'accounting.warehouse.expense'
+    required_action = 'view'
+    
+    def get(self, request):
+        """Return receipt lines for a specific receipt."""
+        from django.http import JsonResponse
+        from django.shortcuts import get_object_or_404
+        from django.http import Http404
+        from inventory.models import ReceiptPermanent, ReceiptTemporary, ReceiptConsignment
+        
+        receipt_type = request.GET.get('receipt_type')
+        receipt_id = request.GET.get('receipt_id')
+        company_id = request.session.get('active_company_id')
+        
+        if not receipt_type or not receipt_id or not company_id:
+            return JsonResponse({'error': 'Missing receipt_type, receipt_id or company_id'}, status=400)
+        
+        # Get receipt object
+        try:
+            if receipt_type.upper() == 'PERMANENT':
+                receipt = get_object_or_404(
+                    ReceiptPermanent.objects.filter(company_id=company_id),
+                    pk=receipt_id
+                )
+            elif receipt_type.upper() == 'TEMPORARY':
+                receipt = get_object_or_404(
+                    ReceiptTemporary.objects.filter(company_id=company_id),
+                    pk=receipt_id
+                )
+            elif receipt_type.upper() == 'CONSIGNMENT':
+                receipt = get_object_or_404(
+                    ReceiptConsignment.objects.filter(company_id=company_id),
+                    pk=receipt_id
+                )
+            else:
+                return JsonResponse({'error': 'Invalid receipt_type'}, status=400)
+        except Http404:
+            return JsonResponse({'error': 'Receipt not found'}, status=404)
+        
+        # Get receipt lines
+        lines = []
+        if hasattr(receipt, 'lines'):
+            for line in receipt.lines.all().order_by('sort_order', 'id'):
+                # Determine unit: use entered_unit if exists, otherwise unit
+                unit = line.entered_unit if line.entered_unit else line.unit
+                quantity = line.entered_quantity if line.entered_quantity else line.quantity
+                
+                lines.append({
+                    'item_id': line.item.pk if line.item else None,
+                    'item_code': line.item_code,
+                    'item_name': line.item.name if line.item else '',
+                    'warehouse_id': line.warehouse.pk if line.warehouse else None,
+                    'warehouse_code': line.warehouse_code,
+                    'unit': unit,
+                    'quantity': str(quantity),
+                    'base_unit': line.item.default_unit if line.item else '',
+                })
+        
+        return JsonResponse({
+            'receipt_code': receipt.document_code,
+            'receipt_date': receipt.document_date.strftime('%Y-%m-%d') if receipt.document_date else '',
+            'lines': lines,
+        })
+
+
+class WarehouseIncomeView(FeaturePermissionRequiredMixin, TemplateView):
+    """Warehouse income document view."""
+    template_name = 'accounting/warehouse/income.html'
+    feature_code = 'accounting.warehouse.income'
+    required_action = 'view'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'accounting'
+        context['page_title'] = 'سند درآمد انبار'
+        return context
 
 

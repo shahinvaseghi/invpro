@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load jalali_tags %}
+{% load access_tags %}
+{% load static %}
+
+{% block title %}{% trans "سند هزینه انبار" %} - {{ block.super }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/shared.css' %}?v=20241206">
+{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="section-header">
+        <h1>{% trans "سند هزینه انبار" %}</h1>
+    </div>
+
+    <!-- Tab Buttons -->
+    <div class="tab-buttons">
+        <button type="button" class="tab-button {% if active_tab == 'documents' %}active{% endif %}" 
+                data-tab-name="documents">
+            {% trans "اسناد هزینه" %}
+        </button>
+        <button type="button" class="tab-button {% if active_tab == 'receipts' %}active{% endif %}" 
+                data-tab-name="receipts">
+            {% trans "رسیدها" %}
+        </button>
+    </div>
+
+    <!-- Tab Content: Documents -->
+    <div id="tab-documents" class="tab-content {% if active_tab == 'documents' %}active{% endif %}">
+        <div class="card">
+            <div class="card-header">
+                <h2>{% trans "لیست اسناد هزینه" %}</h2>
+                {% if user_feature_permissions|feature_allowed:'accounting.warehouse.expense' %}
+                <a href="{% url 'accounting:warehouse_expense_create' %}" class="btn btn-primary">
+                    + {% trans "ایجاد سند هزینه" %}
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if expense_documents %}
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "کد سند" %}</th>
+                                <th>{% trans "تاریخ" %}</th>
+                                <th>{% trans "نوع رسید" %}</th>
+                                <th>{% trans "کد رسید" %}</th>
+                                <th>{% trans "مبلغ کل" %}</th>
+                                <th>{% trans "وضعیت" %}</th>
+                                <th>{% trans "عملیات" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in expense_documents %}
+                            <tr>
+                                <td>{{ doc.document_code }}</td>
+                                <td>{{ doc.document_date|jalali_date }}</td>
+                                <td>{{ doc.get_receipt_type_display }}</td>
+                                <td>{{ doc.receipt_code }}</td>
+                                <td>{{ doc.total_amount|floatformat:2 }}</td>
+                                <td>
+                                    <span class="badge badge-{{ doc.status|lower }}">
+                                        {{ doc.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'accounting:warehouse_expense_detail' doc.pk %}" class="btn btn-sm btn-info">
+                                        {% trans "مشاهده" %}
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <p>{% trans "هیچ سند هزینه‌ای ثبت نشده است." %}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Receipts -->
+    <div id="tab-receipts" class="tab-content {% if active_tab == 'receipts' %}active{% endif %}">
+        <div class="card">
+            <div class="card-header">
+                <h2>{% trans "لیست رسیدها" %}</h2>
+            </div>
+            <div class="card-body">
+                <!-- Permanent Receipts -->
+                <div class="receipt-section collapsible-section">
+                    <button type="button" class="receipt-section-header" data-toggle="receipt-permanent">
+                        <span>{% trans "رسیدهای دائمی" %}</span>
+                        <span class="section-toggle-icon">▼</span>
+                    </button>
+                    <div class="receipt-section-content" id="receipt-permanent">
+                        {% if permanent_receipts %}
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>{% trans "کد رسید" %}</th>
+                                        <th>{% trans "تاریخ" %}</th>
+                                        <th>{% trans "عملیات" %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for receipt in permanent_receipts %}
+                                    <tr>
+                                        <td>{{ receipt.document_code }}</td>
+                                        <td>{{ receipt.document_date|jalali_date }}</td>
+                                        <td>
+                                            <a href="{% url 'accounting:warehouse_expense_create_from_receipt' receipt_type='permanent' receipt_id=receipt.pk %}" 
+                                               class="btn btn-sm btn-primary">
+                                                {% trans "ایجاد سند هزینه" %}
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="empty-state">{% trans "هیچ رسید دائمی ثبت نشده است." %}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Temporary Receipts -->
+                <div class="receipt-section collapsible-section">
+                    <button type="button" class="receipt-section-header" data-toggle="receipt-temporary">
+                        <span>{% trans "رسیدهای موقت" %}</span>
+                        <span class="section-toggle-icon">▼</span>
+                    </button>
+                    <div class="receipt-section-content" id="receipt-temporary">
+                        {% if temporary_receipts %}
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>{% trans "کد رسید" %}</th>
+                                        <th>{% trans "تاریخ" %}</th>
+                                        <th>{% trans "عملیات" %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for receipt in temporary_receipts %}
+                                    <tr>
+                                        <td>{{ receipt.document_code }}</td>
+                                        <td>{{ receipt.document_date|jalali_date }}</td>
+                                        <td>
+                                            <a href="{% url 'accounting:warehouse_expense_create_from_receipt' receipt_type='temporary' receipt_id=receipt.pk %}" 
+                                               class="btn btn-sm btn-primary">
+                                                {% trans "ایجاد سند هزینه" %}
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="empty-state">{% trans "هیچ رسید موقتی ثبت نشده است." %}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Consignment Receipts -->
+                <div class="receipt-section collapsible-section">
+                    <button type="button" class="receipt-section-header" data-toggle="receipt-consignment">
+                        <span>{% trans "رسیدهای امانی" %}</span>
+                        <span class="section-toggle-icon">▼</span>
+                    </button>
+                    <div class="receipt-section-content" id="receipt-consignment">
+                        {% if consignment_receipts %}
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>{% trans "کد رسید" %}</th>
+                                        <th>{% trans "تاریخ" %}</th>
+                                        <th>{% trans "عملیات" %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for receipt in consignment_receipts %}
+                                    <tr>
+                                        <td>{{ receipt.document_code }}</td>
+                                        <td>{{ receipt.document_date|jalali_date }}</td>
+                                        <td>
+                                            <a href="{% url 'accounting:warehouse_expense_create_from_receipt' receipt_type='consignment' receipt_id=receipt.pk %}" 
+                                               class="btn btn-sm btn-primary">
+                                                {% trans "ایجاد سند هزینه" %}
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="empty-state">{% trans "هیچ رسید امانی ثبت نشده است." %}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/tab-navigation.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tab navigation
+    initTabNavigation('.tab-button', '.tab-content', 'tab');
+    
+    // Initialize collapsible sections
+    const sectionHeaders = document.querySelectorAll('.receipt-section-header');
+    sectionHeaders.forEach(function(header) {
+        header.addEventListener('click', function() {
+            const targetId = this.dataset.toggle;
+            const content = document.getElementById(targetId);
+            const isActive = this.classList.contains('active');
+            
+            // Toggle active state
+            if (isActive) {
+                this.classList.remove('active');
+                if (content) {
+                    content.classList.remove('active');
+                }
+            } else {
+                this.classList.add('active');
+                if (content) {
+                    content.classList.add('active');
+                }
+            }
+        });
+        
+        // Set initial state - open first section by default
+        if (header === sectionHeaders[0]) {
+            header.classList.add('active');
+            const targetId = header.dataset.toggle;
+            const content = document.getElementById(targetId);
+            if (content) {
+                content.classList.add('active');
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

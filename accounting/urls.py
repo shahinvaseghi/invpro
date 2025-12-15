@@ -191,4 +191,13 @@ urlpatterns = [
     path('payroll/insurance-tax/', views_module.PayrollInsuranceTaxSettingsView.as_view(), name='payroll_insurance_tax'),
     path('payroll/document/', views_module.PayrollDocumentView.as_view(), name='payroll_document'),
     path('payroll/bank-transfer/', views_module.PayrollBankTransferView.as_view(), name='payroll_bank_transfer'),
+    
+    # Warehouse Accounting (حسابداری انبار)
+    path('warehouse/expense/', views_module.WarehouseExpenseView.as_view(), name='warehouse_expense'),
+    path('warehouse/expense/create/', views_module.WarehouseExpenseCreateView.as_view(), name='warehouse_expense_create'),
+    path('warehouse/expense/<int:pk>/', views_module.WarehouseExpenseDetailView.as_view(), name='warehouse_expense_detail'),
+    path('warehouse/expense/create-from-receipt/<str:receipt_type>/<int:receipt_id>/', views_module.WarehouseExpenseCreateFromReceiptView.as_view(), name='warehouse_expense_create_from_receipt'),
+    path('warehouse/expense/api/receipts/', views_module.WarehouseExpenseReceiptsAPIView.as_view(), name='warehouse_expense_api_receipts'),
+    path('warehouse/expense/api/receipt-lines/', views_module.WarehouseExpenseReceiptLinesAPIView.as_view(), name='warehouse_expense_api_receipt_lines'),
+    path('warehouse/income/', views_module.WarehouseIncomeView.as_view(), name='warehouse_income'),
 ]
