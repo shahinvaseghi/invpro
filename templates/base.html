@@ -16,7 +16,7 @@
       <header class="app-header">
         <div class="header-left">
           <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle" title="{% trans 'Toggle Sidebar' %}">
-            <span class="toggle-icon">☰</span>
+            <span class="toggle-icon icon-menu"></span>
           </button>
           <div class="logo">invproj</div>
           <nav class="top-menu-nav">
@@ -25,7 +25,7 @@
             <!-- Dashboard Menu (First Item) -->
             <div class="top-menu-item">
               <button type="button" class="top-menu-btn" onclick="window.location.href='{% url 'ui:dashboard' %}';">
-                <span class="menu-icon">📊</span>
+                <span class="menu-icon icon-dashboard"></span>
                 <span class="menu-label">{% trans "Dashboard" %}</span>
               </button>
             </div>
@@ -33,7 +33,7 @@
             <!-- Modules Menu (All modules in one dropdown) -->
             <div class="top-menu-item">
               <button type="button" class="top-menu-btn" data-menu="modules">
-                <span class="menu-icon">📁</span>
+                <span class="menu-icon icon-modules"></span>
                 <span class="menu-label">{% trans "ماژول‌ها" %}</span>
               </button>
               {% include "ui/components/modules_menu.html" %}
@@ -586,7 +586,7 @@
           {% if request.user.is_authenticated %}
           <div class="notification-bell">
             <button type="button" class="notification-btn" id="notification-btn" title="{% trans 'Notifications' %}">
-              <span class="notification-icon">🔔</span>
+              <span class="notification-icon icon-bell"></span>
               {% if notification_count > 0 %}
               <span class="notification-badge">{{ notification_count }}</span>
               {% endif %}
@@ -632,7 +632,7 @@
               </div>
               {% else %}
               <div class="notification-empty">
-                <div class="notification-empty-icon">🔔</div>
+                <div class="notification-empty-icon icon-bell"></div>
                 <div class="notification-empty-text">{% trans "No notifications" %}</div>
               </div>
               {% endif %}
@@ -645,7 +645,7 @@
           <form action="{% url 'shared:set_active_company' %}" method="post" class="company-switcher">
             {% csrf_token %}
             <input name="next" type="hidden" value="{{ request.get_full_path }}" />
-            <label for="company-select" style="margin-right: 8px; font-size: 0.9rem; color: #fff;">
+            <label for="company-select" style="margin-right: 8px; font-size: 0.9rem; color: var(--color-text);">
               {% trans "Company" %}:
             </label>
             <select name="company_id" id="company-select" onchange="this.form.submit()" class="company-select">
@@ -664,7 +664,7 @@
           <form action="{% url 'accounting:set_fiscal_year' %}" method="post" class="fiscal-year-switcher">
             {% csrf_token %}
             <input name="next" type="hidden" value="{{ request.get_full_path }}" />
-            <label for="fiscal-year-select" style="margin-right: 8px; font-size: 0.9rem; color: #fff;">
+            <label for="fiscal-year-select" style="margin-right: 8px; font-size: 0.9rem; color: var(--color-text);">
               {% trans "سال مالی" %}:
             </label>
             <select name="fiscal_year_id" id="fiscal-year-select" onchange="this.form.submit()" class="fiscal-year-select">
@@ -688,7 +688,7 @@
           <div class="user-info-container">
             <span class="company-context">
               {% if request.user.is_authenticated %}
-                👤 {{ request.user.username }}
+                <span class="user-icon icon-user-small"></span> {{ request.user.username }}
               {% else %}
                 {% trans "Guest" %}
               {% endif %}
@@ -846,6 +846,11 @@
               if (isOpening) {
                 dropdown.setAttribute('data-click-opened', 'true');
                 btn.classList.add('active');
+                // Open all mega menu sections by default
+                const megaMenuSections = dropdown.querySelectorAll('.mega-menu-section');
+                megaMenuSections.forEach(section => {
+                  section.classList.remove('collapsed');
+                });
               } else {
                 dropdown.setAttribute('data-click-opened', 'false');
                 btn.classList.remove('active');
@@ -872,6 +877,11 @@
                   
                   dropdown.classList.add('open');
                   btn.classList.add('active');
+                  // Open all mega menu sections by default
+                  const megaMenuSections = dropdown.querySelectorAll('.mega-menu-section');
+                  megaMenuSections.forEach(section => {
+                    section.classList.remove('collapsed');
+                  });
                 }
               });
               
