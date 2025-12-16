@@ -29,7 +29,7 @@ class SubAccountForm(forms.ModelForm):
             'is_enabled',
         ]
         widgets = {
-            'account_code': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '20', 'placeholder': 'مثال: 101 یا 1023'}),
+            'account_code': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '20', 'readonly': True, 'placeholder': 'کد به صورت خودکار تولید می‌شود'}),
             'account_name': forms.TextInput(attrs={'class': 'form-control'}),
             'account_name_en': forms.TextInput(attrs={'class': 'form-control'}),
             'opening_balance': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
@@ -52,6 +52,18 @@ class SubAccountForm(forms.ModelForm):
         # Set account_level to 2 (معین) for Sub accounts
         if not self.instance.pk:
             self.instance.account_level = 2
+            # Auto-generate account_code for new sub accounts
+            if not self.instance.account_code and company_id:
+                from inventory.utils.codes import generate_sequential_code
+                self.instance.account_code = generate_sequential_code(
+                    Account,
+                    company_id=company_id,
+                    field='account_code',
+                    width=10,
+                    extra_filters={'account_level': 2},
+                )
+                # Set initial value for display
+                self.initial['account_code'] = self.instance.account_code
         
         # Remove account_level and account_type from form
         if 'account_level' in self.fields:
@@ -60,6 +72,11 @@ class SubAccountForm(forms.ModelForm):
             del self.fields['account_type']
         if 'parent_account' in self.fields:
             del self.fields['parent_account']
+        
+        # Make account_code readonly for sub accounts
+        if 'account_code' in self.fields:
+            self.fields['account_code'].required = False
+            self.fields['account_code'].widget.attrs['readonly'] = True
         
         # Filter GL accounts for multiple choice
         if company_id:
@@ -90,7 +107,21 @@ class SubAccountForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         gl_accounts = cleaned_data.get('gl_accounts', [])
-        account_code = cleaned_data.get('account_code')
+        
+        # Auto-generate account_code if not set (for new instances)
+        # Check both cleaned_data and instance.account_code
+        account_code = cleaned_data.get('account_code') or getattr(self.instance, 'account_code', None)
+        if not self.instance.pk and not account_code and self.company_id:
+            from inventory.utils.codes import generate_sequential_code
+            account_code = generate_sequential_code(
+                Account,
+                company_id=self.company_id,
+                field='account_code',
+                width=10,
+                extra_filters={'account_level': 2},
+            )
+            cleaned_data['account_code'] = account_code
+            self.instance.account_code = account_code
         
         # Validate GL accounts
         if not gl_accounts:
@@ -109,35 +140,6 @@ class SubAccountForm(forms.ModelForm):
                     raise forms.ValidationError({
                         'gl_accounts': _('همه انتخاب‌ها باید حساب کل (سطح 1) باشند.')
                     })
-            
-            # Inherit account_type and normal_balance from first GL account
-            if gl_accounts:
-                first_gl = gl_accounts[0]
-                if not self.instance.pk or not self.instance.account_type:
-                    self.instance.account_type = first_gl.account_type
-                if not self.instance.pk or not self.instance.normal_balance:
-                    self.instance.normal_balance = first_gl.normal_balance
-                
-                # Check all GL accounts have same type
-                for gl_account in gl_accounts[1:]:
-                    if gl_account.account_type != first_gl.account_type:
-                        raise forms.ValidationError({
-                            'gl_accounts': _('همه حساب‌های کل باید از یک نوع باشند.')
-                        })
-        
-        # Validate unique code (globally for sub accounts)
-        if account_code and self.company_id:
-            existing = Account.objects.filter(
-                company_id=self.company_id,
-                account_code=account_code,
-                account_level=2
-            )
-            if self.instance.pk:
-                existing = existing.exclude(pk=self.instance.pk)
-            if existing.exists():
-                raise forms.ValidationError({
-                    'account_code': _('کد معین باید یکتا باشد.')
-                })
         
         return cleaned_data
     

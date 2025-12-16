@@ -22,6 +22,9 @@ from .accounts import (
     TafsiliSubAccountRelation,
 )
 
+# Tafsili Types
+from .tafsili_types import TafsiliType
+
 # Hierarchy
 from .hierarchy import TafsiliHierarchy
 
@@ -72,6 +75,8 @@ __all__ = [
     'Account',
     'SubAccountGLAccountRelation',
     'TafsiliSubAccountRelation',
+    # Tafsili Types
+    'TafsiliType',
     # Hierarchy
     'TafsiliHierarchy',
     # Documents

@@ -44,6 +44,13 @@ from .tafsili_hierarchy import (
     TafsiliHierarchyUpdateView,
     TafsiliHierarchyDeleteView,
 )
+from .tafsili_types import (
+    TafsiliTypeListView,
+    TafsiliTypeCreateView,
+    TafsiliTypeDetailView,
+    TafsiliTypeUpdateView,
+    TafsiliTypeDeleteView,
+)
 
 # Import placeholder views from parent views.py for backward compatibility
 # Using TYPE_CHECKING to avoid circular import
@@ -126,6 +133,12 @@ __all__ = [
     'TafsiliHierarchyDetailView',
     'TafsiliHierarchyUpdateView',
     'TafsiliHierarchyDeleteView',
+    # Tafsili Types (نوع تفصیلی)
+    'TafsiliTypeListView',
+    'TafsiliTypeCreateView',
+    'TafsiliTypeDetailView',
+    'TafsiliTypeUpdateView',
+    'TafsiliTypeDeleteView',
     # Placeholder views
     'AccountingDashboardView',
     'GeneralLedgerListView',

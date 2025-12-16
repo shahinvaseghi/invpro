@@ -29,7 +29,7 @@ class TafsiliAccountListView(BaseListView):
     List all Tafsili accounts (حساب تفصیلی) for the active company.
     """
     model = Account
-    template_name = 'shared/generic/generic_list.html'
+    template_name = 'accounting/tafsili_accounts.html'
     context_object_name = 'object_list'
     paginate_by = 50
     feature_code = 'accounting.accounts.tafsili'
@@ -62,8 +62,8 @@ class TafsiliAccountListView(BaseListView):
                 # Filter by sub account relation
                 from accounting.models import TafsiliSubAccountRelation
                 queryset = queryset.filter(
-                    sub_account_relations_as_tafsili__sub_account_id=int(parent_id),
-                    sub_account_relations_as_tafsili__company_id=self.request.session.get('active_company_id')
+                    tafsili_sub_relations__sub_account_id=int(parent_id),
+                    tafsili_sub_relations__company_id=self.request.session.get('active_company_id')
                 ).distinct()
             except ValueError:
                 pass
@@ -131,13 +131,14 @@ class TafsiliAccountListView(BaseListView):
         company_id = self.request.session.get('active_company_id')
         if company_id:
             for obj in context['object_list']:
-                sub_accounts = Account.objects.filter(
-                    sub_account_relations_as_tafsili__tafsili_account=obj,
-                    sub_account_relations_as_tafsili__company_id=company_id
-                ).order_by('account_code')
+                relations = TafsiliSubAccountRelation.objects.filter(
+                    tafsili_account=obj,
+                    company_id=company_id
+                ).select_related('sub_account')
+                sub_accounts = [rel.sub_account for rel in relations]
                 obj.sub_accounts_display = ', '.join([f"{sa.account_code} ({sa.account_name})" for sa in sub_accounts[:3]])
-                if sub_accounts.count() > 3:
-                    obj.sub_accounts_display += f" +{sub_accounts.count() - 3} بیشتر"
+                if len(sub_accounts) > 3:
+                    obj.sub_accounts_display += f" +{len(sub_accounts) - 3} بیشتر"
         
         # Add Sub accounts for filter dropdown
         if company_id:
@@ -259,7 +260,7 @@ class TafsiliAccountDetailView(BaseDetailView):
             'parent_account',
             'created_by',
             'edited_by',
-        ).prefetch_related('sub_account_relations_as_tafsili__sub_account')
+        ).prefetch_related('tafsili_sub_relations__sub_account')
         return queryset
     
     def get_page_title(self) -> str:

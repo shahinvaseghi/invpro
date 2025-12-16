@@ -44,6 +44,11 @@ from .views import (
     TafsiliHierarchyDetailView,
     TafsiliHierarchyUpdateView,
     TafsiliHierarchyDeleteView,
+    TafsiliTypeListView,
+    TafsiliTypeCreateView,
+    TafsiliTypeDetailView,
+    TafsiliTypeUpdateView,
+    TafsiliTypeDeleteView,
 )
 from .views.document_attachments import (
     DocumentAttachmentUploadView,
@@ -51,6 +56,7 @@ from .views.document_attachments import (
     DocumentAttachmentDownloadSingleView,
     DocumentAttachmentDownloadBulkView,
 )
+from .views.api import filter_sub_accounts_by_tafsili, filter_gl_accounts_by_sub
 
 app_name = 'accounting'
 
@@ -106,6 +112,13 @@ urlpatterns = [
     path('tafsili-hierarchy/<int:pk>/', TafsiliHierarchyDetailView.as_view(), name='tafsili_hierarchy_detail'),
     path('tafsili-hierarchy/<int:pk>/edit/', TafsiliHierarchyUpdateView.as_view(), name='tafsili_hierarchy_edit'),
     path('tafsili-hierarchy/<int:pk>/delete/', TafsiliHierarchyDeleteView.as_view(), name='tafsili_hierarchy_delete'),
+    
+    # Tafsili Types (نوع تفصیلی)
+    path('tafsili-types/', TafsiliTypeListView.as_view(), name='tafsili_types'),
+    path('tafsili-types/create/', TafsiliTypeCreateView.as_view(), name='tafsili_type_create'),
+    path('tafsili-types/<int:pk>/', TafsiliTypeDetailView.as_view(), name='tafsili_type_detail'),
+    path('tafsili-types/<int:pk>/edit/', TafsiliTypeUpdateView.as_view(), name='tafsili_type_edit'),
+    path('tafsili-types/<int:pk>/delete/', TafsiliTypeDeleteView.as_view(), name='tafsili_type_delete'),
     
     # Accounting Documents (اسناد حسابداری)
     path('documents/create/', views_module.AccountingDocumentCreateView.as_view(), name='document_create'),
@@ -191,6 +204,10 @@ urlpatterns = [
     path('payroll/insurance-tax/', views_module.PayrollInsuranceTaxSettingsView.as_view(), name='payroll_insurance_tax'),
     path('payroll/document/', views_module.PayrollDocumentView.as_view(), name='payroll_document'),
     path('payroll/bank-transfer/', views_module.PayrollBankTransferView.as_view(), name='payroll_bank_transfer'),
+    
+    # API endpoints for filtering accounts
+    path('api/filter-sub-accounts-by-tafsili/', filter_sub_accounts_by_tafsili, name='api_filter_sub_by_tafsili'),
+    path('api/filter-gl-accounts-by-sub/', filter_gl_accounts_by_sub, name='api_filter_gl_by_sub'),
     
     # Warehouse Accounting (حسابداری انبار)
     path('warehouse/expense/', views_module.WarehouseExpenseView.as_view(), name='warehouse_expense'),

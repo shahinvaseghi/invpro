@@ -95,13 +95,21 @@ class Account(AccountingSortableModel):
         blank=True,
         help_text=_("توضیحات حساب و یادداشت‌های استفاده"),
     )
+    tafsili_type = models.ForeignKey(
+        'TafsiliType',
+        on_delete=models.PROTECT,
+        related_name='tafsili_accounts',
+        null=True,
+        blank=True,
+        help_text=_("نوع تفصیلی (فقط برای حساب‌های تفصیلی)"),
+    )
 
     class Meta:
         verbose_name = _("حساب")
         verbose_name_plural = _("حساب‌ها")
         constraints = [
             models.UniqueConstraint(
-                fields=("company", "account_code"),
+                fields=("company", "account_code", "account_level"),
                 name="accounting_account_code_unique",
             ),
         ]
@@ -120,6 +128,19 @@ class Account(AccountingSortableModel):
 
     def save(self, *args, **kwargs):
         self.clean()
+        
+        # Auto-generate account_code for Sub Accounts (level 2) and Tafsili Accounts (level 3)
+        # GL Accounts (level 1) must have account_code entered by user
+        if not self.account_code and self.company_id and self.account_level in [2, 3]:
+            from inventory.utils.codes import generate_sequential_code
+            self.account_code = generate_sequential_code(
+                self.__class__,
+                company_id=self.company_id,
+                field='account_code',
+                width=10,
+                extra_filters={'account_level': self.account_level},
+            )
+        
         super().save(*args, **kwargs)
 
 

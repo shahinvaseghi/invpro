@@ -1,0 +1,81 @@
+{% extends "shared/generic/generic_list.html" %}
+{% load i18n %}
+{% load jalali_tags %}
+{% load generic_tags %}
+
+{% block page_actions %}
+<div class="page-actions">
+  {% if create_url %}
+    <a href="{{ create_url }}" class="btn btn-primary">
+      + {{ create_button_text|default:"Create New" }}
+    </a>
+  {% endif %}
+  {% if print_enabled %}
+    <button class="btn btn-secondary btn-print" data-action="print" data-table-id="mainTable" data-print-title="{% trans 'اسناد حسابداری' %}">
+      {% trans "چاپ" %}
+    </button>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block table_headers %}
+{% for header in table_headers %}
+  <th>{{ header.label }}</th>
+{% endfor %}
+{% if show_actions %}
+  <th>{% trans "عملیات" %}</th>
+{% endif %}
+{% endblock %}
+
+{% block table_rows %}
+{% for document in object_list %}
+<tr>
+  {% for header in table_headers %}
+    <td>
+      {% if header.field %}
+        {% if header.field == 'document_number' %}
+          <code>{{ document.document_number }}</code>
+        {% elif header.field == 'document_date' %}
+          {{ document.document_date|jalali_date }}
+        {% elif header.field == 'document_type' %}
+          {{ document.document_type_display }}
+        {% elif header.field == 'status' %}
+          {% if document.status == 'DRAFT' %}
+            <span class="badge badge-draft">{% trans "پیش نویس" %}</span>
+          {% elif document.status == 'POSTED' %}
+            <span class="badge badge-active">{% trans "ثبت شده" %}</span>
+          {% elif document.status == 'LOCKED' %}
+            <span class="badge badge-locked">{% trans "قفل شده" %}</span>
+          {% elif document.status == 'REVERSED' %}
+            <span class="badge badge-reversed">{% trans "برگشت شده" %}</span>
+          {% elif document.status == 'CANCELLED' %}
+            <span class="badge badge-inactive">{% trans "لغو شده" %}</span>
+          {% else %}
+            <span class="badge">{{ document.status_display }}</span>
+          {% endif %}
+        {% elif header.field == 'total_debit' %}
+          {{ document.total_debit|floatformat:2 }}
+        {% elif header.field == 'total_credit' %}
+          {{ document.total_credit|floatformat:2 }}
+        {% elif header.field == 'description' %}
+          {{ document.description|default:"-" }}
+        {% else %}
+          {{ document|getattr:header.field|default:"-" }}
+        {% endif %}
+      {% else %}
+        {{ header.custom_content|default:"-" }}
+      {% endif %}
+    </td>
+  {% endfor %}
+  {% if show_actions %}
+  <td>
+    {% include 'shared/partials/row_actions.html' with object=document feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
+  </td>
+  {% endif %}
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block empty_state_title %}{{ empty_state_title|default:"هیچ سند حسابداری یافت نشد" }}{% endblock %}
+{% block empty_state_message %}{{ empty_state_message|default:"با ایجاد اولین سند حسابداری شروع کنید." }}{% endblock %}
+{% block empty_state_icon %}📄{% endblock %}

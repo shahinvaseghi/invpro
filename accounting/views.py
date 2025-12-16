@@ -8,7 +8,7 @@ from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_http_methods
 from shared.mixins import FeaturePermissionRequiredMixin
-from shared.views.base import BaseCreateView, BaseFormsetCreateView
+from shared.views.base import BaseCreateView, BaseFormsetCreateView, BaseListView
 from accounting.views.base import AccountingBaseView
 from accounting.models import CostCenter, IncomeExpenseCategory, Party, PartyAccount, TreasuryAccount
 from accounting.forms import CostCenterForm, IncomeExpenseCategoryForm, PartyForm, PartyAccountForm, TreasuryAccountForm
@@ -716,15 +716,312 @@ class SettingsView(FeaturePermissionRequiredMixin, TemplateView):
 # Document Attachments (بارگذاری اسناد) - imported from views package
 
 # Placeholder views for new menu items
-class AccountingDocumentCreateView(FeaturePermissionRequiredMixin, TemplateView):
+class AccountingDocumentCreateView(BaseFormsetCreateView):
+    """Create accounting document view."""
+    from accounting.models.documents import AccountingDocument
+    from accounting.forms import AccountingDocumentForm, AccountingDocumentLineFormSet
+    
+    model = AccountingDocument
+    form_class = AccountingDocumentForm
+    formset_class = AccountingDocumentLineFormSet
+    formset_prefix = 'lines'
     template_name = 'accounting/documents/create.html'
     feature_code = 'accounting.documents.create'
-    required_action = 'view'
+    required_action = 'create'
+    success_url = reverse_lazy('accounting:document_list')
+    success_message = _('سند حسابداری با موفقیت ایجاد شد.')
+    
+    def get_breadcrumbs(self):
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Accounting'), 'url': reverse('accounting:dashboard')},
+            {'label': _('اسناد حسابداری'), 'url': reverse('accounting:document_list')},
+            {'label': _('ایجاد سند'), 'url': None},
+        ]
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['company_id'] = self.request.session.get('active_company_id')
+        return kwargs
+    
+    def get_formset_kwargs(self):
+        kwargs = {}
+        if hasattr(self, 'object') and self.object:
+            kwargs['instance'] = self.object
+        
+        # Pass company_id to each form in formset
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            kwargs['form_kwargs'] = {'company_id': company_id}
+        
+        return kwargs
+    
+    def get_context_data(self, **kwargs):
+        """Add formset with company_id to each form and auto-fill document info."""
+        context = super().get_context_data(**kwargs)
+        company_id = self.request.session.get('active_company_id')
+        
+        # Auto-fill document form fields
+        if 'form' in context and company_id:
+            from django.utils import timezone
+            from accounting.models.fiscal_years import FiscalYear
+            
+            form = context['form']
+            
+            # Set document_date to today if not set
+            if not form.instance.pk and not form.initial.get('document_date'):
+                today = timezone.now().date()
+                form.initial['document_date'] = today
+                form.fields['document_date'].widget.attrs['value'] = today.isoformat()
+                context['document_date_display'] = today
+            
+            # Auto-select fiscal year
+            if not form.instance.pk:
+                document_date = form.initial.get('document_date') or timezone.now().date()
+                fiscal_year = FiscalYear.objects.filter(
+                    company_id=company_id,
+                    is_enabled=1,
+                    start_date__lte=document_date,
+                    end_date__gte=document_date
+                ).first()
+                if not fiscal_year:
+                    fiscal_year = FiscalYear.objects.filter(
+                        company_id=company_id,
+                        is_enabled=1
+                    ).order_by('-start_date').first()
+                
+                if fiscal_year:
+                    form.initial['fiscal_year'] = fiscal_year.pk
+                    form.fields['fiscal_year'].queryset = FiscalYear.objects.filter(pk=fiscal_year.pk)
+                    context['fiscal_year_display'] = fiscal_year.fiscal_year_name or f"{fiscal_year.start_date.year}-{fiscal_year.end_date.year}"
+            
+            # Set defaults
+            if not form.instance.pk:
+                form.initial['status'] = 'DRAFT'
+                form.initial['document_type'] = 'MANUAL'
+        
+        # Update formset forms with company_id and set querysets
+        if 'formset' in context and company_id:
+            from accounting.models.accounts import Account
+            for form in context['formset'].forms:
+                form.company_id = company_id
+                
+                # Set querysets for account fields
+                if hasattr(form, 'fields'):
+                    # GL Accounts (level 1)
+                    if 'gl_account' in form.fields:
+                        form.fields['gl_account'].queryset = Account.objects.filter(
+                            company_id=company_id,
+                            account_level=1,
+                            is_enabled=1
+                        ).order_by('account_code')
+                    
+                    # Sub Accounts (level 2)
+                    if 'sub_account' in form.fields:
+                        form.fields['sub_account'].queryset = Account.objects.filter(
+                            company_id=company_id,
+                            account_level=2,
+                            is_enabled=1
+                        ).order_by('account_code')
+                    
+                    # Tafsili Accounts (level 3)
+                    if 'tafsili_account' in form.fields:
+                        form.fields['tafsili_account'].queryset = Account.objects.filter(
+                            company_id=company_id,
+                            account_level=3,
+                            is_enabled=1
+                        ).order_by('account_code')
+        
+        return context
+    
+    def form_valid(self, form):
+        """Save form and formset, calculate totals and generate document number."""
+        from django.db import transaction
+        from decimal import Decimal
+        from django.utils import timezone
+        from inventory.utils.codes import generate_sequential_code
+        from accounting.models.fiscal_years import FiscalYear
+        
+        with transaction.atomic():
+            # Set created_by
+            form.instance.created_by = self.request.user
+            
+            # Auto-fill document fields (override any user input)
+            company_id = self.request.session.get('active_company_id')
+            if company_id:
+                # Set document_date to today
+                form.instance.document_date = timezone.now().date()
+                
+                # Set fiscal_year based on document_date
+                fiscal_year = FiscalYear.objects.filter(
+                    company_id=company_id,
+                    is_enabled=1,
+                    start_date__lte=form.instance.document_date,
+                    end_date__gte=form.instance.document_date
+                ).first()
+                if not fiscal_year:
+                    fiscal_year = FiscalYear.objects.filter(
+                        company_id=company_id,
+                        is_enabled=1
+                    ).order_by('-start_date').first()
+                if fiscal_year:
+                    form.instance.fiscal_year = fiscal_year
+                
+                # Set defaults
+                form.instance.document_type = 'MANUAL'
+                form.instance.status = 'DRAFT'
+                
+                # Generate document number if not set
+                if not form.instance.document_number:
+                    from accounting.models.documents import AccountingDocument
+                    form.instance.document_number = generate_sequential_code(
+                        AccountingDocument,
+                        company_id=company_id,
+                        field='document_number',
+                        width=10,
+                        prefix='DOC-',
+                    )
+            
+            # Save main document first
+            response = super().form_valid(form)
+            
+            # Save formset
+            formset = self.formset_class(
+                self.request.POST,
+                instance=self.object,
+                prefix=self.formset_prefix,
+                **self.get_formset_kwargs()
+            )
+            
+            # Set company_id for each form in formset
+            company_id = self.request.session.get('active_company_id')
+            for form in formset.forms:
+                if company_id:
+                    form.company_id = company_id
+            
+            if formset.is_valid():
+                # Set line numbers and sort_order
+                lines = formset.save(commit=False)
+                for idx, line in enumerate(lines, start=1):
+                    line.line_number = idx
+                    line.sort_order = idx
+                    if not line.company_id:
+                        line.company = self.object.company
+                    line.save()
+                
+                # Delete removed lines
+                for line in formset.deleted_objects:
+                    line.delete()
+                
+                # Calculate totals
+                total_debit = Decimal('0.00')
+                total_credit = Decimal('0.00')
+                for line in self.object.lines.all():
+                    total_debit += line.debit
+                    total_credit += line.credit
+                
+                self.object.total_debit = total_debit
+                self.object.total_credit = total_credit
+                self.object.save(update_fields=['total_debit', 'total_credit'])
+            else:
+                # Formset validation failed
+                return self.form_invalid(form)
+        
+        return response
 
-class AccountingDocumentListView(FeaturePermissionRequiredMixin, TemplateView):
+class AccountingDocumentListView(BaseListView):
+    """List all accounting documents."""
+    from accounting.models.documents import AccountingDocument
+    
+    model = AccountingDocument
     template_name = 'accounting/documents/list.html'
+    context_object_name = 'object_list'
+    paginate_by = 50
     feature_code = 'accounting.documents.list'
-    required_action = 'view'
+    required_action = 'view_all'
+    active_module = 'accounting'
+    default_order_by = ['-document_date', '-document_number']
+    default_status_filter = False
+    
+    def get_base_queryset(self):
+        """Get base queryset filtered by company."""
+        from accounting.models.documents import AccountingDocument
+        queryset = AccountingDocument.objects.all()
+        # Use AccountingBaseView's permission filtering
+        base_view = AccountingBaseView()
+        base_view.request = self.request
+        queryset = base_view.filter_queryset_by_permissions(queryset, self.feature_code)
+        return queryset
+    
+    def get_search_fields(self) -> list:
+        """Return list of fields to search in."""
+        return ['document_number', 'description', 'reference_number']
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('اسناد حسابداری')
+    
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Accounting'), 'url': reverse('accounting:dashboard')},
+            {'label': _('اسناد حسابداری'), 'url': None},
+        ]
+    
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse('accounting:document_create')
+    
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _('ایجاد سند حسابداری')
+    
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return 'accounting:document_detail'
+    
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return 'accounting:document_edit'
+    
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return 'accounting:document_delete'
+    
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _('هیچ سند حسابداری یافت نشد')
+    
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _('با ایجاد اولین سند حسابداری شروع کنید.')
+    
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return '📄'
+    
+    def get_context_data(self, **kwargs):
+        """Add context variables for generic_list template."""
+        from accounting.models.documents import AccountingDocument
+        context = super().get_context_data(**kwargs)
+        context['table_headers'] = [
+            {'label': _('شماره سند'), 'field': 'document_number', 'type': 'code'},
+            {'label': _('تاریخ سند'), 'field': 'document_date', 'type': 'date'},
+            {'label': _('نوع سند'), 'field': 'document_type', 'type': 'custom'},
+            {'label': _('شرح'), 'field': 'description'},
+            {'label': _('بدهکار'), 'field': 'total_debit', 'type': 'number'},
+            {'label': _('بستانکار'), 'field': 'total_credit', 'type': 'number'},
+            {'label': _('وضعیت'), 'field': 'status', 'type': 'badge'},
+        ]
+        
+        # Add custom display for document_type
+        for obj in context['object_list']:
+            obj.document_type_display = dict(AccountingDocument.DOCUMENT_TYPE_CHOICES).get(obj.document_type, obj.document_type)
+            obj.status_display = dict(AccountingDocument.STATUS_CHOICES).get(obj.status, obj.status)
+        
+        context['print_enabled'] = True
+        return context
 
 class AccountingDocumentStatusView(FeaturePermissionRequiredMixin, TemplateView):
     template_name = 'accounting/documents/status.html'

@@ -8,12 +8,14 @@ from .gl_accounts import GLAccountForm
 from .sub_accounts import SubAccountForm
 from .tafsili_accounts import TafsiliAccountForm
 from .tafsili_hierarchy import TafsiliHierarchyForm
+from .tafsili_types import TafsiliTypeForm
 from .document_attachments import DocumentAttachmentUploadForm, DocumentAttachmentFilterForm
 from .cost_centers import CostCenterForm
 from .income_expense_categories import IncomeExpenseCategoryForm
 from .parties import PartyForm, PartyAccountForm
 from .treasury_accounts import TreasuryAccountForm
 from .warehouse import WarehouseExpenseDocumentForm, WarehouseExpenseDocumentLineFormSet
+from .documents import AccountingDocumentForm, AccountingDocumentLineFormSet
 
 __all__ = [
     'FiscalYearForm',
@@ -23,6 +25,7 @@ __all__ = [
     'SubAccountForm',
     'TafsiliAccountForm',
     'TafsiliHierarchyForm',
+    'TafsiliTypeForm',
     'DocumentAttachmentUploadForm',
     'DocumentAttachmentFilterForm',
     'CostCenterForm',
@@ -32,5 +35,7 @@ __all__ = [
     'TreasuryAccountForm',
     'WarehouseExpenseDocumentForm',
     'WarehouseExpenseDocumentLineFormSet',
+    'AccountingDocumentForm',
+    'AccountingDocumentLineFormSet',
 ]
 

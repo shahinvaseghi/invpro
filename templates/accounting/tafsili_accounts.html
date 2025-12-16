@@ -1,0 +1,24 @@
+{% extends "shared/generic/generic_list.html" %}
+{% load i18n %}
+{% load access_tags %}
+
+{% block page_actions %}
+<div class="page-actions">
+  {% if create_url %}
+    <a href="{{ create_url }}" class="btn btn-primary">
+      + {{ create_button_text|default:"Create New" }}
+    </a>
+  {% endif %}
+  {% if user_feature_permissions|feature_allowed:'accounting.accounts.tafsili' %}
+    <a href="{% url 'accounting:tafsili_types' %}" class="btn btn-secondary">
+      {% trans "مدیریت انواع تفصیلی" %}
+    </a>
+  {% endif %}
+  {% if print_enabled %}
+    <button class="btn btn-secondary btn-print" data-action="print" data-table-id="mainTable" data-print-title="{% trans 'تعریف حساب تفصیلی' %}">
+      {% trans "چاپ" %}
+    </button>
+  {% endif %}
+</div>
+{% endblock %}
+
