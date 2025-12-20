@@ -1,0 +1,7 @@
+{"location":"warehouse-request-form.js:655","message":"Script loaded","data":{"version":"2.1"},"timestamp":1766242633424,"sessionId":"debug-session","runId":"run3","hypothesisId":"H1"}
+{"location":"warehouse-request-form.js:672","message":"Initial state","data":{"initialTotalForms":"1","initialRowsCount":1},"timestamp":1766242633426,"sessionId":"debug-session","runId":"run3","hypothesisId":"H3"}
+{"location":"warehouse-request-form.js:1440","message":"After removeExtraRows","data":{"rowsAfterRemove":1,"totalForms":"1"},"timestamp":1766242633443,"sessionId":"debug-session","runId":"run3","hypothesisId":"H2"}
+{"location":"warehouse-request-form.js:213","message":"After initFormset","data":{"rowsAfterInit":1,"totalForms":"1"},"timestamp":1766242633584,"sessionId":"debug-session","runId":"run3","hypothesisId":"H4"}
+{"location":"warehouse-request-form.js:200","message":"Before initFormset","data":{"rowsBeforeInit":1,"totalForms":"1","minRows":0},"timestamp":1766242633582,"sessionId":"debug-session","runId":"run3","hypothesisId":"H4"}
+{"location":"warehouse-request-form.js:1431","message":"Before removeExtraRows","data":{"rowsBeforeRemove":1,"totalForms":"1"},"timestamp":1766242633442,"sessionId":"debug-session","runId":"run3","hypothesisId":"H2"}
+{"location":"warehouse-request-form.js:263","message":"initDeleteCheckboxes called","data":{"hasContainer":true},"timestamp":1766242633584,"sessionId":"debug-session","runId":"run4","hypothesisId":"H5"}
