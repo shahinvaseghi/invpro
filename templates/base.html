@@ -1,7 +1,7 @@
 {% load static %}
 {% load i18n %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_CODE == 'fa' %}rtl{% else %}ltr{% endif %}">
+<html lang="fa" dir="rtl">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -1281,6 +1281,115 @@
           window.location.href = redirectUrl;
         });
       }
+    </script>
+    
+    <script>
+      // Convert English digits to Persian digits
+      function toPersianDigits(str) {
+        if (!str) return str;
+        const persianDigits = {
+          '0': '۰', '1': '۱', '2': '۲', '3': '۳', '4': '۴',
+          '5': '۵', '6': '۶', '7': '۷', '8': '۸', '9': '۹'
+        };
+        return String(str).replace(/[0-9]/g, function(w) {
+          return persianDigits[w];
+        });
+      }
+      
+      // Convert all numbers in text nodes to Persian
+      function convertNumbersToPersian() {
+        const walker = document.createTreeWalker(
+          document.body,
+          NodeFilter.SHOW_TEXT,
+          null,
+          false
+        );
+        
+        const textNodes = [];
+        let node;
+        while (node = walker.nextNode()) {
+          // Skip script and style tags
+          if (node.parentElement && 
+              (node.parentElement.tagName === 'SCRIPT' || 
+               node.parentElement.tagName === 'STYLE' ||
+               node.parentElement.tagName === 'NOSCRIPT')) {
+            continue;
+          }
+          // Skip input, textarea, and select elements
+          if (node.parentElement && 
+              (node.parentElement.tagName === 'INPUT' || 
+               node.parentElement.tagName === 'TEXTAREA' ||
+               node.parentElement.tagName === 'SELECT')) {
+            continue;
+          }
+          // Skip if node is empty or only whitespace
+          if (!node.textContent || !node.textContent.trim()) {
+            continue;
+          }
+          // Skip if parent has data-persian-numbers="false"
+          if (node.parentElement && 
+              node.parentElement.getAttribute('data-persian-numbers') === 'false') {
+            continue;
+          }
+          textNodes.push(node);
+        }
+        
+        textNodes.forEach(textNode => {
+          const originalText = textNode.textContent;
+          const persianText = toPersianDigits(originalText);
+          if (originalText !== persianText) {
+            textNode.textContent = persianText;
+          }
+        });
+      }
+      
+      // Convert numbers on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        convertNumbersToPersian();
+        
+        // Also convert numbers when new content is added dynamically
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length) {
+              mutation.addedNodes.forEach(function(node) {
+                if (node.nodeType === 1) { // Element node
+                  const walker = document.createTreeWalker(
+                    node,
+                    NodeFilter.SHOW_TEXT,
+                    null,
+                    false
+                  );
+                  let textNode;
+                  while (textNode = walker.nextNode()) {
+                    if (textNode.parentElement && 
+                        (textNode.parentElement.tagName === 'SCRIPT' || 
+                         textNode.parentElement.tagName === 'STYLE' ||
+                         textNode.parentElement.tagName === 'INPUT' ||
+                         textNode.parentElement.tagName === 'TEXTAREA' ||
+                         textNode.parentElement.tagName === 'SELECT')) {
+                      continue;
+                    }
+                    if (textNode.parentElement && 
+                        textNode.parentElement.getAttribute('data-persian-numbers') === 'false') {
+                      continue;
+                    }
+                    const originalText = textNode.textContent;
+                    const persianText = toPersianDigits(originalText);
+                    if (originalText !== persianText) {
+                      textNode.textContent = persianText;
+                    }
+                  }
+                }
+              });
+            }
+          });
+        });
+        
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+      });
     </script>
     {% block extra_scripts %}{% endblock %}
   </body>

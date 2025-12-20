@@ -2177,6 +2177,7 @@ class SupplierListView(InventoryBaseView, BaseListView):
     feature_code = 'inventory.suppliers.list'
     permission_field = 'created_by'
     paginate_by = 50
+    search_fields = ['public_code', 'name', 'name_en']
 
     def get_page_title(self) -> str:
         """Return page title."""

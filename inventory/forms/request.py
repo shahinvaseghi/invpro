@@ -205,11 +205,19 @@ class PurchaseRequestLineForm(forms.ModelForm):
                 return Item.objects.get(pk=candidate, company_id=self.company_id)
             except (Item.DoesNotExist, ValueError, TypeError):
                 return None
-        if self.data and self.data.get('item'):
-            try:
-                return Item.objects.get(pk=self.data.get('item'), company_id=self.company_id)
-            except (Item.DoesNotExist, ValueError, TypeError):
-                return None
+        # Try to get item from form data using prefix (for formsets)
+        if self.data:
+            # Try with prefix first (for formsets like 'lines-0-item')
+            item_field_name = f"{self.prefix}-item" if hasattr(self, 'prefix') and self.prefix else 'item'
+            item_id = self.data.get(item_field_name)
+            if not item_id:
+                # Fallback to 'item' without prefix
+                item_id = self.data.get('item')
+            if item_id:
+                try:
+                    return Item.objects.get(pk=item_id, company_id=self.company_id)
+                except (Item.DoesNotExist, ValueError, TypeError):
+                    return None
         if getattr(self.instance, 'item_id', None):
             return self.instance.item
         return None
@@ -263,10 +271,34 @@ class PurchaseRequestLineForm(forms.ModelForm):
     
     def clean(self) -> Dict[str, Any]:
         """Validate form data."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         cleaned_data = super().clean()
-        item = self._resolve_item(cleaned_data.get('item'))
+        logger.info(f"PurchaseRequestLineForm.clean() - cleaned_data keys: {list(cleaned_data.keys())}")
+        
+        # Try to resolve item from cleaned_data first
+        item_candidate = cleaned_data.get('item')
+        logger.info(f"Item candidate from cleaned_data: {item_candidate} (type: {type(item_candidate)})")
+        
+        item = self._resolve_item(item_candidate)
+        logger.info(f"Resolved item: {item} (ID: {item.id if item else None})")
+        
+        # If item not resolved from cleaned_data, try to get from data directly
+        if not item and self.data:
+            item_field_name = f"{self.prefix}-item" if hasattr(self, 'prefix') and self.prefix else 'item'
+            item_id_from_data = self.data.get(item_field_name)
+            logger.info(f"Trying to get item from data: {item_field_name} = {item_id_from_data}")
+            if item_id_from_data:
+                item = self._resolve_item(item_id_from_data)
+                if item:
+                    cleaned_data['item'] = item
+                    logger.info(f"Item resolved from data and added to cleaned_data: {item.id}")
+        
         if item and 'unit' in self.fields:
             self._set_unit_choices_for_item(item)
+        
+        logger.info(f"Final cleaned_data item: {cleaned_data.get('item')}")
         return cleaned_data
 
 

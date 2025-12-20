@@ -4,7 +4,7 @@
   <div class="mega-menu-content">
     
     <!-- Shared Module Section -->
-    <div class="mega-menu-section">
+    <div class="mega-menu-section collapsed">
       <button type="button" class="mega-menu-section-toggle" data-section="shared-section">
         <span class="menu-icon icon-settings"></span>
         <span>{% trans "Shared" %}</span>
@@ -49,7 +49,7 @@
     </div>
 
     <!-- Inventory Module Section -->
-    <div class="mega-menu-section">
+    <div class="mega-menu-section collapsed">
       <button type="button" class="mega-menu-section-toggle" data-section="inventory-section">
         <span class="menu-icon icon-package"></span>
         <span>{% trans "Inventory" %}</span>
@@ -172,7 +172,7 @@
 
     <!-- Production Module Section -->
     {% if user_feature_permissions|feature_allowed:'production.personnel' or user_feature_permissions|feature_allowed:'production.machines' or user_feature_permissions|feature_allowed:'production.work_lines' or user_feature_permissions|feature_allowed:'production.bom' or user_feature_permissions|feature_allowed:'production.processes' or user_feature_permissions|feature_allowed:'production.product_orders' or user_feature_permissions|feature_allowed:'production.tracking_identification' or request.user.is_superuser %}
-    <div class="mega-menu-section">
+    <div class="mega-menu-section collapsed">
       <button type="button" class="mega-menu-section-toggle" data-section="production-section">
         <span class="menu-icon icon-gear"></span>
         <span>{% trans "Production" %}</span>
@@ -220,7 +220,7 @@
 
     <!-- Quality Control Module Section -->
     {% if request.user.is_superuser %}
-    <div class="mega-menu-section">
+    <div class="mega-menu-section collapsed">
       <button type="button" class="mega-menu-section-toggle" data-section="qc-section">
         <span class="menu-icon icon-lab"></span>
         <span>{% trans "Quality Control" %}</span>
@@ -236,7 +236,7 @@
 
     <!-- Ticketing Module Section -->
     {% if request.user.is_superuser %}
-    <div class="mega-menu-section">
+    <div class="mega-menu-section collapsed">
       <button type="button" class="mega-menu-section-toggle" data-section="ticketing-section">
         <span class="menu-icon icon-ticket"></span>
         <span>{% trans "Ticketing" %}</span>
@@ -257,7 +257,7 @@
 
     <!-- Accounting Module Section -->
     {% if user_feature_permissions|feature_allowed:'accounting.dashboard' or request.user.is_superuser %}
-    <div class="mega-menu-section">
+    <div class="mega-menu-section collapsed">
       <button type="button" class="mega-menu-section-toggle" data-section="accounting-section">
         <span class="menu-icon icon-money"></span>
         <span>{% trans "Accounting" %}</span>
@@ -595,7 +595,7 @@
 
     <!-- Sales Module Section -->
     {% if user_feature_permissions|feature_allowed:'sales.dashboard' or request.user.is_superuser %}
-    <div class="mega-menu-section">
+    <div class="mega-menu-section collapsed">
       <button type="button" class="mega-menu-section-toggle" data-section="sales-section">
         <span class="menu-icon icon-cart"></span>
         <span>{% trans "Sales" %}</span>
@@ -614,7 +614,7 @@
 
     <!-- Human Resources Module Section -->
     {% if user_feature_permissions|feature_allowed:'hr.dashboard' or request.user.is_superuser %}
-    <div class="mega-menu-section">
+    <div class="mega-menu-section collapsed">
       <button type="button" class="mega-menu-section-toggle" data-section="hr-section">
         <span class="menu-icon icon-users"></span>
         <span>{% trans "Human Resources" %}</span>
@@ -716,7 +716,7 @@
 
     <!-- Office Automation Module Section -->
     {% if user_feature_permissions|feature_allowed:'office_automation.dashboard' or request.user.is_superuser %}
-    <div class="mega-menu-section">
+    <div class="mega-menu-section collapsed">
       <button type="button" class="mega-menu-section-toggle" data-section="office-automation-section">
         <span class="menu-icon icon-clipboard"></span>
         <span>{% trans "Office Automation" %}</span>
@@ -781,7 +781,7 @@
 
     <!-- Transportation Module Section -->
     {% if user_feature_permissions|feature_allowed:'transportation.dashboard' or request.user.is_superuser %}
-    <div class="mega-menu-section">
+    <div class="mega-menu-section collapsed">
       <button type="button" class="mega-menu-section-toggle" data-section="transportation-section">
         <span class="menu-icon icon-truck"></span>
         <span>{% trans "Transportation" %}</span>
@@ -797,7 +797,7 @@
 
     <!-- Procurement Module Section -->
     {% if user_feature_permissions|feature_allowed:'procurement.dashboard' or request.user.is_superuser %}
-    <div class="mega-menu-section">
+    <div class="mega-menu-section collapsed">
       <button type="button" class="mega-menu-section-toggle" data-section="procurement-section">
         <span class="menu-icon icon-shopping"></span>
         <span>{% trans "Procurement" %}</span>

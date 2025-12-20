@@ -798,10 +798,28 @@ class BaseLineFormSet(forms.BaseInlineFormSet):
             self._dynamic_extra = None
             logger.info("No initial data, will use default extra from formset factory")
         
+        # Store instance and data state for get_min_num() method
+        self._create_mode = (instance is None and 'data' not in kwargs and not initial)
+        
         self.company_id = company_id
         self.request = request
         super().__init__(*args, **kwargs)
         logger.info(f"After super().__init__(), forms count: {len(self.forms)}")
+        
+        # Fix: In create mode (instance=None), if no initial data provided,
+        # ensure we only have 'extra' number of forms, not min_num + extra
+        if instance is None and 'data' not in kwargs and not initial:
+            expected_forms = self.extra if (hasattr(self, '_dynamic_extra') and self._dynamic_extra is None) else (self._dynamic_extra if (hasattr(self, '_dynamic_extra') and self._dynamic_extra is not None) else self.extra)
+            if len(self.forms) > expected_forms:
+                logger.info(f"Removing extra forms: have {len(self.forms)}, need {expected_forms}")
+                # Remove forms beyond expected count
+                self.forms = self.forms[:expected_forms]
+                # Update TOTAL_FORMS in management form initial data
+                if hasattr(self, 'management_form') and self.management_form:
+                    if 'TOTAL_FORMS' in self.management_form.initial:
+                        self.management_form.initial['TOTAL_FORMS'] = expected_forms
+                logger.info(f"After fix, forms count: {len(self.forms)}")
+        
         # Pass company_id and request to all forms in the formset and update querysets
         for i, form in enumerate(self.forms):
             logger.info(f"  Processing form {i}: instance pk={getattr(form.instance, 'pk', None)}, item_id={getattr(form.instance, 'item_id', None)}")
@@ -855,18 +873,25 @@ class BaseLineFormSet(forms.BaseInlineFormSet):
         """Return extra count, dynamically adjusted based on initial data if needed."""
         logger.info("BaseLineFormSet.get_extra() called")
         # Check if we have dynamic extra set in __init__
+        # Only use _dynamic_extra if it was explicitly set (when initial data was provided)
         if hasattr(self, '_dynamic_extra') and self._dynamic_extra is not None:
             logger.info(f"Using _dynamic_extra: {self._dynamic_extra}")
             return self._dynamic_extra
-        # Also check self.initial (set by Django after __init__)
-        if hasattr(self, 'initial') and self.initial:
-            initial_count = len(self.initial) if isinstance(self.initial, (list, tuple)) else 0
-            logger.info(f"Using self.initial count: {initial_count}")
-            if initial_count > 0:
-                return initial_count
+        # Otherwise, use default extra from formset factory
         default_extra = super().get_extra()
         logger.info(f"Using default extra: {default_extra}")
         return default_extra
+    
+    def get_min_num(self):
+        """Return min_num, but return 0 in create mode (instance=None) to prevent extra forms."""
+        default_min_num = super().get_min_num()
+        # In create mode (no instance, no data), return 0 to prevent Django from creating min_num + extra forms
+        # We only want 'extra' forms in create mode
+        if hasattr(self, '_create_mode') and self._create_mode:
+            logger.info(f"BaseLineFormSet.get_min_num() called: returning 0 for create mode (default: {default_min_num})")
+            return 0
+        logger.info(f"BaseLineFormSet.get_min_num() called: returning {default_min_num}")
+        return default_min_num
     
     @property
     def empty_form(self):
@@ -909,8 +934,22 @@ class BaseLineFormSet(forms.BaseInlineFormSet):
         logger.info(f"   Total forms: {len(self.forms)}")
         logger.info(f"   Has errors: {any(self.errors)}")
         
+        # Check if any form has errors - if so, skip min_num validation
+        # because form-level errors should be shown first
+        has_form_errors = any(form.errors for form in self.forms)
+        if has_form_errors:
+            logger.warning(f"   ⚠️  Some forms have errors, skipping min_num validation")
+            logger.warning(f"   Formset errors: {self.errors}")
+            for i, form in enumerate(self.forms):
+                if form.errors:
+                    logger.warning(f"   Form {i} errors: {form.errors}")
+            # Don't raise min_num error if forms have validation errors
+            # Let Django show the form-level errors first
+            return
+        
         if any(self.errors):
             logger.warning(f"   ⚠️  Formset already has errors, skipping clean")
+            logger.warning(f"   Formset errors: {self.errors}")
             return
         
         # Count non-empty forms (forms with an item)
@@ -921,6 +960,12 @@ class BaseLineFormSet(forms.BaseInlineFormSet):
         for i, form in enumerate(self.forms):
             logger.info(f"      Form {i}:")
             logger.info(f"         - Has cleaned_data: {bool(form.cleaned_data)}")
+            logger.info(f"         - Has errors: {bool(form.errors)}")
+            
+            # Skip forms with errors - they'll be shown by Django
+            if form.errors:
+                logger.info(f"         ⚠️  Form has errors, skipping")
+                continue
             
             if form.cleaned_data:
                 is_deleted = form.cleaned_data.get('DELETE', False)

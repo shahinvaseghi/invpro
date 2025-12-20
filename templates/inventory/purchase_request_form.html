@@ -272,7 +272,11 @@ function initializeLineForms() {
   const formsetContainer = document.getElementById('lines-formset');
   if (!formsetContainer) return;
   
-  formsetContainer.querySelectorAll('.line-row:not(.formset-template)').forEach(function(lineRow, index) {
+  // Get all non-deleted rows (exclude deleted and template rows)
+  const allRows = Array.from(formsetContainer.querySelectorAll('.line-row:not(.formset-template)'));
+  const visibleRows = allRows.filter(row => !row.classList.contains('deleted'));
+  
+  visibleRows.forEach(function(lineRow, index) {
     // Update row number
     const lineNumber = lineRow.querySelector('.line-number');
     if (lineNumber) {
@@ -305,8 +309,26 @@ document.addEventListener('DOMContentLoaded', function() {
   const totalFormsInput = document.querySelector('input[name="lines-TOTAL_FORMS"]');
   
   if (addLineBtn && formsetContainer && totalFormsInput) {
+    // Get all non-template rows
+    const allRows = Array.from(formsetContainer.querySelectorAll('.line-row:not(.formset-template)'));
+    const visibleRows = allRows.filter(row => !row.classList.contains('deleted'));
+    
+    // If we have more than 1 row, remove extra rows completely (keep only the first one)
+    if (visibleRows.length > 1) {
+      console.log(`Removing ${visibleRows.length - 1} extra row(s), keeping only 1`);
+      for (let i = 1; i < visibleRows.length; i++) {
+        const row = visibleRows[i];
+        // Remove row completely from DOM
+        row.remove();
+      }
+      // Update TOTAL_FORMS to reflect actual number of rows
+      totalFormsInput.value = '1';
+      // Reinitialize row numbers
+      initializeLineForms();
+    }
+    
     // Clone first row as template
-    const firstRow = formsetContainer.querySelector('.line-row:not(.formset-template)');
+    const firstRow = formsetContainer.querySelector('.line-row:not(.formset-template):not(.deleted)');
     if (firstRow) {
       const templateRow = firstRow.cloneNode(true);
       templateRow.id = 'lines-formset-template';
@@ -314,12 +336,18 @@ document.addEventListener('DOMContentLoaded', function() {
       templateRow.classList.add('formset-template');
       formsetContainer.appendChild(templateRow);
       
-      // Initialize formset
+      // Count existing visible rows before initializing formset
+      const existingRows = formsetContainer.querySelectorAll('.line-row:not(.formset-template):not(.deleted)');
+      const existingRowCount = existingRows.length;
+      
+      // Initialize formset with minRows=0 to prevent adding extra rows
+      // We already have 1 row from Django, so we don't need initFormset to add more
       initFormset('lines', '#lines-formset-template', {
-        minRows: 1,
+        minRows: 0,  // Don't add rows automatically - we already have 1 from Django
         maxRows: null,
         addButtonSelector: '#add-line-btn',
-        removeButtonSelector: 'input[name*="-DELETE"]'
+        removeButtonSelector: 'input[name*="-DELETE"]',
+        rowSelector: '.line-row:not(.formset-template):not(.deleted)'
       });
       
       // After adding row, initialize filters and update layout
@@ -359,6 +387,207 @@ document.addEventListener('DOMContentLoaded', function() {
           initializeLineForms();
         }
       }
+    });
+  }
+  
+  // Prepare formset before form submission
+  const form = document.querySelector('form.entity-form');
+  if (form && typeof prepareFormsetForSubmit === 'function') {
+    let isSubmitting = false; // Flag to prevent infinite loop
+    
+    form.addEventListener('submit', function(e) {
+      // If already submitting, let it proceed
+      if (isSubmitting) {
+        console.log('Form is already submitting, allowing default behavior...');
+        return true;
+      }
+      
+      console.log('=== PREPARING LINES FORMSET FOR SUBMISSION ===');
+      
+      // CRITICAL: Prevent default submission until we've prepared the formset
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Remove deleted rows completely from DOM before submission
+      const deletedRows = formsetContainer.querySelectorAll('.line-row.deleted');
+      deletedRows.forEach(function(row) {
+        // Remove all inputs from deleted rows so they're not submitted
+        const inputs = row.querySelectorAll('input, select, textarea');
+        inputs.forEach(function(input) {
+          input.disabled = true;
+          input.name = ''; // Remove name so it's not submitted
+        });
+        row.remove();
+      });
+      
+      // Prepare formset using shared function
+      // Use correct row selector that matches the actual row class
+      const result = prepareFormsetForSubmit('lines', '.line-row', {
+        countOnlyNonDeleted: true
+      });
+      
+      console.log('Formset preparation result:', result);
+      
+      // Double-check TOTAL_FORMS matches actual visible rows
+      const visibleRows = formsetContainer.querySelectorAll('.line-row:not(.formset-template):not(.deleted)');
+      const actualRowCount = visibleRows.length;
+      if (totalFormsInput) {
+        // Use the count from prepareFormsetForSubmit result, or fallback to actual count
+        const finalTotalForms = result.success ? result.totalForms : actualRowCount;
+        totalFormsInput.value = finalTotalForms;
+        console.log(`Final TOTAL_FORMS: ${finalTotalForms} (visible rows: ${actualRowCount})`);
+        
+        // Verify all field names and values are correct
+        const fieldsAfter = [];
+        visibleRows.forEach(function(row, index) {
+          const itemField = row.querySelector('select[name*="-item"], input[name*="-item"]');
+          const unitField = row.querySelector('select[name*="-unit"], input[name*="-unit"]');
+          const quantityField = row.querySelector('input[name*="-quantity_requested"], input[name*="-quantity"]');
+          
+          const fieldState = {
+            row: index,
+            item: {name: itemField?.name, value: itemField?.value, disabled: itemField?.disabled},
+            unit: {name: unitField?.name, value: unitField?.value, disabled: unitField?.disabled},
+            quantity: {name: quantityField?.name, value: quantityField?.value, disabled: quantityField?.disabled}
+          };
+          fieldsAfter.push(fieldState);
+          
+          if (itemField) {
+            const expectedName = `lines-${index}-item`;
+            console.log(`Row ${index} - Item field: name=${itemField.name}, value=${itemField.value}, disabled=${itemField.disabled}`);
+            if (itemField.name !== expectedName) {
+              console.warn(`Row ${index}: Item field name mismatch! Expected: ${expectedName}, Got: ${itemField.name}`);
+            }
+            // Ensure field is not disabled
+            if (itemField.disabled) {
+              console.warn(`Row ${index}: Item field is disabled! Enabling it...`);
+              itemField.disabled = false;
+            }
+            
+            // CRITICAL FIX: Ensure selected value exists in options
+            if (itemField.value && itemField.tagName === 'SELECT') {
+              const hasOption = Array.from(itemField.options).some(opt => opt.value === itemField.value);
+              if (!hasOption) {
+                console.warn(`Row ${index}: Item value ${itemField.value} not found in options! Adding it...`);
+                // Find the selected option text (if any) or use a placeholder
+                const selectedOption = itemField.querySelector(`option[value="${itemField.value}"]`);
+                if (!selectedOption) {
+                  // Add the missing option
+                  const option = document.createElement('option');
+                  option.value = itemField.value;
+                  option.textContent = `[Item ID: ${itemField.value}]`;
+                  option.selected = true;
+                  itemField.appendChild(option);
+                }
+              }
+            }
+          }
+          
+          if (unitField) {
+            console.log(`Row ${index} - Unit field: name=${unitField.name}, value=${unitField.value}, disabled=${unitField.disabled}`);
+            if (unitField.disabled) {
+              console.warn(`Row ${index}: Unit field is disabled! Enabling it...`);
+              unitField.disabled = false;
+            }
+            
+            // CRITICAL FIX: Ensure selected value exists in options
+            if (unitField.value && unitField.tagName === 'SELECT') {
+              const hasOption = Array.from(unitField.options).some(opt => opt.value === unitField.value);
+              if (!hasOption) {
+                console.warn(`Row ${index}: Unit value ${unitField.value} not found in options! Adding it...`);
+                const option = document.createElement('option');
+                option.value = unitField.value;
+                option.textContent = unitField.value;
+                option.selected = true;
+                unitField.appendChild(option);
+              }
+            }
+          }
+          
+          if (quantityField) {
+            console.log(`Row ${index} - Quantity field: name=${quantityField.name}, value=${quantityField.value}, disabled=${quantityField.disabled}`);
+            if (quantityField.disabled) {
+              console.warn(`Row ${index}: Quantity field is disabled! Enabling it...`);
+              quantityField.disabled = false;
+            }
+          }
+        });
+      }
+      
+      // Set flag to prevent loop
+      isSubmitting = true;
+      
+      if (result.success) {
+        console.log(`✓ Formset prepared successfully: TOTAL_FORMS=${result.totalForms}, reindexed=${result.reindexedCount}`);
+      } else {
+        console.error(`✗ Failed to prepare formset: TOTAL_FORMS=${result.totalForms}, reindexed=${result.reindexedCount}`);
+      }
+      
+      // CRITICAL FIX: Use fetch API instead of form.submit() to ensure all fields are included
+      // Build FormData manually to ensure all field values are captured
+      const formData = new FormData(form);
+      
+      // Manually add line fields to ensure they're included
+      visibleRows.forEach((row, index) => {
+        const itemField = row.querySelector('select[name*="-item"], input[name*="-item"]');
+        const unitField = row.querySelector('select[name*="-unit"], input[name*="-unit"]');
+        const quantityField = row.querySelector('input[name*="-quantity_requested"], input[name*="-quantity"]');
+        const lineNotesField = row.querySelector('textarea[name*="-line_notes"], input[name*="-line_notes"]');
+        const deleteField = row.querySelector('input[name*="-DELETE"]');
+        const idField = row.querySelector('input[name*="-id"]');
+        const documentField = row.querySelector('input[name*="-document"]');
+        
+        if (itemField && itemField.value) {
+          formData.set(`lines-${index}-item`, itemField.value);
+        }
+        if (unitField && unitField.value) {
+          formData.set(`lines-${index}-unit`, unitField.value);
+        }
+        if (quantityField && quantityField.value) {
+          formData.set(`lines-${index}-quantity_requested`, quantityField.value);
+        }
+        if (lineNotesField) {
+          formData.set(`lines-${index}-line_notes`, lineNotesField.value || '');
+        }
+        if (deleteField) {
+          if (deleteField.checked) {
+            formData.set(`lines-${index}-DELETE`, 'on');
+          } else {
+            formData.delete(`lines-${index}-DELETE`);
+          }
+        }
+        if (idField) {
+          formData.set(`lines-${index}-id`, idField.value || '');
+        }
+        if (documentField) {
+          formData.set(`lines-${index}-document`, documentField.value || '');
+        }
+      });
+      
+      // Ensure TOTAL_FORMS is set correctly
+      formData.set('lines-TOTAL_FORMS', result.totalForms.toString());
+      
+      // Submit using fetch API
+      fetch(form.action || window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      }).then(function(response) {
+        if (response.redirected) {
+          window.location.href = response.url;
+        } else {
+          return response.text().then(function(html) {
+            document.open();
+            document.write(html);
+            document.close();
+          });
+        }
+      }).catch(function(error) {
+        console.error('Form submission error:', error);
+        alert('خطا در ارسال فرم. لطفاً دوباره تلاش کنید.');
+      });
     });
   }
 });

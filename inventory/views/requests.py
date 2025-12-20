@@ -290,22 +290,74 @@ class PurchaseRequestCreateView(LineFormsetMixin, PurchaseRequestFormMixin, Base
         form.instance.status = models.PurchaseRequest.Status.DRAFT
         
         # Build line formset first to validate and get first item
+        import logging
+        logger = logging.getLogger(__name__)
         lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+        
+        # Log formset state for debugging
+        logger.info("=" * 80)
+        logger.info("PurchaseRequestCreateView.form_valid() - Formset Analysis")
+        logger.info(f"Total forms in formset: {len(lines_formset.forms)}")
+        logger.info(f"TOTAL_FORMS in POST: {self.request.POST.get('lines-TOTAL_FORMS', 'N/A')}")
+        
+        # Log POST data for lines formset
+        logger.info("POST data for lines formset:")
+        for key, value in self.request.POST.items():
+            if key.startswith('lines-'):
+                logger.info(f"  {key} = {value}")
+        
         if not lines_formset.is_valid():
+            logger.error("Formset validation FAILED")
+            logger.error(f"Formset errors: {lines_formset.errors}")
+            logger.error(f"Non-form errors: {lines_formset.non_form_errors()}")
+            for i, line_form in enumerate(lines_formset.forms):
+                logger.error(f"Form {i}:")
+                logger.error(f"  - Prefix: {line_form.prefix}")
+                logger.error(f"  - Errors: {line_form.errors}")
+                logger.error(f"  - Has cleaned_data: {bool(line_form.cleaned_data)}")
+                if line_form.cleaned_data:
+                    logger.error(f"  - cleaned_data keys: {list(line_form.cleaned_data.keys())}")
+                    logger.error(f"  - Item in cleaned_data: {line_form.cleaned_data.get('item')}")
+                # Log POST data for this form
+                for key, value in self.request.POST.items():
+                    if key.startswith(f"{line_form.prefix}-"):
+                        logger.error(f"  - POST[{key}] = {value}")
             return self.render_to_response(
                 self.get_context_data(form=form, lines_formset=lines_formset)
             )
+        
+        logger.info("Formset validation PASSED")
         
         # Check if we have at least one valid line before saving document
         valid_lines = []
         first_item = None
         first_unit = None
-        for line_form in lines_formset.forms:
-            if line_form.cleaned_data and line_form.cleaned_data.get('item') and not line_form.cleaned_data.get('DELETE', False):
-                valid_lines.append(line_form)
-                if first_item is None:
-                    first_item = line_form.cleaned_data.get('item')
-                    first_unit = line_form.cleaned_data.get('unit', 'EA')
+        for i, line_form in enumerate(lines_formset.forms):
+            logger.info(f"Analyzing form {i}:")
+            logger.info(f"  - Has cleaned_data: {bool(line_form.cleaned_data)}")
+            if line_form.cleaned_data:
+                item = line_form.cleaned_data.get('item')
+                unit = line_form.cleaned_data.get('unit')
+                quantity = line_form.cleaned_data.get('quantity_requested')
+                is_deleted = line_form.cleaned_data.get('DELETE', False)
+                logger.info(f"  - Item: {item} (ID: {item.id if item else None})")
+                logger.info(f"  - Unit: {unit}")
+                logger.info(f"  - Quantity: {quantity}")
+                logger.info(f"  - Is deleted: {is_deleted}")
+                
+                if item and not is_deleted:
+                    valid_lines.append(line_form)
+                    logger.info(f"  ✅ VALID LINE")
+                    if first_item is None:
+                        first_item = item
+                        first_unit = unit or 'EA'
+                else:
+                    logger.info(f"  ⚠️  NOT VALID (no item or deleted)")
+            else:
+                logger.info(f"  ⚠️  NO CLEANED DATA")
+        
+        logger.info(f"Total valid lines: {len(valid_lines)}")
+        logger.info("=" * 80)
         
         if not valid_lines:
             form.add_error(None, _('Please add at least one line with an item.'))
@@ -330,8 +382,15 @@ class PurchaseRequestCreateView(LineFormsetMixin, PurchaseRequestFormMixin, Base
         form.instance.quantity_requested = Decimal("0")
         form.instance.quantity_fulfilled = Decimal("0")
         
-        # Save document first (skip legacy sync for now, we'll do it after lines are saved)
+        # CRITICAL: Call super().form_valid() to ensure AutoSetFieldsMixin sets company_id
+        # But we need to save formset first, so we'll override the save behavior
         form.instance._skip_legacy_sync = True
+        
+        # Set company_id explicitly (AutoSetFieldsMixin should do this, but let's be sure)
+        if company_id:
+            form.instance.company_id = company_id
+        
+        # Save document first (skip legacy sync for now, we'll do it after lines are saved)
         self.object = form.save()
         
         # Now set instance for formset and validate before saving
@@ -351,6 +410,9 @@ class PurchaseRequestCreateView(LineFormsetMixin, PurchaseRequestFormMixin, Base
         self.object._skip_legacy_sync = False
         self.object.save()
         
+        # Call parent's form_valid to handle success message and redirect
+        # But we already saved, so we'll just redirect manually
+        messages.success(self.request, self.success_message)
         return HttpResponseRedirect(self.get_success_url())
 
     def get_fieldsets(self) -> list:
