@@ -19,7 +19,7 @@ from django.db.models import Q
 import json
 import re
 
-from .base import InventoryBaseView, LineFormsetMixin, BaseCreateDocumentFromRequestView
+from .base import InventoryBaseView, LineFormsetMixin, BaseCreateDocumentFromRequestView, DocumentLockProtectedMixin
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.views.base import (
     EditLockProtectedMixin,
@@ -28,7 +28,10 @@ from shared.views.base import (
     BaseListView,
     BaseCreateView,
     BaseDetailView,
+    BaseDeleteView,
 )
+from django.core.exceptions import PermissionDenied
+from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
 from .. import models
 from .. import forms
 from ..models import Item, ItemUnit
@@ -193,7 +196,7 @@ class PurchaseRequestListView(BaseListView):
     
     def get_delete_url_name(self) -> Optional[str]:
         """Return delete URL name."""
-        return None  # Purchase Request doesn't have delete
+        return 'inventory:purchase_request_delete'
     
     def get_empty_state_title(self) -> str:
         """Return empty state title."""
@@ -569,6 +572,80 @@ class PurchaseRequestUpdateView(LineFormsetMixin, PurchaseRequestFormMixin, Base
             (_('زمان بندی و اولویت'), ['needed_by_date', 'priority']),
             (_('تایید و توضیحات'), ['approver', 'reason_code']),
         ]
+
+
+class PurchaseRequestDeleteView(DocumentLockProtectedMixin, InventoryBaseView, BaseDeleteView):
+    """Delete view for purchase requests."""
+    model = models.PurchaseRequest
+    template_name = 'shared/generic/generic_confirm_delete.html'
+    success_url = reverse_lazy('inventory:purchase_requests')
+    feature_code = 'inventory.requests.purchase'
+    success_message = _('درخواست خرید با موفقیت حذف شد.')
+    lock_redirect_url_name = 'inventory:purchase_requests'
+    owner_field = 'requested_by'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check permissions and status before allowing delete."""
+        # Superuser bypass
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        
+        obj = self.get_object()
+        
+        # Check if request is in draft status (only draft requests can be deleted)
+        if obj.status != models.PurchaseRequest.Status.DRAFT:
+            messages.error(request, _('فقط درخواست‌های پیش‌نویس قابل حذف هستند.'))
+            return HttpResponseRedirect(reverse('inventory:purchase_requests'))
+        
+        # Check permissions
+        company_id: Optional[int] = request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(request.user, company_id)
+        
+        # Check if user is owner and has DELETE_OWN permission
+        is_owner = obj.requested_by == request.user if obj.requested_by else False
+        can_delete_own = has_feature_permission(permissions, self.feature_code, 'delete_own', allow_own_scope=True)
+        can_delete_other = has_feature_permission(permissions, self.feature_code, 'delete_other', allow_own_scope=False)
+        
+        if is_owner and not can_delete_own:
+            raise PermissionDenied(_('شما اجازه حذف درخواست‌های خود را ندارید.'))
+        elif not is_owner and not can_delete_other:
+            raise PermissionDenied(_('شما اجازه حذف درخواست‌های سایر کاربران را ندارید.'))
+        
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        """Filter by permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.requests.purchase', 'requested_by')
+        return queryset
+
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('حذف درخواست خرید')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('آیا مطمئن هستید که می‌خواهید این درخواست خرید را حذف کنید؟ این عمل قابل بازگشت نیست.')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Purchase Requests'), 'url': reverse_lazy('inventory:purchase_requests')},
+            {'label': _('Delete'), 'url': None},
+        ]
+
+    def get_object_details(self):
+        """Return object details for display."""
+        obj = self.get_object()
+        details = [
+            {'label': _('Request Code'), 'value': obj.request_code, 'type': 'code'},
+            {'label': _('Request Date'), 'value': obj.request_date},
+            {'label': _('Status'), 'value': obj.get_status_display()},
+        ]
+        if obj.requested_by:
+            details.append({'label': _('Requested By'), 'value': obj.requested_by.get_full_name() or obj.requested_by.username})
+        return details
 
 
 class PurchaseRequestApproveView(InventoryBaseView, View):

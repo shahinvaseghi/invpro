@@ -629,10 +629,20 @@ class LineFormsetMixin:
             
             # Save the instance
             instance = form.save(commit=False)
-            instance.company = self.object.company
             instance.document = self.object
+            # Set company - use company_id first to avoid RelatedObjectDoesNotExist error
             if not hasattr(instance, 'company_id') or not instance.company_id:
                 instance.company_id = self.object.company_id
+            # #region agent log
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"_save_line_formset: Saving line instance pk={instance.pk}, company_id={instance.company_id}, object.company_id={self.object.company_id}")
+            # #endregion
+            # Then set company object if company_id is set
+            if instance.company_id:
+                # Don't set company object directly - Django will load it automatically from company_id
+                # Setting it directly can cause RelatedObjectDoesNotExist if company is not loaded
+                pass
             instance.save()
             form.save_m2m()  # Save ManyToMany relationships (serials)
             

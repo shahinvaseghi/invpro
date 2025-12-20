@@ -230,7 +230,7 @@
 
             {% if lines_formset.can_delete %}
             <div class="line-cell line-delete">
-              {{ line_form.DELETE }}
+              <input type="checkbox" name="{{ line_form.DELETE.html_name }}" id="{{ line_form.DELETE.auto_id }}">
             </div>
             {% endif %}
             
@@ -256,7 +256,7 @@
 </div>
 
 {% load static %}
-<script src="{% static 'js/formset.js' %}"></script>
+<script src="{% static 'js/formset.js' %}?v=20250220"></script>
 <script src="{% static 'js/item-filters.js' %}"></script>
 <script src="{% static 'js/formset-table.js' %}"></script>
 <script>
@@ -302,6 +302,18 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize existing rows
   setTimeout(function() {
     initializeLineForms();
+    // CRITICAL: Uncheck DELETE checkboxes for new lines (lines without id)
+    const allDeleteCheckboxes = formsetContainer.querySelectorAll('input[type="checkbox"][name*="-DELETE"]');
+    allDeleteCheckboxes.forEach(function(checkbox) {
+      const row = checkbox.closest('.line-row');
+      if (row) {
+        const idField = row.querySelector('input[name*="-id"]');
+        // If this is a new line (no id or empty id), uncheck DELETE
+        if (!idField || !idField.value) {
+          checkbox.checked = false;
+        }
+      }
+    });
   }, 100);
   
   // Setup formset management using formset.js
@@ -313,19 +325,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const allRows = Array.from(formsetContainer.querySelectorAll('.line-row:not(.formset-template)'));
     const visibleRows = allRows.filter(row => !row.classList.contains('deleted'));
     
-    // If we have more than 1 row, remove extra rows completely (keep only the first one)
-    if (visibleRows.length > 1) {
-      console.log(`Removing ${visibleRows.length - 1} extra row(s), keeping only 1`);
-      for (let i = 1; i < visibleRows.length; i++) {
-        const row = visibleRows[i];
-        // Remove row completely from DOM
-        row.remove();
-      }
-      // Update TOTAL_FORMS to reflect actual number of rows
-      totalFormsInput.value = '1';
-      // Reinitialize row numbers
-      initializeLineForms();
-    }
+    // #region agent log
+    fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:313',message:'Initial rows check',data:{allRowsCount:allRows.length,visibleRowsCount:visibleRows.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    
+    // REMOVED: Code that was deleting extra rows - this was preventing multiple lines from being saved
+    // The formset should allow multiple rows, so we don't remove them here
     
     // Clone first row as template
     const firstRow = formsetContainer.querySelector('.line-row:not(.formset-template):not(.deleted)');
@@ -356,6 +361,27 @@ document.addEventListener('DOMContentLoaded', function() {
           setTimeout(function() {
             const newRow = e.detail.row;
             if (newRow) {
+              // #region agent log
+              const newRowParent = newRow.parentElement;
+              const newRowInContainer = formsetContainer.contains(newRow);
+              const newRowHasLineRowClass = newRow.classList.contains('line-row');
+              const allRowsAfterAdd = Array.from(formsetContainer.querySelectorAll('.line-row:not(.formset-template)'));
+              const visibleRowsAfterAdd = allRowsAfterAdd.filter(r => !r.classList.contains('deleted'));
+              const allRowsInDocument = Array.from(document.querySelectorAll('.line-row:not(.formset-template)'));
+              const newRowInAllRows = allRowsAfterAdd.includes(newRow);
+              const newRowFieldNames = Array.from(newRow.querySelectorAll('input,select,textarea')).map(f=>f.name).filter(n=>n&&n.startsWith('lines-'));
+              fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:359',message:'Row added event',data:{allRowsCount:allRowsAfterAdd.length,visibleRowsCount:visibleRowsAfterAdd.length,newRowHasDeletedClass:newRow.classList.contains('deleted'),newRowDeleteChecked:newRow.querySelector('[name*="-DELETE"]')?.checked||false,newRowId:newRow.querySelector('[name*="-id"]')?.value||'empty',newRowInContainer,newRowHasLineRowClass,newRowParentId:newRowParent?.id||'N/A',newRowParentTag:newRowParent?.tagName||'N/A',allRowsInDocumentCount:allRowsInDocument.length,newRowInAllRows,newRowFieldNames},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+              // #endregion
+              // CRITICAL: Uncheck DELETE checkbox for new rows
+              const deleteCheckbox = newRow.querySelector('input[type="checkbox"][name*="-DELETE"]');
+              if (deleteCheckbox) {
+                deleteCheckbox.checked = false;
+                // Also remove deleted class if present
+                newRow.classList.remove('deleted');
+              }
+              // #region agent log
+              fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:367',message:'After unchecking DELETE',data:{deleteCheckboxChecked:deleteCheckbox?.checked||false,hasDeletedClass:newRow.classList.contains('deleted')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+              // #endregion
               // Update layout
               updateFormsetTableLayout(formsetContainer, {
                 columnsWithDelete: '50px 3fr 1.5fr 1.5fr 2fr 2fr 80px',
@@ -365,6 +391,11 @@ document.addEventListener('DOMContentLoaded', function() {
               initializeItemFiltersForRow(newRow, filterOptions);
               // Re-index all rows
               initializeLineForms();
+              // #region agent log
+              const allRowsAfterInit = Array.from(formsetContainer.querySelectorAll('.line-row:not(.formset-template)'));
+              const visibleRowsAfterInit = allRowsAfterInit.filter(r => !r.classList.contains('deleted'));
+              fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:377',message:'After initializeLineForms',data:{allRowsCount:allRowsAfterInit.length,visibleRowsCount:visibleRowsAfterInit.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+              // #endregion
             }
           }, 50);
         }
@@ -404,12 +435,21 @@ document.addEventListener('DOMContentLoaded', function() {
       
       console.log('=== PREPARING LINES FORMSET FOR SUBMISSION ===');
       
+      // #region agent log
+      const allRowsAtSubmitStart = Array.from(formsetContainer.querySelectorAll('.line-row:not(.formset-template)'));
+      const visibleRowsAtSubmitStart = allRowsAtSubmitStart.filter(r => !r.classList.contains('deleted'));
+      fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:415',message:'Submit handler start',data:{allRowsCount:allRowsAtSubmitStart.length,visibleRowsCount:visibleRowsAtSubmitStart.length,rowDetails:allRowsAtSubmitStart.map((r,i)=>({index:i,hasDeletedClass:r.classList.contains('deleted'),deleteChecked:r.querySelector('[name*="-DELETE"]')?.checked||false,idValue:r.querySelector('[name*="-id"]')?.value||'empty',itemValue:r.querySelector('[name*="-item"]')?.value||'N/A',isVisible:!r.classList.contains('deleted')}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      
       // CRITICAL: Prevent default submission until we've prepared the formset
       e.preventDefault();
       e.stopPropagation();
       
       // Remove deleted rows completely from DOM before submission
       const deletedRows = formsetContainer.querySelectorAll('.line-row.deleted');
+      // #region agent log
+      fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:422',message:'Deleted rows to remove',data:{deletedRowsCount:deletedRows.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
       deletedRows.forEach(function(row) {
         // Remove all inputs from deleted rows so they're not submitted
         const inputs = row.querySelectorAll('input, select, textarea');
@@ -420,8 +460,105 @@ document.addEventListener('DOMContentLoaded', function() {
         row.remove();
       });
       
-      // Prepare formset using shared function
-      // Use correct row selector that matches the actual row class
+      // CRITICAL: First, manually reindex all rows to ensure sequential indices (0, 1, 2, ...)
+      // Get ALL rows first (including those marked as deleted)
+      const allRowsBefore = Array.from(formsetContainer.querySelectorAll('.line-row:not(.formset-template)'));
+      // #region agent log
+      const isEditMode = !!document.querySelector('input[name="lines-0-id"][value]');
+      fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:417',message:'All rows before filtering',data:{allRowsCount:allRowsBefore.length,rowDetails:allRowsBefore.map((r,i)=>({index:i,hasDeletedClass:r.classList.contains('deleted'),deleteCheckbox:r.querySelector('[name*="-DELETE"]')?.checked||false,hasItem:!!r.querySelector('[name*="-item"]'),itemValue:r.querySelector('[name*="-item"]')?.value||'N/A'}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      
+      // CRITICAL: Uncheck DELETE checkboxes for new lines before filtering
+      allRowsBefore.forEach(function(row, idx) {
+        const deleteCheckbox = row.querySelector('input[type="checkbox"][name*="-DELETE"]');
+        if (deleteCheckbox) {
+          const idField = row.querySelector('input[name*="-id"]');
+          const idValue = idField ? idField.value : '';
+          const wasChecked = deleteCheckbox.checked;
+          const hadDeletedClass = row.classList.contains('deleted');
+          // If this is a new line (no id or empty id), uncheck DELETE and remove deleted class
+          if (!idField || !idField.value) {
+            if (deleteCheckbox.checked) {
+              console.log(`Unchecking DELETE checkbox for new line ${idx}`);
+              deleteCheckbox.checked = false;
+            }
+            row.classList.remove('deleted');
+            // #region agent log
+            fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:447',message:'Unchecked DELETE for new line',data:{rowIndex:idx,wasChecked,nowChecked:deleteCheckbox.checked,hadDeletedClass,nowHasDeletedClass:row.classList.contains('deleted'),idValue},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
+          } else {
+            // #region agent log
+            fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:454',message:'Existing line (has id)',data:{rowIndex:idx,idValue,deleteChecked:deleteCheckbox.checked,hasDeletedClass:row.classList.contains('deleted')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
+          }
+        }
+      });
+      
+      // Now get visible rows (after unchecking DELETE checkboxes)
+      const visibleRows = Array.from(formsetContainer.querySelectorAll('.line-row:not(.formset-template):not(.deleted)'));
+      // #region agent log
+      fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:461',message:'Visible rows after DELETE uncheck',data:{visibleRowsCount:visibleRows.length,allRowsBeforeCount:allRowsBefore.length,visibleRowDetails:visibleRows.map((r,i)=>({index:i,hasDeletedClass:r.classList.contains('deleted'),deleteChecked:r.querySelector('[name*="-DELETE"]')?.checked||false,idValue:r.querySelector('[name*="-id"]')?.value||'empty',itemValue:r.querySelector('[name*="-item"]')?.value||'N/A'}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      console.log(`Found ${visibleRows.length} visible row(s) before reindexing`);
+      // #region agent log
+      fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:435',message:'Visible rows count before reindex',data:{count:visibleRows.length,isEditMode,rowDetails:visibleRows.map((r,i)=>({index:i,hasItem:!!r.querySelector('[name*="-item"]'),hasUnit:!!r.querySelector('[name*="-unit"]'),hasQuantity:!!r.querySelector('[name*="-quantity_requested"]'),itemField:r.querySelector('[name*="-item"]')?.name||'N/A',itemValue:r.querySelector('[name*="-item"]')?.value||'N/A',deleteChecked:r.querySelector('[name*="-DELETE"]')?.checked||false,allFields:Array.from(r.querySelectorAll('input,select,textarea')).filter(f=>f.name&&f.name.startsWith('lines-')).map(f=>({name:f.name,value:f.value,disabled:f.disabled,type:f.type}))}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      
+      // Reindex all rows sequentially
+      visibleRows.forEach(function(row, newIndex) {
+        // Get all fields in this row
+        const allFields = row.querySelectorAll('input, select, textarea');
+        // #region agent log
+        fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:428',message:'Reindexing row',data:{newIndex,fieldCount:allFields.length,fieldsBefore:Array.from(allFields).map(f=>({name:f.name,value:f.value,disabled:f.disabled,hasPrefix:f.name&&f.name.includes('__prefix__')}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        
+        allFields.forEach(function(field) {
+          if (field.name && field.name.startsWith('lines-')) {
+            // Extract current index from field name
+            const match = field.name.match(/^lines-(\d+)-/);
+            if (match) {
+              const oldIndex = match[1];
+              // Replace old index with new index
+              field.name = field.name.replace(/^lines-\d+-/, `lines-${newIndex}-`);
+              console.log(`Reindexed field: ${match[0]} -> lines-${newIndex}-`);
+            } else if (field.name.includes('__prefix__')) {
+              // Handle __prefix__ pattern
+              const oldName = field.name;
+              field.name = field.name.replace(/__prefix__/g, newIndex);
+              console.log(`Reindexed __prefix__ field: ${oldName} -> ${field.name}`);
+              // #region agent log
+              fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:443',message:'Reindexed __prefix__ field',data:{oldName,newName:field.name,newIndex},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+              // #endregion
+            }
+          }
+          // Also update ID if it exists
+          if (field.id && field.id.startsWith('id_lines-')) {
+            const match = field.id.match(/^id_lines-(\d+)-/);
+            if (match) {
+              field.id = field.id.replace(/^id_lines-\d+-/, `id_lines-${newIndex}-`);
+            } else if (field.id.includes('__prefix__')) {
+              field.id = field.id.replace(/__prefix__/g, newIndex);
+            }
+          }
+        });
+        
+        // Update line number display
+        const lineNumber = row.querySelector('.line-number');
+        if (lineNumber) {
+          lineNumber.textContent = newIndex + 1;
+        }
+        
+        // Update data-form-index attribute
+        row.setAttribute('data-form-index', newIndex);
+      });
+      
+      // Update TOTAL_FORMS
+      if (totalFormsInput) {
+        totalFormsInput.value = visibleRows.length;
+        console.log(`Updated TOTAL_FORMS to ${visibleRows.length}`);
+      }
+      
+      // Now prepare formset using shared function (it should find no __prefix__ fields now)
       const result = prepareFormsetForSubmit('lines', '.line-row', {
         countOnlyNonDeleted: true
       });
@@ -429,7 +566,6 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('Formset preparation result:', result);
       
       // Double-check TOTAL_FORMS matches actual visible rows
-      const visibleRows = formsetContainer.querySelectorAll('.line-row:not(.formset-template):not(.deleted)');
       const actualRowCount = visibleRows.length;
       if (totalFormsInput) {
         // Use the count from prepareFormsetForSubmit result, or fallback to actual count
@@ -523,49 +659,116 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error(`✗ Failed to prepare formset: TOTAL_FORMS=${result.totalForms}, reindexed=${result.reindexedCount}`);
       }
       
-      // CRITICAL FIX: Use fetch API instead of form.submit() to ensure all fields are included
-      // Build FormData manually to ensure all field values are captured
-      const formData = new FormData(form);
+      // CRITICAL FIX: Build FormData manually to ensure all fields are included
+      // Don't use new FormData(form) because it might miss reindexed fields
+      const formData = new FormData();
       
-      // Manually add line fields to ensure they're included
-      visibleRows.forEach((row, index) => {
-        const itemField = row.querySelector('select[name*="-item"], input[name*="-item"]');
-        const unitField = row.querySelector('select[name*="-unit"], input[name*="-unit"]');
-        const quantityField = row.querySelector('input[name*="-quantity_requested"], input[name*="-quantity"]');
-        const lineNotesField = row.querySelector('textarea[name*="-line_notes"], input[name*="-line_notes"]');
-        const deleteField = row.querySelector('input[name*="-DELETE"]');
-        const idField = row.querySelector('input[name*="-id"]');
-        const documentField = row.querySelector('input[name*="-document"]');
-        
-        if (itemField && itemField.value) {
-          formData.set(`lines-${index}-item`, itemField.value);
-        }
-        if (unitField && unitField.value) {
-          formData.set(`lines-${index}-unit`, unitField.value);
-        }
-        if (quantityField && quantityField.value) {
-          formData.set(`lines-${index}-quantity_requested`, quantityField.value);
-        }
-        if (lineNotesField) {
-          formData.set(`lines-${index}-line_notes`, lineNotesField.value || '');
-        }
-        if (deleteField) {
-          if (deleteField.checked) {
-            formData.set(`lines-${index}-DELETE`, 'on');
+      // First, add all non-lines fields from the form
+      const allFormFields = form.querySelectorAll('input, select, textarea');
+      allFormFields.forEach(function(field) {
+        if (field.name && !field.name.startsWith('lines-')) {
+          if (field.type === 'checkbox' || field.type === 'radio') {
+            if (field.checked) {
+              formData.append(field.name, field.value || 'on');
+            }
+          } else if (field.type === 'file') {
+            if (field.files && field.files.length > 0) {
+              for (let i = 0; i < field.files.length; i++) {
+                formData.append(field.name, field.files[i]);
+              }
+            }
           } else {
-            formData.delete(`lines-${index}-DELETE`);
+            if (field.value !== null && field.value !== undefined) {
+              formData.append(field.name, field.value);
+            }
           }
-        }
-        if (idField) {
-          formData.set(`lines-${index}-id`, idField.value || '');
-        }
-        if (documentField) {
-          formData.set(`lines-${index}-document`, documentField.value || '');
         }
       });
       
+      // Now manually add ALL line fields to ensure they're included
+      // This is critical because reindexed fields might not be in the original form
+      console.log(`Adding ${visibleRows.length} row(s) to FormData...`);
+      // #region agent log
+      fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:603',message:'Starting FormData addition',data:{visibleRowsCount:visibleRows.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      visibleRows.forEach(function(row, rowIndex) {
+        // Get all fields from the row (including hidden fields)
+        const allFields = row.querySelectorAll('input, select, textarea');
+        console.log(`Row ${rowIndex}: Found ${allFields.length} field(s)`);
+        // #region agent log
+        fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:606',message:'Processing row for FormData',data:{rowIndex,fieldCount:allFields.length,fields:Array.from(allFields).map(f=>({name:f.name,value:f.value,disabled:f.disabled,type:f.type,startsWithLines:f.name&&f.name.startsWith('lines-')}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
+        
+        // Add each field to FormData using its actual name
+        allFields.forEach(function(field) {
+          if (field.name && field.name.startsWith('lines-')) {
+            // Skip disabled fields (they're from deleted rows)
+            if (field.disabled) {
+              console.log(`  Skipping disabled field: ${field.name}`);
+              // #region agent log
+              fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:614',message:'Skipping disabled field',data:{fieldName:field.name,rowIndex},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+              // #endregion
+              return;
+            }
+            
+            // Use the actual field name from DOM
+            if (field.type === 'checkbox') {
+              if (field.checked) {
+                formData.append(field.name, field.value || 'on');
+                console.log(`  ✅ Added checkbox: ${field.name} = ${field.value || 'on'}`);
+              } else {
+                // Don't add unchecked checkboxes (except DELETE which should be explicitly removed)
+                if (field.name.includes('-DELETE')) {
+                  // Explicitly remove DELETE field if unchecked
+                  console.log(`  ⚠️  DELETE checkbox unchecked, field will not be submitted`);
+                }
+              }
+            } else if (field.type === 'radio') {
+              if (field.checked) {
+                formData.append(field.name, field.value);
+                console.log(`  ✅ Added radio: ${field.name} = ${field.value}`);
+              }
+            } else if (field.type === 'hidden') {
+              // Always add hidden fields (id, document, etc.)
+              formData.append(field.name, field.value || '');
+              console.log(`  ✅ Added hidden: ${field.name} = ${field.value || ''}`);
+            } else {
+              // For text, select, textarea, etc.
+              const value = field.value || '';
+              formData.append(field.name, value);
+              console.log(`  ✅ Added field: ${field.name} = ${value}`);
+              // #region agent log
+              fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:640',message:'Added field to FormData',data:{fieldName:field.name,value,rowIndex},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+              // #endregion
+            }
+          }
+        });
+      });
+      // #region agent log
+      const formDataKeys = Array.from(formData.keys()).filter(k=>k.startsWith('lines-'));
+      const linesIndices = new Set(formDataKeys.map(k=>k.match(/^lines-(\d+)-/)?.[1]).filter(Boolean));
+      fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'purchase_request_form.html:665',message:'FormData addition complete',data:{totalRowsProcessed:visibleRows.length,formDataKeys,linesIndices:Array.from(linesIndices),totalForms:formData.get('lines-TOTAL_FORMS')},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      
       // Ensure TOTAL_FORMS is set correctly
-      formData.set('lines-TOTAL_FORMS', result.totalForms.toString());
+      const finalTotalForms = result.success ? result.totalForms : visibleRows.length;
+      formData.set('lines-TOTAL_FORMS', finalTotalForms.toString());
+      console.log(`✅ Set TOTAL_FORMS to ${finalTotalForms}`);
+      
+      // Also set other management form fields
+      const initialFormsInput = document.querySelector('input[name="lines-INITIAL_FORMS"]');
+      const minFormsInput = document.querySelector('input[name="lines-MIN_NUM_FORMS"]');
+      const maxFormsInput = document.querySelector('input[name="lines-MAX_NUM_FORMS"]');
+      
+      if (initialFormsInput) {
+        formData.set('lines-INITIAL_FORMS', initialFormsInput.value || '0');
+      }
+      if (minFormsInput) {
+        formData.set('lines-MIN_NUM_FORMS', minFormsInput.value || '1');
+      }
+      if (maxFormsInput) {
+        formData.set('lines-MAX_NUM_FORMS', maxFormsInput.value || '');
+      }
       
       // Submit using fetch API
       fetch(form.action || window.location.href, {

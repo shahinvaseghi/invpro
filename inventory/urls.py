@@ -82,6 +82,7 @@ urlpatterns = [
     path('purchase-requests/create-from-transfer-request/<int:transfer_id>/', views.PurchaseRequestCreateFromTransferRequestView.as_view(), name='purchase_request_create_from_transfer_request'),
     path('purchase-requests/<int:pk>/', views.PurchaseRequestDetailView.as_view(), name='purchase_request_detail'),
     path('purchase-requests/<int:pk>/edit/', views.PurchaseRequestUpdateView.as_view(), name='purchase_request_edit'),
+    path('purchase-requests/<int:pk>/delete/', views.PurchaseRequestDeleteView.as_view(), name='purchase_request_delete'),
     path('purchase-requests/<int:pk>/approve/', views.PurchaseRequestApproveView.as_view(), name='purchase_request_approve'),
     path('purchase-requests/<int:pk>/create-temporary-receipt/', views.CreateTemporaryReceiptFromPurchaseRequestView.as_view(), name='purchase_request_create_temporary_receipt'),
     path('purchase-requests/<int:pk>/create-permanent-receipt/', views.CreatePermanentReceiptFromPurchaseRequestView.as_view(), name='purchase_request_create_permanent_receipt'),

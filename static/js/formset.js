@@ -8,6 +8,9 @@
  * - Managing TOTAL_FORMS counter
  */
 
+// TEST: This should appear in console if file is loaded
+console.log('🔄 formset.js LOADED - VERSION 2.0 with field conversion fix');
+
 /**
  * Add a new row to a formset.
  * 
@@ -61,6 +64,51 @@ function addFormsetRow(prefix, templateSelector, options = {}) {
     // Clone template row
     const newRow = templateRow.cloneNode(true);
     newRow.style.display = ''; // Make visible (template is usually hidden)
+    
+    // #region agent log
+    const fieldsBeforeClean = Array.from(newRow.querySelectorAll('input, select, textarea')).slice(0,5).map(f=>({name:f.name,id:f.id,value:f.value}));
+    fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'formset.js:63',message:'Cloned row fields BEFORE cleanup',data:{prefix,fieldsBeforeClean,classes:Array.from(newRow.classList)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H1'})}).catch(()=>{});
+    // #endregion
+    
+    // CRITICAL: Uncheck DELETE checkbox and remove deleted class for new rows
+    // This must be done BEFORE adding to DOM so reindexFormset can find it
+    const deleteCheckbox = newRow.querySelector('input[type="checkbox"][name*="-DELETE"]');
+    if (deleteCheckbox) {
+      deleteCheckbox.checked = false;
+    }
+    newRow.classList.remove('deleted');
+    newRow.classList.remove('formset-template'); // Remove template class so it's counted as a regular row
+    
+    // CRITICAL: Convert field names from prefix-0- to prefix-__prefix__- so reindexFormset can update them
+    // This is necessary because reindexFormset uses usePrefixPattern=true which only updates __prefix__ fields
+    const allFields = newRow.querySelectorAll('input, select, textarea, label');
+    // #region agent log
+    fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'formset.js:79',message:'Before field name conversion',data:{prefix,allFieldsCount:allFields.length,sampleFields:Array.from(allFields).slice(0,5).map(f=>({tag:f.tagName,name:f.name,id:f.id}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H2'})}).catch(()=>{});
+    // #endregion
+    let convertedCount = 0;
+    allFields.forEach(field => {
+        // Update name attribute
+        if (field.name && field.name.match(new RegExp(`^${prefix}-\\d+-`))) {
+            const oldName = field.name;
+            field.name = field.name.replace(new RegExp(`^${prefix}-\\d+-`), `${prefix}-__prefix__-`);
+            if(oldName !== field.name) convertedCount++;
+        }
+        // Update id attribute
+        if (field.id && field.id.match(new RegExp(`^id_${prefix}-\\d+-`))) {
+            field.id = field.id.replace(new RegExp(`^id_${prefix}-\\d+-`), `id_${prefix}-__prefix__-`);
+        }
+        // Update for attribute (for labels)
+        if (field.tagName === 'LABEL' && field.getAttribute('for')) {
+            const forAttr = field.getAttribute('for');
+            if (forAttr.match(new RegExp(`^id_${prefix}-\\d+-`))) {
+                field.setAttribute('for', forAttr.replace(new RegExp(`^id_${prefix}-\\d+-`), `id_${prefix}-__prefix__-`));
+            }
+        }
+    });
+    // #region agent log
+    const fieldsAfterConversion = Array.from(newRow.querySelectorAll('input, select, textarea')).slice(0,5).map(f=>({name:f.name,id:f.id}));
+    fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'formset.js:101',message:'After field name conversion',data:{prefix,convertedCount,fieldsAfterConversion,classes:Array.from(newRow.classList)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H2'})}).catch(()=>{});
+    // #endregion
     
     // Ensure all child elements are visible (in case template had display:none)
     const allChildren = newRow.querySelectorAll('*');
@@ -151,15 +199,29 @@ function addFormsetRow(prefix, templateSelector, options = {}) {
     
     // Increment TOTAL_FORMS
     totalFormsInput.value = currentFormCount + 1;
+    // #region agent log
+    fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'formset.js:162',message:'TOTAL_FORMS incremented',data:{prefix,oldValue:currentFormCount,newValue:currentFormCount+1,totalFormsInputValue:totalFormsInput.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H3'})}).catch(()=>{});
+    // #endregion
     
     // Reindex all rows (to ensure sequential indices)
+    // #region agent log
+    const rowsBeforeReindex = Array.from(document.querySelectorAll(`${rowSelector}:not(.formset-template)`)).map(r=>Array.from(r.querySelectorAll('input,select,textarea')).slice(0,2).map(f=>f.name));
+    fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'formset.js:168',message:'Before reindexFormset',data:{prefix,rowCount:rowsBeforeReindex.length,rowsBeforeReindex},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H1'})}).catch(()=>{});
+    // #endregion
     reindexFormset(prefix, rowSelector, usePrefixPattern);
+    // #region agent log
+    const rowsAfterReindex = Array.from(document.querySelectorAll(`${rowSelector}:not(.formset-template)`)).map(r=>Array.from(r.querySelectorAll('input,select,textarea')).slice(0,2).map(f=>f.name));
+    fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'formset.js:173',message:'After reindexFormset',data:{prefix,rowCount:rowsAfterReindex.length,rowsAfterReindex,finalTotalForms:totalFormsInput.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H1'})}).catch(()=>{});
+    // #endregion
     
     // Trigger custom event
     const event = new CustomEvent('formset:row-added', {
         detail: { prefix, index: newFormIndex, row: newRow }
     });
     document.dispatchEvent(event);
+    // #region agent log
+    fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'formset.js:182',message:'Event formset:row-added dispatched',data:{prefix,index:newFormIndex,rowClasses:Array.from(newRow.classList)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H5'})}).catch(()=>{});
+    // #endregion
     
     return true;
 }
@@ -462,6 +524,9 @@ function getFormsetRowCount(prefix, rowSelector = '.formset-row') {
  * @param {string} options.rowSelector - CSS selector for row elements (default: '.formset-row')
  */
 function initFormset(prefix, templateSelector, options = {}) {
+    // #region agent log
+    fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'formset.js:473',message:'initFormset called',data:{prefix,templateSelector,options},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H6'})}).catch(()=>{});
+    // #endregion
     const minRows = options.minRows || 1;
     const maxRows = options.maxRows || null;
     const addButtonSelector = options.addButtonSelector || `.add-formset-row[data-prefix="${prefix}"]`;
@@ -473,8 +538,14 @@ function initFormset(prefix, templateSelector, options = {}) {
     const templateRow = document.querySelector(templateSelector);
     if (!templateRow) {
         console.error(`Template not found: ${templateSelector}`);
+        // #region agent log
+        fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'formset.js:488',message:'Template not found ERROR',data:{prefix,templateSelector},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H6'})}).catch(()=>{});
+        // #endregion
         return;
     }
+    // #region agent log
+    fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'formset.js:494',message:'Template found, setting up handlers',data:{prefix,addButtonSelector,templateFound:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H6'})}).catch(()=>{});
+    // #endregion
     
     if (templateRow) {
         const container = templateRow.closest('.formset-container') || templateRow.parentElement;
@@ -498,7 +569,15 @@ function initFormset(prefix, templateSelector, options = {}) {
         e.preventDefault();
         e.stopPropagation();
         console.log(`Add button clicked for formset: ${prefix}`);
+        // #region agent log
+        const rowsBeforeAdd = Array.from(document.querySelectorAll(`${rowSelector}:not(.formset-template)`)).length;
+        fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'formset.js:507',message:'Add button clicked',data:{prefix,rowsBeforeAdd,templateSelector},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H5'})}).catch(()=>{});
+        // #endregion
         const result = addFormsetRow(prefix, templateSelector, options);
+        // #region agent log
+        const rowsAfterAdd = Array.from(document.querySelectorAll(`${rowSelector}:not(.formset-template)`)).length;
+        fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'formset.js:512',message:'After addFormsetRow',data:{prefix,result,rowsBeforeAdd,rowsAfterAdd,addedCount:rowsAfterAdd-rowsBeforeAdd},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H5'})}).catch(()=>{});
+        // #endregion
         if (!result) {
             console.error('Failed to add formset row');
         }
