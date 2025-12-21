@@ -267,18 +267,26 @@
     }
 
     // #region agent log
-    fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:263',message:'initDeleteCheckboxes called',data:{hasContainer:!!formsetContainer},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'H5'})}).catch(()=>{});
+    const allCheckboxes = formsetContainer.querySelectorAll('input[type="checkbox"]');
+    const deleteCheckboxes = formsetContainer.querySelectorAll('input[name*="-DELETE"]');
+    const checkboxesInfo = Array.from(allCheckboxes).map(cb => ({
+      name: cb.name,
+      type: cb.type,
+      visible: cb.offsetParent !== null,
+      display: window.getComputedStyle(cb).display
+    }));
+    fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:263',message:'initDeleteCheckboxes called',data:{hasContainer:!!formsetContainer,totalCheckboxes:allCheckboxes.length,deleteCheckboxes:deleteCheckboxes.length,checkboxesInfo},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'H5'})}).catch(()=>{});
     // #endregion
 
     // Use event delegation to handle dynamically added checkboxes
     formsetContainer.addEventListener('change', function(e) {
       // #region agent log
-      fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:270',message:'Change event',data:{targetType:e.target.type,targetName:e.target.name,includesDelete:e.target.name ? e.target.name.includes('-DELETE') : false},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'H5'})}).catch(()=>{});
+      fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:276',message:'Change event',data:{targetType:e.target.type,targetName:e.target.name,includesDelete:e.target.name ? e.target.name.includes('-DELETE') : false},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'H5'})}).catch(()=>{});
       // #endregion
       
       if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
         // #region agent log
-        fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:276',message:'DELETE checkbox clicked',data:{checked:e.target.checked,name:e.target.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'H5'})}).catch(()=>{});
+        fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:282',message:'DELETE checkbox clicked',data:{checked:e.target.checked,name:e.target.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'H5'})}).catch(()=>{});
         // #endregion
         
         const lineRow = e.target.closest('.line-row');
@@ -306,6 +314,15 @@
           initializeLineForms(formsetContainer, filterOptions || {});
         }
       }
+    });
+    
+    // Also add click listener to debug
+    formsetContainer.addEventListener('click', function(e) {
+      // #region agent log
+      if (e.target.type === 'checkbox') {
+        fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:322',message:'Checkbox CLICKED',data:{name:e.target.name,checked:e.target.checked,type:e.target.type},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'H5'})}).catch(()=>{});
+      }
+      // #endregion
     });
     
     // Also handle initial state of checkboxes

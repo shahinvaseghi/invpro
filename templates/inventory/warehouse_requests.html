@@ -149,6 +149,7 @@
   <td>
     <div class="action-buttons">
       {% load access_tags %}
+      {% load view_tags %}
       {# View button - always show if user has view permission #}
       {% if detail_url_name %}
         {% can_view_object wr feature_code|default:"" as can_view %}
@@ -172,6 +173,17 @@
           {% if not wr.is_locked %}
             <a href="{% url edit_url_name wr.pk %}" class="btn btn-secondary btn-xs">
               {% trans "Edit" %}
+            </a>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+      {# Delete button - only show if object is not locked and user has delete permission #}
+      {% if delete_url_name %}
+        {% can_action wr 'delete' feature_code|default:"" as can_delete %}
+        {% if can_delete or user.is_superuser %}
+          {% if not wr.is_locked and wr.request_status == 'draft' %}
+            <a href="{% url delete_url_name wr.pk %}" class="btn btn-danger btn-xs" data-confirm="{% trans 'Are you sure you want to delete this warehouse request?' %}">
+              {% trans "Delete" %}
             </a>
           {% endif %}
         {% endif %}

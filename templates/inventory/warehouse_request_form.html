@@ -23,6 +23,7 @@
   {{ lines_formset.management_form }}
   {% for hidden in lines_formset.hidden_fields %}{{ hidden }}{% endfor %}
 
+  <!-- DEBUG: can_delete = {{ lines_formset.can_delete }} -->
   <div class="lines-formset-wrapper">
     <div class="lines-formset" id="lines-formset" data-can-delete="{% if lines_formset.can_delete %}true{% else %}false{% endif %}">
       <div class="lines-table-header">
@@ -38,6 +39,7 @@
       </div>
       
       {% for line_form in lines_formset %}
+        <!-- DEBUG: Row {{ forloop.counter }} - can_delete in loop = {{ lines_formset.can_delete }} -->
         <div class="line-row" data-form-index="{{ forloop.counter0 }}">
           {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
           
@@ -124,7 +126,7 @@
 
           {% if lines_formset.can_delete %}
           <div class="line-cell line-delete">
-            {{ line_form.DELETE }}
+            <input type="checkbox" name="{{ line_form.DELETE.html_name }}" id="{{ line_form.DELETE.auto_id }}" class="delete-checkbox">
           </div>
           {% endif %}
           
@@ -153,9 +155,196 @@
 <!-- Jalali DatePicker Library -->
 <link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">
 <script src="{% static 'js/jalali-datepicker/jalali-datepicker.min.js' %}"></script>
-<script src="{% static 'js/formset.js' %}?v=20250220"></script>
-<script src="{% static 'js/cascading-dropdowns.js' %}"></script>
+<script src="{% static 'js/formset.js' %}?v=20250220c"></script>
 <script src="{% static 'js/item-filters.js' %}"></script>
 <script src="{% static 'js/formset-table.js' %}"></script>
-<script src="{% static 'js/warehouse-request-form.js' %}?v=20250220b"></script>
+
+<script>
+// Configuration for item filters
+const filterOptions = {
+  placeholder: "--- انتخاب کنید ---",
+  allCategoriesText: "{% trans 'All Categories' %}",
+  allSubcategoriesText: "{% trans 'All Subcategories' %}",
+};
+
+// Initialize line forms - update row numbers and setup filters
+function initializeLineForms() {
+  const formsetContainer = document.getElementById('lines-formset');
+  if (!formsetContainer) return;
+  
+  // Get all non-deleted rows (exclude deleted and template rows)
+  const allRows = Array.from(formsetContainer.querySelectorAll('.line-row:not(.formset-template)'));
+  const visibleRows = allRows.filter(row => !row.classList.contains('deleted'));
+  
+  visibleRows.forEach(function(lineRow, index) {
+    // Update row number
+    const lineNumber = lineRow.querySelector('.line-number');
+    if (lineNumber) {
+      lineNumber.textContent = index + 1;
+    }
+    
+    // Use shared item-filters.js function
+    if (typeof initializeItemFiltersForRow === 'function') {
+      initializeItemFiltersForRow(lineRow, filterOptions);
+    }
+  });
+}
+
+// Main initialization
+document.addEventListener('DOMContentLoaded', function() {
+  const formsetContainer = document.getElementById('lines-formset');
+  if (!formsetContainer) return;
+  
+  // Initialize Jalali DatePicker
+  if (typeof jalaliDatepicker !== 'undefined') {
+    const dateInputs = document.querySelectorAll('.jalali-date-input, input[data-jalali="true"]');
+    dateInputs.forEach(function(input) {
+      if (!input.hasAttribute('data-jdp')) {
+        input.setAttribute('data-jdp', '');
+      }
+      if (!input.hasAttribute('data-jdp-only-date')) {
+        input.setAttribute('data-jdp-only-date', '');
+      }
+    });
+    
+    jalaliDatepicker.startWatch({
+      date: true,
+      time: false,
+      separatorChars: {
+        date: '/',
+        between: ' ',
+        time: ':'
+      },
+      persianDigits: false,
+      autoShow: true,
+      autoHide: true,
+      hideAfterChange: true,
+      showTodayBtn: true,
+      showEmptyBtn: true,
+      showCloseBtn: true,
+      useDropDownYears: true,
+      zIndex: 1000
+    });
+  }
+  
+  // Initialize formset table layout
+  if (typeof initFormsetTableLayout === 'function') {
+    initFormsetTableLayout(formsetContainer, {
+      columnsWithDelete: '50px 3fr 1.5fr 1.5fr 2fr 2fr 80px',
+      columnsWithoutDelete: '50px 3fr 1.5fr 1.5fr 2fr 2fr',
+    });
+  }
+  
+  // Initialize existing rows
+  setTimeout(function() {
+    initializeLineForms();
+    // Uncheck DELETE checkboxes for new lines (lines without id)
+    const allDeleteCheckboxes = formsetContainer.querySelectorAll('input[type="checkbox"][name*="-DELETE"]');
+    allDeleteCheckboxes.forEach(function(checkbox) {
+      const row = checkbox.closest('.line-row');
+      if (row) {
+        const idField = row.querySelector('input[name*="-id"]');
+        // If this is a new line (no id or empty id), uncheck DELETE
+        if (!idField || !idField.value) {
+          checkbox.checked = false;
+        }
+      }
+    });
+  }, 100);
+  
+  // Setup formset management using formset.js
+  const addLineBtn = document.getElementById('add-line-btn');
+  const totalFormsInput = document.querySelector('input[name="lines-TOTAL_FORMS"]');
+  
+  if (addLineBtn && formsetContainer && totalFormsInput) {
+    // Clone first row as template
+    const firstRow = formsetContainer.querySelector('.line-row:not(.formset-template):not(.deleted)');
+    if (firstRow) {
+      const templateRow = firstRow.cloneNode(true);
+      templateRow.id = 'lines-formset-template';
+      templateRow.style.display = 'none';
+      templateRow.classList.add('formset-template');
+      formsetContainer.appendChild(templateRow);
+      
+      // Initialize formset with minRows=0 to prevent adding extra rows
+      initFormset('lines', '#lines-formset-template', {
+        minRows: 0,
+        maxRows: null,
+        addButtonSelector: '#add-line-btn',
+        removeButtonSelector: null,  // Don't let formset.js handle DELETE - we'll handle it manually
+        rowSelector: '.line-row'
+      });
+      
+      // After adding row, initialize filters and update layout
+      document.addEventListener('formset:row-added', function(e) {
+        if (e.detail.prefix === 'lines') {
+          setTimeout(function() {
+            const newRow = e.detail.row;
+            if (newRow) {
+              // Uncheck DELETE checkbox for new rows
+              const deleteCheckbox = newRow.querySelector('input[type="checkbox"][name*="-DELETE"]');
+              if (deleteCheckbox) {
+                deleteCheckbox.checked = false;
+                newRow.classList.remove('deleted');
+              }
+              // Update layout
+              if (typeof updateFormsetTableLayout === 'function') {
+                updateFormsetTableLayout(formsetContainer, {
+                  columnsWithDelete: '50px 3fr 1.5fr 1.5fr 2fr 2fr 80px',
+                  columnsWithoutDelete: '50px 3fr 1.5fr 1.5fr 2fr 2fr',
+                });
+              }
+              // Initialize filters for new row
+              if (typeof initializeItemFiltersForRow === 'function') {
+                initializeItemFiltersForRow(newRow, filterOptions);
+              }
+              // Re-index all rows
+              initializeLineForms();
+            }
+          }, 50);
+        }
+      });
+    }
+  }
+  
+  // Handle delete checkboxes - toggle deleted class
+  if (formsetContainer) {
+    console.log('✅ Setting up DELETE checkbox handler on formsetContainer');
+    
+    formsetContainer.addEventListener('change', function(e) {
+      console.log('🔔 Change event fired:', e.target.type, e.target.name);
+      
+      if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
+        console.log('✅ DELETE checkbox detected!');
+        const lineRow = e.target.closest('.line-row');
+        console.log('LineRow found:', !!lineRow);
+        
+        if (lineRow) {
+          if (e.target.checked) {
+            console.log('➕ Adding deleted class');
+            lineRow.classList.add('deleted');
+          } else {
+            console.log('➖ Removing deleted class');
+            lineRow.classList.remove('deleted');
+          }
+          console.log('Current classes:', lineRow.className);
+          // Reinitialize to update row numbers
+          initializeLineForms();
+        }
+      }
+    });
+  } else {
+    console.error('❌ formsetContainer not found!');
+  }
+  
+  // Also handle initial state of existing checkboxes
+  const existingDeleteCheckboxes = formsetContainer.querySelectorAll('input[type="checkbox"][name*="-DELETE"]');
+  existingDeleteCheckboxes.forEach(function(checkbox) {
+    const lineRow = checkbox.closest('.line-row');
+    if (lineRow && checkbox.checked) {
+      lineRow.classList.add('deleted');
+    }
+  });
+});
+</script>
 {% endblock %}

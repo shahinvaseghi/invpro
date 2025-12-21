@@ -64,6 +64,7 @@ from .requests import (
     WarehouseRequestCreateView,
     WarehouseRequestDetailView,
     WarehouseRequestUpdateView,
+    WarehouseRequestDeleteView,
     WarehouseRequestApproveView,
 )
 
@@ -269,6 +270,7 @@ __all__ = [
     'WarehouseRequestCreateView',
     'WarehouseRequestDetailView',
     'WarehouseRequestUpdateView',
+    'WarehouseRequestDeleteView',
     'WarehouseRequestApproveView',
     # Receipts (refactored)
     'DocumentDeleteViewBase',
@@ -435,7 +437,7 @@ if _views_py_path.exists():
         'PurchaseRequestFormMixin', 'PurchaseRequestListView', 'PurchaseRequestCreateView', 'PurchaseRequestDetailView',
         'PurchaseRequestUpdateView', 'PurchaseRequestDeleteView', 'PurchaseRequestApproveView',
         'WarehouseRequestFormMixin', 'WarehouseRequestListView', 'WarehouseRequestCreateView', 'WarehouseRequestDetailView',
-        'WarehouseRequestUpdateView', 'WarehouseRequestApproveView',
+        'WarehouseRequestUpdateView', 'WarehouseRequestDeleteView', 'WarehouseRequestApproveView',
         'DocumentDeleteViewBase', 'ReceiptFormMixin',
         'ReceiptTemporaryListView', 'ReceiptTemporaryCreateView', 'ReceiptTemporaryDetailView', 'ReceiptTemporaryUpdateView',
         'ReceiptTemporaryDeleteView', 'ReceiptTemporaryLockView', 'ReceiptTemporaryUnlockView', 'ReceiptTemporarySendToQCView',

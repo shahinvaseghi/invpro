@@ -905,6 +905,10 @@ class WarehouseRequestListView(InventoryBaseView, BaseListView):
         """Return edit URL name."""
         return 'inventory:warehouse_request_edit'
 
+    def get_delete_url_name(self) -> Optional[str]:
+        """Return delete URL name."""
+        return 'inventory:warehouse_request_delete'
+
     def get_empty_state_title(self) -> str:
         """Return empty state title."""
         return _('No Requests Found')
@@ -1577,6 +1581,80 @@ class WarehouseRequestApproveView(InventoryBaseView, View):
         warehouse_request.save(update_fields=update_fields)
         messages.success(request, _('درخواست انبار تایید شد و برای استفاده در حواله‌ها آماده است.'))
         return HttpResponseRedirect(reverse('inventory:warehouse_requests'))
+
+
+class WarehouseRequestDeleteView(DocumentLockProtectedMixin, InventoryBaseView, BaseDeleteView):
+    """Delete view for warehouse requests."""
+    model = models.WarehouseRequest
+    template_name = 'shared/generic/generic_confirm_delete.html'
+    success_url = reverse_lazy('inventory:warehouse_requests')
+    feature_code = 'inventory.requests.warehouse'
+    success_message = _('درخواست انبار با موفقیت حذف شد.')
+    lock_redirect_url_name = 'inventory:warehouse_requests'
+    owner_field = 'requester'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check permissions and status before allowing delete."""
+        # Superuser bypass
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        
+        obj = self.get_object()
+        
+        # Check if request is in draft status (only draft requests can be deleted)
+        if obj.request_status != 'draft':
+            messages.error(request, _('فقط درخواست‌های پیش‌نویس قابل حذف هستند.'))
+            return HttpResponseRedirect(reverse('inventory:warehouse_requests'))
+        
+        # Check permissions
+        company_id: Optional[int] = request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(request.user, company_id)
+        
+        # Check if user is owner and has DELETE_OWN permission
+        is_owner = obj.requester == request.user if obj.requester else False
+        can_delete_own = has_feature_permission(permissions, self.feature_code, 'delete_own', allow_own_scope=True)
+        can_delete_other = has_feature_permission(permissions, self.feature_code, 'delete_other', allow_own_scope=False)
+        
+        if is_owner and not can_delete_own:
+            raise PermissionDenied(_('شما اجازه حذف درخواست‌های خود را ندارید.'))
+        elif not is_owner and not can_delete_other:
+            raise PermissionDenied(_('شما اجازه حذف درخواست‌های سایر کاربران را ندارید.'))
+        
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        """Filter by permissions."""
+        queryset = super().get_queryset()
+        queryset = self.filter_queryset_by_permissions(queryset, 'inventory.requests.warehouse', 'requester')
+        return queryset
+
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _('حذف درخواست انبار')
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _('آیا مطمئن هستید که می‌خواهید این درخواست انبار را حذف کنید؟ این عمل قابل بازگشت نیست.')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Warehouse Requests'), 'url': reverse_lazy('inventory:warehouse_requests')},
+            {'label': _('Delete'), 'url': None},
+        ]
+
+    def get_object_details(self):
+        """Return object details for display."""
+        obj = self.get_object()
+        details = [
+            {'label': _('Request Code'), 'value': obj.request_code, 'type': 'code'},
+            {'label': _('Request Date'), 'value': obj.request_date},
+            {'label': _('Status'), 'value': obj.get_request_status_display()},
+        ]
+        if obj.requester:
+            details.append({'label': _('Requester'), 'value': obj.requester.get_full_name() or obj.requester.username})
+        return details
 
 
 # ============================================================================

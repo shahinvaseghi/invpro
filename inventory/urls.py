@@ -171,6 +171,7 @@ urlpatterns = [
     path('warehouse-requests/create/', views.WarehouseRequestCreateView.as_view(), name='warehouse_request_create'),
     path('warehouse-requests/<int:pk>/', views.WarehouseRequestDetailView.as_view(), name='warehouse_request_detail'),
     path('warehouse-requests/<int:pk>/edit/', views.WarehouseRequestUpdateView.as_view(), name='warehouse_request_edit'),
+    path('warehouse-requests/<int:pk>/delete/', views.WarehouseRequestDeleteView.as_view(), name='warehouse_request_delete'),
     path('warehouse-requests/<int:pk>/approve/', views.WarehouseRequestApproveView.as_view(), name='warehouse_request_approve'),
     # Intermediate selection views (quantity selection)
     path('warehouse-requests/<int:pk>/create-permanent-issue/', views.CreatePermanentIssueFromWarehouseRequestView.as_view(), name='warehouse_request_create_permanent_issue'),
