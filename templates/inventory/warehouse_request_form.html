@@ -126,7 +126,7 @@
 
           {% if lines_formset.can_delete %}
           <div class="line-cell line-delete">
-            <input type="checkbox" name="{{ line_form.DELETE.html_name }}" id="{{ line_form.DELETE.auto_id }}" class="delete-checkbox">
+            {{ line_form.DELETE }}
           </div>
           {% endif %}
           
@@ -264,6 +264,13 @@ document.addEventListener('DOMContentLoaded', function() {
       templateRow.id = 'lines-formset-template';
       templateRow.style.display = 'none';
       templateRow.classList.add('formset-template');
+      
+      // CRITICAL: Disable all inputs in template to prevent them from being submitted
+      const templateInputs = templateRow.querySelectorAll('input, select, textarea');
+      templateInputs.forEach(function(input) {
+        input.disabled = true;
+      });
+      
       formsetContainer.appendChild(templateRow);
       
       // Initialize formset with minRows=0 to prevent adding extra rows
@@ -281,6 +288,12 @@ document.addEventListener('DOMContentLoaded', function() {
           setTimeout(function() {
             const newRow = e.detail.row;
             if (newRow) {
+              // CRITICAL: Re-enable all inputs that were disabled in template
+              const newRowInputs = newRow.querySelectorAll('input, select, textarea');
+              newRowInputs.forEach(function(input) {
+                input.disabled = false;
+              });
+              
               // Uncheck DELETE checkbox for new rows
               const deleteCheckbox = newRow.querySelector('input[type="checkbox"][name*="-DELETE"]');
               if (deleteCheckbox) {
