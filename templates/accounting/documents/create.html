@@ -272,11 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Destroy Select2 on cloned selects before updating
         newRow.querySelectorAll('select').forEach(function(select) {
-            if ($(select).hasClass('select2-hidden-accessible')) {
-                // #region agent log
-                fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:273',message:'Destroying Select2 on cloned select',data:{selectId:select.id,className:select.className},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                // #endregion
-                $(select).select2('destroy');
+            if ($(select).hasClass('select2-hidden-accessible')) {$(select).select2('destroy');
             }
         });
         
@@ -323,11 +319,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Attach event listeners to new row
         attachRowEventListeners(newRow);
         
-        // Initialize Select2 for new row
-        // #region agent log
-        fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:315',message:'About to initialize Select2 for new row',data:{rowIndex:newIndex},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
-        initializeSelect2(newRow);
+        // Initialize Select2 for new rowinitializeSelect2(newRow);
     });
     
     // Remove line
@@ -440,11 +432,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Attach event listener for tafsili account change
     function attachTafsiliAccountChangeListener(tafsiliSelectElement) {
         $(tafsiliSelectElement).off('change.tafsili-handler').on('change.tafsili-handler', function() {
-            const tafsiliId = $(this).val();
-            // #region agent log
-            fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:442',message:'attachTafsiliAccountChangeListener change event',data:{tafsiliId:tafsiliId,nativeValue:this.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run7',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
-            const subSelectInRow = $(this).closest('tr').find('.line-sub-account');
+            const tafsiliId = $(this).val();const subSelectInRow = $(this).closest('tr').find('.line-sub-account');
             const glSelectInRow = $(this).closest('tr').find('.line-gl-account');
             
             // Set flag to prevent infinite loop
@@ -463,30 +451,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 glSelectInRow.val(null);
             }
             
-            if (tafsiliId) {
-                // #region agent log
-                fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:458',message:'About to fetch sub accounts for tafsili',data:{tafsiliId:tafsiliId,url:'{% url "accounting:api_filter_sub_by_tafsili" %}?tafsili_id=' + tafsiliId},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'D'})}).catch(()=>{});
-                // #endregion
-                // Fetch sub accounts for this tafsili
+            if (tafsiliId) {// Fetch sub accounts for this tafsili
                 fetch('{% url "accounting:api_filter_sub_by_tafsili" %}?tafsili_id=' + tafsiliId)
-                    .then(response => {
-                        // #region agent log
-                        fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:464',message:'API response received',data:{status:response.status,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'D'})}).catch(()=>{});
-                        // #endregion
-                        if (!response.ok) {
+                    .then(response => {if (!response.ok) {
                             throw new Error('API request failed with status ' + response.status);
                         }
                         return response.json();
                     })
-                    .then(data => {
-                        // #region agent log
-                        fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:470',message:'API data parsed',data:{hasSubAccounts:!!(data.sub_accounts),subAccountsCount:data.sub_accounts?data.sub_accounts.length:0,error:data.error,subAccounts:data.sub_accounts},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'D'})}).catch(()=>{});
-                        // #endregion
-                        if (data.sub_accounts && data.sub_accounts.length > 0) {
-                            // #region agent log
-                            fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:474',message:'Clearing and updating sub account options',data:{subAccountsCount:data.sub_accounts.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'D'})}).catch(()=>{});
-                            // #endregion
-                            // Destroy Select2 first to prevent conflicts
+                    .then(data => {if (data.sub_accounts && data.sub_accounts.length > 0) {// Destroy Select2 first to prevent conflicts
                             if (subSelectInRow.hasClass('select2-hidden-accessible')) {
                                 subSelectInRow.select2('destroy');
                             }
@@ -502,12 +474,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         .attr('value', sub.id)
                                         .text(sub.code + ' - ' + sub.name)
                                 );
-                            });
-                            
-                            // #region agent log
-                            fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:488',message:'About to reinitialize Select2 for sub account',data:{optionsCount:subSelectInRow.find('option').length},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'D'})}).catch(()=>{});
-                            // #endregion
-                            // Reinitialize Select2 with new options
+                            });// Reinitialize Select2 with new options
                             subSelectInRow.select2({
                                 theme: 'bootstrap-5',
                                 language: 'fa',
@@ -515,11 +482,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 placeholder: '{% trans "انتخاب معین" %}',
                                 allowClear: true,
                                 width: '100%'
-                            });
-                            // #region agent log
-                            fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:497',message:'Select2 reinitialized for sub account',data:{isSelect2Accessible:subSelectInRow.hasClass('select2-hidden-accessible'),optionsCount:subSelectInRow.find('option').length},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'D'})}).catch(()=>{});
-                            // #endregion
-                            // Clear flag after update
+                            });// Clear flag after update
                             row.data('updating-from-tafsili', false);
                             
                             // Reattach event listener for sub account change
@@ -529,18 +492,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             }, 100);
                         } else {
                             // Clear flag
-                            row.data('updating-from-tafsili', false);
-                            // #region agent log
-                            fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:502',message:'No sub accounts found',data:{tafsiliId:tafsiliId,error:data.error},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'D'})}).catch(()=>{});
-                            // #endregion
-                            console.log('No sub accounts found for tafsili account:', tafsiliId);
+                            row.data('updating-from-tafsili', false);console.log('No sub accounts found for tafsili account:', tafsiliId);
                         }
                     })
-                    .catch(error => {
-                        // #region agent log
-                        fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:507',message:'Error fetching sub accounts',data:{error:error.toString(),stack:error.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'D'})}).catch(()=>{});
-                        // #endregion
-                        console.error('Error fetching sub accounts:', error);
+                    .catch(error => {console.error('Error fetching sub accounts:', error);
                     });
             } else {
                 // Reset to all sub accounts - reload from original options
@@ -571,11 +526,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Attach event listener for sub account change
     function attachSubAccountChangeListener(subSelectElement) {
         $(subSelectElement).off('change.sub-handler').on('change.sub-handler', function() {
-            const subId = $(this).val();
-            // #region agent log
-            fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:552',message:'Sub account change event',data:{subId:subId,nativeValue:this.value,selectId:this.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run6',hypothesisId:'E'})}).catch(()=>{});
-            // #endregion
-            const glSelectInRow = $(this).closest('tr').find('.line-gl-account');
+            const subId = $(this).val();const glSelectInRow = $(this).closest('tr').find('.line-gl-account');
             const tafsiliSelectInRow = $(this).closest('tr').find('.line-tafsili-account');
             
             // Clear GL and tafsili when sub changes (but don't trigger change to avoid loops)
@@ -669,11 +620,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Clear sub and tafsili when GL changes
             $(glSelect).off('change.gl-handler').on('change.gl-handler', function() {
-                const glId = $(this).val();
-                // #region agent log
-                fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:653',message:'GL account change event',data:{glId:glId,nativeValue:this.value,selectId:this.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run8',hypothesisId:'F'})}).catch(()=>{});
-                // #endregion
-                const subSelectInRow = $(this).closest('tr').find('.line-sub-account');
+                const glId = $(this).val();const subSelectInRow = $(this).closest('tr').find('.line-sub-account');
                 const tafsiliSelectInRow = $(this).closest('tr').find('.line-tafsili-account');
                 
                 // Set flag to prevent infinite loop
@@ -716,11 +663,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Listen to select2:select event to ensure value is set
             $(subSelect).off('select2:select').on('select2:select', function(e) {
                 const data = e.params.data;
-                const selectElement = this;
-                // #region agent log
-                fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:668',message:'Sub account select2:select event',data:{selectedId:data.id,selectedText:data.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run6',hypothesisId:'E'})}).catch(()=>{});
-                // #endregion
-                selectElement.value = data.id;
+                const selectElement = this;selectElement.value = data.id;
                 $(selectElement).val(data.id);
             });
             
@@ -740,35 +683,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 $(tafsiliSelect).select2('destroy');
             }
             
-            // Initialize Select2
-            // #region agent log
-            fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:640',message:'Initializing Select2 for tafsili',data:{selectId:tafsiliSelect.id,name:tafsiliSelect.name,currentValue:tafsiliSelect.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
-            // #endregion
-            $(tafsiliSelect).select2({
+            // Initialize Select2$(tafsiliSelect).select2({
                 theme: 'bootstrap-5',
                 language: 'fa',
                 dir: 'rtl',
                 placeholder: '{% trans "انتخاب تفصیلی" %}',
                 allowClear: true,
                 width: '100%'
-            });
-            // #region agent log
-            fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:648',message:'Select2 initialized, checking if accessible',data:{isSelect2Accessible:$(tafsiliSelect).hasClass('select2-hidden-accessible'),selectId:tafsiliSelect.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
-            // #endregion
-            
-            // Listen to Select2 events - but also handle change event directly
-            // #region agent log
-            fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:652',message:'Attaching Select2 event listeners',data:{selectId:tafsiliSelect.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
-            
-            // Listen to select2:select event (if it fires)
+            });// Listen to Select2 events - but also handle change event directly// Listen to select2:select event (if it fires)
             $(tafsiliSelect).off('select2:select').on('select2:select', function (e) {
                 const data = e.params.data;
-                const selectElement = this;
-                // #region agent log
-                fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:656',message:'select2:select event fired',data:{selectedId:data.id,selectedText:data.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
-                // #endregion
-                // Ensure value is set
+                const selectElement = this;// Ensure value is set
                 selectElement.value = data.id;
                 $(selectElement).val(data.id);
             });
@@ -783,49 +708,21 @@ document.addEventListener('DOMContentLoaded', function() {
             // This ensures we preserve the value even if other handlers try to clear it
             $(tafsiliSelect).off('change.tafsili-preserve').on('change.tafsili-preserve', function() {
                 const selectElement = this;
-                const currentVal = $(selectElement).val();
-                // #region agent log
-                fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:670',message:'Change event fired (preserve handler)',data:{currentValue:selectElement.value,jQueryVal:currentVal,selectId:selectElement.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'B'})}).catch(()=>{});
-                // #endregion
-                // If value exists, ensure it's preserved
-                if (currentVal && selectElement.value !== currentVal) {
-                    // #region agent log
-                    fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:675',message:'Value mismatch detected, preserving',data:{nativeValue:selectElement.value,jQueryVal:currentVal},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'B'})}).catch(()=>{});
-                    // #endregion
-                    selectElement.value = currentVal;
+                const currentVal = $(selectElement).val();// If value exists, ensure it's preserved
+                if (currentVal && selectElement.value !== currentVal) {selectElement.value = currentVal;
                 } else if (currentVal) {
                     // Ensure native element has the value
-                    selectElement.value = currentVal;
-                    // #region agent log
-                    fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:681',message:'Value preserved',data:{value:selectElement.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'B'})}).catch(()=>{});
-                    // #endregion
-                }
+                    selectElement.value = currentVal;}
             });
             
             // Listen to all Select2 events to see what's happening
-            $(tafsiliSelect).on('select2:opening', function() {
-                // #region agent log
-                fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:693',message:'Select2 dropdown opening',data:{selectId:this.id,currentValue:this.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
-                // #endregion
-            });
+            $(tafsiliSelect).on('select2:opening', function() {});
             
-            $(tafsiliSelect).on('select2:open', function() {
-                // #region agent log
-                fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:697',message:'Select2 dropdown opened',data:{selectId:this.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
-                // #endregion
-            });
+            $(tafsiliSelect).on('select2:open', function() {});
             
-            $(tafsiliSelect).on('select2:closing', function() {
-                // #region agent log
-                fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:701',message:'Select2 dropdown closing',data:{selectId:this.id,currentValue:this.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
-                // #endregion
-            });
+            $(tafsiliSelect).on('select2:closing', function() {});
             
-            $(tafsiliSelect).on('select2:close', function() {
-                // #region agent log
-                fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:705',message:'Select2 dropdown closed',data:{selectId:this.id,currentValue:this.value,jQueryVal:$(this).val()},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
-                // #endregion
-            });
+            $(tafsiliSelect).on('select2:close', function() {});
             
             // Attach event listener for tafsili account change (this runs first)
             attachTafsiliAccountChangeListener(tafsiliSelect);
@@ -834,23 +731,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // This ensures value is preserved even if other handlers try to clear it
             $(tafsiliSelect).off('change.tafsili-preserve').on('change.tafsili-preserve', function() {
                 const selectElement = this;
-                const currentVal = $(selectElement).val();
-                // #region agent log
-                fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:670',message:'Change event fired (preserve handler)',data:{currentValue:selectElement.value,jQueryVal:currentVal,selectId:selectElement.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'B'})}).catch(()=>{});
-                // #endregion
-                // If value exists, ensure it's preserved
-                if (currentVal && selectElement.value !== currentVal) {
-                    // #region agent log
-                    fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:675',message:'Value mismatch detected, preserving',data:{nativeValue:selectElement.value,jQueryVal:currentVal},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'B'})}).catch(()=>{});
-                    // #endregion
-                    selectElement.value = currentVal;
+                const currentVal = $(selectElement).val();// If value exists, ensure it's preserved
+                if (currentVal && selectElement.value !== currentVal) {selectElement.value = currentVal;
                 } else if (currentVal) {
                     // Ensure native element has the value
-                    selectElement.value = currentVal;
-                    // #region agent log
-                    fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create.html:681',message:'Value preserved',data:{value:selectElement.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'B'})}).catch(()=>{});
-                    // #endregion
-                }
+                    selectElement.value = currentVal;}
             });
         }
         

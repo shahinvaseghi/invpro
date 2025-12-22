@@ -300,6 +300,19 @@ class PurchaseRequestLineForm(forms.ModelForm):
         
         logger.info(f"Final cleaned_data item: {cleaned_data.get('item')}")
         return cleaned_data
+    
+    def save(self, commit=True):
+        """Save line instance with company_id from document."""
+        instance = super().save(commit=False)
+        
+        # Set company_id from document if not already set
+        if not instance.company_id and hasattr(instance, 'document') and instance.document:
+            instance.company_id = instance.document.company_id
+        
+        if commit:
+            instance.save()
+        
+        return instance
 
 
 PurchaseRequestLineFormSet = inlineformset_factory(
@@ -658,6 +671,19 @@ class WarehouseRequestLineForm(forms.ModelForm):
         
         logger.info(f"   ✅ Form cleaning completed")
         return cleaned_data
+    
+    def save(self, commit=True):
+        """Save line instance with company_id from document."""
+        instance = super().save(commit=False)
+        
+        # Set company_id from document if not already set
+        if not instance.company_id and hasattr(instance, 'document') and instance.document:
+            instance.company_id = instance.document.company_id
+        
+        if commit:
+            instance.save()
+        
+        return instance
 
 
 WarehouseRequestLineFormSet = inlineformset_factory(

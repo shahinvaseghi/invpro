@@ -518,34 +518,16 @@ function initFormset(prefix, templateSelector, options = {}) {
     const addButton = document.querySelector(addButtonSelector);
     if (!addButton) {
         console.error(`Add button not found with selector: ${addButtonSelector}`);
-        console.log('Available buttons:', document.querySelectorAll('.add-formset-row'));
-        // #region agent log
-        fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'formset.js:520',message:'Add button NOT found',data:{selector:addButtonSelector,prefix},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'H6'})}).catch(()=>{});
-        // #endregion
-        return;
+        console.log('Available buttons:', document.querySelectorAll('.add-formset-row'));return;
     }
     
-    console.log(`Formset initialized: ${prefix}, template: ${templateSelector}, button found:`, addButton);
-    
-    // #region agent log
-    fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'formset.js:525',message:'Add button found, adding listener',data:{selector:addButtonSelector,prefix,buttonId:addButton.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'H6'})}).catch(()=>{});
-    // #endregion
-    
-    addButton.addEventListener('click', function(e) {
+    console.log(`Formset initialized: ${prefix}, template: ${templateSelector}, button found:`, addButton);addButton.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        console.log(`Add button clicked for formset: ${prefix}`);
-        // #region agent log
-        fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'formset.js:530',message:'Add button CLICKED',data:{prefix,templateSelector},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'H6'})}).catch(()=>{});
-        // #endregion
-        const result = addFormsetRow(prefix, templateSelector, options);
+        console.log(`Add button clicked for formset: ${prefix}`);const result = addFormsetRow(prefix, templateSelector, options);
         if (!result) {
             console.error('Failed to add formset row');
-        }
-        // #region agent log
-        fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'formset.js:538',message:'addFormsetRow result',data:{result,prefix},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'H6'})}).catch(()=>{});
-        // #endregion
-    });
+        }});
     
     // Add event listeners for remove buttons (existing and future)
     document.addEventListener('click', function(e) {

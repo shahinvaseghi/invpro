@@ -197,25 +197,13 @@
     formsetContainer.appendChild(templateRow);
     
     // Initialize formset
-    if (typeof initFormset === 'function') {
-      // #region agent log
-      const rowsBeforeInit = formsetContainer.querySelectorAll('.line-row:not(.formset-template)').length;
-      fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:200',message:'Before initFormset',data:{rowsBeforeInit,totalForms:totalFormsInput.value,minRows:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'H4'})}).catch(()=>{});
-      // #endregion
-      
-      initFormset('lines', '#lines-formset-template', {
+    if (typeof initFormset === 'function') {initFormset('lines', '#lines-formset-template', {
         minRows: 0,  // Don't add extra rows - Django already provides 1 empty row (extra=1)
         maxRows: null,
         addButtonSelector: '#add-line-btn',
         removeButtonSelector: '.line-delete input[type="checkbox"]',
         rowSelector: '.line-row'  // CRITICAL: Specify correct row selector
-      });
-      
-      // #region agent log
-      const rowsAfterInit = formsetContainer.querySelectorAll('.line-row:not(.formset-template)').length;
-      fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:213',message:'After initFormset',data:{rowsAfterInit,totalForms:totalFormsInput.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'H4'})}).catch(()=>{});
-      // #endregion
-    }
+      });}
     
     // After adding row, initialize filters and update layout
     document.addEventListener('formset:row-added', function(e) {
@@ -264,32 +252,8 @@
   function initDeleteCheckboxes(formsetContainer, filterOptions) {
     if (!formsetContainer) {
       return;
-    }
-
-    // #region agent log
-    const allCheckboxes = formsetContainer.querySelectorAll('input[type="checkbox"]');
-    const deleteCheckboxes = formsetContainer.querySelectorAll('input[name*="-DELETE"]');
-    const checkboxesInfo = Array.from(allCheckboxes).map(cb => ({
-      name: cb.name,
-      type: cb.type,
-      visible: cb.offsetParent !== null,
-      display: window.getComputedStyle(cb).display
-    }));
-    fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:263',message:'initDeleteCheckboxes called',data:{hasContainer:!!formsetContainer,totalCheckboxes:allCheckboxes.length,deleteCheckboxes:deleteCheckboxes.length,checkboxesInfo},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'H5'})}).catch(()=>{});
-    // #endregion
-
-    // Use event delegation to handle dynamically added checkboxes
-    formsetContainer.addEventListener('change', function(e) {
-      // #region agent log
-      fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:276',message:'Change event',data:{targetType:e.target.type,targetName:e.target.name,includesDelete:e.target.name ? e.target.name.includes('-DELETE') : false},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'H5'})}).catch(()=>{});
-      // #endregion
-      
-      if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
-        // #region agent log
-        fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:282',message:'DELETE checkbox clicked',data:{checked:e.target.checked,name:e.target.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'H5'})}).catch(()=>{});
-        // #endregion
-        
-        const lineRow = e.target.closest('.line-row');
+    }// Use event delegation to handle dynamically added checkboxes
+    formsetContainer.addEventListener('change', function(e) {if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {const lineRow = e.target.closest('.line-row');
         if (lineRow && !lineRow.classList.contains('formset-template')) {
           if (e.target.checked) {
             lineRow.classList.add('deleted');
@@ -317,13 +281,7 @@
     });
     
     // Also add click listener to debug
-    formsetContainer.addEventListener('click', function(e) {
-      // #region agent log
-      if (e.target.type === 'checkbox') {
-        fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:322',message:'Checkbox CLICKED',data:{name:e.target.name,checked:e.target.checked,type:e.target.type},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'H5'})}).catch(()=>{});
-      }
-      // #endregion
-    });
+    formsetContainer.addEventListener('click', function(e) {});
     
     // Also handle initial state of checkboxes
     const deleteCheckboxes = formsetContainer.querySelectorAll('input[type="checkbox"][name*="-DELETE"]');
@@ -355,16 +313,7 @@
     const quantityInput = row.querySelector('input[name*="-quantity_requested"]');
     
     const hasItem = itemSelect && itemSelect.value && itemSelect.value !== '';
-    const hasQuantity = quantityInput && quantityInput.value && parseFloat(quantityInput.value) > 0;
-    
-    // #region agent log
-    const itemValue = itemSelect ? itemSelect.value : 'N/A';
-    const qtyValue = quantityInput ? quantityInput.value : 'N/A';
-    const isEmpty = !hasItem || !hasQuantity;
-    fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:328',message:'isRowEmpty check',data:{isEmpty,hasItem,hasQuantity,itemValue,qtyValue},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'H2'})}).catch(()=>{});
-    // #endregion
-    
-    // Row is considered empty if it doesn't have at least item and quantity
+    const hasQuantity = quantityInput && quantityInput.value && parseFloat(quantityInput.value) > 0;// Row is considered empty if it doesn't have at least item and quantity
     // Warehouse validation will be done in backend
     return !hasItem || !hasQuantity;
   }
@@ -699,13 +648,7 @@
   /**
    * Main initialization function
    */
-  function initWarehouseRequestForm() {
-    // #region agent log
-    console.log('🚀 warehouse-request-form.js VERSION 2.1 - LOADED');
-    fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:655',message:'Script loaded',data:{version:'2.1'},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
-    
-    // Initialize Jalali DatePicker
+  function initWarehouseRequestForm() {// Initialize Jalali DatePicker
     initJalaliDatePicker();
     
     // Get formset container
@@ -720,15 +663,7 @@
     if (!totalFormsInput) {
       console.warn('TOTAL_FORMS input not found');
       return;
-    }
-    
-    // #region agent log
-    const initialTotalForms = totalFormsInput.value;
-    const initialRowsCount = formsetContainer.querySelectorAll('.line-row:not(.formset-template)').length;
-    fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:672',message:'Initial state',data:{initialTotalForms,initialRowsCount},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'H3'})}).catch(()=>{});
-    // #endregion
-    
-    // Add form submit handler to ensure formset has rows before submission
+    }// Add form submit handler to ensure formset has rows before submission
     // CRITICAL: Remove any existing handler first to prevent duplicate handlers
     const form = formsetContainer.closest('form');
     if (form) {
@@ -1485,20 +1420,7 @@
     
     // FIRST: Remove extra empty rows immediately (before any other initialization)
     // Use requestAnimationFrame to ensure DOM is fully ready
-    requestAnimationFrame(function() {
-      // #region agent log
-      const rowsBeforeRemove = formsetContainer.querySelectorAll('.line-row:not(.formset-template)').length;
-      fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:1431',message:'Before removeExtraRows',data:{rowsBeforeRemove,totalForms:totalFormsInput.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'H2'})}).catch(()=>{});
-      // #endregion
-      
-      removeExtraRows(formsetContainer, totalFormsInput);
-      
-      // #region agent log
-      const rowsAfterRemove = formsetContainer.querySelectorAll('.line-row:not(.formset-template)').length;
-      fetch('http://localhost:7243/ingest/ad400a21-c4d4-4492-9319-ca545d52cf47',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'warehouse-request-form.js:1440',message:'After removeExtraRows',data:{rowsAfterRemove,totalForms:totalFormsInput.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'H2'})}).catch(()=>{});
-      // #endregion
-      
-      // Apply grid layout immediately after removing rows
+    requestAnimationFrame(function() {removeExtraRows(formsetContainer, totalFormsInput);// Apply grid layout immediately after removing rows
       applyFormsetLayout(formsetContainer);
     });
     

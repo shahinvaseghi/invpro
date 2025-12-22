@@ -633,11 +633,6 @@ class LineFormsetMixin:
             # Set company - use company_id first to avoid RelatedObjectDoesNotExist error
             if not hasattr(instance, 'company_id') or not instance.company_id:
                 instance.company_id = self.object.company_id
-            # #region agent log
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.info(f"_save_line_formset: Saving line instance pk={instance.pk}, company_id={instance.company_id}, object.company_id={self.object.company_id}")
-            # #endregion
             # Then set company object if company_id is set
             if instance.company_id:
                 # Don't set company object directly - Django will load it automatically from company_id

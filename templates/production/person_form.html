@@ -100,7 +100,7 @@
     </div>
 
     <div class="form-field">
-      <label for="{{ form.username.id_for_label }}">{{ form.username.label }} *</label>
+      <label for="{{ form.username.id_for_label }}" id="username_label">{{ form.username.label }} <span class="required-asterisk">*</span></label>
       {{ form.username }}
       {% if form.username.errors %}
         <span class="error">{{ form.username.errors.0 }}</span>
@@ -200,18 +200,30 @@
 {% block form_scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const checkbox = document.getElementById('id_use_personnel_code_as_username');
-  const personnelCodeField = document.getElementById('id_personnel_code');
-  const usernameField = document.getElementById('id_username');
+  const checkbox = document.getElementById('use_personnel_code');
+  const personnelCodeField = document.getElementById('personnel_code_field');
+  const usernameField = document.getElementById('username_field');
+  const usernameLabel = document.getElementById('username_label');
+  const requiredAsterisk = usernameLabel ? usernameLabel.querySelector('.required-asterisk') : null;
   
   function syncUsername() {
     if (checkbox && checkbox.checked && personnelCodeField && usernameField) {
       usernameField.value = personnelCodeField.value;
       usernameField.readOnly = true;
+      usernameField.disabled = true;
       usernameField.style.backgroundColor = '#f3f4f6';
+      usernameField.removeAttribute('required');
+      if (requiredAsterisk) {
+        requiredAsterisk.style.display = 'none';
+      }
     } else if (usernameField) {
       usernameField.readOnly = false;
+      usernameField.disabled = false;
       usernameField.style.backgroundColor = '';
+      usernameField.setAttribute('required', 'required');
+      if (requiredAsterisk) {
+        requiredAsterisk.style.display = 'inline';
+      }
     }
   }
   
