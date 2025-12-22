@@ -56,7 +56,12 @@ from .views.document_attachments import (
     DocumentAttachmentDownloadSingleView,
     DocumentAttachmentDownloadBulkView,
 )
-from .views.api import filter_sub_accounts_by_tafsili, filter_gl_accounts_by_sub
+from .views.api import (
+    filter_sub_accounts_by_tafsili, 
+    filter_gl_accounts_by_sub,
+    filter_sub_accounts_by_gl,
+    filter_tafsili_accounts_by_sub,
+)
 
 app_name = 'accounting'
 
@@ -205,9 +210,11 @@ urlpatterns = [
     path('payroll/document/', views_module.PayrollDocumentView.as_view(), name='payroll_document'),
     path('payroll/bank-transfer/', views_module.PayrollBankTransferView.as_view(), name='payroll_bank_transfer'),
     
-    # API endpoints for filtering accounts
+    # API endpoints for filtering accounts (bidirectional cascade)
     path('api/filter-sub-accounts-by-tafsili/', filter_sub_accounts_by_tafsili, name='api_filter_sub_by_tafsili'),
     path('api/filter-gl-accounts-by-sub/', filter_gl_accounts_by_sub, name='api_filter_gl_by_sub'),
+    path('api/filter-sub-accounts-by-gl/', filter_sub_accounts_by_gl, name='api_filter_sub_by_gl'),
+    path('api/filter-tafsili-accounts-by-sub/', filter_tafsili_accounts_by_sub, name='api_filter_tafsili_by_sub'),
     
     # Warehouse Accounting (حسابداری انبار)
     path('warehouse/expense/', views_module.WarehouseExpenseView.as_view(), name='warehouse_expense'),

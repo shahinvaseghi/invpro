@@ -432,7 +432,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Attach event listener for tafsili account change
     function attachTafsiliAccountChangeListener(tafsiliSelectElement) {
         $(tafsiliSelectElement).off('change.tafsili-handler').on('change.tafsili-handler', function() {
-            const tafsiliId = $(this).val();const subSelectInRow = $(this).closest('tr').find('.line-sub-account');
+            const tafsiliId = $(this).val();
+            const subSelectInRow = $(this).closest('tr').find('.line-sub-account');
             const glSelectInRow = $(this).closest('tr').find('.line-gl-account');
             
             // Set flag to prevent infinite loop
@@ -442,23 +443,22 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             row.data('updating-from-tafsili', true);
             
-            // Clear sub and GL when tafsili changes (but don't clear tafsili itself)
-            // Use silent flag to prevent triggering change events that might reset options
-            if (subSelectInRow.length) {
-                subSelectInRow.val(null);
-            }
-            if (glSelectInRow.length) {
-                glSelectInRow.val(null);
-            }
+            // Store current values
+            const currentSubValue = subSelectInRow.val();
+            const currentGLValue = glSelectInRow.val();
             
-            if (tafsiliId) {// Fetch sub accounts for this tafsili
+            if (tafsiliId) {
+                // Fetch sub accounts for this tafsili
                 fetch('{% url "accounting:api_filter_sub_by_tafsili" %}?tafsili_id=' + tafsiliId)
-                    .then(response => {if (!response.ok) {
+                    .then(response => {
+                        if (!response.ok) {
                             throw new Error('API request failed with status ' + response.status);
                         }
                         return response.json();
                     })
-                    .then(data => {if (data.sub_accounts && data.sub_accounts.length > 0) {// Destroy Select2 first to prevent conflicts
+                    .then(data => {
+                        if (data.sub_accounts && data.sub_accounts.length > 0) {
+                            // Destroy Select2 first to prevent conflicts
                             if (subSelectInRow.hasClass('select2-hidden-accessible')) {
                                 subSelectInRow.select2('destroy');
                             }
@@ -474,7 +474,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                         .attr('value', sub.id)
                                         .text(sub.code + ' - ' + sub.name)
                                 );
-                            });// Reinitialize Select2 with new options
+                            });
+                            
+                            // Reinitialize Select2 with new options
                             subSelectInRow.select2({
                                 theme: 'bootstrap-5',
                                 language: 'fa',
@@ -482,20 +484,29 @@ document.addEventListener('DOMContentLoaded', function() {
                                 placeholder: '{% trans "انتخاب معین" %}',
                                 allowClear: true,
                                 width: '100%'
-                            });// Clear flag after update
+                            });
+                            
+                            // Restore value if it exists in new options
+                            if (currentSubValue && subSelectInRow.find('option[value="' + currentSubValue + '"]').length > 0) {
+                                subSelectInRow.val(currentSubValue).trigger('change.select2');
+                            }
+                            
+                            // Clear flag after update
                             row.data('updating-from-tafsili', false);
                             
                             // Reattach event listener for sub account change
-                            // Use setTimeout to avoid triggering during reinitialization
                             setTimeout(function() {
                                 attachSubAccountChangeListener(subSelectInRow);
                             }, 100);
                         } else {
                             // Clear flag
-                            row.data('updating-from-tafsili', false);console.log('No sub accounts found for tafsili account:', tafsiliId);
+                            row.data('updating-from-tafsili', false);
+                            console.log('No sub accounts found for tafsili account:', tafsiliId);
                         }
                     })
-                    .catch(error => {console.error('Error fetching sub accounts:', error);
+                    .catch(error => {
+                        row.data('updating-from-tafsili', false);
+                        console.error('Error fetching sub accounts:', error);
                     });
             } else {
                 // Reset to all sub accounts - reload from original options
@@ -516,9 +527,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         allowClear: true,
                         width: '100%'
                     });
+                    // Restore value if it exists
+                    if (currentSubValue && subSelectInRow.find('option[value="' + currentSubValue + '"]').length > 0) {
+                        subSelectInRow.val(currentSubValue).trigger('change.select2');
+                    }
                     // Reattach event listener
                     attachSubAccountChangeListener(subSelectInRow);
                 }
+                row.data('updating-from-tafsili', false);
             }
         });
     }
@@ -526,24 +542,34 @@ document.addEventListener('DOMContentLoaded', function() {
     // Attach event listener for sub account change
     function attachSubAccountChangeListener(subSelectElement) {
         $(subSelectElement).off('change.sub-handler').on('change.sub-handler', function() {
-            const subId = $(this).val();const glSelectInRow = $(this).closest('tr').find('.line-gl-account');
+            const subId = $(this).val();
+            const glSelectInRow = $(this).closest('tr').find('.line-gl-account');
             const tafsiliSelectInRow = $(this).closest('tr').find('.line-tafsili-account');
+            const row = $(this).closest('tr');
             
-            // Clear GL and tafsili when sub changes (but don't trigger change to avoid loops)
-            glSelectInRow.val(null);
-            tafsiliSelectInRow.val(null);
+            // Set flag to prevent infinite loop
+            if (row.data('updating-from-sub')) {
+                return;
+            }
+            row.data('updating-from-sub', true);
+            
+            // Store current values
+            const currentGLValue = glSelectInRow.val();
+            const currentTafsiliValue = tafsiliSelectInRow.val();
             
             if (subId) {
-                // Fetch GL accounts for this sub
+                // Fetch GL accounts for this sub (upward direction)
                 fetch('{% url "accounting:api_filter_gl_by_sub" %}?sub_id=' + subId)
                     .then(response => response.json())
                     .then(data => {
                         if (data.gl_accounts && data.gl_accounts.length > 0) {
-                            // Clear existing options
+                            if (glSelectInRow.hasClass('select2-hidden-accessible')) {
+                                glSelectInRow.select2('destroy');
+                            }
+                            
                             glSelectInRow.empty();
                             glSelectInRow.append('<option value="">{% trans "انتخاب سند کل" %}</option>');
                             
-                            // Add filtered options
                             data.gl_accounts.forEach(function(gl) {
                                 glSelectInRow.append(
                                     $('<option></option>')
@@ -552,10 +578,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 );
                             });
                             
-                            // Reinitialize Select2 with new options
-                            if (glSelectInRow.hasClass('select2-hidden-accessible')) {
-                                glSelectInRow.select2('destroy');
-                            }
                             glSelectInRow.select2({
                                 theme: 'bootstrap-5',
                                 language: 'fa',
@@ -565,33 +587,229 @@ document.addEventListener('DOMContentLoaded', function() {
                                 width: '100%'
                             });
                             
-                            // Reattach event listener for GL account change
-                            glSelectInRow.off('change.gl-handler').on('change.gl-handler', function() {
-                                const glId = $(this).val();
-                                const subSelectInRow3 = $(this).closest('tr').find('.line-sub-account');
-                                const tafsiliSelectInRow3 = $(this).closest('tr').find('.line-tafsili-account');
-                                
-                                // Set flag to prevent infinite loop
-                                const row = $(this).closest('tr');
-                                if (row.data('updating-from-gl')) {
-                                    return; // Already updating, skip to avoid loop
-                                }
-                                row.data('updating-from-gl', true);
-                                
-                                // Clear sub and tafsili when GL changes (but don't trigger change to avoid loops)
-                                subSelectInRow3.val(null);
-                                tafsiliSelectInRow3.val(null);
-                                
-                                // Clear flag
-                                row.data('updating-from-gl', false);
-                            });
-                        } else {
-                            console.log('No GL accounts found for sub account:', subId);
+                            // Restore value if it exists in new options
+                            if (currentGLValue && glSelectInRow.find('option[value="' + currentGLValue + '"]').length > 0) {
+                                glSelectInRow.val(currentGLValue).trigger('change.select2');
+                            }
+                            
+                            setTimeout(function() {
+                                attachGLAccountChangeListener(glSelectInRow);
+                            }, 100);
                         }
                     })
                     .catch(error => {
                         console.error('Error fetching GL accounts:', error);
                     });
+                
+                // Fetch tafsili accounts for this sub (downward direction)
+                fetch('{% url "accounting:api_filter_tafsili_by_sub" %}?sub_id=' + subId)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.tafsili_accounts && data.tafsili_accounts.length > 0) {
+                            if (tafsiliSelectInRow.hasClass('select2-hidden-accessible')) {
+                                tafsiliSelectInRow.select2('destroy');
+                            }
+                            
+                            tafsiliSelectInRow.empty();
+                            tafsiliSelectInRow.append('<option value="">{% trans "انتخاب تفصیلی" %}</option>');
+                            
+                            data.tafsili_accounts.forEach(function(tafsili) {
+                                tafsiliSelectInRow.append(
+                                    $('<option></option>')
+                                        .attr('value', tafsili.id)
+                                        .text(tafsili.code + ' - ' + tafsili.name)
+                                );
+                            });
+                            
+                            tafsiliSelectInRow.select2({
+                                theme: 'bootstrap-5',
+                                language: 'fa',
+                                dir: 'rtl',
+                                placeholder: '{% trans "انتخاب تفصیلی" %}',
+                                allowClear: true,
+                                width: '100%'
+                            });
+                            
+                            // Restore value if it exists in new options
+                            if (currentTafsiliValue && tafsiliSelectInRow.find('option[value="' + currentTafsiliValue + '"]').length > 0) {
+                                tafsiliSelectInRow.val(currentTafsiliValue).trigger('change.select2');
+                            }
+                            
+                            setTimeout(function() {
+                                attachTafsiliAccountChangeListener(tafsiliSelectInRow);
+                            }, 100);
+                        }
+                        
+                        row.data('updating-from-sub', false);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching tafsili accounts:', error);
+                        row.data('updating-from-sub', false);
+                    });
+            } else {
+                // Reset to original options
+                const originalGLOptions = glSelectInRow.data('original-options');
+                const originalTafsiliOptions = tafsiliSelectInRow.data('original-options');
+                
+                if (originalGLOptions) {
+                    if (glSelectInRow.hasClass('select2-hidden-accessible')) {
+                        glSelectInRow.select2('destroy');
+                    }
+                    glSelectInRow.empty();
+                    glSelectInRow.append(originalGLOptions);
+                    glSelectInRow.select2({
+                        theme: 'bootstrap-5',
+                        language: 'fa',
+                        dir: 'rtl',
+                        placeholder: '{% trans "انتخاب سند کل" %}',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    // Restore value if it exists
+                    if (currentGLValue && glSelectInRow.find('option[value="' + currentGLValue + '"]').length > 0) {
+                        glSelectInRow.val(currentGLValue).trigger('change.select2');
+                    }
+                    attachGLAccountChangeListener(glSelectInRow);
+                }
+                
+                if (originalTafsiliOptions) {
+                    if (tafsiliSelectInRow.hasClass('select2-hidden-accessible')) {
+                        tafsiliSelectInRow.select2('destroy');
+                    }
+                    tafsiliSelectInRow.empty();
+                    tafsiliSelectInRow.append(originalTafsiliOptions);
+                    tafsiliSelectInRow.select2({
+                        theme: 'bootstrap-5',
+                        language: 'fa',
+                        dir: 'rtl',
+                        placeholder: '{% trans "انتخاب تفصیلی" %}',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    // Restore value if it exists
+                    if (currentTafsiliValue && tafsiliSelectInRow.find('option[value="' + currentTafsiliValue + '"]').length > 0) {
+                        tafsiliSelectInRow.val(currentTafsiliValue).trigger('change.select2');
+                    }
+                    attachTafsiliAccountChangeListener(tafsiliSelectInRow);
+                }
+                
+                row.data('updating-from-sub', false);
+            }
+        });
+    }
+    
+    // Attach event listener for GL account change
+    function attachGLAccountChangeListener(glSelectElement) {
+        $(glSelectElement).off('change.gl-handler').on('change.gl-handler', function() {
+            const glId = $(this).val();
+            const subSelectInRow = $(this).closest('tr').find('.line-sub-account');
+            const tafsiliSelectInRow = $(this).closest('tr').find('.line-tafsili-account');
+            const row = $(this).closest('tr');
+            
+            // Set flag to prevent infinite loop
+            if (row.data('updating-from-gl')) {
+                return;
+            }
+            row.data('updating-from-gl', true);
+            
+            // Store current values
+            const currentSubValue = subSelectInRow.val();
+            const currentTafsiliValue = tafsiliSelectInRow.val();
+            
+            if (glId) {
+                // Fetch sub accounts for this GL (downward direction)
+                fetch('{% url "accounting:api_filter_sub_by_gl" %}?gl_id=' + glId)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.sub_accounts && data.sub_accounts.length > 0) {
+                            if (subSelectInRow.hasClass('select2-hidden-accessible')) {
+                                subSelectInRow.select2('destroy');
+                            }
+                            
+                            subSelectInRow.empty();
+                            subSelectInRow.append('<option value="">{% trans "انتخاب معین" %}</option>');
+                            
+                            data.sub_accounts.forEach(function(sub) {
+                                subSelectInRow.append(
+                                    $('<option></option>')
+                                        .attr('value', sub.id)
+                                        .text(sub.code + ' - ' + sub.name)
+                                );
+                            });
+                            
+                            subSelectInRow.select2({
+                                theme: 'bootstrap-5',
+                                language: 'fa',
+                                dir: 'rtl',
+                                placeholder: '{% trans "انتخاب معین" %}',
+                                allowClear: true,
+                                width: '100%'
+                            });
+                            
+                            // Restore value if it exists in new options
+                            if (currentSubValue && subSelectInRow.find('option[value="' + currentSubValue + '"]').length > 0) {
+                                subSelectInRow.val(currentSubValue).trigger('change.select2');
+                            }
+                            
+                            setTimeout(function() {
+                                attachSubAccountChangeListener(subSelectInRow);
+                            }, 100);
+                        }
+                        
+                        row.data('updating-from-gl', false);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching sub accounts:', error);
+                        row.data('updating-from-gl', false);
+                    });
+            } else {
+                // Reset to original options
+                const originalSubOptions = subSelectInRow.data('original-options');
+                const originalTafsiliOptions = tafsiliSelectInRow.data('original-options');
+                
+                if (originalSubOptions) {
+                    if (subSelectInRow.hasClass('select2-hidden-accessible')) {
+                        subSelectInRow.select2('destroy');
+                    }
+                    subSelectInRow.empty();
+                    subSelectInRow.append(originalSubOptions);
+                    subSelectInRow.select2({
+                        theme: 'bootstrap-5',
+                        language: 'fa',
+                        dir: 'rtl',
+                        placeholder: '{% trans "انتخاب معین" %}',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    // Restore value if it exists
+                    if (currentSubValue && subSelectInRow.find('option[value="' + currentSubValue + '"]').length > 0) {
+                        subSelectInRow.val(currentSubValue).trigger('change.select2');
+                    }
+                    attachSubAccountChangeListener(subSelectInRow);
+                }
+                
+                if (originalTafsiliOptions) {
+                    if (tafsiliSelectInRow.hasClass('select2-hidden-accessible')) {
+                        tafsiliSelectInRow.select2('destroy');
+                    }
+                    tafsiliSelectInRow.empty();
+                    tafsiliSelectInRow.append(originalTafsiliOptions);
+                    tafsiliSelectInRow.select2({
+                        theme: 'bootstrap-5',
+                        language: 'fa',
+                        dir: 'rtl',
+                        placeholder: '{% trans "انتخاب تفصیلی" %}',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    // Restore value if it exists
+                    if (currentTafsiliValue && tafsiliSelectInRow.find('option[value="' + currentTafsiliValue + '"]').length > 0) {
+                        tafsiliSelectInRow.val(currentTafsiliValue).trigger('change.select2');
+                    }
+                    attachTafsiliAccountChangeListener(tafsiliSelectInRow);
+                }
+                
+                row.data('updating-from-gl', false);
             }
         });
     }
@@ -618,25 +836,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 $(glSelect).data('original-options', $(glSelect).html());
             }
             
-            // Clear sub and tafsili when GL changes
-            $(glSelect).off('change.gl-handler').on('change.gl-handler', function() {
-                const glId = $(this).val();const subSelectInRow = $(this).closest('tr').find('.line-sub-account');
-                const tafsiliSelectInRow = $(this).closest('tr').find('.line-tafsili-account');
-                
-                // Set flag to prevent infinite loop
-                const row = $(this).closest('tr');
-                if (row.data('updating-from-gl')) {
-                    return; // Already updating, skip to avoid loop
-                }
-                row.data('updating-from-gl', true);
-                
-                // Clear sub and tafsili when GL changes (but don't trigger change to avoid loops)
-                subSelectInRow.val(null);
-                tafsiliSelectInRow.val(null);
-                
-                // Clear flag
-                row.data('updating-from-gl', false);
-            });
+            // Attach event listener for GL account change
+            attachGLAccountChangeListener(glSelect);
         }
         
         if (subSelect) {
@@ -683,72 +884,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 $(tafsiliSelect).select2('destroy');
             }
             
-            // Initialize Select2$(tafsiliSelect).select2({
+            // Initialize Select2
+            $(tafsiliSelect).select2({
                 theme: 'bootstrap-5',
                 language: 'fa',
                 dir: 'rtl',
                 placeholder: '{% trans "انتخاب تفصیلی" %}',
                 allowClear: true,
                 width: '100%'
-            });// Listen to Select2 events - but also handle change event directly// Listen to select2:select event (if it fires)
-            $(tafsiliSelect).off('select2:select').on('select2:select', function (e) {
-                const data = e.params.data;
-                const selectElement = this;// Ensure value is set
-                selectElement.value = data.id;
-                $(selectElement).val(data.id);
             });
             
-            $(tafsiliSelect).off('select2:clear').on('select2:clear', function () {
-                const selectElement = this;
-                selectElement.value = '';
-                $(selectElement).val(null);
-            });
-            
-            // Listen to change event AFTER attachTafsiliAccountChangeListener
-            // This ensures we preserve the value even if other handlers try to clear it
-            $(tafsiliSelect).off('change.tafsili-preserve').on('change.tafsili-preserve', function() {
-                const selectElement = this;
-                const currentVal = $(selectElement).val();// If value exists, ensure it's preserved
-                if (currentVal && selectElement.value !== currentVal) {selectElement.value = currentVal;
-                } else if (currentVal) {
-                    // Ensure native element has the value
-                    selectElement.value = currentVal;}
-            });
-            
-            // Listen to all Select2 events to see what's happening
-            $(tafsiliSelect).on('select2:opening', function() {});
-            
-            $(tafsiliSelect).on('select2:open', function() {});
-            
-            $(tafsiliSelect).on('select2:closing', function() {});
-            
-            $(tafsiliSelect).on('select2:close', function() {});
-            
-            // Attach event listener for tafsili account change (this runs first)
+            // Attach event listener for tafsili account change
             attachTafsiliAccountChangeListener(tafsiliSelect);
-            
-            // Then attach preserve handler (this runs after attachTafsiliAccountChangeListener)
-            // This ensures value is preserved even if other handlers try to clear it
-            $(tafsiliSelect).off('change.tafsili-preserve').on('change.tafsili-preserve', function() {
-                const selectElement = this;
-                const currentVal = $(selectElement).val();// If value exists, ensure it's preserved
-                if (currentVal && selectElement.value !== currentVal) {selectElement.value = currentVal;
-                } else if (currentVal) {
-                    // Ensure native element has the value
-                    selectElement.value = currentVal;}
-            });
-        }
-        
-        
-        // Store original options for sub and tafsili selects
-        if (subSelect && !subSelect.hasAttribute('data-original-stored')) {
-            subSelect.setAttribute('data-original-stored', 'true');
-            $(subSelect).data('original-options', $(subSelect).html());
-        }
-        
-        if (tafsiliSelect && !tafsiliSelect.hasAttribute('data-original-stored')) {
-            tafsiliSelect.setAttribute('data-original-stored', 'true');
-            $(tafsiliSelect).data('original-options', $(tafsiliSelect).html());
         }
     }
     

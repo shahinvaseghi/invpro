@@ -110,3 +110,105 @@ def filter_gl_accounts_by_sub(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+
+@login_required
+@require_http_methods(["GET"])
+def filter_sub_accounts_by_gl(request):
+    """
+    Filter sub accounts based on selected GL account (reverse direction).
+    
+    GET params:
+        - gl_id: ID of selected GL account
+        - company_id: Company ID (from session)
+    
+    Returns JSON list of sub accounts related to the GL account.
+    """
+    gl_id = request.GET.get('gl_id')
+    company_id = request.session.get('active_company_id')
+    
+    if not gl_id or not company_id:
+        return JsonResponse({'error': _('Missing required parameters')}, status=400)
+    
+    try:
+        gl_account = Account.objects.get(
+            pk=gl_id,
+            company_id=company_id,
+            account_level=1,
+            is_enabled=1
+        )
+        
+        # Get sub accounts related to this GL account
+        relations = SubAccountGLAccountRelation.objects.filter(
+            company_id=company_id,
+            gl_account=gl_account,
+            is_enabled=1
+        ).select_related('sub_account')
+        
+        sub_accounts = []
+        for relation in relations:
+            sub_account = relation.sub_account
+            if sub_account.is_enabled:
+                sub_accounts.append({
+                    'id': sub_account.pk,
+                    'code': sub_account.account_code,
+                    'name': sub_account.account_name,
+                })
+        
+        return JsonResponse({'sub_accounts': sub_accounts})
+    
+    except Account.DoesNotExist:
+        return JsonResponse({'error': _('GL account not found')}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def filter_tafsili_accounts_by_sub(request):
+    """
+    Filter tafsili accounts based on selected sub account (reverse direction).
+    
+    GET params:
+        - sub_id: ID of selected sub account
+        - company_id: Company ID (from session)
+    
+    Returns JSON list of tafsili accounts related to the sub account.
+    """
+    sub_id = request.GET.get('sub_id')
+    company_id = request.session.get('active_company_id')
+    
+    if not sub_id or not company_id:
+        return JsonResponse({'error': _('Missing required parameters')}, status=400)
+    
+    try:
+        sub_account = Account.objects.get(
+            pk=sub_id,
+            company_id=company_id,
+            account_level=2,
+            is_enabled=1
+        )
+        
+        # Get tafsili accounts related to this sub account
+        relations = TafsiliSubAccountRelation.objects.filter(
+            company_id=company_id,
+            sub_account=sub_account,
+            is_enabled=1
+        ).select_related('tafsili_account')
+        
+        tafsili_accounts = []
+        for relation in relations:
+            tafsili_account = relation.tafsili_account
+            if tafsili_account.is_enabled:
+                tafsili_accounts.append({
+                    'id': tafsili_account.pk,
+                    'code': tafsili_account.account_code,
+                    'name': tafsili_account.account_name,
+                })
+        
+        return JsonResponse({'tafsili_accounts': tafsili_accounts})
+    
+    except Account.DoesNotExist:
+        return JsonResponse({'error': _('Sub account not found')}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
