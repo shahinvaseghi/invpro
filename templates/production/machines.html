@@ -1,6 +1,65 @@
 {% extends "shared/generic/generic_list.html" %}
 {% load i18n %}
 
+{% block extra_content_before_table %}
+<div class="filter-tabs-container" style="margin-bottom: 1.5rem;">
+  <div class="filter-section">
+    <h4 style="font-size: 0.9rem; color: #6b7280; margin-bottom: 0.75rem;">{% trans "Active Status" %}</h4>
+    <div class="filter-tabs">
+      <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.work_center %}work_center={{ request.GET.work_center }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}" 
+         class="filter-tab {% if not request.GET.is_enabled %}active{% endif %}">
+        {% trans "All" %}
+      </a>
+      <a href="?is_enabled=1{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+         class="filter-tab {% if request.GET.is_enabled == '1' %}active{% endif %}">
+        <span class="badge-dot" style="background-color: #10b981;"></span>
+        {% trans "Active" %}
+      </a>
+      <a href="?is_enabled=0{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+         class="filter-tab {% if request.GET.is_enabled == '0' %}active{% endif %}">
+        <span class="badge-dot" style="background-color: #6b7280;"></span>
+        {% trans "Inactive" %}
+      </a>
+    </div>
+  </div>
+  
+  <div class="filter-section" style="margin-top: 1rem;">
+    <h4 style="font-size: 0.9rem; color: #6b7280; margin-bottom: 0.75rem;">{% trans "Machine Status" %}</h4>
+    <div class="filter-tabs">
+      <a href="?{% if request.GET.is_enabled %}is_enabled={{ request.GET.is_enabled }}&{% endif %}{% if request.GET.work_center %}work_center={{ request.GET.work_center }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}" 
+         class="filter-tab {% if not request.GET.status %}active{% endif %}">
+        {% trans "All" %}
+      </a>
+      <a href="?status=operational{% if request.GET.is_enabled %}&is_enabled={{ request.GET.is_enabled }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+         class="filter-tab {% if request.GET.status == 'operational' %}active{% endif %}">
+        <span class="badge-dot" style="background-color: #10b981;"></span>
+        {% trans "Operational" %}
+      </a>
+      <a href="?status=maintenance{% if request.GET.is_enabled %}&is_enabled={{ request.GET.is_enabled }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+         class="filter-tab {% if request.GET.status == 'maintenance' %}active{% endif %}">
+        <span class="badge-dot" style="background-color: #f59e0b;"></span>
+        {% trans "Maintenance" %}
+      </a>
+      <a href="?status=idle{% if request.GET.is_enabled %}&is_enabled={{ request.GET.is_enabled }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+         class="filter-tab {% if request.GET.status == 'idle' %}active{% endif %}">
+        <span class="badge-dot" style="background-color: #3b82f6;"></span>
+        {% trans "Idle" %}
+      </a>
+      <a href="?status=broken{% if request.GET.is_enabled %}&is_enabled={{ request.GET.is_enabled }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+         class="filter-tab {% if request.GET.status == 'broken' %}active{% endif %}">
+        <span class="badge-dot" style="background-color: #ef4444;"></span>
+        {% trans "Broken" %}
+      </a>
+      <a href="?status=retired{% if request.GET.is_enabled %}&is_enabled={{ request.GET.is_enabled }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+         class="filter-tab {% if request.GET.status == 'retired' %}active{% endif %}">
+        <span class="badge-dot" style="background-color: #6b7280;"></span>
+        {% trans "Retired" %}
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
 {% block filter_fields %}
 <div class="form-group">
   <label for="search">{% trans "Search" %}</label>
@@ -29,6 +88,14 @@
     <option value="retired" {% if request.GET.status == "retired" %}selected{% endif %}>{% trans "Retired" %}</option>
   </select>
 </div>
+<div class="form-group">
+  <label for="is_enabled">{% trans "Active Status" %}</label>
+  <select id="is_enabled" name="is_enabled" class="form-control">
+    <option value="">-- {% trans "All" %} --</option>
+    <option value="1" {% if request.GET.is_enabled == "1" %}selected{% endif %}>{% trans "Active" %}</option>
+    <option value="0" {% if request.GET.is_enabled == "0" %}selected{% endif %}>{% trans "Inactive" %}</option>
+  </select>
+</div>
 {% endblock %}
 
 {% block table_headers %}
@@ -38,6 +105,7 @@
 <th>{% trans "Type" %}</th>
 <th>{% trans "Work Center" %}</th>
 <th>{% trans "Status" %}</th>
+<th>{% trans "Active" %}</th>
 {% if show_actions %}
   <th>{% trans "Actions" %}</th>
 {% endif %}
@@ -72,6 +140,13 @@
       <span class="badge badge-inactive">{{ machine.status }}</span>
     {% endif %}
   </td>
+  <td>
+    {% if machine.is_enabled == 1 %}
+      <span class="badge badge-active">{% trans "Active" %}</span>
+    {% else %}
+      <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+    {% endif %}
+  </td>
   {% if show_actions %}
   <td>
     {% include 'shared/partials/row_actions.html' with object=machine feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
@@ -83,4 +158,75 @@
 
 {% block pagination %}
 {% include 'shared/partials/pagination.html' %}
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+.filter-tabs-container {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.filter-section {
+  margin-bottom: 0;
+}
+
+.filter-section h4 {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.filter-tab:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.filter-tab.active {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: white;
+}
+
+.filter-tab.active:hover {
+  background: #1d4ed8;
+}
+
+.badge-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.filter-tab.active .badge-dot {
+  background-color: white !important;
+}
+</style>
 {% endblock %}

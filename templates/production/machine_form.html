@@ -43,20 +43,35 @@
     </div>
 
     <div class="form-field">
-      <label for="{{ form.work_center.id_for_label }}">{{ form.work_center.label }}</label>
-      {{ form.work_center }}
-      {% if form.work_center.errors %}
-        <span class="error">{{ form.work_center.errors.0 }}</span>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="form-row">
-    <div class="form-field">
       <label for="{{ form.status.id_for_label }}">{{ form.status.label }} *</label>
       {{ form.status }}
       {% if form.status.errors %}
         <span class="error">{{ form.status.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="form-section">
+  <h2>{% trans "Work Lines" %}</h2>
+  <div class="form-row">
+    <div class="form-field full-width checkbox-list" dir="rtl">
+      <label class="section-label">{{ form.work_lines.label }}</label>
+      <div class="checkbox-grid">
+        {% for checkbox in form.work_lines %}
+          <label class="checkbox-item">
+            {{ checkbox.tag }}
+            <span>{{ checkbox.choice_label }}</span>
+          </label>
+        {% empty %}
+          <p class="form-text">{% trans "No work lines available for this company." %}</p>
+        {% endfor %}
+      </div>
+      {% if form.work_lines.help_text %}
+        <small class="form-text">{{ form.work_lines.help_text }}</small>
+      {% endif %}
+      {% if form.work_lines.errors %}
+        <span class="error">{{ form.work_lines.errors.0 }}</span>
       {% endif %}
     </div>
   </div>
@@ -161,4 +176,36 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+.entity-form .checkbox-list .checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem 1.25rem;
+  padding: 0.5rem 0;
+}
+
+.entity-form .checkbox-list .checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.entity-form .checkbox-list input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: #2563eb;
+}
+
+.entity-form .checkbox-list .section-label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+</style>
 {% endblock %}

@@ -29,8 +29,8 @@ class MachineListView(BaseListView):
     default_order_by = ['public_code']
     
     def get_base_queryset(self):
-        """Get base queryset with is_enabled filter."""
-        return self.model.objects.filter(is_enabled=1)
+        """Get base queryset - show both enabled and disabled machines."""
+        return self.model.objects.all()
     
     def get_select_related(self) -> List[str]:
         """Return list of fields to select_related."""
@@ -40,7 +40,7 @@ class MachineListView(BaseListView):
             return []
     
     def apply_custom_filters(self, queryset):
-        """Apply custom filters (work_center, status)."""
+        """Apply custom filters (work_center, status, is_enabled)."""
         # Work center filter
         work_center_id = self.request.GET.get('work_center')
         if work_center_id:
@@ -50,6 +50,11 @@ class MachineListView(BaseListView):
         status = self.request.GET.get('status')
         if status:
             queryset = queryset.filter(status=status)
+        
+        # Active/Inactive filter
+        is_enabled = self.request.GET.get('is_enabled')
+        if is_enabled is not None and is_enabled != '':
+            queryset = queryset.filter(is_enabled=int(is_enabled))
         
         return queryset
     
