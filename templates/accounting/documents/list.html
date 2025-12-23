@@ -87,6 +87,13 @@
         </button>
       {% endif %}
       
+      {# Reversal button #}
+      <button class="btn btn-action btn-info btn-reversal" 
+              data-document-id="{{ document.pk }}"
+              title="{% trans 'Create Reversal Document' %}">
+        ↩️ {% trans "برگشتی" %}
+      </button>
+      
       {# Standard actions #}
       {% include 'shared/partials/row_actions.html' with object=document feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
     </div>
