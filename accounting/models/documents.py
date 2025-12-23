@@ -248,9 +248,13 @@ class AccountingDocumentLine(AccountingBaseModel):
 
     def clean(self):
         """Validate line amounts."""
-        if self.debit > 0 and self.credit > 0:
+        # Handle None values (from blank fields)
+        debit = self.debit if self.debit is not None else Decimal('0.00')
+        credit = self.credit if self.credit is not None else Decimal('0.00')
+        
+        if debit > 0 and credit > 0:
             raise ValidationError(_("Line must be either debit or credit, not both."))
-        if self.debit == 0 and self.credit == 0:
+        if debit == 0 and credit == 0:
             raise ValidationError(_("Line must have either debit or credit amount."))
         
         # Validate account hierarchy

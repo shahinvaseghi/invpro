@@ -128,6 +128,9 @@ urlpatterns = [
     # Accounting Documents (اسناد حسابداری)
     path('documents/create/', views_module.AccountingDocumentCreateView.as_view(), name='document_create'),
     path('documents/list/', views_module.AccountingDocumentListView.as_view(), name='document_list'),
+    path('documents/<int:pk>/', views_module.AccountingDocumentDetailView.as_view(), name='document_detail'),
+    path('documents/<int:pk>/edit/', views_module.AccountingDocumentUpdateView.as_view(), name='document_edit'),
+    path('documents/<int:pk>/delete/', views_module.AccountingDocumentDeleteView.as_view(), name='document_delete'),
     path('documents/status/', views_module.AccountingDocumentStatusView.as_view(), name='document_status'),
     path('tafsili-movements/', views_module.TafsiliMovementsView.as_view(), name='tafsili_movements'),
     

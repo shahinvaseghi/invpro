@@ -145,6 +145,10 @@ class AccountingDocumentLineForm(forms.ModelForm):
         self.fields['sub_account'].required = False
         self.fields['tafsili_account'].required = False
         
+        # Make debit/credit optional - validation is done in clean()
+        self.fields['debit'].required = False
+        self.fields['credit'].required = False
+        
         # Set querysets for account fields based on company_id
         if company_id:
             # GL Accounts (level 1)
@@ -179,8 +183,17 @@ class AccountingDocumentLineForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
-        debit = cleaned_data.get('debit', Decimal('0.00'))
-        credit = cleaned_data.get('credit', Decimal('0.00'))
+        
+        # Get debit/credit values, handle None
+        debit = cleaned_data.get('debit')
+        credit = cleaned_data.get('credit')
+        
+        # Convert None or empty to 0.00
+        if debit is None or debit == '':
+            debit = Decimal('0.00')
+        if credit is None or credit == '':
+            credit = Decimal('0.00')
+        
         gl_account = cleaned_data.get('gl_account')
         sub_account = cleaned_data.get('sub_account')
         tafsili_account = cleaned_data.get('tafsili_account')

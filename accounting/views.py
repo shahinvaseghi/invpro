@@ -772,7 +772,8 @@ class AccountingDocumentCreateView(BaseFormsetCreateView):
             if not form.instance.pk and not form.initial.get('document_date'):
                 today = timezone.now().date()
                 form.initial['document_date'] = today
-                form.fields['document_date'].widget.attrs['value'] = today.isoformat()
+                if 'document_date' in form.fields:
+                    form.fields['document_date'].widget.attrs['value'] = today.isoformat()
                 context['document_date_display'] = today
             
             # Auto-select fiscal year
@@ -792,7 +793,8 @@ class AccountingDocumentCreateView(BaseFormsetCreateView):
                 
                 if fiscal_year:
                     form.initial['fiscal_year'] = fiscal_year.pk
-                    form.fields['fiscal_year'].queryset = FiscalYear.objects.filter(pk=fiscal_year.pk)
+                    if 'fiscal_year' in form.fields:
+                        form.fields['fiscal_year'].queryset = FiscalYear.objects.filter(pk=fiscal_year.pk)
                     context['fiscal_year_display'] = fiscal_year.fiscal_year_name or f"{fiscal_year.start_date.year}-{fiscal_year.end_date.year}"
             
             # Set defaults
@@ -842,12 +844,29 @@ class AccountingDocumentCreateView(BaseFormsetCreateView):
         from inventory.utils.codes import generate_sequential_code
         from accounting.models.fiscal_years import FiscalYear
         
+        # Validate formset BEFORE saving anything
+        formset = self.formset_class(
+            self.request.POST,
+            prefix=self.formset_prefix,
+            **self.get_formset_kwargs()
+        )
+        
+        # Set company_id for each form in formset
+        company_id = self.request.session.get('active_company_id')
+        for formset_form in formset.forms:
+            if company_id:
+                formset_form.company_id = company_id
+        
+        # Check formset validity first
+        if not formset.is_valid():
+            return self.form_invalid(form)
+        
         with transaction.atomic():
+            
             # Set created_by
             form.instance.created_by = self.request.user
             
             # Auto-fill document fields (override any user input)
-            company_id = self.request.session.get('active_company_id')
             if company_id:
                 # Set document_date to today
                 form.instance.document_date = timezone.now().date()
@@ -879,55 +898,147 @@ class AccountingDocumentCreateView(BaseFormsetCreateView):
                         company_id=company_id,
                         field='document_number',
                         width=10,
-                        prefix='DOC-',
                     )
             
-            # Save main document first
-            response = super().form_valid(form)
+            # Save main document using BaseCreateView (skip BaseFormsetCreateView to avoid double formset save)
+            from shared.views.base import BaseCreateView
+            response = BaseCreateView.form_valid(self, form)
             
-            # Save formset
-            formset = self.formset_class(
-                self.request.POST,
-                instance=self.object,
-                prefix=self.formset_prefix,
-                **self.get_formset_kwargs()
-            )
+            # Set line numbers and sort_order
+            lines = formset.save(commit=False)
             
-            # Set company_id for each form in formset
-            company_id = self.request.session.get('active_company_id')
-            for form in formset.forms:
-                if company_id:
-                    form.company_id = company_id
+            for idx, line in enumerate(lines, start=1):
+                line.line_number = idx
+                line.sort_order = idx
+                
+                # Set document and company
+                line.document = self.object
+                if not line.company_id:
+                    line.company = self.object.company
+                
+                # Ensure debit/credit are not NULL
+                if line.debit is None:
+                    line.debit = Decimal('0.00')
+                if line.credit is None:
+                    line.credit = Decimal('0.00')
+                
+                line.save()
             
-            if formset.is_valid():
-                # Set line numbers and sort_order
-                lines = formset.save(commit=False)
-                for idx, line in enumerate(lines, start=1):
-                    line.line_number = idx
-                    line.sort_order = idx
-                    if not line.company_id:
-                        line.company = self.object.company
-                    line.save()
-                
-                # Delete removed lines
-                for line in formset.deleted_objects:
-                    line.delete()
-                
-                # Calculate totals
-                total_debit = Decimal('0.00')
-                total_credit = Decimal('0.00')
-                for line in self.object.lines.all():
-                    total_debit += line.debit
-                    total_credit += line.credit
-                
-                self.object.total_debit = total_debit
-                self.object.total_credit = total_credit
-                self.object.save(update_fields=['total_debit', 'total_credit'])
-            else:
-                # Formset validation failed
-                return self.form_invalid(form)
+            # Delete removed lines
+            for line in formset.deleted_objects:
+                line.delete()
+            
+            # Calculate totals
+            total_debit = Decimal('0.00')
+            total_credit = Decimal('0.00')
+            for line in self.object.lines.all():
+                total_debit += line.debit
+                total_credit += line.credit
+            
+            self.object.total_debit = total_debit
+            self.object.total_credit = total_credit
+            self.object.save(update_fields=['total_debit', 'total_credit'])
         
         return response
+
+class AccountingDocumentDetailView(FeaturePermissionRequiredMixin, TemplateView):
+    """Detail view for accounting document."""
+    template_name = 'accounting/documents/detail.html'
+    feature_code = 'accounting.documents.detail'
+    required_action = 'view'
+    
+    def get_context_data(self, **kwargs):
+        from django.shortcuts import get_object_or_404
+        from accounting.models.documents import AccountingDocument
+        
+        context = super().get_context_data(**kwargs)
+        company_id = self.request.session.get('active_company_id')
+        
+        document = get_object_or_404(
+            AccountingDocument.objects.filter(company_id=company_id),
+            pk=kwargs['pk']
+        )
+        
+        context['document'] = document
+        context['active_module'] = 'accounting'
+        context['page_title'] = f'سند حسابداری {document.document_number}'
+        context['breadcrumbs'] = [
+            {'label': 'داشبورد', 'url': reverse('ui:dashboard')},
+            {'label': 'حسابداری', 'url': reverse('accounting:dashboard')},
+            {'label': 'اسناد حسابداری', 'url': reverse('accounting:document_list')},
+            {'label': 'مشاهده سند'},
+        ]
+        return context
+
+
+class AccountingDocumentUpdateView(FeaturePermissionRequiredMixin, TemplateView):
+    """Update view for accounting document - placeholder."""
+    template_name = 'accounting/documents/placeholder.html'
+    feature_code = 'accounting.documents.edit'
+    required_action = 'edit'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'accounting'
+        context['page_title'] = 'ویرایش سند حسابداری'
+        context['message'] = 'قابلیت ویرایش سند در حال توسعه است.'
+        context['back_url'] = reverse('accounting:document_list')
+        return context
+
+
+class AccountingDocumentDeleteView(FeaturePermissionRequiredMixin, View):
+    """Delete view for accounting document."""
+    feature_code = 'accounting.documents.delete'
+    required_action = 'delete'
+    
+    def get(self, request, pk):
+        """Show confirmation page."""
+        from django.shortcuts import get_object_or_404, render
+        from accounting.models.documents import AccountingDocument
+        
+        company_id = request.session.get('active_company_id')
+        document = get_object_or_404(
+            AccountingDocument.objects.filter(company_id=company_id),
+            pk=pk
+        )
+        
+        context = {
+            'document': document,
+            'active_module': 'accounting',
+            'page_title': 'حذف سند حسابداری',
+            'breadcrumbs': [
+                {'label': 'داشبورد', 'url': reverse('ui:dashboard')},
+                {'label': 'حسابداری', 'url': reverse('accounting:dashboard')},
+                {'label': 'اسناد حسابداری', 'url': reverse('accounting:document_list')},
+                {'label': 'حذف سند'},
+            ]
+        }
+        
+        return render(request, 'accounting/documents/delete_confirm.html', context)
+    
+    def post(self, request, pk):
+        """Delete the document."""
+        from django.shortcuts import get_object_or_404, redirect
+        from django.contrib import messages
+        from accounting.models.documents import AccountingDocument
+        
+        company_id = request.session.get('active_company_id')
+        document = get_object_or_404(
+            AccountingDocument.objects.filter(company_id=company_id),
+            pk=pk
+        )
+        
+        # Check if document is locked
+        if document.status == 'LOCKED':
+            messages.error(request, 'نمی‌توانید سند قفل شده را حذف کنید.')
+            return redirect('accounting:document_detail', pk=pk)
+        
+        document_number = document.document_number
+        document.delete()
+        
+        messages.success(request, f'سند {document_number} با موفقیت حذف شد.')
+        return redirect('accounting:document_list')
+
 
 class AccountingDocumentListView(BaseListView):
     """List all accounting documents."""

@@ -143,6 +143,17 @@
                     <tbody id="lines-tbody">
                         {{ formset.management_form }}
                         {% for form in formset %}
+                            {% if form.non_field_errors %}
+                                <tr>
+                                    <td colspan="9" style="padding: 0.5rem; border: 1px solid #e5e7eb;">
+                                        {% for error in form.non_field_errors %}
+                                            <div class="error" style="color: #ef4444; background: #fee; padding: 0.5rem; border-radius: 4px; margin-bottom: 0.5rem; font-size: 0.875rem;">
+                                                {{ error }}
+                                            </div>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                            {% endif %}
                             <tr class="line-row" data-form-index="{{ forloop.counter0 }}">
                                 <td style="text-align: center; padding: 0.75rem; border: 1px solid #e5e7eb;">{{ forloop.counter }}</td>
                                 <td style="padding: 0.5rem; border: 1px solid #e5e7eb;">
