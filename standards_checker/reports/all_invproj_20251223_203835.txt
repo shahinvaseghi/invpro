@@ -1,0 +1,3951 @@
+================================================================================
+STANDARDS CHECKER REPORT
+================================================================================
+
+Check Type:     ALL
+Target:         invproj
+Date/Time:      2025-12-23 20:38:35
+Total Files:    377
+Files with Issues: 216
+Total Issues:   731
+
+================================================================================
+
+SUMMARY BY SEVERITY
+--------------------------------------------------------------------------------
+Critical: 6
+Errors:   15
+Warnings: 710
+
+================================================================================
+
+DETAILED ISSUES BY FILE
+================================================================================
+
+File: accounting/apps.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'AccountingConfig' missing docstring
+
+
+================================================================================
+
+File: accounting/forms/accounts.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 13
+     Class 'Meta' missing docstring
+
+  2. Line 72
+     Function 'clean' missing docstring
+
+
+================================================================================
+
+File: accounting/forms/cost_centers.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 15
+     Class 'Meta' missing docstring
+
+  2. Line 81
+     Function 'clean' missing docstring
+
+
+================================================================================
+
+File: accounting/forms/document_attachments.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 43
+     Function 'clean' missing docstring
+
+
+================================================================================
+
+File: accounting/forms/documents.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 19
+     Class 'Meta' missing docstring
+
+  2. Line 110
+     Class 'Meta' missing docstring
+
+  3. Line 184
+     Function 'clean' missing docstring
+
+
+================================================================================
+
+File: accounting/forms/fiscal_years.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 13
+     Class 'Meta' missing docstring
+
+  2. Line 51
+     Function 'clean' missing docstring
+
+
+================================================================================
+
+File: accounting/forms/gl_accounts.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 13
+     Class 'Meta' missing docstring
+
+  2. Line 62
+     Function 'clean' missing docstring
+
+
+================================================================================
+
+File: accounting/forms/income_expense_categories.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 13
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: accounting/forms/parties.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 13
+     Class 'Meta' missing docstring
+
+  2. Line 71
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: accounting/forms/periods.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 13
+     Class 'Meta' missing docstring
+
+  2. Line 59
+     Function 'clean' missing docstring
+
+
+================================================================================
+
+File: accounting/forms/sub_accounts.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 21
+     Class 'Meta' missing docstring
+
+  2. Line 107
+     Function 'clean' missing docstring
+
+
+================================================================================
+
+File: accounting/forms/tafsili_accounts.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 53
+     Class 'Meta' missing docstring
+
+  2. Line 161
+     Function 'clean' missing docstring
+
+
+================================================================================
+
+File: accounting/forms/tafsili_hierarchy.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 13
+     Class 'Meta' missing docstring
+
+  2. Line 82
+     Function 'clean' missing docstring
+
+
+================================================================================
+
+File: accounting/forms/tafsili_types.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 14
+     Class 'Meta' missing docstring
+
+  2. Line 68
+     Function 'clean' missing docstring
+
+
+================================================================================
+
+File: accounting/forms/treasury_accounts.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 14
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: accounting/forms/warehouse.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 17
+     Class 'Meta' missing docstring
+
+  2. Line 144
+     Class 'Meta' missing docstring
+
+  3. Line 189
+     Function 'clean' missing docstring
+
+
+================================================================================
+
+File: accounting/migrations/0001_initial.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: accounting/migrations/0002_accountingdocument_accountingdocumentline_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 11
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: accounting/migrations/0003_add_fiscal_year_to_documents.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: accounting/migrations/0004_add_account_relations.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: accounting/migrations/0005_add_tafsili_hierarchy.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: accounting/migrations/0006_add_document_attachments.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: accounting/migrations/0007_add_income_expense_category.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: accounting/migrations/0008_add_party_models.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: accounting/migrations/0009_add_treasury_account.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: accounting/migrations/0010_add_warehouse_transfer_issue.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: accounting/migrations/0011_warehouseincomedocument_warehouseexpensedocument_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 11
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: accounting/migrations/0012_warehouseexpensedocumentline_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: accounting/migrations/0013_remove_account_type_normal_balance_from_gl_accounts.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: accounting/migrations/0014_change_account_code_unique_constraint.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: accounting/migrations/0015_add_tafsili_type_model.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: accounting/migrations/0016_seed_initial_tafsili_types.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 47
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: accounting/models/accounts.py
+Issues: 6
+--------------------------------------------------------------------------------
+
+[WARNING] (6 issues)
+  1. Line 107
+     Class 'Meta' missing docstring
+
+  2. Line 129
+     Function 'save' missing docstring
+
+  3. Line 176
+     Class 'Meta' missing docstring
+
+  4. Line 199
+     Function 'save' missing docstring
+
+  5. Line 233
+     Class 'Meta' missing docstring
+
+  6. Line 256
+     Function 'save' missing docstring
+
+
+================================================================================
+
+File: accounting/models/attachments.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 76
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: accounting/models/balances.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 55
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: accounting/models/base.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (4 issues)
+  1. Line 59
+     Class 'Meta' missing docstring
+
+  2. Line 77
+     Class 'Meta' missing docstring
+
+  3. Line 131
+     Class 'Meta' missing docstring
+
+  4. Line 141
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: accounting/models/cost_centers.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 64
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: accounting/models/documents.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (4 issues)
+  1. Line 138
+     Class 'Meta' missing docstring
+
+  2. Line 183
+     Function 'save' missing docstring
+
+  3. Line 250
+     Class 'Meta' missing docstring
+
+  4. Line 301
+     Function 'save' missing docstring
+
+
+================================================================================
+
+File: accounting/models/fiscal_years.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (4 issues)
+  1. Line 59
+     Class 'Meta' missing docstring
+
+  2. Line 79
+     Function 'save' missing docstring
+
+  3. Line 119
+     Class 'Meta' missing docstring
+
+  4. Line 145
+     Function 'save' missing docstring
+
+
+================================================================================
+
+File: accounting/models/hierarchy.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 64
+     Class 'Meta' missing docstring
+
+  2. Line 100
+     Function 'save' missing docstring
+
+
+================================================================================
+
+File: accounting/models/income_expense_categories.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 44
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: accounting/models/parties.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 77
+     Class 'Meta' missing docstring
+
+  2. Line 144
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: accounting/models/tafsili_types.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 35
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: accounting/models/treasury_accounts.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 100
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: accounting/models/warehouse.py
+Issues: 5
+--------------------------------------------------------------------------------
+
+[WARNING] (5 issues)
+  1. Line 71
+     Class 'Meta' missing docstring
+
+  2. Line 83
+     Function 'save' missing docstring
+
+  3. Line 182
+     Class 'Meta' missing docstring
+
+  4. Line 268
+     Class 'Meta' missing docstring
+
+  5. Line 280
+     Function 'save' missing docstring
+
+
+================================================================================
+
+File: accounting/serializers/accounts.py
+Issues: 5
+--------------------------------------------------------------------------------
+
+[WARNING] (5 issues)
+  1. Line 15
+     Class 'Meta' missing docstring
+
+  2. Line 44
+     Class 'Meta' missing docstring
+
+  3. Line 82
+     Class 'Meta' missing docstring
+
+  4. Line 133
+     Class 'Meta' missing docstring
+
+  5. Line 167
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: accounting/serializers/documents.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 18
+     Class 'Meta' missing docstring
+
+  2. Line 52
+     Class 'Meta' missing docstring
+
+  3. Line 110
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: accounting/serializers/fiscal_years.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 13
+     Class 'Meta' missing docstring
+
+  2. Line 40
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: accounting/views.py
+Issues: 85
+--------------------------------------------------------------------------------
+
+[ERROR] (5 issues)
+  1. Line 195
+     Class 'TreasuryAccountCreateView' uses 'CreateView' instead of 'BaseCreateView'
+
+  2. Line 381
+     Class 'IncomeExpenseCategoryCreateView' uses 'CreateView' instead of 'BaseCreateView'
+
+  3. Line 431
+     Class 'CostCenterCreateView' uses 'CreateView' instead of 'BaseCreateView'
+
+  4. Line 483
+     Class 'PartyCreateView' uses 'CreateView' instead of 'BaseCreateView'
+
+  5. Line 534
+     Class 'PartyAccountCreateView' uses 'CreateView' instead of 'BaseCreateView'
+
+
+[WARNING] (80 issues)
+  1. Line 1143
+     Class 'AccountingDocumentStatusView' missing docstring
+
+  2. Line 1148
+     Class 'TafsiliMovementsView' missing docstring
+
+  3. Line 1153
+     Class 'TreasuryReceiveView' missing docstring
+
+  4. Line 1158
+     Class 'TreasuryPayView' missing docstring
+
+  5. Line 1163
+     Class 'TreasuryTransferView' missing docstring
+
+  6. Line 1168
+     Class 'TreasuryCashReportView' missing docstring
+
+  7. Line 1173
+     Class 'CostAllocationView' missing docstring
+
+  8. Line 1178
+     Class 'IncomeReportView' missing docstring
+
+  9. Line 1183
+     Class 'ExpenseReportView' missing docstring
+
+  10. Line 1188
+     Class 'CostCenterReportView' missing docstring
+
+  11. Line 1193
+     Class 'PartyMovementsView' missing docstring
+
+  12. Line 1198
+     Class 'PartyBalanceReportView' missing docstring
+
+  13. Line 1203
+     Class 'TaxValidationView' missing docstring
+
+  14. Line 1208
+     Class 'TaxDiscrepancyReportView' missing docstring
+
+  15. Line 1213
+     Class 'ReportCashFlowView' missing docstring
+
+  16. Line 1218
+     Class 'ReportTafsiliCostCenterView' missing docstring
+
+  17. Line 1223
+     Class 'ReportChecksView' missing docstring
+
+  18. Line 1228
+     Class 'ReportTreasuryView' missing docstring
+
+  19. Line 1233
+     Class 'ReportMonthlyView' missing docstring
+
+  20. Line 1238
+     Class 'AttachmentAttachView' missing docstring
+
+  21. Line 1243
+     Class 'CloseTempAccountsView' missing docstring
+
+  22. Line 1248
+     Class 'OpeningEntryView' missing docstring
+
+  23. Line 1253
+     Class 'ClosingEntryView' missing docstring
+
+  24. Line 1258
+     Class 'IntegrationView' missing docstring
+
+  25. Line 1263
+     Class 'BackupRestoreView' missing docstring
+
+  26. Line 1268
+     Class 'SettingsTreasuryView' missing docstring
+
+  27. Line 1273
+     Class 'SettingsTaxView' missing docstring
+
+  28. Line 23
+     Function 'get_context_data' missing docstring
+
+  29. Line 37
+     Function 'get_context_data' missing docstring
+
+  30. Line 50
+     Function 'get_context_data' missing docstring
+
+  31. Line 63
+     Function 'get_context_data' missing docstring
+
+  32. Line 77
+     Function 'get_context_data' missing docstring
+
+  33. Line 90
+     Function 'get_context_data' missing docstring
+
+  34. Line 104
+     Function 'get_context_data' missing docstring
+
+  35. Line 117
+     Function 'get_context_data' missing docstring
+
+  36. Line 131
+     Function 'get_context_data' missing docstring
+
+  37. Line 144
+     Function 'get_context_data' missing docstring
+
+  38. Line 157
+     Function 'get_context_data' missing docstring
+
+  39. Line 170
+     Function 'get_context_data' missing docstring
+
+  40. Line 184
+     Function 'get_context_data' missing docstring
+
+  41. Line 204
+     Function 'get_form_kwargs' missing docstring
+
+  42. Line 209
+     Function 'form_valid' missing docstring
+
+  43. Line 214
+     Function 'get_context_data' missing docstring
+
+  44. Line 234
+     Function 'get' missing docstring
+
+  45. Line 270
+     Function 'get' missing docstring
+
+  46. Line 307
+     Function 'get_context_data' missing docstring
+
+  47. Line 320
+     Function 'get_context_data' missing docstring
+
+  48. Line 333
+     Function 'get_context_data' missing docstring
+
+  49. Line 347
+     Function 'get_context_data' missing docstring
+
+  50. Line 360
+     Function 'get_context_data' missing docstring
+
+  51. Line 373
+     Function 'get_context_data' missing docstring
+
+  52. Line 423
+     Function 'get_context_data' missing docstring
+
+  53. Line 474
+     Function 'get_context_data' missing docstring
+
+  54. Line 525
+     Function 'get_context_data' missing docstring
+
+  55. Line 576
+     Function 'get_context_data' missing docstring
+
+  56. Line 590
+     Function 'get_context_data' missing docstring
+
+  57. Line 603
+     Function 'get_context_data' missing docstring
+
+  58. Line 616
+     Function 'get_context_data' missing docstring
+
+  59. Line 630
+     Function 'get_context_data' missing docstring
+
+  60. Line 643
+     Function 'get_context_data' missing docstring
+
+  61. Line 656
+     Function 'get_context_data' missing docstring
+
+  62. Line 669
+     Function 'get_context_data' missing docstring
+
+  63. Line 682
+     Function 'get_context_data' missing docstring
+
+  64. Line 695
+     Function 'get_context_data' missing docstring
+
+  65. Line 709
+     Function 'get_context_data' missing docstring
+
+  66. Line 734
+     Function 'get_breadcrumbs' missing docstring
+
+  67. Line 742
+     Function 'get_form_kwargs' missing docstring
+
+  68. Line 747
+     Function 'get_formset_kwargs' missing docstring
+
+  69. Line 950
+     Function 'get_context_data' missing docstring
+
+  70. Line 980
+     Function 'get_context_data' missing docstring
+
+  71. Line 1286
+     Function 'get_context_data' missing docstring
+
+  72. Line 1370
+     Function 'get_breadcrumbs' missing docstring
+
+  73. Line 1377
+     Function 'get_form_kwargs' missing docstring
+
+  74. Line 1422
+     Function 'get_context_data' missing docstring
+
+  75. Line 1488
+     Function 'get_form_kwargs' missing docstring
+
+  76. Line 1523
+     Function 'get_context_data' missing docstring
+
+  77. Line 1534
+     Function 'get_breadcrumbs' missing docstring
+
+  78. Line 1720
+     Function 'get_context_data' missing docstring
+
+  79. Line 1733
+     Function 'get_context_data' missing docstring
+
+  80. Line 1746
+     Function 'get_context_data' missing docstring
+
+
+================================================================================
+
+File: accounting/views/document_attachments.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[ERROR] (3 issues)
+  1. Line 23
+     Class 'DocumentAttachmentUploadView' uses 'FormView' instead of 'BaseFormView'
+
+  2. Line 199
+     Class 'DocumentAttachmentDownloadSingleView' uses 'ListView' instead of 'BaseListView'
+
+  3. Line 226
+     Class 'DocumentAttachmentDownloadBulkView' uses 'ListView' instead of 'BaseListView'
+
+
+================================================================================
+
+File: config/urls.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 27
+     Function 'redirect_admin_login' missing docstring
+
+  2. Line 31
+     Function 'redirect_to_admin' missing docstring
+
+
+================================================================================
+
+File: hr/apps.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'HrConfig' missing docstring
+
+
+================================================================================
+
+File: hr/views.py
+Issues: 15
+--------------------------------------------------------------------------------
+
+[WARNING] (15 issues)
+  1. Line 14
+     Function 'get_context_data' missing docstring
+
+  2. Line 28
+     Function 'get_context_data' missing docstring
+
+  3. Line 41
+     Function 'get_context_data' missing docstring
+
+  4. Line 54
+     Function 'get_context_data' missing docstring
+
+  5. Line 67
+     Function 'get_context_data' missing docstring
+
+  6. Line 80
+     Function 'get_context_data' missing docstring
+
+  7. Line 94
+     Function 'get_context_data' missing docstring
+
+  8. Line 107
+     Function 'get_context_data' missing docstring
+
+  9. Line 120
+     Function 'get_context_data' missing docstring
+
+  10. Line 134
+     Function 'get_context_data' missing docstring
+
+  11. Line 147
+     Function 'get_context_data' missing docstring
+
+  12. Line 160
+     Function 'get_context_data' missing docstring
+
+  13. Line 174
+     Function 'get_context_data' missing docstring
+
+  14. Line 187
+     Function 'get_context_data' missing docstring
+
+  15. Line 200
+     Function 'get_context_data' missing docstring
+
+
+================================================================================
+
+File: inventory/admin.py
+Issues: 27
+--------------------------------------------------------------------------------
+
+[WARNING] (27 issues)
+  1. Line 10
+     Class 'ItemTypeAdmin' missing docstring
+
+  2. Line 30
+     Class 'ItemCategoryAdmin' missing docstring
+
+  3. Line 50
+     Class 'ItemSubcategoryAdmin' missing docstring
+
+  4. Line 71
+     Class 'WarehouseAdmin' missing docstring
+
+  5. Line 117
+     Class 'ItemAdmin' missing docstring
+
+  6. Line 178
+     Class 'ItemSpecAdmin' missing docstring
+
+  7. Line 186
+     Class 'ItemUnitAdmin' missing docstring
+
+  8. Line 194
+     Class 'ItemWarehouseAdmin' missing docstring
+
+  9. Line 202
+     Class 'ItemSubstituteAdmin' missing docstring
+
+  10. Line 210
+     Class 'SupplierAdmin' missing docstring
+
+  11. Line 260
+     Class 'SupplierCategoryAdmin' missing docstring
+
+  12. Line 268
+     Class 'SupplierSubcategoryAdmin' missing docstring
+
+  13. Line 276
+     Class 'SupplierItemAdmin' missing docstring
+
+  14. Line 284
+     Class 'PurchaseRequestAdmin' missing docstring
+
+  15. Line 292
+     Class 'ReceiptTemporaryAdmin' missing docstring
+
+  16. Line 409
+     Class 'ReceiptPermanentAdmin' missing docstring
+
+  17. Line 523
+     Class 'ReceiptConsignmentAdmin' missing docstring
+
+  18. Line 530
+     Class 'ItemLotAdmin' missing docstring
+
+  19. Line 538
+     Class 'IssuePermanentAdmin' missing docstring
+
+  20. Line 545
+     Class 'IssueConsumptionAdmin' missing docstring
+
+  21. Line 552
+     Class 'IssueConsignmentAdmin' missing docstring
+
+  22. Line 559
+     Class 'StocktakingDeficitAdmin' missing docstring
+
+  23. Line 566
+     Class 'StocktakingSurplusAdmin' missing docstring
+
+  24. Line 573
+     Class 'StocktakingRecordAdmin' missing docstring
+
+  25. Line 580
+     Class 'WarehouseRequestAdmin' missing docstring
+
+  26. Line 423
+     Class 'Media' missing docstring
+
+  27. Line 320
+     Class 'FilteredForm' missing docstring
+
+
+================================================================================
+
+File: inventory/apps.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'InventoryConfig' missing docstring
+
+
+================================================================================
+
+File: inventory/forms/base.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (4 issues)
+  1. Line 297
+     Function 'add' missing docstring
+
+  2. Line 661
+     Function 'add' missing docstring
+
+  3. Line 614
+     Function 'confirmed_by_label' missing docstring
+
+  4. Line 624
+     Function 'approver_label' missing docstring
+
+
+================================================================================
+
+File: inventory/forms/issue.py
+Issues: 10
+--------------------------------------------------------------------------------
+
+[WARNING] (10 issues)
+  1. Line 62
+     Class 'Meta' missing docstring
+
+  2. Line 153
+     Class 'Meta' missing docstring
+
+  3. Line 228
+     Class 'Meta' missing docstring
+
+  4. Line 421
+     Class 'Meta' missing docstring
+
+  5. Line 940
+     Class 'Meta' missing docstring
+
+  6. Line 1065
+     Class 'Meta' missing docstring
+
+  7. Line 1244
+     Class 'Meta' missing docstring
+
+  8. Line 1377
+     Class 'Meta' missing docstring
+
+  9. Line 1458
+     Class 'Meta' missing docstring
+
+  10. Line 711
+     Function 'add' missing docstring
+
+
+================================================================================
+
+File: inventory/forms/master_data.py
+Issues: 8
+--------------------------------------------------------------------------------
+
+[WARNING] (8 issues)
+  1. Line 158
+     Class 'Meta' missing docstring
+
+  2. Line 177
+     Class 'Meta' missing docstring
+
+  3. Line 196
+     Class 'Meta' missing docstring
+
+  4. Line 222
+     Class 'Meta' missing docstring
+
+  5. Line 238
+     Class 'Meta' missing docstring
+
+  6. Line 289
+     Class 'Meta' missing docstring
+
+  7. Line 476
+     Class 'Meta' missing docstring
+
+  8. Line 643
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: inventory/forms/receipt.py
+Issues: 8
+--------------------------------------------------------------------------------
+
+[WARNING] (8 issues)
+  1. Line 48
+     Class 'Meta' missing docstring
+
+  2. Line 155
+     Class 'Meta' missing docstring
+
+  3. Line 297
+     Class 'Meta' missing docstring
+
+  4. Line 432
+     Class 'Meta' missing docstring
+
+  5. Line 920
+     Class 'Meta' missing docstring
+
+  6. Line 990
+     Class 'Meta' missing docstring
+
+  7. Line 1035
+     Class 'Meta' missing docstring
+
+  8. Line 808
+     Function 'add' missing docstring
+
+
+================================================================================
+
+File: inventory/forms/request.py
+Issues: 6
+--------------------------------------------------------------------------------
+
+[WARNING] (6 issues)
+  1. Line 42
+     Class 'Meta' missing docstring
+
+  2. Line 106
+     Class 'Meta' missing docstring
+
+  3. Line 333
+     Class 'Meta' missing docstring
+
+  4. Line 404
+     Class 'Meta' missing docstring
+
+  5. Line 231
+     Function 'add' missing docstring
+
+  6. Line 601
+     Function 'add' missing docstring
+
+
+================================================================================
+
+File: inventory/forms/stocktaking.py
+Issues: 5
+--------------------------------------------------------------------------------
+
+[WARNING] (5 issues)
+  1. Line 33
+     Class 'Meta' missing docstring
+
+  2. Line 106
+     Class 'Meta' missing docstring
+
+  3. Line 196
+     Class 'Meta' missing docstring
+
+  4. Line 276
+     Class 'Meta' missing docstring
+
+  5. Line 380
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: inventory/management/commands/cleanup_test_receipts.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 5
+     Class 'Command' missing docstring
+
+  2. Line 8
+     Function 'add_arguments' missing docstring
+
+  3. Line 15
+     Function 'handle' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0001_initial.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 11
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0002_warehouserequest_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0003_item_full_item_code_alter_item_item_code.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0004_remove_issueconsignment_activated_at_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0005_issueconsignment_department_unit_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0006_issueconsignment_created_by_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0014_stocktaking_created_updated_by.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 5
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0015_purchaserequest_is_locked_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0016_itemserial_remove_issueconsignment_updated_at_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0017_remove_issueconsignment_consignment_receipt_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0018_add_entered_price_unit.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0019_make_consignment_receipt_optional.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0020_change_stocktaking_users.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0021_alter_receiptpermanent_options_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0022_alter_purchaserequest_approver_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0023_remove_person_from_inventory.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0024_add_warehouse_request_to_issue_permanent.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0025_add_secondary_batch_and_serial_numbers.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0026_add_personnel_machines_to_workline.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0027_move_workline_to_production.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0028_move_workline_to_production.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0029_add_purchase_request_line.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0030_migrate_purchase_request_to_lines.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 34
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0031_add_receipt_temporary_line.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0032_add_notes_to_receipt_temporary.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0033_add_warehouse_request_line.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0034_add_stocktaking_line_models.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 99
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0035_remove_price_fields_from_receipts_and_issues.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0036_add_qc_approval_fields_to_receipt_temporary_line.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0037_add_qc_rejection_fields_to_receipt_temporary_line.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0038_add_qc_rejection_detail_model.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0039_issueconsignment_editing_by_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0040_add_supplier_to_receipt_temporary_line.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0041_add_fiscal_year_to_documents.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0042_add_warehouse_transfer_issue.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 11
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0043_add_production_transfer_to_warehouse_transfer.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0044_link_existing_warehouse_transfers.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 46
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/migrations/0045_add_item_supply_planning_fields.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: inventory/models.py
+Issues: 103
+--------------------------------------------------------------------------------
+
+[WARNING] (103 issues)
+  1. Line 37
+     Class 'InventoryBaseModel' missing docstring
+
+  2. Line 47
+     Class 'InventorySortableModel' missing docstring
+
+  3. Line 123
+     Class 'InventoryDocumentBase' missing docstring
+
+  4. Line 134
+     Class 'ItemType' missing docstring
+
+  5. Line 176
+     Class 'ItemCategory' missing docstring
+
+  6. Line 218
+     Class 'ItemSubcategory' missing docstring
+
+  7. Line 266
+     Class 'Warehouse' missing docstring
+
+  8. Line 315
+     Class 'Item' missing docstring
+
+  9. Line 471
+     Class 'ItemSpec' missing docstring
+
+  10. Line 503
+     Class 'ItemUnit' missing docstring
+
+  11. Line 555
+     Class 'ItemWarehouse' missing docstring
+
+  12. Line 583
+     Class 'ItemSubstitute' missing docstring
+
+  13. Line 641
+     Class 'Supplier' missing docstring
+
+  14. Line 686
+     Class 'SupplierCategory' missing docstring
+
+  15. Line 714
+     Class 'SupplierSubcategory' missing docstring
+
+  16. Line 742
+     Class 'SupplierItem' missing docstring
+
+  17. Line 785
+     Class 'PurchaseRequest' missing docstring
+
+  18. Line 1156
+     Class 'ItemLot' missing docstring
+
+  19. Line 1218
+     Class 'ItemSerial' missing docstring
+
+  20. Line 1314
+     Class 'ItemSerialHistory' missing docstring
+
+  21. Line 2178
+     Class 'StocktakingRecord' missing docstring
+
+  22. Line 43
+     Class 'Meta' missing docstring
+
+  23. Line 48
+     Class 'Meta' missing docstring
+
+  24. Line 67
+     Class 'Meta' missing docstring
+
+  25. Line 130
+     Class 'Meta' missing docstring
+
+  26. Line 144
+     Class 'Meta' missing docstring
+
+  27. Line 166
+     Function 'save' missing docstring
+
+  28. Line 186
+     Class 'Meta' missing docstring
+
+  29. Line 208
+     Function 'save' missing docstring
+
+  30. Line 233
+     Class 'Meta' missing docstring
+
+  31. Line 255
+     Function 'save' missing docstring
+
+  32. Line 277
+     Class 'Meta' missing docstring
+
+  33. Line 299
+     Function 'save' missing docstring
+
+  34. Line 384
+     Class 'Meta' missing docstring
+
+  35. Line 392
+     Function 'save' missing docstring
+
+  36. Line 483
+     Class 'Meta' missing docstring
+
+  37. Line 497
+     Function 'save' missing docstring
+
+  38. Line 531
+     Class 'Meta' missing docstring
+
+  39. Line 549
+     Function 'save' missing docstring
+
+  40. Line 569
+     Class 'Meta' missing docstring
+
+  41. Line 613
+     Class 'Meta' missing docstring
+
+  42. Line 633
+     Function 'save' missing docstring
+
+  43. Line 658
+     Class 'Meta' missing docstring
+
+  44. Line 676
+     Function 'save' missing docstring
+
+  45. Line 700
+     Class 'Meta' missing docstring
+
+  46. Line 728
+     Class 'Meta' missing docstring
+
+  47. Line 771
+     Class 'Meta' missing docstring
+
+  48. Line 786
+     Class 'Priority' missing docstring
+
+  49. Line 792
+     Class 'Status' missing docstring
+
+  50. Line 842
+     Class 'Meta' missing docstring
+
+  51. Line 874
+     Function 'save' missing docstring
+
+  52. Line 954
+     Class 'Meta' missing docstring
+
+  53. Line 966
+     Function 'save' missing docstring
+
+  54. Line 984
+     Class 'Status' missing docstring
+
+  55. Line 1026
+     Class 'Meta' missing docstring
+
+  56. Line 1034
+     Function 'save' missing docstring
+
+  57. Line 1072
+     Class 'Meta' missing docstring
+
+  58. Line 1080
+     Function 'save' missing docstring
+
+  59. Line 1136
+     Class 'Meta' missing docstring
+
+  60. Line 1144
+     Function 'save' missing docstring
+
+  61. Line 1184
+     Class 'Meta' missing docstring
+
+  62. Line 1192
+     Function 'save' missing docstring
+
+  63. Line 1219
+     Class 'Status' missing docstring
+
+  64. Line 1276
+     Class 'Meta' missing docstring
+
+  65. Line 1300
+     Function 'save' missing docstring
+
+  66. Line 1315
+     Class 'EventType' missing docstring
+
+  67. Line 1348
+     Class 'Meta' missing docstring
+
+  68. Line 1362
+     Function 'save' missing docstring
+
+  69. Line 1405
+     Class 'Meta' missing docstring
+
+  70. Line 1409
+     Function 'save' missing docstring
+
+  71. Line 1435
+     Class 'Meta' missing docstring
+
+  72. Line 1481
+     Class 'Meta' missing docstring
+
+  73. Line 1493
+     Function 'save' missing docstring
+
+  74. Line 1526
+     Class 'Meta' missing docstring
+
+  75. Line 1538
+     Function 'save' missing docstring
+
+  76. Line 1576
+     Class 'Meta' missing docstring
+
+  77. Line 1580
+     Function 'save' missing docstring
+
+  78. Line 1610
+     Class 'Meta' missing docstring
+
+  79. Line 1622
+     Function 'save' missing docstring
+
+  80. Line 1649
+     Class 'Meta' missing docstring
+
+  81. Line 1699
+     Class 'Meta' missing docstring
+
+  82. Line 1719
+     Function 'save' missing docstring
+
+  83. Line 1765
+     Class 'Meta' missing docstring
+
+  84. Line 1808
+     Class 'Meta' missing docstring
+
+  85. Line 1816
+     Function 'save' missing docstring
+
+  86. Line 1843
+     Class 'Meta' missing docstring
+
+  87. Line 1851
+     Function 'save' missing docstring
+
+  88. Line 1876
+     Class 'Meta' missing docstring
+
+  89. Line 1884
+     Function 'save' missing docstring
+
+  90. Line 1908
+     Class 'Meta' missing docstring
+
+  91. Line 1949
+     Class 'Meta' missing docstring
+
+  92. Line 1961
+     Function 'save' missing docstring
+
+  93. Line 1988
+     Class 'Meta' missing docstring
+
+  94. Line 2009
+     Class 'Meta' missing docstring
+
+  95. Line 2078
+     Class 'Meta' missing docstring
+
+  96. Line 2090
+     Function 'save' missing docstring
+
+  97. Line 2158
+     Class 'Meta' missing docstring
+
+  98. Line 2170
+     Function 'save' missing docstring
+
+  99. Line 2212
+     Class 'Meta' missing docstring
+
+  100. Line 2220
+     Function 'save' missing docstring
+
+  101. Line 2376
+     Class 'Meta' missing docstring
+
+  102. Line 2421
+     Class 'Meta' missing docstring
+
+  103. Line 2433
+     Function 'save' missing docstring
+
+
+================================================================================
+
+File: inventory/tests.py
+Issues: 7
+--------------------------------------------------------------------------------
+
+[WARNING] (7 issues)
+  1. Line 10
+     Class 'InventoryModelTests' missing docstring
+
+  2. Line 71
+     Function 'create_item' missing docstring
+
+  3. Line 85
+     Function 'test_item_code_and_batch_generation' missing docstring
+
+  4. Line 91
+     Function 'test_purchase_request_populates_codes' missing docstring
+
+  5. Line 105
+     Function 'test_receipt_permanent_auto_sets_codes' missing docstring
+
+  6. Line 119
+     Function 'test_item_lot_generation' missing docstring
+
+  7. Line 11
+     Function 'setUp' should use snake_case
+
+
+================================================================================
+
+File: inventory/tests/test_models.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 23
+     Function 'setUp' should use snake_case
+
+
+================================================================================
+
+File: inventory/views/api.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 50
+     Function 'add' missing docstring
+
+
+================================================================================
+
+File: inventory/views/base.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 324
+     Function 'dispatch' missing docstring
+
+  2. Line 388
+     Function 'post' missing docstring
+
+  3. Line 478
+     Function 'post' missing docstring
+
+
+================================================================================
+
+File: inventory/views/issues.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[ERROR] (1 issues)
+  1. Line 1477
+     Class 'IssueLineSerialAssignmentBaseView' uses 'FormView' instead of 'BaseFormView'
+
+
+================================================================================
+
+File: inventory/views/issues_from_warehouse_request.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[ERROR] (3 issues)
+  1. Line 27
+     Class 'IssuePermanentCreateFromWarehouseRequestView' uses 'CreateView' instead of 'BaseCreateView'
+
+  2. Line 147
+     Class 'IssueConsumptionCreateFromWarehouseRequestView' uses 'CreateView' instead of 'BaseCreateView'
+
+  3. Line 273
+     Class 'IssueConsignmentCreateFromWarehouseRequestView' uses 'CreateView' instead of 'BaseCreateView'
+
+
+================================================================================
+
+File: inventory/views/receipts.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[CRITICAL] (2 issues)
+  1. Line 139
+     Using mark_safe - ensure content is sanitized
+
+  2. Line 141
+     Using mark_safe - ensure content is sanitized
+
+
+[ERROR] (1 issues)
+  1. Line 47
+     Class 'DocumentDeleteViewBase' uses 'DeleteView' instead of 'BaseDeleteView'
+
+
+================================================================================
+
+File: inventory/views/requests.py
+Issues: 5
+--------------------------------------------------------------------------------
+
+[CRITICAL] (4 issues)
+  1. Line 99
+     Using mark_safe - ensure content is sanitized
+
+  2. Line 101
+     Using mark_safe - ensure content is sanitized
+
+  3. Line 785
+     Using mark_safe - ensure content is sanitized
+
+  4. Line 786
+     Using mark_safe - ensure content is sanitized
+
+
+[WARNING] (1 issues)
+  1. Line 87
+     Function 'add' missing docstring
+
+
+================================================================================
+
+File: office_automation/apps.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'OfficeAutomationConfig' missing docstring
+
+
+================================================================================
+
+File: office_automation/views.py
+Issues: 7
+--------------------------------------------------------------------------------
+
+[WARNING] (7 issues)
+  1. Line 14
+     Function 'get_context_data' missing docstring
+
+  2. Line 28
+     Function 'get_context_data' missing docstring
+
+  3. Line 41
+     Function 'get_context_data' missing docstring
+
+  4. Line 54
+     Function 'get_context_data' missing docstring
+
+  5. Line 68
+     Function 'get_context_data' missing docstring
+
+  6. Line 81
+     Function 'get_context_data' missing docstring
+
+  7. Line 95
+     Function 'get_context_data' missing docstring
+
+
+================================================================================
+
+File: procurement/apps.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'ProcurementConfig' missing docstring
+
+
+================================================================================
+
+File: procurement/views.py
+Issues: 5
+--------------------------------------------------------------------------------
+
+[WARNING] (5 issues)
+  1. Line 14
+     Function 'get_context_data' missing docstring
+
+  2. Line 28
+     Function 'get_context_data' missing docstring
+
+  3. Line 42
+     Function 'get_context_data' missing docstring
+
+  4. Line 55
+     Function 'get_context_data' missing docstring
+
+  5. Line 68
+     Function 'get_context_data' missing docstring
+
+
+================================================================================
+
+File: production/admin.py
+Issues: 15
+--------------------------------------------------------------------------------
+
+[WARNING] (15 issues)
+  1. Line 8
+     Class 'WorkCenterAdmin' missing docstring
+
+  2. Line 15
+     Class 'BOMAdmin' missing docstring
+
+  3. Line 23
+     Class 'BOMMaterialAdmin' missing docstring
+
+  4. Line 31
+     Class 'ProcessAdmin' missing docstring
+
+  5. Line 39
+     Class 'ProcessStepAdmin' missing docstring
+
+  6. Line 47
+     Class 'ProcessOperationAdmin' missing docstring
+
+  7. Line 56
+     Class 'ProcessOperationMaterialAdmin' missing docstring
+
+  8. Line 65
+     Class 'ProductOrderAdmin' missing docstring
+
+  9. Line 73
+     Class 'OrderPerformanceAdmin' missing docstring
+
+  10. Line 80
+     Class 'TransferToLineAdmin' missing docstring
+
+  11. Line 87
+     Class 'TransferToLineItemAdmin' missing docstring
+
+  12. Line 94
+     Class 'PersonAdmin' missing docstring
+
+  13. Line 101
+     Class 'PersonAssignmentAdmin' missing docstring
+
+  14. Line 108
+     Class 'MachineAdmin' missing docstring
+
+  15. Line 115
+     Class 'WorkLineAdmin' missing docstring
+
+
+================================================================================
+
+File: production/apps.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'ProductionConfig' missing docstring
+
+
+================================================================================
+
+File: production/forms/bom.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 35
+     Class 'Meta' missing docstring
+
+  2. Line 162
+     Class 'Meta' missing docstring
+
+  3. Line 413
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: production/forms/machine.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 22
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: production/forms/performance_record.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (4 issues)
+  1. Line 35
+     Class 'Meta' missing docstring
+
+  2. Line 299
+     Class 'Meta' missing docstring
+
+  3. Line 363
+     Class 'Meta' missing docstring
+
+  4. Line 471
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: production/forms/person.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 24
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: production/forms/process.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 15
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: production/forms/process_operations.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 14
+     Class 'Meta' missing docstring
+
+  2. Line 140
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: production/forms/product_order.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 60
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: production/forms/transfer_to_line.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 51
+     Class 'Meta' missing docstring
+
+  2. Line 287
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: production/forms/work_line.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 35
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0001_initial.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0002_alter_workcenter_public_code.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0003_remove_bommaterial_activated_at_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0004_remove_bommaterial_updated_at_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0005_person_processstep_machine_code_personassignment_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0006_bom_restructure.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0007_bom_company_code_bom_disabled_at_bom_disabled_by_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0008_alter_bommaterial_material_type.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0009_bom_material_type_to_fk.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0010_bom_unit_to_fk.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0011_bom_unit_back_to_char.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0012_bom_remove_dates.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0013_move_workline_to_production.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0014_update_process_model.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0015_remove_effective_dates_from_process.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0016_remove_effective_dates_from_process.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0017_fix_process_revision_constraint.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0018_change_process_approved_by_to_user.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0019_add_bom_and_approved_by_to_product_order.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0020_update_transfer_to_line_model.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0021_performancerecord_performancerecordperson_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 11
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0022_add_process_operations.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0023_rename_production__process_sequence_idx_production__process_42c13b_idx_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0024_bom_editing_by_bom_editing_session_key_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0025_add_scrap_replacement_to_transfer.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 5
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0026_add_work_line_to_process_operation.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0027_add_qc_approval_fields_to_transfer_to_line.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0028_add_source_warehouse_to_bom_material.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0029_add_source_warehouses_jsonfield_to_bom_material.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0030_change_destination_work_center_to_workline.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 24
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0031_add_bom_material_alternative.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0032_add_is_combinable_to_bom_material_alternative.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0033_add_document_type_and_operation_to_performance_record.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0034_add_requires_qc_to_process_operation.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/migrations/0035_add_qc_and_rework_models.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: production/models.py
+Issues: 64
+--------------------------------------------------------------------------------
+
+[WARNING] (64 issues)
+  1. Line 36
+     Class 'ProductionBaseModel' missing docstring
+
+  2. Line 47
+     Class 'ProductionSortableModel' missing docstring
+
+  3. Line 52
+     Class 'Person' missing docstring
+
+  4. Line 122
+     Class 'PersonAssignment' missing docstring
+
+  5. Line 157
+     Class 'WorkCenter' missing docstring
+
+  6. Line 263
+     Class 'Machine' missing docstring
+
+  7. Line 562
+     Class 'Process' missing docstring
+
+  8. Line 634
+     Class 'ProcessStep' missing docstring
+
+  9. Line 841
+     Class 'ProductOrder' missing docstring
+
+  10. Line 920
+     Class 'OrderPerformance' missing docstring
+
+  11. Line 997
+     Class 'TransferToLine' missing docstring
+
+  12. Line 1077
+     Class 'TransferToLineItem' missing docstring
+
+  13. Line 43
+     Class 'Meta' missing docstring
+
+  14. Line 48
+     Class 'Meta' missing docstring
+
+  15. Line 90
+     Class 'Meta' missing docstring
+
+  16. Line 112
+     Function 'save' missing docstring
+
+  17. Line 143
+     Class 'Meta' missing docstring
+
+  18. Line 167
+     Class 'Meta' missing docstring
+
+  19. Line 221
+     Class 'Meta' missing docstring
+
+  20. Line 253
+     Function 'save' missing docstring
+
+  21. Line 303
+     Class 'Meta' missing docstring
+
+  22. Line 321
+     Function 'save' missing docstring
+
+  23. Line 357
+     Class 'Meta' missing docstring
+
+  24. Line 371
+     Function 'save' missing docstring
+
+  25. Line 450
+     Class 'Meta' missing docstring
+
+  26. Line 468
+     Function 'save' missing docstring
+
+  27. Line 535
+     Class 'Meta' missing docstring
+
+  28. Line 553
+     Function 'save' missing docstring
+
+  29. Line 604
+     Class 'Meta' missing docstring
+
+  30. Line 619
+     Function 'save' missing docstring
+
+  31. Line 674
+     Class 'Meta' missing docstring
+
+  32. Line 688
+     Function 'save' missing docstring
+
+  33. Line 752
+     Class 'Meta' missing docstring
+
+  34. Line 764
+     Function 'save' missing docstring
+
+  35. Line 810
+     Class 'Meta' missing docstring
+
+  36. Line 824
+     Function 'save' missing docstring
+
+  37. Line 842
+     Class 'Status' missing docstring
+
+  38. Line 849
+     Class 'Priority' missing docstring
+
+  39. Line 902
+     Class 'Meta' missing docstring
+
+  40. Line 910
+     Function 'save' missing docstring
+
+  41. Line 975
+     Class 'Meta' missing docstring
+
+  42. Line 989
+     Function 'save' missing docstring
+
+  43. Line 998
+     Class 'Status' missing docstring
+
+  44. Line 1004
+     Class 'QCStatus' missing docstring
+
+  45. Line 1052
+     Class 'Meta' missing docstring
+
+  46. Line 1060
+     Function 'save' missing docstring
+
+  47. Line 1131
+     Class 'Meta' missing docstring
+
+  48. Line 1145
+     Function 'save' missing docstring
+
+  49. Line 1159
+     Class 'Status' missing docstring
+
+  50. Line 1164
+     Class 'DocumentType' missing docstring
+
+  51. Line 1237
+     Class 'Meta' missing docstring
+
+  52. Line 1259
+     Function 'save' missing docstring
+
+  53. Line 1324
+     Class 'Meta' missing docstring
+
+  54. Line 1338
+     Function 'save' missing docstring
+
+  55. Line 1379
+     Class 'Meta' missing docstring
+
+  56. Line 1393
+     Function 'save' missing docstring
+
+  57. Line 1436
+     Class 'Meta' missing docstring
+
+  58. Line 1450
+     Function 'save' missing docstring
+
+  59. Line 1464
+     Class 'QCStatus' missing docstring
+
+  60. Line 1511
+     Class 'Meta' missing docstring
+
+  61. Line 1529
+     Function 'save' missing docstring
+
+  62. Line 1545
+     Class 'Status' missing docstring
+
+  63. Line 1596
+     Class 'Meta' missing docstring
+
+  64. Line 1608
+     Function 'save' missing docstring
+
+
+================================================================================
+
+File: production/tests.py
+Issues: 8
+--------------------------------------------------------------------------------
+
+[WARNING] (8 issues)
+  1. Line 10
+     Class 'ProductionModelTests' missing docstring
+
+  2. Line 90
+     Function 'test_bom_material_populates_codes' missing docstring
+
+  3. Line 102
+     Function 'create_process' missing docstring
+
+  4. Line 122
+     Function 'test_process_populates_finished_item_code' missing docstring
+
+  5. Line 128
+     Function 'test_product_order_autofill_codes' missing docstring
+
+  6. Line 143
+     Function 'test_order_performance_autofill' missing docstring
+
+  7. Line 165
+     Function 'test_transfer_to_line_item_codes' missing docstring
+
+  8. Line 11
+     Function 'setUp' should use snake_case
+
+
+================================================================================
+
+File: production/views/placeholders.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[ERROR] (2 issues)
+  1. Line 18
+     Class 'TransferToLineRequestListView' uses 'ListView' instead of 'BaseListView'
+
+  2. Line 40
+     Class 'PerformanceRecordListView' uses 'ListView' instead of 'BaseListView'
+
+
+================================================================================
+
+File: qc/admin.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'ReceiptInspectionAdmin' missing docstring
+
+
+================================================================================
+
+File: qc/apps.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'QcConfig' missing docstring
+
+
+================================================================================
+
+File: qc/migrations/0001_initial.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: qc/migrations/0002_remove_receiptinspection_activated_at_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: qc/migrations/0003_remove_receiptinspection_updated_at_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: qc/migrations/0004_alter_receiptinspection_approved_by_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: qc/migrations/0005_change_receipt_inspection_approved_by_to_user.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: qc/models.py
+Issues: 7
+--------------------------------------------------------------------------------
+
+[WARNING] (7 issues)
+  1. Line 23
+     Class 'QCBaseModel' missing docstring
+
+  2. Line 33
+     Class 'ReceiptInspection' missing docstring
+
+  3. Line 29
+     Class 'Meta' missing docstring
+
+  4. Line 34
+     Class 'InspectionStatus' missing docstring
+
+  5. Line 41
+     Class 'ApprovalDecision' missing docstring
+
+  6. Line 87
+     Class 'Meta' missing docstring
+
+  7. Line 101
+     Function 'save' missing docstring
+
+
+================================================================================
+
+File: qc/tests.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (4 issues)
+  1. Line 10
+     Class 'ReceiptInspectionTests' missing docstring
+
+  2. Line 97
+     Function 'test_receipt_inspection_autofills_codes' missing docstring
+
+  3. Line 109
+     Function 'test_receipt_inspection_approval_fields' missing docstring
+
+  4. Line 11
+     Function 'setUp' should use snake_case
+
+
+================================================================================
+
+File: sales/apps.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'SalesConfig' missing docstring
+
+
+================================================================================
+
+File: sales/views.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 14
+     Function 'get_context_data' missing docstring
+
+  2. Line 27
+     Function 'get_context_data' missing docstring
+
+
+================================================================================
+
+File: shared/admin.py
+Issues: 7
+--------------------------------------------------------------------------------
+
+[WARNING] (7 issues)
+  1. Line 10
+     Class 'CustomUserAdmin' missing docstring
+
+  2. Line 46
+     Class 'CompanyAdmin' missing docstring
+
+  3. Line 53
+     Class 'CompanyUnitAdmin' missing docstring
+
+  4. Line 60
+     Class 'AccessLevelAdmin' missing docstring
+
+  5. Line 67
+     Class 'AccessLevelPermissionAdmin' missing docstring
+
+  6. Line 74
+     Class 'UserCompanyAccessAdmin' missing docstring
+
+  7. Line 81
+     Class 'GroupProfileAdmin' missing docstring
+
+
+================================================================================
+
+File: shared/apps.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'SharedConfig' missing docstring
+
+
+================================================================================
+
+File: shared/forms/access_levels.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 14
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: shared/forms/companies.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 22
+     Class 'Meta' missing docstring
+
+  2. Line 74
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: shared/forms/groups.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 35
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: shared/forms/smtp_server.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 12
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: shared/forms/users.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (4 issues)
+  1. Line 36
+     Class 'Meta' missing docstring
+
+  2. Line 161
+     Class 'Meta' missing docstring
+
+  3. Line 199
+     Class 'Meta' missing docstring
+
+  4. Line 248
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: shared/management/commands/clear_all_data.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 16
+     Class 'Command' missing docstring
+
+  2. Line 19
+     Function 'add_arguments' missing docstring
+
+  3. Line 26
+     Function 'handle' missing docstring
+
+
+================================================================================
+
+File: shared/management/commands/clear_edit_locks.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 10
+     Class 'Command' missing docstring
+
+  2. Line 13
+     Function 'add_arguments' missing docstring
+
+  3. Line 26
+     Function 'handle' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0001_initial.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 12
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0002_user_default_company.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0003_alter_company_public_code.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0004_alter_companyunit_public_code.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0005_remove_accesslevel_activated_at_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0006_person_company_units.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0007_groupprofile.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0008_5_migrate_person_data.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 128
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0008_remove_accesslevel_updated_at_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0009_remove_personassignment_company_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0010_smtpserver.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0011_add_section_and_action_registry.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0012_populate_section_and_action_registry.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 710
+     Class 'Migration' missing docstring
+
+  2. Line 603
+     Function 'get_section' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0013_add_notification_model.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0014_add_editable_model_fields.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0015_add_primary_groups_to_user.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/mixins.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (4 issues)
+  1. Line 27
+     Function 'get_feature_code' missing docstring
+
+  2. Line 30
+     Function 'get_required_action' missing docstring
+
+  3. Line 53
+     Function 'has_feature_permission' missing docstring
+
+  4. Line 74
+     Function 'dispatch' missing docstring
+
+
+================================================================================
+
+File: shared/models.py
+Issues: 33
+--------------------------------------------------------------------------------
+
+[WARNING] (33 issues)
+  1. Line 45
+     Class 'TimeStampedModel' missing docstring
+
+  2. Line 67
+     Class 'ActivatableModel' missing docstring
+
+  3. Line 93
+     Class 'MetadataModel' missing docstring
+
+  4. Line 100
+     Class 'SortableModel' missing docstring
+
+  5. Line 169
+     Class 'LockableModel' missing docstring
+
+  6. Line 192
+     Class 'CompanyScopedModel' missing docstring
+
+  7. Line 214
+     Class 'User' missing docstring
+
+  8. Line 246
+     Class 'Company' missing docstring
+
+  9. Line 274
+     Class 'CompanyUnit' missing docstring
+
+  10. Line 310
+     Class 'AccessLevel' missing docstring
+
+  11. Line 360
+     Class 'AccessLevelPermission' missing docstring
+
+  12. Line 389
+     Class 'GroupProfile' missing docstring
+
+  13. Line 410
+     Class 'UserCompanyAccess' missing docstring
+
+  14. Line 63
+     Class 'Meta' missing docstring
+
+  15. Line 89
+     Class 'Meta' missing docstring
+
+  16. Line 96
+     Class 'Meta' missing docstring
+
+  17. Line 103
+     Class 'Meta' missing docstring
+
+  18. Line 131
+     Class 'Meta' missing docstring
+
+  19. Line 188
+     Class 'Meta' missing docstring
+
+  20. Line 205
+     Class 'Meta' missing docstring
+
+  21. Line 208
+     Function 'save' missing docstring
+
+  22. Line 238
+     Class 'Meta' missing docstring
+
+  23. Line 265
+     Class 'Meta' missing docstring
+
+  24. Line 292
+     Class 'Meta' missing docstring
+
+  25. Line 319
+     Class 'Meta' missing docstring
+
+  26. Line 327
+     Function 'save' missing docstring
+
+  27. Line 375
+     Class 'Meta' missing docstring
+
+  28. Line 402
+     Class 'Meta' missing docstring
+
+  29. Line 431
+     Class 'Meta' missing docstring
+
+  30. Line 510
+     Class 'Meta' missing docstring
+
+  31. Line 617
+     Class 'Meta' missing docstring
+
+  32. Line 703
+     Class 'Meta' missing docstring
+
+  33. Line 778
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: shared/tests.py
+Issues: 6
+--------------------------------------------------------------------------------
+
+[WARNING] (6 issues)
+  1. Line 7
+     Class 'SharedModelTests' missing docstring
+
+  2. Line 28
+     Function 'test_user_str_returns_full_name' missing docstring
+
+  3. Line 31
+     Function 'test_company_str_returns_display_name' missing docstring
+
+  4. Line 34
+     Function 'test_person_auto_populates_company_code' missing docstring
+
+  5. Line 46
+     Function 'test_user_company_access_str' missing docstring
+
+  6. Line 8
+     Function 'setUp' should use snake_case
+
+
+================================================================================
+
+File: ticketing/apps.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'TicketingConfig' missing docstring
+
+
+================================================================================
+
+File: ticketing/forms/base.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 16
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: ticketing/forms/categories.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 26
+     Class 'Meta' missing docstring
+
+  2. Line 82
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: ticketing/forms/templates.py
+Issues: 7
+--------------------------------------------------------------------------------
+
+[WARNING] (7 issues)
+  1. Line 32
+     Class 'Meta' missing docstring
+
+  2. Line 110
+     Class 'Meta' missing docstring
+
+  3. Line 186
+     Class 'Meta' missing docstring
+
+  4. Line 220
+     Class 'Meta' missing docstring
+
+  5. Line 253
+     Class 'Meta' missing docstring
+
+  6. Line 286
+     Class 'Meta' missing docstring
+
+  7. Line 169
+     Function 'format_json_value' missing docstring
+
+
+================================================================================
+
+File: ticketing/forms/tickets.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 18
+     Class 'Meta' missing docstring
+
+  2. Line 72
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: ticketing/migrations/0001_initial.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: ticketing/migrations/0002_add_template_events.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: ticketing/migrations/0003_ticket_editing_by_ticket_editing_session_key_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: ticketing/migrations/0004_ticketattachment_editing_by_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: ticketing/models.py
+Issues: 15
+--------------------------------------------------------------------------------
+
+[WARNING] (15 issues)
+  1. Line 42
+     Class 'Meta' missing docstring
+
+  2. Line 49
+     Class 'Meta' missing docstring
+
+  3. Line 88
+     Class 'Meta' missing docstring
+
+  4. Line 159
+     Class 'Meta' missing docstring
+
+  5. Line 250
+     Class 'Meta' missing docstring
+
+  6. Line 375
+     Class 'Meta' missing docstring
+
+  7. Line 494
+     Class 'Meta' missing docstring
+
+  8. Line 559
+     Class 'Meta' missing docstring
+
+  9. Line 632
+     Class 'Meta' missing docstring
+
+  10. Line 761
+     Class 'Meta' missing docstring
+
+  11. Line 836
+     Class 'Meta' missing docstring
+
+  12. Line 1028
+     Class 'Meta' missing docstring
+
+  13. Line 1122
+     Class 'Meta' missing docstring
+
+  14. Line 1209
+     Class 'Meta' missing docstring
+
+  15. Line 1285
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: ticketing/views/entity_reference.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 28
+     Function 'get' missing docstring
+
+  2. Line 62
+     Function 'get' missing docstring
+
+  3. Line 111
+     Function 'get' missing docstring
+
+
+================================================================================
+
+File: transportation/apps.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'TransportationConfig' missing docstring
+
+
+================================================================================
+
+File: transportation/views.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 14
+     Function 'get_context_data' missing docstring
+
+
+================================================================================
+
+File: ui/apps.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'UiConfig' missing docstring
+
+
+================================================================================
+
+File: ui/views.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 10
+     Class 'DashboardView' missing docstring
+
+  2. Line 14
+     Function 'get_context_data' missing docstring
+
+
+================================================================================
+
