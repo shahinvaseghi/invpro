@@ -212,3 +212,48 @@ def filter_tafsili_accounts_by_sub(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+
+@login_required
+@require_http_methods(["POST"])
+def toggle_document_lock(request):
+    """
+    Toggle lock status of an accounting document.
+    
+    POST params:
+        - document_id: ID of document to lock/unlock
+    
+    Returns JSON with success status and new lock state.
+    """
+    from accounting.models.documents import AccountingDocument
+    
+    document_id = request.POST.get('document_id')
+    company_id = request.session.get('active_company_id')
+    
+    if not document_id or not company_id:
+        return JsonResponse({'error': _('Missing required parameters')}, status=400)
+    
+    try:
+        document = AccountingDocument.objects.get(
+            pk=document_id,
+            company_id=company_id
+        )
+        
+        if document.is_locked:
+            document.unlock(request.user)
+            is_locked = False
+            message = _('Document unlocked successfully')
+        else:
+            document.lock(request.user)
+            is_locked = True
+            message = _('Document locked successfully')
+        
+        return JsonResponse({
+            'success': True,
+            'is_locked': is_locked,
+            'message': str(message)
+        })
+    
+    except AccountingDocument.DoesNotExist:
+        return JsonResponse({'error': _('Document not found')}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

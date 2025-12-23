@@ -52,11 +52,19 @@
     {% if delete_url_name %}
       {% can_action object 'delete' feature_code|default:"" as can_delete %}
       {% if can_delete %}
-        <a href="{% url delete_url_name object.pk %}" 
-           class="btn btn-action btn-delete"
-           data-confirm="{% trans 'Are you sure you want to delete this item?' %}">
-          {% if show_icons %}🗑️ {% endif %}{% trans "Delete" %}
-        </a>
+        {# Check if object is locked #}
+        {% if object.is_locked %}
+          <span class="btn btn-action btn-delete btn-disabled"
+                title="{% trans 'This record is locked and cannot be deleted' %}">
+            {% if show_icons %}🔒 {% endif %}{% trans "Locked" %}
+          </span>
+        {% else %}
+          <a href="{% url delete_url_name object.pk %}" 
+             class="btn btn-action btn-delete"
+             data-confirm="{% trans 'Are you sure you want to delete this item?' %}">
+            {% if show_icons %}🗑️ {% endif %}{% trans "Delete" %}
+          </a>
+        {% endif %}
       {% endif %}
     {% endif %}
     

@@ -69,7 +69,27 @@
   {% endfor %}
   {% if show_actions %}
   <td>
-    {% include 'shared/partials/row_actions.html' with object=document feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
+    <div class="row-actions">
+      {# Lock/Unlock button #}
+      {% if document.is_locked %}
+        <button class="btn btn-action btn-warning btn-toggle-lock" 
+                data-document-id="{{ document.pk }}" 
+                data-locked="true"
+                title="{% trans 'Unlock Document' %}">
+          🔓 {% trans "Unlock" %}
+        </button>
+      {% else %}
+        <button class="btn btn-action btn-success btn-toggle-lock" 
+                data-document-id="{{ document.pk }}" 
+                data-locked="false"
+                title="{% trans 'Lock Document' %}">
+          🔒 {% trans "Lock" %}
+        </button>
+      {% endif %}
+      
+      {# Standard actions #}
+      {% include 'shared/partials/row_actions.html' with object=document feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
+    </div>
   </td>
   {% endif %}
 </tr>
@@ -79,3 +99,50 @@
 {% block empty_state_title %}{{ empty_state_title|default:"هیچ سند حسابداری یافت نشد" }}{% endblock %}
 {% block empty_state_message %}{{ empty_state_message|default:"با ایجاد اولین سند حسابداری شروع کنید." }}{% endblock %}
 {% block empty_state_icon %}📄{% endblock %}
+
+{% block after_table %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Handle lock/unlock button click
+    $('.btn-toggle-lock').on('click', function(e) {
+        e.preventDefault();
+        const button = $(this);
+        const documentId = button.data('document-id');
+        const isLocked = button.data('locked');
+        
+        // Disable button during request
+        button.prop('disabled', true);
+        
+        // Send AJAX request
+        $.ajax({
+            url: '{% url "accounting:api_toggle_document_lock" %}',
+            type: 'POST',
+            data: {
+                document_id: documentId,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Show success message
+                    alert(response.message);
+                    
+                    // Reload page to update UI
+                    window.location.reload();
+                } else {
+                    alert(response.error || '{% trans "An error occurred" %}');
+                    button.prop('disabled', false);
+                }
+            },
+            error: function(xhr) {
+                const error = xhr.responseJSON && xhr.responseJSON.error 
+                    ? xhr.responseJSON.error 
+                    : '{% trans "An error occurred" %}';
+                alert(error);
+                button.prop('disabled', false);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

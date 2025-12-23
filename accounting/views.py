@@ -993,7 +993,8 @@ class AccountingDocumentDeleteView(FeaturePermissionRequiredMixin, View):
     
     def get(self, request, pk):
         """Show confirmation page."""
-        from django.shortcuts import get_object_or_404, render
+        from django.shortcuts import get_object_or_404, render, redirect
+        from django.contrib import messages
         from accounting.models.documents import AccountingDocument
         
         company_id = request.session.get('active_company_id')
@@ -1001,6 +1002,11 @@ class AccountingDocumentDeleteView(FeaturePermissionRequiredMixin, View):
             AccountingDocument.objects.filter(company_id=company_id),
             pk=pk
         )
+        
+        # Check if document is locked
+        if document.is_locked:
+            messages.error(request, _('Cannot delete locked document. Please unlock it first.'))
+            return redirect('accounting:document_list')
         
         context = {
             'document': document,
@@ -1029,9 +1035,9 @@ class AccountingDocumentDeleteView(FeaturePermissionRequiredMixin, View):
         )
         
         # Check if document is locked
-        if document.status == 'LOCKED':
-            messages.error(request, 'نمی‌توانید سند قفل شده را حذف کنید.')
-            return redirect('accounting:document_detail', pk=pk)
+        if document.is_locked:
+            messages.error(request, _('Cannot delete locked document. Please unlock it first.'))
+            return redirect('accounting:document_list')
         
         document_number = document.document_number
         document.delete()

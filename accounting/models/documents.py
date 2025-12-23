@@ -152,6 +152,28 @@ class AccountingDocument(AccountingDocumentBase):
 
     def __str__(self) -> str:
         return f"{self.document_number} - {self.document_date}"
+    
+    @property
+    def is_locked(self) -> bool:
+        """Check if document is locked."""
+        return self.status == 'LOCKED' or self.locked_at is not None
+    
+    def lock(self, user):
+        """Lock the document to prevent editing/deletion."""
+        from django.utils import timezone
+        if not self.is_locked:
+            self.status = 'LOCKED'
+            self.locked_at = timezone.now()
+            self.locked_by = user
+            self.save(update_fields=['status', 'locked_at', 'locked_by'])
+    
+    def unlock(self, user=None):
+        """Unlock the document to allow editing/deletion."""
+        if self.is_locked:
+            self.status = 'POSTED' if self.posted_at else 'DRAFT'
+            self.locked_at = None
+            self.locked_by = None
+            self.save(update_fields=['status', 'locked_at', 'locked_by'])
 
     def clean(self):
         """Validate document totals."""
