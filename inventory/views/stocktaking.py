@@ -55,7 +55,71 @@ class StocktakingFormMixin(InventoryBaseView):
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add form context for receipt_form.html template."""
+        # #region agent log
+        import json, time
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "A,E",
+                    "location": "stocktaking.py:56",
+                    "message": "StocktakingFormMixin.get_context_data entry",
+                    "data": {
+                        "kwargs_keys": list(kwargs.keys()),
+                        "kwargs_has_form": 'form' in kwargs,
+                        "kwargs_has_lines_formset": 'lines_formset' in kwargs,
+                        "form_is_bound": kwargs.get('form').is_bound if kwargs.get('form') else None,
+                        "form_data_keys": list(kwargs.get('form').data.keys())[:5] if kwargs.get('form') and hasattr(kwargs.get('form'), 'data') and kwargs.get('form').data else None
+                    },
+                    "timestamp": int(time.time() * 1000)
+                }) + '\n')
+        except: pass
+        # #endregion
         context = super().get_context_data(**kwargs)
+        # #region agent log
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "A,E",
+                    "location": "stocktaking.py:58",
+                    "message": "StocktakingFormMixin.get_context_data after super()",
+                    "data": {
+                        "context_keys": list(context.keys()),
+                        "context_has_form": 'form' in context,
+                        "context_has_lines_formset": 'lines_formset' in context,
+                        "form_is_bound": context.get('form').is_bound if context.get('form') else None,
+                        "form_data_keys": list(context.get('form').data.keys())[:5] if context.get('form') and hasattr(context.get('form'), 'data') and context.get('form').data else None,
+                        "form_from_kwargs_is_same": context.get('form') is kwargs.get('form') if 'form' in kwargs else None
+                    },
+                    "timestamp": int(time.time() * 1000)
+                }) + '\n')
+        except: pass
+        # #endregion
+        # Ensure form from kwargs is preserved (Django's CreateView.get_context_data may override it)
+        if 'form' in kwargs:
+            context['form'] = kwargs['form']
+        # #region agent log
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "A,E",
+                    "location": "stocktaking.py:61",
+                    "message": "StocktakingFormMixin.get_context_data after preserving form",
+                    "data": {
+                        "context_has_form": 'form' in context,
+                        "form_is_bound": context.get('form').is_bound if context.get('form') else None,
+                        "form_data_keys": list(context.get('form').data.keys())[:5] if context.get('form') and hasattr(context.get('form'), 'data') and context.get('form').data else None,
+                        "form_from_kwargs_is_same": context.get('form') is kwargs.get('form') if 'form' in kwargs else None
+                    },
+                    "timestamp": int(time.time() * 1000)
+                }) + '\n')
+        except: pass
+        # #endregion
         context['form_title'] = self.form_title
         context['list_url'] = reverse_lazy(self.list_url_name)
         context['is_edit'] = bool(getattr(self, 'object', None))
@@ -213,29 +277,55 @@ class StocktakingDeficitCreateView(LineFormsetMixin, StocktakingFormMixin, BaseD
         from shared.views.base import BaseCreateView
         
         with transaction.atomic():
-            # Save document first (AutoSetFieldsMixin handles company_id and created_by)
-            # Call BaseCreateView.form_valid directly to skip BaseFormsetCreateView's formset.save()
-            response = BaseCreateView.form_valid(self, form)
+            # Create a temporary instance for formset validation (don't save yet)
+            # We need to set the instance temporarily to validate the formset
+            # Use form.save(commit=False) to get properly initialized instance
+            # Then clear document_code from form.instance so it will be regenerated on final save
+            temp_instance = form.save(commit=False)
+            temp_instance.pk = None  # Ensure it's treated as new
+            # Clear document_code from form.instance so it will be regenerated when form is saved later
+            form.instance.document_code = ''
+            # Also clear from cleaned_data if it exists
+            if 'document_code' in form.cleaned_data:
+                form.cleaned_data['document_code'] = ''
             
-            # Handle line formset with custom validation
-            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            # Validate formset BEFORE saving the document
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=temp_instance)
             if not lines_formset.is_valid():
-                # If formset is invalid, delete the main object and re-render
-                self.object.delete()
+                # Formset is invalid, don't save the document
+                # Rebuild formset with None instance to show errors properly
+                lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
                 return self.render_to_response(
                     self.get_context_data(form=form, lines_formset=lines_formset)
                 )
             
-            # Check if we have at least one valid line before saving
-            valid_lines = []
-            for form in lines_formset.forms:
-                if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
-                    valid_lines.append(form)
+            # Check if there are any valid lines
+            valid_lines = 0
+            for line_form in lines_formset.forms:
+                if (line_form.cleaned_data and 
+                    not line_form.errors and
+                    line_form.cleaned_data.get('item') and 
+                    not line_form.cleaned_data.get('DELETE', False)):
+                    valid_lines += 1
             
-            if not valid_lines:
+            if valid_lines == 0:
+                # No valid lines, don't save the document
+                lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+                lines_formset.add_error(None, _('حداقل یک ردیف کالا الزامی است.'))
+                return self.render_to_response(
+                    self.get_context_data(form=form, lines_formset=lines_formset)
+                )
+            
+            # Save document first (AutoSetFieldsMixin handles company_id and created_by)
+            # Call BaseCreateView.form_valid directly to skip BaseFormsetCreateView's formset.save()
+            response = BaseCreateView.form_valid(self, form)
+            
+            # Rebuild formset with the saved instance
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            # Formset should still be valid, but validate again to be safe
+            if not lines_formset.is_valid():
+                # This should not happen, but if it does, delete the document
                 self.object.delete()
-                form.add_error(None, _('حداقل یک ردیف کالا الزامی است.'))
-                lines_formset = self.build_line_formset(instance=None)
                 return self.render_to_response(
                     self.get_context_data(form=form, lines_formset=lines_formset)
                 )
@@ -534,31 +624,343 @@ class StocktakingSurplusCreateView(LineFormsetMixin, StocktakingFormMixin, BaseD
         """Save document and line formset with custom validation."""
         from django.db import transaction
         from shared.views.base import BaseCreateView
+        import json
+        
+        # #region agent log
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "A,C",
+                    "location": "stocktaking.py:561",
+                    "message": "form_valid entry - form.instance state",
+                    "data": {
+                        "form_instance_doc_code": getattr(form.instance, 'document_code', None),
+                        "form_instance_pk": getattr(form.instance, 'pk', None),
+                        "form_cleaned_data_doc_code": form.cleaned_data.get('document_code', None) if hasattr(form, 'cleaned_data') else None
+                    },
+                    "timestamp": int(__import__('time').time() * 1000)
+                }) + '\n')
+        except: pass
+        # #endregion
         
         with transaction.atomic():
+            # Create a temporary instance for formset validation (don't save yet)
+            # We need to set the instance temporarily to validate the formset
+            # Don't use form.save(commit=False) here because it generates document_code
+            # Instead, create a fresh instance with just company_id for validation
+            company_id = self.request.session.get('active_company_id')
+            temp_instance = self.model(company_id=company_id)
+            temp_instance.pk = None  # Ensure it's treated as new
+            
+            # #region agent log
+            try:
+                with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "E",
+                        "location": "stocktaking.py:572",
+                        "message": "Created temp_instance without calling form.save()",
+                        "data": {
+                            "form_instance_doc_code": getattr(form.instance, 'document_code', None),
+                            "temp_instance_doc_code": getattr(temp_instance, 'document_code', None),
+                            "temp_instance_is_same_as_form_instance": temp_instance is form.instance,
+                            "temp_instance_id": id(temp_instance),
+                            "form_instance_id": id(form.instance),
+                            "company_id": company_id
+                        },
+                        "timestamp": int(__import__('time').time() * 1000)
+                    }) + '\n')
+            except: pass
+            # #endregion
+            
+            # Validate formset BEFORE saving the document
+            lines_formset = self.build_line_formset(data=self.request.POST, instance=temp_instance)
+            
+            # #region agent log
+            try:
+                with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "A,C",
+                        "location": "stocktaking.py:638",
+                        "message": "Formset validation result",
+                        "data": {
+                            "formset_is_valid": lines_formset.is_valid(),
+                            "formset_errors": lines_formset.errors if hasattr(lines_formset, 'errors') else None
+                        },
+                        "timestamp": int(__import__('time').time() * 1000)
+                    }) + '\n')
+            except: pass
+            # #endregion
+            
+            if not lines_formset.is_valid():
+                # Formset is invalid, don't save the document
+                # Rebuild formset with None instance to show errors properly
+                # #region agent log
+                try:
+                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "A,B,C",
+                            "location": "stocktaking.py:636",
+                            "message": "Formset invalid - before rebuild",
+                            "data": {
+                                "form_instance_pk": getattr(form.instance, 'pk', None),
+                                "form_instance_doc_code": getattr(form.instance, 'document_code', None),
+                                "form_has_cleaned_data": hasattr(form, 'cleaned_data'),
+                                "form_cleaned_data_keys": list(form.cleaned_data.keys()) if hasattr(form, 'cleaned_data') else None,
+                                "form_data_keys": list(form.data.keys())[:10] if hasattr(form, 'data') else None,
+                                "post_data_keys": list(self.request.POST.keys())[:10] if self.request.POST else None
+                            },
+                            "timestamp": int(__import__('time').time() * 1000)
+                        }) + '\n')
+                except: pass
+                # #endregion
+                lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+                # #region agent log
+                try:
+                    import json, time
+                    formset_form_data = {}
+                    if lines_formset.forms:
+                        first_form = lines_formset.forms[0]
+                        for field_name in ['item', 'unit', 'warehouse', 'quantity_counted', 'quantity_expected', 'quantity_adjusted']:
+                            if field_name in first_form.fields:
+                                post_key = f"{first_form.prefix}-{field_name}"
+                                formset_form_data[field_name] = {
+                                    "post_value": self.request.POST.get(post_key, 'NOT_FOUND'),
+                                    "form_value": first_form[field_name].value() if hasattr(first_form, field_name) else None,
+                                    "form_data_value": first_form.data.get(post_key) if hasattr(first_form, 'data') and first_form.data else None,
+                                    "form_errors": first_form.errors.get(field_name, []) if hasattr(first_form, 'errors') else []
+                                }
+                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "D",
+                            "location": "stocktaking.py:724",
+                            "message": "After rebuild formset - formset form data check",
+                            "data": {
+                                "formset_forms_count": len(lines_formset.forms),
+                                "formset_has_data": lines_formset.data is not None,
+                                "formset_form_data": formset_form_data,
+                                "post_keys_lines": [k for k in self.request.POST.keys() if k.startswith('lines-')][:10]
+                            },
+                            "timestamp": int(time.time() * 1000)
+                        }) + '\n')
+                except Exception as e:
+                    try:
+                        with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                            f.write(json.dumps({
+                                "sessionId": "debug-session",
+                                "runId": "run1",
+                                "hypothesisId": "D",
+                                "location": "stocktaking.py:724",
+                                "message": "Error logging formset data",
+                                "data": {"error": str(e)},
+                                "timestamp": int(time.time() * 1000)
+                            }) + '\n')
+                    except: pass
+                # #endregion
+                # Rebind form with POST data to preserve user input in template
+                # Even though form is valid, we need to rebind it so form.data contains POST values
+                # This ensures template can display the values using form.field.value()
+                form_kwargs = self.get_form_kwargs()
+                form_kwargs.pop('instance', None)  # Remove instance if present to avoid duplicate
+                form_kwargs.pop('data', None)  # Remove data if present since we're passing it as positional argument
+                form = self.form_class(self.request.POST, instance=form.instance, **form_kwargs)
+                # #region agent log
+                try:
+                    import json, time
+                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "D",
+                            "location": "stocktaking.py:760",
+                            "message": "After rebind form - form state check",
+                            "data": {
+                                "form_is_bound": form.is_bound,
+                                "form_has_data": hasattr(form, 'data') and form.data is not None,
+                                "form_data_stocktaking_session_id": form.data.get('stocktaking_session_id') if hasattr(form, 'data') and form.data else None,
+                                "post_stocktaking_session_id": self.request.POST.get('stocktaking_session_id'),
+                                "form_cleaned_data_stocktaking_session_id": form.cleaned_data.get('stocktaking_session_id') if hasattr(form, 'cleaned_data') else None,
+                                "form_field_stocktaking_session_id_value": form['stocktaking_session_id'].value() if 'stocktaking_session_id' in form.fields else None
+                            },
+                            "timestamp": int(time.time() * 1000)
+                        }) + '\n')
+                except: pass
+                # #endregion
+                context = self.get_context_data(form=form, lines_formset=lines_formset)
+                # #region agent log
+                try:
+                    context_form = context.get('form')
+                    form_field_values = {}
+                    if context_form:
+                        for field_name in ['stocktaking_session_id', 'document_code', 'document_date']:
+                            if field_name in context_form.fields:
+                                field = context_form[field_name]
+                                form_field_values[field_name] = {
+                                    "value": field.value() if hasattr(field, 'value') else None,
+                                    "data": context_form.data.get(field_name) if hasattr(context_form, 'data') and context_form.data else None,
+                                    "initial": context_form.initial.get(field_name) if hasattr(context_form, 'initial') else None
+                                }
+                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "C",
+                            "location": "stocktaking.py:643",
+                            "message": "After get_context_data - form state with field values",
+                            "data": {
+                                "context_has_form": 'form' in context,
+                                "context_has_lines_formset": 'lines_formset' in context,
+                                "form_instance_pk": getattr(context_form.instance, 'pk', None) if context_form else None,
+                                "form_instance_doc_code": getattr(context_form.instance, 'document_code', None) if context_form else None,
+                                "form_has_cleaned_data": hasattr(context_form, 'cleaned_data') if context_form else None,
+                                "form_data_keys": list(context_form.data.keys())[:10] if context_form and hasattr(context_form, 'data') and context_form.data else None,
+                                "form_is_bound": context_form.is_bound if context_form and hasattr(context_form, 'is_bound') else None,
+                                "form_field_values": form_field_values
+                            },
+                            "timestamp": int(__import__('time').time() * 1000)
+                        }) + '\n')
+                except Exception as e:
+                    try:
+                        with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                            f.write(json.dumps({
+                                "sessionId": "debug-session",
+                                "runId": "run1",
+                                "hypothesisId": "C",
+                                "location": "stocktaking.py:643",
+                                "message": "Error logging form state",
+                                "data": {"error": str(e)},
+                                "timestamp": int(__import__('time').time() * 1000)
+                            }) + '\n')
+                    except: pass
+                # #endregion
+                return self.render_to_response(context)
+            
+            # Check if there are any valid lines
+            valid_lines = 0
+            for line_form in lines_formset.forms:
+                if (line_form.cleaned_data and 
+                    not line_form.errors and
+                    line_form.cleaned_data.get('item') and 
+                    not line_form.cleaned_data.get('DELETE', False)):
+                    valid_lines += 1
+            
+            # #region agent log
+            try:
+                with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "A,C",
+                        "location": "stocktaking.py:658",
+                        "message": "Valid lines count",
+                        "data": {
+                            "valid_lines": valid_lines
+                        },
+                        "timestamp": int(__import__('time').time() * 1000)
+                    }) + '\n')
+            except: pass
+            # #endregion
+            
+            if valid_lines == 0:
+                # No valid lines, don't save the document
+                # #region agent log
+                try:
+                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "A,B,C",
+                            "location": "stocktaking.py:730",
+                            "message": "No valid lines - before rebuild",
+                            "data": {
+                                "form_instance_pk": getattr(form.instance, 'pk', None),
+                                "form_instance_doc_code": getattr(form.instance, 'document_code', None),
+                                "form_has_cleaned_data": hasattr(form, 'cleaned_data'),
+                                "form_cleaned_data_keys": list(form.cleaned_data.keys()) if hasattr(form, 'cleaned_data') else None
+                            },
+                            "timestamp": int(__import__('time').time() * 1000)
+                        }) + '\n')
+                except: pass
+                # #endregion
+                lines_formset = self.build_line_formset(data=self.request.POST, instance=None)
+                lines_formset.add_error(None, _('حداقل یک ردیف کالا الزامی است.'))
+                context = self.get_context_data(form=form, lines_formset=lines_formset)
+                # #region agent log
+                try:
+                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "C",
+                            "location": "stocktaking.py:736",
+                            "message": "After get_context_data - no valid lines",
+                            "data": {
+                                "context_has_form": 'form' in context,
+                                "form_instance_pk": getattr(context.get('form').instance, 'pk', None) if context.get('form') else None,
+                                "form_instance_doc_code": getattr(context.get('form').instance, 'document_code', None) if context.get('form') else None
+                            },
+                            "timestamp": int(__import__('time').time() * 1000)
+                        }) + '\n')
+                except: pass
+                # #endregion
+                return self.render_to_response(context)
+            
+            # #region agent log
+            try:
+                with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "A,C,D",
+                        "location": "stocktaking.py:674",
+                        "message": "Before BaseCreateView.form_valid - form.instance state",
+                        "data": {
+                            "form_instance_doc_code": getattr(form.instance, 'document_code', None),
+                            "form_cleaned_data_doc_code": form.cleaned_data.get('document_code', None) if hasattr(form, 'cleaned_data') else None
+                        },
+                        "timestamp": int(__import__('time').time() * 1000)
+                    }) + '\n')
+            except: pass
+            # #endregion
+            
             # Save document first (AutoSetFieldsMixin handles company_id and created_by)
             # Call BaseCreateView.form_valid directly to skip BaseFormsetCreateView's formset.save()
             response = BaseCreateView.form_valid(self, form)
             
-            # Handle line formset with custom validation
+            # #region agent log
+            try:
+                import json
+                with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "A,C",
+                        "location": "stocktaking.py:683",
+                        "message": "After BaseCreateView.form_valid - object saved",
+                        "data": {
+                            "object_pk": getattr(self.object, 'pk', None),
+                            "object_doc_code": getattr(self.object, 'document_code', None) if self.object else None
+                        },
+                        "timestamp": int(__import__('time').time() * 1000)
+                    }) + '\n')
+            except: pass
+            # #endregion
+            
+            # Rebuild formset with the saved instance
             lines_formset = self.build_line_formset(data=self.request.POST, instance=self.object)
+            # Formset should still be valid, but validate again to be safe
             if not lines_formset.is_valid():
-                # If formset is invalid, delete the main object and re-render
+                # This should not happen, but if it does, delete the document
                 self.object.delete()
-                return self.render_to_response(
-                    self.get_context_data(form=form, lines_formset=lines_formset)
-                )
-            
-            # Check if we have at least one valid line before saving
-            valid_lines = []
-            for form in lines_formset.forms:
-                if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
-                    valid_lines.append(form)
-            
-            if not valid_lines:
-                self.object.delete()
-                form.add_error(None, _('حداقل یک ردیف کالا الزامی است.'))
-                lines_formset = self.build_line_formset(instance=None)
                 return self.render_to_response(
                     self.get_context_data(form=form, lines_formset=lines_formset)
                 )

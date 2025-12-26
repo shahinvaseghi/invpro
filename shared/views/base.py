@@ -1007,22 +1007,91 @@ class BaseFormsetCreateView(BaseCreateView):
     
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
         """Add formset to context."""
+        # #region agent log
+        import json, time
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "B",
+                    "location": "base.py:1008",
+                    "message": "BaseFormsetCreateView.get_context_data entry",
+                    "data": {
+                        "kwargs_keys": list(kwargs.keys()),
+                        "kwargs_has_form": 'form' in kwargs,
+                        "kwargs_has_formset": 'formset' in kwargs,
+                        "kwargs_has_lines_formset": 'lines_formset' in kwargs,
+                        "form_is_bound": kwargs.get('form').is_bound if kwargs.get('form') else None,
+                        "form_data_keys": list(kwargs.get('form').data.keys())[:5] if kwargs.get('form') and hasattr(kwargs.get('form'), 'data') and kwargs.get('form').data else None
+                    },
+                    "timestamp": int(time.time() * 1000)
+                }) + '\n')
+        except: pass
+        # #endregion
         context = super().get_context_data(**kwargs)
+        # #region agent log
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "A,B",
+                    "location": "base.py:1010",
+                    "message": "BaseFormsetCreateView.get_context_data after super()",
+                    "data": {
+                        "context_keys": list(context.keys()),
+                        "context_has_form": 'form' in context,
+                        "context_has_formset": 'formset' in context,
+                        "context_has_lines_formset": 'lines_formset' in context,
+                        "form_is_bound": context.get('form').is_bound if context.get('form') else None,
+                        "form_data_keys": list(context.get('form').data.keys())[:5] if context.get('form') and hasattr(context.get('form'), 'data') and context.get('form').data else None,
+                        "form_from_kwargs_is_same": context.get('form') is kwargs.get('form') if 'form' in kwargs else None
+                    },
+                    "timestamp": int(time.time() * 1000)
+                }) + '\n')
+        except: pass
+        # #endregion
         
-        # Add formset
-        if self.request.method == 'POST':
-            formset = self.formset_class(
-                self.request.POST,
-                prefix=self.formset_prefix,
-                **self.get_formset_kwargs()
-            )
-        else:
-            formset = self.formset_class(
-                prefix=self.formset_prefix,
-                **self.get_formset_kwargs()
-            )
-        
-        context['formset'] = formset
+        # Only add formset if not already provided in kwargs or context
+        # This allows subclasses to pass pre-built formsets (e.g., when validation fails)
+        if 'formset' not in context and 'formset' not in kwargs:
+            # Add formset
+            if self.request.method == 'POST':
+                formset = self.formset_class(
+                    self.request.POST,
+                    prefix=self.formset_prefix,
+                    **self.get_formset_kwargs()
+                )
+            else:
+                formset = self.formset_class(
+                    prefix=self.formset_prefix,
+                    **self.get_formset_kwargs()
+                )
+            
+            context['formset'] = formset
+        elif 'formset' in kwargs:
+            # Preserve formset from kwargs
+            context['formset'] = kwargs['formset']
+        # #region agent log
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "B",
+                    "location": "base.py:1033",
+                    "message": "BaseFormsetCreateView.get_context_data exit",
+                    "data": {
+                        "context_has_form": 'form' in context,
+                        "context_has_formset": 'formset' in context,
+                        "form_is_bound": context.get('form').is_bound if context.get('form') else None,
+                        "form_data_keys": list(context.get('form').data.keys())[:5] if context.get('form') and hasattr(context.get('form'), 'data') and context.get('form').data else None
+                    },
+                    "timestamp": int(time.time() * 1000)
+                }) + '\n')
+        except: pass
+        # #endregion
         
         return context
     

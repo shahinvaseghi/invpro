@@ -610,6 +610,9 @@
     </button>
     <div class="section-content" id="sales">
       <a href="{% url 'sales:dashboard' %}" class="nav-link">{% trans "Dashboard" %}</a>
+      {% if user_feature_permissions|feature_allowed:'sales.price_card' or request.user.is_superuser %}
+      <a href="{% url 'sales:price_card_list' %}" class="nav-link">{% trans "Item Price Cards" %}</a>
+      {% endif %}
       <a href="{% url 'sales:invoice_create' %}" class="nav-link">صدور فاکتور</a>
     </div>
   </div>

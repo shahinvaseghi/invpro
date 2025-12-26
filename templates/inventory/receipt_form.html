@@ -1763,6 +1763,37 @@ function calculateQuantityAdjusted(lineForm) {
   }
 }
 
+// #region agent log
+// Function to log field blur events for debugging
+function logFieldBlur(fieldName, fieldElement, lineForm) {
+  if (!fieldElement) return;
+  const fieldValue = fieldElement.value || '';
+  const fieldNameAttr = fieldElement.name || '';
+  const lineIndex = fieldNameAttr.match(/lines-(\d+)-/);
+  const lineNum = lineIndex ? lineIndex[1] : 'unknown';
+  
+  fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      location: 'receipt_form.html:blur',
+      message: 'Field blur event - user input',
+      data: {
+        field_name: fieldName,
+        field_name_attr: fieldNameAttr,
+        field_value: fieldValue,
+        line_number: lineNum,
+        is_empty: fieldValue === '' || fieldValue === null || fieldValue === undefined
+      },
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      runId: 'run1',
+      hypothesisId: 'E'
+    })
+  }).catch(() => {});
+}
+// #endregion
+
 document.addEventListener('DOMContentLoaded', function() {
   console.log('[DOMContentLoaded] ===== DOMContentLoaded event fired =====');
   
@@ -1862,9 +1893,474 @@ document.addEventListener('DOMContentLoaded', function() {
   
   if (form) {
     form.addEventListener('submit', function(e) {
+      // #region agent log
+      // CRITICAL: Enable ALL disabled fields BEFORE reading form data
+      // Disabled fields are NOT included in form submission!
+      const formsetContainer = document.getElementById('lines-formset');
+      const fieldDebugInfo = {};
+      
+      if (formsetContainer) {
+        const allRows = formsetContainer.querySelectorAll('.line-form:not(.formset-template)');
+        allRows.forEach(function(row, rowIndex) {
+          const deleteCheckbox = row.querySelector('input[type="checkbox"][name*="-DELETE"]');
+          const isDeleted = deleteCheckbox && deleteCheckbox.checked;
+          
+          if (!isDeleted) {
+            // Check critical fields
+            const itemField = row.querySelector('select[name*="-item"], input[name*="-item"]');
+            const quantityExpectedField = row.querySelector('input[name*="-quantity_expected"]');
+            const quantityCountedField = row.querySelector('input[name*="-quantity_counted"]');
+            
+            fieldDebugInfo[`row_${rowIndex}`] = {
+              item: {
+                found: !!itemField,
+                name: itemField ? itemField.name : null,
+                value: itemField ? itemField.value : null,
+                disabled_before: itemField ? itemField.disabled : null,
+                tagName: itemField ? itemField.tagName : null,
+                has_select2: itemField ? (itemField.classList.contains('select2-hidden-accessible') || itemField.parentElement.querySelector('.select2-container')) : null
+              },
+              quantity_expected: {
+                found: !!quantityExpectedField,
+                name: quantityExpectedField ? quantityExpectedField.name : null,
+                value: quantityExpectedField ? quantityExpectedField.value : null,
+                disabled_before: quantityExpectedField ? quantityExpectedField.disabled : null
+              },
+              quantity_counted: {
+                found: !!quantityCountedField,
+                name: quantityCountedField ? quantityCountedField.name : null,
+                value: quantityCountedField ? quantityCountedField.value : null,
+                disabled_before: quantityCountedField ? quantityCountedField.disabled : null
+              }
+            };
+            
+            const inputs = row.querySelectorAll('input, select, textarea');
+            inputs.forEach(function(input) {
+              // Enable all fields except DELETE checkboxes and hidden ID fields
+              if (input.name && !input.name.includes('-DELETE') && !input.name.includes('-id')) {
+                input.removeAttribute('disabled');
+                input.disabled = false;
+              }
+            });
+            
+            // Log after enabling
+            if (itemField) {
+              fieldDebugInfo[`row_${rowIndex}`].item.disabled_after = itemField.disabled;
+              fieldDebugInfo[`row_${rowIndex}`].item.value_after = itemField.value;
+            }
+            if (quantityExpectedField) {
+              fieldDebugInfo[`row_${rowIndex}`].quantity_expected.disabled_after = quantityExpectedField.disabled;
+              fieldDebugInfo[`row_${rowIndex}`].quantity_expected.value_after = quantityExpectedField.value;
+            }
+            if (quantityCountedField) {
+              fieldDebugInfo[`row_${rowIndex}`].quantity_counted.disabled_after = quantityCountedField.disabled;
+              fieldDebugInfo[`row_${rowIndex}`].quantity_counted.value_after = quantityCountedField.value;
+            }
+          }
+        });
+      }
+      
+      // Enable all main form fields
+      const mainFormInputs = form.querySelectorAll('input, select, textarea');
+      mainFormInputs.forEach(function(input) {
+        if (input.name && !input.name.startsWith('lines-')) {
+          input.removeAttribute('disabled');
+          input.disabled = false;
+        }
+      });
+      
+      // Enable TOTAL_FORMS input
+      const totalFormsInput = document.querySelector('input[name$="-TOTAL_FORMS"]');
+      if (totalFormsInput) {
+        totalFormsInput.removeAttribute('disabled');
+        totalFormsInput.disabled = false;
+      }
+      
+      // Log field debug info
+      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: 'receipt_form.html:submit:field_debug',
+          message: 'Field debug info before FormData',
+          data: fieldDebugInfo,
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'run1',
+          hypothesisId: 'F'
+        })
+      }).catch(() => {});
+      // #endregion
+      
+      // #region agent log
+      // Check if fields are inside the form
+      const itemField = document.querySelector('select[name="lines-0-item"], input[name="lines-0-item"]');
+      const quantityExpectedField = document.querySelector('input[name="lines-0-quantity_expected"]');
+      const quantityCountedField = document.querySelector('input[name="lines-0-quantity_counted"]');
+      
+      const fieldInFormCheck = {
+        item: {
+          found: !!itemField,
+          inForm: itemField ? form.contains(itemField) : false,
+          value: itemField ? itemField.value : null,
+          formId: form.id,
+          fieldParent: itemField ? itemField.closest('form')?.id : null
+        },
+        quantity_expected: {
+          found: !!quantityExpectedField,
+          inForm: quantityExpectedField ? form.contains(quantityExpectedField) : false,
+          value: quantityExpectedField ? quantityExpectedField.value : null,
+          fieldParent: quantityExpectedField ? quantityExpectedField.closest('form')?.id : null
+        },
+        quantity_counted: {
+          found: !!quantityCountedField,
+          inForm: quantityCountedField ? form.contains(quantityCountedField) : false,
+          value: quantityCountedField ? quantityCountedField.value : null,
+          fieldParent: quantityCountedField ? quantityCountedField.closest('form')?.id : null
+        }
+      };
+      
+      // Build FormData manually if fields are not in form
+      let formData;
+      if (!fieldInFormCheck.item.inForm || !fieldInFormCheck.quantity_expected.inForm || !fieldInFormCheck.quantity_counted.inForm) {
+        // Fields are NOT in form - build FormData manually
+        formData = new FormData();
+        
+        // Add all fields from form first
+        const formFields = form.querySelectorAll('input, select, textarea');
+        formFields.forEach(function(field) {
+          if (field.name && field.type !== 'checkbox' && field.type !== 'radio') {
+            formData.append(field.name, field.value || '');
+          } else if (field.type === 'checkbox' && field.checked) {
+            formData.append(field.name, field.value || 'on');
+          } else if (field.type === 'radio' && field.checked) {
+            formData.append(field.name, field.value || '');
+          }
+        });
+        
+        // Manually add fields that are outside the form
+        if (itemField && !form.contains(itemField)) {
+          formData.append(itemField.name, itemField.value || '');
+        }
+        if (quantityExpectedField && !form.contains(quantityExpectedField)) {
+          formData.append(quantityExpectedField.name, quantityExpectedField.value || '');
+        }
+        if (quantityCountedField && !form.contains(quantityCountedField)) {
+          formData.append(quantityCountedField.name, quantityCountedField.value || '');
+        }
+      } else {
+        // Fields are in form - use normal FormData
+        formData = new FormData(form);
+      }
+      
+      const formDataObj = {};
+      for (let [key, value] of formData.entries()) {
+        if (key.includes('lines-')) {
+          formDataObj[key] = value;
+        }
+      }
+      // Also log stocktaking_session_id from main form
+      const stocktakingSessionId = form.querySelector('input[name="stocktaking_session_id"]');
+      if (stocktakingSessionId) {
+        formDataObj['stocktaking_session_id'] = stocktakingSessionId.value;
+      }
+      
+      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: 'receipt_form.html:submit',
+          message: 'Form submit - all POST data (after enabling fields)',
+          data: {
+            field_in_form_check: fieldInFormCheck,
+            form_data: formDataObj,
+            form_data_keys: Object.keys(formDataObj),
+            lines_fields_count: Object.keys(formDataObj).filter(k => k.includes('lines-')).length,
+            has_stocktaking_session_id: !!formDataObj['stocktaking_session_id'],
+            stocktaking_session_id_value: formDataObj['stocktaking_session_id'] || '',
+            used_manual_formdata: !fieldInFormCheck.item.inForm || !fieldInFormCheck.quantity_expected.inForm || !fieldInFormCheck.quantity_counted.inForm
+          },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'run1',
+          hypothesisId: 'G'
+        })
+      }).catch(() => {});
+      // #endregion
+      
+      // #region agent log
+      // CRITICAL FIX: FormData is not reading field values correctly
+      // Build FormData manually to ensure all field values are included
+      e.preventDefault();
+      
+      // First, ensure prepareFormsetForSubmit is called if available
+      if (typeof prepareFormsetForSubmit === 'function' && formsetContainer) {
+        const result = prepareFormsetForSubmit('lines', '.line-form');
+        console.log('[submit] prepareFormsetForSubmit result:', result);
+      }
+      
+      // Build complete FormData manually with all fields
+      const completeFormData = new FormData();
+      
+      // #region agent log
+      // Debug: Check fields before building FormData
+      const itemFieldDebug = document.querySelector('select[name="lines-0-item"], input[name="lines-0-item"]');
+      const quantityExpectedDebug = document.querySelector('input[name="lines-0-quantity_expected"]');
+      const quantityCountedDebug = document.querySelector('input[name="lines-0-quantity_counted"]');
+      
+      const debugBeforeFormData = {
+        item: {
+          found: !!itemFieldDebug,
+          name: itemFieldDebug ? itemFieldDebug.name : null,
+          value: itemFieldDebug ? itemFieldDebug.value : null,
+          tagName: itemFieldDebug ? itemFieldDebug.tagName : null,
+          inForm: itemFieldDebug ? form.contains(itemFieldDebug) : false
+        },
+        quantity_expected: {
+          found: !!quantityExpectedDebug,
+          name: quantityExpectedDebug ? quantityExpectedDebug.name : null,
+          value: quantityExpectedDebug ? quantityExpectedDebug.value : null,
+          inForm: quantityExpectedDebug ? form.contains(quantityExpectedDebug) : false
+        },
+        quantity_counted: {
+          found: !!quantityCountedDebug,
+          name: quantityCountedDebug ? quantityCountedDebug.name : null,
+          value: quantityCountedDebug ? quantityCountedDebug.value : null,
+          inForm: quantityCountedDebug ? form.contains(quantityCountedDebug) : false
+        }
+      };
+      
+      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: 'receipt_form.html:submit:before_formdata',
+          message: 'Field values before building FormData',
+          data: debugBeforeFormData,
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'run1',
+          hypothesisId: 'I'
+        })
+      }).catch(() => {});
+      // #endregion
+      
+      // CRITICAL: First add all fields from formset container (they might not be in form)
+      let fieldsAdded = 0;
+      let fieldsSkipped = 0;
+      
+      if (formsetContainer) {
+        const allRows = formsetContainer.querySelectorAll('.line-form:not(.formset-template)');
+        allRows.forEach(function(row) {
+          const deleteCheckbox = row.querySelector('input[type="checkbox"][name*="-DELETE"]');
+          const isDeleted = deleteCheckbox && deleteCheckbox.checked;
+          
+          if (!isDeleted) {
+            const rowFields = row.querySelectorAll('input, select, textarea');
+            rowFields.forEach(function(field) {
+              if (!field.name) {
+                fieldsSkipped++;
+                return;
+              }
+              
+              // Skip DELETE checkboxes unless checked
+              if (field.name.includes('-DELETE')) {
+                if (field.type === 'checkbox' && field.checked) {
+                  completeFormData.append(field.name, field.value || 'on');
+                  fieldsAdded++;
+                } else {
+                  fieldsSkipped++;
+                }
+                return;
+              }
+              
+              // Handle other field types
+              if (field.type === 'checkbox') {
+                if (field.checked) {
+                  completeFormData.append(field.name, field.value || 'on');
+                  fieldsAdded++;
+                } else {
+                  fieldsSkipped++;
+                }
+              } else if (field.type === 'radio') {
+                if (field.checked) {
+                  completeFormData.append(field.name, field.value || '');
+                  fieldsAdded++;
+                } else {
+                  fieldsSkipped++;
+                }
+              } else {
+                // CRITICAL: Read value directly from DOM element
+                const fieldValue = field.value || '';
+                completeFormData.append(field.name, fieldValue);
+                
+                // Log critical fields for debugging
+                if (field.name.includes('lines-0-item') || field.name.includes('lines-0-quantity_expected') || field.name.includes('lines-0-quantity_counted') || field.name.includes('lines-0-warehouse') || field.name.includes('lines-0-unit')) {
+                  console.log('[FormData] Adding formset field:', field.name, 'value:', fieldValue, 'type:', field.type, 'tagName:', field.tagName, 'disabled:', field.disabled);
+                }
+                fieldsAdded++;
+              }
+            });
+          }
+        });
+      }
+      
+      // Then add all other fields from form (excluding formset fields to avoid duplicates)
+      const allFormFields = form.querySelectorAll('input, select, textarea');
+      allFormFields.forEach(function(field) {
+        // Skip formset fields (already added above)
+        if (field.name && field.name.startsWith('lines-')) {
+          // Check if already added
+          let alreadyAdded = false;
+          for (let [key] of completeFormData.entries()) {
+            if (key === field.name) {
+              alreadyAdded = true;
+              break;
+            }
+          }
+          if (alreadyAdded) {
+            fieldsSkipped++;
+            return;
+          }
+        }
+        
+        // Skip if no name
+        if (!field.name) {
+          fieldsSkipped++;
+          return;
+        }
+        
+        // Skip DELETE checkboxes unless checked
+        if (field.name.includes('-DELETE')) {
+          if (field.type === 'checkbox' && field.checked) {
+            completeFormData.append(field.name, field.value || 'on');
+            fieldsAdded++;
+          } else {
+            fieldsSkipped++;
+          }
+          return;
+        }
+        
+        // Handle other field types
+        if (field.type === 'checkbox') {
+          if (field.checked) {
+            completeFormData.append(field.name, field.value || 'on');
+            fieldsAdded++;
+          } else {
+            fieldsSkipped++;
+          }
+        } else if (field.type === 'radio') {
+          if (field.checked) {
+            completeFormData.append(field.name, field.value || '');
+            fieldsAdded++;
+          } else {
+            fieldsSkipped++;
+          }
+        } else {
+          // CRITICAL: Read value directly from DOM element
+          const fieldValue = field.value || '';
+          completeFormData.append(field.name, fieldValue);
+          fieldsAdded++;
+        }
+      });
+      
+      // #region agent log
+      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: 'receipt_form.html:submit:after_formdata',
+          message: 'FormData building stats',
+          data: {
+            fields_added: fieldsAdded,
+            fields_skipped: fieldsSkipped,
+            total_form_fields: allFormFields.length
+          },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'run1',
+          hypothesisId: 'I'
+        })
+      }).catch(() => {});
+      // #endregion
+      
+      // Also add fields from formset container (in case they're not in form)
+      if (formsetContainer) {
+        const allRows = formsetContainer.querySelectorAll('.line-form:not(.formset-template)');
+        allRows.forEach(function(row) {
+          const deleteCheckbox = row.querySelector('input[type="checkbox"][name*="-DELETE"]');
+          const isDeleted = deleteCheckbox && deleteCheckbox.checked;
+          
+          if (!isDeleted) {
+            const rowFields = row.querySelectorAll('input, select, textarea');
+            rowFields.forEach(function(field) {
+              if (field.name && !form.contains(field)) {
+                if (field.type === 'checkbox') {
+                  if (field.checked) {
+                    completeFormData.append(field.name, field.value || 'on');
+                  }
+                } else if (field.type === 'radio') {
+                  if (field.checked) {
+                    completeFormData.append(field.name, field.value || '');
+                  }
+                } else {
+                  // CRITICAL: Read value directly from DOM element
+                  const fieldValue = field.value || '';
+                  completeFormData.append(field.name, fieldValue);
+                }
+              }
+            });
+          }
+        });
+      }
+      
+      // Log what we're about to submit
+      const submitDataObj = {};
+      for (let [key, value] of completeFormData.entries()) {
+        if (key.includes('lines-') || key === 'stocktaking_session_id') {
+          submitDataObj[key] = value;
+        }
+      }
+      
+      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: 'receipt_form.html:submit:manual_submit',
+          message: 'Manual FormData before submit',
+          data: submitDataObj,
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'run1',
+          hypothesisId: 'H'
+        })
+      }).catch(() => {});
+      
+      // Submit manually
+      fetch(form.action || window.location.href, {
+        method: 'POST',
+        body: completeFormData
+      }).then(function(response) {
+        if (response.redirected) {
+          window.location.href = response.url;
+        } else {
+          return response.text().then(function(html) {
+            // If response is HTML (error page), reload to show errors
+            document.open();
+            document.write(html);
+            document.close();
+          });
+        }
+      }).catch(function(error) {
+        console.error('Manual form submission error:', error);
+        // Fallback: try normal submit
+        form.submit();
+      });
+      
+      return false;
+      // #endregion
       
       // Debug: Log all form data
-      const formData = new FormData(form);
       for (let [key, value] of formData.entries()) {
       }
       
@@ -2644,6 +3140,11 @@ document.addEventListener('DOMContentLoaded', function() {
       quantityExpectedInput.addEventListener('change', function() {
         calculateQuantityAdjusted(newForm);
       });
+      // #region agent log
+      quantityExpectedInput.addEventListener('blur', function() {
+        logFieldBlur('quantity_expected', this, newForm);
+      });
+      // #endregion
     }
     if (quantityCountedInput) {
       quantityCountedInput.addEventListener('input', function() {
@@ -2652,7 +3153,22 @@ document.addEventListener('DOMContentLoaded', function() {
       quantityCountedInput.addEventListener('change', function() {
         calculateQuantityAdjusted(newForm);
       });
+      // #region agent log
+      quantityCountedInput.addEventListener('blur', function() {
+        logFieldBlur('quantity_counted', this, newForm);
+      });
+      // #endregion
     }
+    
+    // #region agent log
+    // Add blur logging for item select
+    const itemSelect = newForm.querySelector('select[name*="-item"]');
+    if (itemSelect) {
+      itemSelect.addEventListener('blur', function() {
+        logFieldBlur('item', this, newForm);
+      });
+    }
+    // #endregion
     
     // Disable unit and warehouse selects for new form (no item selected yet)
     const newFormUnitSelect = newForm.querySelector('select[name*="-unit"]');
@@ -4163,6 +4679,11 @@ document.addEventListener('DOMContentLoaded', function() {
       quantityExpectedInput.addEventListener('change', function() {
         calculateQuantityAdjusted(lineForm);
       });
+      // #region agent log
+      quantityExpectedInput.addEventListener('blur', function() {
+        logFieldBlur('quantity_expected', this, lineForm);
+      });
+      // #endregion
     }
     
     if (quantityCountedInput) {
@@ -4172,7 +4693,22 @@ document.addEventListener('DOMContentLoaded', function() {
       quantityCountedInput.addEventListener('change', function() {
         calculateQuantityAdjusted(lineForm);
       });
+      // #region agent log
+      quantityCountedInput.addEventListener('blur', function() {
+        logFieldBlur('quantity_counted', this, lineForm);
+      });
+      // #endregion
     }
+    
+    // #region agent log
+    // Add blur logging for item select in existing forms
+    const itemSelect = lineForm.querySelector('select[name*="-item"]');
+    if (itemSelect) {
+      itemSelect.addEventListener('blur', function() {
+        logFieldBlur('item', this, lineForm);
+      });
+    }
+    // #endregion
     
     // Initial calculation if values are already present
     if (quantityExpectedInput && quantityCountedInput) {

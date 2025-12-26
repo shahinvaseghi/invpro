@@ -208,9 +208,66 @@ class StocktakingSurplusForm(StocktakingBaseForm):
 
     def save(self, commit: bool = True):
         """Save with auto-generated document code."""
+        import json
+        # #region agent log
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "C,D",
+                    "location": "stocktaking.py:209",
+                    "message": "StocktakingSurplusForm.save entry",
+                    "data": {
+                        "commit": commit,
+                        "instance_doc_code_before": getattr(self.instance, 'document_code', None),
+                        "instance_pk": getattr(self.instance, 'pk', None),
+                        "cleaned_data_doc_code": self.cleaned_data.get('document_code', None) if hasattr(self, 'cleaned_data') else None
+                    },
+                    "timestamp": int(__import__('time').time() * 1000)
+                }) + '\n')
+        except: pass
+        # #endregion
+        
         instance = super().save(commit=False)
+        
+        # #region agent log
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "C,D",
+                    "location": "stocktaking.py:215",
+                    "message": "After super().save(commit=False)",
+                    "data": {
+                        "instance_doc_code": getattr(instance, 'document_code', None),
+                        "instance_company_id": getattr(instance, 'company_id', None)
+                    },
+                    "timestamp": int(__import__('time').time() * 1000)
+                }) + '\n')
+        except: pass
+        # #endregion
+        
         if not instance.document_code:
             instance.document_code = generate_document_code(StocktakingSurplus, instance.company_id, "STS")
+            
+            # #region agent log
+            try:
+                with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "C,D",
+                        "location": "stocktaking.py:218",
+                        "message": "Generated new document_code",
+                        "data": {
+                            "generated_doc_code": instance.document_code
+                        },
+                        "timestamp": int(__import__('time').time() * 1000)
+                    }) + '\n')
+            except: pass
+            # #endregion
         if not instance.document_date:
             instance.document_date = timezone.now().date()
         if commit:

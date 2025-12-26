@@ -572,10 +572,91 @@ class LineFormsetMixin:
         logger.info("=" * 80)
         logger.info("LineFormsetMixin.get_context_data() called")
         logger.info(f"Request method: {self.request.method}")
+        # #region agent log
+        try:
+            import json
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "C",
+                    "location": "base.py:570",
+                    "message": "LineFormsetMixin.get_context_data entry",
+                    "data": {
+                        "request_method": self.request.method,
+                        "kwargs_keys": list(kwargs.keys()),
+                        "kwargs_has_form": 'form' in kwargs,
+                        "kwargs_has_lines_formset": 'lines_formset' in kwargs,
+                        "form_instance_pk": getattr(kwargs.get('form').instance, 'pk', None) if kwargs.get('form') else None
+                    },
+                    "timestamp": int(__import__('time').time() * 1000)
+                }) + '\n')
+        except: pass
+        # #endregion
         context = super().get_context_data(**kwargs)
         logger.info(f"Context keys before formset: {list(context.keys())}")
+        # #region agent log
+        try:
+            import json
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "C",
+                    "location": "base.py:587",
+                    "message": "After super().get_context_data",
+                    "data": {
+                        "context_has_form": 'form' in context,
+                        "context_has_lines_formset": 'lines_formset' in context,
+                        "form_instance_pk": getattr(context.get('form').instance, 'pk', None) if context.get('form') else None,
+                        "form_instance_doc_code": getattr(context.get('form').instance, 'document_code', None) if context.get('form') else None
+                    },
+                    "timestamp": int(__import__('time').time() * 1000)
+                }) + '\n')
+        except: pass
+        # #endregion
+        # #region agent log
+        try:
+            import json, time
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "C",
+                    "location": "base.py:618",
+                    "message": "LineFormsetMixin checking lines_formset",
+                    "data": {
+                        "lines_formset_in_context": 'lines_formset' in context,
+                        "lines_formset_in_kwargs": 'lines_formset' in kwargs,
+                        "context_has_form": 'form' in context,
+                        "form_is_bound": context.get('form').is_bound if context.get('form') else None
+                    },
+                    "timestamp": int(time.time() * 1000)
+                }) + '\n')
+        except: pass
+        # #endregion
         if 'lines_formset' not in context:
-            if self.request.method == 'POST':
+            if 'lines_formset' in kwargs:
+                # Preserve formset from kwargs
+                context['lines_formset'] = kwargs['lines_formset']
+                # #region agent log
+                try:
+                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "C",
+                            "location": "base.py:626",
+                            "message": "LineFormsetMixin preserving lines_formset from kwargs",
+                            "data": {
+                                "formset_forms_count": len(kwargs['lines_formset'].forms) if kwargs.get('lines_formset') else None,
+                                "formset_has_data": kwargs['lines_formset'].data is not None if kwargs.get('lines_formset') else None
+                            },
+                            "timestamp": int(time.time() * 1000)
+                        }) + '\n')
+                except: pass
+                # #endregion
+            elif self.request.method == 'POST':
                 logger.info("Building formset with POST data")
                 context['lines_formset'] = self.get_line_formset(data=self.request.POST)
             else:
@@ -584,6 +665,26 @@ class LineFormsetMixin:
             logger.info(f"Formset added to context, forms count: {len(context['lines_formset'].forms)}")
         else:
             logger.info("Formset already in context")
+        # #region agent log
+        try:
+            import json
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "C",
+                    "location": "base.py:600",
+                    "message": "LineFormsetMixin.get_context_data exit",
+                    "data": {
+                        "context_has_form": 'form' in context,
+                        "context_has_lines_formset": 'lines_formset' in context,
+                        "form_instance_pk": getattr(context.get('form').instance, 'pk', None) if context.get('form') else None,
+                        "form_instance_doc_code": getattr(context.get('form').instance, 'document_code', None) if context.get('form') else None
+                    },
+                    "timestamp": int(__import__('time').time() * 1000)
+                }) + '\n')
+        except: pass
+        # #endregion
         return context
     
     def form_invalid(self, form):

@@ -98,6 +98,37 @@ class FileNode:
         return result
 
 
+def safe_addstr(stdscr, y: int, x: int, text: str, attr=0):
+    """
+    اضافه کردن متن به stdscr با بررسی مرزها
+    
+    Args:
+        stdscr: curses window
+        y: موقعیت y
+        x: موقعیت x
+        text: متن برای نمایش
+        attr: attributes (رنگ، bold، etc.)
+    """
+    try:
+        max_y, max_x = stdscr.getmaxyx()
+        
+        # بررسی مرزها
+        if y < 0 or y >= max_y or x < 0 or x >= max_x:
+            return False
+        
+        # کوتاه کردن متن اگر از مرز خارج می‌شود
+        if x + len(text) > max_x:
+            text = text[:max_x - x]
+        
+        if not text:
+            return False
+        
+        stdscr.addstr(y, x, text, attr)
+        return True
+    except curses.error:
+        return False
+
+
 class FileBrowser:
     """مرورگر فایل با curses"""
     
@@ -159,15 +190,22 @@ class FileBrowser:
         """رندر کردن file browser"""
         stdscr.clear()
         
+        # بررسی حداقل اندازه
+        if max_y < 10 or max_x < 30:
+            safe_addstr(stdscr, 0, 0, "Terminal too small! Resize to at least 30x10")
+            stdscr.refresh()
+            return
+        
         # Header
         header = "File Browser - Select a File"
-        stdscr.addstr(0, 0, "=" * max_x, curses.color_pair(COLOR_HEADER))
-        stdscr.addstr(1, (max_x - len(header)) // 2, header, 
-                     curses.color_pair(COLOR_HEADER) | curses.A_BOLD)
-        stdscr.addstr(2, 0, "=" * max_x, curses.color_pair(COLOR_HEADER))
+        header_line = "=" * min(max_x, 80)
+        safe_addstr(stdscr, 0, 0, header_line, curses.color_pair(COLOR_HEADER))
+        safe_addstr(stdscr, 1, max(0, (max_x - len(header)) // 2), header, 
+                    curses.color_pair(COLOR_HEADER) | curses.A_BOLD)
+        safe_addstr(stdscr, 2, 0, header_line, curses.color_pair(COLOR_HEADER))
         
         # File list
-        display_height = max_y - 6
+        display_height = max(1, max_y - 6)
         
         # محاسبه scroll
         if self.cursor_index < self.scroll_offset:
@@ -184,27 +222,36 @@ class FileBrowser:
             node, level = self.display_list[list_idx]
             
             y = 4 + i
+            if y >= max_y - 2:
+                break
+            
             indent = "  " * level
             
             # نام
             display_name = f"{indent}{node.icon} {node.name}"
-            if len(display_name) > max_x - 5:
-                display_name = display_name[:max_x - 8] + "..."
+            max_name_len = max_x - 5
+            if len(display_name) > max_name_len:
+                display_name = display_name[:max_name_len - 3] + "..."
             
             # رنگ و cursor
             if list_idx == self.cursor_index:
-                stdscr.addstr(y, 0, "> ", curses.color_pair(COLOR_CURSOR) | curses.A_BOLD)
-                stdscr.addstr(y, 2, display_name, 
+                safe_addstr(stdscr, y, 0, "> ", curses.color_pair(COLOR_CURSOR) | curses.A_BOLD)
+                safe_addstr(stdscr, y, 2, display_name, 
                             curses.color_pair(COLOR_CURSOR) | curses.A_BOLD)
             else:
-                stdscr.addstr(y, 2, display_name, 
+                safe_addstr(stdscr, y, 2, display_name, 
                             curses.color_pair(COLOR_FOLDER if node.is_dir else COLOR_FILE))
         
         # Footer
         footer_y = max_y - 2
-        stdscr.addstr(footer_y, 0, "-" * max_x, curses.color_pair(COLOR_HEADER))
-        help_text = "[UP/DOWN] Navigate  [ENTER] Select  [ESC] Back  [Q] Quit"
-        stdscr.addstr(footer_y + 1, (max_x - len(help_text)) // 2, help_text)
+        if footer_y >= 0:
+            footer_line = "-" * min(max_x, 80)
+            safe_addstr(stdscr, footer_y, 0, footer_line, curses.color_pair(COLOR_HEADER))
+            
+            help_text = "[UP/DOWN] Navigate  [ENTER] Select  [ESC] Back  [Q] Quit"
+            help_x = max(0, (max_x - len(help_text)) // 2)
+            if footer_y + 1 < max_y:
+                safe_addstr(stdscr, footer_y + 1, help_x, help_text)
         
         stdscr.refresh()
 
@@ -214,27 +261,56 @@ class InteractiveChecker:
     
     def __init__(self, project_root: Path):
         self.project_root = project_root
-        self.checker_root = project_root / "standards_checker"
+        # پیدا کردن مسیر standards_checker
+        # همیشه از project_root / 'standards_checker' استفاده می‌کنیم
+        # چون interactive_checker_v2.py همیشه در standards_checker است
+        standards_checker_path = project_root / 'standards_checker'
+        if standards_checker_path.exists() and standards_checker_path.is_dir():
+            self.checker_root = standards_checker_path
+        else:
+            # اگر standards_checker پیدا نشد، از مسیر فایل فعلی استفاده می‌کنیم
+            # این برای حالتی است که از داخل standards_checker اجرا می‌شود
+            current_file = Path(__file__).resolve()
+            if current_file.name == 'interactive_checker_v2.py':
+                self.checker_root = current_file.parent
+            else:
+                # در غیر این صورت از project_root استفاده می‌کنیم
+                self.checker_root = project_root
         
         # Import checker اصلی
         sys.path.insert(0, str(self.checker_root))
         try:
             from check_standards import (
                 BaseClassChecker, TemplateChecker, DocstringChecker,
-                SecurityChecker, NamingChecker
+                SecurityChecker, NamingChecker, PerformanceChecker,
+                SharedComponentsChecker, SecurityEnhancedChecker, TestingChecker, ApiChecker,
+                DatabaseMigrationChecker, ErrorHandlingLoggingChecker, CodeQualityChecker,
+                GitWorkflowChecker
             )
             self.base_class_checker = BaseClassChecker()
             self.template_checker = TemplateChecker()
             self.docstring_checker = DocstringChecker()
             self.security_checker = SecurityChecker()
             self.naming_checker = NamingChecker()
+            self.performance_checker = PerformanceChecker()
+            self.shared_components_checker = SharedComponentsChecker()
+            self.security_enhanced_checker = SecurityEnhancedChecker()
+            self.testing_checker = TestingChecker()
+            self.api_checker = ApiChecker()
+            self.database_migration_checker = DatabaseMigrationChecker()
+            self.error_logging_checker = ErrorHandlingLoggingChecker()
+            self.code_quality_checker = CodeQualityChecker()
+            self.git_workflow_checker = GitWorkflowChecker()
         except ImportError as e:
             print(f"Error importing checker: {e}")
             sys.exit(1)
         
-        # مسیر فولدر reports
+        # مسیر فولدر reports (همیشه در standards_checker/reports)
         self.reports_dir = self.checker_root / "reports"
         self.reports_dir.mkdir(exist_ok=True)
+        
+        # Debug: نمایش مسیر reports_dir (فقط برای اطمینان)
+        # print(f"DEBUG: Reports directory set to: {self.reports_dir.absolute()}", file=sys.stderr)
     
     def save_report(self, check_type: str, target_name: str, issues: List, total_files: int = 1):
         """
@@ -250,6 +326,17 @@ class InteractiveChecker:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_name = target_name.replace('/', '_').replace('\\', '_')
         filename = f"{check_type}_{safe_name}_{timestamp}.txt"
+        
+        # اطمینان از اینکه reports_dir درست تنظیم شده است
+        # همیشه باید در standards_checker/reports باشد
+        if 'standards_checker' not in str(self.reports_dir):
+            # اگر reports_dir در standards_checker نیست، آن را اصلاح می‌کنیم
+            if (self.project_root / 'standards_checker' / 'reports').exists():
+                self.reports_dir = self.project_root / 'standards_checker' / 'reports'
+            elif self.checker_root:
+                self.reports_dir = self.checker_root / 'reports'
+            self.reports_dir.mkdir(exist_ok=True)
+        
         report_path = self.reports_dir / filename
         
         # گروه‌بندی issues
@@ -259,6 +346,19 @@ class InteractiveChecker:
         for issue in issues:
             by_severity[issue.severity.value].append(issue)
             file_path = getattr(issue, 'file_path', 'Unknown')
+            # نرمال‌سازی مسیر فایل برای جلوگیری از duplicate entries
+            # تبدیل absolute path به relative path نسبت به project_root
+            try:
+                if Path(file_path).is_absolute():
+                    # تبدیل به relative path
+                    rel_path = Path(file_path).relative_to(self.project_root)
+                    file_path = str(rel_path)
+                else:
+                    # اگر relative است، همان را استفاده می‌کنیم
+                    file_path = file_path
+            except (ValueError, AttributeError):
+                # اگر نمی‌توانستیم تبدیل کنیم، همان را استفاده می‌کنیم
+                pass
             by_file[file_path].append(issue)
         
         # نوشتن گزارش
@@ -303,28 +403,45 @@ class InteractiveChecker:
                     # گروه‌بندی issues این فایل بر اساس severity
                     file_by_severity = defaultdict(list)
                     for issue in file_issues:
-                        file_by_severity[issue.severity.value].append(issue)
+                        # اطمینان از اینکه severity.value درست است
+                        severity_value = issue.severity.value if hasattr(issue.severity, 'value') else str(issue.severity)
+                        file_by_severity[severity_value].append(issue)
                     
-                    # نمایش بر اساس اولویت
-                    for severity in ['critical', 'error', 'warning']:
-                        if severity not in file_by_severity:
-                            continue
-                        
-                        issues_list = file_by_severity[severity]
-                        f.write(f"\n[{severity.upper()}] ({len(issues_list)} issues)\n")
-                        
-                        for i, issue in enumerate(issues_list, 1):
+                    # اگر هیچ severity پیدا نشد، همه issues را نمایش می‌دهیم
+                    if not file_by_severity:
+                        # این یعنی severity ها درست تشخیص داده نشده‌اند
+                        # همه issues را به صورت پیش‌فرض نمایش می‌دهیم
+                        f.write(f"\n[ISSUES] ({len(file_issues)} issues)\n")
+                        for i, issue in enumerate(file_issues, 1):
                             f.write(f"  {i}. Line {issue.line_number}\n")
                             f.write(f"     {issue.message}\n")
-                            
-                            # کد snippet اگر وجود دارد
-                            if hasattr(issue, 'code_snippet') and issue.code_snippet:
-                                code_lines = issue.code_snippet.split('\n')
-                                for code_line in code_lines[:3]:
-                                    if code_line.strip():
-                                        f.write(f"     Code: {code_line}\n")
-                            
+                            if hasattr(issue, 'suggestion') and issue.suggestion:
+                                f.write(f"     Suggestion: {issue.suggestion}\n")
                             f.write("\n")
+                    else:
+                        # نمایش بر اساس اولویت
+                        for severity in ['critical', 'error', 'warning', 'info']:
+                            if severity not in file_by_severity:
+                                continue
+                            
+                            issues_list = file_by_severity[severity]
+                            f.write(f"\n[{severity.upper()}] ({len(issues_list)} issues)\n")
+                            
+                            for i, issue in enumerate(issues_list, 1):
+                                f.write(f"  {i}. Line {issue.line_number}\n")
+                                f.write(f"     {issue.message}\n")
+                                
+                                # کد snippet اگر وجود دارد
+                                if hasattr(issue, 'code_snippet') and issue.code_snippet:
+                                    code_lines = issue.code_snippet.split('\n')
+                                    for code_line in code_lines[:3]:
+                                        if code_line.strip():
+                                            f.write(f"     Code: {code_line}\n")
+                                
+                                if hasattr(issue, 'suggestion') and issue.suggestion:
+                                    f.write(f"     Suggestion: {issue.suggestion}\n")
+                                
+                                f.write("\n")
                     
                     f.write("\n" + "=" * 80 + "\n\n")
             else:
@@ -336,38 +453,70 @@ class InteractiveChecker:
     def show_main_menu(self, stdscr):
         """نمایش منوی اصلی"""
         max_y, max_x = stdscr.getmaxyx()
+        
+        # بررسی حداقل اندازه terminal
+        if max_y < 15 or max_x < 50:
+            stdscr.clear()
+            safe_addstr(stdscr, 0, 0, "Terminal too small! Please resize to at least 50x15")
+            stdscr.refresh()
+            curses.napms(2000)
+            return 'q'
+        
         stdscr.clear()
         
         # Header
         title = "Standards Checker - Interactive"
-        subtitle = "ابزار تعاملی برای چک کردن استانداردها"
+        subtitle = "Interactive Standards Checker Tool"
         
-        stdscr.addstr(2, (max_x - len(title)) // 2, title, 
-                     curses.color_pair(COLOR_HEADER) | curses.A_BOLD)
-        stdscr.addstr(3, (max_x - len(subtitle)) // 2, subtitle)
+        # محاسبه موقعیت با بررسی مرزها
+        title_x = max(0, (max_x - len(title)) // 2)
+        subtitle_x = max(0, (max_x - len(subtitle)) // 2)
+        
+        safe_addstr(stdscr, 2, title_x, title, 
+                   curses.color_pair(COLOR_HEADER) | curses.A_BOLD)
+        safe_addstr(stdscr, 3, subtitle_x, subtitle)
         
         # Menu
         menu_items = [
-            ("1", "چک دستی (Manual Check)"),
-            ("2", "چک ماژول (Module Check)"),
-            ("3", "چک کامل (All Check)"),
-            ("4", "گزارش هفتگی (Weekly Report)"),
-            ("5", "تنظیمات (Settings)"),
-            ("Q", "خروج (Exit)")
+            ("1", "Manual Check"),
+            ("2", "Module Check"),
+            ("3", "All Check"),
+            ("4", "Weekly Report"),
+            ("5", "Settings"),
+            ("Q", "Exit")
         ]
         
         y_start = 6
+        menu_x = max(0, max_x // 4)
+        
         for i, (key, text) in enumerate(menu_items):
             y = y_start + i * 2
-            stdscr.addstr(y, max_x // 4, f"{key}. {text}")
+            if y >= max_y - 3:  # جلوگیری از نوشتن خارج از مرز
+                break
+            
+            menu_text = f"{key}. {text}"
+            safe_addstr(stdscr, y, menu_x, menu_text)
         
-        stdscr.addstr(max_y - 2, max_x // 4, "Select option: ", curses.A_BOLD)
+        # Input prompt
+        prompt = "Select option: "
+        prompt_x = max(0, max_x // 4)
+        input_x = max(0, prompt_x + len(prompt))
+        
+        safe_addstr(stdscr, max_y - 2, prompt_x, prompt, curses.A_BOLD)
+        
         stdscr.refresh()
         
         # دریافت ورودی
         curses.echo()
-        choice = stdscr.getstr(max_y - 2, max_x // 4 + 15, 1).decode('utf-8')
-        curses.noecho()
+        try:
+            if input_x < max_x - 1:
+                choice = stdscr.getstr(max_y - 2, input_x, 1).decode('utf-8')
+            else:
+                choice = 'q'
+        except (curses.error, UnicodeDecodeError):
+            choice = 'q'
+        finally:
+            curses.noecho()
         
         return choice.lower()
     
@@ -396,8 +545,8 @@ class InteractiveChecker:
         
         if not modules:
             stdscr.clear()
-            stdscr.addstr(5, 5, "No modules found!", curses.color_pair(COLOR_ERROR))
-            stdscr.addstr(7, 5, "Press any key to continue...")
+            safe_addstr(stdscr, 5, 5, "No modules found!", curses.color_pair(COLOR_ERROR))
+            safe_addstr(stdscr, 7, 5, "Press any key to continue...")
             stdscr.refresh()
             stdscr.getch()
             return None
@@ -410,9 +559,11 @@ class InteractiveChecker:
             
             # Header
             title = "Select Module to Check"
-            stdscr.addstr(1, (max_x - len(title)) // 2, title, 
-                         curses.color_pair(COLOR_HEADER) | curses.A_BOLD)
-            stdscr.addstr(2, 0, "=" * max_x, curses.color_pair(COLOR_HEADER))
+            title_x = max(0, (max_x - len(title)) // 2)
+            safe_addstr(stdscr, 1, title_x, title, 
+                       curses.color_pair(COLOR_HEADER) | curses.A_BOLD)
+            header_line = "=" * min(max_x, 80)
+            safe_addstr(stdscr, 2, 0, header_line, curses.color_pair(COLOR_HEADER))
             
             # نمایش ماژول‌ها
             y_start = 4
@@ -423,18 +574,25 @@ class InteractiveChecker:
                     break
                 
                 y = y_start + i
+                if y >= max_y - 2:
+                    break
+                    
                 if i == cursor_idx:
-                    stdscr.addstr(y, 2, "> ", curses.color_pair(COLOR_CURSOR) | curses.A_BOLD)
-                    stdscr.addstr(y, 4, module, 
-                                 curses.color_pair(COLOR_CURSOR) | curses.A_BOLD)
+                    safe_addstr(stdscr, y, 2, "> ", curses.color_pair(COLOR_CURSOR) | curses.A_BOLD)
+                    safe_addstr(stdscr, y, 4, module, 
+                               curses.color_pair(COLOR_CURSOR) | curses.A_BOLD)
                 else:
-                    stdscr.addstr(y, 4, module)
+                    safe_addstr(stdscr, y, 4, module)
             
             # Footer
             footer_y = max_y - 2
-            stdscr.addstr(footer_y, 0, "-" * max_x)
-            help_text = "[UP/DOWN] Navigate  [ENTER] Select  [ESC] Cancel"
-            stdscr.addstr(footer_y + 1, (max_x - len(help_text)) // 2, help_text)
+            if footer_y >= 0:
+                footer_line = "-" * min(max_x, 80)
+                safe_addstr(stdscr, footer_y, 0, footer_line)
+                help_text = "[UP/DOWN] Navigate  [ENTER] Select  [ESC] Cancel"
+                help_x = max(0, (max_x - len(help_text)) // 2)
+                if footer_y + 1 < max_y:
+                    safe_addstr(stdscr, footer_y + 1, help_x, help_text)
             
             stdscr.refresh()
             
@@ -515,10 +673,20 @@ class InteractiveChecker:
         stdscr.addstr(4, 2, f"Total files: {len(files)}", curses.A_BOLD)
         stdscr.addstr(5, 0, "-" * max_x)
         stdscr.refresh()
-        
+
         # چک کردن فایل‌ها
         all_issues = []
         y = 7
+
+        # چک کردن project-level standards
+        project_issues = []
+        project_issues.extend(self.testing_checker.check_project(module_path))
+        project_issues.extend(self.api_checker.check_project(module_path))
+        project_issues.extend(self.api_checker.check_project(module_path))
+        project_issues.extend(self.api_checker.check_project(module_path))
+        project_issues.extend(self.api_checker.check_project(module_path))
+        project_issues.extend(self.api_checker.check_project(module_path))
+        all_issues.extend(project_issues)
         
         for i, file_path in enumerate(files, 1):
             rel_path = str(file_path.relative_to(self.project_root))
@@ -541,8 +709,18 @@ class InteractiveChecker:
                 file_issues.extend(self.docstring_checker.check_file(file_str))
                 file_issues.extend(self.security_checker.check_file(file_str))
                 file_issues.extend(self.naming_checker.check_file(file_str))
+                file_issues.extend(self.performance_checker.check_file(file_str))
+                file_issues.extend(self.shared_components_checker.check_file(file_str))
+                file_issues.extend(self.security_enhanced_checker.check_file(file_str))
+                file_issues.extend(self.database_migration_checker.check_file(file_str))
+                file_issues.extend(self.error_logging_checker.check_file(file_str))
+                file_issues.extend(self.code_quality_checker.check_file(file_str))
+                file_issues.extend(self.testing_checker.check_file(file_str))
+                file_issues.extend(self.api_checker.check_file(file_str))
             elif file_path.suffix in ['.html', '.htm']:
                 file_issues.extend(self.template_checker.check_file(file_str))
+                file_issues.extend(self.shared_components_checker.check_file(file_str))
+                file_issues.extend(self.security_enhanced_checker.check_file(file_str))
             
             # اضافه کردن نام فایل به هر issue
             for issue in file_issues:
@@ -564,7 +742,11 @@ class InteractiveChecker:
         
         # نمایش پیام ذخیره گزارش
         max_y, max_x = stdscr.getmaxyx()
-        report_msg = f"Report saved: {report_path.name}"
+        try:
+            rel_path = report_path.relative_to(self.checker_root)
+            report_msg = f"Report saved: {rel_path}"
+        except ValueError:
+            report_msg = f"Report saved: {report_path.name}"
         stdscr.addstr(max_y - 1, 2, report_msg, curses.color_pair(COLOR_SUCCESS) | curses.A_BOLD)
         stdscr.refresh()
         curses.napms(2000)  # نمایش 2 ثانیه
@@ -598,6 +780,16 @@ class InteractiveChecker:
         all_issues = []
         total_files = 0
         y = 7
+
+        # چک کردن project-level standards
+        project_issues = []
+        project_issues.extend(self.testing_checker.check_project(self.project_root))
+        project_issues.extend(self.api_checker.check_project(self.project_root))
+        project_issues.extend(self.api_checker.check_project(self.project_root))
+        project_issues.extend(self.api_checker.check_project(self.project_root))
+        project_issues.extend(self.api_checker.check_project(self.project_root))
+        project_issues.extend(self.api_checker.check_project(self.project_root))
+        all_issues.extend(project_issues)
         
         for i, module_name in enumerate(modules, 1):
             module_path = self.project_root / module_name
@@ -621,8 +813,18 @@ class InteractiveChecker:
                     file_issues.extend(self.docstring_checker.check_file(file_str))
                     file_issues.extend(self.security_checker.check_file(file_str))
                     file_issues.extend(self.naming_checker.check_file(file_str))
+                    file_issues.extend(self.performance_checker.check_file(file_str))
+                    file_issues.extend(self.shared_components_checker.check_file(file_str))
+                    file_issues.extend(self.security_enhanced_checker.check_file(file_str))
+                    file_issues.extend(self.testing_checker.check_file(file_str))
+                    file_issues.extend(self.api_checker.check_file(file_str))
+                    file_issues.extend(self.database_migration_checker.check_file(file_str))
+                    file_issues.extend(self.error_logging_checker.check_file(file_str))
+                    file_issues.extend(self.code_quality_checker.check_file(file_str))
                 elif file_path.suffix in ['.html', '.htm']:
                     file_issues.extend(self.template_checker.check_file(file_str))
+                    file_issues.extend(self.shared_components_checker.check_file(file_str))
+                    file_issues.extend(self.security_enhanced_checker.check_file(file_str))
                 
                 # اضافه کردن نام فایل به هر issue
                 rel_path = str(file_path.relative_to(self.project_root))
@@ -647,7 +849,11 @@ class InteractiveChecker:
         
         # نمایش پیام ذخیره گزارش
         max_y, max_x = stdscr.getmaxyx()
-        report_msg = f"Report saved: {report_path.name}"
+        try:
+            rel_path = report_path.relative_to(self.checker_root)
+            report_msg = f"Report saved: {rel_path}"
+        except ValueError:
+            report_msg = f"Report saved: {report_path.name}"
         stdscr.addstr(max_y - 1, 2, report_msg, curses.color_pair(COLOR_SUCCESS) | curses.A_BOLD)
         stdscr.refresh()
         curses.napms(2000)  # نمایش 2 ثانیه
@@ -702,11 +908,71 @@ class InteractiveChecker:
             checks_run.append("Naming")
             y += 1
             
+            stdscr.addstr(y, 2, "✓ Checking performance...", curses.color_pair(COLOR_SUCCESS))
+            stdscr.refresh()
+            issues.extend(self.performance_checker.check_file(file_str))
+            checks_run.append("Performance")
+            y += 1
+            
+            stdscr.addstr(y, 2, "✓ Checking shared components...", curses.color_pair(COLOR_SUCCESS))
+            stdscr.refresh()
+            issues.extend(self.shared_components_checker.check_file(file_str))
+            checks_run.append("Shared Components")
+            y += 1
+            
+            stdscr.addstr(y, 2, "✓ Checking security enhanced...", curses.color_pair(COLOR_SUCCESS))
+            stdscr.refresh()
+            issues.extend(self.security_enhanced_checker.check_file(file_str))
+            checks_run.append("Security Enhanced")
+            y += 1
+
+            stdscr.addstr(y, 2, "✓ Checking testing standards...", curses.color_pair(COLOR_SUCCESS))
+            stdscr.refresh()
+            issues.extend(self.testing_checker.check_file(file_str))
+            checks_run.append("Testing Standards")
+            y += 1
+            
+            stdscr.addstr(y, 2, "✓ Checking API standards...", curses.color_pair(COLOR_SUCCESS))
+            stdscr.refresh()
+            issues.extend(self.api_checker.check_file(file_str))
+            checks_run.append("API")
+            y += 1
+            
+            stdscr.addstr(y, 2, "✓ Checking database & migration...", curses.color_pair(COLOR_SUCCESS))
+            stdscr.refresh()
+            issues.extend(self.database_migration_checker.check_file(file_str))
+            checks_run.append("Database & Migration")
+            y += 1
+            
+            stdscr.addstr(y, 2, "✓ Checking error handling & logging...", curses.color_pair(COLOR_SUCCESS))
+            stdscr.refresh()
+            issues.extend(self.error_logging_checker.check_file(file_str))
+            checks_run.append("Error Handling & Logging")
+            y += 1
+            
+            stdscr.addstr(y, 2, "✓ Checking code quality...", curses.color_pair(COLOR_SUCCESS))
+            stdscr.refresh()
+            issues.extend(self.code_quality_checker.check_file(file_str))
+            checks_run.append("Code Quality")
+            y += 1
+
         elif file_path.suffix in ['.html', '.htm']:
             stdscr.addstr(y, 2, "✓ Checking template...", curses.color_pair(COLOR_SUCCESS))
             stdscr.refresh()
             issues.extend(self.template_checker.check_file(file_str))
             checks_run.append("Template")
+            y += 1
+            
+            stdscr.addstr(y, 2, "✓ Checking shared components...", curses.color_pair(COLOR_SUCCESS))
+            stdscr.refresh()
+            issues.extend(self.shared_components_checker.check_file(file_str))
+            checks_run.append("Shared Components")
+            y += 1
+            
+            stdscr.addstr(y, 2, "✓ Checking security enhanced...", curses.color_pair(COLOR_SUCCESS))
+            stdscr.refresh()
+            issues.extend(self.security_enhanced_checker.check_file(file_str))
+            checks_run.append("Security Enhanced")
             y += 1
         
         # اضافه کردن file_path به هر issue
@@ -733,7 +999,11 @@ class InteractiveChecker:
         stdscr.clear()
         report_msg = f"✓ Report saved successfully!"
         file_msg = f"File: {report_path.name}"
-        path_msg = f"Location: {report_path.relative_to(self.project_root)}"
+        # نمایش مسیر نسبی به standards_checker یا مسیر کامل
+        try:
+            path_msg = f"Location: {report_path.relative_to(self.checker_root)}"
+        except ValueError:
+            path_msg = f"Location: {report_path}"
         
         stdscr.addstr(max_y // 2 - 1, (max_x - len(report_msg)) // 2, report_msg,
                      curses.color_pair(COLOR_SUCCESS) | curses.A_BOLD)

@@ -1,0 +1,38 @@
+================================================================================
+STANDARDS CHECKER REPORT
+================================================================================
+
+Check Type:     MANUAL
+Target:         accounting/forms/accounts.py
+Date/Time:      2025-12-24 12:38:42
+Total Files:    1
+Files with Issues: 1
+Total Issues:   2
+
+================================================================================
+
+SUMMARY BY SEVERITY
+--------------------------------------------------------------------------------
+Warnings: 2
+
+================================================================================
+
+DETAILED ISSUES BY FILE
+================================================================================
+
+File: accounting/forms/accounts.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 13
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 72
+     Function 'clean' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+
+================================================================================
+

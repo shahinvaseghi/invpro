@@ -160,22 +160,8 @@ class BaseClassChecker:
                 line_number=0,
                 severity=Severity.WARNING,
                 category="Parsing",
-                message=f"Failed to parse file: {str(e)}",
-                suggestion="Check file syntax",
-                auto_fixable=False
+                message=f"Failed to parse file: {str(e)}"
             ))
-        
-        return issues
-    
-    def check_project(self, project_root: Path) -> List[Issue]:
-        """چک کردن Base Classes برای کل پروژه"""
-        issues = []
-        
-        # پیدا کردن تمام فایل‌های Python
-        for py_file in project_root.rglob("*.py"):
-            if any(exempt in str(py_file) for exempt in ['migrations', 'tests', '__pycache__', '.venv']):
-                continue
-            issues.extend(self.check_file(str(py_file)))
         
         return issues
     
@@ -225,9 +211,7 @@ class TemplateChecker:
                 line_number=0,
                 severity=Severity.WARNING,
                 category="Parsing",
-                message=f"Failed to read template: {str(e)}",
-                suggestion="Check file syntax",
-                auto_fixable=False
+                message=f"Failed to read template: {str(e)}"
             ))
         
         return issues
@@ -338,18 +322,6 @@ class TemplateChecker:
                 suggestion="Add {% load static %} at the top of template",
                 auto_fixable=True
             ))
-
-        return issues
-    
-    def check_project(self, project_root: Path) -> List[Issue]:
-        """چک کردن Templates برای کل پروژه"""
-        issues = []
-        
-        # پیدا کردن تمام فایل‌های template
-        for template_file in project_root.rglob("*.html"):
-            if any(exempt in str(template_file) for exempt in ['migrations', 'tests', '__pycache__', '.venv']):
-                continue
-            issues.extend(self.check_file(str(template_file)))
         
         return issues
 
@@ -403,107 +375,12 @@ class DocstringChecker:
         
         return issues
     
-    def check_project(self, project_root: Path) -> List[Issue]:
-        """چک کردن docstrings برای کل پروژه"""
-        issues = []
-        
-        # پیدا کردن تمام فایل‌های Python
-        for py_file in project_root.rglob("*.py"):
-            if any(exempt in str(py_file) for exempt in ['migrations', 'tests', '__pycache__', '.venv']):
-                continue
-            issues.extend(self.check_file(str(py_file)))
-        
-        return issues
-    
     def _has_docstring(self, node) -> bool:
         """بررسی وجود docstring"""
         return (
             ast.get_docstring(node) is not None and 
             len(ast.get_docstring(node).strip()) > 0
         )
-    
-    def _check_docstring_quality(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
-        """چک کیفیت docstring (Args, Returns, Raises, Examples)"""
-        issues = []
-        
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
-                docstring = ast.get_docstring(node)
-                if docstring:
-                    # چک وجود Args
-                    if node.args.args and len(node.args.args) > 0:
-                        # Skip 'self' for methods
-                        args_to_check = [arg.arg for arg in node.args.args if arg.arg != 'self']
-                        if args_to_check and 'Args:' not in docstring and 'Parameters:' not in docstring:
-                            issues.append(Issue(
-                                file_path=file_path,
-                                line_number=node.lineno,
-                                severity=Severity.INFO,
-                                category="Documentation - Quality",
-                                message=f"Function '{node.name}' has parameters but docstring missing Args section",
-                                suggestion="Add Args section to docstring: Args: param_name (type): description",
-                                auto_fixable=False
-                            ))
-                    
-                    # چک وجود Returns
-                    # بررسی اینکه آیا function return دارد
-                    has_return = False
-                    for child in ast.walk(node):
-                        if isinstance(child, ast.Return) and child.value is not None:
-                            has_return = True
-                            break
-                    
-                    if has_return and 'Returns:' not in docstring and 'Return:' not in docstring:
-                        issues.append(Issue(
-                            file_path=file_path,
-                            line_number=node.lineno,
-                            severity=Severity.INFO,
-                            category="Documentation - Quality",
-                            message=f"Function '{node.name}' returns value but docstring missing Returns section",
-                            suggestion="Add Returns section to docstring: Returns: type: description",
-                            auto_fixable=False
-                        ))
-                    
-                    # چک وجود Raises
-                    # بررسی اینکه آیا function exceptions raise می‌کند
-                    has_raise = False
-                    for child in ast.walk(node):
-                        if isinstance(child, ast.Raise):
-                            has_raise = True
-                            break
-                        elif isinstance(child, ast.Call):
-                            # چک کردن raise calls
-                            if isinstance(child.func, ast.Name) and child.func.id in ['raise', 'raise_']:
-                                has_raise = True
-                                break
-                    
-                    if has_raise and 'Raises:' not in docstring and 'Raise:' not in docstring:
-                        issues.append(Issue(
-                            file_path=file_path,
-                            line_number=node.lineno,
-                            severity=Severity.INFO,
-                            category="Documentation - Quality",
-                            message=f"Function '{node.name}' raises exceptions but docstring missing Raises section",
-                            suggestion="Add Raises section to docstring: Raises: ExceptionType: description",
-                            auto_fixable=False
-                        ))
-                    
-                    # چک وجود Examples
-                    # برای functions پیچیده‌تر (با پارامترهای زیاد یا منطق پیچیده)
-                    complexity_score = len(node.args.args) + len([n for n in ast.walk(node) if isinstance(n, ast.If)])
-                    if complexity_score > 8:
-                        if 'Example:' not in docstring and 'Examples:' not in docstring:
-                            issues.append(Issue(
-                                file_path=file_path,
-                                line_number=node.lineno,
-                                severity=Severity.INFO,
-                                category="Documentation - Quality",
-                                message=f"Function '{node.name}' is complex but docstring missing Examples section",
-                                suggestion="Add Examples section to docstring: Examples: usage example",
-                                auto_fixable=False
-                            ))
-        
-        return issues
 
 
 class SecurityChecker:
@@ -553,18 +430,6 @@ class SecurityChecker:
         return issues
 
 
-    def check_project(self, project_root: Path) -> List[Issue]:
-        """چک کردن security برای کل پروژه"""
-        issues = []
-        
-        # پیدا کردن تمام فایل‌های Python
-        for py_file in project_root.rglob("*.py"):
-            if any(exempt in str(py_file) for exempt in ['migrations', 'tests', '__pycache__', '.venv']):
-                continue
-            issues.extend(self.check_file(str(py_file)))
-        
-        return issues
-
 class NamingChecker:
     """چک کردن naming conventions"""
     
@@ -607,18 +472,6 @@ class NamingChecker:
         
         except Exception:
             pass
-        
-        return issues
-    
-    def check_project(self, project_root: Path) -> List[Issue]:
-        """چک کردن naming برای کل پروژه"""
-        issues = []
-        
-        # پیدا کردن تمام فایل‌های Python
-        for py_file in project_root.rglob("*.py"):
-            if any(exempt in str(py_file) for exempt in ['migrations', 'tests', '__pycache__', '.venv']):
-                continue
-            issues.extend(self.check_file(str(py_file)))
         
         return issues
     
@@ -665,32 +518,11 @@ class PerformanceChecker:
             # چک N+1 queries در loops
             issues.extend(self._check_n_plus_one_queries(file_path, tree, content))
             
-            # چک استفاده از only() و defer()
-            issues.extend(self._check_only_defer_usage(file_path, tree, content))
-            
-            # چک indexes در models
-            issues.extend(self._check_model_indexes(file_path, tree, content))
-            
-            # چک استفاده از cache
-            issues.extend(self._check_cache_usage(file_path, tree, content))
-            
         except Exception:
             pass
         
         return issues
     
-    def check_project(self, project_root: Path) -> List[Issue]:
-        """چک کردن performance برای کل پروژه"""
-        issues = []
-        
-        # پیدا کردن تمام فایل‌های Python
-        for py_file in project_root.rglob("*.py"):
-            if any(exempt in str(py_file) for exempt in ['migrations', 'tests', '__pycache__', '.venv']):
-                continue
-            issues.extend(self.check_file(str(py_file)))
-        
-        return issues
-
     def _check_query_optimization(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
         """چک استفاده از select_related و prefetch_related"""
         issues = []
@@ -715,7 +547,7 @@ class PerformanceChecker:
                                 suggestion="Add .select_related('category', 'subcategory', ...) to avoid N+1 queries",
                                 auto_fixable=False
                             ))
-
+                    
                     # چک کردن ManyToMany یا reverse relations که باید prefetch_related داشته باشند
                     if re.search(r'\.(lines|items|materials|components)', method_content):
                         if 'prefetch_related' not in method_content:
@@ -727,7 +559,7 @@ class PerformanceChecker:
                                 message="Query uses reverse relations but missing prefetch_related()",
                                 suggestion="Add .prefetch_related('lines', 'items', ...) to avoid N+1 queries",
                                 auto_fixable=False
-                                ))
+                            ))
         
         return issues
     
@@ -757,8 +589,8 @@ class PerformanceChecker:
                                 message="Potential N+1 query detected in loop - accessing ForeignKey attributes",
                                 suggestion="Use select_related() before the loop to prefetch related objects",
                                 auto_fixable=False
-                                ))
-        else:
+                            ))
+                    else:
                         # اگر parent function پیدا نشد، کل فایل را چک کن
                         if 'select_related' not in content[:node.lineno * 100]:  # چک خطوط قبل
                             issues.append(Issue(
@@ -769,7 +601,7 @@ class PerformanceChecker:
                                 message="Potential N+1 query detected in loop - accessing ForeignKey attributes",
                                 suggestion="Use select_related() before the loop to prefetch related objects",
                                 auto_fixable=False
-                                ))
+                            ))
         
         return issues
     
@@ -796,139 +628,6 @@ class PerformanceChecker:
         finder = ParentFinder(node)
         finder.visit(tree)
         return finder.parent
-    
-    def _check_only_defer_usage(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
-        """چک استفاده از only() و defer() برای فیلدهای خاص"""
-        issues = []
-        
-        # پیدا کردن get_queryset methods که queries بزرگ دارند
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef) and node.name == 'get_queryset':
-                method_content = ast.get_source_segment(content, node) or ""
-                
-                # چک queries که فیلدهای زیادی دارند
-                if re.search(r'\.objects\.(all|filter|get)\(\)', method_content):
-                    # اگر query بزرگ است (بیش از 10 فیلد در model) و only/defer استفاده نشده
-                    # این یک چک ساده است - می‌تواند بهبود یابد
-                    if 'only(' not in method_content and 'defer(' not in method_content:
-                        # چک اینکه آیا query در list view است (که معمولاً فقط چند فیلد نیاز دارد)
-                        if 'ListView' in content or 'list' in node.name.lower():
-                            issues.append(Issue(
-                                file_path=file_path,
-                                line_number=node.lineno,
-                                severity=Severity.INFO,
-                                category="Performance - Query Optimization",
-                                message="Consider using only() or defer() to limit fields fetched",
-                                suggestion="Use .only('field1', 'field2') or .defer('large_field') to optimize query",
-                                auto_fixable=False
-                            ))
-        
-        return issues
-    
-    def _check_model_indexes(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
-        """چک وجود indexes در models"""
-        issues = []
-        
-        # فقط فایل‌های models را چک کن
-        if 'models.py' not in file_path:
-            return issues
-        
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ClassDef):
-                # چک اینکه آیا این یک model است
-                is_model = False
-                for base in node.bases:
-                    base_name = self._get_base_name(base)
-                    if 'Model' in base_name:
-                        is_model = True
-                        break
-                
-                if is_model:
-                    # چک وجود Meta class
-                    has_meta = False
-                    has_indexes = False
-                    fk_fields = []
-                    
-                    for item in node.body:
-                        if isinstance(item, ast.ClassDef) and item.name == 'Meta':
-                            has_meta = True
-                            # چک وجود indexes در Meta
-                            meta_content = ast.get_source_segment(content, item) or ""
-                            if 'indexes' in meta_content or 'index_together' in meta_content:
-                                has_indexes = True
-                        
-                        # پیدا کردن ForeignKey fields
-                        if isinstance(item, ast.Assign):
-                            for target in item.targets:
-                                if isinstance(target, ast.Name):
-                                    if item.value and isinstance(item.value, ast.Call):
-                                        func_name = self._get_call_name(item.value)
-                                        if 'ForeignKey' in func_name or 'OneToOneField' in func_name:
-                                            fk_fields.append(target.id)
-                    
-                    # اگر ForeignKey دارد اما index ندارد، warning بده
-                    if fk_fields and not has_indexes:
-                        issues.append(Issue(
-                            file_path=file_path,
-                            line_number=node.lineno,
-                            severity=Severity.INFO,
-                            category="Performance - Database Indexes",
-                            message=f"Model '{node.name}' has ForeignKey fields but no indexes defined",
-                            suggestion=f"Add indexes to Meta class for frequently queried fields: indexes = [models.Index(fields=['{fk_fields[0]}'])]",
-                            auto_fixable=False
-                        ))
-        
-        return issues
-    
-    def _check_cache_usage(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
-        """چک استفاده از cache برای queries تکراری"""
-        issues = []
-        
-        # چک وجود cache imports
-        has_cache_import = False
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom):
-                if node.module and 'cache' in node.module:
-                    has_cache_import = True
-                    break
-        
-        # پیدا کردن get_queryset methods که queries تکراری دارند
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef) and node.name == 'get_queryset':
-                method_content = ast.get_source_segment(content, node) or ""
-                
-                # چک queries که بدون فیلتر هستند و می‌توانند cache شوند
-                if re.search(r'\.objects\.all\(\)', method_content):
-                    # اگر cache استفاده نشده و query ساده است
-                    if not has_cache_import and 'cache' not in method_content.lower():
-                        # این یک چک ساده است - می‌تواند بهبود یابد
-                        issues.append(Issue(
-                            file_path=file_path,
-                            line_number=node.lineno,
-                            severity=Severity.INFO,
-                            category="Performance - Caching",
-                            message="Consider caching this query if data doesn't change frequently",
-                            suggestion="Use Django cache framework: from django.core.cache import cache",
-                            auto_fixable=False
-                        ))
-        
-        return issues
-    
-    def _get_call_name(self, node: ast.Call) -> str:
-        """دریافت نام function call"""
-        if isinstance(node.func, ast.Name):
-            return node.func.id
-        elif isinstance(node.func, ast.Attribute):
-            return node.func.attr
-        return ""
-    
-    def _get_base_name(self, base) -> str:
-        """دریافت نام base class"""
-        if isinstance(base, ast.Name):
-            return base.id
-        elif isinstance(base, ast.Attribute):
-            return base.attr
-        return ""
 
 
 class SharedComponentsChecker:
@@ -985,18 +684,6 @@ class SharedComponentsChecker:
         
         return issues
     
-    def check_project(self, project_root: Path) -> List[Issue]:
-        """چک کردن shared components برای کل پروژه"""
-        issues = []
-        
-        # پیدا کردن تمام فایل‌های Python
-        for py_file in project_root.rglob("*.py"):
-            if any(exempt in str(py_file) for exempt in ['migrations', 'tests', '__pycache__', '.venv']):
-                continue
-            issues.extend(self.check_file(str(py_file)))
-        
-        return issues
-
     def _check_filter_functions(self, file_path: str, tree: ast.AST, content: str, lines: List[str]) -> List[Issue]:
         """چک استفاده از Filter Functions"""
         issues = []
@@ -1019,7 +706,7 @@ class SharedComponentsChecker:
                             suggestion="Import and use 'apply_search' from shared.filters",
                             auto_fixable=False
                         ))
-
+                
                 # چک کردن manual status filter
                 if re.search(r'\.filter\(.*status\s*=', method_content):
                     if 'apply_status_filter' not in method_content:
@@ -1032,7 +719,7 @@ class SharedComponentsChecker:
                             suggestion="Import and use 'apply_status_filter' from shared.filters",
                             auto_fixable=False
                         ))
-
+                
                 # چک کردن manual company filter
                 if re.search(r'\.filter\(.*company_id\s*=', method_content):
                     if 'apply_company_filter' not in method_content and 'CompanyScopedViewMixin' not in content:
@@ -1044,7 +731,7 @@ class SharedComponentsChecker:
                             message="Manual company filter detected - consider using apply_company_filter() or CompanyScopedViewMixin",
                             suggestion="Use 'apply_company_filter' from shared.filters or 'CompanyScopedViewMixin' from shared.mixins",
                             auto_fixable=False
-                            ))
+                        ))
         
         return issues
     
@@ -1072,7 +759,7 @@ class SharedComponentsChecker:
                                 message="Manual permission filtering detected - consider using PermissionFilterMixin",
                                 suggestion="Add 'PermissionFilterMixin' from shared.mixins to class bases",
                                 auto_fixable=False
-                                ))
+                            ))
                     
                     # چک AutoSetFieldsMixin
                     if re.search(r'company_id.*=.*session', class_content, re.IGNORECASE):
@@ -1085,7 +772,7 @@ class SharedComponentsChecker:
                                 message="Manual field setting detected - consider using AutoSetFieldsMixin",
                                 suggestion="Add 'AutoSetFieldsMixin' from shared.mixins to class bases",
                                 auto_fixable=False
-                                ))
+                            ))
         
         return issues
     
@@ -1104,7 +791,7 @@ class SharedComponentsChecker:
                     message="Custom formset management code detected - use formset.js instead",
                     suggestion="Use {% load static %} and <script src=\"{% static 'js/formset.js' %}\"></script>",
                     auto_fixable=False
-                    ))
+                ))
         
         # چک cascading-dropdowns.js
         if re.search(r'function.*cascad|dropdown.*change', content, re.IGNORECASE):
@@ -1117,7 +804,7 @@ class SharedComponentsChecker:
                     message="Custom cascading dropdown code detected - consider using cascading-dropdowns.js",
                     suggestion="Use {% load static %} and <script src=\"{% static 'js/cascading-dropdowns.js' %}\"></script>",
                     auto_fixable=False
-                    ))
+                ))
         
         # چک table-export.js
         if re.search(r'function.*export.*csv|function.*export.*excel|function.*print.*table', content, re.IGNORECASE):
@@ -1130,7 +817,7 @@ class SharedComponentsChecker:
                     message="Custom table export code detected - consider using table-export.js",
                     suggestion="Use {% load static %} and <script src=\"{% static 'js/table-export.js' %}\"></script>",
                     auto_fixable=False
-                    ))
+                ))
         
         return issues
     
@@ -1153,7 +840,7 @@ class SharedComponentsChecker:
                     message="Manual row actions detected - consider using row_actions.html partial",
                     suggestion="Use {% include 'shared/partials/row_actions.html' with object=object feature_code=feature_code %}",
                     auto_fixable=False
-                    ))
+                ))
         
         # چک pagination.html
         if re.search(r'<div.*pagination|<ul.*pagination', content, re.IGNORECASE):
@@ -1166,22 +853,7 @@ class SharedComponentsChecker:
                     message="Manual pagination detected - consider using pagination.html partial",
                     suggestion="Use {% include 'shared/partials/pagination.html' %}",
                     auto_fixable=False
-                    ))
-        
-        # چک filter_panel.html
-        if re.search(r'<form.*filter|<div.*filter.*form|filter.*panel', content, re.IGNORECASE):
-            if 'filter_panel.html' not in content and 'generic_list.html' not in content:
-                # چک اینکه آیا filter form وجود دارد
-                if re.search(r'<input.*name.*=.*["\'](search|status|company|date)', content, re.IGNORECASE):
-                    issues.append(Issue(
-                        file_path=file_path,
-                        line_number=1,
-                        severity=Severity.WARNING,
-                        category="Shared Components - Template Partials",
-                        message="Manual filter panel detected - consider using filter_panel.html partial",
-                        suggestion="Use {% include 'shared/partials/filter_panel.html' %}",
-                        auto_fixable=False
-                    ))
+                ))
         
         return issues
     
@@ -1231,18 +903,6 @@ class SecurityEnhancedChecker:
 
         return issues
     
-    def check_project(self, project_root: Path) -> List[Issue]:
-        """چک کردن security enhanced برای کل پروژه"""
-        issues = []
-        
-        # پیدا کردن تمام فایل‌های Python
-        for py_file in project_root.rglob("*.py"):
-            if any(exempt in str(py_file) for exempt in ['migrations', 'tests', '__pycache__', '.venv']):
-                continue
-            issues.extend(self.check_file(str(py_file)))
-        
-        return issues
-
     def _check_csrf_token(self, file_path: str, content: str, lines: List[str]) -> List[Issue]:
         """چک وجود CSRF token در forms"""
         issues = []
@@ -1261,7 +921,7 @@ class SecurityEnhancedChecker:
                             message="POST form missing CSRF token",
                             suggestion="Add {% csrf_token %} inside the <form> tag",
                             auto_fixable=True
-                            ))
+                        ))
                         break
         
         return issues
@@ -1278,7 +938,7 @@ class SecurityEnhancedChecker:
                     isinstance(arg, ast.arg) and arg.arg == 'request'
                     for arg in node.args.args
                 )
-
+                
                 if has_request:
                     # چک کردن decorators
                     decorators = [self._get_decorator_name(d) for d in node.decorator_list]
@@ -1296,7 +956,7 @@ class SecurityEnhancedChecker:
                             message=f"View function '{node.name}' missing @login_required decorator",
                             suggestion="Add @login_required decorator or use LoginRequiredMixin",
                             auto_fixable=False
-                            ))
+                        ))
         
         return issues
     
@@ -1330,7 +990,7 @@ class SecurityEnhancedChecker:
                                 message=f"View function '{node.name}' missing permission decorators",
                                 suggestion="Add @feature_permission_required('module.feature', action='action') or @login_required",
                                 auto_fixable=False
-                        ))
+                            ))
 
         # پیدا کردن classes که از Base Views ارث‌بری می‌کنند
         for node in ast.walk(tree):
@@ -1351,7 +1011,7 @@ class SecurityEnhancedChecker:
                             message=f"View class '{node.name}' missing feature_code attribute",
                             suggestion="Add feature_code = 'module.feature.name' to enable permission checking",
                             auto_fixable=False
-                            ))
+                        ))
 
         return issues
 
@@ -1390,7 +1050,7 @@ class SecurityEnhancedChecker:
                             message=f"FileField in class '{node.name}' may use insecure upload path",
                             suggestion="Use secure upload paths and avoid user-controlled paths",
                             auto_fixable=False
-                            ))
+                        ))
 
         return issues
 
@@ -1417,7 +1077,7 @@ class SecurityEnhancedChecker:
                             message=f"Form class '{node.name}' missing input validation",
                             suggestion="Add clean_<field>() methods or field validators for input sanitization",
                             auto_fixable=False
-                            ))
+                        ))
 
                 # چک CharField بدون max_length
                 if 'CharField(' in class_content and 'max_length=' not in class_content:
@@ -1429,7 +1089,7 @@ class SecurityEnhancedChecker:
                         message=f"CharField in class '{node.name}' missing max_length",
                         suggestion="Add max_length parameter to prevent buffer overflow attacks",
                         auto_fixable=False
-                        ))
+                    ))
 
         # چک raw SQL یا string formatting
         dangerous_patterns = [
@@ -1450,7 +1110,7 @@ class SecurityEnhancedChecker:
                         message=message,
                         suggestion="Use parameterized queries or ORM methods instead",
                         auto_fixable=False
-                        ))
+                    ))
 
         return issues
 
@@ -1480,7 +1140,7 @@ class SecurityEnhancedChecker:
                             message=f"Sensitive function '{node.name}' missing rate limiting",
                             suggestion="Add @ratelimit decorator or implement rate limiting middleware",
                             auto_fixable=False
-                            ))
+                        ))
 
         # چک API views
         if 'APIView' in content or 'ViewSet' in content:
@@ -1493,7 +1153,7 @@ class SecurityEnhancedChecker:
                     message="API views missing rate limiting configuration",
                     suggestion="Configure throttling classes in settings or view-level throttling",
                     auto_fixable=False
-                    ))
+                ))
 
         return issues
 
@@ -1600,7 +1260,6 @@ class TestingChecker:
             path.name.endswith('_test.py') or
             'tests' in path.parts
         )
-
     def _check_test_naming(self, file_path: str, tree: ast.AST) -> List[Issue]:
         """چک نام‌گذاری test methods"""
         issues = []
@@ -1617,7 +1276,7 @@ class TestingChecker:
                         message=f"Test method name '{node.name}' is too short or unclear",
                         suggestion="Use descriptive names like 'test_user_creation_with_valid_data'",
                         auto_fixable=False
-                        ))
+                    ))
                 elif not self._is_snake_case(node.name):
                     issues.append(Issue(
                         file_path=file_path,
@@ -1627,7 +1286,7 @@ class TestingChecker:
                         message=f"Test method '{node.name}' should use snake_case",
                         suggestion=f"Rename to {self._to_snake_case(node.name)}",
                         auto_fixable=False
-                        ))
+                    ))
 
         return issues
 
@@ -1646,7 +1305,7 @@ class TestingChecker:
                         message=f"Test method '{node.name}' missing docstring",
                         suggestion="Add docstring explaining what the test verifies",
                         auto_fixable=False
-                        ))
+                    ))
 
         return issues
 
@@ -1674,7 +1333,7 @@ class TestingChecker:
                             message=f"Test method '{node.name}' could use AAA pattern comments",
                             suggestion="Add comments: # Arrange, # Act, # Assert to structure the test",
                             auto_fixable=False
-                            ))
+                        ))
 
         return issues
 
@@ -1710,7 +1369,7 @@ class TestingChecker:
                     message=f"Test class has tearDown but no setUp method",
                     suggestion="Add setUp method to initialize test data",
                     auto_fixable=False
-                    ))
+                ))
 
         return issues
 
@@ -1740,7 +1399,7 @@ class TestingChecker:
                     message=f"No test file found for {py_file.name}",
                     suggestion="Create test file (e.g., test_models.py, test_views.py) with appropriate test cases",
                     auto_fixable=False
-                    ))
+                ))
 
         return issues
 
@@ -1770,7 +1429,7 @@ class TestingChecker:
                         message=f"Model '{model_name}' has no corresponding test class",
                         suggestion=f"Create test class '{model_name}Test' in {test_file.name}",
                         auto_fixable=False
-                        ))
+                    ))
 
         # پیدا کردن views
         view_files = []
@@ -1797,7 +1456,7 @@ class TestingChecker:
                         message=f"View function '{view_name}' has no corresponding test method",
                         suggestion=f"Create test method 'test_{view_name}' in {test_file.name}",
                         auto_fixable=False
-                        ))
+                    ))
 
         return issues
 
@@ -1825,7 +1484,7 @@ class TestingChecker:
                         message="Test file uses fixtures instead of factories",
                         suggestion="Consider using factories (e.g., factory_boy) instead of fixtures for better maintainability",
                         auto_fixable=False
-                        ))
+                    ))
 
                 # چک وجود factory classes
                 if not ('factory' in content.lower() and ('Factory' in content or 'factory' in content)):
@@ -1837,7 +1496,7 @@ class TestingChecker:
                         message="Test file could benefit from factory pattern",
                         suggestion="Consider using factory classes for test data creation",
                         auto_fixable=False
-                        ))
+                    ))
 
             except Exception:
                 pass
@@ -1870,7 +1529,7 @@ class TestingChecker:
                         message="Test class missing setUp method",
                         suggestion="Add setUp method to initialize test data and ensure test isolation",
                         auto_fixable=False
-                        ))
+                    ))
 
                 # چک استفاده از mock
                 if 'mock' in content.lower() or 'patch' in content:
@@ -1884,7 +1543,7 @@ class TestingChecker:
                             message="Using external mock library instead of unittest.mock",
                             suggestion="Use unittest.mock for better Python 3 compatibility",
                             auto_fixable=False
-                            ))
+                        ))
 
             except Exception:
                 pass
@@ -1923,7 +1582,7 @@ class TestingChecker:
                         message=f"Test file has {test_methods} test methods - consider splitting",
                         suggestion="Split large test files into smaller, focused test files for better maintainability",
                         auto_fixable=False
-                        ))
+                    ))
 
             except Exception:
                 pass
@@ -2065,6 +1724,8 @@ class TestingChecker:
         """تبدیل به snake_case"""
         s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
         return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+            'tests' in path.parts
+        )
 
 class ApiChecker:
     """چک کردن API Standards"""
@@ -2145,7 +1806,7 @@ class ApiChecker:
                             message=f"API View class '{node.name}' should inherit from BaseAPIView instead of {base_names[0]}",
                             suggestion="Use BaseAPIView, BaseViewSet, or BaseModelViewSet for consistent API behavior",
                             auto_fixable=False
-                            ))
+                        ))
 
         return issues
 
@@ -2174,7 +1835,7 @@ class ApiChecker:
                         message="Using magic number for HTTP status code",
                         suggestion="Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)",
                         auto_fixable=False
-                        ))
+                    ))
 
         return issues
 
@@ -2203,7 +1864,7 @@ class ApiChecker:
                             message="API response should use standard format with status, data, and message keys",
                             suggestion="Use format: {'status': 'success', 'data': {...}, 'message': '...'}",
                             auto_fixable=False
-                            ))
+                        ))
 
         return issues
 
@@ -2225,7 +1886,7 @@ class ApiChecker:
                     message="API view should have proper error handling",
                     suggestion="Use try-except blocks or DRF exceptions (ValidationError, APIException)",
                     auto_fixable=False
-                    ))
+                ))
 
         return issues
 
@@ -2259,7 +1920,7 @@ class ApiChecker:
                 message=f"Multiple API versions detected: {', '.join(sorted(api_versions))}",
                 suggestion="Ensure consistent API versioning across the project",
                 auto_fixable=False
-                ))
+            ))
 
         return issues
 
@@ -2297,8 +1958,8 @@ class ApiChecker:
         if node.value and isinstance(node.value, ast.Call):
             if isinstance(node.value.func, ast.Name) and node.value.func.id == 'Response':
                 return True
+            elif isinstance(node.value.func, ast.Attribute) and node.value.func.attr == 'Response':
                 return True
-            return True
         return False
 
     def _get_base_name(self, base) -> str:
@@ -2309,696 +1970,5 @@ class ApiChecker:
             return base.attr
         return ""
 
-class DatabaseMigrationChecker:
-    """چک کردن Database & Migration standards"""
-    
-    EXEMPT_MODULES = ['migrations', '__pycache__', '.venv', 'venv']
-    
-    def check_file(self, file_path: str) -> List[Issue]:
-        """چک کردن database و migration standards در یک فایل"""
-        issues = []
-        
-        # فقط فایل‌های migration و models را چک کن
-        if 'migrations' not in file_path and 'models' not in file_path:
-            return issues
-        
-        # فایل‌های معاف از چک
-        if any(exempt in file_path for exempt in self.EXEMPT_MODULES):
-            return issues
-        
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-                lines = content.split('\n')
-            
-            # چک migration files
-            if 'migrations' in file_path:
-                issues.extend(self._check_migration_file(file_path, content, lines))
-            
-            # چک model files
-            if 'models.py' in file_path:
-                tree = ast.parse(content)
-                issues.extend(self._check_model_constraints(file_path, tree, content, lines))
-                
-        except Exception:
-            pass
-        
-        return issues
-    
-    def _check_migration_file(self, file_path: str, content: str, lines: List[str]) -> List[Issue]:
-        """چک migration file standards"""
-        issues = []
-        
-        # چک migration naming convention
-        if 'migrations' in file_path:
-            filename = Path(file_path).name
-            if not re.match(r'^\d{4}_\w+\.py$', filename):
-                issues.append(Issue(
-                    file_path=file_path,
-                    line_number=1,
-                    severity=Severity.WARNING,
-                    category="Database - Migration",
-                    message=f"Migration file '{filename}' should follow naming convention: NNNN_name.py",
-                    suggestion="Rename migration file to follow convention (e.g., 0001_initial.py)",
-                    auto_fixable=False
-                ))
-        
-        # چک وجود reverse migration برای RunPython
-        if 'RunPython' in content:
-            # پیدا کردن RunPython calls
-            runpython_pattern = r'RunPython\s*\([^)]+\)'
-            matches = re.finditer(runpython_pattern, content)
-            
-            for match in matches:
-                line_num = content[:match.start()].count('\n') + 1
-                runpython_code = match.group(0)
-                
-                # چک وجود reverse parameter
-                if 'reverse=' not in runpython_code and 'reverse_code=' not in runpython_code:
-                    issues.append(Issue(
-                        file_path=file_path,
-                        line_number=line_num,
-                        severity=Severity.WARNING,
-                        category="Database - Migration",
-                        message="RunPython migration should have reverse migration function",
-                        suggestion="Add reverse parameter to RunPython: RunPython(forward_func, reverse_func)",
-                        auto_fixable=False
-                    ))
-        
-        # چک migration dependencies
-        if 'dependencies' in content:
-            # چک اینکه dependencies به درستی تعریف شده
-            if 'dependencies = [' in content or 'dependencies = (' in content:
-                # این OK است
-                pass
-            else:
-                # پیدا کردن خط dependencies
-                for i, line in enumerate(lines, 1):
-                    if 'dependencies' in line and '=' in line:
-                        if '[' not in line and '(' not in line:
-                            issues.append(Issue(
-                                file_path=file_path,
-                                line_number=i,
-                                severity=Severity.INFO,
-                                category="Database - Migration",
-                                message="Migration dependencies should be a list or tuple",
-                                suggestion="Use: dependencies = [('app_name', 'migration_name')]",
-                                auto_fixable=False
-                            ))
-        
-        return issues
-    
-    def _check_model_constraints(self, file_path: str, tree: ast.AST, content: str, lines: List[str]) -> List[Issue]:
-        """چک model constraints"""
-        issues = []
-        
-        for node in ast.walk(tree):
-            # چک class definitions که models.Model را inherit می‌کنند
-            if isinstance(node, ast.ClassDef):
-                is_model = False
-                for base in node.bases:
-                    base_name = self._get_base_name(base)
-                    if 'Model' in base_name:
-                        is_model = True
-                        break
-                
-                if is_model:
-                    # چک وجود Meta class
-                    has_meta = False
-                    has_constraints = False
-                    
-                    for item in node.body:
-                        if isinstance(item, ast.ClassDef) and item.name == 'Meta':
-                            has_meta = True
-                            # چک وجود constraints در Meta
-                            for meta_item in item.body:
-                                if isinstance(meta_item, ast.Assign):
-                                    for target in meta_item.targets:
-                                        if isinstance(target, ast.Name) and target.id == 'constraints':
-                                            has_constraints = True
-                    
-                    # چک وجود UniqueConstraint برای fields مهم
-                    # این یک چک ساده است - می‌تواند بهبود یابد
-                    class_content = ast.get_source_segment(content, node) or ""
-                    
-                    # چک ForeignKey fields برای on_delete
-                    for item in node.body:
-                        if isinstance(item, ast.Assign):
-                            for target in item.targets:
-                                if isinstance(target, ast.Name):
-                                    field_name = target.id
-                                    # چک اینکه آیا این یک ForeignKey است
-                                    if item.value and isinstance(item.value, ast.Call):
-                                        func_name = self._get_call_name(item.value)
-                                        if 'ForeignKey' in func_name or 'OneToOneField' in func_name:
-                                            # چک وجود on_delete
-                                            field_code = ast.get_source_segment(content, item) or ""
-                                            if 'on_delete' not in field_code:
-                                                issues.append(Issue(
-                                                    file_path=file_path,
-                                                    line_number=item.lineno,
-                                                    severity=Severity.ERROR,
-                                                    category="Database - Model",
-                                                    message=f"ForeignKey '{field_name}' missing 'on_delete' parameter",
-                                                    suggestion="Add on_delete parameter: on_delete=models.CASCADE (or SET_NULL, PROTECT, etc.)",
-                                                    auto_fixable=False
-                                                ))
-                    
-                    # چک وجود CheckConstraint برای validation
-                    # این یک چک پیشرفته است که نیاز به تحلیل بیشتر دارد
-                    
-        return issues
-    
-    def _get_base_name(self, base) -> str:
-        """دریافت نام base class"""
-        if isinstance(base, ast.Name):
-            return base.id
-        elif isinstance(base, ast.Attribute):
-            return base.attr
-        return ""
-    
-    def _get_call_name(self, node: ast.Call) -> str:
-        """دریافت نام function call"""
-        if isinstance(node.func, ast.Name):
-            return node.func.id
-        elif isinstance(node.func, ast.Attribute):
-            return node.func.attr
-        return ""
-    
-    def check_project(self, project_root: Path) -> List[Issue]:
-        """چک کردن database و migration برای کل پروژه"""
-        issues = []
-        
-        # پیدا کردن تمام فایل‌های migration و models
-        for py_file in project_root.rglob("*.py"):
-            if any(exempt in str(py_file) for exempt in ['__pycache__', '.venv']):
-                continue
-            issues.extend(self.check_file(str(py_file)))
-        
-        return issues
-
-class ErrorHandlingLoggingChecker:
-    """چک کردن Error Handling & Logging standards"""
-    
-    EXEMPT_MODULES = ['migrations', '__pycache__', '.venv', 'venv', 'tests']
-    
-    def check_file(self, file_path: str) -> List[Issue]:
-        """چک کردن error handling و logging در یک فایل"""
-        issues = []
-        
-        # فایل‌های معاف از چک
-        if any(exempt in file_path for exempt in self.EXEMPT_MODULES):
-            return issues
-        
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-                lines = content.split('\n')
-            
-            tree = ast.parse(content)
-            issues.extend(self._check_logging_usage(file_path, tree, content, lines))
-            issues.extend(self._check_error_handling(file_path, tree, content, lines))
-            issues.extend(self._check_sensitive_data_logging(file_path, content, lines))
-                
-        except Exception:
-            pass
-        
-        return issues
-    
-    def _check_logging_usage(self, file_path: str, tree: ast.AST, content: str, lines: List[str]) -> List[Issue]:
-        """چک استفاده از logger به جای print"""
-        issues = []
-        
-        # چک وجود print statements
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Call):
-                if isinstance(node.func, ast.Name) and node.func.id == 'print':
-                    # چک اینکه آیا logger import شده یا نه
-                    has_logger = False
-                    for item in ast.walk(tree):
-                        if isinstance(item, ast.Import):
-                            for alias in item.names:
-                                if 'logging' in alias.name:
-                                    has_logger = True
-                                    break
-                        elif isinstance(item, ast.ImportFrom):
-                            if item.module == 'logging':
-                                has_logger = True
-                                break
-                    
-                    if not has_logger:
-                        issues.append(Issue(
-                            file_path=file_path,
-                            line_number=node.lineno,
-                            severity=Severity.WARNING,
-                            category="Error Handling - Logging",
-                            message="Use logger instead of print() for logging",
-                            suggestion="Import logging and use: logger = logging.getLogger(__name__); logger.info('message')",
-                            auto_fixable=False
-                        ))
-        
-        return issues
-    
-    def _check_error_handling(self, file_path: str, tree: ast.AST, content: str, lines: List[str]) -> List[Issue]:
-        """چک error handling patterns"""
-        issues = []
-        
-        # چک وجود try-except blocks برای operations مهم
-        # این یک چک پیشرفته است که نیاز به تحلیل بیشتر دارد
-        
-        # چک bare except
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ExceptHandler):
-                if node.type is None:
-                    issues.append(Issue(
-                        file_path=file_path,
-                        line_number=node.lineno,
-                        severity=Severity.WARNING,
-                        category="Error Handling",
-                        message="Bare except clause should specify exception type",
-                        suggestion="Use: except SpecificException as e: instead of bare except:",
-                        auto_fixable=False
-                    ))
-        
-        return issues
-    
-    def _check_sensitive_data_logging(self, file_path: str, content: str, lines: List[str]) -> List[Issue]:
-        """چک عدم log کردن sensitive data"""
-        issues = []
-        
-        sensitive_patterns = [
-            r'password\s*[:=]',
-            r'secret\s*[:=]',
-            r'token\s*[:=]',
-            r'api_key\s*[:=]',
-            r'access_key\s*[:=]',
-        ]
-        
-        # چک در logger calls
-        logger_pattern = r'logger\.(info|debug|warning|error|critical)\s*\('
-        
-        for i, line in enumerate(lines, 1):
-            if re.search(logger_pattern, line, re.IGNORECASE):
-                for pattern in sensitive_patterns:
-                    if re.search(pattern, line, re.IGNORECASE):
-                        issues.append(Issue(
-                            file_path=file_path,
-                            line_number=i,
-                            severity=Severity.ERROR,
-                            category="Error Handling - Security",
-                            message="Sensitive data should not be logged",
-                            suggestion="Remove sensitive data from log messages or mask it",
-                            auto_fixable=False
-                        ))
-                        break
-        
-        return issues
-    
-    def check_project(self, project_root: Path) -> List[Issue]:
-        """چک کردن error handling و logging برای کل پروژه"""
-        issues = []
-        
-        # پیدا کردن تمام فایل‌های Python
-        for py_file in project_root.rglob("*.py"):
-            if any(exempt in str(py_file) for exempt in self.EXEMPT_MODULES):
-                continue
-            issues.extend(self.check_file(str(py_file)))
-        
-        return issues
-
-class CodeQualityChecker:
-    """چک کردن Code Quality standards"""
-    
-    EXEMPT_MODULES = ['migrations', '__pycache__', '.venv', 'venv']
-    
-    def check_file(self, file_path: str) -> List[Issue]:
-        """چک کردن code quality در یک فایل"""
-        issues = []
-        
-        # فایل‌های معاف از چک
-        if any(exempt in file_path for exempt in self.EXEMPT_MODULES):
-            return issues
-        
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-                lines = content.split('\n')
-            
-            tree = ast.parse(content)
-            issues.extend(self._check_function_length(file_path, tree, lines))
-            issues.extend(self._check_class_length(file_path, tree, lines))
-            issues.extend(self._check_unused_imports(file_path, tree, content))
-            issues.extend(self._check_code_duplication(file_path, tree, content))
-            issues.extend(self._check_cyclomatic_complexity(file_path, tree))
-                
-        except Exception:
-            pass
-        
-        return issues
-    
-    def _check_function_length(self, file_path: str, tree: ast.AST, lines: List[str]) -> List[Issue]:
-        """چک طول function (بیشتر از 50 خط)"""
-        issues = []
-        
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
-                # محاسبه طول function
-                func_start = node.lineno
-                func_end = node.end_lineno if hasattr(node, 'end_lineno') else func_start
-                func_length = func_end - func_start + 1
-                
-                if func_length > 50:
-                    issues.append(Issue(
-                        file_path=file_path,
-                        line_number=func_start,
-                        severity=Severity.WARNING,
-                        category="Code Quality",
-                        message=f"Function '{node.name}' is too long ({func_length} lines, max 50)",
-                        suggestion="Consider breaking this function into smaller functions",
-                        auto_fixable=False
-                    ))
-        
-        return issues
-    
-    def _check_class_length(self, file_path: str, tree: ast.AST, lines: List[str]) -> List[Issue]:
-        """چک طول class (بیشتر از 500 خط)"""
-        issues = []
-        
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ClassDef):
-                # محاسبه طول class
-                class_start = node.lineno
-                class_end = node.end_lineno if hasattr(node, 'end_lineno') else class_start
-                class_length = class_end - class_start + 1
-                
-                if class_length > 500:
-                    issues.append(Issue(
-                        file_path=file_path,
-                        line_number=class_start,
-                        severity=Severity.WARNING,
-                        category="Code Quality",
-                        message=f"Class '{node.name}' is too long ({class_length} lines, max 500)",
-                        suggestion="Consider breaking this class into smaller classes or using mixins",
-                        auto_fixable=False
-                    ))
-        
-        return issues
-    
-    def _check_unused_imports(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
-        """چک unused imports"""
-        issues = []
-        
-        # پیدا کردن تمام imports
-        imports_info = []
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    imports_info.append({
-                        'name': alias.name.split('.')[0] if '.' in alias.name else alias.name,
-                        'full_name': alias.name,
-                        'line': node.lineno,
-                        'asname': alias.asname
-                    })
-            elif isinstance(node, ast.ImportFrom):
-                if node.module:
-                    for alias in node.names:
-                        import_name = alias.asname if alias.asname else alias.name
-                        imports_info.append({
-                            'name': import_name,
-                            'full_name': f"{node.module}.{alias.name}",
-                            'line': node.lineno,
-                            'asname': alias.asname
-                        })
-        
-        # چک استفاده از imports
-        for imp_info in imports_info:
-            import_name = imp_info['name']
-            # Skip common imports که همیشه استفاده می‌شوند
-            if import_name in ['os', 'sys', 're', 'json', 'datetime', 'pathlib', 'Path']:
-                continue
-            
-            # چک اینکه آیا import استفاده شده
-            # این یک چک ساده است - می‌تواند بهبود یابد
-            usage_pattern = rf'\b{re.escape(import_name)}\b'
-            if not re.search(usage_pattern, content):
-                # ممکن است استفاده نشده باشد - اما باید مطمئن شویم
-                # این یک چک ساده است و ممکن است false positive داشته باشد
-                pass
-        
-        return issues
-    
-    def _check_code_duplication(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
-        """چک code duplication"""
-        issues = []
-        
-        # پیدا کردن تمام functions
-        functions = []
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
-                func_content = ast.get_source_segment(content, node) or ""
-                # نرمال‌سازی (حذف whitespace و comments)
-                normalized = re.sub(r'\s+', ' ', func_content)
-                normalized = re.sub(r'#.*', '', normalized)
-                functions.append({
-                    'name': node.name,
-                    'content': normalized,
-                    'line': node.lineno
-                })
-        
-        # چک duplicate functions
-        seen_contents = {}
-        for func in functions:
-            # Skip functions کوچک (کمتر از 50 کاراکتر)
-            if len(func['content']) < 50:
-                continue
-            
-            # چک similarity
-            for seen_name, seen_content in seen_contents.items():
-                # چک similarity ساده
-                if func['content'] == seen_content:
-                    issues.append(Issue(
-                        file_path=file_path,
-                        line_number=func['line'],
-                        severity=Severity.WARNING,
-                        category="Code Quality - Duplication",
-                        message=f"Function '{func['name']}' appears to be duplicate of '{seen_name}'",
-                        suggestion="Consider extracting common code to a shared function",
-                        auto_fixable=False
-                    ))
-                    break
-            
-            seen_contents[func['name']] = func['content']
-        
-        return issues
-    
-    def _check_cyclomatic_complexity(self, file_path: str, tree: ast.AST) -> List[Issue]:
-        """چک cyclomatic complexity"""
-        issues = []
-        
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
-                # محاسبه complexity
-                complexity = 1  # Base complexity
-                
-                # اضافه کردن برای هر decision point
-                for child in ast.walk(node):
-                    if isinstance(child, ast.If):
-                        complexity += 1
-                    elif isinstance(child, ast.For):
-                        complexity += 1
-                    elif isinstance(child, ast.While):
-                        complexity += 1
-                    elif isinstance(child, ast.ExceptHandler):
-                        complexity += 1
-                    elif isinstance(child, ast.With):
-                        complexity += 1
-                    elif isinstance(child, (ast.And, ast.Or)):
-                        complexity += 1
-                
-                # اگر complexity بیشتر از 10 باشد، warning بده
-                if complexity > 10:
-                    issues.append(Issue(
-                        file_path=file_path,
-                        line_number=node.lineno,
-                        severity=Severity.WARNING,
-                        category="Code Quality - Complexity",
-                        message=f"Function '{node.name}' has high cyclomatic complexity ({complexity}, max 10)",
-                        suggestion="Consider breaking this function into smaller functions to reduce complexity",
-                        auto_fixable=False
-                    ))
-        
-        return issues
-    
-    def check_project(self, project_root: Path) -> List[Issue]:
-        """چک کردن code quality برای کل پروژه"""
-        issues = []
-        
-        # پیدا کردن تمام فایل‌های Python
-        for py_file in project_root.rglob("*.py"):
-            if any(exempt in str(py_file) for exempt in self.EXEMPT_MODULES):
-                continue
-            issues.extend(self.check_file(str(py_file)))
-        
-        return issues
-
-class GitWorkflowChecker:
-    """چک کردن Git Workflow standards"""
-    
-    def check_file(self, file_path: str) -> List[Issue]:
-        """چک کردن git workflow - این چک در سطح پروژه انجام می‌شود"""
-        # Git workflow checks are project-level, not file-level
-        return []
-    
-    def check_project(self, project_root: Path) -> List[Issue]:
-        """چک کردن git workflow برای کل پروژه"""
-        issues = []
-        
-        # چک commit messages (آخرین commits)
-        issues.extend(self._check_commit_messages(project_root))
-        
-        # چک branch naming
-        issues.extend(self._check_branch_naming(project_root))
-        
-        return issues
-    
-    def _check_commit_messages(self, project_root: Path) -> List[Issue]:
-        """چک فرمت commit messages"""
-        issues = []
-        
-        try:
-            import subprocess
-            
-            # گرفتن آخرین 10 commit messages
-            result = subprocess.run(
-                ['git', 'log', '--pretty=format:%s', '-10'],
-                cwd=project_root,
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            
-            if result.returncode == 0:
-                commit_messages = result.stdout.strip().split('\n')
-                
-                # چک فرمت conventional commits
-                conventional_types = ['feat', 'fix', 'docs', 'style', 'refactor', 'test', 'chore', 'perf', 'ci', 'build']
-                
-                for i, msg in enumerate(commit_messages):
-                    if not msg:
-                        continue
-                    
-                    # چک فرمت: type(scope): subject
-                    parts = msg.split(':', 1)
-                    if len(parts) < 2:
-                        issues.append(Issue(
-                            file_path=str(project_root / ".git"),
-                            line_number=i + 1,
-                            severity=Severity.INFO,
-                            category="Git Workflow - Commit Message",
-                            message=f"Commit message '{msg[:50]}...' doesn't follow conventional commits format",
-                            suggestion="Use format: type(scope): subject (e.g., feat(inventory): add barcode support)",
-                            auto_fixable=False
-                        ))
-                    else:
-                        type_part = parts[0].strip()
-                        # چک وجود type معتبر
-                        if '(' in type_part:
-                            commit_type = type_part.split('(')[0]
-                        else:
-                            commit_type = type_part
-                        
-                        if commit_type not in conventional_types:
-                            issues.append(Issue(
-                                file_path=str(project_root / ".git"),
-                                line_number=i + 1,
-                                severity=Severity.INFO,
-                                category="Git Workflow - Commit Message",
-                                message=f"Commit message type '{commit_type}' is not standard",
-                                suggestion=f"Use standard types: {', '.join(conventional_types)}",
-                                auto_fixable=False
-                            ))
-        
-        except Exception:
-            # اگر git در دسترس نبود یا خطا داد، skip می‌کنیم
-            pass
-        
-        return issues
-    
-    def _check_branch_naming(self, project_root: Path) -> List[Issue]:
-        """چک فرمت branch naming"""
-        issues = []
-        
-        try:
-            import subprocess
-            
-            # گرفتن نام branch فعلی
-            result = subprocess.run(
-                ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
-                cwd=project_root,
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            
-            if result.returncode == 0:
-                branch_name = result.stdout.strip()
-                
-                # چک فرمت branch name
-                valid_prefixes = ['feature/', 'bugfix/', 'hotfix/', 'release/', 'develop', 'main', 'master']
-                
-                if branch_name not in ['develop', 'main', 'master']:
-                    has_valid_prefix = any(branch_name.startswith(prefix) for prefix in valid_prefixes)
-                    
-                    if not has_valid_prefix:
-                        issues.append(Issue(
-                            file_path=str(project_root / ".git"),
-                            line_number=1,
-                            severity=Severity.INFO,
-                            category="Git Workflow - Branch Naming",
-                            message=f"Branch '{branch_name}' doesn't follow naming convention",
-                            suggestion="Use format: feature/description, bugfix/description, or hotfix/description",
-                            auto_fixable=False
-                        ))
-        
-        except Exception:
-            # اگر git در دسترس نبود یا خطا داد، skip می‌کنیم
-            pass
-        
-        return issues
 
 class StandardsChecker:
-    """Main Standards Checker"""
-    
-    def __init__(self):
-        self.base_checker = BaseClassChecker()
-        self.template_checker = TemplateChecker()
-        self.docstring_checker = DocstringChecker()
-        self.security_checker = SecurityChecker()
-        self.naming_checker = NamingChecker()
-        self.performance_checker = PerformanceChecker()
-        self.shared_components_checker = SharedComponentsChecker()
-        self.security_enhanced_checker = SecurityEnhancedChecker()
-        self.testing_checker = TestingChecker()
-        self.api_checker = ApiChecker()
-        self.database_migration_checker = DatabaseMigrationChecker()
-        self.error_logging_checker = ErrorHandlingLoggingChecker()
-        self.code_quality_checker = CodeQualityChecker()
-        self.git_workflow_checker = GitWorkflowChecker()
-    
-    def check_all(self, project_root: Path) -> List[Issue]:
-        issues = []
-        issues.extend(self.base_checker.check_project(project_root))
-        issues.extend(self.template_checker.check_project(project_root))
-        issues.extend(self.docstring_checker.check_project(project_root))
-        issues.extend(self.security_checker.check_project(project_root))
-        issues.extend(self.naming_checker.check_project(project_root))
-        issues.extend(self.performance_checker.check_project(project_root))
-        issues.extend(self.shared_components_checker.check_project(project_root))
-        issues.extend(self.security_enhanced_checker.check_project(project_root))
-        issues.extend(self.testing_checker.check_project(project_root))
-        issues.extend(self.api_checker.check_project(project_root))
-        issues.extend(self.database_migration_checker.check_project(project_root))
-        issues.extend(self.error_logging_checker.check_project(project_root))
-        issues.extend(self.code_quality_checker.check_project(project_root))
-        issues.extend(self.git_workflow_checker.check_project(project_root))
-        return issues
