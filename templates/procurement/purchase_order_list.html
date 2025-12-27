@@ -1,0 +1,70 @@
+{% extends "shared/generic/generic_list.html" %}
+{% load i18n jalali_tags %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Purchase Orders" %}</span>
+{% endblock %}
+
+{% block filter_fields %}
+<div class="form-group">
+  <label for="status">{% trans "Status" %}</label>
+  <select name="order_status" id="status" class="form-control">
+    <option value="">-- {% trans "All" %} --</option>
+    <option value="draft" {% if request.GET.order_status == 'draft' %}selected{% endif %}>{% trans "Draft" %}</option>
+    <option value="approved" {% if request.GET.order_status == 'approved' %}selected{% endif %}>{% trans "Approved" %}</option>
+    <option value="sent" {% if request.GET.order_status == 'sent' %}selected{% endif %}>{% trans "Sent" %}</option>
+    <option value="partially_received" {% if request.GET.order_status == 'partially_received' %}selected{% endif %}>{% trans "Partially Received" %}</option>
+    <option value="received" {% if request.GET.order_status == 'received' %}selected{% endif %}>{% trans "Received" %}</option>
+    <option value="cancelled" {% if request.GET.order_status == 'cancelled' %}selected{% endif %}>{% trans "Cancelled" %}</option>
+  </select>
+</div>
+{% endblock %}
+
+{% block table_headers %}
+<th>{% trans "Order Code" %}</th>
+<th>{% trans "Order Date" %}</th>
+<th>{% trans "Supplier" %}</th>
+<th>{% trans "Purchase Request" %}</th>
+<th>{% trans "Total Amount" %}</th>
+<th>{% trans "Status" %}</th>
+<th>{% trans "Actions" %}</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for order in object_list %}
+<tr>
+  <td><code>{{ order.order_code }}</code></td>
+  <td>{{ order.order_date|jalali_date }}</td>
+  <td>{{ order.supplier.name|default:"-" }}</td>
+  <td>
+    {% if order.purchase_request %}
+      <code>{{ order.purchase_request_code }}</code>
+    {% else %}
+      <span class="text-muted">—</span>
+    {% endif %}
+  </td>
+  <td class="table-cell-right">{{ order.total_amount|floatformat:2 }}</td>
+  <td>
+    <span class="badge badge-{{ order.order_status|default:'secondary' }}">
+      {{ order.get_order_status_display }}
+    </span>
+  </td>
+  <td>
+    <a href="{% url 'procurement:purchase_order_detail' order.pk %}" class="btn btn-sm btn-info">{% trans "View" %}</a>
+    {% if order.order_status == 'draft' %}
+      <a href="{% url 'procurement:purchase_order_edit' order.pk %}" class="btn btn-sm btn-primary">{% trans "Edit" %}</a>
+      <a href="{% url 'procurement:purchase_order_delete' order.pk %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
+    {% endif %}
+  </td>
+</tr>
+{% empty %}
+<tr>
+  <td colspan="7" class="text-center">
+    <div class="empty-state">
+      <p>{% trans "No purchase orders found." %}</p>
+    </div>
+  </td>
+</tr>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "shared/generic/generic_form.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block form_sections %}
+<div class="form-section">
+  <h3>{% trans "Payment Request Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      {{ form.payment_type.label_tag }}
+      {{ form.payment_type }}
+      {{ form.payment_type.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.request_date.label_tag }}
+      {{ form.request_date }}
+      {{ form.request_date.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.amount.label_tag }}
+      {{ form.amount }}
+      {{ form.amount.errors }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field">
+      {{ form.party.label_tag }}
+      {{ form.party }}
+      {{ form.party.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.due_date.label_tag }}
+      {{ form.due_date }}
+      {{ form.due_date.errors }}
+    </div>
+  </div>
+  
+  <div id="purchase-invoice-fields" style="display: none;">
+    <div class="form-row">
+      <div class="form-field">
+        {{ form.purchase_invoice.label_tag }}
+        {{ form.purchase_invoice }}
+        {{ form.purchase_invoice.errors }}
+      </div>
+    </div>
+  </div>
+  
+  <div id="service-invoice-fields" style="display: none;">
+    <div class="form-row">
+      <div class="form-field">
+        {{ form.service_invoice.label_tag }}
+        {{ form.service_invoice }}
+        {{ form.service_invoice.errors }}
+      </div>
+    </div>
+  </div>
+  
+  <div id="direct-expense-fields" style="display: none;">
+    <div class="form-row">
+      <div class="form-field">
+        {{ form.expense_category.label_tag }}
+        {{ form.expense_category }}
+        {{ form.expense_category.errors }}
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field full-width">
+        {{ form.expense_description.label_tag }}
+        {{ form.expense_description }}
+        {{ form.expense_description.errors }}
+      </div>
+    </div>
+  </div>
+  
+  <div id="prepayment-fields" style="display: none;">
+    <div class="form-row">
+      <div class="form-field">
+        {{ form.prepayment_account.label_tag }}
+        {{ form.prepayment_account }}
+        {{ form.prepayment_account.errors }}
+      </div>
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field full-width">
+      {{ form.notes.label_tag }}
+      {{ form.notes }}
+      {{ form.notes.errors }}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block form_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const paymentTypeField = document.getElementById('id_payment_type');
+  const purchaseInvoiceFields = document.getElementById('purchase-invoice-fields');
+  const serviceInvoiceFields = document.getElementById('service-invoice-fields');
+  const directExpenseFields = document.getElementById('direct-expense-fields');
+  const prepaymentFields = document.getElementById('prepayment-fields');
+  
+  function toggleFields() {
+    const value = paymentTypeField.value;
+    purchaseInvoiceFields.style.display = (value === 'purchase_invoice') ? 'block' : 'none';
+    serviceInvoiceFields.style.display = (value === 'service_invoice') ? 'block' : 'none';
+    directExpenseFields.style.display = (value === 'direct_expense') ? 'block' : 'none';
+    prepaymentFields.style.display = (value === 'prepayment') ? 'block' : 'none';
+  }
+  
+  paymentTypeField.addEventListener('change', toggleFields);
+  toggleFields(); // Initialize on page load
+});
+</script>
+{% endblock %}
+

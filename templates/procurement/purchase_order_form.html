@@ -1,0 +1,158 @@
+{% extends "shared/generic/generic_form.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block form_sections %}
+<div class="form-section">
+  <h3>{% trans "Order Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      {{ form.supplier.label_tag }}
+      {{ form.supplier }}
+      {{ form.supplier.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.order_date.label_tag }}
+      {{ form.order_date }}
+      {{ form.order_date.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.purchase_request.label_tag }}
+      {{ form.purchase_request }}
+      {{ form.purchase_request.errors }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field">
+      {{ form.expected_delivery_date.label_tag }}
+      {{ form.expected_delivery_date }}
+      {{ form.expected_delivery_date.errors }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field full-width">
+      {{ form.delivery_address.label_tag }}
+      {{ form.delivery_address }}
+      {{ form.delivery_address.errors }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field full-width">
+      {{ form.payment_terms.label_tag }}
+      {{ form.payment_terms }}
+      {{ form.payment_terms.errors }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field full-width">
+      {{ form.notes.label_tag }}
+      {{ form.notes }}
+      {{ form.notes.errors }}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block form_extra %}
+{% if lines_formset %}
+<div class="form-section">
+  <h3>{% trans "Order Lines" %}</h3>
+  {{ lines_formset.management_form }}
+  {% if lines_formset.non_form_errors %}
+    <div class="alert alert-danger">
+      {{ lines_formset.non_form_errors }}
+    </div>
+  {% endif %}
+  
+  <div class="lines-formset" id="lines-formset">
+    <table class="formset-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>{% trans "Item" %} *</th>
+          <th>{% trans "Unit" %} *</th>
+          <th>{% trans "Quantity" %} *</th>
+          <th>{% trans "Unit Price" %}</th>
+          <th>{% trans "Total" %}</th>
+          <th>{% trans "Notes" %}</th>
+          {% if lines_formset.can_delete %}
+          <th>{% trans "Delete" %}</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for line_form in lines_formset %}
+        <tr class="line-row">
+          {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
+          <td class="line-number">{{ forloop.counter }}</td>
+          <td>
+            {{ line_form.item }}
+            {{ line_form.item.errors }}
+          </td>
+          <td>
+            {{ line_form.unit }}
+            {{ line_form.unit.errors }}
+          </td>
+          <td>
+            {{ line_form.quantity }}
+            {{ line_form.quantity.errors }}
+          </td>
+          <td>
+            {{ line_form.unit_price }}
+            {{ line_form.unit_price.errors }}
+          </td>
+          <td class="line-total" data-line-total>0.00</td>
+          <td>
+            {{ line_form.line_notes }}
+            {{ line_form.line_notes.errors }}
+          </td>
+          {% if lines_formset.can_delete %}
+          <td>{{ line_form.DELETE }}</td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <button type="button" id="add-line-btn" class="btn btn-success">+ {% trans "Add Line" %}</button>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block form_scripts %}
+<link rel="stylesheet" href="{% static 'css/formset-table.css' %}">
+<script src="{% static 'js/formset.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const formsetContainer = document.getElementById('lines-formset');
+  if (formsetContainer) {
+    function calculateLineTotal(row) {
+      const quantityInput = row.querySelector('input[name*="-quantity"]');
+      const unitPriceInput = row.querySelector('input[name*="-unit_price"]');
+      const totalCell = row.querySelector('[data-line-total]');
+      
+      if (quantityInput && unitPriceInput && totalCell) {
+        const quantity = parseFloat(quantityInput.value) || 0;
+        const unitPrice = parseFloat(unitPriceInput.value) || 0;
+        const total = quantity * unitPrice;
+        totalCell.textContent = total.toFixed(2);
+      }
+    }
+    
+    // Calculate totals for all rows on load
+    formsetContainer.querySelectorAll('tr.line-row').forEach(function(row) {
+      calculateLineTotal(row);
+    });
+    
+    // Auto-calculate totals on input
+    formsetContainer.addEventListener('input', function(e) {
+      const row = e.target.closest('tr.line-row');
+      if (row && (e.target.name.includes('-quantity') || e.target.name.includes('-unit_price'))) {
+        calculateLineTotal(row);
+      }
+    });
+  }
+});
+</script>
+{% endblock %}
+

@@ -1,0 +1,67 @@
+{% extends "shared/generic/generic_detail.html" %}
+{% load i18n jalali_tags %}
+
+{% block info_banner_extra %}
+<div><strong>{% trans "Request Code" %}:</strong> <code>{{ payment_request.request_code }}</code></div>
+<div><strong>{% trans "Status" %}:</strong>
+  <span class="badge badge-{{ payment_request.request_status|default:'secondary' }}">
+    {{ payment_request.get_request_status_display }}
+  </span>
+</div>
+{% endblock %}
+
+{% block detail_sections %}
+<div class="form-section">
+  <h3>{% trans "Payment Request Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Payment Type" %}</label>
+      <div class="readonly-field">{{ payment_request.get_payment_type_display }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Request Date" %}</label>
+      <div class="readonly-field">{{ payment_request.request_date|jalali_date }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Amount" %}</label>
+      <div class="readonly-field"><strong>{{ payment_request.amount|floatformat:2 }}</strong></div>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Party" %}</label>
+      <div class="readonly-field">{{ payment_request.party.party_name|default:"-" }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Due Date" %}</label>
+      <div class="readonly-field">{{ payment_request.due_date|jalali_date|default:"-" }}</div>
+    </div>
+  </div>
+  
+  {% if payment_request.purchase_invoice %}
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Purchase Invoice" %}</label>
+      <div class="readonly-field"><code>{{ payment_request.purchase_invoice_code }}</code></div>
+    </div>
+  </div>
+  {% endif %}
+  
+  {% if payment_request.service_invoice %}
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Service Invoice" %}</label>
+      <div class="readonly-field"><code>{{ payment_request.service_invoice_code }}</code></div>
+    </div>
+  </div>
+  {% endif %}
+  
+  {% if payment_request.notes %}
+  <div class="form-section">
+    <h3>{% trans "Notes" %}</h3>
+    <div class="readonly-field">{{ payment_request.notes|linebreaks }}</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

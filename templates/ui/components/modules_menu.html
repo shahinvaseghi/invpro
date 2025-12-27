@@ -364,6 +364,9 @@
               {% if user_feature_permissions|feature_allowed:'accounting.treasury.cash_report' or request.user.is_superuser %}
                 <li><a href="{% url 'accounting:treasury_cash_report' %}"><span class="menu-icon icon-chart"></span>{% trans "گزارش وجوه نقد و بانک‌ها" %}</a></li>
               {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.payment_requests.list' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:payment_requests' %}"><span class="menu-icon icon-money"></span>{% trans "درخواست‌های پرداخت" %}</a></li>
+              {% endif %}
               {% if user_feature_permissions|feature_allowed:'accounting.income_expense.cost_allocation' or request.user.is_superuser %}
                 <li><a href="{% url 'accounting:cost_allocation' %}"><span class="menu-icon icon-chart"></span>{% trans "تخصیص مرکز هزینه" %}</a></li>
               {% endif %}
@@ -692,7 +695,7 @@
     {% endif %}
 
     <!-- Requests Module Section -->
-    {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' or user_feature_permissions|feature_allowed:'inventory.requests.warehouse' or user_feature_permissions|feature_allowed:'production.transfer_requests' or user_feature_permissions|feature_allowed:'hr.requests.leave' or user_feature_permissions|feature_allowed:'hr.requests.sick_leave' or user_feature_permissions|feature_allowed:'hr.requests.loan' or request.user.is_superuser %}
+    {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' or user_feature_permissions|feature_allowed:'inventory.requests.warehouse' or user_feature_permissions|feature_allowed:'production.transfer_requests' or user_feature_permissions|feature_allowed:'procurement.services.request' or user_feature_permissions|feature_allowed:'hr.requests.leave' or user_feature_permissions|feature_allowed:'hr.requests.sick_leave' or user_feature_permissions|feature_allowed:'hr.requests.loan' or request.user.is_superuser %}
     <div class="mega-menu-section collapsed">
       <button type="button" class="mega-menu-section-toggle" data-section="requests-section">
         <span class="menu-icon icon-clipboard"></span>
@@ -706,6 +709,9 @@
         {% endif %}
         {% if user_feature_permissions|feature_allowed:'inventory.requests.warehouse' %}
           <li><a href="{% url 'inventory:warehouse_requests' %}"><span class="menu-icon icon-clipboard"></span>{% trans "Warehouse Request" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'procurement.services.request' or request.user.is_superuser %}
+          <li><a href="{% url 'procurement:service_requests' %}"><span class="menu-icon icon-service"></span>{% trans "Service Request" %}</a></li>
         {% endif %}
         {% if user_feature_permissions|feature_allowed:'production.transfer_requests' or request.user.is_superuser %}
           <li><a href="{% url 'production:transfer_requests' %}"><span class="menu-icon icon-truck"></span>{% trans "Transfer to Line Requests" %}</a></li>
@@ -816,15 +822,37 @@
       <div class="mega-menu-section-content" id="procurement-section">
         <ul>
         <li><a href="{% url 'procurement:dashboard' %}"><span class="menu-icon icon-chart"></span>{% trans "Dashboard" %}</a></li>
-        {% if user_feature_permissions|feature_allowed:'procurement.purchases' %}
+        {% if user_feature_permissions|feature_allowed:'procurement.orders.list' or user_feature_permissions|feature_allowed:'procurement.invoices.purchase' or request.user.is_superuser %}
           <li class="mega-menu-submenu-item">
-            <button type="button" class="mega-menu-toggle" data-submenu="procurement-purchases">
+            <button type="button" class="mega-menu-toggle" data-submenu="procurement-purchase">
               <span class="menu-icon icon-cart"></span>
-              <span>{% trans "Purchases" %}</span>
+              <span>{% trans "Purchase" %}</span>
               <span class="mega-menu-arrow">▼</span>
             </button>
-            <ul class="mega-menu-submenu" id="procurement-purchases">
-              <li><a href="{% url 'procurement:purchases' %}"><span class="menu-icon icon-cart"></span>{% trans "Purchases" %}</a></li>
+            <ul class="mega-menu-submenu" id="procurement-purchase">
+              {% if user_feature_permissions|feature_allowed:'procurement.orders.list' or request.user.is_superuser %}
+                <li><a href="{% url 'procurement:purchase_orders' %}"><span class="menu-icon icon-shopping-cart"></span>{% trans "Purchase Orders" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'procurement.invoices.purchase' or request.user.is_superuser %}
+                <li><a href="{% url 'procurement:purchase_invoices' %}"><span class="menu-icon icon-file-text"></span>{% trans "Purchase Invoices" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'procurement.services.request' or user_feature_permissions|feature_allowed:'procurement.invoices.service' or request.user.is_superuser %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="procurement-services">
+              <span class="menu-icon icon-service"></span>
+              <span>{% trans "Services" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="procurement-services">
+              {% if user_feature_permissions|feature_allowed:'procurement.services.request' or request.user.is_superuser %}
+                <li><a href="{% url 'procurement:service_requests' %}"><span class="menu-icon icon-file"></span>{% trans "Service Requests" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'procurement.invoices.service' or request.user.is_superuser %}
+                <li><a href="{% url 'procurement:service_invoices' %}"><span class="menu-icon icon-file-text"></span>{% trans "Service Invoices" %}</a></li>
+              {% endif %}
             </ul>
           </li>
         {% endif %}

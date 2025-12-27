@@ -1,0 +1,105 @@
+{% extends "shared/generic/generic_form.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block form_sections %}
+<div class="form-section">
+  <h3>{% trans "Invoice Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      {{ form.supplier.label_tag }}
+      {{ form.supplier }}
+      {{ form.supplier.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.party.label_tag }}
+      {{ form.party }}
+      {{ form.party.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.invoice_date.label_tag }}
+      {{ form.invoice_date }}
+      {{ form.invoice_date.errors }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field">
+      {{ form.invoice_number.label_tag }}
+      {{ form.invoice_number }}
+      {{ form.invoice_number.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.service_request.label_tag }}
+      {{ form.service_request }}
+      {{ form.service_request.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.vat_rate.label_tag }}
+      {{ form.vat_rate }}
+      {{ form.vat_rate.errors }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field full-width">
+      {{ form.service_description.label_tag }}
+      {{ form.service_description }}
+      {{ form.service_description.errors }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field">
+      {{ form.subtotal.label_tag }}
+      {{ form.subtotal }}
+      {{ form.subtotal.errors }}
+    </div>
+    <div class="form-field">
+      <label>{% trans "VAT Amount" %}</label>
+      <input type="text" id="id_vat_amount_display" readonly class="form-control" value="{{ form.instance.vat_amount|floatformat:2|default:'0.00' }}">
+      {{ form.vat_amount.as_hidden }}
+    </div>
+    <div class="form-field">
+      <label>{% trans "Total Amount" %}</label>
+      <input type="text" id="id_total_amount_display" readonly class="form-control" value="{{ form.instance.total_amount|floatformat:2|default:'0.00' }}">
+      {{ form.total_amount.as_hidden }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field full-width">
+      {{ form.notes.label_tag }}
+      {{ form.notes }}
+      {{ form.notes.errors }}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block form_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const subtotalField = document.getElementById('id_subtotal');
+  const vatRateField = document.getElementById('id_vat_rate');
+  const vatAmountField = document.getElementById('id_vat_amount');
+  const totalAmountField = document.getElementById('id_total_amount');
+  
+  function calculateTotals() {
+    const subtotal = parseFloat(subtotalField.value) || 0;
+    const vatRate = parseFloat(vatRateField.value) || 0;
+    const vatAmount = subtotal * (vatRate / 100);
+    const totalAmount = subtotal + vatAmount;
+    
+    vatAmountField.value = vatAmount.toFixed(2);
+    totalAmountField.value = totalAmount.toFixed(2);
+    
+    document.getElementById('id_vat_amount_display').value = vatAmount.toFixed(2);
+    document.getElementById('id_total_amount_display').value = totalAmount.toFixed(2);
+  }
+  
+  if (subtotalField && vatRateField) {
+    subtotalField.addEventListener('input', calculateTotals);
+    vatRateField.addEventListener('input', calculateTotals);
+    calculateTotals(); // Initial calculation
+  }
+});
+</script>
+{% endblock %}
+

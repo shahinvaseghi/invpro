@@ -156,6 +156,11 @@ urlpatterns = [
     path('treasury/checks/', views_module.TreasuryChecksView.as_view(), name='treasury_checks'),
     path('treasury/reconciliation/', views_module.TreasuryReconciliationView.as_view(), name='treasury_reconciliation'),
     path('treasury/cash-report/', views_module.TreasuryCashReportView.as_view(), name='treasury_cash_report'),
+    path('treasury/payment-requests/', views_module.PaymentRequestListView.as_view(), name='payment_requests'),
+    path('treasury/payment-requests/create/', views_module.PaymentRequestCreateView.as_view(), name='payment_request_create'),
+    path('treasury/payment-requests/<int:pk>/', views_module.PaymentRequestDetailView.as_view(), name='payment_request_detail'),
+    path('treasury/payment-requests/<int:pk>/edit/', views_module.PaymentRequestUpdateView.as_view(), name='payment_request_edit'),
+    path('treasury/payment-requests/<int:pk>/delete/', views_module.PaymentRequestDeleteView.as_view(), name='payment_request_delete'),
     
     # Income & Expense (درآمد و هزینه)
     path('income-expense/income/', views_module.IncomeExpenseIncomeView.as_view(), name='income_expense_income'),

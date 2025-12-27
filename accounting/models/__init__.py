@@ -52,6 +52,9 @@ from .parties import Party, PartyAccount
 # Treasury Accounts
 from .treasury_accounts import TreasuryAccount
 
+# Payment Requests
+from .payment_requests import PaymentRequest
+
 # Warehouse Accounting
 from .warehouse import (
     WarehouseExpenseDocument,
@@ -103,6 +106,8 @@ __all__ = [
     'PartyAccount',
     # Treasury Accounts
     'TreasuryAccount',
+    # Payment Requests
+    'PaymentRequest',
     # Warehouse Accounting
     'WarehouseExpenseDocument',
     'WarehouseExpenseDocumentLine',

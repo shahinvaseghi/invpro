@@ -1840,3 +1840,13 @@ class WarehouseSettingsView(FeaturePermissionRequiredMixin, TemplateView):
         return context
 
 
+# Payment Request Views - Imported from views.payment_request
+from .views.payment_request import (
+    PaymentRequestListView,
+    PaymentRequestCreateView,
+    PaymentRequestDetailView,
+    PaymentRequestUpdateView,
+    PaymentRequestDeleteView,
+)
+
+

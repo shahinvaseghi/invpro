@@ -1,0 +1,73 @@
+{% extends "shared/generic/generic_list.html" %}
+{% load i18n jalali_tags %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Service Invoices" %}</span>
+{% endblock %}
+
+{% block filter_fields %}
+<div class="form-group">
+  <label for="status">{% trans "Status" %}</label>
+  <select name="invoice_status" id="status" class="form-control">
+    <option value="">-- {% trans "All" %} --</option>
+    <option value="draft" {% if request.GET.invoice_status == 'draft' %}selected{% endif %}>{% trans "Draft" %}</option>
+    <option value="approved" {% if request.GET.invoice_status == 'approved' %}selected{% endif %}>{% trans "Approved" %}</option>
+    <option value="posted" {% if request.GET.invoice_status == 'posted' %}selected{% endif %}>{% trans "Posted" %}</option>
+    <option value="paid" {% if request.GET.invoice_status == 'paid' %}selected{% endif %}>{% trans "Paid" %}</option>
+    <option value="cancelled" {% if request.GET.invoice_status == 'cancelled' %}selected{% endif %}>{% trans "Cancelled" %}</option>
+  </select>
+</div>
+{% endblock %}
+
+{% block table_headers %}
+<th>{% trans "Invoice Code" %}</th>
+<th>{% trans "Invoice Date" %}</th>
+<th>{% trans "Supplier" %}</th>
+<th>{% trans "Service Request" %}</th>
+<th>{% trans "Subtotal" %}</th>
+<th>{% trans "VAT" %}</th>
+<th>{% trans "Total" %}</th>
+<th>{% trans "Status" %}</th>
+<th>{% trans "Actions" %}</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for invoice in object_list %}
+<tr>
+  <td><code>{{ invoice.invoice_code }}</code></td>
+  <td>{{ invoice.invoice_date|jalali_date }}</td>
+  <td>{{ invoice.supplier.name|default:"-" }}</td>
+  <td>
+    {% if invoice.service_request %}
+      <code>{{ invoice.service_request.request_code }}</code>
+    {% else %}
+      <span class="text-muted">—</span>
+    {% endif %}
+  </td>
+  <td class="table-cell-right">{{ invoice.subtotal|floatformat:2 }}</td>
+  <td class="table-cell-right">{{ invoice.vat_amount|floatformat:2 }}</td>
+  <td class="table-cell-right"><strong>{{ invoice.total_amount|floatformat:2 }}</strong></td>
+  <td>
+    <span class="badge badge-{{ invoice.invoice_status|default:'secondary' }}">
+      {{ invoice.get_invoice_status_display }}
+    </span>
+  </td>
+  <td>
+    <a href="{% url 'procurement:service_invoice_detail' invoice.pk %}" class="btn btn-sm btn-info">{% trans "View" %}</a>
+    {% if invoice.invoice_status == 'draft' %}
+      <a href="{% url 'procurement:service_invoice_edit' invoice.pk %}" class="btn btn-sm btn-primary">{% trans "Edit" %}</a>
+      <a href="{% url 'procurement:service_invoice_delete' invoice.pk %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
+    {% endif %}
+  </td>
+</tr>
+{% empty %}
+<tr>
+  <td colspan="9" class="text-center">
+    <div class="empty-state">
+      <p>{% trans "No service invoices found." %}</p>
+    </div>
+  </td>
+</tr>
+{% endfor %}
+{% endblock %}

@@ -17,6 +17,7 @@ from .treasury_accounts import TreasuryAccountForm
 from .warehouse import WarehouseExpenseDocumentForm, WarehouseExpenseDocumentLineFormSet
 from .documents import AccountingDocumentForm, AccountingDocumentLineFormSet
 from .taxpayer_system import FiscalMemoryConfigForm
+from .payment_requests import PaymentRequestForm
 
 __all__ = [
     'FiscalYearForm',
@@ -39,5 +40,6 @@ __all__ = [
     'AccountingDocumentForm',
     'AccountingDocumentLineFormSet',
     'FiscalMemoryConfigForm',
+    'PaymentRequestForm',
 ]
 

@@ -367,6 +367,9 @@
             {% if user_feature_permissions|feature_allowed:'accounting.treasury.cash_report' or request.user.is_superuser %}
               <a href="{% url 'accounting:treasury_cash_report' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "گزارش وجوه نقد و بانک‌ها" %}</a>
             {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.payment_requests.list' or request.user.is_superuser %}
+              <a href="{% url 'accounting:payment_requests' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "درخواست‌های پرداخت" %}</a>
+            {% endif %}
             {% if user_feature_permissions|feature_allowed:'accounting.income_expense.cost_allocation' or request.user.is_superuser %}
               <a href="{% url 'accounting:cost_allocation' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "تخصیص مرکز هزینه" %}</a>
             {% endif %}
@@ -672,6 +675,9 @@
       {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' %}
         <a href="{% url 'inventory:purchase_requests' %}" class="nav-link">{% trans "Purchase Request" %}</a>
       {% endif %}
+      {% if user_feature_permissions|feature_allowed:'procurement.services.request' or request.user.is_superuser %}
+        <a href="{% url 'procurement:service_requests' %}" class="nav-link">{% trans "Service Request" %}</a>
+      {% endif %}
       {% if user_feature_permissions|feature_allowed:'inventory.requests.warehouse' %}
         <a href="{% url 'inventory:warehouse_requests' %}" class="nav-link">{% trans "Warehouse Request" %}</a>
       {% endif %}
@@ -755,15 +761,39 @@
     <div class="section-content" id="procurement">
       <a href="{% url 'procurement:dashboard' %}" class="nav-link">{% trans "Dashboard" %}</a>
       
+      {% if user_feature_permissions|feature_allowed:'procurement.orders.list' or user_feature_permissions|feature_allowed:'procurement.invoices.purchase' or user_feature_permissions|feature_allowed:'procurement.invoices.service' or user_feature_permissions|feature_allowed:'procurement.services.request' or request.user.is_superuser %}
       <div class="nav-group">
         <button type="button" class="nav-group-header" data-submenu="procurement-purchase">
           <span>{% trans "Purchase" %}</span>
           <span class="nav-group-icon">▼</span>
         </button>
         <div class="nav-group-content" id="procurement-purchase">
-          <a href="{% url 'procurement:purchases' %}" class="nav-link-sub">{% trans "Purchases" %}</a>
+          {% if user_feature_permissions|feature_allowed:'procurement.orders.list' or request.user.is_superuser %}
+            <a href="{% url 'procurement:purchase_orders' %}" class="nav-link-sub">{% trans "Purchase Orders" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'procurement.invoices.purchase' or request.user.is_superuser %}
+            <a href="{% url 'procurement:purchase_invoices' %}" class="nav-link-sub">{% trans "Purchase Invoices" %}</a>
+          {% endif %}
         </div>
       </div>
+      {% endif %}
+
+      {% if user_feature_permissions|feature_allowed:'procurement.services.request' or user_feature_permissions|feature_allowed:'procurement.invoices.service' or request.user.is_superuser %}
+      <div class="nav-group">
+        <button type="button" class="nav-group-header" data-submenu="procurement-services">
+          <span>{% trans "Services" %}</span>
+          <span class="nav-group-icon">▼</span>
+        </button>
+        <div class="nav-group-content" id="procurement-services">
+          {% if user_feature_permissions|feature_allowed:'procurement.services.request' or request.user.is_superuser %}
+            <a href="{% url 'procurement:service_requests' %}" class="nav-link-sub">{% trans "Service Requests" %}</a>
+          {% endif %}
+          {% if user_feature_permissions|feature_allowed:'procurement.invoices.service' or request.user.is_superuser %}
+            <a href="{% url 'procurement:service_invoices' %}" class="nav-link-sub">{% trans "Service Invoices" %}</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
 
       <div class="nav-group">
         <button type="button" class="nav-group-header" data-submenu="procurement-buyers">

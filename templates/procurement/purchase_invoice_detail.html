@@ -1,0 +1,83 @@
+{% extends "shared/generic/generic_detail.html" %}
+{% load i18n jalali_tags %}
+
+{% block info_banner_extra %}
+<div><strong>{% trans "Invoice Code" %}:</strong> <code>{{ purchase_invoice.invoice_code }}</code></div>
+<div><strong>{% trans "Status" %}:</strong>
+  <span class="badge badge-{{ purchase_invoice.invoice_status|default:'secondary' }}">
+    {{ purchase_invoice.get_invoice_status_display }}
+  </span>
+</div>
+{% endblock %}
+
+{% block detail_sections %}
+<div class="form-section">
+  <h3>{% trans "Invoice Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Supplier" %}</label>
+      <div class="readonly-field">{{ purchase_invoice.supplier.name }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Invoice Date" %}</label>
+      <div class="readonly-field">{{ purchase_invoice.invoice_date|jalali_date }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Invoice Number" %}</label>
+      <div class="readonly-field">{{ purchase_invoice.invoice_number|default:"-" }}</div>
+    </div>
+  </div>
+</div>
+
+{% if purchase_invoice.lines.exists %}
+<div class="form-section">
+  <h3>{% trans "Invoice Lines" %}</h3>
+  <div class="data-table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>{% trans "Item" %}</th>
+          <th>{% trans "Unit" %}</th>
+          <th>{% trans "Quantity" %}</th>
+          <th>{% trans "Unit Price" %}</th>
+          <th>{% trans "Line Total" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in purchase_invoice.lines.all %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ line.item.name }} <code>({{ line.item_code }})</code></td>
+          <td>{{ line.unit }}</td>
+          <td class="table-cell-right">{{ line.quantity|floatformat:3 }}</td>
+          <td class="table-cell-right">{{ line.unit_price|floatformat:2 }}</td>
+          <td class="table-cell-right">{{ line.line_total|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+          <td colspan="5"><strong>{% trans "Subtotal" %}</strong></td>
+          <td class="table-cell-right"><strong>{{ purchase_invoice.subtotal|floatformat:2 }}</strong></td>
+        </tr>
+        <tr class="total-row">
+          <td colspan="5"><strong>{% trans "VAT" %} ({{ purchase_invoice.vat_rate }}%)</strong></td>
+          <td class="table-cell-right"><strong>{{ purchase_invoice.vat_amount|floatformat:2 }}</strong></td>
+        </tr>
+        <tr class="total-row">
+          <td colspan="5"><strong>{% trans "Total" %}</strong></td>
+          <td class="table-cell-right"><strong>{{ purchase_invoice.total_amount|floatformat:2 }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if purchase_invoice.notes %}
+<div class="form-section">
+  <h3>{% trans "Notes" %}</h3>
+  <div class="readonly-field">{{ purchase_invoice.notes|linebreaks }}</div>
+</div>
+{% endif %}
+{% endblock %}
+
