@@ -4,7 +4,7 @@ Invoice Converter Service
 """
 import logging
 from decimal import Decimal
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 import jdatetime
 
@@ -70,6 +70,24 @@ class InvoiceConverter:
         # Use document number as invoice number
         return self.document.document_number
     
+    def _get_buyer_party(self):
+        """Get buyer party from document lines (first tafsili account that has a party)."""
+        from ..models import PartyAccount
+        
+        # Try to find party from document lines
+        for line in self.document.lines.all():
+            if line.tafsili_account:
+                # Try to find party account linked to this tafsili account
+                party_account = PartyAccount.objects.filter(
+                    company=self.company,
+                    account=line.tafsili_account
+                ).select_related('party').first()
+                
+                if party_account and party_account.party:
+                    return party_account.party
+        
+        return None
+    
     def _build_header(self) -> Dict[str, Any]:
         """
         ساخت Header صورتحساب
@@ -82,6 +100,9 @@ class InvoiceConverter:
         indatim = f"{year:04d}{month:02d}{day:02d}"
         indati2m = self._convert_date_to_timestamp(self.document.document_date)
         
+        # Get buyer information
+        buyer_party = self._get_buyer_party()
+        
         header = {
             "taxid": tax_id,
             "indatim": indatim,  # تاریخ صورتحساب (YYYYMMDD)
@@ -91,22 +112,21 @@ class InvoiceConverter:
             "irtaxid": tax_id,  # شناسه مالیاتی فروشنده
             "inp": 1,  # الگوی صورتحساب
             "ins": 1,  # موضوع صورتحساب
-            "tins": "",  # شناسه مالیاتی خریدار (اگر خالی باشد، حقیقی است)
-            "tob": "",  # نوع شخص خریدار
-            "bid": "",  # شناسه ملی/اقتصادی خریدار
-            "tinb": "",  # شناسه مالیاتی خریدار
-            "sbc": "",  # کد پستی خریدار
+            "tins": buyer_party.tax_id if buyer_party and buyer_party.tax_id else "",  # شناسه مالیاتی خریدار
+            "tob": "1" if buyer_party and buyer_party.party_type == 'customer' else "2",  # نوع شخص خریدار (1=حقیقی، 2=حقوقی)
+            "bid": buyer_party.national_id if buyer_party and buyer_party.national_id else "",  # شناسه ملی/اقتصادی خریدار
+            "tinb": buyer_party.tax_id if buyer_party and buyer_party.tax_id else "",  # شناسه مالیاتی خریدار
+            "sbc": "",  # کد پستی خریدار (از آدرس استخراج شود)
             "bpc": "",  # کد پستی خریدار
-            "bpn": "",  # نام خریدار
+            "bpn": buyer_party.party_name if buyer_party else "",  # نام خریدار
             "bpb": "",  # نام خانوادگی/نام شرکت خریدار
-            "bcb": "",  # نام تجاری خریدار
+            "bcb": buyer_party.party_name if buyer_party else "",  # نام تجاری خریدار
             "bbs": "",  # استان خریدار
             "bci": "",  # شهر خریدار
-            "cap": Decimal('0.00'),  # مبلغ کل قبل از تخفیف
-            "insp": Decimal('0.00'),  # مبلغ کل بعد از تخفیف
-            "tvop": Decimal('0.00'),  # جمع کل پرداخت‌ها
-            "tax17": Decimal('0.00'),  # مالیات بر ارزش افزوده
-            "taxid": tax_id,
+            "cap": Decimal('0.00'),  # مبلغ کل قبل از تخفیف (باید محاسبه شود)
+            "insp": Decimal('0.00'),  # مبلغ کل بعد از تخفیف (باید محاسبه شود)
+            "tvop": Decimal('0.00'),  # جمع کل پرداخت‌ها (باید محاسبه شود)
+            "tax17": Decimal('0.00'),  # مالیات بر ارزش افزوده (باید محاسبه شود)
         }
         
         return header
@@ -116,26 +136,35 @@ class InvoiceConverter:
         ساخت یک آیتم در Body
         Build a body item from document line
         
-        Note: این متد نیاز به اطلاعات کامل‌تری دارد که باید از مدل‌های دیگر استخراج شود
+        Note: این پیاده‌سازی از AccountingDocumentLine استفاده می‌کند
+        که یک ساختار عمومی است. برای اطلاعات دقیق‌تر باید از مدل‌های Sales/Invoice استفاده شود.
         """
-        # این یک پیاده‌سازی ساده است
-        # در عمل باید اطلاعات کالا/خدمات از مدل‌های دیگر استخراج شود
+        # Get amount from line (use debit or credit, whichever is positive)
+        amount = line.debit if line.debit > 0 else line.credit
+        if amount <= 0:
+            return None  # Skip zero-amount lines
         
-        # Placeholder - باید کامل شود
+        # Default VAT rate (9% is common in Iran)
+        vat_rate = Decimal('9.00')
+        
+        # Calculate amounts
+        prdis = amount / (Decimal('1') + vat_rate / Decimal('100'))  # Price before VAT
+        vam = amount - prdis  # VAT amount
+        
         item = {
-            "sstid": "",  # شناسه کالا/خدمات
-            "sstt": "",  # عنوان کالا/خدمات
-            "mu": "",  # واحد اندازه‌گیری
-            "am": Decimal('0.00'),  # مقدار
-            "fee": Decimal('0.00'),  # مبلغ واحد
+            "sstid": str(line.tafsili_account.id) if line.tafsili_account else str(line.id),  # شناسه کالا/خدمات (از tafsili account)
+            "sstt": line.description or (line.tafsili_account.account_name if line.tafsili_account else f"آیتم {index + 1}"),  # عنوان
+            "mu": "عدد",  # واحد اندازه‌گیری (default)
+            "am": Decimal('1.00'),  # مقدار (default 1)
+            "fee": prdis,  # مبلغ واحد (قبل از مالیات)
             "cfeeon": "",  # نرخ ارز
             "cut": "",  # نوع ارز
             "exr": Decimal('1.00'),  # نرخ تبدیل ارز
-            "prdis": Decimal('0.00'),  # مبلغ قبل از تخفیف
+            "prdis": prdis,  # مبلغ قبل از تخفیف
             "dis": Decimal('0.00'),  # مبلغ تخفیف
             "adis": Decimal('0.00'),  # مبلغ تخفیف اضافی
-            "vra": Decimal('0.00'),  # نرخ مالیات بر ارزش افزوده
-            "vam": Decimal('0.00'),  # مبلغ مالیات بر ارزش افزوده
+            "vra": vat_rate,  # نرخ مالیات بر ارزش افزوده
+            "vam": vam,  # مبلغ مالیات بر ارزش افزوده
             "odt": "",  # نوع عوارض
             "odr": Decimal('0.00'),  # نرخ عوارض
             "odam": Decimal('0.00'),  # مبلغ عوارض
@@ -147,9 +176,9 @@ class InvoiceConverter:
             "bros": Decimal('0.00'),  # بروکری
             "tcpbs": Decimal('0.00'),  # جمع سایر هزینه‌ها
             "cop": Decimal('0.00'),  # جمع قیمت خرید
-            "vop": Decimal('0.00'),  # جمع قیمت فروش
+            "vop": prdis,  # جمع قیمت فروش
             "bsrn": "",  # شماره سریال کالا
-            "tsstam": Decimal('0.00'),  # جمع مبلغ آیتم
+            "tsstam": amount,  # جمع مبلغ آیتم (شامل مالیات)
         }
         
         return item
@@ -161,16 +190,41 @@ class InvoiceConverter:
         """
         body = []
         
-        # این بخش نیاز به اطلاعات کامل‌تری دارد
-        # باید از document lines یا مدل‌های مرتبط (مثل SalesInvoice) استفاده شود
+        # Get all document lines ordered by line_number
+        lines = self.document.lines.all().order_by('line_number')
         
-        # Placeholder - باید کامل شود
-        for idx, line in enumerate(self.document.lines.all()[:10]):  # محدود به 10 خط برای نمونه
+        for idx, line in enumerate(lines):
             item = self._build_body_item(line, idx)
             if item:
                 body.append(item)
         
         return body
+    
+    def _calculate_totals(self, body: List[Dict[str, Any]]) -> Dict[str, Decimal]:
+        """Calculate invoice totals from body items."""
+        cap = Decimal('0.00')  # Total before discount
+        insp = Decimal('0.00')  # Total after discount
+        tvop = Decimal('0.00')  # Total payments
+        tax17 = Decimal('0.00')  # Total VAT
+        
+        for item in body:
+            prdis = Decimal(str(item.get('prdis', 0)))
+            dis = Decimal(str(item.get('dis', 0)))
+            adis = Decimal(str(item.get('adis', 0)))
+            vam = Decimal(str(item.get('vam', 0)))
+            
+            cap += prdis
+            insp += prdis - dis - adis
+            tax17 += vam
+        
+        tvop = insp + tax17  # Total = after discount + VAT
+        
+        return {
+            'cap': cap,
+            'insp': insp,
+            'tvop': tvop,
+            'tax17': tax17
+        }
     
     def _build_payment(self) -> List[Dict[str, Any]]:
         """
@@ -197,9 +251,22 @@ class InvoiceConverter:
             Dict containing invoice data in Moadian format
         """
         try:
+            # Build body first to calculate totals
+            body = self._build_body()
+            
+            # Calculate totals
+            totals = self._calculate_totals(body)
+            
+            # Build header with calculated totals
+            header = self._build_header()
+            header['cap'] = totals['cap']
+            header['insp'] = totals['insp']
+            header['tvop'] = totals['tvop']
+            header['tax17'] = totals['tax17']
+            
             invoice_data = {
-                "header": self._build_header(),
-                "body": self._build_body(),
+                "header": header,
+                "body": body,
                 "payment": self._build_payment(),
                 "voucher": self._build_voucher(),
             }

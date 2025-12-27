@@ -3,7 +3,7 @@ Serializers for Account models (GL, Sub, Tafsili).
 """
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
-from ..models import Account, TafsiliHierarchy
+from ..models import Account, TafsiliHierarchy, TafsiliLevelSubAccountRelation
 
 
 class AccountSerializer(serializers.ModelSerializer):
@@ -159,10 +159,8 @@ class TafsiliAccountSerializer(serializers.ModelSerializer):
 
 
 class TafsiliHierarchySerializer(serializers.ModelSerializer):
-    """Serializer for Tafsili Hierarchy (multi-level tafsili)."""
-    parent_name = serializers.CharField(source='parent.name', read_only=True)
-    tafsili_account_name = serializers.CharField(source='tafsili_account.account_name', read_only=True)
-    full_path = serializers.CharField(read_only=True)
+    """Serializer for Tafsili Level (سطح تفضیلی)."""
+    sub_accounts = serializers.SerializerMethodField()
     
     class Meta:
         model = TafsiliHierarchy
@@ -171,18 +169,34 @@ class TafsiliHierarchySerializer(serializers.ModelSerializer):
             'code',
             'name',
             'name_en',
-            'parent',
-            'parent_name',
-            'tafsili_account',
-            'tafsili_account_name',
-            'level',
             'sort_order',
             'description',
             'is_enabled',
-            'full_path',
+            'sub_accounts',
             'company',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'level', 'full_path', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_sub_accounts(self, obj):
+        """Get related sub accounts."""
+        company_id = self.context.get('company_id')
+        if not company_id:
+            return []
+        
+        relations = TafsiliLevelSubAccountRelation.objects.filter(
+            tafsili_level=obj,
+            company_id=company_id
+        ).select_related('sub_account').order_by('-is_primary', 'sub_account__account_code')
+        
+        return [
+            {
+                'id': rel.sub_account.id,
+                'account_code': rel.sub_account.account_code,
+                'account_name': rel.sub_account.account_name,
+                'is_primary': rel.is_primary,
+            }
+            for rel in relations
+        ]
 

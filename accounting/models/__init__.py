@@ -26,7 +26,7 @@ from .accounts import (
 from .tafsili_types import TafsiliType
 
 # Hierarchy
-from .hierarchy import TafsiliHierarchy
+from .hierarchy import TafsiliHierarchy, TafsiliLevelSubAccountRelation
 
 # Documents
 from .documents import (
@@ -86,6 +86,7 @@ __all__ = [
     'TafsiliType',
     # Hierarchy
     'TafsiliHierarchy',
+    'TafsiliLevelSubAccountRelation',
     # Documents
     'AccountingDocument',
     'AccountingDocumentLine',

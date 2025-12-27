@@ -1,5 +1,5 @@
 """
-Tafsili Hierarchy (تفصیلی چند سطحی) CRUD views for accounting module.
+Tafsili Level (سطح تفضیلی) CRUD views for accounting module.
 """
 from typing import Any, Dict
 from django.contrib import messages
@@ -19,15 +19,14 @@ from shared.views.base import (
     BaseDeleteView,
     EditLockProtectedMixin,
 )
-from accounting.models import TafsiliHierarchy
+from accounting.models import TafsiliHierarchy, TafsiliLevelSubAccountRelation, Account
 from accounting.forms import TafsiliHierarchyForm
 from accounting.views.base import AccountingBaseView
 
 
 class TafsiliHierarchyListView(BaseListView):
     """
-    List all Tafsili Hierarchies (تفصیلی چند سطحی) for the active company.
-    Shows tree structure.
+    List all Tafsili Levels (سطوح تفضیلی) for the active company.
     """
     model = TafsiliHierarchy
     template_name = 'shared/generic/generic_list.html'
@@ -36,7 +35,7 @@ class TafsiliHierarchyListView(BaseListView):
     feature_code = 'accounting.accounts.tafsili_hierarchy'
     required_action = 'view_all'
     active_module = 'accounting'
-    default_order_by = ['level', 'sort_order', 'code']
+    default_order_by = ['sort_order', 'code']
     default_status_filter = True
     
     def get_base_queryset(self):
@@ -53,36 +52,20 @@ class TafsiliHierarchyListView(BaseListView):
         return ['code', 'name', 'name_en']
     
     def get_queryset(self):
-        """Filter hierarchies by active company and search/filter criteria."""
+        """Filter tafsili levels by active company and search/filter criteria."""
         queryset = super().get_queryset()
-        
-        level: str = self.request.GET.get('level', '')
-        parent_id: str = self.request.GET.get('parent_id', '')
-        
-        if level:
-            try:
-                queryset = queryset.filter(level=int(level))
-            except ValueError:
-                pass
-        
-        if parent_id:
-            try:
-                queryset = queryset.filter(parent_id=int(parent_id))
-            except ValueError:
-                pass
-        
         return queryset
     
     def get_page_title(self) -> str:
         """Return page title."""
-        return _('تفصیلی چند سطحی')
+        return _('سطوح تفضیلی')
     
     def get_breadcrumbs(self) -> list:
         """Return breadcrumbs list."""
         return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Accounting'), 'url': reverse('accounting:general_detail')},
-            {'label': _('تفصیلی چند سطحی'), 'url': None},
+            {'label': _('سطوح تفضیلی'), 'url': None},
         ]
     
     def get_create_url(self):
@@ -91,7 +74,7 @@ class TafsiliHierarchyListView(BaseListView):
     
     def get_create_button_text(self) -> str:
         """Return create button text."""
-        return _('افزودن تفصیلی چند سطحی')
+        return _('افزودن سطح تفضیلی')
     
     def get_detail_url_name(self) -> str:
         """Return detail URL name."""
@@ -107,15 +90,15 @@ class TafsiliHierarchyListView(BaseListView):
     
     def get_empty_state_title(self) -> str:
         """Return empty state title."""
-        return _('هیچ تفصیلی چند سطحی یافت نشد')
+        return _('هیچ سطح تفضیلی یافت نشد')
     
     def get_empty_state_message(self) -> str:
         """Return empty state message."""
-        return _('با افزودن اولین تفصیلی چند سطحی شروع کنید.')
+        return _('با افزودن اولین سطح تفضیلی شروع کنید.')
     
     def get_empty_state_icon(self) -> str:
         """Return empty state icon."""
-        return '🌳'
+        return '📊'
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context variables for generic_list template."""
@@ -123,32 +106,30 @@ class TafsiliHierarchyListView(BaseListView):
         context['table_headers'] = [
             {'label': _('کد'), 'field': 'code', 'type': 'code'},
             {'label': _('نام'), 'field': 'name'},
-            {'label': _('مسیر کامل'), 'field': 'full_path_display', 'type': 'custom'},
-            {'label': _('سطح'), 'field': 'level'},
-            {'label': _('تفصیلی اصلی'), 'field': 'tafsili_account.account_code', 'type': 'code'},
+            {'label': _('حساب‌های معین مرتبط'), 'field': 'sub_accounts_display', 'type': 'custom'},
             {'label': _('وضعیت'), 'field': 'is_enabled', 'type': 'badge',
              'true_label': _('فعال'), 'false_label': _('غیرفعال')},
         ]
         
-        # Add full path to each object for display
-        for obj in context['object_list']:
-            obj.full_path_display = obj.get_full_path()
-        
-        # Add root hierarchies for filter dropdown
+        # Add sub accounts info to each object for display
         company_id = self.request.session.get('active_company_id')
         if company_id:
-            context['root_hierarchies'] = TafsiliHierarchy.objects.filter(
-                company_id=company_id,
-                parent__isnull=True,
-                is_enabled=1
-            ).order_by('sort_order', 'code')
+            for obj in context['object_list']:
+                sub_accounts = Account.objects.filter(
+                    tafsili_level_relations__tafsili_level=obj,
+                    tafsili_level_relations__company_id=company_id
+                ).order_by('account_code')
+                obj.sub_accounts_display = ', '.join([f"{sa.account_code} ({sa.account_name})" for sa in sub_accounts[:3]])
+                if sub_accounts.count() > 3:
+                    obj.sub_accounts_display += f" +{sub_accounts.count() - 3} بیشتر"
+        
         context['print_enabled'] = True
         
         return context
 
 
 class TafsiliHierarchyCreateView(BaseCreateView):
-    """Create a new Tafsili Hierarchy (تفصیلی چند سطحی)."""
+    """Create a new Tafsili Level (سطح تفضیلی)."""
     model = TafsiliHierarchy
     form_class = TafsiliHierarchyForm
     template_name = 'shared/generic/generic_form.html'
@@ -156,7 +137,7 @@ class TafsiliHierarchyCreateView(BaseCreateView):
     feature_code = 'accounting.accounts.tafsili_hierarchy'
     required_action = 'create'
     active_module = 'accounting'
-    success_message = _('تفصیلی چند سطحی با موفقیت ایجاد شد.')
+    success_message = _('سطح تفضیلی با موفقیت ایجاد شد.')
     
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
@@ -174,7 +155,7 @@ class TafsiliHierarchyCreateView(BaseCreateView):
         return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Accounting'), 'url': reverse('accounting:general_detail')},
-            {'label': _('تفصیلی چند سطحی'), 'url': reverse('accounting:tafsili_hierarchy_list')},
+            {'label': _('سطوح تفضیلی'), 'url': reverse('accounting:tafsili_hierarchy_list')},
             {'label': _('افزودن'), 'url': None},
         ]
     
@@ -184,11 +165,11 @@ class TafsiliHierarchyCreateView(BaseCreateView):
     
     def get_form_title(self) -> str:
         """Return form title."""
-        return _('افزودن تفصیلی چند سطحی')
+        return _('افزودن سطح تفضیلی')
 
 
 class TafsiliHierarchyUpdateView(BaseUpdateView, EditLockProtectedMixin):
-    """Update an existing Tafsili Hierarchy (تفصیلی چند سطحی)."""
+    """Update an existing Tafsili Level (سطح تفضیلی)."""
     model = TafsiliHierarchy
     form_class = TafsiliHierarchyForm
     template_name = 'shared/generic/generic_form.html'
@@ -196,15 +177,12 @@ class TafsiliHierarchyUpdateView(BaseUpdateView, EditLockProtectedMixin):
     feature_code = 'accounting.accounts.tafsili_hierarchy'
     required_action = 'edit_own'
     active_module = 'accounting'
-    success_message = _('تفصیلی چند سطحی با موفقیت به‌روزرسانی شد.')
+    success_message = _('سطح تفضیلی با موفقیت به‌روزرسانی شد.')
     
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
         kwargs = super().get_form_kwargs()
         kwargs['company_id'] = self.request.session.get('active_company_id')
-        # Exclude current instance from parent choices
-        if self.object:
-            kwargs['exclude_hierarchy_id'] = self.object.id
         return kwargs
     
     def form_valid(self, form: TafsiliHierarchyForm) -> HttpResponseRedirect:
@@ -217,7 +195,7 @@ class TafsiliHierarchyUpdateView(BaseUpdateView, EditLockProtectedMixin):
         return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Accounting'), 'url': reverse('accounting:general_detail')},
-            {'label': _('تفصیلی چند سطحی'), 'url': reverse('accounting:tafsili_hierarchy_list')},
+            {'label': _('سطوح تفضیلی'), 'url': reverse('accounting:tafsili_hierarchy_list')},
             {'label': _('ویرایش'), 'url': None},
         ]
     
@@ -227,11 +205,11 @@ class TafsiliHierarchyUpdateView(BaseUpdateView, EditLockProtectedMixin):
     
     def get_form_title(self) -> str:
         """Return form title."""
-        return _('ویرایش تفصیلی چند سطحی')
+        return _('ویرایش سطح تفضیلی')
 
 
 class TafsiliHierarchyDetailView(BaseDetailView):
-    """Detail view for viewing Tafsili Hierarchies (read-only)."""
+    """Detail view for viewing Tafsili Levels (read-only)."""
     model = TafsiliHierarchy
     template_name = 'shared/generic/generic_detail.html'
     context_object_name = 'object'
@@ -247,51 +225,35 @@ class TafsiliHierarchyDetailView(BaseDetailView):
         base_view.request = self.request
         queryset = base_view.filter_queryset_by_permissions(queryset, self.feature_code)
         queryset = queryset.select_related(
-            'parent',
-            'tafsili_account',
             'created_by',
             'edited_by',
-        ).prefetch_related('children')
+        ).prefetch_related('sub_account_relations__sub_account')
         return queryset
     
     def get_page_title(self) -> str:
         """Return page title."""
-        return _('View Tafsili Hierarchy')
+        return _('View Tafsili Level')
     
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
         """Add detail view context data."""
         context = super().get_context_data(**kwargs)
-        hierarchy = self.object
+        tafsili_level = self.object
+        company_id = self.request.session.get('active_company_id')
         
         context['detail_title'] = self.get_page_title()
         context['info_banner'] = [
-            {'label': _('Code'), 'value': hierarchy.code, 'type': 'code'},
-            {'label': _('Level'), 'value': str(hierarchy.level)},
-            {'label': _('Status'), 'value': hierarchy.is_enabled, 'type': 'badge'},
+            {'label': _('Code'), 'value': tafsili_level.code, 'type': 'code'},
+            {'label': _('Status'), 'value': tafsili_level.is_enabled, 'type': 'badge'},
         ]
         
         # Basic Information section
         basic_fields = [
-            {'label': _('Name'), 'value': hierarchy.name},
+            {'label': _('Name'), 'value': tafsili_level.name},
         ]
-        if hierarchy.name_en:
-            basic_fields.append({'label': _('Name (EN)'), 'value': hierarchy.name_en})
-        if hierarchy.parent:
-            basic_fields.append({
-                'label': _('Parent'),
-                'value': f"{hierarchy.parent.code} - {hierarchy.parent.name}",
-            })
-        if hierarchy.tafsili_account:
-            basic_fields.append({
-                'label': _('Tafsili Account'),
-                'value': f"{hierarchy.tafsili_account.account_code} - {hierarchy.tafsili_account.account_name}",
-            })
-        basic_fields.append({
-            'label': _('Full Path'),
-            'value': hierarchy.get_full_path() if hasattr(hierarchy, 'get_full_path') else hierarchy.name,
-        })
-        if hierarchy.description:
-            basic_fields.append({'label': _('Description'), 'value': hierarchy.description})
+        if tafsili_level.name_en:
+            basic_fields.append({'label': _('Name (EN)'), 'value': tafsili_level.name_en})
+        if tafsili_level.description:
+            basic_fields.append({'label': _('Description'), 'value': tafsili_level.description})
         
         detail_sections = [
             {
@@ -300,17 +262,22 @@ class TafsiliHierarchyDetailView(BaseDetailView):
             },
         ]
         
-        # Child Hierarchies section
-        if hierarchy.children.exists():
-            children_text = '<br>'.join([
-                f"<code>{child.code}</code> - {child.name} ({_('Level')} {child.level})"
-                for child in hierarchy.children.all()
-            ])
-            detail_sections.append({
-                'title': _('Child Hierarchies'),
-                'type': 'custom',
-                'content': f'<div class="readonly-field">{children_text}</div>',
-            })
+        # Sub Accounts section
+        if company_id:
+            sub_accounts = Account.objects.filter(
+                tafsili_level_relations__tafsili_level=tafsili_level,
+                tafsili_level_relations__company_id=company_id
+            ).order_by('account_code')
+            if sub_accounts.exists():
+                sub_accounts_text = '<br>'.join([
+                    f"<code>{sa.account_code}</code> - {sa.account_name}"
+                    for sa in sub_accounts
+                ])
+                detail_sections.append({
+                    'title': _('Sub Accounts'),
+                    'type': 'custom',
+                    'content': f'<div class="readonly-field">{sub_accounts_text}</div>',
+                })
         
         context['detail_sections'] = detail_sections
         return context
@@ -332,39 +299,32 @@ class TafsiliHierarchyDetailView(BaseDetailView):
 
 
 class TafsiliHierarchyDeleteView(BaseDeleteView):
-    """Delete a Tafsili Hierarchy (تفصیلی چند سطحی)."""
+    """Delete a Tafsili Level (سطح تفضیلی)."""
     model = TafsiliHierarchy
     success_url = reverse_lazy('accounting:tafsili_hierarchy_list')
     template_name = 'shared/generic/generic_confirm_delete.html'
     feature_code = 'accounting.accounts.tafsili_hierarchy'
     required_action = 'delete_own'
     active_module = 'accounting'
-    success_message = _('تفصیلی چند سطحی با موفقیت حذف شد.')
+    success_message = _('سطح تفضیلی با موفقیت حذف شد.')
     
     def validate_deletion(self) -> tuple[bool, Optional[str]]:
-        """Validate if hierarchy can be deleted."""
-        obj = self.get_object()
-        # Check if hierarchy has children
-        if obj.children.exists():
-            return False, _('نمی‌توان تفصیلی چند سطحی که دارای زیرگروه است را حذف کرد.')
-        
+        """Validate if tafsili level can be deleted."""
         return True, None
     
     def get_delete_title(self) -> str:
         """Return delete title."""
-        return _('حذف تفصیلی چند سطحی')
+        return _('حذف سطح تفضیلی')
     
     def get_confirmation_message(self) -> str:
         """Return confirmation message."""
-        return _('آیا مطمئن هستید که می‌خواهید این تفصیلی چند سطحی را حذف کنید؟')
+        return _('آیا مطمئن هستید که می‌خواهید این سطح تفضیلی را حذف کنید؟')
     
     def get_object_details(self) -> list:
         """Return object details for confirmation."""
         return [
             {'label': _('کد'), 'value': self.object.code, 'type': 'code'},
             {'label': _('نام'), 'value': self.object.name},
-            {'label': _('مسیر کامل'), 'value': self.object.get_full_path()},
-            {'label': _('سطح'), 'value': self.object.level},
         ]
     
     def get_breadcrumbs(self) -> list:
@@ -372,7 +332,7 @@ class TafsiliHierarchyDeleteView(BaseDeleteView):
         return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Accounting'), 'url': reverse('accounting:general_detail')},
-            {'label': _('تفصیلی چند سطحی'), 'url': reverse('accounting:tafsili_hierarchy_list')},
+            {'label': _('سطوح تفضیلی'), 'url': reverse('accounting:tafsili_hierarchy_list')},
             {'label': _('حذف'), 'url': None},
         ]
 

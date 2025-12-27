@@ -94,6 +94,10 @@ class MoadianService:
         """Get current timestamp in milliseconds."""
         return int(time.time() * 1000)
     
+    def get_timestamp_datetime(self):
+        """Get current timestamp as datetime object."""
+        return timezone.now()
+    
     def _normalize_json(self, data: Dict[str, Any]) -> str:
         """
         نرمال‌سازی JSON طبق مستند سامانه مودیان

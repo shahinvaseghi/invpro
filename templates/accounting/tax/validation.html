@@ -208,35 +208,5 @@
     </div>
 </div>
 
-<script>
-function validateDocument(documentId) {
-    // TODO: Implement validation API call
-    alert('{% trans "اعتبارسنجی سند" %} ' + documentId + ' {% trans "در حال انجام..." %}');
-    // Show validation modal with results
-}
-
-function submitDocument(documentId) {
-    if (!confirm('{% trans "آیا مطمئن هستید که می‌خواهید این سند را به سامانه مودیان ارسال کنید؟" %}')) {
-        return;
-    }
-    
-    // TODO: Implement submission API call
-    alert('{% trans "ارسال سند" %} ' + documentId + ' {% trans "در حال انجام..." %}');
-}
-
-function testConnection(fiscalMemoryId) {
-    // TODO: Implement connection test API call
-    alert('{% trans "تست اتصال در حال انجام..." %}');
-}
-
-function checkStatus(submissionId) {
-    // TODO: Implement status check API call
-    alert('{% trans "بررسی وضعیت ارسال" %} ' + submissionId + ' {% trans "در حال انجام..." %}');
-}
-
-function viewLogs(submissionId) {
-    // TODO: Implement log view
-    alert('{% trans "مشاهده لاگ ارسال" %} ' + submissionId);
-}
-</script>
+{% include "accounting/tax/validation_scripts.html" %}
 {% endblock %}

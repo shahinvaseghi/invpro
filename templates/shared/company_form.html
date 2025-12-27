@@ -48,6 +48,16 @@
       </label>
       {{ form.display_name_en }}
     </div>
+
+    <div class="form-field">
+      <label for="{{ form.entity_type.id_for_label }}">
+        {{ form.entity_type.label }} *
+      </label>
+      {{ form.entity_type }}
+      {% if form.entity_type.errors %}
+        <span class="error">{{ form.entity_type.errors.0 }}</span>
+      {% endif %}
+    </div>
   </div>
 
   <div class="form-row">

@@ -63,6 +63,13 @@ from .views.api import (
     filter_tafsili_accounts_by_sub,
     toggle_document_lock,
 )
+from .views.taxpayer_system_api import (
+    TestConnectionAPIView,
+    ValidateDocumentAPIView,
+    SubmitInvoiceAPIView,
+    CheckStatusAPIView,
+    ViewLogsAPIView,
+)
 
 app_name = 'accounting'
 
@@ -176,6 +183,13 @@ urlpatterns = [
     path('tax/validation/', views_module.TaxValidationView.as_view(), name='tax_validation'),
     path('tax/discrepancy-report/', views_module.TaxDiscrepancyReportView.as_view(), name='tax_discrepancy_report'),
     path('tax/seasonal/', views_module.TaxSeasonalView.as_view(), name='tax_seasonal'),
+    
+    # Taxpayer System API endpoints
+    path('tax/api/test-connection/', TestConnectionAPIView.as_view(), name='tax_api_test_connection'),
+    path('tax/api/validate-document/', ValidateDocumentAPIView.as_view(), name='tax_api_validate_document'),
+    path('tax/api/submit-invoice/', SubmitInvoiceAPIView.as_view(), name='tax_api_submit_invoice'),
+    path('tax/api/check-status/', CheckStatusAPIView.as_view(), name='tax_api_check_status'),
+    path('tax/api/view-logs/', ViewLogsAPIView.as_view(), name='tax_api_view_logs'),
     
     # Financial Reports (گزارش‌های مالی)
     path('reports/trial-balance/', views_module.ReportTrialBalanceView.as_view(), name='report_trial_balance'),

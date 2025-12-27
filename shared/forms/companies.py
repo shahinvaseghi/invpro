@@ -26,6 +26,7 @@ class CompanyForm(BaseModelForm):
             'legal_name',
             'display_name',
             'display_name_en',
+            'entity_type',
             'registration_number',
             'tax_id',
             'phone_number',
@@ -40,6 +41,7 @@ class CompanyForm(BaseModelForm):
         widgets = {
             # BaseModelForm automatically applies 'form-control' class, but we can add extra attributes
             'public_code': forms.TextInput(attrs={'maxlength': '3'}),
+            'entity_type': forms.Select(attrs={'class': 'form-control'}),
             'address': forms.Textarea(attrs={'rows': 3}),
             'country': forms.TextInput(attrs={'maxlength': '3'}),
         }
@@ -48,6 +50,7 @@ class CompanyForm(BaseModelForm):
             'legal_name': _('Legal Name'),
             'display_name': _('Display Name'),
             'display_name_en': _('Display Name (English)'),
+            'entity_type': _('نوع مودی'),
             'registration_number': _('Registration Number'),
             'tax_id': _('Tax ID'),
             'phone_number': _('Phone'),

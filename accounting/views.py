@@ -1297,6 +1297,9 @@ class TaxDiscrepancyReportView(FeaturePermissionRequiredMixin, TemplateView):
     feature_code = 'accounting.tax.discrepancy_report'
     required_action = 'view'
 
+
+# Import API views for taxpayer system (will be imported in urls.py if needed)
+
 class ReportCashFlowView(FeaturePermissionRequiredMixin, TemplateView):
     template_name = 'accounting/reports/cash_flow.html'
     feature_code = 'accounting.reports.cash_flow'
