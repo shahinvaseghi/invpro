@@ -109,3 +109,56 @@ class ItemPriceCard(SalesSortableModel):
             self.item_code = self.item.item_code
         super().save(*args, **kwargs)
 
+
+class SalesSettings(SalesBaseModel):
+    """
+    Model for storing sales module settings.
+    Stores tafsili level configuration for customers, banks, and checks.
+    """
+    customer_tafsili_level = models.ForeignKey(
+        "accounting.TafsiliHierarchy",
+        on_delete=models.PROTECT,
+        related_name="sales_settings_as_customer",
+        null=True,
+        blank=True,
+        verbose_name=_("Customer Tafsili Level"),
+        help_text=_("سطح تفصیلی مشتری‌ها"),
+    )
+    bank_tafsili_level = models.ForeignKey(
+        "accounting.TafsiliHierarchy",
+        on_delete=models.PROTECT,
+        related_name="sales_settings_as_bank",
+        null=True,
+        blank=True,
+        verbose_name=_("Bank Tafsili Level"),
+        help_text=_("سطح تفصیلی بانک‌ها"),
+    )
+    check_tafsili_level = models.ForeignKey(
+        "accounting.TafsiliHierarchy",
+        on_delete=models.PROTECT,
+        related_name="sales_settings_as_check",
+        null=True,
+        blank=True,
+        verbose_name=_("Check Tafsili Level"),
+        help_text=_("سطح تفصیلی چک‌ها"),
+    )
+
+    class Meta:
+        verbose_name = _("Sales Settings")
+        verbose_name_plural = _("Sales Settings")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company",),
+                name="sales_settings_company_unique",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Sales Settings - {self.company.display_name}"
+
+    @classmethod
+    def get_or_create_for_company(cls, company_id):
+        """Get or create settings for a company."""
+        settings, created = cls.objects.get_or_create(company_id=company_id)
+        return settings
+

@@ -607,6 +607,12 @@
         {% if user_feature_permissions|feature_allowed:'sales.invoice' %}
           <li><a href="{% url 'sales:invoice_create' %}"><span class="menu-icon icon-receipt"></span>{% trans "Sales Invoice" %}</a></li>
         {% endif %}
+        {% if user_feature_permissions|feature_allowed:'sales.customers' or request.user.is_superuser %}
+          <li><a href="{% url 'sales:customers' %}"><span class="menu-icon icon-users"></span>{% trans "مشتریان" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'sales.settings' or request.user.is_superuser %}
+          <li><a href="{% url 'sales:settings' %}"><span class="menu-icon icon-settings"></span>{% trans "تنظیمات" %}</a></li>
+        {% endif %}
         </ul>
       </div>
     </div>

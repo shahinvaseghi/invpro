@@ -610,7 +610,15 @@
       {% if user_feature_permissions|feature_allowed:'sales.price_card' or request.user.is_superuser %}
       <a href="{% url 'sales:price_card_list' %}" class="nav-link">{% trans "Item Price Cards" %}</a>
       {% endif %}
+      {% if user_feature_permissions|feature_allowed:'sales.invoice' %}
       <a href="{% url 'sales:invoice_create' %}" class="nav-link">صدور فاکتور</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'sales.customers' or request.user.is_superuser %}
+      <a href="{% url 'sales:customers' %}" class="nav-link">{% trans "مشتریان" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'sales.settings' or request.user.is_superuser %}
+      <a href="{% url 'sales:settings' %}" class="nav-link">{% trans "تنظیمات" %}</a>
+      {% endif %}
     </div>
   </div>
 

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Sales Settings" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="section-header">
+        <h1>{% trans "تنظیمات فروش" %}</h1>
+        <p>{% trans "تنظیم سطح تفصیلی برای مشتری‌ها، بانک‌ها و چک‌ها" %}</p>
+    </div>
+
+    <div class="card">
+        <form method="post" class="form">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="{{ form.customer_tafsili_level.id_for_label }}">
+                    {{ form.customer_tafsili_level.label }}
+                    {% if form.customer_tafsili_level.field.required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+                {{ form.customer_tafsili_level }}
+                {% if form.customer_tafsili_level.help_text %}
+                    <small class="form-text text-muted">{{ form.customer_tafsili_level.help_text }}</small>
+                {% endif %}
+                {% if form.customer_tafsili_level.errors %}
+                    <div class="text-danger">{{ form.customer_tafsili_level.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.bank_tafsili_level.id_for_label }}">
+                    {{ form.bank_tafsili_level.label }}
+                    {% if form.bank_tafsili_level.field.required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+                {{ form.bank_tafsili_level }}
+                {% if form.bank_tafsili_level.help_text %}
+                    <small class="form-text text-muted">{{ form.bank_tafsili_level.help_text }}</small>
+                {% endif %}
+                {% if form.bank_tafsili_level.errors %}
+                    <div class="text-danger">{{ form.bank_tafsili_level.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.check_tafsili_level.id_for_label }}">
+                    {{ form.check_tafsili_level.label }}
+                    {% if form.check_tafsili_level.field.required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+                {{ form.check_tafsili_level }}
+                {% if form.check_tafsili_level.help_text %}
+                    <small class="form-text text-muted">{{ form.check_tafsili_level.help_text }}</small>
+                {% endif %}
+                {% if form.check_tafsili_level.errors %}
+                    <div class="text-danger">{{ form.check_tafsili_level.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">{% trans "ذخیره" %}</button>
+                <a href="{% url 'sales:dashboard' %}" class="btn btn-secondary">{% trans "انصراف" %}</a>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
+

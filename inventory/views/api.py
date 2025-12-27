@@ -162,12 +162,18 @@ def get_filtered_items(request: HttpRequest) -> JsonResponse:
         search_term = request.GET.get('search', '').strip()
         # Allow including specific item_id even if user doesn't have permission (for initial data)
         include_item_id = request.GET.get('include_item_id')
+        # Filter by sellable items only (for sales module)
+        sellable_only = request.GET.get('sellable_only', 'false').lower() == 'true'
 
         # Start with all enabled items in company
         items = models.Item.objects.filter(
             company_id=company_id,
             is_enabled=1
         ).select_related('type', 'category', 'subcategory')
+        
+        # Filter by sellable items if requested
+        if sellable_only:
+            items = items.filter(is_sellable=1)
 
         # Apply permission filter (own vs all) - but allow superuser to see all
         if not request.user.is_superuser:

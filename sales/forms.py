@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 
 from shared.forms.base import BaseModelForm
 
-from .models import ItemPriceCard
+from .models import ItemPriceCard, SalesSettings
 
 
 class ItemPriceCardForm(BaseModelForm):
@@ -45,7 +45,7 @@ class ItemPriceCardForm(BaseModelForm):
             'notes',
         ]
         widgets = {
-            'item': forms.Select(attrs={'class': 'form-control item-select'}),
+            'item': forms.Select(attrs={'class': 'form-control item-select'}, choices=[('', '--- انتخاب کنید ---')]),
             'price': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'step': '0.000001',
@@ -82,14 +82,9 @@ class ItemPriceCardForm(BaseModelForm):
         if self.company_id:
             from inventory.models import Item, ItemType, ItemCategory, ItemSubcategory
             
-            # Filter items: only sellable items (is_sellable=1)
-            items_qs = Item.objects.filter(
-                company_id=self.company_id,
-                is_enabled=1,
-                is_sellable=1  # Only sellable items
-            ).select_related('type', 'category', 'subcategory').order_by('item_code')
-            
-            self.fields['item'].queryset = items_qs
+            # Set empty queryset - JavaScript will populate via API with sellable items only
+            # This prevents showing duplicate dropdown with all items
+            self.fields['item'].queryset = Item.objects.none()
             
             # Populate filter choices
             types = ItemType.objects.filter(company_id=self.company_id, is_enabled=1)
@@ -100,9 +95,6 @@ class ItemPriceCardForm(BaseModelForm):
             
             subcategories = ItemSubcategory.objects.filter(company_id=self.company_id, is_enabled=1)
             self.fields['item_subcategory_filter'].choices = [('', '--------')] + [(s.id, s.name) for s in subcategories]
-            
-            # Set label_from_instance for better display
-            self.fields['item'].label_from_instance = lambda obj: f"{obj.name} · {obj.item_code}"
         else:
             from inventory.models import Item
             self.fields['item'].queryset = Item.objects.none()
@@ -157,16 +149,10 @@ class ItemPriceCardFormSetBase(BaseFormSet):
                 if company_id and hasattr(form, 'fields'):
                     from inventory.models import Item, ItemType, ItemCategory, ItemSubcategory
                     
-                    # Filter items: only sellable items
-                    items_qs = Item.objects.filter(
-                        company_id=company_id,
-                        is_enabled=1,
-                        is_sellable=1
-                    ).select_related('type', 'category', 'subcategory').order_by('item_code')
-                    
+                    # Set empty queryset - JavaScript will populate via API
+                    # This prevents showing all items in initial dropdown
                     if 'item' in form.fields:
-                        form.fields['item'].queryset = items_qs
-                        form.fields['item'].label_from_instance = lambda obj: f"{obj.name} · {obj.item_code}"
+                        form.fields['item'].queryset = Item.objects.none()
                     
                     # Update filter choices
                     if 'item_type_filter' in form.fields:
@@ -192,4 +178,97 @@ ItemPriceCardFormSet = modelformset_factory(
     min_num=1,
     validate_min=True,
 )
+
+
+class SalesSettingsForm(BaseModelForm):
+    """Form for sales settings."""
+    
+    class Meta:
+        model = SalesSettings
+        fields = [
+            'customer_tafsili_level',
+            'bank_tafsili_level',
+            'check_tafsili_level',
+        ]
+        widgets = {
+            'customer_tafsili_level': forms.Select(attrs={
+                'class': 'form-control',
+            }),
+            'bank_tafsili_level': forms.Select(attrs={
+                'class': 'form-control',
+            }),
+            'check_tafsili_level': forms.Select(attrs={
+                'class': 'form-control',
+            }),
+        }
+        labels = {
+            'customer_tafsili_level': _('سطح تفصیلی مشتری‌ها'),
+            'bank_tafsili_level': _('سطح تفصیلی بانک‌ها'),
+            'check_tafsili_level': _('سطح تفصیلی چک‌ها'),
+        }
+        help_texts = {
+            'customer_tafsili_level': _('سطح تفصیلی که برای مشتری‌ها استفاده می‌شود'),
+            'bank_tafsili_level': _('سطح تفصیلی که برای بانک‌ها استفاده می‌شود'),
+            'check_tafsili_level': _('سطح تفصیلی که برای چک‌ها استفاده می‌شود'),
+        }
+    
+    def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
+        """Initialize form with company filtering."""
+        super().__init__(*args, **kwargs)
+        self.company_id = company_id
+        
+        # Filter tafsili hierarchies by company
+        if company_id:
+            from accounting.models.hierarchy import TafsiliHierarchy
+            tafsili_qs = TafsiliHierarchy.objects.filter(
+                company_id=company_id,
+                is_enabled=1
+            ).order_by('sort_order', 'code')
+            
+            # Set queryset for all three fields
+            self.fields['customer_tafsili_level'].queryset = tafsili_qs
+            self.fields['bank_tafsili_level'].queryset = tafsili_qs
+            self.fields['check_tafsili_level'].queryset = tafsili_qs
+            
+            # Add empty option
+            self.fields['customer_tafsili_level'].empty_label = _('انتخاب کنید...')
+            self.fields['bank_tafsili_level'].empty_label = _('انتخاب کنید...')
+            self.fields['check_tafsili_level'].empty_label = _('انتخاب کنید...')
+        else:
+            from accounting.models.hierarchy import TafsiliHierarchy
+            self.fields['customer_tafsili_level'].queryset = TafsiliHierarchy.objects.none()
+            self.fields['bank_tafsili_level'].queryset = TafsiliHierarchy.objects.none()
+            self.fields['check_tafsili_level'].queryset = TafsiliHierarchy.objects.none()
+    
+    def clean(self):
+        """Validate that selected tafsili levels belong to the same company."""
+        cleaned_data = super().clean()
+        company_id = self.company_id
+        
+        if company_id:
+            from accounting.models.hierarchy import TafsiliHierarchy
+            
+            customer_level = cleaned_data.get('customer_tafsili_level')
+            bank_level = cleaned_data.get('bank_tafsili_level')
+            check_level = cleaned_data.get('check_tafsili_level')
+            
+            # Validate customer level
+            if customer_level and customer_level.company_id != company_id:
+                raise ValidationError({
+                    'customer_tafsili_level': _('سطح تفصیلی انتخاب شده متعلق به شرکت فعلی نیست.')
+                })
+            
+            # Validate bank level
+            if bank_level and bank_level.company_id != company_id:
+                raise ValidationError({
+                    'bank_tafsili_level': _('سطح تفصیلی انتخاب شده متعلق به شرکت فعلی نیست.')
+                })
+            
+            # Validate check level
+            if check_level and check_level.company_id != company_id:
+                raise ValidationError({
+                    'check_tafsili_level': _('سطح تفصیلی انتخاب شده متعلق به شرکت فعلی نیست.')
+                })
+        
+        return cleaned_data
 

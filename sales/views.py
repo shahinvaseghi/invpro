@@ -9,10 +9,10 @@ from django.views import View
 from django.views.generic import TemplateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
-from shared.views.base import BaseListView
+from shared.views.base import BaseListView, BaseUpdateView
 
-from .forms import ItemPriceCardFormSet
-from .models import ItemPriceCard
+from .forms import ItemPriceCardFormSet, SalesSettingsForm
+from .models import ItemPriceCard, SalesSettings
 
 
 class SalesDashboardView(FeaturePermissionRequiredMixin, TemplateView):
@@ -195,3 +195,60 @@ class ItemPriceCardCreateView(FeaturePermissionRequiredMixin, View):
         else:
             # Formset validation failed
             return render(request, self.template_name, self.get_context_data(formset=formset))
+
+
+class SalesSettingsView(BaseUpdateView):
+    """Settings view for sales module."""
+    model = SalesSettings
+    form_class = SalesSettingsForm
+    template_name = 'sales/settings.html'
+    feature_code = 'sales.settings'
+    success_url = reverse_lazy('sales:settings')
+    success_message = _('تنظیمات فروش با موفقیت به‌روزرسانی شد.')
+
+    def get_object(self, queryset=None):
+        """Get or create settings for current company."""
+        company_id = self.request.session.get('active_company_id')
+        if not company_id:
+            from django.contrib import messages
+            messages.error(self.request, _('هیچ شرکتی انتخاب نشده است.'))
+            return None
+        return SalesSettings.get_or_create_for_company(company_id)
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs for settings."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Sales'), 'url': reverse('sales:dashboard')},
+            {'label': _('Settings'), 'url': None},
+        ]
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('تنظیمات فروش')
+
+    def get_context_data(self, **kwargs):
+        """Add context variables."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'sales'
+        context['page_title'] = self.get_page_title()
+        return context
+
+
+class CustomersListView(FeaturePermissionRequiredMixin, TemplateView):
+    """List view for customers."""
+    template_name = 'sales/customers.html'
+    feature_code = 'sales.customers'
+    required_action = 'view'
+
+    def get_context_data(self, **kwargs):
+        """Add context variables."""
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'sales'
+        context['page_title'] = _('مشتریان')
+        context['breadcrumbs'] = [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': _('Sales'), 'url': reverse('sales:dashboard')},
+            {'label': _('Customers'), 'url': None},
+        ]
+        return context

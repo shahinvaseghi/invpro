@@ -185,6 +185,13 @@
 {% block extra_styles %}
 {{ block.super }}
 <link rel="stylesheet" href="{% static 'css/formset-table.css' %}">
+<style>
+  /* Hide the initial Django form select dropdown - JavaScript will populate it via API */
+  /* The dropdown will be shown when JavaScript populates it */
+  .item-select-wrapper select[name*="-item"]:not([data-populated]) {
+    display: none !important;
+  }
+</style>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -198,6 +205,7 @@ const filterOptions = {
   placeholder: "--- انتخاب کنید ---",
   allCategoriesText: "{% trans 'All Categories' %}",
   allSubcategoriesText: "{% trans 'All Subcategories' %}",
+  apiUrl: "/inventory/api/filtered-items/?sellable_only=true",
 };
 
 // Initialize line forms - update row numbers and setup filters

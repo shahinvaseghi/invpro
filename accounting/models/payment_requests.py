@@ -54,6 +54,11 @@ class PaymentRequest(AccountingBaseModel, LockableModel, FiscalYearMixin):
         validators=[POSITIVE_DECIMAL],
         help_text=_("Requested payment amount"),
     )
+    due_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text=_("Due date for payment"),
+    )
     party = models.ForeignKey(
         'Party',
         on_delete=models.PROTECT,

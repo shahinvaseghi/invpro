@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Customers" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="section-header">
+        <h1>{% trans "مشتریان" %}</h1>
+        <p>{% trans "مدیریت مشتریان" %}</p>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <p>{% trans "این بخش در حال توسعه است. مدیریت مشتریان به زودی در دسترس خواهد بود." %}</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

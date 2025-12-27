@@ -52,15 +52,31 @@ function filterItemsForRow(rowElement, options = {}) {
     searchTerm = '';
   }
   
+  // Parse API URL to extract base URL and existing params
   let apiUrl = config.apiUrl;
+  const urlParts = apiUrl.split('?');
+  const baseUrl = urlParts[0];
+  const existingParams = new URLSearchParams(urlParts[1] || '');
+  
+  // Build params object
   const params = new URLSearchParams();
+  
+  // Preserve existing params from apiUrl (like sellable_only)
+  for (const [key, value] of existingParams.entries()) {
+    params.append(key, value);
+  }
+  
+  // Add filter params
   if (typeId) params.append('type_id', typeId);
   if (categoryId) params.append('category_id', categoryId);
   if (subcategoryId) params.append('subcategory_id', subcategoryId);
   if (searchTerm) params.append('search', searchTerm);
   
+  // Build final URL
   if (params.toString()) {
-    apiUrl += '?' + params.toString();
+    apiUrl = baseUrl + '?' + params.toString();
+  } else {
+    apiUrl = baseUrl;
   }
   
   fetch(apiUrl)
@@ -90,6 +106,10 @@ function filterItemsForRow(rowElement, options = {}) {
           option.textContent = item.label;
           itemSelect.appendChild(option);
         });
+        
+        // Mark as populated and show the dropdown
+        itemSelect.setAttribute('data-populated', 'true');
+        itemSelect.style.display = '';
         
         if (currentValue && itemMap[currentValue]) {
           itemSelect.value = currentValue;
