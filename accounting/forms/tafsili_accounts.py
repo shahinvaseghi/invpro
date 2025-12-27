@@ -4,7 +4,7 @@ Forms for Tafsili Account (حساب تفصیلی) management.
 from typing import Optional
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from ..models import Account, TafsiliSubAccountRelation, TafsiliType
+from ..models import Account, TafsiliSubAccountRelation, TafsiliType, TafsiliHierarchy, TafsiliLevelSubAccountRelation
 
 
 class TafsiliAccountForm(forms.ModelForm):
@@ -42,11 +42,20 @@ class TafsiliAccountForm(forms.ModelForm):
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
     )
     
+    tafsili_level = forms.ModelChoiceField(
+        queryset=TafsiliHierarchy.objects.none(),
+        label=_('سطح تفضیلی'),
+        widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_tafsili_level'}),
+        required=False,
+        empty_label=_('-- انتخاب کنید --'),
+        help_text=_('اگر سطح تفضیلی انتخاب شود، حساب‌های معین مرتبط به صورت خودکار انتخاب می‌شوند'),
+    )
+    
     sub_accounts = forms.ModelMultipleChoiceField(
         queryset=Account.objects.none(),
-        widget=forms.SelectMultiple(attrs={'class': 'form-control', 'size': '5'}),
+        widget=forms.SelectMultiple(attrs={'class': 'form-control', 'size': '5', 'id': 'id_sub_accounts'}),
         label=_('حساب‌های معین مرتبط'),
-        help_text=_('می‌توانید یک یا چند حساب معین را انتخاب کنید'),
+        help_text=_('می‌توانید یک یا چند حساب معین را انتخاب کنید (در صورت انتخاب سطح تفضیلی، این فیلد غیرفعال می‌شود)'),
         required=False,
     )
     
@@ -122,6 +131,39 @@ class TafsiliAccountForm(forms.ModelForm):
             if self.instance.pk and self.instance.tafsili_type:
                 self.initial['tafsili_type'] = self.instance.tafsili_type
         
+        # Filter tafsili levels by company
+        if company_id:
+            tafsili_level_queryset = TafsiliHierarchy.objects.filter(
+                company_id=company_id,
+                is_enabled=1
+            ).order_by('sort_order', 'code')
+            self.fields['tafsili_level'].queryset = tafsili_level_queryset
+            
+            # Load existing tafsili level for edit - check if all sub_accounts belong to same level
+            if self.instance.pk:
+                existing_sub_accounts = TafsiliSubAccountRelation.objects.filter(
+                    tafsili_account=self.instance,
+                    company_id=company_id
+                ).select_related('sub_account')
+                
+                if existing_sub_accounts.exists():
+                    # Check if all sub accounts belong to the same tafsili level
+                    sub_account_ids = [rel.sub_account_id for rel in existing_sub_accounts]
+                    level_relations = TafsiliLevelSubAccountRelation.objects.filter(
+                        sub_account_id__in=sub_account_ids,
+                        company_id=company_id
+                    ).select_related('tafsili_level')
+                    
+                    if level_relations.exists():
+                        # Get unique tafsili levels
+                        tafsili_levels = set(rel.tafsili_level_id for rel in level_relations)
+                        # If all sub accounts belong to the same level
+                        if len(tafsili_levels) == 1:
+                            tafsili_level_id = tafsili_levels.pop()
+                            self.initial['tafsili_level'] = tafsili_level_id
+                            # Disable sub_accounts field if tafsili_level is set
+                            self.fields['sub_accounts'].widget.attrs['disabled'] = True
+        
         # Filter sub accounts for multiple choice
         if company_id:
             sub_queryset = Account.objects.filter(
@@ -131,9 +173,8 @@ class TafsiliAccountForm(forms.ModelForm):
             ).order_by('account_code')
             self.fields['sub_accounts'].queryset = sub_queryset
             
-            # Load existing relations for edit
-            if self.instance.pk:
-                from accounting.models import TafsiliSubAccountRelation
+            # Load existing relations for edit (only if tafsili_level is not set)
+            if self.instance.pk and not self.initial.get('tafsili_level'):
                 existing_sub_accounts = TafsiliSubAccountRelation.objects.filter(
                     tafsili_account=self.instance,
                     company_id=company_id
@@ -160,6 +201,7 @@ class TafsiliAccountForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
+        tafsili_level = cleaned_data.get('tafsili_level')
         sub_accounts = cleaned_data.get('sub_accounts', [])
         is_floating = cleaned_data.get('is_floating', False)
         
@@ -178,23 +220,28 @@ class TafsiliAccountForm(forms.ModelForm):
             cleaned_data['account_code'] = account_code
             self.instance.account_code = account_code
         
-        # Validate sub accounts
-        if not is_floating and not sub_accounts:
-            raise forms.ValidationError({
-                'sub_accounts': _('برای تفصیلی غیرشناور، حداقل یک حساب معین باید انتخاب شود.')
-            })
-        
-        # Check all sub accounts belong to same company
-        if self.company_id and sub_accounts:
-            for sub_account in sub_accounts:
-                if sub_account.company_id != self.company_id:
-                    raise forms.ValidationError({
-                        'sub_accounts': _('همه حساب‌های معین باید متعلق به همان شرکت باشند.')
-                    })
-                if sub_account.account_level != 2:
-                    raise forms.ValidationError({
-                        'sub_accounts': _('همه انتخاب‌ها باید حساب معین (سطح 2) باشند.')
-                    })
+        # If tafsili_level is selected, ignore sub_accounts (they will be loaded from level)
+        if tafsili_level:
+            # Clear sub_accounts since they will come from tafsili_level
+            cleaned_data['sub_accounts'] = []
+        else:
+            # Validate sub accounts only if tafsili_level is not selected
+            if not is_floating and not sub_accounts:
+                raise forms.ValidationError({
+                    'sub_accounts': _('برای تفصیلی غیرشناور، حداقل یک حساب معین باید انتخاب شود.')
+                })
+            
+            # Check all sub accounts belong to same company
+            if self.company_id and sub_accounts:
+                for sub_account in sub_accounts:
+                    if sub_account.company_id != self.company_id:
+                        raise forms.ValidationError({
+                            'sub_accounts': _('همه حساب‌های معین باید متعلق به همان شرکت باشند.')
+                        })
+                    if sub_account.account_level != 2:
+                        raise forms.ValidationError({
+                            'sub_accounts': _('همه انتخاب‌ها باید حساب معین (سطح 2) باشند.')
+                        })
         
         return cleaned_data
     
@@ -214,8 +261,20 @@ class TafsiliAccountForm(forms.ModelForm):
                 company_id=self.company_id
             ).delete()
             
+            # Get sub accounts - either from tafsili_level or from direct selection
+            tafsili_level = self.cleaned_data.get('tafsili_level')
+            if tafsili_level:
+                # Get sub accounts from tafsili level
+                level_relations = TafsiliLevelSubAccountRelation.objects.filter(
+                    tafsili_level=tafsili_level,
+                    company_id=self.company_id
+                ).select_related('sub_account').order_by('-is_primary', 'sub_account__account_code')
+                sub_accounts = [rel.sub_account for rel in level_relations]
+            else:
+                # Use directly selected sub accounts
+                sub_accounts = self.cleaned_data.get('sub_accounts', [])
+            
             # Create new relations
-            sub_accounts = self.cleaned_data.get('sub_accounts', [])
             for idx, sub_account in enumerate(sub_accounts):
                 TafsiliSubAccountRelation.objects.create(
                     tafsili_account=instance,

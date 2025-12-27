@@ -156,7 +156,7 @@ class TafsiliAccountCreateView(BaseCreateView):
     """Create a new Tafsili account (حساب تفصیلی)."""
     model = Account
     form_class = TafsiliAccountForm
-    template_name = 'shared/generic/generic_form.html'
+    template_name = 'accounting/tafsili_account_form.html'
     success_url = reverse_lazy('accounting:tafsili_accounts')
     feature_code = 'accounting.accounts.tafsili'
     required_action = 'create'
@@ -197,7 +197,7 @@ class TafsiliAccountUpdateView(BaseUpdateView, EditLockProtectedMixin):
     """Update an existing Tafsili account (حساب تفصیلی)."""
     model = Account
     form_class = TafsiliAccountForm
-    template_name = 'shared/generic/generic_form.html'
+    template_name = 'accounting/tafsili_account_form.html'
     success_url = reverse_lazy('accounting:tafsili_accounts')
     feature_code = 'accounting.accounts.tafsili'
     required_action = 'edit_own'
