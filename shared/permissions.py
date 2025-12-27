@@ -961,6 +961,37 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.CREATE,
         ],
     ),
+    "accounting.documents.detail": FeaturePermission(
+        code="accounting.documents.detail",
+        label=_("Document Detail"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "accounting.documents.edit": FeaturePermission(
+        code="accounting.documents.edit",
+        label=_("Edit Document"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+        ],
+    ),
+    "accounting.documents.delete": FeaturePermission(
+        code="accounting.documents.delete",
+        label=_("Delete Document"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
     "accounting.documents.list": FeaturePermission(
         code="accounting.documents.list",
         label=_("Documents List"),
@@ -1635,6 +1666,28 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.REJECT,
         ],
     ),
+    "accounting.warehouse.opening_closing": FeaturePermission(
+        code="accounting.warehouse.opening_closing",
+        label=_("Warehouse Opening/Closing"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+        ],
+    ),
+    "accounting.warehouse.settings": FeaturePermission(
+        code="accounting.warehouse.settings",
+        label=_("Warehouse Settings"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+        ],
+    ),
     # Sales
     "sales.dashboard": FeaturePermission(
         code="sales.dashboard",
@@ -1659,6 +1712,20 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.DELETE_SAME_GROUP,
             PermissionAction.APPROVE,
             PermissionAction.REJECT,
+        ],
+    ),
+    "sales.price_card": FeaturePermission(
+        code="sales.price_card",
+        label=_("Item Price Cards"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     # HR – Dashboard

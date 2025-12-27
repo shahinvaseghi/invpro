@@ -152,12 +152,6 @@
                     </div>
                   </div>
                 {% endif %}
-                {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' %}
-                  <a href="{% url 'inventory:purchase_requests' %}" class="dropdown-item">{% trans "Purchase Requests" %}</a>
-                {% endif %}
-                {% if user_feature_permissions|feature_allowed:'inventory.requests.warehouse' %}
-                  <a href="{% url 'inventory:warehouse_requests' %}" class="dropdown-item">{% trans "Warehouse Requests" %}</a>
-                {% endif %}
                 {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' or user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' or user_feature_permissions|feature_allowed:'inventory.stocktaking.records' %}
                   <div class="dropdown-submenu">
                     <button type="button" class="dropdown-item dropdown-toggle" data-submenu="inventory-stocktaking">

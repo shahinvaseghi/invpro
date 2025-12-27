@@ -1,7 +1,7 @@
 """
 Views for accounting module.
 """
-from django.views.generic import TemplateView, CreateView, View
+from django.views.generic import TemplateView, CreateView, View, FormView
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse, reverse_lazy, NoReverseMatch
 from django.contrib import messages
@@ -11,7 +11,7 @@ from shared.mixins import FeaturePermissionRequiredMixin
 from shared.views.base import BaseCreateView, BaseFormsetCreateView, BaseListView
 from accounting.views.base import AccountingBaseView
 from accounting.models import CostCenter, IncomeExpenseCategory, Party, PartyAccount, TreasuryAccount
-from accounting.forms import CostCenterForm, IncomeExpenseCategoryForm, PartyForm, PartyAccountForm, TreasuryAccountForm
+from accounting.forms import CostCenterForm, IncomeExpenseCategoryForm, PartyForm, PartyAccountForm, TreasuryAccountForm, FiscalMemoryConfigForm
 
 
 class AccountingDashboardView(FeaturePermissionRequiredMixin, TemplateView):
@@ -1200,10 +1200,97 @@ class PartyBalanceReportView(FeaturePermissionRequiredMixin, TemplateView):
     feature_code = 'accounting.parties.balance_report'
     required_action = 'view'
 
+class TaxMoadianSettingsView(FeaturePermissionRequiredMixin, AccountingBaseView, FormView):
+    """
+    View for configuring Moadian Taxpayer System settings
+    تنظیمات سامانه مودیان
+    """
+    template_name = 'accounting/tax/moadian_settings.html'
+    form_class = FiscalMemoryConfigForm
+    feature_code = 'accounting.tax.moadian_settings'
+    required_action = 'view'
+    
+    def get_form_kwargs(self):
+        """Pass company_id to form."""
+        kwargs = super().get_form_kwargs()
+        company_id = self.request.session.get('active_company_id')
+        kwargs['company_id'] = company_id
+        return kwargs
+    
+    def form_valid(self, form):
+        """Handle successful form submission."""
+        fiscal_memory = form.save(commit=True)
+        messages.success(self.request, _('پیکربندی حافظه مالیاتی با موفقیت ذخیره شد.'))
+        return HttpResponseRedirect(self.get_success_url())
+    
+    def form_invalid(self, form):
+        """Handle invalid form submission."""
+        messages.error(self.request, _('خطا در ذخیره پیکربندی. لطفاً فیلدها را بررسی کنید.'))
+        return super().form_invalid(form)
+    
+    def get_success_url(self):
+        """Return success URL."""
+        return reverse('accounting:tax_moadian_settings')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from accounting.models import FiscalMemoryConfig
+        
+        company_id = self.request.session.get('active_company_id')
+        
+        # Get all fiscal memory configurations for this company
+        fiscal_memories = FiscalMemoryConfig.objects.filter(
+            company_id=company_id
+        ).order_by('-created_at')
+        
+        context.update({
+            'active_module': 'accounting',
+            'page_title': 'تنظیمات سامانه مودیان',
+            'fiscal_memories': fiscal_memories,
+        })
+        return context
+
+
 class TaxValidationView(FeaturePermissionRequiredMixin, TemplateView):
+    """
+    View for validating and submitting accounting documents to Moadian Taxpayer System
+    اعتبارسنجی اسناد برای ارسال به سامانه مودیان
+    """
     template_name = 'accounting/tax/validation.html'
     feature_code = 'accounting.tax.validation'
     required_action = 'view'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from accounting.models import FiscalMemoryConfig, TaxInvoiceSubmission, AccountingDocument
+        
+        company_id = self.request.session.get('active_company_id')
+        
+        # Get fiscal memory configurations
+        fiscal_memories = FiscalMemoryConfig.objects.filter(
+            company_id=company_id,
+            is_enabled=1
+        ).order_by('fiscal_id')
+        
+        # Get recent submissions
+        recent_submissions = TaxInvoiceSubmission.objects.filter(
+            company_id=company_id
+        ).select_related('document', 'fiscal_memory').order_by('-created_at')[:50]
+        
+        # Get documents ready for submission (POSTED status)
+        documents_ready = AccountingDocument.objects.filter(
+            company_id=company_id,
+            status='POSTED'
+        ).order_by('-document_date')[:100]
+        
+        context.update({
+            'active_module': 'accounting',
+            'page_title': 'اعتبارسنجی اسناد برای ارسال به سامانه مودیان',
+            'fiscal_memories': fiscal_memories,
+            'recent_submissions': recent_submissions,
+            'documents_ready': documents_ready,
+        })
+        return context
 
 class TaxDiscrepancyReportView(FeaturePermissionRequiredMixin, TemplateView):
     template_name = 'accounting/tax/discrepancy_report.html'

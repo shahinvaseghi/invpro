@@ -172,6 +172,7 @@ urlpatterns = [
     
     # Tax Compliance (مالیات)
     path('tax/vat/', views_module.TaxVATView.as_view(), name='tax_vat'),
+    path('tax/moadian-settings/', views_module.TaxMoadianSettingsView.as_view(), name='tax_moadian_settings'),
     path('tax/validation/', views_module.TaxValidationView.as_view(), name='tax_validation'),
     path('tax/discrepancy-report/', views_module.TaxDiscrepancyReportView.as_view(), name='tax_discrepancy_report'),
     path('tax/seasonal/', views_module.TaxSeasonalView.as_view(), name='tax_seasonal'),

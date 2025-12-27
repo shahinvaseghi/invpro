@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "اعتبارسنجی اسناد برای ارسال به سامانه مودیان" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="section-header">
+        <h1>{% trans "اعتبارسنجی اسناد برای ارسال به سامانه مودیان" %}</h1>
+        <p>{% trans "اعتبارسنجی و ارسال اسناد حسابداری به سامانه مودیان سازمان امور مالیاتی" %}</p>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Fiscal Memory Configurations -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h2>{% trans "پیکربندی حافظه مالیاتی" %}</h2>
+                </div>
+                <div class="card-body">
+                    {% if fiscal_memories %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>{% trans "شناسه" %}</th>
+                                        <th>{% trans "نام" %}</th>
+                                        <th>{% trans "وضعیت" %}</th>
+                                        <th>{% trans "عملیات" %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for memory in fiscal_memories %}
+                                    <tr>
+                                        <td><strong>{{ memory.fiscal_id }}</strong></td>
+                                        <td>{{ memory.name|truncatechars:15 }}</td>
+                                        <td>
+                                            {% if memory.is_enabled == 1 %}
+                                                <span class="badge badge-success">{% trans "فعال" %}</span>
+                                            {% else %}
+                                                <span class="badge badge-secondary">{% trans "غیرفعال" %}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-info" onclick="testConnection({{ memory.id }})" title="{% trans 'تست اتصال' %}">
+                                                🔌
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <p>{% trans "هیچ پیکربندی حافظه مالیاتی تعریف نشده است." %}</p>
+                            <p>{% trans "لطفاً ابتدا از" %} <a href="{% url 'accounting:tax_moadian_settings' %}">{% trans "تنظیمات سامانه مودیان" %}</a> {% trans "پیکربندی را انجام دهید." %}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Documents and Submissions -->
+        <div class="col-md-8">
+            <!-- Documents Ready for Submission -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h2>{% trans "اسناد آماده برای ارسال" %}</h2>
+                </div>
+                <div class="card-body">
+                    {% if documents_ready %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>{% trans "شماره سند" %}</th>
+                                        <th>{% trans "تاریخ سند" %}</th>
+                                        <th>{% trans "توضیحات" %}</th>
+                                        <th>{% trans "وضعیت" %}</th>
+                                        <th>{% trans "عملیات" %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for document in documents_ready %}
+                                    <tr>
+                                        <td><strong>{{ document.document_number }}</strong></td>
+                                        <td>{{ document.document_date|date:"Y/m/d" }}</td>
+                                        <td>{{ document.description|truncatewords:10 }}</td>
+                                        <td>
+                                            <span class="badge badge-primary">{{ document.get_status_display }}</span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary" onclick="validateDocument({{ document.id }})">
+                                                {% trans "اعتبارسنجی" %}
+                                            </button>
+                                            <button class="btn btn-sm btn-success" onclick="submitDocument({{ document.id }})">
+                                                {% trans "ارسال" %}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <p>{% trans "هیچ سند آماده برای ارسال وجود ندارد." %}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Submissions -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>{% trans "ارسال‌های اخیر" %}</h2>
+                </div>
+                <div class="card-body">
+                    {% if recent_submissions %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>{% trans "شماره سند" %}</th>
+                                        <th>{% trans "حافظه مالیاتی" %}</th>
+                                        <th>{% trans "وضعیت ارسال" %}</th>
+                                        <th>{% trans "تاریخ ارسال" %}</th>
+                                        <th>{% trans "پیام" %}</th>
+                                        <th>{% trans "عملیات" %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for submission in recent_submissions %}
+                                    <tr>
+                                        <td><strong>{{ submission.document.document_number }}</strong></td>
+                                        <td>{{ submission.fiscal_memory.fiscal_id }}</td>
+                                        <td>
+                                            {% if submission.submission_status == 'ACCEPTED' %}
+                                                <span class="badge badge-success">{{ submission.get_submission_status_display }}</span>
+                                            {% elif submission.submission_status == 'REJECTED' or submission.submission_status == 'FAILED' %}
+                                                <span class="badge badge-danger">{{ submission.get_submission_status_display }}</span>
+                                            {% elif submission.submission_status == 'SENT' %}
+                                                <span class="badge badge-info">{{ submission.get_submission_status_display }}</span>
+                                            {% else %}
+                                                <span class="badge badge-warning">{{ submission.get_submission_status_display }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if submission.submission_date %}
+                                                {{ submission.submission_date|date:"Y/m/d H:i" }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if submission.response_message %}
+                                                {{ submission.response_message|truncatewords:5 }}
+                                            {% elif submission.error_message %}
+                                                <span class="text-danger">{{ submission.error_message|truncatewords:5 }}</span>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if submission.submission_status == 'SENT' %}
+                                                <button class="btn btn-sm btn-info" onclick="checkStatus({{ submission.id }})">
+                                                    {% trans "بررسی وضعیت" %}
+                                                </button>
+                                            {% endif %}
+                                            <button class="btn btn-sm btn-secondary" onclick="viewLogs({{ submission.id }})">
+                                                {% trans "مشاهده لاگ" %}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <p>{% trans "هیچ ارسالی انجام نشده است." %}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Validation Modal -->
+<div class="modal fade" id="validationModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{% trans "اعتبارسنجی سند" %}</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="validationModalBody">
+                <!-- Content will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans "بستن" %}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function validateDocument(documentId) {
+    // TODO: Implement validation API call
+    alert('{% trans "اعتبارسنجی سند" %} ' + documentId + ' {% trans "در حال انجام..." %}');
+    // Show validation modal with results
+}
+
+function submitDocument(documentId) {
+    if (!confirm('{% trans "آیا مطمئن هستید که می‌خواهید این سند را به سامانه مودیان ارسال کنید؟" %}')) {
+        return;
+    }
+    
+    // TODO: Implement submission API call
+    alert('{% trans "ارسال سند" %} ' + documentId + ' {% trans "در حال انجام..." %}');
+}
+
+function testConnection(fiscalMemoryId) {
+    // TODO: Implement connection test API call
+    alert('{% trans "تست اتصال در حال انجام..." %}');
+}
+
+function checkStatus(submissionId) {
+    // TODO: Implement status check API call
+    alert('{% trans "بررسی وضعیت ارسال" %} ' + submissionId + ' {% trans "در حال انجام..." %}');
+}
+
+function viewLogs(submissionId) {
+    // TODO: Implement log view
+    alert('{% trans "مشاهده لاگ ارسال" %} ' + submissionId);
+}
+</script>
+{% endblock %}

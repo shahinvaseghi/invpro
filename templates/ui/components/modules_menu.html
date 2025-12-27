@@ -140,12 +140,6 @@
             </ul>
           </li>
         {% endif %}
-        {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' %}
-          <li><a href="{% url 'inventory:purchase_requests' %}"><span class="menu-icon icon-cart"></span>{% trans "Purchase Requests" %}</a></li>
-        {% endif %}
-        {% if user_feature_permissions|feature_allowed:'inventory.requests.warehouse' %}
-          <li><a href="{% url 'inventory:warehouse_requests' %}"><span class="menu-icon icon-clipboard"></span>{% trans "Warehouse Requests" %}</a></li>
-        {% endif %}
         {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' or user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' or user_feature_permissions|feature_allowed:'inventory.stocktaking.records' %}
           <li class="mega-menu-submenu-item">
             <button type="button" class="mega-menu-toggle" data-submenu="inventory-stocktaking">
@@ -197,9 +191,6 @@
         {% endif %}
         {% if user_feature_permissions|feature_allowed:'production.product_orders' or request.user.is_superuser %}
           <li><a href="{% url 'production:product_orders' %}"><span class="menu-icon icon-package"></span>{% trans "Product Orders" %}</a></li>
-        {% endif %}
-        {% if user_feature_permissions|feature_allowed:'production.transfer_requests' or request.user.is_superuser %}
-          <li><a href="{% url 'production:transfer_requests' %}"><span class="menu-icon icon-truck"></span>{% trans "Transfer to Line Requests" %}</a></li>
         {% endif %}
         {% if request.user.is_superuser %}
           <li><a href="{% url 'production:performance_records' %}"><span class="menu-icon icon-chart"></span>{% trans "Performance Records" %}</a></li>
@@ -442,6 +433,9 @@
               {% if user_feature_permissions|feature_allowed:'accounting.tax.vat' or request.user.is_superuser %}
                 <li><a href="{% url 'accounting:tax_vat' %}"><span class="menu-icon icon-settings"></span>{% trans "مدیریت VAT" %}</a></li>
               {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.tax.moadian_settings' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:tax_moadian_settings' %}"><span class="menu-icon icon-settings"></span>{% trans "تنظیمات سامانه مودیان" %}</a></li>
+              {% endif %}
               {% if user_feature_permissions|feature_allowed:'accounting.tax.vat_report' or request.user.is_superuser %}
                 <li><a href="{% url 'accounting:report_vat' %}"><span class="menu-icon icon-chart"></span>{% trans "گزارش VAT" %}</a></li>
               {% endif %}
@@ -672,26 +666,6 @@
             </ul>
           </li>
         {% endif %}
-        {% if user_feature_permissions|feature_allowed:'hr.requests.leave' or user_feature_permissions|feature_allowed:'hr.requests.sick_leave' or user_feature_permissions|feature_allowed:'hr.requests.loan' %}
-          <li class="mega-menu-submenu-item">
-            <button type="button" class="mega-menu-toggle" data-submenu="hr-requests">
-              <span class="menu-icon icon-clipboard"></span>
-              <span>{% trans "Requests" %}</span>
-              <span class="mega-menu-arrow">▼</span>
-            </button>
-            <ul class="mega-menu-submenu" id="hr-requests">
-              {% if user_feature_permissions|feature_allowed:'hr.requests.leave' %}
-                <li><a href="{% url 'hr:requests_leave' %}"><span class="menu-icon icon-beach"></span>{% trans "Leave Request" %}</a></li>
-              {% endif %}
-              {% if user_feature_permissions|feature_allowed:'hr.requests.sick_leave' %}
-                <li><a href="{% url 'hr:requests_sick_leave' %}"><span class="menu-icon icon-hospital"></span>{% trans "Sick Leave Request" %}</a></li>
-              {% endif %}
-              {% if user_feature_permissions|feature_allowed:'hr.requests.loan' %}
-                <li><a href="{% url 'hr:requests_loan' %}"><span class="menu-icon icon-card"></span>{% trans "Loan Request" %}</a></li>
-              {% endif %}
-            </ul>
-          </li>
-        {% endif %}
         {% if user_feature_permissions|feature_allowed:'hr.loans.management' or user_feature_permissions|feature_allowed:'hr.loans.scheduling' or user_feature_permissions|feature_allowed:'hr.loans.savings_fund' %}
           <li class="mega-menu-submenu-item">
             <button type="button" class="mega-menu-toggle" data-submenu="hr-loans">
@@ -711,6 +685,39 @@
               {% endif %}
             </ul>
           </li>
+        {% endif %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Requests Module Section -->
+    {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' or user_feature_permissions|feature_allowed:'inventory.requests.warehouse' or user_feature_permissions|feature_allowed:'production.transfer_requests' or user_feature_permissions|feature_allowed:'hr.requests.leave' or user_feature_permissions|feature_allowed:'hr.requests.sick_leave' or user_feature_permissions|feature_allowed:'hr.requests.loan' or request.user.is_superuser %}
+    <div class="mega-menu-section collapsed">
+      <button type="button" class="mega-menu-section-toggle" data-section="requests-section">
+        <span class="menu-icon icon-clipboard"></span>
+        <span>{% trans "Requests" %}</span>
+        <span class="mega-menu-section-arrow">▼</span>
+      </button>
+      <div class="mega-menu-section-content" id="requests-section">
+        <ul>
+        {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' %}
+          <li><a href="{% url 'inventory:purchase_requests' %}"><span class="menu-icon icon-cart"></span>{% trans "Purchase Request" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'inventory.requests.warehouse' %}
+          <li><a href="{% url 'inventory:warehouse_requests' %}"><span class="menu-icon icon-clipboard"></span>{% trans "Warehouse Request" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.transfer_requests' or request.user.is_superuser %}
+          <li><a href="{% url 'production:transfer_requests' %}"><span class="menu-icon icon-truck"></span>{% trans "Transfer to Line Requests" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'hr.requests.leave' %}
+          <li><a href="{% url 'hr:requests_leave' %}"><span class="menu-icon icon-beach"></span>{% trans "Leave Request" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'hr.requests.sick_leave' %}
+          <li><a href="{% url 'hr:requests_sick_leave' %}"><span class="menu-icon icon-hospital"></span>{% trans "Sick Leave Request" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'hr.requests.loan' %}
+          <li><a href="{% url 'hr:requests_loan' %}"><span class="menu-icon icon-card"></span>{% trans "Loan Request" %}</a></li>
         {% endif %}
         </ul>
       </div>

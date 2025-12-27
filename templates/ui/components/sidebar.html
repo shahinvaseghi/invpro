@@ -88,12 +88,6 @@
         </div>
       {% endif %}
 
-      {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' %}
-        <a href="{% url 'inventory:purchase_requests' %}" class="nav-link">{% trans "Purchase Requests" %}</a>
-      {% endif %}
-      {% if user_feature_permissions|feature_allowed:'inventory.requests.warehouse' %}
-        <a href="{% url 'inventory:warehouse_requests' %}" class="nav-link">{% trans "Warehouse Requests" %}</a>
-      {% endif %}
 
       {% if user_feature_permissions|feature_allowed:'inventory.receipts.temporary' or user_feature_permissions|feature_allowed:'inventory.receipts.permanent' or user_feature_permissions|feature_allowed:'inventory.receipts.consignment' %}
         <div class="nav-group">
@@ -184,9 +178,6 @@
         {% endif %}
         {% if user_feature_permissions|feature_allowed:'production.product_orders' or request.user.is_superuser %}
           <a href="{% url 'production:product_orders' %}" class="nav-link">{% trans "Product Orders" %}</a>
-        {% endif %}
-        {% if user_feature_permissions|feature_allowed:'production.transfer_requests' or request.user.is_superuser %}
-          <a href="{% url 'production:transfer_requests' %}" class="nav-link">{% trans "Transfer to Line Requests" %}</a>
         {% endif %}
         {% if request.user.is_superuser %}
           <a href="{% url 'production:performance_records' %}" class="nav-link">{% trans "Performance Records" %}</a>
@@ -448,6 +439,9 @@
             {% if user_feature_permissions|feature_allowed:'accounting.tax.vat' or request.user.is_superuser %}
               <a href="{% url 'accounting:tax_vat' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "مدیریت VAT" %}</a>
             {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.tax.moadian_settings' or request.user.is_superuser %}
+              <a href="{% url 'accounting:tax_moadian_settings' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "تنظیمات سامانه مودیان" %}</a>
+            {% endif %}
             {% if user_feature_permissions|feature_allowed:'accounting.tax.vat_report' or request.user.is_superuser %}
               <a href="{% url 'accounting:report_vat' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "گزارش VAT" %}</a>
             {% endif %}
@@ -652,17 +646,6 @@
         </div>
       </div>
 
-      <div class="nav-group">
-        <button type="button" class="nav-group-header" data-submenu="hr-requests">
-          <span>{% trans "Requests" %}</span>
-          <span class="nav-group-icon">▼</span>
-        </button>
-        <div class="nav-group-content" id="hr-requests">
-          <a href="{% url 'hr:requests_leave' %}" class="nav-link-sub">{% trans "Leave Request" %}</a>
-          <a href="{% url 'hr:requests_sick_leave' %}" class="nav-link-sub">{% trans "Sick Leave Request" %}</a>
-          <a href="{% url 'hr:requests_loan' %}" class="nav-link-sub">{% trans "Loan Request" %}</a>
-        </div>
-      </div>
 
       <div class="nav-group">
         <button type="button" class="nav-group-header" data-submenu="hr-loans">
@@ -677,6 +660,36 @@
       </div>
     </div>
   </div>
+
+  <!-- Requests Section -->
+  {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' or user_feature_permissions|feature_allowed:'inventory.requests.warehouse' or user_feature_permissions|feature_allowed:'production.transfer_requests' or user_feature_permissions|feature_allowed:'hr.requests.leave' or user_feature_permissions|feature_allowed:'hr.requests.sick_leave' or user_feature_permissions|feature_allowed:'hr.requests.loan' or request.user.is_superuser %}
+  <div class="sidebar-section" data-section="requests">
+    <button type="button" class="section-header" data-target="requests">
+      <span class="section-title">{% trans "Requests" %}</span>
+      <span class="section-icon">▼</span>
+    </button>
+    <div class="section-content" id="requests">
+      {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' %}
+        <a href="{% url 'inventory:purchase_requests' %}" class="nav-link">{% trans "Purchase Request" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'inventory.requests.warehouse' %}
+        <a href="{% url 'inventory:warehouse_requests' %}" class="nav-link">{% trans "Warehouse Request" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'production.transfer_requests' or request.user.is_superuser %}
+        <a href="{% url 'production:transfer_requests' %}" class="nav-link">{% trans "Transfer to Line Requests" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'hr.requests.leave' %}
+        <a href="{% url 'hr:requests_leave' %}" class="nav-link">{% trans "Leave Request" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'hr.requests.sick_leave' %}
+        <a href="{% url 'hr:requests_sick_leave' %}" class="nav-link">{% trans "Sick Leave Request" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'hr.requests.loan' %}
+        <a href="{% url 'hr:requests_loan' %}" class="nav-link">{% trans "Loan Request" %}</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 
   <!-- Office Automation Section -->
   <div class="sidebar-section" data-section="office_automation">

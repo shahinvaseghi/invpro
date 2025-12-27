@@ -59,6 +59,13 @@ from .warehouse import (
     WarehouseIncomeDocument,
 )
 
+# Taxpayer System
+from .taxpayer_system import (
+    FiscalMemoryConfig,
+    TaxInvoiceSubmission,
+    TaxInvoiceSubmissionLog,
+)
+
 # Export all models for backward compatibility
 __all__ = [
     # Base
@@ -99,5 +106,9 @@ __all__ = [
     'WarehouseExpenseDocument',
     'WarehouseExpenseDocumentLine',
     'WarehouseIncomeDocument',
+    # Taxpayer System
+    'FiscalMemoryConfig',
+    'TaxInvoiceSubmission',
+    'TaxInvoiceSubmissionLog',
 ]
 
