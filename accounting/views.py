@@ -12,6 +12,29 @@ from shared.views.base import BaseCreateView, BaseFormsetCreateView, BaseListVie
 from accounting.views.base import AccountingBaseView
 from accounting.models import CostCenter, IncomeExpenseCategory, Party, PartyAccount, TreasuryAccount
 from accounting.forms import CostCenterForm, IncomeExpenseCategoryForm, PartyForm, PartyAccountForm, TreasuryAccountForm, FiscalMemoryConfigForm
+from accounting.views.automation import (
+    AutomationProcessListView,
+    AutomationProcessCreateView,
+    AutomationProcessDetailView,
+    AutomationProcessUpdateView,
+    AutomationProcessDeleteView,
+    AutomationExecutionLogListView,
+    AutomationExecutionLogDetailView,
+    AutomationConditionCreateView,
+    AutomationConditionUpdateView,
+    AutomationConditionDeleteView,
+    AutomationVariableCreateView,
+    AutomationVariableUpdateView,
+    AutomationVariableDeleteView,
+    AutomationDocumentStepCreateView,
+    AutomationDocumentStepDetailView,
+    AutomationDocumentStepUpdateView,
+    AutomationDocumentStepDeleteView,
+    AutomationDocumentLineCreateView,
+    AutomationDocumentLineUpdateView,
+    AutomationDocumentLineDeleteView,
+)
+from accounting.views.automation_api import get_document_info, get_filterable_fields
 
 
 class AccountingDashboardView(FeaturePermissionRequiredMixin, TemplateView):

@@ -1,0 +1,171 @@
+{% extends "shared/generic/generic_detail.html" %}
+{% load i18n jalali_tags %}
+
+{% block detail_sections %}
+{{ block.super }}
+
+<div class="form-section">
+  <h3>{% trans "Step Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Step Number" %}</label>
+      <div class="readonly-field">{{ object.step_number }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Document Type" %}</label>
+      <div class="readonly-field">{{ object.get_document_type_display }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Requires Approval" %}</label>
+      <div class="readonly-field">{{ object.get_requires_approval_display }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Wait for Previous Approval" %}</label>
+      <div class="readonly-field">
+        {% if object.wait_for_previous_approval %}
+          <span class="badge badge-info">{% trans "Yes" %}</span>
+        {% else %}
+          <span class="badge badge-secondary">{% trans "No" %}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Status" %}</label>
+      <div class="readonly-field">
+        {% if object.is_active %}
+          <span class="badge badge-success">{% trans "Active" %}</span>
+        {% else %}
+          <span class="badge badge-secondary">{% trans "Inactive" %}</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if object.execution_condition %}
+<div class="form-section">
+  <h3>{% trans "Execution Condition" %}</h3>
+  <div class="form-row">
+    <div class="form-field full-width">
+      <pre class="readonly-field" style="background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto;">{{ object.execution_condition|pprint }}</pre>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if object.header_config %}
+<div class="form-section">
+  <h3>{% trans "Header Configuration" %}</h3>
+  <div class="form-row">
+    <div class="form-field full-width">
+      <pre class="readonly-field" style="background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto;">{{ object.header_config|pprint }}</pre>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="form-section">
+  <h3>{% trans "Document Lines" %}</h3>
+  {% if lines %}
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>{% trans "Line" %}</th>
+            <th>{% trans "Debit Account" %}</th>
+            <th>{% trans "Credit Account" %}</th>
+            <th>{% trans "Amount" %}</th>
+            <th>{% trans "Description" %}</th>
+            <th>{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for line in lines %}
+          <tr>
+            <td>{{ line.line_number }}</td>
+            <td>
+              {% if line.debit_account_type == 'static' %}
+                {{ line.debit_account|default:"-" }}
+              {% elif line.debit_account_type == 'variable' %}
+                <code>{{ line.debit_account_variable }}</code>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              {% if line.credit_account_type == 'static' %}
+                {{ line.credit_account|default:"-" }}
+              {% elif line.credit_account_type == 'variable' %}
+                <code>{{ line.credit_account_variable }}</code>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              {% if line.amount_type == 'static' %}
+                {{ line.amount_value|default:"-" }}
+              {% elif line.amount_type == 'variable' %}
+                <code>{{ line.amount_variable }}</code>
+              {% elif line.amount_type == 'computed' %}
+                <code>{{ line.amount_expression|truncatewords:5 }}</code>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>{{ line.description_value|default:line.description_expression|truncatewords:5|default:"-" }}</td>
+            <td>
+              <a href="{% url 'accounting:automation_document_line_edit' line.pk %}" class="btn btn-sm btn-outline-secondary">
+                {% trans "Edit" %}
+              </a>
+              <a href="{% url 'accounting:automation_document_line_delete' line.pk %}" class="btn btn-sm btn-outline-danger">
+                {% trans "Delete" %}
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted">{% trans "No lines defined." %}</p>
+  {% endif %}
+  <div class="mt-3">
+    <a href="{% url 'accounting:automation_document_line_create' object.pk %}" class="btn btn-sm btn-primary">
+      {% trans "Add Line" %}
+    </a>
+  </div>
+</div>
+
+{% if object.created_at or object.edited_at or object.created_by or object.edited_by %}
+<div class="form-section">
+  <h3>{% trans "Audit Information" %}</h3>
+  <div class="form-row">
+    {% if object.created_by %}
+    <div class="form-field">
+      <label>{% trans "Created By" %}</label>
+      <div class="readonly-field">{{ object.created_by.get_full_name|default:object.created_by.username }}</div>
+    </div>
+    {% endif %}
+    {% if object.created_at %}
+    <div class="form-field">
+      <label>{% trans "Created At" %}</label>
+      <div class="readonly-field">{{ object.created_at|jalali_date:"%Y/%m/%d %H:%M" }}</div>
+    </div>
+    {% endif %}
+    {% if object.edited_by %}
+    <div class="form-field">
+      <label>{% trans "Edited By" %}</label>
+      <div class="readonly-field">{{ object.edited_by.get_full_name|default:object.edited_by.username }}</div>
+    </div>
+    {% endif %}
+    {% if object.edited_at %}
+    <div class="form-field">
+      <label>{% trans "Last Updated" %}</label>
+      <div class="readonly-field">{{ object.edited_at|jalali_date:"%Y/%m/%d %H:%M" }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+

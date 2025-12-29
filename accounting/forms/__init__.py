@@ -18,6 +18,15 @@ from .warehouse import WarehouseExpenseDocumentForm, WarehouseExpenseDocumentLin
 from .documents import AccountingDocumentForm, AccountingDocumentLineFormSet
 from .taxpayer_system import FiscalMemoryConfigForm
 from .payment_requests import PaymentRequestForm
+from .automation import (
+    AutomationProcessForm,
+    AutomationConditionForm,
+    AutomationVariableForm,
+)
+from .document_steps import (
+    AutomationDocumentStepForm,
+    AutomationDocumentLineForm,
+)
 
 __all__ = [
     'FiscalYearForm',
@@ -41,5 +50,10 @@ __all__ = [
     'AccountingDocumentLineFormSet',
     'FiscalMemoryConfigForm',
     'PaymentRequestForm',
+    'AutomationProcessForm',
+    'AutomationConditionForm',
+    'AutomationVariableForm',
+    'AutomationDocumentStepForm',
+    'AutomationDocumentLineForm',
 ]
 

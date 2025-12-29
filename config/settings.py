@@ -228,6 +228,13 @@ SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
+# ---------------------------------------------------------------------------
+# Data upload limits
+# ---------------------------------------------------------------------------
+
+# Increase max number of fields to handle large forms (e.g., Access Level permissions)
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+
 
 # ---------------------------------------------------------------------------
 # CORS configuration

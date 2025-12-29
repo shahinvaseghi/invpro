@@ -251,4 +251,33 @@ urlpatterns = [
     path('warehouse/income/', views_module.WarehouseIncomeView.as_view(), name='warehouse_income'),
     path('warehouse/opening-closing/', views_module.WarehouseOpeningClosingView.as_view(), name='warehouse_opening_closing'),
     path('warehouse/settings/', views_module.WarehouseSettingsView.as_view(), name='warehouse_settings'),
+    
+    # Automation (خودکارسازی)
+    path('automation/processes/', views_module.AutomationProcessListView.as_view(), name='automation_processes'),
+    path('automation/processes/create/', views_module.AutomationProcessCreateView.as_view(), name='automation_process_create'),
+    path('automation/processes/<int:pk>/', views_module.AutomationProcessDetailView.as_view(), name='automation_process_detail'),
+    path('automation/processes/<int:pk>/edit/', views_module.AutomationProcessUpdateView.as_view(), name='automation_process_edit'),
+    path('automation/processes/<int:pk>/delete/', views_module.AutomationProcessDeleteView.as_view(), name='automation_process_delete'),
+    path('automation/logs/', views_module.AutomationExecutionLogListView.as_view(), name='automation_execution_logs'),
+    path('automation/logs/<int:pk>/', views_module.AutomationExecutionLogDetailView.as_view(), name='automation_execution_log_detail'),
+    # Conditions
+    path('automation/processes/<int:process_id>/conditions/create/', views_module.AutomationConditionCreateView.as_view(), name='automation_condition_create'),
+    path('automation/conditions/<int:pk>/edit/', views_module.AutomationConditionUpdateView.as_view(), name='automation_condition_edit'),
+    path('automation/conditions/<int:pk>/delete/', views_module.AutomationConditionDeleteView.as_view(), name='automation_condition_delete'),
+    # Variables
+    path('automation/processes/<int:process_id>/variables/create/', views_module.AutomationVariableCreateView.as_view(), name='automation_variable_create'),
+    path('automation/variables/<int:pk>/edit/', views_module.AutomationVariableUpdateView.as_view(), name='automation_variable_edit'),
+    path('automation/variables/<int:pk>/delete/', views_module.AutomationVariableDeleteView.as_view(), name='automation_variable_delete'),
+    # Document Steps
+    path('automation/processes/<int:process_id>/steps/create/', views_module.AutomationDocumentStepCreateView.as_view(), name='automation_document_step_create'),
+    path('automation/processes/<int:process_id>/steps/<int:pk>/', views_module.AutomationDocumentStepDetailView.as_view(), name='automation_document_step_detail'),
+    path('automation/steps/<int:pk>/edit/', views_module.AutomationDocumentStepUpdateView.as_view(), name='automation_document_step_edit'),
+    path('automation/steps/<int:pk>/delete/', views_module.AutomationDocumentStepDeleteView.as_view(), name='automation_document_step_delete'),
+    # Document Lines
+    path('automation/steps/<int:step_id>/lines/create/', views_module.AutomationDocumentLineCreateView.as_view(), name='automation_document_line_create'),
+    path('automation/lines/<int:pk>/edit/', views_module.AutomationDocumentLineUpdateView.as_view(), name='automation_document_line_edit'),
+    path('automation/lines/<int:pk>/delete/', views_module.AutomationDocumentLineDeleteView.as_view(), name='automation_document_line_delete'),
+    # API endpoints
+    path('automation/api/document-info/<str:document_id>/', views_module.get_document_info, name='automation_api_document_info'),
+    path('automation/api/filterable-fields/<str:document_id>/', views_module.get_filterable_fields, name='automation_api_filterable_fields'),
 ]

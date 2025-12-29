@@ -518,6 +518,23 @@
             </ul>
           </li>
         {% endif %}
+        {% if user_feature_permissions|feature_allowed:'accounting.automation.processes' or user_feature_permissions|feature_allowed:'accounting.automation.logs' or request.user.is_superuser %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="accounting-automation">
+              <span class="menu-icon icon-gear"></span>
+              <span>{% trans "خودکارسازی" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="accounting-automation">
+              {% if user_feature_permissions|feature_allowed:'accounting.automation.processes' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:automation_processes' %}"><span class="menu-icon icon-gear"></span>{% trans "فرایندهای خودکار" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.automation.logs' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:automation_execution_logs' %}"><span class="menu-icon icon-chart"></span>{% trans "لاگ اجرا" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
         {% if user_feature_permissions|feature_allowed:'accounting.utils.close_temp' or user_feature_permissions|feature_allowed:'accounting.utils.opening' or user_feature_permissions|feature_allowed:'accounting.utils.closing' or user_feature_permissions|feature_allowed:'accounting.utils.integration' or user_feature_permissions|feature_allowed:'accounting.utils.backup' or request.user.is_superuser %}
           <li class="mega-menu-submenu-item">
             <button type="button" class="mega-menu-toggle" data-submenu="accounting-utils">
@@ -585,6 +602,19 @@
             </ul>
           </li>
         {% endif %}
+        {% comment %}
+        <li class="mega-menu-submenu-item">
+          <button type="button" class="mega-menu-toggle" data-submenu="accounting-automation">
+            <span class="menu-icon icon-robot"></span>
+            <span>{% trans "خودکار سازی" %}</span>
+            <span class="mega-menu-arrow">▼</span>
+          </button>
+          <ul class="mega-menu-submenu" id="accounting-automation">
+            <li><a href="{% url 'accounting:automation_process_create' %}"><span class="menu-icon icon-gear"></span>{% trans "ایجاد فرایند خودکار" %}</a></li>
+            <li><a href="{% url 'accounting:automation_process_connection' %}"><span class="menu-icon icon-link"></span>{% trans "اتصال فرایند به بخش‌ها" %}</a></li>
+          </ul>
+        </li>
+        {% endcomment %}
         </ul>
       </div>
     </div>

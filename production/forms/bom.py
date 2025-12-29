@@ -360,6 +360,18 @@ class BOMMaterialLineFormSetBase(forms.BaseInlineFormSet):
                         else:
                             # First occurrence of this material_item
                             material_items[material_item_id] = [form_index]
+                        
+                        # Also check against existing materials in database (for update scenarios)
+                        if self.instance and self.instance.pk:
+                            from production.models import BOMMaterial
+                            existing_material = BOMMaterial.objects.filter(
+                                bom=self.instance,
+                                material_item_id=material_item_id
+                            ).exclude(pk=instance_id).first()
+                            
+                            if existing_material:
+                                # This material already exists in the BOM (not in current formset)
+                                form.add_error('material_item', _('This material item is already added to this BOM. Each material can only appear once per BOM.'))
         
         if non_empty_forms == 0:
             raise forms.ValidationError(

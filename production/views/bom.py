@@ -278,6 +278,7 @@ class BOMUpdateView(BaseNestedFormsetUpdateView, EditLockProtectedMixin):
     def get_formset_kwargs(self) -> Dict[str, Any]:
         """Return kwargs for formset."""
         return {
+            'instance': self.object,
             'form_kwargs': {'company_id': self.object.company_id}
         }
     
@@ -315,6 +316,23 @@ class BOMUpdateView(BaseNestedFormsetUpdateView, EditLockProtectedMixin):
         if not instance.material_item or not instance.unit:
             return None
         
+        # Check for duplicate material_item in the same BOM
+        # Always check to prevent duplicates, but exclude current instance if it exists
+        existing_material = BOMMaterial.objects.filter(
+            bom=self.object,
+            material_item=instance.material_item
+        ).exclude(pk=instance.pk if instance.pk else None).first()
+        
+        if existing_material:
+            # This material already exists in the BOM
+            messages.error(
+                self.request,
+                _('Material item {item_code} is already added to this BOM. Each material can only appear once per BOM.').format(
+                    item_code=instance.material_item.item_code
+                )
+            )
+            return None
+        
         # Initialize line_number counter if not exists
         if not hasattr(self, '_line_number'):
             # Get max line_number from existing materials
@@ -323,10 +341,16 @@ class BOMUpdateView(BaseNestedFormsetUpdateView, EditLockProtectedMixin):
             )['max_line'] or 0
             self._line_number = existing_max + 1
         
-        # Set additional fields
-        instance.bom = self.object
-        instance.line_number = self._line_number
-        instance.edited_by = self.request.user
+        # Set additional fields only if this is a new instance
+        if not instance.pk:
+            instance.bom = self.object
+            instance.line_number = self._line_number
+            instance.edited_by = self.request.user
+            # Increment line number for next instance
+            self._line_number += 1
+        else:
+            # For existing instances, only update edited_by
+            instance.edited_by = self.request.user
         
         # Auto-fill material_item_code
         if instance.material_item:
@@ -344,9 +368,6 @@ class BOMUpdateView(BaseNestedFormsetUpdateView, EditLockProtectedMixin):
                     )
                 )
                 return None
-        
-        # Increment line number for next instance
-        self._line_number += 1
         
         return instance
     

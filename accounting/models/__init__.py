@@ -69,6 +69,17 @@ from .taxpayer_system import (
     TaxInvoiceSubmissionLog,
 )
 
+# Automation
+from .automation import (
+    AutomationProcess,
+    AutomationCondition,
+    AutomationVariable,
+    AutomationDocumentStep,
+    AutomationDocumentLine,
+    AutomationExecutionLog,
+    AutomationDocumentApproval,
+)
+
 # Export all models for backward compatibility
 __all__ = [
     # Base
@@ -116,5 +127,13 @@ __all__ = [
     'FiscalMemoryConfig',
     'TaxInvoiceSubmission',
     'TaxInvoiceSubmissionLog',
+    # Automation
+    'AutomationProcess',
+    'AutomationCondition',
+    'AutomationVariable',
+    'AutomationDocumentStep',
+    'AutomationDocumentLine',
+    'AutomationExecutionLog',
+    'AutomationDocumentApproval',
 ]
 

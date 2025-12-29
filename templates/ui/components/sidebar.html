@@ -41,6 +41,7 @@
     </div>
   </div>
 
+  {% if user_feature_permissions|feature_allowed:'inventory.master.warehouses' or user_feature_permissions|feature_allowed:'inventory.master.items' or user_feature_permissions|feature_allowed:'inventory.master.item_serials' or user_feature_permissions|feature_allowed:'inventory.balance' or user_feature_permissions|feature_allowed:'inventory.suppliers.categories' or user_feature_permissions|feature_allowed:'inventory.suppliers.list' or user_feature_permissions|feature_allowed:'inventory.receipts.temporary' or user_feature_permissions|feature_allowed:'inventory.receipts.permanent' or user_feature_permissions|feature_allowed:'inventory.receipts.consignment' or user_feature_permissions|feature_allowed:'inventory.issues.permanent' or user_feature_permissions|feature_allowed:'inventory.issues.consumption' or user_feature_permissions|feature_allowed:'inventory.issues.consignment' or user_feature_permissions|feature_allowed:'inventory.issues.warehouse_transfer' or user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' or user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' or user_feature_permissions|feature_allowed:'inventory.stocktaking.records' or request.user.is_superuser %}
   <div class="sidebar-section" data-section="inventory">
     <button type="button" class="section-header" data-target="inventory">
       <span class="section-title">{% trans "Inventory" %}</span>
@@ -153,6 +154,7 @@
       {% endif %}
     </div>
   </div>
+  {% endif %}
 
   {% if user_feature_permissions|feature_allowed:'production.personnel' or user_feature_permissions|feature_allowed:'production.machines' or user_feature_permissions|feature_allowed:'production.work_lines' or user_feature_permissions|feature_allowed:'production.bom' or user_feature_permissions|feature_allowed:'production.processes' or user_feature_permissions|feature_allowed:'production.product_orders' or user_feature_permissions|feature_allowed:'production.tracking_identification' or request.user.is_superuser %}
     <div class="sidebar-section" data-section="production">
@@ -196,6 +198,7 @@
   {% endif %}
 
   {% if request.user.is_superuser %}
+    {% if user_feature_permissions|feature_allowed:'qc.inspections' or request.user.is_superuser %}
     <div class="sidebar-section" data-section="qc">
       <button type="button" class="section-header" data-target="qc">
         <span class="section-title">{% trans "Quality Control" %}</span>
@@ -205,6 +208,7 @@
         <a href="{% url 'qc:temporary_receipts' %}" class="nav-link">{% trans "Temporary Receipts" %}</a>
       </div>
     </div>
+    {% endif %}
   {% endif %}
 
   {% if request.user.is_superuser %}
@@ -251,6 +255,7 @@
   {% endif %}
 
   <!-- Accounting Section -->
+  {% if user_feature_permissions|feature_allowed:'accounting.dashboard' or user_feature_permissions|feature_allowed:'accounting.base.fiscal_years' or user_feature_permissions|feature_allowed:'accounting.base.accounts' or user_feature_permissions|feature_allowed:'accounting.documents.create' or user_feature_permissions|feature_allowed:'accounting.treasury.receive' or user_feature_permissions|feature_allowed:'accounting.payroll.payment' or user_feature_permissions|feature_allowed:'accounting.tax.vat' or request.user.is_superuser %}
   <div class="sidebar-section" data-section="accounting">
     <button type="button" class="section-header" data-target="accounting">
       <span class="section-title">{% trans "Accounting" %}</span>
@@ -598,8 +603,10 @@
       {% endif %}
     </div>
   </div>
+  {% endif %}
 
   <!-- Sales Section -->
+  {% if user_feature_permissions|feature_allowed:'sales.dashboard' or user_feature_permissions|feature_allowed:'sales.price_card' or user_feature_permissions|feature_allowed:'sales.invoice' or user_feature_permissions|feature_allowed:'sales.customers' or user_feature_permissions|feature_allowed:'sales.settings' or request.user.is_superuser %}
   <div class="sidebar-section" data-section="sales">
     <button type="button" class="section-header" data-target="sales">
       <span class="section-title">{% trans "Sales" %}</span>
@@ -621,8 +628,10 @@
       {% endif %}
     </div>
   </div>
+  {% endif %}
 
   <!-- HR Section -->
+  {% if user_feature_permissions|feature_allowed:'hr.dashboard' or user_feature_permissions|feature_allowed:'hr.personnel' or user_feature_permissions|feature_allowed:'hr.payroll.decrees' or request.user.is_superuser %}
   <div class="sidebar-section" data-section="hr">
     <button type="button" class="section-header" data-target="hr">
       <span class="section-title">{% trans "Human Resources" %}</span>
@@ -671,6 +680,7 @@
       </div>
     </div>
   </div>
+  {% endif %}
 
   <!-- Requests Section -->
   {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' or user_feature_permissions|feature_allowed:'inventory.requests.warehouse' or user_feature_permissions|feature_allowed:'production.transfer_requests' or user_feature_permissions|feature_allowed:'hr.requests.leave' or user_feature_permissions|feature_allowed:'hr.requests.sick_leave' or user_feature_permissions|feature_allowed:'hr.requests.loan' or request.user.is_superuser %}
@@ -706,6 +716,7 @@
   {% endif %}
 
   <!-- Office Automation Section -->
+  {% if user_feature_permissions|feature_allowed:'office_automation.dashboard' or user_feature_permissions|feature_allowed:'office_automation.inbox.incoming' or user_feature_permissions|feature_allowed:'office_automation.processes.engine' or user_feature_permissions|feature_allowed:'office_automation.forms.builder' or request.user.is_superuser %}
   <div class="sidebar-section" data-section="office_automation">
     <button type="button" class="section-header" data-target="office_automation">
       <span class="section-title">{% trans "Office Automation" %}</span>
@@ -748,8 +759,10 @@
       </div>
     </div>
   </div>
+  {% endif %}
 
   <!-- Transportation Section -->
+  {% if user_feature_permissions|feature_allowed:'transportation.dashboard' or request.user.is_superuser %}
   <div class="sidebar-section" data-section="transportation">
     <button type="button" class="section-header" data-target="transportation">
       <span class="section-title">{% trans "Transportation" %}</span>
@@ -759,8 +772,10 @@
       <a href="{% url 'transportation:dashboard' %}" class="nav-link">{% trans "Dashboard" %}</a>
     </div>
   </div>
+  {% endif %}
 
   <!-- Procurement Section -->
+  {% if user_feature_permissions|feature_allowed:'procurement.dashboard' or user_feature_permissions|feature_allowed:'procurement.orders.list' or user_feature_permissions|feature_allowed:'procurement.invoices.purchase' or user_feature_permissions|feature_allowed:'procurement.invoices.service' or user_feature_permissions|feature_allowed:'procurement.services.request' or user_feature_permissions|feature_allowed:'procurement.buyers' or request.user.is_superuser %}
   <div class="sidebar-section" data-section="procurement">
     <button type="button" class="section-header" data-target="procurement">
       <span class="section-title">{% trans "Procurement" %}</span>
@@ -803,6 +818,7 @@
       </div>
       {% endif %}
 
+      {% if user_feature_permissions|feature_allowed:'procurement.buyers' or request.user.is_superuser %}
       <div class="nav-group">
         <button type="button" class="nav-group-header" data-submenu="procurement-buyers">
           <span>{% trans "Buyers" %}</span>
@@ -814,7 +830,9 @@
           <a href="{% url 'procurement:buyer_assignment' %}" class="nav-link-sub">{% trans "Buyer Assignment" %}</a>
         </div>
       </div>
+      {% endif %}
     </div>
   </div>
+  {% endif %}
 </nav>
 

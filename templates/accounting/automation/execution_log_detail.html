@@ -1,0 +1,177 @@
+{% extends "shared/generic/generic_detail.html" %}
+{% load i18n jalali_tags %}
+
+{% block detail_sections %}
+{{ block.super }}
+
+<div class="form-section">
+  <h3>{% trans "Execution Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Process" %}</label>
+      <div class="readonly-field">
+        <a href="{% url 'accounting:automation_process_detail' object.process.pk %}">{{ object.process.name }}</a>
+      </div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Trigger Document Type" %}</label>
+      <div class="readonly-field">{{ object.trigger_document_type }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Trigger Document ID" %}</label>
+      <div class="readonly-field">{{ object.trigger_document_id }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Status" %}</label>
+      <div class="readonly-field">
+        <span class="badge badge-{{ object.status|default:'secondary' }}">
+          {{ object.get_status_display }}
+        </span>
+      </div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Executed At" %}</label>
+      <div class="readonly-field">{{ object.executed_at|jalali_date:"%Y/%m/%d %H:%M:%S" }}</div>
+    </div>
+    {% if object.completed_at %}
+    <div class="form-field">
+      <label>{% trans "Completed At" %}</label>
+      <div class="readonly-field">{{ object.completed_at|jalali_date:"%Y/%m/%d %H:%M:%S" }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if object.error_message %}
+<div class="form-section">
+  <h3>{% trans "Error Message" %}</h3>
+  <div class="form-row">
+    <div class="form-field full-width">
+      <div class="readonly-field alert alert-danger">{{ object.error_message|linebreaks }}</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if object.execution_data %}
+<div class="form-section">
+  <h3>{% trans "Execution Data" %}</h3>
+  <div class="form-row">
+    <div class="form-field full-width">
+      <pre class="readonly-field" style="background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto;">{{ object.execution_data|pprint }}</pre>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if object.created_documents %}
+<div class="form-section">
+  <h3>{% trans "Created Documents" %}</h3>
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>{% trans "Step" %}</th>
+          <th>{% trans "Document Type" %}</th>
+          <th>{% trans "Document ID" %}</th>
+          <th>{% trans "Status" %}</th>
+          <th>{% trans "Approval Status" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for doc in object.created_documents %}
+        <tr>
+          <td>{{ doc.step_number }}</td>
+          <td>{{ doc.document_type }}</td>
+          <td>{{ doc.document_id }}</td>
+          <td>
+            <span class="badge badge-{{ doc.status|default:'secondary' }}">
+              {{ doc.status|default:"-" }}
+            </span>
+          </td>
+          <td>
+            {% if doc.approval_status %}
+              <span class="badge badge-{{ doc.approval_status|default:'secondary' }}">
+                {{ doc.approval_status }}
+              </span>
+            {% else %}
+              -
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if document_approvals %}
+<div class="form-section">
+  <h3>{% trans "Document Approvals" %}</h3>
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>{% trans "Step" %}</th>
+          <th>{% trans "Document Type" %}</th>
+          <th>{% trans "Document ID" %}</th>
+          <th>{% trans "Status" %}</th>
+          <th>{% trans "Approved By" %}</th>
+          <th>{% trans "Approved At" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for approval in document_approvals %}
+        <tr>
+          <td>{{ approval.step.step_number }}</td>
+          <td>{{ approval.document_type }}</td>
+          <td>{{ approval.document_id }}</td>
+          <td>
+            <span class="badge badge-{{ approval.status|default:'secondary' }}">
+              {{ approval.get_status_display }}
+            </span>
+          </td>
+          <td>
+            {% if approval.approved_by %}
+              {{ approval.approved_by.get_full_name|default:approval.approved_by.username }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>
+            {% if approval.approved_at %}
+              {{ approval.approved_at|jalali_date:"%Y/%m/%d %H:%M:%S" }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if object.created_at or object.edited_at or object.created_by or object.edited_by %}
+<div class="form-section">
+  <h3>{% trans "Audit Information" %}</h3>
+  <div class="form-row">
+    {% if object.created_by %}
+    <div class="form-field">
+      <label>{% trans "Created By" %}</label>
+      <div class="readonly-field">{{ object.created_by.get_full_name|default:object.created_by.username }}</div>
+    </div>
+    {% endif %}
+    {% if object.created_at %}
+    <div class="form-field">
+      <label>{% trans "Created At" %}</label>
+      <div class="readonly-field">{{ object.created_at|jalali_date:"%Y/%m/%d %H:%M" }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+

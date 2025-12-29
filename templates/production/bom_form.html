@@ -207,9 +207,15 @@
                   </td>
                 </tr>
                 {% if form.instance.pk %}
-                  {% for material_pk, alt_formset in alternative_formsets.items %}
-                    {% if material_pk == form.instance.pk %}
-                      <tr class="alternatives-row hidden" data-material-pk="{{ form.instance.pk }}">
+                  {% with form_index=forloop.counter0 %}
+                      <tr class="alternatives-toggle-row" data-material-pk="{{ form.instance.pk }}" data-form-index="{{ form_index }}">
+                        <td colspan="11" style="padding: 0.5rem; background: #f3f4f6; border-top: 2px solid #e5e7eb;">
+                          <button type="button" class="btn-show-alternatives" onclick="showAlternatives({{ form.instance.pk }})" data-material-pk="{{ form.instance.pk }}" style="padding: 0.5rem 1rem; font-size: 0.875rem; border: 1px solid #3b82f6; border-radius: 4px; background: #3b82f6; color: white; cursor: pointer;">
+                            ➕ {% trans "Manage Alternatives" %} (<span class="alternatives-count-{{ form.instance.pk }}">0</span>)
+                          </button>
+                        </td>
+                      </tr>
+                      <tr class="alternatives-row hidden" data-material-pk="{{ form.instance.pk }}" data-form-index="{{ form_index }}">
                         <td colspan="11" class="alternatives-cell">
                           <div class="alternatives-container">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
@@ -218,6 +224,8 @@
                                 <span class="toggle-text">{% trans "Hide" %}</span>
                               </button>
                             </div>
+                            {% for material_pk, alt_formset in nested_formsets.items %}
+                              {% if material_pk == form.instance.pk %}
                             {{ alt_formset.management_form }}
                             {% if alt_formset.non_form_errors %}
                               <div class="alert alert-error">
@@ -374,18 +382,48 @@
                                 ➕ {% trans "Add Alternative" %}
                               </button>
                             </div>
+                              {% endif %}
+                            {% empty %}
+                              <!-- No formset exists for this material, will be created by JavaScript -->
+                              <input type="hidden" name="alternatives_{{ form.instance.pk }}-TOTAL_FORMS" value="0" id="id_alternatives_{{ form.instance.pk }}-TOTAL_FORMS">
+                              <input type="hidden" name="alternatives_{{ form.instance.pk }}-INITIAL_FORMS" value="0" id="id_alternatives_{{ form.instance.pk }}-INITIAL_FORMS">
+                              <input type="hidden" name="alternatives_{{ form.instance.pk }}-MIN_NUM_FORMS" value="0" id="id_alternatives_{{ form.instance.pk }}-MIN_NUM_FORMS">
+                              <input type="hidden" name="alternatives_{{ form.instance.pk }}-MAX_NUM_FORMS" value="1000" id="id_alternatives_{{ form.instance.pk }}-MAX_NUM_FORMS">
+                              <table class="alternatives-table" style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                  <tr style="background: #f3f4f6;">
+                                    <th style="padding: 8px; text-align: left; font-size: 0.875rem;">{% trans "Alternative Item" %}</th>
+                                    <th style="padding: 8px; text-align: left; font-size: 0.875rem;">{% trans "Quantity" %}</th>
+                                    <th style="padding: 8px; text-align: left; font-size: 0.875rem;">{% trans "Unit" %}</th>
+                                    <th style="padding: 8px; text-align: left; font-size: 0.875rem;">{% trans "Priority" %}</th>
+                                    <th style="padding: 8px; text-align: left; font-size: 0.875rem;">{% trans "Source Warehouses" %}</th>
+                                    <th style="padding: 8px; text-align: center; font-size: 0.875rem;">{% trans "Combinable" %}</th>
+                                    <th style="padding: 8px; text-align: center; font-size: 0.875rem;">{% trans "Delete" %}</th>
+                                  </tr>
+                                </thead>
+                                <tbody class="alternatives-tbody-{{ form.instance.pk }}">
+                                  <!-- Will be populated by JavaScript -->
+                                </tbody>
+                              </table>
+                              <div style="margin-top: 1rem;">
+                                <button type="button" class="btn-add-alternative" onclick="addAlternativeLine({{ form.instance.pk }})" style="padding: 0.5rem 1rem; font-size: 0.875rem; border: 1px solid #3b82f6; border-radius: 4px; background: #3b82f6; color: white; cursor: pointer;">
+                                  ➕ {% trans "Add Alternative" %}
+                                </button>
+                              </div>
+                            {% endfor %}
                           </div>
                         </td>
                       </tr>
-                      <tr class="alternatives-toggle-row" data-material-pk="{{ form.instance.pk }}">
-                        <td colspan="11" style="padding: 0.5rem; background: #f3f4f6; border-top: 2px solid #e5e7eb;">
-                          <button type="button" class="btn-show-alternatives" onclick="showAlternatives({{ form.instance.pk }})" data-material-pk="{{ form.instance.pk }}" style="padding: 0.5rem 1rem; font-size: 0.875rem; border: 1px solid #3b82f6; border-radius: 4px; background: #3b82f6; color: white; cursor: pointer;">
-                            ➕ {% trans "Manage Alternatives" %} (<span class="alternatives-count-{{ form.instance.pk }}">0</span>)
-                          </button>
-                        </td>
-                      </tr>
-                    {% endif %}
-                  {% endfor %}
+                  {% endwith %}
+                {% else %}
+                  <!-- For new materials (no instance.pk), show toggle row with form index -->
+                  <tr class="alternatives-toggle-row" data-form-index="{{ forloop.counter0 }}" data-material-pk="">
+                    <td colspan="11" style="padding: 0.5rem; background: #f3f4f6; border-top: 2px solid #e5e7eb;">
+                      <button type="button" class="btn-show-alternatives" onclick="showAlternativesForNewMaterial({{ forloop.counter0 }})" data-form-index="{{ forloop.counter0 }}" style="padding: 0.5rem 1rem; font-size: 0.875rem; border: 1px solid #3b82f6; border-radius: 4px; background: #3b82f6; color: white; cursor: pointer;">
+                        ➕ {% trans "Manage Alternatives" %} (<span class="alternatives-count-new-{{ forloop.counter0 }}">0</span>)
+                      </button>
+                    </td>
+                  </tr>
                 {% endif %}
               {% endfor %}
             </tbody>
@@ -405,6 +443,11 @@
 {% load static %}
 <link rel="stylesheet" href="{% static 'css/shared.css' %}">
 <link rel="stylesheet" href="{% static 'css/formset-table.css' %}">
+<style>
+  .hidden {
+    display: none !important;
+  }
+</style>
 
 {% block form_scripts %}
 {{ block.super }}
@@ -569,13 +612,13 @@ document.addEventListener('DOMContentLoaded', function() {
   // ====================================================================
   // Formset Management (Add/Remove Material Lines)
   // ====================================================================
-  const tbody = document.getElementById('materials-tbody');
+  const materialsTbodyForFormset = document.getElementById('materials-tbody');
   const addLineBtn = document.getElementById('add-material-line');
   
   // Helper function to update line numbers
   function updateLineNumbers() {
-    if (!tbody) return;
-    tbody.querySelectorAll('.material-row .line-number').forEach(function(cell, index) {
+    if (!materialsTbodyForFormset) return;
+    materialsTbodyForFormset.querySelectorAll('.material-row .line-number').forEach(function(cell, index) {
       cell.textContent = index + 1;
     });
   }
@@ -622,9 +665,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Setup formset with custom callbacks
-  if (addLineBtn && tbody) {
+  if (addLineBtn && materialsTbodyForFormset) {
     // Find template row (last row or first row)
-    const rows = tbody.querySelectorAll('.material-row');
+    const rows = materialsTbodyForFormset.querySelectorAll('.material-row');
     const templateRow = rows[rows.length - 1] || rows[0];
     
     if (templateRow) {
@@ -636,7 +679,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         
         // Use formset.js helper function
-        const lastRow = tbody.querySelectorAll('.material-row:not(.formset-template)');
+        const lastRow = materialsTbodyForFormset.querySelectorAll('.material-row:not(.formset-template)');
         const sourceRow = lastRow[lastRow.length - 1] || templateRow;
         
         if (!sourceRow) {
@@ -648,6 +691,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const newRow = sourceRow.cloneNode(true);
         newRow.classList.remove('formset-template');
         
+        // Remove script tags from cloned row (they cause duplicate declaration errors)
+        const scriptTags = newRow.querySelectorAll('script');
+        scriptTags.forEach(function(script) {
+          script.remove();
+        });
+        
         // Get current form count
         const totalFormsInput = document.querySelector('#id_materials-TOTAL_FORMS');
         const currentCount = totalFormsInput ? parseInt(totalFormsInput.value) || 0 : 0;
@@ -658,8 +707,25 @@ document.addEventListener('DOMContentLoaded', function() {
         // Prepare new row (clear values, update classes, etc.)
         prepareNewRow(newRow, currentCount);
         
+        // Update data-form-idx attribute
+        newRow.setAttribute('data-form-idx', currentCount.toString());
+        
         // Add to table
-        tbody.appendChild(newRow);
+        materialsTbodyForFormset.appendChild(newRow);
+        
+        // Add toggle row for alternatives (for new materials)
+        const toggleRow = document.createElement('tr');
+        toggleRow.className = 'alternatives-toggle-row';
+        toggleRow.setAttribute('data-form-index', currentCount.toString());
+        toggleRow.setAttribute('data-material-pk', '');
+        toggleRow.innerHTML = `
+          <td colspan="11" style="padding: 0.5rem; background: #f3f4f6; border-top: 2px solid #e5e7eb;">
+            <button type="button" class="btn-show-alternatives" onclick="showAlternativesForNewMaterial(${currentCount})" data-form-index="${currentCount}" style="padding: 0.5rem 1rem; font-size: 0.875rem; border: 1px solid #3b82f6; border-radius: 4px; background: #3b82f6; color: white; cursor: pointer;">
+              ➕ {% trans "Manage Alternatives" %} (<span class="alternatives-count-new-${currentCount}">0</span>)
+            </button>
+          </td>
+        `;
+        materialsTbodyForFormset.appendChild(toggleRow);
         
         // Update total forms count
         if (totalFormsInput) {
@@ -691,7 +757,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Store all options for each row on page load
   function initializeCascadingFilters() {
-    const rows = tbody.querySelectorAll('.material-row');
+    const rows = materialsTbodyForFormset.querySelectorAll('.material-row');
     rows.forEach(function(row) {
       setupRowCascading(row);
     });
@@ -1469,7 +1535,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
       
       // Check if at least one material is added
-      const materialRows = tbody.querySelectorAll('.material-row');
+      const materialRows = materialsTbodyForFormset.querySelectorAll('.material-row');
       let validRowCount = 0;
       
       materialRows.forEach(function(row) {
@@ -1496,9 +1562,131 @@ document.addEventListener('DOMContentLoaded', function() {
   // Helper Functions
   // ====================================================================
   function updateLineNumbers() {
-    const rows = tbody.querySelectorAll('.material-row');
+    const rows = materialsTbodyForFormset.querySelectorAll('.material-row');
     rows.forEach(function(row, index) {
       row.querySelector('.line-number').textContent = index + 1;
+    });
+  }
+  
+  // Initialize alternatives rows visibility on page load
+  const allAlternativesRows = document.querySelectorAll('.alternatives-row');
+  const allToggleRows = document.querySelectorAll('.alternatives-toggle-row');
+  
+  allAlternativesRows.forEach(function(alternativesRow) {
+    // Ensure alternatives row is hidden initially
+    alternativesRow.classList.add('hidden');
+    alternativesRow.style.display = 'none';
+  });
+  
+  // Ensure all toggle rows are visible and in correct position
+  // Also ensure units are loaded for all materials
+  const materialsTbody = document.getElementById('materials-tbody');
+  if (materialsTbody) {
+    const allMaterialRows = materialsTbody.querySelectorAll('.material-row');
+    allMaterialRows.forEach(function(materialRow, index) {
+      const materialIdInput = materialRow.querySelector('input[type="hidden"][name*="-id"]');
+      const formIndex = materialRow.getAttribute('data-form-idx') || index.toString();
+      const materialPk = materialIdInput ? materialIdInput.value : null;
+      
+      // Ensure units are loaded for this material row
+      const itemSelect = materialRow.querySelector('select[name*="material_item"]');
+      const unitSelect = materialRow.querySelector('select[name*="-unit"]');
+      if (itemSelect && itemSelect.value && unitSelect) {
+        // Material item is selected, ensure units are loaded
+        const itemId = itemSelect.value;
+        if (unitSelect.options.length <= 1 || unitSelect.value === '') {
+          // Units not loaded yet, load them
+          unitSelect.disabled = false;
+          unitSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
+          
+          fetch('/inventory/api/item-units/?item_id=' + itemId)
+            .then(response => response.json())
+            .then(data => {
+              unitSelect.innerHTML = '<option value="">{% trans "Select Unit" %}</option>';
+              if (data.units && data.units.length > 0) {
+                data.units.forEach(function(unit) {
+                  const option = document.createElement('option');
+                  option.value = unit.unit_name;
+                  option.textContent = unit.label;
+                  unitSelect.appendChild(option);
+                });
+                
+                // Try to restore unit value if exists
+                const currentUnitValue = materialRow.dataset.initialUnitValue || materialRow.dataset.unitValue;
+                if (currentUnitValue) {
+                  const unitOption = unitSelect.querySelector(`option[value="${currentUnitValue}"]`);
+                  if (unitOption) {
+                    unitSelect.value = currentUnitValue;
+                  }
+                }
+              }
+            })
+            .catch(error => {
+              console.error('Error loading units:', error);
+              unitSelect.innerHTML = '<option value="">{% trans "Error loading units" %}</option>';
+            });
+        }
+      }
+      
+      // Find or create toggle row for this material
+      let toggleRow = null;
+      if (materialPk) {
+        toggleRow = materialsTbody.querySelector(`.alternatives-toggle-row[data-material-pk="${materialPk}"]`);
+      } else if (formIndex !== null) {
+        toggleRow = materialsTbody.querySelector(`.alternatives-toggle-row[data-form-index="${formIndex}"][data-material-pk=""]`);
+      }
+      
+      if (toggleRow) {
+        // Ensure toggle row is visible
+        toggleRow.classList.remove('hidden');
+        toggleRow.style.display = '';
+        
+        // Move toggle row to right after material row if needed
+        if (materialRow.nextElementSibling !== toggleRow) {
+          // Check if alternatives row exists and should be after toggle
+          const alternativesRow = materialPk 
+            ? materialsTbody.querySelector(`.alternatives-row[data-material-pk="${materialPk}"]`)
+            : materialsTbody.querySelector(`.alternatives-row[data-form-index="${formIndex}"]`);
+          
+          if (alternativesRow && alternativesRow.nextElementSibling === toggleRow) {
+            // Alternatives row is before toggle, move toggle after material row
+            materialRow.parentNode.insertBefore(toggleRow, alternativesRow);
+          } else if (materialRow.nextElementSibling !== toggleRow && (!alternativesRow || materialRow.nextElementSibling !== alternativesRow)) {
+            // Toggle row is not right after material row, move it
+            materialRow.parentNode.insertBefore(toggleRow, materialRow.nextSibling);
+          }
+        }
+      } else {
+        // Toggle row doesn't exist, create it
+        toggleRow = document.createElement('tr');
+        toggleRow.className = 'alternatives-toggle-row';
+        if (materialPk) {
+          toggleRow.setAttribute('data-material-pk', materialPk);
+          toggleRow.setAttribute('data-form-index', formIndex || '');
+          toggleRow.innerHTML = `
+            <td colspan="11" style="padding: 0.5rem; background: #f3f4f6; border-top: 2px solid #e5e7eb;">
+              <button type="button" class="btn-show-alternatives" onclick="showAlternatives(${materialPk})" data-material-pk="${materialPk}" style="padding: 0.5rem 1rem; font-size: 0.875rem; border: 1px solid #3b82f6; border-radius: 4px; background: #3b82f6; color: white; cursor: pointer;">
+                ➕ {% trans "Manage Alternatives" %} (<span class="alternatives-count-${materialPk}">0</span>)
+              </button>
+            </td>
+          `;
+        } else if (formIndex !== null) {
+          toggleRow.setAttribute('data-form-index', formIndex);
+          toggleRow.setAttribute('data-material-pk', '');
+          toggleRow.innerHTML = `
+            <td colspan="11" style="padding: 0.5rem; background: #f3f4f6; border-top: 2px solid #e5e7eb;">
+              <button type="button" class="btn-show-alternatives" onclick="showAlternativesForNewMaterial(${formIndex})" data-form-index="${formIndex}" style="padding: 0.5rem 1rem; font-size: 0.875rem; border: 1px solid #3b82f6; border-radius: 4px; background: #3b82f6; color: white; cursor: pointer;">
+                ➕ {% trans "Manage Alternatives" %} (<span class="alternatives-count-new-${formIndex}">0</span>)
+              </button>
+            </td>
+          `;
+        }
+        
+        if (toggleRow && materialRow.parentNode) {
+          // Insert toggle row right after material row
+          materialRow.parentNode.insertBefore(toggleRow, materialRow.nextSibling);
+        }
+      }
     });
   }
 });
@@ -1581,10 +1769,20 @@ function toggleWarehousesManager(button) {
   const container = button.closest('.source-warehouses-container');
   const manager = container.querySelector('.warehouses-manager');
   
-  if (manager.style.display === 'none') {
+  if (!manager) {
+    console.error('Warehouses manager not found');
+    return;
+  }
+  
+  // Check if hidden by class or inline style
+  const isHidden = manager.classList.contains('hidden') || manager.style.display === 'none';
+  
+  if (isHidden) {
+    manager.classList.remove('hidden');
     manager.style.display = 'block';
     renderWarehousesList(container);
   } else {
+    manager.classList.add('hidden');
     manager.style.display = 'none';
   }
 }
@@ -1766,13 +1964,44 @@ function updateWarehousesJSON(container) {
 // Remove Line Function (Global)
 // ====================================================================
 function removeLine(button) {
-  const tbody = document.getElementById('materials-tbody');
-  const rows = tbody ? tbody.querySelectorAll('.material-row:not(.formset-template)') : [];
+  const materialsTbody = document.getElementById('materials-tbody');
+  const rows = materialsTbody ? materialsTbody.querySelectorAll('.material-row:not(.formset-template)') : [];
   
   // Don't allow removing if only one row left
   if (rows.length <= 1) {
     alert('حداقل یک ردیف باید باقی بماند.');
     return;
+  }
+  
+  const materialRow = button.closest('.material-row');
+  if (!materialRow) {
+    console.error('Material row not found');
+    return;
+  }
+  
+  // Find and remove associated toggle row and alternatives row
+  const formIndex = materialRow.getAttribute('data-form-idx');
+  const materialPk = materialRow.querySelector('input[type="hidden"][name*="-id"]')?.value;
+  
+  // Remove alternatives toggle row
+  if (materialPk) {
+    const toggleRow = materialsTbody.querySelector(`.alternatives-toggle-row[data-material-pk="${materialPk}"]`);
+    if (toggleRow) {
+      toggleRow.remove();
+    }
+    const alternativesRow = materialsTbody.querySelector(`.alternatives-row[data-material-pk="${materialPk}"]`);
+    if (alternativesRow) {
+      alternativesRow.remove();
+    }
+  } else if (formIndex !== null) {
+    const toggleRow = materialsTbody.querySelector(`.alternatives-toggle-row[data-form-index="${formIndex}"][data-material-pk=""]`);
+    if (toggleRow) {
+      toggleRow.remove();
+    }
+    const alternativesRow = materialsTbody.querySelector(`.alternatives-row[data-form-index="${formIndex}"]`);
+    if (alternativesRow) {
+      alternativesRow.remove();
+    }
   }
   
   // Use formset.js helper function
@@ -1782,8 +2011,8 @@ function removeLine(button) {
   });
   
   // Update line numbers after removal
-  if (tbody) {
-    tbody.querySelectorAll('.material-row:not(.formset-template) .line-number').forEach(function(cell, index) {
+  if (materialsTbody) {
+    materialsTbody.querySelectorAll('.material-row:not(.formset-template) .line-number').forEach(function(cell, index) {
       cell.textContent = index + 1;
     });
   }
@@ -1822,33 +2051,259 @@ function updateAlternativesCount(materialPk) {
 }
 
 function showAlternatives(materialPk) {
+  console.log('showAlternatives called with materialPk:', materialPk);
   const toggleRow = document.querySelector(`.alternatives-toggle-row[data-material-pk="${materialPk}"]`);
-  const alternativesRow = document.querySelector(`.alternatives-row[data-material-pk="${materialPk}"]`);
   
-  if (toggleRow && alternativesRow) {
-    toggleRow.style.display = 'none';
+  if (!toggleRow) {
+    console.error('Toggle row not found for material:', materialPk);
+    return;
+  }
+  
+  // Find the material-row that this toggle belongs to
+  let materialRow = toggleRow.previousElementSibling;
+  while (materialRow && !materialRow.classList.contains('material-row')) {
+    materialRow = materialRow.previousElementSibling;
+  }
+  
+  const formIndex = materialRow ? materialRow.dataset.formIdx : toggleRow.dataset.formIndex;
+  console.log('Form index from material-row:', formIndex);
+  console.log('Form index from toggle-row:', toggleRow.dataset.formIndex);
+  
+  // First, try to find it as next sibling (most reliable since they are adjacent in HTML)
+  let alternativesRow = toggleRow.nextElementSibling;
+  if (alternativesRow && alternativesRow.classList && alternativesRow.classList.contains('alternatives-row')) {
+    console.log('Found alternatives row as immediate next sibling');
+  } else {
+    alternativesRow = null;
+    // If not immediate sibling, search through next siblings
+    let nextSibling = toggleRow.nextElementSibling;
+    let searchCount = 0;
+    while (nextSibling && searchCount < 10) { // Limit search to avoid infinite loop
+      if (nextSibling.classList && nextSibling.classList.contains('alternatives-row')) {
+        alternativesRow = nextSibling;
+        console.log('Found alternatives row as sibling after', searchCount, 'elements');
+        break;
+      }
+      nextSibling = nextSibling.nextElementSibling;
+      searchCount++;
+    }
+  }
+  
+  // If still not found, try by material-pk
+  if (!alternativesRow) {
+    alternativesRow = document.querySelector(`.alternatives-row[data-material-pk="${materialPk}"]`);
+    if (alternativesRow) {
+      console.log('Found alternatives row by material-pk');
+    }
+  }
+  
+  // If still not found, try by form-index
+  if (!alternativesRow && formIndex !== undefined && formIndex !== '') {
+    alternativesRow = document.querySelector(`.alternatives-row[data-form-index="${formIndex}"]`);
+    if (alternativesRow) {
+      console.log('Found alternatives row by form-index:', formIndex);
+    }
+  }
+  
+  // If still not found, search in the same tbody
+  if (!alternativesRow) {
+    const tbody = toggleRow.closest('tbody');
+    if (tbody) {
+      const allAlternativesRows = tbody.querySelectorAll('.alternatives-row');
+      console.log('Searching in tbody, found', allAlternativesRows.length, 'alternatives rows');
+      for (let i = 0; i < allAlternativesRows.length; i++) {
+        const row = allAlternativesRows[i];
+        if (row.dataset.materialPk === String(materialPk) || 
+            (formIndex && row.dataset.formIndex === String(formIndex))) {
+          alternativesRow = row;
+          console.log('Found alternatives row in same tbody');
+          break;
+        }
+      }
+    }
+  }
+  
+  console.log('Final alternativesRow:', alternativesRow);
+  
+  if (!alternativesRow) {
+    console.error('Alternatives row not found for material:', materialPk);
+    console.error('Toggle row formIndex:', toggleRow.dataset.formIndex);
+    console.error('Material row formIdx:', formIndex);
+    // Debug: show all alternatives rows
+    const allAltRows = document.querySelectorAll('.alternatives-row');
+    console.error('All alternatives rows in DOM:', allAltRows.length);
+    allAltRows.forEach(function(row, idx) {
+      console.error(`Alt row ${idx}: materialPk=${row.dataset.materialPk}, formIndex=${row.dataset.formIndex}`);
+    });
+    return;
+  }
+  
+  toggleRow.style.display = 'none';
+  toggleRow.classList.add('hidden');
+  alternativesRow.classList.remove('hidden');
+  alternativesRow.style.display = '';
+  
+  // Setup search for all alternative rows in this section
+  const allAlternativeRowsInSection = alternativesRow.querySelectorAll('.alternative-row:not(.empty-form-template)');
+  allAlternativeRowsInSection.forEach(function(row) {
+    if (typeof setupAlternativeRowCascading === 'function') {
+      setupAlternativeRowCascading(row, materialPk);
+    }
+  });
+}
+
+function showAlternativesForNewMaterial(formIndex) {
+  console.log('showAlternativesForNewMaterial called with formIndex:', formIndex);
+  const toggleRow = document.querySelector(`.alternatives-toggle-row[data-form-index="${formIndex}"][data-material-pk=""]`);
+  if (!toggleRow) {
+    console.error('Toggle row not found for form index:', formIndex);
+    // Try to find by just form-index
+    const allToggleRows = document.querySelectorAll('.alternatives-toggle-row');
+    console.log('All toggle rows:', allToggleRows);
+    allToggleRows.forEach(function(row) {
+      console.log('Toggle row data-form-index:', row.dataset.formIndex, 'data-material-pk:', row.dataset.materialPk);
+    });
+    return;
+  }
+  
+  // Check if alternatives row already exists
+  let alternativesRow = document.querySelector(`.alternatives-row[data-form-index="${formIndex}"]`);
+  
+  if (!alternativesRow) {
+    // Create alternatives row for new material
+    const materialRow = toggleRow.previousElementSibling;
+    if (!materialRow || !materialRow.classList.contains('material-row')) {
+      console.error('Material row not found for form index:', formIndex);
+      console.log('toggleRow.previousElementSibling:', toggleRow.previousElementSibling);
+      return;
+    }
+    
+    // Create alternatives row
+    alternativesRow = document.createElement('tr');
+    alternativesRow.className = 'alternatives-row';
+    alternativesRow.setAttribute('data-form-index', formIndex);
+    alternativesRow.setAttribute('data-material-pk', '');
     alternativesRow.style.display = '';
     
-    // Setup search for all alternative rows in this section
-    const allAlternativeRowsInSection = alternativesRow.querySelectorAll('.alternative-row:not(.empty-form-template)');
-    allAlternativeRowsInSection.forEach(function(row) {
-      setupAlternativeRowCascading(row, materialPk);
-    });
+    alternativesRow.innerHTML = `
+      <td colspan="11" class="alternatives-cell">
+        <div class="alternatives-container">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h4 style="margin: 0; font-size: 1rem; font-weight: 600;">{% trans "Alternative Items" %}</h4>
+            <button type="button" class="btn-toggle-alternatives" onclick="toggleAlternativesForNewMaterial(this, ${formIndex})" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; background: #f3f4f6; cursor: pointer;">
+              <span class="toggle-text">{% trans "Hide" %}</span>
+            </button>
+          </div>
+          <div style="padding: 1rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px;">
+            <p style="margin: 0; color: #6b7280; font-size: 0.875rem;">{% trans "Please save the material first before adding alternatives." %}</p>
+          </div>
+        </div>
+      </td>
+    `;
+    
+    // Insert alternatives row after material row
+    materialRow.parentNode.insertBefore(alternativesRow, toggleRow);
+  }
+  
+  // Show alternatives row and hide toggle row
+  toggleRow.style.display = 'none';
+  toggleRow.classList.add('hidden');
+  alternativesRow.classList.remove('hidden');
+  alternativesRow.style.display = '';
+}
+
+function toggleAlternativesForNewMaterial(button, formIndex) {
+  // Try to find alternatives row by traversing up the DOM tree first
+  let alternativesRow = button.closest('.alternatives-row');
+  
+  // If not found, try by form-index
+  if (!alternativesRow) {
+    alternativesRow = document.querySelector(`.alternatives-row[data-form-index="${formIndex}"]`);
+  }
+  
+  // If still not found, try to find it as next sibling of toggleRow
+  if (!alternativesRow) {
+    const toggleRow = document.querySelector(`.alternatives-toggle-row[data-form-index="${formIndex}"][data-material-pk=""]`);
+    if (toggleRow) {
+      let nextSibling = toggleRow.nextElementSibling;
+      while (nextSibling) {
+        if (nextSibling.classList.contains('alternatives-row') && 
+            nextSibling.dataset.formIndex === String(formIndex)) {
+          alternativesRow = nextSibling;
+          break;
+        }
+        nextSibling = nextSibling.nextElementSibling;
+      }
+    }
+  }
+  
+  if (!alternativesRow) {
+    console.error('Alternatives row not found for form index:', formIndex);
+    return;
+  }
+  
+  const toggleRow = document.querySelector(`.alternatives-toggle-row[data-form-index="${formIndex}"][data-material-pk=""]`);
+  
+  // Check if hidden by class or inline style
+  const isHidden = alternativesRow.classList.contains('hidden') || alternativesRow.style.display === 'none';
+  
+  if (isHidden) {
+    alternativesRow.classList.remove('hidden');
+    alternativesRow.style.display = '';
+    if (toggleRow) {
+      toggleRow.style.display = 'none';
+      toggleRow.classList.add('hidden');
+    }
+    button.querySelector('.toggle-text').textContent = '{% trans "Hide" %}';
+  } else {
+    alternativesRow.classList.add('hidden');
+    alternativesRow.style.display = 'none';
+    if (toggleRow) {
+      toggleRow.style.display = '';
+      toggleRow.classList.remove('hidden');
+    }
+    button.querySelector('.toggle-text').textContent = '{% trans "Show" %}';
   }
 }
 
 function toggleAlternatives(button) {
-  const materialPk = button.closest('.alternatives-container').closest('[data-material-pk]').dataset.materialPk;
-  const toggleRow = document.querySelector(`.alternatives-toggle-row[data-material-pk="${materialPk}"]`);
-  const alternativesRow = document.querySelector(`.alternatives-row[data-material-pk="${materialPk}"]`);
+  // Find the alternatives row by traversing up the DOM tree
+  const alternativesRow = button.closest('.alternatives-row');
   
-  if (alternativesRow.style.display === 'none') {
+  if (!alternativesRow) {
+    console.error('Alternatives row not found');
+    return;
+  }
+  
+  const materialPk = alternativesRow.dataset.materialPk;
+  const formIndex = alternativesRow.dataset.formIndex;
+  
+  // Find toggle row
+  let toggleRow = null;
+  if (materialPk) {
+    toggleRow = document.querySelector(`.alternatives-toggle-row[data-material-pk="${materialPk}"]`);
+  }
+  if (!toggleRow && formIndex !== undefined && formIndex !== '') {
+    toggleRow = document.querySelector(`.alternatives-toggle-row[data-form-index="${formIndex}"]`);
+  }
+  
+  // Check if hidden by class or inline style
+  const isHidden = alternativesRow.classList.contains('hidden') || alternativesRow.style.display === 'none';
+  
+  if (isHidden) {
+    alternativesRow.classList.remove('hidden');
     alternativesRow.style.display = '';
+    if (toggleRow) {
+      toggleRow.style.display = 'none';
+      toggleRow.classList.add('hidden');
+    }
     button.querySelector('.toggle-text').textContent = '{% trans "Hide" %}';
   } else {
+    alternativesRow.classList.add('hidden');
     alternativesRow.style.display = 'none';
     if (toggleRow) {
       toggleRow.style.display = '';
+      toggleRow.classList.remove('hidden');
     }
     button.querySelector('.toggle-text').textContent = '{% trans "Show" %}';
   }
@@ -2129,7 +2584,16 @@ function toggleAltWarehousesManager(button) {
   const container = button.closest('.alternative-warehouses-container');
   const manager = container.querySelector('.warehouses-manager');
   
-  if (manager.style.display === 'none') {
+  if (!manager) {
+    console.error('Alternative warehouses manager not found');
+    return;
+  }
+  
+  // Check if hidden by class or inline style
+  const isHidden = manager.classList.contains('hidden') || manager.style.display === 'none';
+  
+  if (isHidden) {
+    manager.classList.remove('hidden');
     manager.style.display = 'block';
     const materialPk = container.dataset.materialPk;
     const altIndex = container.dataset.altIndex;
@@ -2141,6 +2605,7 @@ function toggleAltWarehousesManager(button) {
     }
     renderAltWarehousesList(container, materialPk, altIndex);
   } else {
+    manager.classList.add('hidden');
     manager.style.display = 'none';
   }
 }
