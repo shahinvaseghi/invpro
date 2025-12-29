@@ -10,6 +10,9 @@ from accounting.utils.document_filters import (
     get_filterable_fields_for_document,
     get_global_filter_categories,
 )
+from accounting.utils.document_field_groups import (
+    get_field_groups_for_document,
+)
 
 
 @require_http_methods(["GET"])
@@ -50,10 +53,34 @@ def get_filterable_fields(request, document_id):
         }, status=404)
     
     document_model = doc['model']
+    
+    # Get grouped fields for better UI organization
+    field_groups = get_field_groups_for_document(document_model)
+    
+    # Also get flat fields for backward compatibility
     document_fields = get_filterable_fields_for_document(document_model)
     global_filters = get_global_filter_categories()
     
-    # Convert to serializable format
+    # Convert grouped fields to serializable format
+    groups_data = {}
+    for group_name, group_data in field_groups.items():
+        groups_data[group_name] = {
+            'label': str(group_data.get('label', group_name)),
+            'fields': {},
+        }
+        if 'fields' in group_data:
+            for field_name, field_info in group_data['fields'].items():
+                groups_data[group_name]['fields'][field_name] = {
+                    'field_type': field_info.get('field_type'),
+                    'label': str(field_info.get('label', field_name)),
+                    'operators': field_info.get('operators', []),
+                    'model': field_info.get('model'),
+                    'ui_type': field_info.get('ui_type', 'text_input'),
+                    'hierarchy_support': field_info.get('hierarchy_support', False),
+                    'choices': field_info.get('choices'),
+                }
+    
+    # Convert flat fields to serializable format (for backward compatibility)
     fields_data = {}
     for field_name, field_info in document_fields.items():
         fields_data[field_name] = {
@@ -75,7 +102,8 @@ def get_filterable_fields(request, document_id):
     
     return JsonResponse({
         'success': True,
-        'document_fields': fields_data,
+        'field_groups': groups_data,  # New grouped structure
+        'document_fields': fields_data,  # Flat structure for backward compatibility
         'global_filters': global_data,
     })
 

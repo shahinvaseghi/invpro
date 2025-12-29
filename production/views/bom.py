@@ -33,6 +33,7 @@ class BOMListView(BaseListView):
     active_module = 'production'
     default_status_filter = False
     default_order_by = ['finished_item__item_code', '-version']
+    search_fields = ['bom_code', 'finished_item__item_code', 'finished_item__name']
     
     def get_base_queryset(self):
         """Get base queryset with is_enabled filter."""

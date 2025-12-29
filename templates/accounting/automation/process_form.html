@@ -365,13 +365,32 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function buildDocumentFieldSelect(conditionId) {
-    if (!filterableFieldsData || !filterableFieldsData.document_fields) return '';
+    // Use grouped fields if available, otherwise fall back to flat structure
+    const fieldGroups = filterableFieldsData?.field_groups || {};
+    const documentFields = filterableFieldsData?.document_fields || {};
     
     let html = '<label>{% trans "فیلد" %}</label><select class="form-control condition-field-name" data-condition-id="' + conditionId + '">';
     html += '<option value="">{% trans "-- انتخاب فیلد --" %}</option>';
-    for (const [key, value] of Object.entries(filterableFieldsData.document_fields)) {
-      html += `<option value="${key}" data-field-type="${value.field_type}" data-operators='${JSON.stringify(value.operators)}'>${value.label}</option>`;
+    
+    // If we have grouped fields, use them
+    if (Object.keys(fieldGroups).length > 0) {
+      for (const [groupName, groupData] of Object.entries(fieldGroups)) {
+        if (groupData.fields && Object.keys(groupData.fields).length > 0) {
+          // Add optgroup for better organization
+          html += `<optgroup label="${groupData.label || groupName}">`;
+          for (const [fieldKey, fieldValue] of Object.entries(groupData.fields)) {
+            html += `<option value="${fieldKey}" data-field-type="${fieldValue.field_type}" data-ui-type="${fieldValue.ui_type || 'text_input'}" data-operators='${JSON.stringify(fieldValue.operators || [])}'>${fieldValue.label}</option>`;
+          }
+          html += '</optgroup>';
+        }
+      }
+    } else {
+      // Fall back to flat structure
+      for (const [key, value] of Object.entries(documentFields)) {
+        html += `<option value="${key}" data-field-type="${value.field_type}" data-operators='${JSON.stringify(value.operators || [])}'>${value.label}</option>`;
+      }
     }
+    
     html += '</select>';
     return html;
   }

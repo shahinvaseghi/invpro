@@ -55,13 +55,14 @@
     {% endif %}
   </td>
   <td>
-    {% if process.work_lines.exists %}
+    {% comment %}Collect work lines from both process.work_lines and operations{% endcomment %}
+    {% if process.all_work_lines %}
       <ul style="margin: 0; padding-right: 1.5rem; list-style: none;">
-        {% for work_line in process.work_lines.all|slice:":3" %}
-        <li>{{ work_line.name }}</li>
+        {% for work_line in process.all_work_lines|slice:":3" %}
+          <li>{{ work_line.name }}</li>
         {% endfor %}
-        {% if process.work_lines.count > 3 %}
-        <li><em>{% trans "and" %} {{ process.work_lines.count|add:"-3" }} {% trans "more" %}</em></li>
+        {% if process.all_work_lines|length > 3 %}
+          <li><em>{% trans "and" %} {{ process.all_work_lines|length|add:"-3" }} {% trans "more" %}</em></li>
         {% endif %}
       </ul>
     {% else %}

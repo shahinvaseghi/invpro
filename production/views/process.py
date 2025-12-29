@@ -232,6 +232,21 @@ class ProcessListView(BaseListView):
         """Add context for generic list template."""
         context = super().get_context_data(**kwargs)
         context['table_headers'] = []  # Overridden in template
+        
+        # Add all_work_lines attribute to each process
+        # This combines work_lines from process.work_lines and operations
+        for process in context.get('object_list', []):
+            # Start with work_lines directly on process
+            all_work_lines = list(process.work_lines.all())
+            # Add work_lines from operations (avoid duplicates)
+            seen_ids = {wl.id for wl in all_work_lines}
+            for operation in process.operations.all():
+                if operation.work_line and operation.work_line.id not in seen_ids:
+                    all_work_lines.append(operation.work_line)
+                    seen_ids.add(operation.work_line.id)
+            # Attach as attribute to process object
+            process.all_work_lines = all_work_lines
+        
         return context
 
 
