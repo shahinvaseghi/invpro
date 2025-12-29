@@ -27,6 +27,13 @@
 {% for person in object_list %}
 <tr>
   <td><code>{{ person.public_code }}</code></td>
+  <td>
+    {% if person.personnel_code %}
+      <code>{{ person.personnel_code }}</code>
+    {% else %}
+      -
+    {% endif %}
+  </td>
   <td>{{ person.first_name }} {{ person.last_name }}</td>
   <td>{{ person.national_id|default:"-" }}</td>
   <td>

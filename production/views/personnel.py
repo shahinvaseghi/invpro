@@ -88,6 +88,7 @@ class PersonnelListView(BaseListView):
         context = super().get_context_data(**kwargs)
         context['table_headers'] = [
             _('Code'),
+            _('Personnel Code'),
             _('Name'),
             _('National ID'),
             _('Company Units'),
