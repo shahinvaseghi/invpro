@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.utils.translation import gettext_lazy as _
 
+from django.db.models import Q
 from accounting.utils.automation_registry import get_document_by_id
 from accounting.utils.document_filters import (
     get_filterable_fields_for_document,
@@ -13,6 +14,7 @@ from accounting.utils.document_filters import (
 from accounting.utils.document_field_groups import (
     get_field_groups_for_document,
 )
+from accounting.models import Account
 
 
 @require_http_methods(["GET"])
@@ -105,5 +107,102 @@ def get_filterable_fields(request, document_id):
         'field_groups': groups_data,  # New grouped structure
         'document_fields': fields_data,  # Flat structure for backward compatibility
         'global_filters': global_data,
+    })
+
+
+@require_http_methods(["GET"])
+def get_autocomplete_options(request, model_name):
+    """
+    API endpoint to get autocomplete options for foreign key fields.
+    Supports: Account (SanadKol, Moin), TafsiliAccount
+    """
+    company_id = request.session.get('active_company_id')
+    search_query = request.GET.get('q', '').strip()
+    
+    if not company_id:
+        return JsonResponse({
+            'success': False,
+            'error': _('Company not selected'),
+        }, status=400)
+    
+    results = []
+    
+    if model_name == 'accounting.Account':
+        # Filter by account_level: 1=SanadKol, 2=Moin
+        account_level = request.GET.get('account_level')
+        queryset = Account.objects.filter(company_id=company_id, is_enabled=1)
+        
+        if account_level:
+            try:
+                level = int(account_level)
+                queryset = queryset.filter(account_level=level)
+            except ValueError:
+                pass
+        
+        if search_query:
+            queryset = queryset.filter(
+                Q(account_name__icontains=search_query) |
+                Q(account_code__icontains=search_query) |
+                Q(account_name_en__icontains=search_query)
+            )
+        
+        queryset = queryset.order_by('account_code')[:50]
+        
+        for account in queryset:
+            results.append({
+                'id': account.id,
+                'text': f"{account.account_code} - {account.account_name}",
+                'code': account.account_code,
+                'name': account.account_name,
+                'level': account.account_level,
+            })
+    
+    elif model_name == 'accounting.TafsiliAccount' or model_name == 'accounting.Account':
+        # Tafsili accounts are Account with account_level=3
+        # But if account_level is provided, use it
+        account_level = request.GET.get('account_level')
+        queryset = Account.objects.filter(
+            company_id=company_id,
+            is_enabled=1,
+        )
+        
+        # If account_level is provided, filter by it
+        # Otherwise, if model is TafsiliAccount, default to level 3
+        if account_level:
+            try:
+                level = int(account_level)
+                queryset = queryset.filter(account_level=level)
+            except ValueError:
+                pass
+        elif model_name == 'accounting.TafsiliAccount':
+            queryset = queryset.filter(account_level=3)
+        
+        if search_query:
+            queryset = queryset.filter(
+                Q(account_name__icontains=search_query) |
+                Q(account_code__icontains=search_query) |
+                Q(account_name_en__icontains=search_query)
+            )
+        
+        queryset = queryset.order_by('account_code')[:50]
+        
+        for account in queryset:
+            results.append({
+                'id': account.id,
+                'text': f"{account.account_code} - {account.account_name}",
+                'code': account.account_code,
+                'name': account.account_name,
+                'level': account.account_level,
+            })
+    
+    else:
+        return JsonResponse({
+            'success': False,
+            'error': _('Unsupported model'),
+        }, status=400)
+    
+    return JsonResponse({
+        'success': True,
+        'results': results,
     })
 

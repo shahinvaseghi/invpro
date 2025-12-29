@@ -23,6 +23,19 @@
 </div>
 {% endblock %}
 
+{% block table_headers %}
+<th>{% trans "Code" %}</th>
+<th>{% trans "Personnel Code" %}</th>
+<th>{% trans "Name" %}</th>
+<th>{% trans "Username" %}</th>
+<th>{% trans "National ID" %}</th>
+<th>{% trans "Company Units" %}</th>
+<th>{% trans "Status" %}</th>
+{% if show_actions %}
+  <th>{% trans "Actions" %}</th>
+{% endif %}
+{% endblock %}
+
 {% block table_rows %}
 {% for person in object_list %}
 <tr>
@@ -35,6 +48,13 @@
     {% endif %}
   </td>
   <td>{{ person.first_name }} {{ person.last_name }}</td>
+  <td>
+    {% if person.username %}
+      <code>{{ person.username }}</code>
+    {% else %}
+      -
+    {% endif %}
+  </td>
   <td>{{ person.national_id|default:"-" }}</td>
   <td>
     {% with units=person.company_units.all %}

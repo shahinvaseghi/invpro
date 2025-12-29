@@ -28,19 +28,104 @@ DOCUMENT_FIELD_GROUPS = {
                     'label': _('وضعیت'),
                     'operators': ['==', '!=', 'in', 'not_in'],
                     'ui_type': 'select',
+                    'choices': [
+                        ('DRAFT', _('پیش‌نویس')),
+                        ('POSTED', _('ثبت شده')),
+                        ('LOCKED', _('قفل شده')),
+                        ('REVERSED', _('برگشت شده')),
+                        ('CANCELLED', _('لغو شده')),
+                    ],
+                },
+            },
+        },
+        'debit_column_fields': {
+            'label': _('فیلترهای ستون بدهکار'),
+            'fields': {
+                'debit_hierarchy_level': {
+                    'field_type': 'number',
+                    'label': _('سطح تفصیلی بدهکار'),
+                    'operators': ['hierarchy_level'],
+                    'ui_type': 'number_input',
+                    'description': _('فیلتر بر اساس سطح تفصیلی در ستون بدهکار'),
+                },
+                'debit_tafsili': {
+                    'field_type': 'foreign_key',
+                    'model': 'accounting.Account',
+                    'label': _('تفصیلی مشخص بدهکار'),
+                    'operators': ['==', 'in'],
+                    'ui_type': 'autocomplete',
+                    'account_level': 3,  # تفصیلی
+                    'hierarchy_support': True,
+                    'description': _('فیلتر بر اساس تفصیلی خاص در ستون بدهکار'),
+                },
+                'debit_moin': {
+                    'field_type': 'foreign_key',
+                    'model': 'accounting.Account',
+                    'label': _('معین بدهکار'),
+                    'operators': ['==', 'in'],
+                    'ui_type': 'autocomplete',
+                    'account_level': 2,  # معین
+                    'description': _('فیلتر بر اساس معین در ستون بدهکار'),
+                },
+                'debit_sanad_kol': {
+                    'field_type': 'foreign_key',
+                    'model': 'accounting.Account',
+                    'label': _('سند کل بدهکار'),
+                    'operators': ['==', 'in'],
+                    'ui_type': 'autocomplete',
+                    'account_level': 1,  # سند کل
+                    'description': _('فیلتر بر اساس سند کل در ستون بدهکار'),
+                },
+            },
+        },
+        'credit_column_fields': {
+            'label': _('فیلترهای ستون بستانکار'),
+            'fields': {
+                'credit_hierarchy_level': {
+                    'field_type': 'number',
+                    'label': _('سطح تفصیلی بستانکار'),
+                    'operators': ['hierarchy_level'],
+                    'ui_type': 'number_input',
+                    'description': _('فیلتر بر اساس سطح تفصیلی در ستون بستانکار'),
+                },
+                'credit_tafsili': {
+                    'field_type': 'foreign_key',
+                    'model': 'accounting.Account',
+                    'label': _('تفصیلی مشخص بستانکار'),
+                    'operators': ['==', 'in'],
+                    'ui_type': 'autocomplete',
+                    'account_level': 3,  # تفصیلی
+                    'hierarchy_support': True,
+                    'description': _('فیلتر بر اساس تفصیلی خاص در ستون بستانکار'),
+                },
+                'credit_moin': {
+                    'field_type': 'foreign_key',
+                    'model': 'accounting.Account',
+                    'label': _('معین بستانکار'),
+                    'operators': ['==', 'in'],
+                    'ui_type': 'autocomplete',
+                    'account_level': 2,  # معین
+                    'description': _('فیلتر بر اساس معین در ستون بستانکار'),
+                },
+                'credit_sanad_kol': {
+                    'field_type': 'foreign_key',
+                    'model': 'accounting.Account',
+                    'label': _('سند کل بستانکار'),
+                    'operators': ['==', 'in'],
+                    'ui_type': 'autocomplete',
+                    'account_level': 1,  # سند کل
+                    'description': _('فیلتر بر اساس سند کل در ستون بستانکار'),
                 },
             },
         },
         'line_fields': {
             'label': _('فیلدهای خطوط سند'),
             'fields': {
-                'lines__tafsili': {
-                    'field_type': 'foreign_key',
-                    'model': 'accounting.TafsiliAccount',
-                    'label': _('تفصیلی خط'),
-                    'operators': ['==', 'in', 'hierarchy_level', 'hierarchy_parent'],
-                    'ui_type': 'autocomplete',
-                    'hierarchy_support': True,
+                'lines__amount': {
+                    'field_type': 'number',
+                    'label': _('مبلغ خط'),
+                    'operators': ['==', '!=', '>', '<', '>=', '<='],
+                    'ui_type': 'number_input',
                 },
                 'lines__cost_center': {
                     'field_type': 'foreign_key',
@@ -48,12 +133,6 @@ DOCUMENT_FIELD_GROUPS = {
                     'label': _('مرکز هزینه خط'),
                     'operators': ['==', 'in', 'is_null', 'is_not_null'],
                     'ui_type': 'autocomplete',
-                },
-                'lines__amount': {
-                    'field_type': 'number',
-                    'label': _('مبلغ خط'),
-                    'operators': ['==', '!=', '>', '<', '>=', '<='],
-                    'ui_type': 'number_input',
                 },
             },
         },

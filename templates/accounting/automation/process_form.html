@@ -327,9 +327,11 @@ document.addEventListener('DOMContentLoaded', function() {
               <label>{% trans "عملگر" %}</label>
               <select class="form-control condition-operator" data-condition-id="${conditionId}"></select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-3 condition-value-container">
               <label>{% trans "مقدار" %}</label>
-              <input type="text" class="form-control condition-value" data-condition-id="${conditionId}" placeholder='{% trans "مقدار را وارد کنید" %}'>
+              <div class="condition-value-wrapper" data-condition-id="${conditionId}">
+                <input type="text" class="form-control condition-value" data-condition-id="${conditionId}" placeholder='{% trans "مقدار را وارد کنید" %}'>
+              </div>
             </div>
             <div class="col-md-1">
               <label>&nbsp;</label>
@@ -379,7 +381,10 @@ document.addEventListener('DOMContentLoaded', function() {
           // Add optgroup for better organization
           html += `<optgroup label="${groupData.label || groupName}">`;
           for (const [fieldKey, fieldValue] of Object.entries(groupData.fields)) {
-            html += `<option value="${fieldKey}" data-field-type="${fieldValue.field_type}" data-ui-type="${fieldValue.ui_type || 'text_input'}" data-operators='${JSON.stringify(fieldValue.operators || [])}'>${fieldValue.label}</option>`;
+            const dataAttrs = `data-field-type="${fieldValue.field_type}" data-ui-type="${fieldValue.ui_type || 'text_input'}" data-operators='${JSON.stringify(fieldValue.operators || [])}' data-model="${fieldValue.model || ''}"`;
+            const choicesAttr = fieldValue.choices ? ` data-choices='${JSON.stringify(fieldValue.choices)}'` : '';
+            const accountLevelAttr = fieldValue.account_level ? ` data-account-level="${fieldValue.account_level}"` : '';
+            html += `<option value="${fieldKey}" ${dataAttrs}${choicesAttr}${accountLevelAttr}>${fieldValue.label}</option>`;
           }
           html += '</optgroup>';
         }
@@ -410,11 +415,26 @@ document.addEventListener('DOMContentLoaded', function() {
         ? buildGlobalFieldSelect(conditionId)
         : buildDocumentFieldSelect(conditionId);
       
-      // Re-initialize field select
+      // Re-initialize field select with event listener
       const newFieldSelect = conditionDiv.querySelector('.condition-field-name') || conditionDiv.querySelector('.condition-filter-category');
       if (newFieldSelect) {
         newFieldSelect.addEventListener('change', function() {
           updateOperators(conditionId, newType, this.value);
+        });
+        // Initialize operators if field is already selected
+        if (newFieldSelect.value) {
+          updateOperators(conditionId, newType, newFieldSelect.value);
+        }
+      }
+      
+      // Re-initialize operator change listener
+      const newOperatorSelect = conditionDiv.querySelector('.condition-operator');
+      if (newOperatorSelect) {
+        newOperatorSelect.addEventListener('change', function() {
+          const fieldValue = newFieldSelect ? newFieldSelect.value : '';
+          if (fieldValue) {
+            updateValueInput(conditionId, fieldValue, newType, this.value);
+          }
         });
       }
     });
@@ -422,13 +442,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle field change
     if (fieldSelect) {
       fieldSelect.addEventListener('change', function() {
-        updateOperators(conditionId, filterType, this.value);
+        const selectedValue = this.value;
+        updateOperators(conditionId, filterType, selectedValue);
       });
       
       // Initialize operators if field is already selected
       if (fieldSelect.value) {
         updateOperators(conditionId, filterType, fieldSelect.value);
       }
+    }
+    
+    // Handle operator change to update value input
+    if (operatorSelect) {
+      operatorSelect.addEventListener('change', function() {
+        const fieldValue = fieldSelect ? fieldSelect.value : '';
+        if (fieldValue) {
+          updateValueInput(conditionId, fieldValue, filterType, this.value);
+        }
+      });
     }
     
     // Handle remove button
@@ -462,33 +493,335 @@ document.addEventListener('DOMContentLoaded', function() {
     return operatorLabels[operator] || operator;
   }
   
+  function getFieldInfo(fieldValue, filterType) {
+    if (filterType === 'global') {
+      return filterableFieldsData?.global_filters?.[fieldValue] || null;
+    } else {
+      // Try to get from field_groups first
+      const fieldGroups = filterableFieldsData?.field_groups || {};
+      for (const groupName in fieldGroups) {
+        const group = fieldGroups[groupName];
+        if (group.fields && group.fields[fieldValue]) {
+          return group.fields[fieldValue];
+        }
+      }
+      // Fall back to document_fields
+      return filterableFieldsData?.document_fields?.[fieldValue] || null;
+    }
+  }
+  
+  function buildValueInput(conditionId, fieldInfo, operator) {
+    if (!fieldInfo) {
+      return '<input type="text" class="form-control condition-value" placeholder="{% trans "مقدار را وارد کنید" %}">';
+    }
+    
+    const fieldType = fieldInfo.field_type;
+    const uiType = fieldInfo.ui_type || 'text_input';
+    const model = fieldInfo.model;
+    const choices = fieldInfo.choices;
+    
+    // For foreign_key fields (سند کل، معین، تفصیلی)
+    if (fieldType === 'foreign_key' && uiType === 'autocomplete') {
+      return `<select class="form-control condition-value condition-autocomplete" data-model="${model || ''}" data-field-type="${fieldType}">
+        <option value="">{% trans "-- انتخاب کنید --" %}</option>
+      </select>`;
+    }
+    
+    // For choice fields (وضعیت)
+    if (fieldType === 'choice' && uiType === 'select') {
+      const fieldChoices = choices || [];
+      let html = `<select class="form-control condition-value condition-select">`;
+      html += `<option value="">{% trans "-- انتخاب کنید --" %}</option>`;
+      fieldChoices.forEach(choice => {
+        // Handle tuple format: (value, label) or simple value
+        const value = Array.isArray(choice) ? choice[0] : choice;
+        const label = Array.isArray(choice) ? choice[1] : choice;
+        html += `<option value="${value}">${label}</option>`;
+      });
+      html += `</select>`;
+      return html;
+    }
+    
+    // For date fields
+    if (fieldType === 'date' && uiType === 'date_picker') {
+      return `<input type="text" class="form-control condition-value condition-date-picker" data-jdp placeholder="{% trans "تاریخ را انتخاب کنید" %}">`;
+    }
+    
+    // For number fields
+    if (fieldType === 'number' && uiType === 'number_input') {
+      return `<input type="number" class="form-control condition-value condition-number" placeholder="{% trans "عدد را وارد کنید" %}">`;
+    }
+    
+    // For hierarchy_level (سطح تفصیلی)
+    if (operator === 'hierarchy_level') {
+      return `<input type="number" class="form-control condition-value condition-number" min="1" max="10" placeholder="{% trans "سطح را وارد کنید (1-10)" %}">`;
+    }
+    
+    // Default: text input
+    return `<input type="text" class="form-control condition-value" placeholder="{% trans "مقدار را وارد کنید" %}">`;
+  }
+  
+  function updateValueInput(conditionId, fieldValue, filterType, operator) {
+    const conditionDiv = document.getElementById(conditionId);
+    const valueContainer = conditionDiv.querySelector('.condition-value-wrapper');
+    if (!valueContainer) return;
+    
+    let fieldInfo = getFieldInfo(fieldValue, filterType);
+    
+    // Try to get field info from selected option's data attributes if not found
+    if (!fieldInfo) {
+      const fieldSelect = conditionDiv.querySelector('.condition-field-name') || conditionDiv.querySelector('.condition-filter-category');
+      if (fieldSelect) {
+        const selectedOption = fieldSelect.options[fieldSelect.selectedIndex];
+        if (selectedOption) {
+          const fieldType = selectedOption.getAttribute('data-field-type');
+          const uiType = selectedOption.getAttribute('data-ui-type');
+          const model = selectedOption.getAttribute('data-model');
+          let choices = null;
+          try {
+            const choicesAttr = selectedOption.getAttribute('data-choices');
+            if (choicesAttr) {
+              choices = JSON.parse(choicesAttr);
+            }
+          } catch (e) {
+            console.error('Error parsing choices:', e);
+          }
+          
+          if (fieldType) {
+            fieldInfo = {
+              field_type: fieldType,
+              ui_type: uiType || 'text_input',
+              model: model,
+              choices: choices,
+            };
+          }
+        }
+      }
+    }
+    
+    const newInput = buildValueInput(conditionId, fieldInfo, operator);
+    valueContainer.innerHTML = newInput;
+    
+    // Initialize special inputs
+    const valueInput = valueContainer.querySelector('.condition-value');
+    if (valueInput) {
+      // Initialize autocomplete for foreign_key
+      if (valueInput.classList.contains('condition-autocomplete')) {
+        const model = valueInput.getAttribute('data-model');
+        initializeAutocomplete(valueInput, model, fieldValue);
+      }
+      
+      // Initialize date picker
+      if (valueInput.classList.contains('condition-date-picker')) {
+        initializeDatePicker(valueInput);
+      }
+    }
+  }
+  
+  function initializeAutocomplete(selectElement, model, fieldName) {
+    if (!model) {
+      console.error('Model not provided for autocomplete');
+      return;
+    }
+    
+    console.log('Initializing autocomplete:', {model, fieldName});
+    
+    // Determine account_level for Account model
+    let accountLevel = null;
+    if (model === 'accounting.Account') {
+      // First try to get from data attribute
+      const conditionDiv = selectElement.closest('.condition-item');
+      if (conditionDiv) {
+        const fieldSelect = conditionDiv.querySelector('.condition-field-name');
+        if (fieldSelect) {
+          const selectedOption = fieldSelect.options[fieldSelect.selectedIndex];
+          if (selectedOption) {
+            const levelAttr = selectedOption.getAttribute('data-account-level');
+            if (levelAttr) {
+              accountLevel = parseInt(levelAttr);
+              console.log('Account level from data attribute:', accountLevel);
+            }
+          }
+        }
+      }
+      
+      // Fallback: check field name
+      if (!accountLevel) {
+        if (fieldName && (fieldName.includes('sanad_kol') || fieldName.includes('سند کل'))) {
+          accountLevel = 1;
+        } else if (fieldName && (fieldName.includes('moin') || fieldName.includes('معین'))) {
+          accountLevel = 2;
+        } else if (fieldName && (fieldName.includes('tafsili') || fieldName.includes('تفصیلی'))) {
+          accountLevel = 3;
+        }
+        console.log('Account level determined from field name:', accountLevel, 'for field:', fieldName);
+      }
+    }
+    
+    // Load options from API
+    let apiUrl = '{% url "accounting:automation_api_autocomplete" "MODEL" %}'.replace('MODEL', encodeURIComponent(model));
+    if (accountLevel) {
+      apiUrl += `?account_level=${accountLevel}`;
+    }
+    
+    console.log('Fetching from:', apiUrl);
+    
+    fetch(apiUrl)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Autocomplete response:', data);
+        if (data.success && data.results) {
+          selectElement.innerHTML = '<option value="">{% trans "-- انتخاب کنید --" %}</option>';
+          data.results.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.id;
+            option.textContent = item.text;
+            selectElement.appendChild(option);
+          });
+          
+          // Make it searchable (simple implementation, can be enhanced with Select2)
+          // For now, it's a regular select. You can add Select2 here if available
+        } else {
+          console.error('Autocomplete failed:', data.error || 'Unknown error');
+          selectElement.innerHTML = '<option value="">{% trans "-- خطا در بارگذاری --" %}</option>';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading autocomplete options:', error);
+        selectElement.innerHTML = '<option value="">{% trans "-- خطا در بارگذاری --" %}</option>';
+      });
+  }
+  
+  function initializeDatePicker(inputElement) {
+    // Check if jalali-datepicker is available
+    if (typeof jalaliDatepicker !== 'undefined') {
+      jalaliDatepicker.startWatch({
+        minDate: 'attr',
+        maxDate: 'attr',
+        time: false,
+        dateSeparator: '/',
+        autoHide: true
+      });
+    } else if (typeof $.fn.persianDatepicker !== 'undefined') {
+      // Fallback to persian-datepicker if available
+      $(inputElement).persianDatepicker({
+        observer: true,
+        format: 'YYYY/MM/DD',
+        timePicker: {
+          enabled: false
+        }
+      });
+    } else {
+      // Fallback: use HTML5 date input
+      console.warn('Persian date picker library not loaded. Using HTML5 date input.');
+      inputElement.type = 'date';
+    }
+  }
+  
   function updateOperators(conditionId, filterType, fieldValue) {
     const conditionDiv = document.getElementById(conditionId);
     const operatorSelect = conditionDiv.querySelector('.condition-operator');
+    const fieldSelect = conditionDiv.querySelector('.condition-field-name') || conditionDiv.querySelector('.condition-filter-category');
     
     if (!operatorSelect) return;
     
     let operators = [];
+    let fieldInfo = null;
     
     if (filterType === 'global') {
-      const globalFilter = filterableFieldsData.global_filters[fieldValue];
+      const globalFilter = filterableFieldsData?.global_filters?.[fieldValue];
       if (globalFilter) {
         operators = globalFilter.operators || [];
+        fieldInfo = globalFilter;
       }
     } else {
-      const fieldInfo = filterableFieldsData.document_fields[fieldValue];
-      if (fieldInfo) {
-        operators = fieldInfo.operators || [];
+      // Try to get operators from data attribute first (from field_groups)
+      if (fieldSelect) {
+        const selectedOption = fieldSelect.options[fieldSelect.selectedIndex];
+        if (selectedOption && selectedOption.hasAttribute('data-operators')) {
+          try {
+            operators = JSON.parse(selectedOption.getAttribute('data-operators'));
+            // Get field info from data attributes
+            const fieldType = selectedOption.getAttribute('data-field-type');
+            const uiType = selectedOption.getAttribute('data-ui-type');
+            const model = selectedOption.getAttribute('data-model') || null;
+            let fieldChoices = null;
+            try {
+              const choicesAttr = selectedOption.getAttribute('data-choices');
+              if (choicesAttr) {
+                fieldChoices = JSON.parse(choicesAttr);
+              }
+            } catch (e) {
+              console.error('Error parsing choices:', e);
+            }
+            fieldInfo = {
+              field_type: fieldType,
+              ui_type: uiType,
+              model: model,
+              choices: fieldChoices,
+            };
+          } catch (e) {
+            console.error('Error parsing operators from data attribute:', e);
+          }
+        }
+      }
+      
+      // Fall back to document_fields if not found in data attribute
+      if (operators.length === 0 && filterableFieldsData?.document_fields?.[fieldValue]) {
+        const docFieldInfo = filterableFieldsData.document_fields[fieldValue];
+        operators = docFieldInfo.operators || [];
+        fieldInfo = docFieldInfo;
+      }
+      
+      // Try to get from field_groups
+      if (!fieldInfo) {
+        fieldInfo = getFieldInfo(fieldValue, filterType);
+        if (fieldInfo) {
+          operators = fieldInfo.operators || operators;
+        }
       }
     }
     
     operatorSelect.innerHTML = '';
-    operators.forEach(op => {
+    if (operators.length > 0) {
+      operators.forEach(op => {
+        const option = document.createElement('option');
+        option.value = op;
+        option.textContent = getOperatorLabel(op);
+        operatorSelect.appendChild(option);
+      });
+      
+      // Remove existing event listeners to avoid duplicates
+      const newOperatorSelect = conditionDiv.querySelector('.condition-operator');
+      if (newOperatorSelect) {
+        // Clone and replace to remove old listeners
+        const newSelect = newOperatorSelect.cloneNode(true);
+        newOperatorSelect.parentNode.replaceChild(newSelect, newOperatorSelect);
+        
+        // Add new event listener
+        newSelect.addEventListener('change', function() {
+          updateValueInput(conditionId, fieldValue, filterType, this.value);
+        });
+      }
+      
+      // Update value input based on selected field and first operator
+      if (operators.length > 0) {
+        setTimeout(() => {
+          updateValueInput(conditionId, fieldValue, filterType, operators[0]);
+        }, 100);
+      }
+    } else {
+      // Add a placeholder option if no operators found
       const option = document.createElement('option');
-      option.value = op;
-      option.textContent = getOperatorLabel(op);
+      option.value = '';
+      option.textContent = '{% trans "-- انتخاب عملگر --" %}';
       operatorSelect.appendChild(option);
-    });
+    }
   }
   
   // Handle form submission - collect conditions data
@@ -501,7 +834,21 @@ document.addEventListener('DOMContentLoaded', function() {
       conditionItems.forEach((item, index) => {
         const filterType = item.querySelector('.condition-filter-type').value;
         const operator = item.querySelector('.condition-operator').value;
-        const value = item.querySelector('.condition-value').value;
+        const valueInput = item.querySelector('.condition-value');
+        let value = '';
+        if (valueInput) {
+          if (valueInput.tagName === 'SELECT') {
+            // For select elements, get selected value(s)
+            const selectedOptions = Array.from(valueInput.selectedOptions);
+            if (operator === 'in' || operator === 'not_in') {
+              value = selectedOptions.map(opt => opt.value).filter(v => v);
+            } else {
+              value = valueInput.value;
+            }
+          } else {
+            value = valueInput.value;
+          }
+        }
         const logicalOperator = item.querySelector('.condition-logical-operator').value;
         
         let filterCategory, fieldName, fieldType;
@@ -551,5 +898,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <link rel="stylesheet" href="{% static 'css/shared.css' %}">
+<link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">
+<script src="{% static 'js/jalali-datepicker/jalali-datepicker.min.js' %}"></script>
 {% endblock %}
 

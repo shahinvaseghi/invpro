@@ -24,7 +24,7 @@ class PersonnelListView(BaseListView):
     paginate_by = 50
     feature_code = 'production.personnel'
     active_module = 'production'
-    search_fields = ['public_code', 'first_name', 'last_name', 'national_id']
+    search_fields = ['public_code', 'personnel_code', 'first_name', 'last_name', 'username', 'national_id']
     default_status_filter = True
     default_order_by = ['public_code']
     
@@ -57,7 +57,7 @@ class PersonnelListView(BaseListView):
     
     def get_search_placeholder(self) -> str:
         """Return search placeholder."""
-        return _('Search by code, name, or national ID...')
+        return _('Search by code, personnel code, name, username, or national ID...')
     
     def get_detail_url_name(self) -> Optional[str]:
         """Return detail URL name."""
@@ -90,6 +90,7 @@ class PersonnelListView(BaseListView):
             _('Code'),
             _('Personnel Code'),
             _('Name'),
+            _('Username'),
             _('National ID'),
             _('Company Units'),
             _('Status'),
