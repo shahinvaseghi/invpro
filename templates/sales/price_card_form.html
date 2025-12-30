@@ -182,16 +182,9 @@
 </div>
 {% endblock %}
 
-{% block extra_styles %}
+{% block extra_head %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'css/formset-table.css' %}">
-<style>
-  /* Hide the initial Django form select dropdown - JavaScript will populate it via API */
-  /* The dropdown will be shown when JavaScript populates it */
-  .item-select-wrapper select[name*="-item"]:not([data-populated]) {
-    display: none !important;
-  }
-</style>
+<link rel="stylesheet" href="{% static 'css/formset-table.css' %}?v=20250220">
 {% endblock %}
 
 {% block extra_scripts %}
@@ -206,6 +199,11 @@ const filterOptions = {
   allCategoriesText: "{% trans 'All Categories' %}",
   allSubcategoriesText: "{% trans 'All Subcategories' %}",
   apiUrl: "/inventory/api/filtered-items/?sellable_only=true",
+  typeSelector: 'select[name*="-item_type_filter"]',
+  categorySelector: 'select[name*="-item_category_filter"]',
+  subcategorySelector: 'select[name*="-item_subcategory_filter"]',
+  searchSelector: '.filter-search-input',
+  itemSelector: 'select[name*="-item"]',
 };
 
 // Initialize line forms - update row numbers and setup filters
@@ -238,7 +236,58 @@ function initializeLineForms() {
 document.addEventListener('DOMContentLoaded', function() {
   const formsetContainer = document.getElementById('price-cards-formset-container');
   const formsetTable = document.getElementById('price-cards-formset');
-  if (!formsetContainer || !formsetTable) return;
+  if (!formsetContainer || !formsetTable) {
+    return;
+  }
+  
+  // Remove extra empty rows - keep only first empty row if all are empty
+  const initialFormsInput = document.querySelector('input[name="price_cards-INITIAL_FORMS"]');
+  const totalFormsInput = document.querySelector('input[name="price_cards-TOTAL_FORMS"]');
+  const initialRows = formsetTable.querySelectorAll('.formset-row:not(.formset-template), .line-row:not(.formset-template)');
+  
+  if (initialRows.length > 1) {
+    const rowsArray = Array.from(initialRows);
+    let emptyRows = [];
+    let hasDataRows = false;
+    
+    rowsArray.forEach((row, index) => {
+      const itemSelect = row.querySelector('select[name*="-item"]');
+      const priceInput = row.querySelector('input[name*="-price"]');
+      const hasItem = itemSelect && itemSelect.value;
+      const hasPrice = priceInput && priceInput.value;
+      
+      if (!hasItem && !hasPrice) {
+        emptyRows.push({row, index});
+      } else {
+        hasDataRows = true;
+      }
+    });
+    
+    // If we have more than 1 empty row and no data rows, remove extras
+    if (emptyRows.length > 1 && !hasDataRows) {
+      // Keep first empty row, remove the rest
+      for (let i = 1; i < emptyRows.length; i++) {
+        const deleteCheckbox = emptyRows[i].row.querySelector('input[type="checkbox"][name*="-DELETE"]');
+        if (deleteCheckbox) {
+          deleteCheckbox.checked = true;
+          emptyRows[i].row.classList.add('deleted');
+          emptyRows[i].row.style.opacity = '0.5';
+          const rowInputs = emptyRows[i].row.querySelectorAll('input:not([type="checkbox"][name*="-DELETE"]), select, textarea');
+          rowInputs.forEach(function(input) {
+            input.disabled = true;
+          });
+        } else {
+          emptyRows[i].row.remove();
+        }
+      }
+      
+      // Update TOTAL_FORMS
+      if (totalFormsInput) {
+        const remainingRows = formsetTable.querySelectorAll('.formset-row:not(.formset-template):not(.deleted), .line-row:not(.formset-template):not(.deleted)');
+        totalFormsInput.value = remainingRows.length;
+      }
+    }
+  }
   
   // Initialize line forms
   initializeLineForms();
@@ -439,9 +488,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // Handle DELETE checkbox changes
-  if (formsetTable) {
-    formsetTable.addEventListener('change', function(e) {
+  // Handle DELETE checkbox changes - use event delegation on formset container
+  if (formsetContainer) {
+    formsetContainer.addEventListener('change', function(e) {
       if (e.target && e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
         const row = e.target.closest('.formset-row') || e.target.closest('.line-row');
         if (row) {
@@ -464,6 +513,11 @@ document.addEventListener('DOMContentLoaded', function() {
           }
           // Update row numbers
           initializeLineForms();
+          
+          // Update TOTAL_FORMS if needed
+          if (typeof reindexFormset === 'function') {
+            reindexFormset('price_cards', '.formset-row:not(.formset-template):not(.deleted), .line-row:not(.formset-template):not(.deleted)', false);
+          }
         }
       }
     });

@@ -22,7 +22,16 @@
  * @param {Function} options.onItemChange - Callback function when item changes
  */
 function filterItemsForRow(rowElement, options = {}) {
-  if (!rowElement) return;
+  // #region agent log
+  fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:24',message:'filterItemsForRow called',data:{hasRowElement:!!rowElement,options},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'T'})}).catch(()=>{});
+  // #endregion
+  
+  if (!rowElement) {
+    // #region agent log
+    fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:27',message:'filterItemsForRow: rowElement is null',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'T'})}).catch(()=>{});
+    // #endregion
+    return;
+  }
   
   const config = {
     apiUrl: options.apiUrl || '/inventory/api/filtered-items/',
@@ -41,7 +50,16 @@ function filterItemsForRow(rowElement, options = {}) {
   const searchInput = rowElement.querySelector(config.searchSelector);
   const itemSelect = rowElement.querySelector(config.itemSelector);
   
-  if (!itemSelect) return;
+  // #region agent log
+  fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:48',message:'filterItemsForRow: elements found',data:{hasTypeSelect:!!typeSelect,hasCategorySelect:!!categorySelect,hasSubcategorySelect:!!subcategorySelect,hasSearchInput:!!searchInput,hasItemSelect:!!itemSelect,itemSelector:config.itemSelector},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'T'})}).catch(()=>{});
+  // #endregion
+  
+  if (!itemSelect) {
+    // #region agent log
+    fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:51',message:'filterItemsForRow: itemSelect not found',data:{itemSelector:config.itemSelector,rowElementHTML:rowElement.innerHTML.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'T'})}).catch(()=>{});
+    // #endregion
+    return;
+  }
   
   const typeId = typeSelect ? (typeSelect.value || '') : '';
   const categoryId = categorySelect ? (categorySelect.value || '') : '';
@@ -79,11 +97,27 @@ function filterItemsForRow(rowElement, options = {}) {
     apiUrl = baseUrl;
   }
   
+  // #region agent log
+  fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:82',message:'Before API fetch',data:{apiUrl,hasItemSelect:!!itemSelect,itemSelectName:itemSelect?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'R'})}).catch(()=>{});
+  // #endregion
+  
   fetch(apiUrl)
-    .then(response => response.json())
+    .then(response => {
+      // #region agent log
+      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:88',message:'API response received',data:{status:response.status,statusText:response.statusText,ok:response.ok,url:apiUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'R'})}).catch(()=>{});
+      // #endregion
+      return response.json();
+    })
     .then(data => {
+      // #region agent log
+      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:94',message:'API data parsed',data:{hasError:!!data.error,error:data.error,hasItems:!!data.items,itemsCount:data.items?.length || 0},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'R'})}).catch(()=>{});
+      // #endregion
+      
       if (data.error) {
         console.error('[filterItemsForRow] API error:', data.error);
+        // #region agent log
+        fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:99',message:'API returned error',data:{error:data.error},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'R'})}).catch(()=>{});
+        // #endregion
         return;
       }
       if (data.items) {
@@ -109,7 +143,19 @@ function filterItemsForRow(rowElement, options = {}) {
         
         // Mark as populated and show the dropdown
         itemSelect.setAttribute('data-populated', 'true');
-        itemSelect.style.display = '';
+        itemSelect.style.display = 'block';
+        itemSelect.style.width = '100%';
+        itemSelect.style.marginTop = '0.5rem';
+        itemSelect.style.visibility = 'visible';
+        itemSelect.style.opacity = '1';
+        
+        // #region agent log
+        const computedStyle = window.getComputedStyle(itemSelect);
+        fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:118',message:'Dropdown populated and shown',data:{itemsCount:data.items.length,dataPopulated:itemSelect.getAttribute('data-populated'),display:itemSelect.style.display,computedDisplay:computedStyle.display,visibility:computedStyle.visibility,opacity:computedStyle.opacity,optionsCount:itemSelect.querySelectorAll('option').length},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'P'})}).catch(()=>{});
+        // #endregion
+        
+        // Force reflow to ensure display change takes effect
+        itemSelect.offsetHeight;
         
         if (currentValue && itemMap[currentValue]) {
           itemSelect.value = currentValue;
@@ -134,6 +180,22 @@ function filterItemsForRow(rowElement, options = {}) {
     })
     .catch(error => {
       console.error('[filterItemsForRow] Error:', error);
+      // #region agent log
+      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:155',message:'API fetch failed',data:{error:error.message,errorStack:error.stack,apiUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'S'})}).catch(()=>{});
+      // #endregion
+      
+      // Show dropdown even if API fails - add empty option
+      if (itemSelect) {
+        itemSelect.innerHTML = '';
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = config.placeholder;
+        itemSelect.appendChild(emptyOption);
+        itemSelect.setAttribute('data-populated', 'true');
+        itemSelect.style.display = 'block';
+        itemSelect.style.width = '100%';
+        itemSelect.style.marginTop = '0.5rem';
+      }
     });
 }
 
@@ -360,15 +422,43 @@ function refreshLineWarehouseOptions(itemSelect, warehouseSelect, options = {}) 
  * @param {Object} options - Configuration options (passed to filter functions)
  */
 function initializeItemFiltersForRow(rowElement, options = {}) {
-  if (!rowElement) return;
+  // #region agent log
+  fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:424',message:'initializeItemFiltersForRow called',data:{hasRowElement:!!rowElement,options},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'I'})}).catch(()=>{});
+  // #endregion
   
-  const typeSelect = rowElement.querySelector('.filter-type-select');
-  const categorySelect = rowElement.querySelector('.filter-category-select');
-  const subcategorySelect = rowElement.querySelector('.filter-subcategory-select');
-  const searchInput = rowElement.querySelector('.filter-search-input');
-  const itemSelect = rowElement.querySelector('select[name*="-item"]');
+  if (!rowElement) {
+    // #region agent log
+    fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:427',message:'initializeItemFiltersForRow: rowElement is null',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'I'})}).catch(()=>{});
+    // #endregion
+    return;
+  }
+  
+  const config = {
+    typeSelector: options.typeSelector || '.filter-type-select',
+    categorySelector: options.categorySelector || '.filter-category-select',
+    subcategorySelector: options.subcategorySelector || '.filter-subcategory-select',
+    searchSelector: options.searchSelector || '.filter-search-input',
+    itemSelector: options.itemSelector || 'select[name*="-item"]',
+  };
+  
+  // #region agent log
+  fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:433',message:'initializeItemFiltersForRow: config created',data:{config},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'I'})}).catch(()=>{});
+  // #endregion
+  
+  const typeSelect = rowElement.querySelector(config.typeSelector);
+  const categorySelect = rowElement.querySelector(config.categorySelector);
+  const subcategorySelect = rowElement.querySelector(config.subcategorySelector);
+  const searchInput = rowElement.querySelector(config.searchSelector);
+  const itemSelect = rowElement.querySelector(config.itemSelector);
   const unitSelect = rowElement.querySelector('select[name*="-unit"]');
   const warehouseSelect = rowElement.querySelector('select[name*="-warehouse"]');
+  
+  // Debug: Log all selects found in row
+  // #region agent log
+  const allSelects = rowElement.querySelectorAll('select');
+  const allSelectNames = Array.from(allSelects).map(s => ({ name: s.name, id: s.id, className: s.className }));
+  fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:441',message:'All selects found in row',data:{allSelectNames,itemSelector:config.itemSelector,hasItemSelect:!!itemSelect},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
   
   // Type change handler
   if (typeSelect) {
@@ -436,9 +526,31 @@ function initializeItemFiltersForRow(rowElement, options = {}) {
       if (unitSelect) refreshLineUnitOptions(itemSelect, unitSelect, options);
       if (warehouseSelect) refreshLineWarehouseOptions(itemSelect, warehouseSelect, options);
     }
-    
-    // Initial filter
+  }
+  
+  // Initial filter - always call to populate dropdown with all available items
+  // This ensures the dropdown is populated even if no filters are set
+  // #region agent log
+  const rowHTML = rowElement ? rowElement.innerHTML.substring(0, 300) : 'no rowElement';
+  const itemSelectInfo = itemSelect ? {
+    name: itemSelect.name,
+    id: itemSelect.id,
+    className: itemSelect.className,
+    display: itemSelect.style.display,
+    dataPopulated: itemSelect.getAttribute('data-populated'),
+    optionsCount: itemSelect.querySelectorAll('option').length,
+    parentElement: itemSelect.parentElement ? itemSelect.parentElement.className : 'no parent'
+  } : 'no itemSelect';
+  fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:510',message:'About to call initial filterItemsForRow',data:{hasItemSelect:!!itemSelect,itemSelectInfo,hasRowElement:!!rowElement,rowHTML,config:config},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'Q'})}).catch(()=>{});
+  // #endregion
+  
+  // Only call filterItemsForRow if itemSelect exists
+  if (itemSelect) {
     filterItemsForRow(rowElement, options);
+  } else {
+    // #region agent log
+    fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:520',message:'Skipping filterItemsForRow - itemSelect not found',data:{itemSelector:config.itemSelector,rowHTML},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'Q'})}).catch(()=>{});
+    // #endregion
   }
   
   // Initial category load if type has value
