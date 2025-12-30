@@ -32,8 +32,8 @@ class Migration(migrations.Migration):
             name='tafsilihierarchy',
             options={
                 'ordering': ('company', 'sort_order', 'code'),
-                'verbose_name': 'سطح تفضیلی',
-                'verbose_name_plural': 'سطوح تفضیلی',
+                'verbose_name': 'سطح تفصیلی',
+                'verbose_name_plural': 'سطوح تفصیلی',
             },
         ),
         # Update help text for code and name fields
@@ -41,7 +41,7 @@ class Migration(migrations.Migration):
             model_name='tafsilihierarchy',
             name='code',
             field=models.CharField(
-                help_text='کد سطح تفضیلی (یکتا در شرکت)',
+                help_text='کد سطح تفصیلی (یکتا در شرکت)',
                 max_length=50,
                 validators=[django.core.validators.RegexValidator(message='Only numeric characters are allowed.', regex='^\\d+$')]
             ),
@@ -49,12 +49,12 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='tafsilihierarchy',
             name='name',
-            field=models.CharField(help_text='نام سطح تفضیلی', max_length=200),
+            field=models.CharField(help_text='نام سطح تفصیلی', max_length=200),
         ),
         migrations.AlterField(
             model_name='tafsilihierarchy',
             name='name_en',
-            field=models.CharField(blank=True, help_text='نام سطح تفضیلی (انگلیسی)', max_length=200),
+            field=models.CharField(blank=True, help_text='نام سطح تفصیلی (انگلیسی)', max_length=200),
         ),
         # Create TafsiliLevelSubAccountRelation model
         migrations.CreateModel(
@@ -76,11 +76,11 @@ class Migration(migrations.Migration):
                 ('edited_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='%(app_label)s_%(class)s_edited', to=settings.AUTH_USER_MODEL)),
                 ('enabled_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='%(app_label)s_%(class)s_enabled', to=settings.AUTH_USER_MODEL)),
                 ('sub_account', models.ForeignKey(help_text='حساب معین', limit_choices_to={'account_level': 2}, on_delete=django.db.models.deletion.CASCADE, related_name='tafsili_level_relations', to='accounting.account')),
-                ('tafsili_level', models.ForeignKey(help_text='سطح تفضیلی', on_delete=django.db.models.deletion.CASCADE, related_name='sub_account_relations', to='accounting.tafsilihierarchy')),
+                ('tafsili_level', models.ForeignKey(help_text='سطح تفصیلی', on_delete=django.db.models.deletion.CASCADE, related_name='sub_account_relations', to='accounting.tafsilihierarchy')),
             ],
             options={
-                'verbose_name': 'رابطه سطح تفضیلی-معین',
-                'verbose_name_plural': 'روابط سطح تفضیلی-معین',
+                'verbose_name': 'رابطه سطح تفصیلی-معین',
+                'verbose_name_plural': 'روابط سطح تفصیلی-معین',
                 'ordering': ('company', 'tafsili_level', '-is_primary', 'sub_account'),
             },
         ),

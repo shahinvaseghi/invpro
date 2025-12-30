@@ -13,21 +13,21 @@ from shared.models import NUMERIC_CODE_VALIDATOR, ENABLED_FLAG_CHOICES
 
 class TafsiliHierarchy(AccountingBaseModel):
     """
-    Tafsili Level (سطح تفضیلی) - allows grouping of tafsili accounts by associating them with sub accounts.
+    Tafsili Level (سطح تفصیلی) - allows grouping of tafsili accounts by associating them with sub accounts.
     """
     code = models.CharField(
         max_length=50,
         validators=[NUMERIC_CODE_VALIDATOR],
-        help_text=_("کد سطح تفضیلی (یکتا در شرکت)"),
+        help_text=_("کد سطح تفصیلی (یکتا در شرکت)"),
     )
     name = models.CharField(
         max_length=200,
-        help_text=_("نام سطح تفضیلی"),
+        help_text=_("نام سطح تفصیلی"),
     )
     name_en = models.CharField(
         max_length=200,
         blank=True,
-        help_text=_("نام سطح تفضیلی (انگلیسی)"),
+        help_text=_("نام سطح تفصیلی (انگلیسی)"),
     )
     sort_order = models.PositiveSmallIntegerField(
         default=0,
@@ -39,8 +39,8 @@ class TafsiliHierarchy(AccountingBaseModel):
     )
 
     class Meta:
-        verbose_name = _("سطح تفضیلی")
-        verbose_name_plural = _("سطوح تفضیلی")
+        verbose_name = _("سطح تفصیلی")
+        verbose_name_plural = _("سطوح تفصیلی")
         constraints = [
             models.UniqueConstraint(
                 fields=("company", "code"),
@@ -63,7 +63,7 @@ class TafsiliHierarchy(AccountingBaseModel):
             if self.pk:
                 existing = existing.exclude(pk=self.pk)
             if existing.exists():
-                raise ValidationError(_("کد سطح تفضیلی باید یکتا باشد."))
+                raise ValidationError(_("کد سطح تفصیلی باید یکتا باشد."))
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -72,14 +72,14 @@ class TafsiliHierarchy(AccountingBaseModel):
 
 class TafsiliLevelSubAccountRelation(AccountingBaseModel):
     """
-    Many-to-many relationship between Tafsili Levels (سطح تفضیلی) and Sub Accounts (معین).
+    Many-to-many relationship between Tafsili Levels (سطح تفصیلی) and Sub Accounts (معین).
     Allows a tafsili level to be associated with multiple sub accounts.
     """
     tafsili_level = models.ForeignKey(
         TafsiliHierarchy,
         on_delete=models.CASCADE,
         related_name='sub_account_relations',
-        help_text=_("سطح تفضیلی"),
+        help_text=_("سطح تفصیلی"),
     )
     sub_account = models.ForeignKey(
         Account,
@@ -99,8 +99,8 @@ class TafsiliLevelSubAccountRelation(AccountingBaseModel):
     )
 
     class Meta:
-        verbose_name = _("رابطه سطح تفضیلی-معین")
-        verbose_name_plural = _("روابط سطح تفضیلی-معین")
+        verbose_name = _("رابطه سطح تفصیلی-معین")
+        verbose_name_plural = _("روابط سطح تفصیلی-معین")
         constraints = [
             models.UniqueConstraint(
                 fields=("company", "tafsili_level", "sub_account"),
@@ -117,7 +117,7 @@ class TafsiliLevelSubAccountRelation(AccountingBaseModel):
         if self.sub_account.account_level != 2:
             raise ValidationError(_("حساب باید سطح 2 (معین) باشد."))
         if self.tafsili_level.company_id != self.sub_account.company_id:
-            raise ValidationError(_("سطح تفضیلی و حساب معین باید متعلق به همان شرکت باشند."))
+            raise ValidationError(_("سطح تفصیلی و حساب معین باید متعلق به همان شرکت باشند."))
 
     def save(self, *args, **kwargs):
         self.clean()

@@ -289,7 +289,7 @@
               <a href="{% url 'accounting:tafsili_accounts' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "تعریف حساب تفصیلی" %}</a>
             {% endif %}
             {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.tafsili_hierarchy' or request.user.is_superuser %}
-              <a href="{% url 'accounting:tafsili_hierarchy_list' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "سطوح تفضیلی" %}</a>
+              <a href="{% url 'accounting:tafsili_hierarchy_list' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "سطوح تفصیلی" %}</a>
             {% endif %}
             {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.cost_centers' or request.user.is_superuser %}
               <a href="{% url 'accounting:cost_centers' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "مراکز هزینه" %}</a>

@@ -28,7 +28,7 @@ class TreasuryAccount(AccountingSortableModel):
         related_name='treasury_accounts',
         null=True,
         blank=True,
-        help_text=_("سطح تفضیلی (یا سطح تفضیلی یا معین باید انتخاب شود)"),
+        help_text=_("سطح تفصیلی (یا سطح تفصیلی یا معین باید انتخاب شود)"),
     )
     tafsili_account = models.ForeignKey(
         'Account',
@@ -47,7 +47,7 @@ class TreasuryAccount(AccountingSortableModel):
         limit_choices_to={'account_level': 2},
         null=True,
         blank=True,
-        help_text=_("معین حساب (یا سطح تفضیلی یا معین باید انتخاب شود)"),
+        help_text=_("معین حساب (یا سطح تفصیلی یا معین باید انتخاب شود)"),
     )
     gl_account = models.ForeignKey(
         'Account',
@@ -130,15 +130,15 @@ class TreasuryAccount(AccountingSortableModel):
         
         # Validate that either tafsili_level or sub_account is selected, but not both
         if not self.tafsili_level and not self.sub_account:
-            raise ValidationError(_("باید یا سطح تفضیلی انتخاب شود یا حساب معین (حداقل یکی از آن‌ها الزامی است)."))
+            raise ValidationError(_("باید یا سطح تفصیلی انتخاب شود یا حساب معین (حداقل یکی از آن‌ها الزامی است)."))
         
         if self.tafsili_level and self.sub_account:
-            raise ValidationError(_("نمی‌توان هم سطح تفضیلی و هم حساب معین را انتخاب کرد. فقط یکی از آن‌ها باید انتخاب شود."))
+            raise ValidationError(_("نمی‌توان هم سطح تفصیلی و هم حساب معین را انتخاب کرد. فقط یکی از آن‌ها باید انتخاب شود."))
         
         if self.tafsili_level:
             # Validate tafsili_level belongs to company
             if self.company_id and self.tafsili_level.company_id != self.company_id:
-                raise ValidationError(_("سطح تفضیلی انتخاب شده باید متعلق به شرکت فعال باشد."))
+                raise ValidationError(_("سطح تفصیلی انتخاب شده باید متعلق به شرکت فعال باشد."))
         
         if self.sub_account:
             # Validate sub_account is level 2

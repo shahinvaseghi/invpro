@@ -14,12 +14,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='treasuryaccount',
             name='tafsili_level',
-            field=models.ForeignKey(blank=True, help_text='سطح تفضیلی (یا سطح تفضیلی یا معین باید انتخاب شود)', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='treasury_accounts', to='accounting.tafsilihierarchy'),
+            field=models.ForeignKey(blank=True, help_text='سطح تفصیلی (یا سطح تفصیلی یا معین باید انتخاب شود)', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='treasury_accounts', to='accounting.tafsilihierarchy'),
         ),
         migrations.AlterField(
             model_name='treasuryaccount',
             name='sub_account',
-            field=models.ForeignKey(blank=True, help_text='معین حساب (یا سطح تفضیلی یا معین باید انتخاب شود)', limit_choices_to={'account_level': 2}, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='treasury_accounts_as_sub', to='accounting.account'),
+            field=models.ForeignKey(blank=True, help_text='معین حساب (یا سطح تفصیلی یا معین باید انتخاب شود)', limit_choices_to={'account_level': 2}, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='treasury_accounts_as_sub', to='accounting.account'),
         ),
         migrations.AlterField(
             model_name='treasuryaccount',

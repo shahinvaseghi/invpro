@@ -849,11 +849,6 @@
               if (isOpening) {
                 dropdown.setAttribute('data-click-opened', 'true');
                 btn.classList.add('active');
-                // Open all mega menu sections by default
-                const megaMenuSections = dropdown.querySelectorAll('.mega-menu-section');
-                megaMenuSections.forEach(section => {
-                  section.classList.remove('collapsed');
-                });
               } else {
                 dropdown.setAttribute('data-click-opened', 'false');
                 btn.classList.remove('active');
@@ -880,11 +875,6 @@
                   
                   dropdown.classList.add('open');
                   btn.classList.add('active');
-                  // Open all mega menu sections by default
-                  const megaMenuSections = dropdown.querySelectorAll('.mega-menu-section');
-                  megaMenuSections.forEach(section => {
-                    section.classList.remove('collapsed');
-                  });
                 }
               });
               

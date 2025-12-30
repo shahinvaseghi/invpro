@@ -1,5 +1,5 @@
 """
-Forms for Tafsili Level (سطح تفضیلی) management.
+Forms for Tafsili Level (سطح تفصیلی) management.
 """
 from typing import Optional
 from django import forms
@@ -8,7 +8,7 @@ from ..models import TafsiliHierarchy, Account, TafsiliLevelSubAccountRelation
 
 
 class TafsiliHierarchyForm(forms.ModelForm):
-    """Form for creating/editing Tafsili Level (سطح تفضیلی)."""
+    """Form for creating/editing Tafsili Level (سطح تفصیلی)."""
     
     sub_accounts = forms.ModelMultipleChoiceField(
         queryset=Account.objects.none(),
@@ -16,6 +16,26 @@ class TafsiliHierarchyForm(forms.ModelForm):
         label=_('حساب‌های معین مرتبط'),
         help_text=_('می‌توانید یک یا چند حساب معین را انتخاب کنید'),
         required=True,
+    )
+    is_customer = forms.BooleanField(
+        label=_('مشتریان'),
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+    is_supplier = forms.BooleanField(
+        label=_('تأمین کنندگان'),
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+    is_contractor = forms.BooleanField(
+        label=_('پیمانکاران'),
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+    is_connected_to_sales = forms.BooleanField(
+        label=_('متصل به فروش'),
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
     )
     
     class Meta:
@@ -37,9 +57,9 @@ class TafsiliHierarchyForm(forms.ModelForm):
             'is_enabled': forms.Select(attrs={'class': 'form-control'}),
         }
         labels = {
-            'code': _('کد سطح تفضیلی'),
-            'name': _('نام سطح تفضیلی'),
-            'name_en': _('نام سطح تفضیلی (انگلیسی)'),
+            'code': _('کد سطح تفصیلی'),
+            'name': _('نام سطح تفصیلی'),
+            'name_en': _('نام سطح تفصیلی (انگلیسی)'),
             'sort_order': _('ترتیب نمایش'),
             'description': _('توضیحات'),
             'is_enabled': _('وضعیت'),
@@ -89,7 +109,7 @@ class TafsiliHierarchyForm(forms.ModelForm):
                 existing = existing.exclude(pk=self.instance.pk)
             if existing.exists():
                 raise forms.ValidationError({
-                    'code': _('کد سطح تفضیلی باید یکتا باشد.')
+                    'code': _('کد سطح تفصیلی باید یکتا باشد.')
                 })
         
         # Check all sub accounts belong to same company

@@ -1,5 +1,5 @@
 """
-Tafsili Level (سطح تفضیلی) CRUD views for accounting module.
+Tafsili Level (سطح تفصیلی) CRUD views for accounting module.
 """
 from typing import Any, Dict
 from django.contrib import messages
@@ -26,7 +26,7 @@ from accounting.views.base import AccountingBaseView
 
 class TafsiliHierarchyListView(BaseListView):
     """
-    List all Tafsili Levels (سطوح تفضیلی) for the active company.
+    List all Tafsili Levels (سطوح تفصیلی) for the active company.
     """
     model = TafsiliHierarchy
     template_name = 'shared/generic/generic_list.html'
@@ -58,14 +58,14 @@ class TafsiliHierarchyListView(BaseListView):
     
     def get_page_title(self) -> str:
         """Return page title."""
-        return _('سطوح تفضیلی')
+        return _('سطوح تفصیلی')
     
     def get_breadcrumbs(self) -> list:
         """Return breadcrumbs list."""
         return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Accounting'), 'url': reverse('accounting:general_detail')},
-            {'label': _('سطوح تفضیلی'), 'url': None},
+            {'label': _('سطوح تفصیلی'), 'url': None},
         ]
     
     def get_create_url(self):
@@ -74,7 +74,7 @@ class TafsiliHierarchyListView(BaseListView):
     
     def get_create_button_text(self) -> str:
         """Return create button text."""
-        return _('افزودن سطح تفضیلی')
+        return _('افزودن سطح تفصیلی')
     
     def get_detail_url_name(self) -> str:
         """Return detail URL name."""
@@ -90,11 +90,11 @@ class TafsiliHierarchyListView(BaseListView):
     
     def get_empty_state_title(self) -> str:
         """Return empty state title."""
-        return _('هیچ سطح تفضیلی یافت نشد')
+        return _('هیچ سطح تفصیلی یافت نشد')
     
     def get_empty_state_message(self) -> str:
         """Return empty state message."""
-        return _('با افزودن اولین سطح تفضیلی شروع کنید.')
+        return _('با افزودن اولین سطح تفصیلی شروع کنید.')
     
     def get_empty_state_icon(self) -> str:
         """Return empty state icon."""
@@ -129,7 +129,7 @@ class TafsiliHierarchyListView(BaseListView):
 
 
 class TafsiliHierarchyCreateView(BaseCreateView):
-    """Create a new Tafsili Level (سطح تفضیلی)."""
+    """Create a new Tafsili Level (سطح تفصیلی)."""
     model = TafsiliHierarchy
     form_class = TafsiliHierarchyForm
     template_name = 'shared/generic/generic_form.html'
@@ -137,7 +137,7 @@ class TafsiliHierarchyCreateView(BaseCreateView):
     feature_code = 'accounting.accounts.tafsili_hierarchy'
     required_action = 'create'
     active_module = 'accounting'
-    success_message = _('سطح تفضیلی با موفقیت ایجاد شد.')
+    success_message = _('سطح تفصیلی با موفقیت ایجاد شد.')
     
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
@@ -155,7 +155,7 @@ class TafsiliHierarchyCreateView(BaseCreateView):
         return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Accounting'), 'url': reverse('accounting:general_detail')},
-            {'label': _('سطوح تفضیلی'), 'url': reverse('accounting:tafsili_hierarchy_list')},
+            {'label': _('سطوح تفصیلی'), 'url': reverse('accounting:tafsili_hierarchy_list')},
             {'label': _('افزودن'), 'url': None},
         ]
     
@@ -165,11 +165,11 @@ class TafsiliHierarchyCreateView(BaseCreateView):
     
     def get_form_title(self) -> str:
         """Return form title."""
-        return _('افزودن سطح تفضیلی')
+        return _('افزودن سطح تفصیلی')
 
 
 class TafsiliHierarchyUpdateView(BaseUpdateView, EditLockProtectedMixin):
-    """Update an existing Tafsili Level (سطح تفضیلی)."""
+    """Update an existing Tafsili Level (سطح تفصیلی)."""
     model = TafsiliHierarchy
     form_class = TafsiliHierarchyForm
     template_name = 'shared/generic/generic_form.html'
@@ -177,7 +177,7 @@ class TafsiliHierarchyUpdateView(BaseUpdateView, EditLockProtectedMixin):
     feature_code = 'accounting.accounts.tafsili_hierarchy'
     required_action = 'edit_own'
     active_module = 'accounting'
-    success_message = _('سطح تفضیلی با موفقیت به‌روزرسانی شد.')
+    success_message = _('سطح تفصیلی با موفقیت به‌روزرسانی شد.')
     
     def get_form_kwargs(self) -> Dict[str, Any]:
         """Add company_id to form kwargs."""
@@ -195,7 +195,7 @@ class TafsiliHierarchyUpdateView(BaseUpdateView, EditLockProtectedMixin):
         return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Accounting'), 'url': reverse('accounting:general_detail')},
-            {'label': _('سطوح تفضیلی'), 'url': reverse('accounting:tafsili_hierarchy_list')},
+            {'label': _('سطوح تفصیلی'), 'url': reverse('accounting:tafsili_hierarchy_list')},
             {'label': _('ویرایش'), 'url': None},
         ]
     
@@ -205,7 +205,7 @@ class TafsiliHierarchyUpdateView(BaseUpdateView, EditLockProtectedMixin):
     
     def get_form_title(self) -> str:
         """Return form title."""
-        return _('ویرایش سطح تفضیلی')
+        return _('ویرایش سطح تفصیلی')
 
 
 class TafsiliHierarchyDetailView(BaseDetailView):
@@ -299,14 +299,14 @@ class TafsiliHierarchyDetailView(BaseDetailView):
 
 
 class TafsiliHierarchyDeleteView(BaseDeleteView):
-    """Delete a Tafsili Level (سطح تفضیلی)."""
+    """Delete a Tafsili Level (سطح تفصیلی)."""
     model = TafsiliHierarchy
     success_url = reverse_lazy('accounting:tafsili_hierarchy_list')
     template_name = 'shared/generic/generic_confirm_delete.html'
     feature_code = 'accounting.accounts.tafsili_hierarchy'
     required_action = 'delete_own'
     active_module = 'accounting'
-    success_message = _('سطح تفضیلی با موفقیت حذف شد.')
+    success_message = _('سطح تفصیلی با موفقیت حذف شد.')
     
     def validate_deletion(self) -> tuple[bool, Optional[str]]:
         """Validate if tafsili level can be deleted."""
@@ -314,11 +314,11 @@ class TafsiliHierarchyDeleteView(BaseDeleteView):
     
     def get_delete_title(self) -> str:
         """Return delete title."""
-        return _('حذف سطح تفضیلی')
+        return _('حذف سطح تفصیلی')
     
     def get_confirmation_message(self) -> str:
         """Return confirmation message."""
-        return _('آیا مطمئن هستید که می‌خواهید این سطح تفضیلی را حذف کنید؟')
+        return _('آیا مطمئن هستید که می‌خواهید این سطح تفصیلی را حذف کنید؟')
     
     def get_object_details(self) -> list:
         """Return object details for confirmation."""
@@ -332,7 +332,7 @@ class TafsiliHierarchyDeleteView(BaseDeleteView):
         return [
             {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
             {'label': _('Accounting'), 'url': reverse('accounting:general_detail')},
-            {'label': _('سطوح تفضیلی'), 'url': reverse('accounting:tafsili_hierarchy_list')},
+            {'label': _('سطوح تفصیلی'), 'url': reverse('accounting:tafsili_hierarchy_list')},
             {'label': _('حذف'), 'url': None},
         ]
 

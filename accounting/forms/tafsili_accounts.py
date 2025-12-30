@@ -23,6 +23,26 @@ class TafsiliAccountForm(forms.ModelForm):
         required=False,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
     )
+    is_customer = forms.BooleanField(
+        label=_('مشتریان'),
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+    is_supplier = forms.BooleanField(
+        label=_('تأمین کنندگان'),
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+    is_contractor = forms.BooleanField(
+        label=_('پیمانکاران'),
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+    is_connected_to_sales = forms.BooleanField(
+        label=_('متصل به فروش'),
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
     national_id = forms.CharField(
         max_length=20,
         label=_('کد ملی / شناسه ملی / کد اقتصادی'),
@@ -44,18 +64,18 @@ class TafsiliAccountForm(forms.ModelForm):
     
     tafsili_level = forms.ModelChoiceField(
         queryset=TafsiliHierarchy.objects.none(),
-        label=_('سطح تفضیلی'),
+        label=_('سطح تفصیلی'),
         widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_tafsili_level'}),
         required=False,
         empty_label=_('-- انتخاب کنید --'),
-        help_text=_('اگر سطح تفضیلی انتخاب شود، حساب‌های معین مرتبط به صورت خودکار انتخاب می‌شوند'),
+        help_text=_('اگر سطح تفصیلی انتخاب شود، حساب‌های معین مرتبط به صورت خودکار انتخاب می‌شوند'),
     )
     
     sub_accounts = forms.ModelMultipleChoiceField(
         queryset=Account.objects.none(),
         widget=forms.SelectMultiple(attrs={'class': 'form-control', 'size': '5', 'id': 'id_sub_accounts'}),
         label=_('حساب‌های معین مرتبط'),
-        help_text=_('می‌توانید یک یا چند حساب معین را انتخاب کنید (در صورت انتخاب سطح تفضیلی، این فیلد غیرفعال می‌شود)'),
+        help_text=_('می‌توانید یک یا چند حساب معین را انتخاب کنید (در صورت انتخاب سطح تفصیلی، این فیلد غیرفعال می‌شود)'),
         required=False,
     )
     

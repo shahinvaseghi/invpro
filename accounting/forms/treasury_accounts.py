@@ -50,7 +50,7 @@ class TreasuryAccountForm(forms.ModelForm):
         }
         labels = {
             'account_type': _('نوع حساب'),
-            'tafsili_level': _('سطح تفضیلی'),
+            'tafsili_level': _('سطح تفصیلی'),
             'sub_account': _('حساب معین'),
             'gl_account': _('حساب کل'),
             'account_name': _('نام حساب'),
@@ -66,8 +66,8 @@ class TreasuryAccountForm(forms.ModelForm):
             'is_enabled': _('وضعیت'),
         }
         help_texts = {
-            'tafsili_level': _('یا سطح تفضیلی را انتخاب کنید یا حساب معین (هر دو با هم امکان‌پذیر نیست)'),
-            'sub_account': _('یا حساب معین را انتخاب کنید یا سطح تفضیلی (هر دو با هم امکان‌پذیر نیست)'),
+            'tafsili_level': _('یا سطح تفصیلی را انتخاب کنید یا حساب معین (هر دو با هم امکان‌پذیر نیست)'),
+            'sub_account': _('یا حساب معین را انتخاب کنید یا سطح تفصیلی (هر دو با هم امکان‌پذیر نیست)'),
             'gl_account': _('حساب کل به صورت خودکار از معین انتخاب می‌شود'),
         }
     
@@ -117,16 +117,16 @@ class TreasuryAccountForm(forms.ModelForm):
         
         # Validate that either tafsili_level or sub_account is selected, but not both
         if not tafsili_level and not sub_account:
-            raise forms.ValidationError(_('باید یا سطح تفضیلی انتخاب شود یا حساب معین (حداقل یکی از آن‌ها الزامی است).'))
+            raise forms.ValidationError(_('باید یا سطح تفصیلی انتخاب شود یا حساب معین (حداقل یکی از آن‌ها الزامی است).'))
         
         if tafsili_level and sub_account:
-            raise forms.ValidationError(_('نمی‌توان هم سطح تفضیلی و هم حساب معین را انتخاب کرد. فقط یکی از آن‌ها باید انتخاب شود.'))
+            raise forms.ValidationError(_('نمی‌توان هم سطح تفصیلی و هم حساب معین را انتخاب کرد. فقط یکی از آن‌ها باید انتخاب شود.'))
         
         if self.company_id:
             # Validate tafsili_level belongs to company
             if tafsili_level:
                 if tafsili_level.company_id != self.company_id:
-                    raise forms.ValidationError(_('سطح تفضیلی انتخاب شده باید متعلق به شرکت فعال باشد.'))
+                    raise forms.ValidationError(_('سطح تفصیلی انتخاب شده باید متعلق به شرکت فعال باشد.'))
             
             # Validate sub_account belongs to company
             if sub_account:

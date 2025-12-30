@@ -159,7 +159,7 @@ class TafsiliAccountSerializer(serializers.ModelSerializer):
 
 
 class TafsiliHierarchySerializer(serializers.ModelSerializer):
-    """Serializer for Tafsili Level (سطح تفضیلی)."""
+    """Serializer for Tafsili Level (سطح تفصیلی)."""
     sub_accounts = serializers.SerializerMethodField()
     
     class Meta:
