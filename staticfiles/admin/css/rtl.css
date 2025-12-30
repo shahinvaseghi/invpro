@@ -1,286 +1,88 @@
-/* GLOBAL */
-
-th {
-    text-align: right;
+/* RTL Support for Django Unfold Admin */
+html[lang="fa"],
+html[dir="rtl"],
+body[lang="fa"] {
+    direction: rtl !important;
+    text-align: right !important;
 }
 
-.module h2, .module caption {
-    text-align: right;
+html[lang="fa"] body,
+html[dir="rtl"] body,
+body[lang="fa"] {
+    direction: rtl !important;
+    text-align: right !important;
 }
 
-.module ul, .module ol {
-    margin-left: 0;
-    margin-right: 1.5em;
+/* Unfold sidebar */
+html[lang="fa"] .unfold-sidebar,
+html[dir="rtl"] .unfold-sidebar,
+body[lang="fa"] .unfold-sidebar {
+    right: 0 !important;
+    left: auto !important;
 }
 
-.viewlink, .addlink, .changelink {
-    padding-left: 0;
-    padding-right: 16px;
-    background-position: 100% 1px;
+html[lang="fa"] .unfold-content,
+html[dir="rtl"] .unfold-content,
+body[lang="fa"] .unfold-content {
+    margin-right: 280px !important;
+    margin-left: 0 !important;
 }
 
-.deletelink {
-    padding-left: 0;
-    padding-right: 16px;
-    background-position: 100% 1px;
+/* Form elements */
+html[lang="fa"] .form-row,
+html[dir="rtl"] .form-row,
+body[lang="fa"] .form-row {
+    direction: rtl !important;
 }
 
-.object-tools {
-    float: left;
+html[lang="fa"] .field-box,
+html[dir="rtl"] .field-box,
+body[lang="fa"] .field-box {
+    direction: rtl !important;
+    text-align: right !important;
 }
 
-thead th:first-child,
-tfoot td:first-child {
-    border-left: none;
+html[lang="fa"] input,
+html[lang="fa"] select,
+html[lang="fa"] textarea,
+html[dir="rtl"] input,
+html[dir="rtl"] select,
+html[dir="rtl"] textarea,
+body[lang="fa"] input,
+body[lang="fa"] select,
+body[lang="fa"] textarea {
+    direction: rtl !important;
+    text-align: right !important;
 }
 
-/* LAYOUT */
-
-#user-tools {
-    right: auto;
-    left: 0;
-    text-align: left;
+/* Tables */
+html[lang="fa"] table,
+html[dir="rtl"] table,
+body[lang="fa"] table {
+    direction: rtl !important;
 }
 
-div.breadcrumbs {
-    text-align: right;
+html[lang="fa"] th,
+html[lang="fa"] td,
+html[dir="rtl"] th,
+html[dir="rtl"] td,
+body[lang="fa"] th,
+body[lang="fa"] td {
+    text-align: right !important;
 }
 
-#content-main {
-    float: right;
+/* Inline forms */
+html[lang="fa"] .inline-group,
+html[dir="rtl"] .inline-group,
+body[lang="fa"] .inline-group {
+    direction: rtl !important;
 }
 
-#content-related {
-    float: left;
-    margin-left: -300px;
-    margin-right: auto;
+/* Buttons alignment */
+html[lang="fa"] .submit-row,
+html[dir="rtl"] .submit-row,
+body[lang="fa"] .submit-row {
+    text-align: right !important;
+    direction: rtl !important;
 }
 
-.colMS {
-    margin-left: 300px;
-    margin-right: 0;
-}
-
-/* SORTABLE TABLES */
-
-table thead th.sorted .sortoptions {
-   float: left;
-}
-
-thead th.sorted .text {
-    padding-right: 0;
-    padding-left: 42px;
-}
-
-/* dashboard styles */
-
-.dashboard .module table td a {
-    padding-left: .6em;
-    padding-right: 16px;
-}
-
-/* changelists styles */
-
-.change-list .filtered table {
-    border-left: none;
-    border-right: 0px none;
-}
-
-#changelist-filter {
-    border-left: none;
-    border-right: none;
-    margin-left: 0;
-    margin-right: 30px;
-}
-
-#changelist-filter li.selected {
-    border-left: none;
-    padding-left: 10px;
-    margin-left: 0;
-    border-right: 5px solid var(--hairline-color);
-    padding-right: 10px;
-    margin-right: -15px;
-}
-
-#changelist table tbody td:first-child, #changelist table tbody th:first-child {
-    border-right: none;
-    border-left: none;
-}
-
-/* FORMS */
-
-.aligned label {
-    padding: 0 0 3px 1em;
-}
-
-.submit-row a.deletelink {
-    margin-left: 0;
-    margin-right: auto;
-}
-
-.vDateField, .vTimeField {
-    margin-left: 2px;
-}
-
-.aligned .form-row input {
-    margin-left: 5px;
-}
-
-form .aligned ul {
-    margin-right: 163px;
-    padding-right: 10px;
-    margin-left: 0;
-    padding-left: 0;
-}
-
-form ul.inline li {
-    float: right;
-    padding-right: 0;
-    padding-left: 7px;
-}
-
-form .aligned p.help,
-form .aligned div.help {
-    margin-right: 160px;
-    padding-right: 10px;
-}
-
-form div.help ul,
-form .aligned .checkbox-row + .help,
-form .aligned p.datetime div.help.timezonewarning {
-    margin-right: 0;
-    padding-right: 0;
-}
-
-form .wide p.help, form .wide div.help {
-    padding-left: 0;
-    padding-right: 50px;
-}
-
-form .wide p,
-form .wide ul.errorlist,
-form .wide input + p.help,
-form .wide input + div.help {
-    margin-right: 200px;
-    margin-left: 0px;
-}
-
-.submit-row {
-    text-align: right;
-}
-
-fieldset .fieldBox {
-    margin-left: 20px;
-    margin-right: 0;
-}
-
-.errorlist li {
-    background-position: 100% 12px;
-    padding: 0;
-}
-
-.errornote {
-    background-position: 100% 12px;
-    padding: 10px 12px;
-}
-
-/* WIDGETS */
-
-.calendarnav-previous {
-    top: 0;
-    left: auto;
-    right: 10px;
-    background: url(../img/calendar-icons.svg) 0 -30px no-repeat;
-}
-
-.calendarbox .calendarnav-previous:focus,
-.calendarbox .calendarnav-previous:hover {
-    background-position: 0 -45px;
-}
-
-.calendarnav-next {
-    top: 0;
-    right: auto;
-    left: 10px;
-    background: url(../img/calendar-icons.svg) 0 0 no-repeat;
-}
-
-.calendarbox .calendarnav-next:focus,
-.calendarbox .calendarnav-next:hover {
-    background-position: 0 -15px;
-}
-
-.calendar caption, .calendarbox h2 {
-    text-align: center;
-}
-
-.selector {
-    float: right;
-}
-
-.selector .selector-filter {
-    text-align: right;
-}
-
-.selector-add {
-  background: url(../img/selector-icons.svg) 0 -64px no-repeat;
-}
-
-.active.selector-add:focus, .active.selector-add:hover {
-  background-position: 0 -80px;
-}
-
-.selector-remove {
-  background: url(../img/selector-icons.svg) 0 -96px no-repeat;
-}
-
-.active.selector-remove:focus, .active.selector-remove:hover {
-  background-position: 0 -112px;
-}
-
-a.selector-chooseall {
-    background: url(../img/selector-icons.svg) right -128px no-repeat;
-}
-
-a.active.selector-chooseall:focus, a.active.selector-chooseall:hover {
-    background-position: 100% -144px;
-}
-
-a.selector-clearall {
-    background: url(../img/selector-icons.svg) 0 -160px no-repeat;
-}
-
-a.active.selector-clearall:focus, a.active.selector-clearall:hover {
-    background-position: 0 -176px;
-}
-
-.inline-deletelink {
-    float: left;
-}
-
-form .form-row p.datetime {
-    overflow: hidden;
-}
-
-.related-widget-wrapper {
-    float: right;
-}
-
-/* MISC */
-
-.inline-related h2, .inline-group h2 {
-    text-align: right
-}
-
-.inline-related h3 span.delete {
-    padding-right: 20px;
-    padding-left: inherit;
-    left: 10px;
-    right: inherit;
-    float:left;
-}
-
-.inline-related h3 span.delete label {
-    margin-left: inherit;
-    margin-right: 2px;
-}

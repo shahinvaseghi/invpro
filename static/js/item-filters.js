@@ -33,6 +33,10 @@ function filterItemsForRow(rowElement, options = {}) {
     return;
   }
   
+  // Prevent repopulation if item is already selected and we're not filtering
+  // This prevents the dropdown from clearing when user selects an item
+  const skipRepopulate = options.skipRepopulate === true; // Only skip if explicitly set to true
+  
   const config = {
     apiUrl: options.apiUrl || '/inventory/api/filtered-items/',
     typeSelector: options.typeSelector || '.filter-type-select',
@@ -48,10 +52,33 @@ function filterItemsForRow(rowElement, options = {}) {
   const categorySelect = rowElement.querySelector(config.categorySelector);
   const subcategorySelect = rowElement.querySelector(config.subcategorySelector);
   const searchInput = rowElement.querySelector(config.searchSelector);
-  const itemSelect = rowElement.querySelector(config.itemSelector);
+  
+  // Find item select - must match exactly "name*='-item'" but NOT "name*='-item_type_filter'" etc.
+  let itemSelect = null;
+  const allSelects = rowElement.querySelectorAll('select');
+  for (let select of allSelects) {
+    if (select.name && select.name.includes('-item') && !select.name.includes('_filter')) {
+      itemSelect = select;
+      break;
+    }
+  }
+  
+  // Fallback: try alternative selectors
+  if (!itemSelect) {
+    itemSelect = rowElement.querySelector('select.item-select:not([name*="_filter"])');
+    if (!itemSelect) {
+      const wrapperSelects = rowElement.querySelectorAll('.item-select-wrapper select');
+      for (let select of wrapperSelects) {
+        if (select.name && select.name.includes('-item') && !select.name.includes('_filter')) {
+          itemSelect = select;
+          break;
+        }
+      }
+    }
+  }
   
   // #region agent log
-  fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:48',message:'filterItemsForRow: elements found',data:{hasTypeSelect:!!typeSelect,hasCategorySelect:!!categorySelect,hasSubcategorySelect:!!subcategorySelect,hasSearchInput:!!searchInput,hasItemSelect:!!itemSelect,itemSelector:config.itemSelector},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'T'})}).catch(()=>{});
+  fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:48',message:'filterItemsForRow: elements found',data:{hasTypeSelect:!!typeSelect,hasCategorySelect:!!categorySelect,hasSubcategorySelect:!!subcategorySelect,hasSearchInput:!!searchInput,hasItemSelect:!!itemSelect,itemSelectName:itemSelect?.name,itemSelector:config.itemSelector},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'T'})}).catch(()=>{});
   // #endregion
   
   if (!itemSelect) {
@@ -70,6 +97,24 @@ function filterItemsForRow(rowElement, options = {}) {
     searchTerm = '';
   }
   
+  // Check if dropdown is already populated - if so, don't repopulate unless filters changed
+  const isAlreadyPopulated = itemSelect && itemSelect.getAttribute('data-populated') === 'true';
+  const hasOptions = itemSelect && itemSelect.querySelectorAll('option').length > 1; // More than just placeholder
+  
+  // If dropdown is already populated and no filters are active, don't repopulate
+  // This prevents clearing the selection when user selects an item or when reinitializing
+  if (isAlreadyPopulated && hasOptions && !typeId && !categoryId && !subcategoryId && !searchTerm && skipRepopulate) {
+    console.log('[item-filters] Skipping repopulation - dropdown already populated and no filters', {
+      isAlreadyPopulated,
+      hasOptions,
+      currentValue: itemSelect ? itemSelect.value : null
+    });
+    // #region agent log
+    fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:95',message:'Skipping repopulation - dropdown already populated and no filters',data:{isAlreadyPopulated,hasOptions,currentValue:itemSelect.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'N'})}).catch(()=>{});
+    // #endregion
+    return;
+  }
+  
   // Parse API URL to extract base URL and existing params
   let apiUrl = config.apiUrl;
   const urlParts = apiUrl.split('?');
@@ -79,9 +124,14 @@ function filterItemsForRow(rowElement, options = {}) {
   // Build params object
   const params = new URLSearchParams();
   
-  // Preserve existing params from apiUrl (like sellable_only)
+  // Preserve existing params from apiUrl (like sellable_only) - IMPORTANT!
   for (const [key, value] of existingParams.entries()) {
     params.append(key, value);
+  }
+  
+  // Ensure sellable_only is set if it was in the original URL
+  if (existingParams.has('sellable_only') && !params.has('sellable_only')) {
+    params.append('sellable_only', existingParams.get('sellable_only'));
   }
   
   // Add filter params
@@ -97,20 +147,49 @@ function filterItemsForRow(rowElement, options = {}) {
     apiUrl = baseUrl;
   }
   
+  // Debug: Log the final URL to ensure sellable_only is included
+  console.log('[item-filters] Final API URL', {
+    apiUrl,
+    hasSellableOnly: apiUrl.includes('sellable_only=true'),
+    allParams: Array.from(params.entries())
+  });
+  
   // #region agent log
-  fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:82',message:'Before API fetch',data:{apiUrl,hasItemSelect:!!itemSelect,itemSelectName:itemSelect?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'R'})}).catch(()=>{});
+  console.log('[item-filters] Before API fetch', {
+    apiUrl,
+    hasItemSelect: !!itemSelect,
+    itemSelectName: itemSelect?.name,
+    sellableOnly: existingParams.get('sellable_only')
+  });
+  fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:82',message:'Before API fetch',data:{apiUrl,hasItemSelect:!!itemSelect,itemSelectName:itemSelect?.name,sellableOnly:existingParams.get('sellable_only')},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'R'})}).catch(()=>{});
   // #endregion
   
   fetch(apiUrl)
     .then(response => {
       // #region agent log
+      console.log('[item-filters] API response received', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        url: apiUrl
+      });
       fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:88',message:'API response received',data:{status:response.status,statusText:response.statusText,ok:response.ok,url:apiUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'R'})}).catch(()=>{});
       // #endregion
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       return response.json();
     })
     .then(data => {
       // #region agent log
-      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:94',message:'API data parsed',data:{hasError:!!data.error,error:data.error,hasItems:!!data.items,itemsCount:data.items?.length || 0},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'R'})}).catch(()=>{});
+      console.log('[item-filters] API data parsed', {
+        hasError: !!data.error,
+        error: data.error,
+        hasItems: !!data.items,
+        itemsCount: data.items?.length || 0,
+        items: data.items?.slice(0, 5) || [] // First 5 items for debugging
+      });
+      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:94',message:'API data parsed',data:{hasError:!!data.error,error:data.error,hasItems:!!data.items,itemsCount:data.items?.length || 0,firstItems:data.items?.slice(0,5)},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'R'})}).catch(()=>{});
       // #endregion
       
       if (data.error) {
@@ -121,6 +200,12 @@ function filterItemsForRow(rowElement, options = {}) {
         return;
       }
       if (data.items) {
+        console.log('[item-filters] Populating dropdown with items', {
+          itemsCount: data.items.length,
+          itemSelectName: itemSelect.name,
+          firstItems: data.items.slice(0, 5).map(i => ({ value: i.value, label: i.label }))
+        });
+        
         const itemMap = {};
         data.items.forEach(function(item) {
           itemMap[item.value] = item;
@@ -141,6 +226,11 @@ function filterItemsForRow(rowElement, options = {}) {
           itemSelect.appendChild(option);
         });
         
+        console.log('[item-filters] Dropdown populated', {
+          optionsCount: itemSelect.querySelectorAll('option').length,
+          currentValue: currentValue
+        });
+        
         // Mark as populated and show the dropdown
         itemSelect.setAttribute('data-populated', 'true');
         itemSelect.style.display = 'block';
@@ -157,14 +247,13 @@ function filterItemsForRow(rowElement, options = {}) {
         // Force reflow to ensure display change takes effect
         itemSelect.offsetHeight;
         
+        // Restore previous selection if it exists in the new list
         if (currentValue && itemMap[currentValue]) {
           itemSelect.value = currentValue;
-          if (config.onItemChange) {
-            config.onItemChange(itemSelect, rowElement);
-          } else {
-            itemSelect.dispatchEvent(new Event('change', { bubbles: true }));
-          }
+          // Don't trigger change event to prevent repopulation
+          // The change event will be triggered by user interaction, not programmatically
         } else if (currentValue) {
+          // Current value is not in filtered list, clear it
           itemSelect.value = '';
           // Clear dependent dropdowns
           const unitSelect = rowElement.querySelector('select[name*="-unit"]');
@@ -175,6 +264,12 @@ function filterItemsForRow(rowElement, options = {}) {
           if (warehouseSelect) {
             warehouseSelect.innerHTML = `<option value="">${config.placeholder}</option>`;
           }
+        }
+        
+        // Trigger change event only if onItemChange callback is provided
+        // This prevents automatic repopulation when user selects an item
+        if (config.onItemChange && currentValue && itemMap[currentValue]) {
+          config.onItemChange(itemSelect, rowElement);
         }
       }
     })
@@ -449,15 +544,42 @@ function initializeItemFiltersForRow(rowElement, options = {}) {
   const categorySelect = rowElement.querySelector(config.categorySelector);
   const subcategorySelect = rowElement.querySelector(config.subcategorySelector);
   const searchInput = rowElement.querySelector(config.searchSelector);
-  const itemSelect = rowElement.querySelector(config.itemSelector);
+  
+  // Find item select - must match exactly "name*='-item'" but NOT "name*='-item_type_filter'" etc.
+  // Use more specific selector: select with name ending in "-item" but not containing "_filter"
+  let itemSelect = null;
+  const rowSelects = rowElement.querySelectorAll('select');
+  for (let select of rowSelects) {
+    if (select.name && select.name.includes('-item') && !select.name.includes('_filter')) {
+      itemSelect = select;
+      break;
+    }
+  }
+  
+  // Fallback: try alternative selectors
+  if (!itemSelect) {
+    itemSelect = rowElement.querySelector('select.item-select:not([name*="_filter"])');
+    if (!itemSelect) {
+      const wrapperSelects = rowElement.querySelectorAll('.item-select-wrapper select');
+      for (let select of wrapperSelects) {
+        if (select.name && select.name.includes('-item') && !select.name.includes('_filter')) {
+          itemSelect = select;
+          break;
+        }
+      }
+    }
+  }
+  
   const unitSelect = rowElement.querySelector('select[name*="-unit"]');
   const warehouseSelect = rowElement.querySelector('select[name*="-warehouse"]');
   
-  // Debug: Log all selects found in row
+  // Debug: Log all selects found in row (reuse rowSelects from above)
   // #region agent log
-  const allSelects = rowElement.querySelectorAll('select');
-  const allSelectNames = Array.from(allSelects).map(s => ({ name: s.name, id: s.id, className: s.className }));
-  fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:441',message:'All selects found in row',data:{allSelectNames,itemSelector:config.itemSelector,hasItemSelect:!!itemSelect},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'D'})}).catch(()=>{});
+  const allSelectNames = Array.from(rowSelects).map(s => ({ name: s.name, id: s.id, className: s.className }));
+  console.log('[item-filters] All selects in row:', allSelectNames);
+  console.log('[item-filters] Looking for item select with selector:', config.itemSelector);
+  console.log('[item-filters] Item select found:', !!itemSelect, itemSelect ? { name: itemSelect.name, id: itemSelect.id, className: itemSelect.className } : 'not found');
+  fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:441',message:'All selects found in row',data:{allSelectNames,itemSelector:config.itemSelector,hasItemSelect:!!itemSelect,itemSelectName:itemSelect?.name,itemSelectId:itemSelect?.id,itemSelectClassName:itemSelect?.className},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'D'})}).catch(()=>{});
   // #endregion
   
   // Type change handler
@@ -500,6 +622,7 @@ function initializeItemFiltersForRow(rowElement, options = {}) {
   }
   
   // Item change handler - refresh unit and warehouse options
+  // IMPORTANT: Don't trigger filterItemsForRow on item change to prevent repopulation
   if (itemSelect) {
     itemSelect.addEventListener('change', function() {
       const selectedItemId = this.value;
@@ -519,7 +642,7 @@ function initializeItemFiltersForRow(rowElement, options = {}) {
           warehouseSelect.innerHTML = `<option value="">${options.placeholder || '--- Select ---'}</option>`;
         }
       }
-    });
+    }, { once: false }); // Keep listener active but don't trigger filterItemsForRow
     
     // Initial load if item already has value
     if (itemSelect.value) {
@@ -544,13 +667,45 @@ function initializeItemFiltersForRow(rowElement, options = {}) {
   fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:510',message:'About to call initial filterItemsForRow',data:{hasItemSelect:!!itemSelect,itemSelectInfo,hasRowElement:!!rowElement,rowHTML,config:config},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'Q'})}).catch(()=>{});
   // #endregion
   
-  // Only call filterItemsForRow if itemSelect exists
+  // Always call filterItemsForRow to populate dropdown for each row
+  // Only skip repopulation if dropdown is already populated AND has options (to avoid clearing it)
+  // But always populate on initial load (when data-populated is not set)
   if (itemSelect) {
-    filterItemsForRow(rowElement, options);
+    const isAlreadyPopulated = itemSelect.getAttribute('data-populated') === 'true';
+    const optionsCount = itemSelect.querySelectorAll('option').length;
+    const hasOptions = optionsCount > 1; // More than just placeholder
+    
+    // Only skip if BOTH conditions are true: already populated AND has options
+    // This ensures initial population always happens for empty dropdowns
+    const shouldSkipRepopulate = isAlreadyPopulated && hasOptions;
+    
+    console.log('[item-filters] Calling filterItemsForRow for row', {
+      hasItemSelect: !!itemSelect,
+      itemSelectName: itemSelect.name,
+      itemSelectId: itemSelect.id,
+      rowElement: !!rowElement,
+      isAlreadyPopulated,
+      hasOptions,
+      optionsCount,
+      shouldSkipRepopulate
+    });
+    
+    // Always call filterItemsForRow - it will check skipRepopulate internally
+    // For initial load, skipRepopulate should be false to ensure dropdown is populated
+    const filterOptions = Object.assign({}, options, { skipRepopulate: shouldSkipRepopulate });
+    filterItemsForRow(rowElement, filterOptions);
   } else {
-    // #region agent log
-    fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'item-filters.js:520',message:'Skipping filterItemsForRow - itemSelect not found',data:{itemSelector:config.itemSelector,rowHTML},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'Q'})}).catch(()=>{});
-    // #endregion
+    console.error('[item-filters] Cannot call filterItemsForRow - itemSelect not found in row', {
+      itemSelector: config.itemSelector,
+      rowElement: !!rowElement,
+      allSelects: Array.from(rowElement.querySelectorAll('select')).map(function(s) {
+        return {
+          name: s.name,
+          id: s.id,
+          className: s.className
+        };
+      })
+    });
   }
   
   // Initial category load if type has value

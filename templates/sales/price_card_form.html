@@ -218,7 +218,15 @@ function initializeLineForms() {
   const allRows = Array.from(rowsContainer.querySelectorAll('.formset-row:not(.formset-template), .line-row:not(.formset-template)'));
   const visibleRows = allRows.filter(row => !row.classList.contains('deleted'));
   
+  console.log('[price_card_form] initializeLineForms: found', visibleRows.length, 'visible rows');
+  
   visibleRows.forEach(function(lineRow, index) {
+    // #region agent log
+    const itemSelect = lineRow.querySelector('select[name*="-item"]');
+    const deleteCheckbox = lineRow.querySelector('input[type="checkbox"][name*="-DELETE"]');
+    fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'price_card_form.html:initializeLineForms',message:'Processing row',data:{rowIndex:index,hasItemSelect:!!itemSelect,itemSelectName:itemSelect?.name,itemSelectValue:itemSelect?.value,deleteCheckboxChecked:deleteCheckbox?.checked,rowClasses:lineRow.className},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    
     // Update row number
     const lineNumber = lineRow.querySelector('.formset-number');
     if (lineNumber) {
@@ -226,8 +234,29 @@ function initializeLineForms() {
     }
     
     // Use shared item-filters.js function
+    // CRITICAL: Initialize filters for ALL rows, not just the first one
     if (typeof initializeItemFiltersForRow === 'function') {
-      initializeItemFiltersForRow(lineRow, filterOptions);
+      console.log('[price_card_form] Initializing filters for row', index + 1);
+      // Use setTimeout to ensure DOM is fully ready, but with a small delay to ensure all elements are ready
+      setTimeout(function() {
+        // #region agent log
+        const itemSelectBefore = lineRow.querySelector('select[name*="-item"]');
+        const optionsCountBefore = itemSelectBefore ? itemSelectBefore.querySelectorAll('option').length : 0;
+        fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'price_card_form.html:initializeLineForms',message:'Before initializeItemFiltersForRow',data:{rowIndex:index,itemSelectName:itemSelectBefore?.name,optionsCountBefore},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
+        
+        initializeItemFiltersForRow(lineRow, filterOptions);
+        
+        // #region agent log
+        setTimeout(function() {
+          const itemSelectAfter = lineRow.querySelector('select[name*="-item"]');
+          const optionsCountAfter = itemSelectAfter ? itemSelectAfter.querySelectorAll('option').length : 0;
+          fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'price_card_form.html:initializeLineForms',message:'After initializeItemFiltersForRow',data:{rowIndex:index,itemSelectName:itemSelectAfter?.name,optionsCountAfter},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        }, 500);
+        // #endregion
+      }, 50 * (index + 1)); // Stagger the initialization slightly to avoid race conditions
+    } else {
+      console.warn('[price_card_form] initializeItemFiltersForRow function not found');
     }
   });
 }
@@ -236,66 +265,97 @@ function initializeLineForms() {
 document.addEventListener('DOMContentLoaded', function() {
   const formsetContainer = document.getElementById('price-cards-formset-container');
   const formsetTable = document.getElementById('price-cards-formset');
+  
+  console.log('[price_card_form] DOMContentLoaded - checking elements', {
+    hasFormsetContainer: !!formsetContainer,
+    hasFormsetTable: !!formsetTable
+  });
+  
   if (!formsetContainer || !formsetTable) {
+    console.error('[price_card_form] Missing required elements', {
+      formsetContainer: !!formsetContainer,
+      formsetTable: !!formsetTable
+    });
     return;
   }
   
-  // Remove extra empty rows - keep only first empty row if all are empty
-  const initialFormsInput = document.querySelector('input[name="price_cards-INITIAL_FORMS"]');
-  const totalFormsInput = document.querySelector('input[name="price_cards-TOTAL_FORMS"]');
-  const initialRows = formsetTable.querySelectorAll('.formset-row:not(.formset-template), .line-row:not(.formset-template)');
+  // CRITICAL: First, uncheck all DELETE checkboxes and remove deleted class from all rows
+  // This ensures no rows are pre-marked as deleted
+  const allInitialRows = formsetTable.querySelectorAll('.formset-row:not(.formset-template), .line-row:not(.formset-template)');
+  allInitialRows.forEach(function(row) {
+    const deleteCheckbox = row.querySelector('input[type="checkbox"][name*="-DELETE"]');
+    if (deleteCheckbox) {
+      deleteCheckbox.checked = false;
+      row.classList.remove('deleted');
+      row.style.opacity = '1';
+      // Re-enable all inputs
+      const rowInputs = row.querySelectorAll('input:not([type="checkbox"][name*="-DELETE"]), select, textarea');
+      rowInputs.forEach(function(input) {
+        input.disabled = false;
+      });
+    }
+  });
   
-  if (initialRows.length > 1) {
-    const rowsArray = Array.from(initialRows);
-    let emptyRows = [];
-    let hasDataRows = false;
+  // Function to remove extra rows and keep only the first one
+  function removeExtraRows() {
+    const initialFormsInput = document.querySelector('input[name="price_cards-INITIAL_FORMS"]');
+    const totalFormsInput = document.querySelector('input[name="price_cards-TOTAL_FORMS"]');
+    const rowsContainer = formsetTable.querySelector('.formset-rows-container');
     
-    rowsArray.forEach((row, index) => {
-      const itemSelect = row.querySelector('select[name*="-item"]');
-      const priceInput = row.querySelector('input[name*="-price"]');
-      const hasItem = itemSelect && itemSelect.value;
-      const hasPrice = priceInput && priceInput.value;
+    if (!rowsContainer) {
+      console.warn('[price_card_form] rowsContainer not found for removing extra rows');
+      return;
+    }
+    
+    const initialRows = rowsContainer.querySelectorAll('.formset-row:not(.formset-template):not(.deleted), .line-row:not(.formset-template):not(.deleted)');
+    
+    console.log('[price_card_form] Checking rows for removal. Found:', initialRows.length);
+    
+    // If we have more than 1 row, remove all except the first one
+    if (initialRows.length > 1) {
+      const rowsArray = Array.from(initialRows);
+      console.log('[price_card_form] Removing extra rows, keeping only first row');
       
-      if (!hasItem && !hasPrice) {
-        emptyRows.push({row, index});
-      } else {
-        hasDataRows = true;
-      }
-    });
-    
-    // If we have more than 1 empty row and no data rows, remove extras
-    if (emptyRows.length > 1 && !hasDataRows) {
-      // Keep first empty row, remove the rest
-      for (let i = 1; i < emptyRows.length; i++) {
-        const deleteCheckbox = emptyRows[i].row.querySelector('input[type="checkbox"][name*="-DELETE"]');
-        if (deleteCheckbox) {
-          deleteCheckbox.checked = true;
-          emptyRows[i].row.classList.add('deleted');
-          emptyRows[i].row.style.opacity = '0.5';
-          const rowInputs = emptyRows[i].row.querySelectorAll('input:not([type="checkbox"][name*="-DELETE"]), select, textarea');
-          rowInputs.forEach(function(input) {
-            input.disabled = true;
-          });
-        } else {
-          emptyRows[i].row.remove();
-        }
+      // Keep first row, remove all others completely from DOM
+      for (let i = 1; i < rowsArray.length; i++) {
+        const row = rowsArray[i];
+        console.log('[price_card_form] Removing row', i + 1, 'from DOM');
+        row.remove();
       }
       
-      // Update TOTAL_FORMS
+      // Update TOTAL_FORMS to reflect only the remaining visible rows
       if (totalFormsInput) {
-        const remainingRows = formsetTable.querySelectorAll('.formset-row:not(.formset-template):not(.deleted), .line-row:not(.formset-template):not(.deleted)');
+        const remainingRows = rowsContainer.querySelectorAll('.formset-row:not(.formset-template):not(.deleted), .line-row:not(.formset-template):not(.deleted)');
         totalFormsInput.value = remainingRows.length;
+        console.log('[price_card_form] Updated TOTAL_FORMS to:', remainingRows.length);
       }
+      
+      // Also update INITIAL_FORMS if it exists
+      if (initialFormsInput) {
+        const remainingRows = rowsContainer.querySelectorAll('.formset-row:not(.formset-template):not(.deleted), .line-row:not(.formset-template):not(.deleted)');
+        initialFormsInput.value = remainingRows.length;
+        console.log('[price_card_form] Updated INITIAL_FORMS to:', remainingRows.length);
+      }
+    } else if (initialRows.length === 0) {
+      // If no rows exist, we need at least one - but this should be handled by Django formset
+      console.warn('[price_card_form] No rows found, formset should have at least one row');
+    } else {
+      console.log('[price_card_form] Only one row found, no need to remove extras');
     }
   }
   
-  // Initialize line forms
-  initializeLineForms();
+  // Remove extra rows immediately
+  removeExtraRows();
+  
+  // Initialize line forms - this will setup filters for all existing rows
+  // Use a small delay to ensure all DOM manipulations are complete
+  setTimeout(function() {
+    initializeLineForms();
+  }, 100);
   
   // Setup formset management using formset.js
   const addLineBtn = document.getElementById('add-price-card-btn');
-  const totalFormsInput = document.querySelector('input[name="price_cards-TOTAL_FORMS"]');
-  
+  // totalFormsInput already declared above, reuse it
   if (addLineBtn && formsetTable && totalFormsInput) {
     // Find rows container - this is where rows will be added
     const rowsContainer = formsetTable.querySelector('.formset-rows-container');
@@ -426,16 +486,33 @@ document.addEventListener('DOMContentLoaded', function() {
         };
       }
       
-      // Initialize formset with minRows=0 to prevent adding extra rows
+      // Initialize formset with minRows=1 to ensure at least one row exists
+      // But we've already cleaned up extra rows above, so it shouldn't add more
       if (typeof initFormset === 'function') {
         console.log('Initializing formset with rowsContainer:', rowsContainer);
+        // Count current visible rows before initializing
+        const currentVisibleRows = rowsContainer.querySelectorAll('.formset-row:not(.formset-template):not(.deleted), .line-row:not(.formset-template):not(.deleted)');
+        console.log('[price_card_form] Current visible rows before initFormset:', currentVisibleRows.length);
+        
         initFormset('price_cards', '#price-cards-formset-template', {
-          minRows: 0,  // Don't add rows automatically - we already have 1 from Django
+          minRows: 1,  // Ensure at least 1 row exists (but we already have it)
           maxRows: null,
           addButtonSelector: '#add-price-card-btn',
           removeButtonSelector: 'input[name*="-DELETE"]',
           rowSelector: '.formset-row:not(.formset-template):not(.deleted), .line-row:not(.formset-template):not(.deleted)'
         });
+        
+        // After initFormset, verify we still have only 1 row and remove extras
+        setTimeout(function() {
+          console.log('[price_card_form] Checking rows after initFormset');
+          removeExtraRows();
+        }, 300);
+        
+        // Also check one more time after a longer delay to catch any late additions
+        setTimeout(function() {
+          console.log('[price_card_form] Final check for extra rows');
+          removeExtraRows();
+        }, 500);
       } else {
         console.error('initFormset function not found');
       }
@@ -475,8 +552,15 @@ document.addEventListener('DOMContentLoaded', function() {
               }
               
               // Initialize item filters for the new row
+              // CRITICAL: Must initialize filters for new rows so they have item dropdown populated
               if (typeof initializeItemFiltersForRow === 'function') {
-                initializeItemFiltersForRow(newRow, filterOptions);
+                console.log('[price_card_form] Initializing filters for new row');
+                // Use a small delay to ensure DOM is fully ready
+                setTimeout(function() {
+                  initializeItemFiltersForRow(newRow, filterOptions);
+                }, 100);
+              } else {
+                console.warn('[price_card_form] initializeItemFiltersForRow function not found for new row');
               }
               
               // Update row numbers
@@ -489,38 +573,214 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Handle DELETE checkbox changes - use event delegation on formset container
-  if (formsetContainer) {
-    formsetContainer.addEventListener('change', function(e) {
-      if (e.target && e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
-        const row = e.target.closest('.formset-row') || e.target.closest('.line-row');
+  // Setup immediately, don't wait for timeout
+  const formsetContainerForDelete = document.getElementById('price-cards-formset-container');
+  if (!formsetContainerForDelete) {
+    console.error('[price_card_form] formsetContainer not found for DELETE handler');
+  } else {
+    console.log('[price_card_form] Setting up DELETE checkbox event listener on formsetContainer', {
+      containerId: formsetContainerForDelete.id,
+      containerClasses: formsetContainerForDelete.className
+    });
+    
+    // Check existing checkboxes and ensure they're unchecked
+    const existingCheckboxes = formsetContainerForDelete.querySelectorAll('input[type="checkbox"][name*="-DELETE"]');
+    console.log('[price_card_form] Found existing DELETE checkboxes:', existingCheckboxes.length);
+    existingCheckboxes.forEach(function(checkbox) {
+      if (checkbox.checked) {
+        checkbox.checked = false;
+        const row = checkbox.closest('.formset-row') || checkbox.closest('.line-row');
         if (row) {
-          if (e.target.checked) {
-            row.classList.add('deleted');
-            row.style.opacity = '0.5';
-            // Disable all inputs except DELETE checkbox
-            const rowInputs = row.querySelectorAll('input:not([type="checkbox"][name*="-DELETE"]), select, textarea');
-            rowInputs.forEach(function(input) {
-              input.disabled = true;
-            });
-          } else {
-            row.classList.remove('deleted');
-            row.style.opacity = '1';
-            // Re-enable inputs
-            const rowInputs = row.querySelectorAll('input:not([type="checkbox"][name*="-DELETE"]), select, textarea');
-            rowInputs.forEach(function(input) {
-              input.disabled = false;
-            });
-          }
-          // Update row numbers
-          initializeLineForms();
-          
-          // Update TOTAL_FORMS if needed
-          if (typeof reindexFormset === 'function') {
-            reindexFormset('price_cards', '.formset-row:not(.formset-template):not(.deleted), .line-row:not(.formset-template):not(.deleted)', false);
-          }
+          row.classList.remove('deleted');
+          row.style.opacity = '1';
+          const rowInputs = row.querySelectorAll('input:not([type="checkbox"][name*="-DELETE"]), select, textarea');
+          rowInputs.forEach(function(input) {
+            input.disabled = false;
+          });
         }
       }
     });
+    
+    // Use event delegation - this will work for dynamically added rows too
+    formsetContainerForDelete.addEventListener('change', function(e) {
+      // Only handle DELETE checkboxes
+      if (!e.target || e.target.type !== 'checkbox' || !e.target.name || !e.target.name.includes('-DELETE')) {
+        return;
+      }
+      
+      console.log('[price_card_form] DELETE checkbox changed', {
+        checked: e.target.checked,
+        name: e.target.name
+      });
+      
+      const row = e.target.closest('.formset-row') || e.target.closest('.line-row');
+      if (!row) {
+        console.warn('[price_card_form] Row not found for DELETE checkbox');
+        return;
+      }
+      
+      // Skip template rows
+      if (row.classList.contains('formset-template')) {
+        return;
+      }
+      
+      if (e.target.checked) {
+        // Mark row as deleted
+        row.classList.add('deleted');
+        row.style.opacity = '0.5';
+        // Disable all inputs except DELETE checkbox
+        const rowInputs = row.querySelectorAll('input:not([type="checkbox"][name*="-DELETE"]), select, textarea');
+        rowInputs.forEach(function(input) {
+          input.disabled = true;
+        });
+        console.log('[price_card_form] Row marked as deleted', {
+          disabledInputs: rowInputs.length,
+          rowName: row.className
+        });
+        
+        // CRITICAL: If we have more than 1 visible row and this one is being deleted,
+        // and we want to keep only 1 row initially, remove this row from DOM
+        const visibleRows = formsetContainerForDelete.querySelectorAll('.formset-row:not(.formset-template):not(.deleted), .line-row:not(.formset-template):not(.deleted)');
+        if (visibleRows.length === 0) {
+          // If this was the last visible row, don't remove it - user might want to uncheck
+          console.log('[price_card_form] This is the last visible row, keeping it in DOM');
+        }
+      } else {
+        // Unmark row as deleted
+        row.classList.remove('deleted');
+        row.style.opacity = '1';
+        // Re-enable inputs
+        const rowInputs = row.querySelectorAll('input:not([type="checkbox"][name*="-DELETE"]), select, textarea');
+        rowInputs.forEach(function(input) {
+          input.disabled = false;
+        });
+        console.log('[price_card_form] Row unmarked as deleted', {
+          enabledInputs: rowInputs.length
+        });
+      }
+      
+      // Update row numbers
+      const formsetTable = document.getElementById('price-cards-formset');
+      if (formsetTable) {
+        const rowsContainer = formsetTable.querySelector('.formset-rows-container') || formsetTable;
+        const visibleRows = Array.from(rowsContainer.querySelectorAll('.formset-row:not(.formset-template):not(.deleted), .line-row:not(.formset-template):not(.deleted)'));
+        visibleRows.forEach(function(lineRow, index) {
+          const lineNumber = lineRow.querySelector('.formset-number');
+          if (lineNumber) {
+            lineNumber.textContent = index + 1;
+          }
+        });
+      }
+      
+      // Update TOTAL_FORMS and reindex
+      if (typeof reindexFormset === 'function') {
+        reindexFormset('price_cards', '.formset-row:not(.formset-template):not(.deleted), .line-row:not(.formset-template):not(.deleted)', false);
+      } else if (totalFormsInput) {
+        // Fallback: manually update TOTAL_FORMS
+        const visibleRows = formsetContainerForDelete.querySelectorAll('.formset-row:not(.formset-template):not(.deleted), .line-row:not(.formset-template):not(.deleted)');
+        totalFormsInput.value = visibleRows.length;
+      }
+    });
+    
+    // Also handle click events as fallback (some browsers may not fire change on programmatic changes)
+    formsetContainerForDelete.addEventListener('click', function(e) {
+      if (e.target && e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
+        // Trigger change event manually if needed
+        e.target.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+  }
+  
+  // CRITICAL: Prepare formset before form submission
+  const form = document.getElementById('price-card-form');
+  if (form && typeof prepareFormsetForSubmit === 'function') {
+    let isSubmitting = false;
+    
+    form.addEventListener('submit', function(e) {
+      // #region agent log
+      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'price_card_form.html:submit',message:'Form submit event triggered',data:{isSubmitting},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      
+      if (isSubmitting) {
+        console.log('[price_card_form] Form is already submitting, allowing default behavior...');
+        return true;
+      }
+      
+      console.log('[price_card_form] === PREPARING PRICE CARDS FORMSET FOR SUBMISSION ===');
+      // #region agent log
+      const rowsBefore = formsetTable.querySelectorAll('.formset-row:not(.formset-template), .line-row:not(.formset-template)');
+      const deletedRowsBefore = formsetTable.querySelectorAll('.formset-row.deleted, .line-row.deleted');
+      const totalFormsBefore = document.querySelector('input[name="price_cards-TOTAL_FORMS"]')?.value;
+      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'price_card_form.html:submit',message:'Before prepareFormsetForSubmit',data:{totalRows:rowsBefore.length,deletedRows:deletedRowsBefore.length,totalFormsBefore},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+      
+      // Prevent default submission until we've prepared the formset
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Remove deleted rows completely from DOM before submission
+      const deletedRows = formsetContainerForDelete.querySelectorAll('.formset-row.deleted, .line-row.deleted');
+      // #region agent log
+      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'price_card_form.html:submit',message:'Removing deleted rows',data:{deletedRowsCount:deletedRows.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      deletedRows.forEach(function(row) {
+        // Remove all inputs from deleted rows so they're not submitted
+        const inputs = row.querySelectorAll('input, select, textarea');
+        inputs.forEach(function(input) {
+          input.disabled = true;
+          input.name = ''; // Remove name so it's not submitted
+        });
+        row.remove();
+      });
+      
+      // Prepare formset using shared function
+      const result = prepareFormsetForSubmit('price_cards', '.formset-row:not(.formset-template):not(.deleted), .line-row:not(.formset-template):not(.deleted)', {
+        countOnlyNonDeleted: true
+      });
+      
+      // #region agent log
+      const totalFormsAfter = document.querySelector('input[name="price_cards-TOTAL_FORMS"]')?.value;
+      const rowsAfter = formsetTable.querySelectorAll('.formset-row:not(.formset-template):not(.deleted), .line-row:not(.formset-template):not(.deleted)');
+      const fieldNames = Array.from(rowsAfter).map((row, idx) => {
+        const itemField = row.querySelector('select[name*="-item"]');
+        const priceField = row.querySelector('input[name*="-price"]');
+        return {
+          rowIndex: idx,
+          itemFieldName: itemField?.name,
+          itemFieldValue: itemField?.value,
+          priceFieldName: priceField?.name,
+          priceFieldValue: priceField?.value
+        };
+      });
+      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'price_card_form.html:submit',message:'After prepareFormsetForSubmit',data:{result,totalFormsAfter,rowsAfterCount:rowsAfter.length,fieldNames},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+      
+      console.log('[price_card_form] prepareFormsetForSubmit result:', result);
+      
+      // Set flag to prevent loop
+      isSubmitting = true;
+      
+      if (result.success) {
+        console.log(`[price_card_form] ✓ Formset prepared successfully: TOTAL_FORMS=${result.totalForms}, reindexed=${result.reindexedCount}`);
+        // #region agent log
+        fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'price_card_form.html:submit',message:'Formset prepared successfully, submitting form',data:{totalForms:result.totalForms},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        // Submit the form manually (will not trigger this handler again due to flag)
+        form.submit();
+      } else {
+        console.error(`[price_card_form] ✗ Failed to prepare formset: TOTAL_FORMS=${result.totalForms}, reindexed=${result.reindexedCount}`);
+        // #region agent log
+        fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'price_card_form.html:submit',message:'Formset preparation failed',data:{result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        isSubmitting = false; // Reset flag so user can try again
+        alert('خطا در آماده‌سازی فرم. لطفاً دوباره تلاش کنید.');
+      }
+    });
+  } else {
+    console.warn('[price_card_form] Form or prepareFormsetForSubmit function not found');
+    // #region agent log
+    fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'price_card_form.html:submit',message:'Form or prepareFormsetForSubmit not found',data:{hasForm:!!form,hasPrepareFunction:typeof prepareFormsetForSubmit === 'function'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
   }
 });
 </script>

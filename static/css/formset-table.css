@@ -226,12 +226,13 @@
 }
 
 /* Hide initial Django form select dropdown - JavaScript will populate it via API */
-.item-select-wrapper select[name*="-item"]:not([data-populated]) {
+/* Only hide the actual item select, not filter selects (item_type_filter, etc.) */
+.item-select-wrapper select[name*="-item"]:not([name*="_filter"]):not([data-populated]) {
   display: none !important;
 }
 
 /* Show dropdown after it's populated */
-.item-select-wrapper select[name*="-item"][data-populated="true"] {
+.item-select-wrapper select[name*="-item"]:not([name*="_filter"])[data-populated="true"] {
   display: block !important;
   width: 100% !important;
   margin-top: 0.5rem !important;
@@ -240,7 +241,7 @@
 }
 
 /* Ensure item select is visible and properly styled */
-.item-select-wrapper select[name*="-item"] {
+.item-select-wrapper select[name*="-item"]:not([name*="_filter"]) {
   transition: display 0.3s, opacity 0.3s;
   min-height: 38px;
 }

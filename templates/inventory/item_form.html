@@ -252,19 +252,20 @@ document.addEventListener('DOMContentLoaded', function() {
       rowSelector: '.unit-form'  // CRITICAL: Use correct row selector for units formset
     });
     
-    // Handle delete checkboxes - both visual feedback and formset management
+    // Handle delete checkboxes - hide/show rows completely
     formsetContainer.addEventListener('change', function(e) {
       if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('DELETE')) {
         const form = e.target.closest('.unit-form');
         if (form) {
-          // Visual feedback
-          form.style.opacity = e.target.checked ? '0.5' : '1';
-          
-          // Trigger formset:row-removed event for formset.js
-          const event = new CustomEvent('formset:row-removed', {
-            detail: { prefix: 'units', row: form }
-          });
-          document.dispatchEvent(event);
+          if (e.target.checked) {
+            // Hide the row completely when marked for deletion
+            form.style.display = 'none';
+          } else {
+            // Show the row again
+            form.style.display = '';
+          }
+
+          console.log('DELETE checkbox changed:', e.target.checked, 'for form:', form);
         }
       }
     });

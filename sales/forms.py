@@ -166,6 +166,24 @@ class ItemPriceCardFormSetBase(BaseFormSet):
                     if 'item_subcategory_filter' in form.fields:
                         subcategories = ItemSubcategory.objects.filter(company_id=company_id, is_enabled=1)
                         form.fields['item_subcategory_filter'].choices = [('', '--------')] + [(s.id, s.name) for s in subcategories]
+    
+    def get_extra(self):
+        """Return extra count - always return 1 for create mode to show only one initial row."""
+        # In create mode (no instance), return 1 to show only one empty form
+        # User can add more rows using the "Add Price Card" button
+        if not hasattr(self, 'instance') or self.instance is None:
+            return 1
+        # For update mode, use default extra
+        return super().get_extra()
+    
+    def get_min_num(self):
+        """Return min_num - return 0 in create mode to prevent extra forms."""
+        # In create mode, return 0 so Django doesn't create min_num + extra forms
+        # We only want 'extra' forms (which is 1) in create mode
+        if not hasattr(self, 'instance') or self.instance is None:
+            return 0
+        # For update mode, use default min_num
+        return super().get_min_num()
 
 
 # Formset for creating multiple price cards at once
