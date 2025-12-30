@@ -145,6 +145,8 @@ urlpatterns = [
     path('issues/warehouse-transfer/<int:pk>/edit/', views.IssueWarehouseTransferUpdateView.as_view(), name='issue_warehouse_transfer_edit'),
     path('issues/warehouse-transfer/<int:pk>/lock/', views.IssueWarehouseTransferLockView.as_view(), name='issue_warehouse_transfer_lock'),
     path('issues/warehouse-transfer/<int:pk>/unlock/', views.IssueWarehouseTransferUnlockView.as_view(), name='issue_warehouse_transfer_unlock'),
+    path('issues/warehouse-transfer/<int:pk>/approve/', views.IssueWarehouseTransferApproveView.as_view(), name='issue_warehouse_transfer_approve'),
+    path('issues/warehouse-transfer/<int:pk>/reject/', views.IssueWarehouseTransferRejectView.as_view(), name='issue_warehouse_transfer_reject'),
     
     # Stocktaking
     path('stocktaking/deficit/', views.StocktakingDeficitListView.as_view(), name='stocktaking_deficit'),

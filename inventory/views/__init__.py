@@ -138,6 +138,8 @@ from .issues import (
     IssueWarehouseTransferCreateView,
     IssueWarehouseTransferDetailView,
     IssueWarehouseTransferUpdateView,
+    IssueWarehouseTransferApproveView,
+    IssueWarehouseTransferRejectView,
     IssueWarehouseTransferLockView,
     IssueWarehouseTransferUnlockView,
 )
@@ -328,6 +330,13 @@ __all__ = [
     'IssueConsignmentLockView',
     'IssueConsignmentLineSerialAssignmentView',
     'IssueWarehouseTransferListView',
+    'IssueWarehouseTransferCreateView',
+    'IssueWarehouseTransferDetailView',
+    'IssueWarehouseTransferUpdateView',
+    'IssueWarehouseTransferApproveView',
+    'IssueWarehouseTransferRejectView',
+    'IssueWarehouseTransferLockView',
+    'IssueWarehouseTransferUnlockView',
     # Issues from Warehouse Request (intermediate selection)
     'CreatePermanentIssueFromWarehouseRequestView',
     'CreateConsumptionIssueFromWarehouseRequestView',

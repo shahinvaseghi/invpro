@@ -192,6 +192,9 @@
         {% if user_feature_permissions|feature_allowed:'production.product_orders' or request.user.is_superuser %}
           <li><a href="{% url 'production:product_orders' %}"><span class="menu-icon icon-package"></span>{% trans "Product Orders" %}</a></li>
         {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.transfer_requests' or request.user.is_superuser %}
+          <li><a href="{% url 'production:transfer_requests' %}"><span class="menu-icon icon-truck"></span>{% trans "Transfer to Line Requests" %}</a></li>
+        {% endif %}
         {% if request.user.is_superuser %}
           <li><a href="{% url 'production:performance_records' %}"><span class="menu-icon icon-chart"></span>{% trans "Performance Records" %}</a></li>
         {% endif %}
@@ -256,7 +259,7 @@
       </button>
       <div class="mega-menu-section-content" id="accounting-section">
         <ul>
-        {% if user_feature_permissions|feature_allowed:'accounting.base.fiscal_years' or user_feature_permissions|feature_allowed:'accounting.base.accounts' or user_feature_permissions|feature_allowed:'accounting.base.gl' or user_feature_permissions|feature_allowed:'accounting.base.sub' or user_feature_permissions|feature_allowed:'accounting.base.tafsili' or user_feature_permissions|feature_allowed:'accounting.base.tafsili_hierarchy' or user_feature_permissions|feature_allowed:'accounting.base.cost_centers' or user_feature_permissions|feature_allowed:'accounting.base.income_expense_categories' or user_feature_permissions|feature_allowed:'accounting.base.parties' or user_feature_permissions|feature_allowed:'accounting.base.party_accounts' or request.user.is_superuser %}
+        {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.fiscal_years' or user_feature_permissions|feature_allowed:'accounting.base.accounts' or user_feature_permissions|feature_allowed:'accounting.base.gl' or user_feature_permissions|feature_allowed:'accounting.base.sub' or user_feature_permissions|feature_allowed:'accounting.base.tafsili' or user_feature_permissions|feature_allowed:'accounting.base.tafsili_hierarchy' or user_feature_permissions|feature_allowed:'accounting.base.cost_centers' or user_feature_permissions|feature_allowed:'accounting.base.income_expense_categories' or user_feature_permissions|feature_allowed:'accounting.base.parties' or user_feature_permissions|feature_allowed:'accounting.base.party_accounts' or request.user.is_superuser %}
           <li class="mega-menu-submenu-item">
             <button type="button" class="mega-menu-toggle" data-submenu="accounting-base">
               <span class="menu-icon icon-settings"></span>
@@ -264,34 +267,34 @@
               <span class="mega-menu-arrow">▼</span>
             </button>
             <ul class="mega-menu-submenu" id="accounting-base">
-              {% if user_feature_permissions|feature_allowed:'accounting.base.fiscal_years' or request.user.is_superuser %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.fiscal_years' or request.user.is_superuser %}
                 <li><a href="{% url 'accounting:fiscal_years' %}"><span class="menu-icon icon-calendar"></span>{% trans "سال مالی" %}</a></li>
               {% endif %}
-              {% if user_feature_permissions|feature_allowed:'accounting.base.accounts' or request.user.is_superuser %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.accounts' or request.user.is_superuser %}
                 <li><a href="{% url 'accounting:accounts' %}"><span class="menu-icon icon-chart"></span>{% trans "چارت حساب‌ها" %}</a></li>
               {% endif %}
-              {% if user_feature_permissions|feature_allowed:'accounting.base.gl' or request.user.is_superuser %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.gl' or request.user.is_superuser %}
                 <li><a href="{% url 'accounting:gl_accounts' %}"><span class="menu-icon icon-clipboard"></span>{% trans "تعریف حساب کل" %}</a></li>
               {% endif %}
-              {% if user_feature_permissions|feature_allowed:'accounting.base.sub' or request.user.is_superuser %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.sub' or request.user.is_superuser %}
                 <li><a href="{% url 'accounting:sub_accounts' %}"><span class="menu-icon icon-clipboard"></span>{% trans "تعریف حساب معین" %}</a></li>
               {% endif %}
-              {% if user_feature_permissions|feature_allowed:'accounting.base.tafsili' or request.user.is_superuser %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.tafsili' or request.user.is_superuser %}
                 <li><a href="{% url 'accounting:tafsili_accounts' %}"><span class="menu-icon icon-clipboard"></span>{% trans "تعریف حساب تفصیلی" %}</a></li>
               {% endif %}
-              {% if user_feature_permissions|feature_allowed:'accounting.base.tafsili_hierarchy' or request.user.is_superuser %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.tafsili_hierarchy' or request.user.is_superuser %}
                 <li><a href="{% url 'accounting:tafsili_hierarchy_list' %}"><span class="menu-icon icon-chart"></span>{% trans "تفصیلی چندسطحی" %}</a></li>
               {% endif %}
-              {% if user_feature_permissions|feature_allowed:'accounting.base.cost_centers' or request.user.is_superuser %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.cost_centers' or request.user.is_superuser %}
                 <li><a href="{% url 'accounting:cost_centers' %}"><span class="menu-icon icon-building"></span>{% trans "مراکز هزینه" %}</a></li>
               {% endif %}
-              {% if user_feature_permissions|feature_allowed:'accounting.base.income_expense_categories' or request.user.is_superuser %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.income_expense_categories' or request.user.is_superuser %}
                 <li><a href="{% url 'accounting:income_expense_categories' %}"><span class="menu-icon icon-chart"></span>{% trans "دسته‌بندی درآمد و هزینه" %}</a></li>
               {% endif %}
-              {% if user_feature_permissions|feature_allowed:'accounting.base.parties' or request.user.is_superuser %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.parties' or request.user.is_superuser %}
                 <li><a href="{% url 'accounting:parties' %}"><span class="menu-icon icon-users"></span>{% trans "طرف حساب‌ها" %}</a></li>
               {% endif %}
-              {% if user_feature_permissions|feature_allowed:'accounting.treasury.accounts' or request.user.is_superuser %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.treasury.accounts' or request.user.is_superuser %}
                 <li><a href="{% url 'accounting:treasury_accounts' %}"><span class="menu-icon icon-money"></span>{% trans "حساب‌های نقدی و بانکی" %}</a></li>
               {% endif %}
             </ul>

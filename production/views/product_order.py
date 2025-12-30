@@ -26,6 +26,7 @@ from shared.utils.permissions import get_user_feature_permissions, has_feature_p
 from production.forms import ProductOrderForm
 from production.models import ProductOrder, TransferToLine, TransferToLineItem
 from production.utils.transfer import generate_transfer_code
+from inventory.utils.codes import generate_sequential_code
 
 
 class ProductOrderListView(BaseListView):
@@ -374,7 +375,6 @@ class ProductOrderCreateView(TransferRequestCreationMixin, BaseCreateView):
         
         # Auto-generate order_code if not provided
         if not form.instance.order_code:
-            from shared.utils.code_generation import generate_sequential_code
             form.instance.order_code = generate_sequential_code(
                 ProductOrder,
                 company_id=active_company_id,

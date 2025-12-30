@@ -54,9 +54,13 @@
   <div class="module-accordions">
     {% for module in feature_permissions %}
     <div class="module-accordion">
-      <div class="module-accordion-header" onclick="toggleModule('{{ module.code }}')">
-        <h3>{{ module.label }}</h3>
-        <span class="accordion-icon" id="icon-{{ module.code }}">▼</span>
+      <div class="module-accordion-header">
+        <h3 onclick="toggleModule('{{ module.code }}')" style="cursor: pointer; flex: 1;">{{ module.label }}</h3>
+        <div class="module-header-actions" onclick="event.stopPropagation();">
+          <button type="button" class="btn btn-sm btn-primary select-all-module" data-module-code="{{ module.code }}">{% trans "Select All" %}</button>
+          <button type="button" class="btn btn-sm btn-secondary deselect-all-module" data-module-code="{{ module.code }}">{% trans "Deselect All" %}</button>
+        </div>
+        <span class="accordion-icon" id="icon-{{ module.code }}" onclick="toggleModule('{{ module.code }}')" style="cursor: pointer; margin-right: 10px;">▼</span>
       </div>
       <div class="module-accordion-content" id="content-{{ module.code }}" style="display: none;">
         <table class="data-table permissions-table">
@@ -143,12 +147,12 @@
   .module-accordion-header {
     background-color: #f8f9fa;
     padding: 15px 20px;
-    cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
     user-select: none;
     transition: background-color 0.2s;
+    gap: 15px;
   }
   
   .module-accordion-header:hover {
@@ -159,6 +163,17 @@
     margin: 0;
     font-size: 1.1em;
     font-weight: 600;
+    flex: 1;
+  }
+  
+  .module-header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  
+  .module-header-actions .btn {
+    white-space: nowrap;
   }
   
   .accordion-icon {
@@ -315,6 +330,30 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
+  // Function to select all in a module
+  function selectAllModule(moduleCode) {
+    const moduleContent = document.getElementById('content-' + moduleCode);
+    if (!moduleContent) return;
+    
+    const rows = moduleContent.querySelectorAll('tr[data-feature-id]');
+    rows.forEach(row => {
+      const featureId = row.getAttribute('data-feature-id');
+      selectAllRow(featureId);
+    });
+  }
+  
+  // Function to deselect all in a module
+  function deselectAllModule(moduleCode) {
+    const moduleContent = document.getElementById('content-' + moduleCode);
+    if (!moduleContent) return;
+    
+    const rows = moduleContent.querySelectorAll('tr[data-feature-id]');
+    rows.forEach(row => {
+      const featureId = row.getAttribute('data-feature-id');
+      deselectAllRow(featureId);
+    });
+  }
+  
   // Attach event listeners for row buttons
   document.querySelectorAll('.select-all-row').forEach(button => {
     button.addEventListener('click', function() {
@@ -333,6 +372,21 @@ document.addEventListener('DOMContentLoaded', function() {
   // Attach event listeners for global buttons
   document.getElementById('select-all-global')?.addEventListener('click', selectAllGlobal);
   document.getElementById('deselect-all-global')?.addEventListener('click', deselectAllGlobal);
+  
+  // Attach event listeners for module buttons
+  document.querySelectorAll('.select-all-module').forEach(button => {
+    button.addEventListener('click', function() {
+      const moduleCode = this.getAttribute('data-module-code');
+      selectAllModule(moduleCode);
+    });
+  });
+  
+  document.querySelectorAll('.deselect-all-module').forEach(button => {
+    button.addEventListener('click', function() {
+      const moduleCode = this.getAttribute('data-module-code');
+      deselectAllModule(moduleCode);
+    });
+  });
 });
 </script>
 {% endblock %}

@@ -1763,36 +1763,6 @@ function calculateQuantityAdjusted(lineForm) {
   }
 }
 
-// #region agent log
-// Function to log field blur events for debugging
-function logFieldBlur(fieldName, fieldElement, lineForm) {
-  if (!fieldElement) return;
-  const fieldValue = fieldElement.value || '';
-  const fieldNameAttr = fieldElement.name || '';
-  const lineIndex = fieldNameAttr.match(/lines-(\d+)-/);
-  const lineNum = lineIndex ? lineIndex[1] : 'unknown';
-  
-  fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      location: 'receipt_form.html:blur',
-      message: 'Field blur event - user input',
-      data: {
-        field_name: fieldName,
-        field_name_attr: fieldNameAttr,
-        field_value: fieldValue,
-        line_number: lineNum,
-        is_empty: fieldValue === '' || fieldValue === null || fieldValue === undefined
-      },
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'run1',
-      hypothesisId: 'E'
-    })
-  }).catch(() => {});
-}
-// #endregion
 
 document.addEventListener('DOMContentLoaded', function() {
   console.log('[DOMContentLoaded] ===== DOMContentLoaded event fired =====');
@@ -1893,47 +1863,17 @@ document.addEventListener('DOMContentLoaded', function() {
   
   if (form) {
     form.addEventListener('submit', function(e) {
-      // #region agent log
       // CRITICAL: Enable ALL disabled fields BEFORE reading form data
       // Disabled fields are NOT included in form submission!
       const formsetContainer = document.getElementById('lines-formset');
-      const fieldDebugInfo = {};
       
       if (formsetContainer) {
         const allRows = formsetContainer.querySelectorAll('.line-form:not(.formset-template)');
-        allRows.forEach(function(row, rowIndex) {
+        allRows.forEach(function(row) {
           const deleteCheckbox = row.querySelector('input[type="checkbox"][name*="-DELETE"]');
           const isDeleted = deleteCheckbox && deleteCheckbox.checked;
           
           if (!isDeleted) {
-            // Check critical fields
-            const itemField = row.querySelector('select[name*="-item"], input[name*="-item"]');
-            const quantityExpectedField = row.querySelector('input[name*="-quantity_expected"]');
-            const quantityCountedField = row.querySelector('input[name*="-quantity_counted"]');
-            
-            fieldDebugInfo[`row_${rowIndex}`] = {
-              item: {
-                found: !!itemField,
-                name: itemField ? itemField.name : null,
-                value: itemField ? itemField.value : null,
-                disabled_before: itemField ? itemField.disabled : null,
-                tagName: itemField ? itemField.tagName : null,
-                has_select2: itemField ? (itemField.classList.contains('select2-hidden-accessible') || itemField.parentElement.querySelector('.select2-container')) : null
-              },
-              quantity_expected: {
-                found: !!quantityExpectedField,
-                name: quantityExpectedField ? quantityExpectedField.name : null,
-                value: quantityExpectedField ? quantityExpectedField.value : null,
-                disabled_before: quantityExpectedField ? quantityExpectedField.disabled : null
-              },
-              quantity_counted: {
-                found: !!quantityCountedField,
-                name: quantityCountedField ? quantityCountedField.name : null,
-                value: quantityCountedField ? quantityCountedField.value : null,
-                disabled_before: quantityCountedField ? quantityCountedField.disabled : null
-              }
-            };
-            
             const inputs = row.querySelectorAll('input, select, textarea');
             inputs.forEach(function(input) {
               // Enable all fields except DELETE checkboxes and hidden ID fields
@@ -1942,20 +1882,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 input.disabled = false;
               }
             });
-            
-            // Log after enabling
-            if (itemField) {
-              fieldDebugInfo[`row_${rowIndex}`].item.disabled_after = itemField.disabled;
-              fieldDebugInfo[`row_${rowIndex}`].item.value_after = itemField.value;
-            }
-            if (quantityExpectedField) {
-              fieldDebugInfo[`row_${rowIndex}`].quantity_expected.disabled_after = quantityExpectedField.disabled;
-              fieldDebugInfo[`row_${rowIndex}`].quantity_expected.value_after = quantityExpectedField.value;
-            }
-            if (quantityCountedField) {
-              fieldDebugInfo[`row_${rowIndex}`].quantity_counted.disabled_after = quantityCountedField.disabled;
-              fieldDebugInfo[`row_${rowIndex}`].quantity_counted.value_after = quantityCountedField.value;
-            }
           }
         });
       }
@@ -1976,119 +1902,6 @@ document.addEventListener('DOMContentLoaded', function() {
         totalFormsInput.disabled = false;
       }
       
-      // Log field debug info
-      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: 'receipt_form.html:submit:field_debug',
-          message: 'Field debug info before FormData',
-          data: fieldDebugInfo,
-          timestamp: Date.now(),
-          sessionId: 'debug-session',
-          runId: 'run1',
-          hypothesisId: 'F'
-        })
-      }).catch(() => {});
-      // #endregion
-      
-      // #region agent log
-      // Check if fields are inside the form
-      const itemField = document.querySelector('select[name="lines-0-item"], input[name="lines-0-item"]');
-      const quantityExpectedField = document.querySelector('input[name="lines-0-quantity_expected"]');
-      const quantityCountedField = document.querySelector('input[name="lines-0-quantity_counted"]');
-      
-      const fieldInFormCheck = {
-        item: {
-          found: !!itemField,
-          inForm: itemField ? form.contains(itemField) : false,
-          value: itemField ? itemField.value : null,
-          formId: form.id,
-          fieldParent: itemField ? itemField.closest('form')?.id : null
-        },
-        quantity_expected: {
-          found: !!quantityExpectedField,
-          inForm: quantityExpectedField ? form.contains(quantityExpectedField) : false,
-          value: quantityExpectedField ? quantityExpectedField.value : null,
-          fieldParent: quantityExpectedField ? quantityExpectedField.closest('form')?.id : null
-        },
-        quantity_counted: {
-          found: !!quantityCountedField,
-          inForm: quantityCountedField ? form.contains(quantityCountedField) : false,
-          value: quantityCountedField ? quantityCountedField.value : null,
-          fieldParent: quantityCountedField ? quantityCountedField.closest('form')?.id : null
-        }
-      };
-      
-      // Build FormData manually if fields are not in form
-      let formData;
-      if (!fieldInFormCheck.item.inForm || !fieldInFormCheck.quantity_expected.inForm || !fieldInFormCheck.quantity_counted.inForm) {
-        // Fields are NOT in form - build FormData manually
-        formData = new FormData();
-        
-        // Add all fields from form first
-        const formFields = form.querySelectorAll('input, select, textarea');
-        formFields.forEach(function(field) {
-          if (field.name && field.type !== 'checkbox' && field.type !== 'radio') {
-            formData.append(field.name, field.value || '');
-          } else if (field.type === 'checkbox' && field.checked) {
-            formData.append(field.name, field.value || 'on');
-          } else if (field.type === 'radio' && field.checked) {
-            formData.append(field.name, field.value || '');
-          }
-        });
-        
-        // Manually add fields that are outside the form
-        if (itemField && !form.contains(itemField)) {
-          formData.append(itemField.name, itemField.value || '');
-        }
-        if (quantityExpectedField && !form.contains(quantityExpectedField)) {
-          formData.append(quantityExpectedField.name, quantityExpectedField.value || '');
-        }
-        if (quantityCountedField && !form.contains(quantityCountedField)) {
-          formData.append(quantityCountedField.name, quantityCountedField.value || '');
-        }
-      } else {
-        // Fields are in form - use normal FormData
-        formData = new FormData(form);
-      }
-      
-      const formDataObj = {};
-      for (let [key, value] of formData.entries()) {
-        if (key.includes('lines-')) {
-          formDataObj[key] = value;
-        }
-      }
-      // Also log stocktaking_session_id from main form
-      const stocktakingSessionId = form.querySelector('input[name="stocktaking_session_id"]');
-      if (stocktakingSessionId) {
-        formDataObj['stocktaking_session_id'] = stocktakingSessionId.value;
-      }
-      
-      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: 'receipt_form.html:submit',
-          message: 'Form submit - all POST data (after enabling fields)',
-          data: {
-            field_in_form_check: fieldInFormCheck,
-            form_data: formDataObj,
-            form_data_keys: Object.keys(formDataObj),
-            lines_fields_count: Object.keys(formDataObj).filter(k => k.includes('lines-')).length,
-            has_stocktaking_session_id: !!formDataObj['stocktaking_session_id'],
-            stocktaking_session_id_value: formDataObj['stocktaking_session_id'] || '',
-            used_manual_formdata: !fieldInFormCheck.item.inForm || !fieldInFormCheck.quantity_expected.inForm || !fieldInFormCheck.quantity_counted.inForm
-          },
-          timestamp: Date.now(),
-          sessionId: 'debug-session',
-          runId: 'run1',
-          hypothesisId: 'G'
-        })
-      }).catch(() => {});
-      // #endregion
-      
-      // #region agent log
       // CRITICAL FIX: FormData is not reading field values correctly
       // Build FormData manually to ensure all field values are included
       e.preventDefault();
@@ -2101,49 +1914,6 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Build complete FormData manually with all fields
       const completeFormData = new FormData();
-      
-      // #region agent log
-      // Debug: Check fields before building FormData
-      const itemFieldDebug = document.querySelector('select[name="lines-0-item"], input[name="lines-0-item"]');
-      const quantityExpectedDebug = document.querySelector('input[name="lines-0-quantity_expected"]');
-      const quantityCountedDebug = document.querySelector('input[name="lines-0-quantity_counted"]');
-      
-      const debugBeforeFormData = {
-        item: {
-          found: !!itemFieldDebug,
-          name: itemFieldDebug ? itemFieldDebug.name : null,
-          value: itemFieldDebug ? itemFieldDebug.value : null,
-          tagName: itemFieldDebug ? itemFieldDebug.tagName : null,
-          inForm: itemFieldDebug ? form.contains(itemFieldDebug) : false
-        },
-        quantity_expected: {
-          found: !!quantityExpectedDebug,
-          name: quantityExpectedDebug ? quantityExpectedDebug.name : null,
-          value: quantityExpectedDebug ? quantityExpectedDebug.value : null,
-          inForm: quantityExpectedDebug ? form.contains(quantityExpectedDebug) : false
-        },
-        quantity_counted: {
-          found: !!quantityCountedDebug,
-          name: quantityCountedDebug ? quantityCountedDebug.name : null,
-          value: quantityCountedDebug ? quantityCountedDebug.value : null,
-          inForm: quantityCountedDebug ? form.contains(quantityCountedDebug) : false
-        }
-      };
-      
-      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: 'receipt_form.html:submit:before_formdata',
-          message: 'Field values before building FormData',
-          data: debugBeforeFormData,
-          timestamp: Date.now(),
-          sessionId: 'debug-session',
-          runId: 'run1',
-          hypothesisId: 'I'
-        })
-      }).catch(() => {});
-      // #endregion
       
       // CRITICAL: First add all fields from formset container (they might not be in form)
       let fieldsAdded = 0;
@@ -2264,26 +2034,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
       
-      // #region agent log
-      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: 'receipt_form.html:submit:after_formdata',
-          message: 'FormData building stats',
-          data: {
-            fields_added: fieldsAdded,
-            fields_skipped: fieldsSkipped,
-            total_form_fields: allFormFields.length
-          },
-          timestamp: Date.now(),
-          sessionId: 'debug-session',
-          runId: 'run1',
-          hypothesisId: 'I'
-        })
-      }).catch(() => {});
-      // #endregion
-      
       // Also add fields from formset container (in case they're not in form)
       if (formsetContainer) {
         const allRows = formsetContainer.querySelectorAll('.line-form:not(.formset-template)');
@@ -2321,20 +2071,6 @@ document.addEventListener('DOMContentLoaded', function() {
           submitDataObj[key] = value;
         }
       }
-      
-      fetch('http://localhost:7242/ingest/722004b4-76f8-4beb-97ce-3ab1b68e1cbc', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: 'receipt_form.html:submit:manual_submit',
-          message: 'Manual FormData before submit',
-          data: submitDataObj,
-          timestamp: Date.now(),
-          sessionId: 'debug-session',
-          runId: 'run1',
-          hypothesisId: 'H'
-        })
-      }).catch(() => {});
       
       // Submit manually
       fetch(form.action || window.location.href, {
@@ -3030,35 +2766,58 @@ document.addEventListener('DOMContentLoaded', function() {
     const destinationWarehouseSelect = lineForm.querySelector('select[name*="-destination_warehouse"]');
     
     if (sourceWarehouseSelect && typeof initCascadingDropdown === 'function') {
-      try {
-        initCascadingDropdown(itemSelect, sourceWarehouseSelect, warehouseChoicesUrl, {
-          parentField: 'item_id',
-          placeholder: '--- {% trans "Select Item First" %} ---',
-          valueField: 'value',
-          labelField: 'label'
-        });
-        console.log('[setupItemSelectHandlers] Cascading dropdown initialized for Item → Source Warehouse');
-      } catch (error) {
-        console.error('[setupItemSelectHandlers] Error initializing cascading dropdown for Source Warehouse:', error);
-        if (itemSelect.value) {
-          updateWarehouseChoices(itemSelect, sourceWarehouseSelect);
+      // Skip if already initialized OR if dropdown already has options (populated by updateWarehouseChoices)
+      // Check BEFORE initCascadingDropdown clears the dropdown
+      const hasOptions = sourceWarehouseSelect.options.length > 1; // More than just placeholder
+      const hasValue = !!sourceWarehouseSelect.value;
+      const isInitialized = sourceWarehouseSelect.dataset.cascadingInitialized === 'true' || sourceWarehouseSelect.getAttribute('data-cascading-initialized') === 'true';
+      // Also check if updateWarehouseChoices is currently running (has populated the dropdown)
+      const isBeingPopulated = sourceWarehouseSelect.dataset.beingPopulated === 'true';
+      if (isInitialized || (hasOptions && hasValue) || isBeingPopulated) {
+        console.log('[setupItemSelectHandlers] Cascading dropdown already initialized for Source Warehouse, skipping');
+      } else {
+        try {
+          initCascadingDropdown(itemSelect, sourceWarehouseSelect, warehouseChoicesUrl, {
+            parentField: 'item_id',
+            placeholder: '--- {% trans "Select Item First" %} ---',
+            valueField: 'value',
+            labelField: 'label'
+          });
+          sourceWarehouseSelect.dataset.cascadingInitialized = 'true';
+          console.log('[setupItemSelectHandlers] Cascading dropdown initialized for Item → Source Warehouse');
+        } catch (error) {
+          console.error('[setupItemSelectHandlers] Error initializing cascading dropdown for Source Warehouse:', error);
+          if (itemSelect.value) {
+            updateWarehouseChoices(itemSelect, sourceWarehouseSelect);
+          }
         }
       }
     }
     
     if (destinationWarehouseSelect && typeof initCascadingDropdown === 'function') {
-      try {
-        initCascadingDropdown(itemSelect, destinationWarehouseSelect, warehouseChoicesUrl, {
-          parentField: 'item_id',
-          placeholder: '--- {% trans "Select Item First" %} ---',
-          valueField: 'value',
-          labelField: 'label'
-        });
-        console.log('[setupItemSelectHandlers] Cascading dropdown initialized for Item → Destination Warehouse');
-      } catch (error) {
-        console.error('[setupItemSelectHandlers] Error initializing cascading dropdown for Destination Warehouse:', error);
-        if (itemSelect.value) {
-          updateWarehouseChoices(itemSelect, destinationWarehouseSelect);
+      // Skip if already initialized OR if dropdown already has options (populated by updateWarehouseChoices)
+      const hasOptions = destinationWarehouseSelect.options.length > 1; // More than just placeholder
+      const hasValue = !!destinationWarehouseSelect.value;
+      const isInitialized = destinationWarehouseSelect.dataset.cascadingInitialized === 'true' || destinationWarehouseSelect.getAttribute('data-cascading-initialized') === 'true';
+      // Also check if updateWarehouseChoices is currently running (has populated the dropdown)
+      const isBeingPopulated = destinationWarehouseSelect.dataset.beingPopulated === 'true';
+      if (isInitialized || (hasOptions && hasValue) || isBeingPopulated) {
+        console.log('[setupItemSelectHandlers] Cascading dropdown already initialized for Destination Warehouse, skipping');
+      } else {
+        try {
+          initCascadingDropdown(itemSelect, destinationWarehouseSelect, warehouseChoicesUrl, {
+            parentField: 'item_id',
+            placeholder: '--- {% trans "Select Item First" %} ---',
+            valueField: 'value',
+            labelField: 'label'
+          });
+          destinationWarehouseSelect.dataset.cascadingInitialized = 'true';
+          console.log('[setupItemSelectHandlers] Cascading dropdown initialized for Item → Destination Warehouse');
+        } catch (error) {
+          console.error('[setupItemSelectHandlers] Error initializing cascading dropdown for Destination Warehouse:', error);
+          if (itemSelect.value) {
+            updateWarehouseChoices(itemSelect, destinationWarehouseSelect);
+          }
         }
       }
     }
@@ -3140,11 +2899,6 @@ document.addEventListener('DOMContentLoaded', function() {
       quantityExpectedInput.addEventListener('change', function() {
         calculateQuantityAdjusted(newForm);
       });
-      // #region agent log
-      quantityExpectedInput.addEventListener('blur', function() {
-        logFieldBlur('quantity_expected', this, newForm);
-      });
-      // #endregion
     }
     if (quantityCountedInput) {
       quantityCountedInput.addEventListener('input', function() {
@@ -3153,22 +2907,8 @@ document.addEventListener('DOMContentLoaded', function() {
       quantityCountedInput.addEventListener('change', function() {
         calculateQuantityAdjusted(newForm);
       });
-      // #region agent log
-      quantityCountedInput.addEventListener('blur', function() {
-        logFieldBlur('quantity_counted', this, newForm);
-      });
-      // #endregion
     }
     
-    // #region agent log
-    // Add blur logging for item select
-    const itemSelect = newForm.querySelector('select[name*="-item"]');
-    if (itemSelect) {
-      itemSelect.addEventListener('blur', function() {
-        logFieldBlur('item', this, newForm);
-      });
-    }
-    // #endregion
     
     // Disable unit and warehouse selects for new form (no item selected yet)
     const newFormUnitSelect = newForm.querySelector('select[name*="-unit"]');
@@ -3497,7 +3237,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Update warehouse choices when item changes
   function updateWarehouseChoices(itemSelect, warehouseSelect) {
-    
     const itemId = itemSelect.value;
     if (!itemId) {
       console.log('[updateWarehouseChoices] No itemId, clearing warehouse select');
@@ -3511,21 +3250,34 @@ document.addEventListener('DOMContentLoaded', function() {
     // Enable warehouse select when item is selected
     warehouseSelect.disabled = false;
     
+    // Mark that we're populating this dropdown (to prevent initCascadingDropdown from interfering)
+    warehouseSelect.dataset.beingPopulated = 'true';
+    
     // Show loading state
     warehouseSelect.disabled = true;
     
     // Get current value from multiple sources
     let currentValue = warehouseSelect.value;
+    let currentOptionText = null;
     if (!currentValue) {
       // Try to find selected option
       const selectedOption = warehouseSelect.querySelector('option[selected]');
       if (selectedOption) {
         currentValue = selectedOption.value;
+        currentOptionText = selectedOption.textContent;
       }
     }
     // Also check if there's a value attribute on the select itself (from Django form)
     if (!currentValue && warehouseSelect.hasAttribute('data-initial-value')) {
       currentValue = warehouseSelect.getAttribute('data-initial-value');
+    }
+    
+    // If we have a current value but no text, try to get it from existing options
+    if (currentValue && !currentOptionText) {
+      const existingOption = Array.from(warehouseSelect.options).find(opt => opt.value === currentValue || opt.value == currentValue);
+      if (existingOption) {
+        currentOptionText = existingOption.textContent;
+      }
     }
     
     warehouseSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
@@ -3554,6 +3306,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         warehouseSelect.innerHTML = '<option value="">--- {% trans "Select" %} ---</option>';
         
+        // Check if current warehouse is in the allowed list
+        let currentWarehouseInList = false;
+        if (data.warehouses && data.warehouses.length > 0) {
+          currentWarehouseInList = data.warehouses.some(w => w.value == currentValue || w.value === currentValue);
+        }
+        
+        // Add warehouses from API
         if (data.warehouses && data.warehouses.length > 0) {
           data.warehouses.forEach(function(warehouse, index) {
             const option = document.createElement('option');
@@ -3564,28 +3323,40 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             warehouseSelect.appendChild(option);
           });
-          
-          // After adding all options, explicitly set the value if currentValue exists
-          if (currentValue) {
-            const matchingOption = Array.from(warehouseSelect.options).find(opt => opt.value == currentValue || opt.value === currentValue);
-            if (matchingOption) {
-              warehouseSelect.value = matchingOption.value;
-            } else {
-            }
-          } else {
-            // If no currentValue, check if there's a data-initial-value attribute
-            const initialValue = warehouseSelect.getAttribute('data-initial-value');
-            if (initialValue) {
-              const matchingOption = Array.from(warehouseSelect.options).find(opt => opt.value == initialValue || opt.value === initialValue);
-              if (matchingOption) {
-                warehouseSelect.value = matchingOption.value;
-              }
-            }
+        }
+        
+        // If current warehouse is not in allowed list but we have a current value, add it anyway
+        // This preserves the selected warehouse even if it's not in the allowed list for the item
+        // This is important for edit mode where warehouse was selected before item restrictions were applied
+        if (currentValue && !currentWarehouseInList && currentOptionText) {
+          console.log('[updateWarehouseChoices] Current warehouse not in allowed list, adding it anyway:', currentValue, currentOptionText);
+          const option = document.createElement('option');
+          option.value = currentValue;
+          option.textContent = currentOptionText;
+          option.selected = true;
+          warehouseSelect.appendChild(option);
+        }
+        
+        // After adding all options, explicitly set the value if currentValue exists
+        if (currentValue) {
+          const matchingOption = Array.from(warehouseSelect.options).find(opt => opt.value == currentValue || opt.value === currentValue);
+          if (matchingOption) {
+            warehouseSelect.value = matchingOption.value;
           }
         } else {
+          // If no currentValue, check if there's a data-initial-value attribute
+          const initialValue = warehouseSelect.getAttribute('data-initial-value');
+          if (initialValue) {
+            const matchingOption = Array.from(warehouseSelect.options).find(opt => opt.value == initialValue || opt.value === initialValue);
+            if (matchingOption) {
+              warehouseSelect.value = matchingOption.value;
+            }
+          }
         }
         
         warehouseSelect.disabled = false;
+        // Clear the flag now that we're done populating
+        delete warehouseSelect.dataset.beingPopulated;
       })
       .catch(error => {
         console.error('[updateWarehouseChoices] Error:', error.message);
@@ -3593,6 +3364,8 @@ document.addEventListener('DOMContentLoaded', function() {
         warehouseSelect.disabled = true;
         warehouseSelect.innerHTML = '<option value="">--- {% trans "Select Item First" %} ---</option>';
         alert('{% trans "Error loading warehouses. Please try again." %}: ' + error.message);
+        // Clear the flag on error too
+        delete warehouseSelect.dataset.beingPopulated;
         console.log('[updateWarehouseChoices] ===== END (error) =====');
       });
   }
@@ -4679,11 +4452,6 @@ document.addEventListener('DOMContentLoaded', function() {
       quantityExpectedInput.addEventListener('change', function() {
         calculateQuantityAdjusted(lineForm);
       });
-      // #region agent log
-      quantityExpectedInput.addEventListener('blur', function() {
-        logFieldBlur('quantity_expected', this, lineForm);
-      });
-      // #endregion
     }
     
     if (quantityCountedInput) {
@@ -4693,22 +4461,8 @@ document.addEventListener('DOMContentLoaded', function() {
       quantityCountedInput.addEventListener('change', function() {
         calculateQuantityAdjusted(lineForm);
       });
-      // #region agent log
-      quantityCountedInput.addEventListener('blur', function() {
-        logFieldBlur('quantity_counted', this, lineForm);
-      });
-      // #endregion
     }
     
-    // #region agent log
-    // Add blur logging for item select in existing forms
-    const itemSelect = lineForm.querySelector('select[name*="-item"]');
-    if (itemSelect) {
-      itemSelect.addEventListener('blur', function() {
-        logFieldBlur('item', this, lineForm);
-      });
-    }
-    // #endregion
     
     // Initial calculation if values are already present
     if (quantityExpectedInput && quantityCountedInput) {

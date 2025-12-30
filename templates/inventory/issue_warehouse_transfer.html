@@ -170,9 +170,55 @@
         </form>
       {% endif %}
     {% endif %}
+    {# Approve button - only show if user is the approver and document is not locked #}
+    {% if warehouse_transfer.can_current_user_approve %}
+      <form method="post" action="{% url approve_url_name warehouse_transfer.pk %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0d6efd; border-color: #0d6efd;" data-confirm="{% trans 'Are you sure you want to approve this warehouse transfer?' %}">
+          {% trans "Approve" %}
+        </button>
+      </form>
+    {% endif %}
+    {# Reject button - only show if user is the approver and document is not locked #}
+    {% if warehouse_transfer.can_current_user_reject %}
+      <button type="button" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem; background-color: #dc3545; border-color: #dc3545;" onclick="showRejectModal({{ warehouse_transfer.pk }})">
+        {% trans "Reject" %}
+      </button>
+    {% endif %}
   </td>
   {% endif %}
 </tr>
 {% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showRejectModal(pk) {
+  const reason = prompt('{% trans "Please enter the rejection reason:" %}');
+  if (reason && reason.trim()) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "inventory:issue_warehouse_transfer_reject" 0 %}'.replace('0', pk);
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfToken) {
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = 'csrfmiddlewaretoken';
+      csrfInput.value = csrfToken.value;
+      form.appendChild(csrfInput);
+    }
+    
+    const reasonInput = document.createElement('input');
+    reasonInput.type = 'hidden';
+    reasonInput.name = 'rejection_reason';
+    reasonInput.value = reason.trim();
+    form.appendChild(reasonInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+  }
+}
+</script>
 {% endblock %}
 

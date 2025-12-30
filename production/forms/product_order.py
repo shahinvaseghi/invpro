@@ -107,6 +107,13 @@ class ProductOrderForm(forms.ModelForm):
                 is_enabled=1,
             ).select_related('finished_item', 'bom').order_by('finished_item__item_code', 'revision')
             
+            # Custom label: show process code with finished item name
+            def process_label(process_obj):
+                finished_item_name = process_obj.finished_item.name if process_obj.finished_item else ''
+                return f"{process_obj.process_code} - {finished_item_name}"
+            
+            self.fields['process'].label_from_instance = process_label
+            
             # Filter approved_by (User) - only users with approve permission for production.product_orders
             from shared.models import UserCompanyAccess, AccessLevelPermission
             from django.contrib.auth import get_user_model

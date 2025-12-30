@@ -10,6 +10,8 @@ This module contains forms for:
 from collections import deque
 from decimal import Decimal, InvalidOperation
 from typing import Optional, Dict, Any
+import json
+import os
 
 from django import forms
 from django.forms import inlineformset_factory
@@ -1379,10 +1381,14 @@ class IssueWarehouseTransferForm(forms.ModelForm):
         fields = [
             'document_code',
             'document_date',
+            'approver',
         ]
         widgets = {
             'document_code': forms.HiddenInput(),
             'document_date': forms.HiddenInput(),
+        }
+        labels = {
+            'approver': _('Approver'),
         }
 
     def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
@@ -1398,6 +1404,20 @@ class IssueWarehouseTransferForm(forms.ModelForm):
             # Set initial value for document_date
             if not self.instance.pk:
                 self.fields['document_date'].initial = timezone.now().date()
+        
+        # Set approver queryset
+        if self.company_id:
+            from inventory.forms.base import get_feature_approvers
+            approvers = get_feature_approvers("inventory.issues.warehouse_transfer", self.company_id)
+            if 'approver' in self.fields:
+                self.fields['approver'].queryset = approvers
+                self.fields['approver'].empty_label = _("--- انتخاب کنید ---")
+                self.fields['approver'].required = False
+                self.fields['approver'].label_from_instance = lambda obj: f"{obj.get_full_name() or obj.username} · {obj.username}"
+        else:
+            if 'approver' in self.fields:
+                from shared.models import User
+                self.fields['approver'].queryset = User.objects.none()
     
     def clean_document_date(self):
         """Clean and provide default value for document_date."""
@@ -1470,6 +1490,16 @@ class IssueWarehouseTransferLineForm(IssueLineBaseForm):
             'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
     
+    def _ensure_warehouse_instance(self, field_name: str, warehouse_id: Optional[int]) -> None:
+        """Ensure instance has warehouse object for Django ModelChoiceField to use."""
+        if warehouse_id and not self.is_bound and getattr(self.instance, 'pk', None):
+            try:
+                warehouse_obj = Warehouse.objects.filter(pk=warehouse_id, company_id=self.company_id).first()
+                if warehouse_obj:
+                    setattr(self.instance, field_name, warehouse_obj)
+            except Exception:
+                pass
+    
     def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
         """Initialize form with company filtering."""
         super().__init__(*args, company_id=company_id, **kwargs)
@@ -1482,56 +1512,333 @@ class IssueWarehouseTransferLineForm(IssueLineBaseForm):
             # Source warehouse: filter by item's allowed warehouses
             if 'source_warehouse' in self.fields:
                 item = self._resolve_item()
+                # Get selected warehouse ID from POST data if available
+                source_warehouse_id_from_data = None
+                if self.data:
+                    # Try to get warehouse ID using form prefix
+                    prefix = getattr(self, 'prefix', '')
+                    if prefix:
+                        warehouse_key = f'{prefix}-source_warehouse'
+                    else:
+                        warehouse_key = 'source_warehouse'
+                    
+                    warehouse_value = self.data.get(warehouse_key)
+                    if not warehouse_value:
+                        # Fallback: search for any key ending with -source_warehouse
+                        for key in self.data.keys():
+                            if key.endswith('-source_warehouse'):
+                                warehouse_value = self.data.get(key)
+                                break
+                    
+                    if warehouse_value:
+                        try:
+                            source_warehouse_id_from_data = int(warehouse_value)
+                        except (ValueError, TypeError):
+                            pass
+                
                 if item:
                     allowed_ids = [int(option['value']) for option in self._get_item_allowed_warehouses(item)]
-                    if allowed_ids:
-                        queryset = Warehouse.objects.filter(pk__in=allowed_ids, is_enabled=1)
-                        if getattr(self.instance, 'pk', None) and getattr(self.instance, 'source_warehouse_id', None):
-                            queryset = Warehouse.objects.filter(
-                                pk__in=allowed_ids
-                            ).filter(
-                                Q(is_enabled=1) | Q(pk=self.instance.source_warehouse_id)
-                            )
-                        self.fields['source_warehouse'].queryset = queryset.order_by('name')
-                    else:
-                        self.fields['source_warehouse'].queryset = Warehouse.objects.none()
-                else:
-                    queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
+                    # Always include instance warehouse if editing (even if not in allowed_ids)
+                    instance_warehouse_id = None
                     if getattr(self.instance, 'pk', None) and getattr(self.instance, 'source_warehouse_id', None):
-                        queryset = Warehouse.objects.filter(
-                            company_id=self.company_id
-                        ).filter(
-                            Q(is_enabled=1) | Q(pk=self.instance.source_warehouse_id)
-                        )
+                        instance_warehouse_id = self.instance.source_warehouse_id
+                        # Add instance warehouse to allowed_ids if not already there
+                        if instance_warehouse_id not in allowed_ids:
+                            allowed_ids.append(instance_warehouse_id)
+                    if allowed_ids:
+                        # Build queryset with allowed warehouses
+                        queryset_conditions = Q(pk__in=allowed_ids, is_enabled=1)
+                        # Include selected warehouse from POST data if it exists
+                        if source_warehouse_id_from_data:
+                            queryset_conditions |= Q(pk=source_warehouse_id_from_data)
+                        # Always include instance warehouse if it exists (for edit mode, even if disabled)
+                        if instance_warehouse_id:
+                            queryset_conditions |= Q(pk=instance_warehouse_id)
+                        queryset = Warehouse.objects.filter(queryset_conditions)
+                        queryset_count = queryset.count()
+                        self.fields['source_warehouse'].queryset = queryset.order_by('name')
+                        # Set initial value from instance if editing
+                        # Django ModelChoiceField uses instance.field for initial value in edit mode
+                        if instance_warehouse_id and not self.is_bound:
+                            self.initial['source_warehouse'] = instance_warehouse_id
+                            self._ensure_warehouse_instance('source_warehouse', instance_warehouse_id)
+                    else:
+                        # If no allowed warehouses, still include instance warehouse if editing
+                        queryset_conditions = Q(company_id=self.company_id, is_enabled=1)
+                        # Include selected warehouse from POST data if it exists
+                        if source_warehouse_id_from_data:
+                            queryset_conditions |= Q(pk=source_warehouse_id_from_data)
+                        # Include instance warehouse if it exists (important for edit mode)
+                        if getattr(self.instance, 'pk', None) and getattr(self.instance, 'source_warehouse_id', None):
+                            queryset_conditions |= Q(pk=self.instance.source_warehouse_id)
+                        queryset = Warehouse.objects.filter(queryset_conditions)
+                        self.fields['source_warehouse'].queryset = queryset.order_by('name')
+                else:
+                    # Build queryset with all enabled warehouses in company
+                    queryset_conditions = Q(company_id=self.company_id, is_enabled=1)
+                    # Include selected warehouse from POST data if it exists
+                    if source_warehouse_id_from_data:
+                        queryset_conditions |= Q(pk=source_warehouse_id_from_data)
+                    # Include instance warehouse if it exists
+                    if getattr(self.instance, 'pk', None) and getattr(self.instance, 'source_warehouse_id', None):
+                        queryset_conditions |= Q(pk=self.instance.source_warehouse_id)
+                    queryset = Warehouse.objects.filter(queryset_conditions)
                     self.fields['source_warehouse'].queryset = queryset.order_by('name')
                 self.fields['source_warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
             
             # Destination warehouse: filter by item's allowed warehouses (same as source_warehouse)
             if 'destination_warehouse' in self.fields:
                 item = self._resolve_item()
+                # Get selected warehouse ID from POST data if available
+                destination_warehouse_id_from_data = None
+                if self.data:
+                    # Try to get warehouse ID using form prefix
+                    prefix = getattr(self, 'prefix', '')
+                    if prefix:
+                        warehouse_key = f'{prefix}-destination_warehouse'
+                    else:
+                        warehouse_key = 'destination_warehouse'
+                    
+                    warehouse_value = self.data.get(warehouse_key)
+                    if not warehouse_value:
+                        # Fallback: search for any key ending with -destination_warehouse
+                        for key in self.data.keys():
+                            if key.endswith('-destination_warehouse'):
+                                warehouse_value = self.data.get(key)
+                                break
+                    
+                    if warehouse_value:
+                        try:
+                            destination_warehouse_id_from_data = int(warehouse_value)
+                        except (ValueError, TypeError):
+                            pass
+                
                 if item:
                     allowed_ids = [int(option['value']) for option in self._get_item_allowed_warehouses(item)]
-                    if allowed_ids:
-                        queryset = Warehouse.objects.filter(pk__in=allowed_ids, is_enabled=1)
-                        if getattr(self.instance, 'pk', None) and getattr(self.instance, 'destination_warehouse_id', None):
-                            queryset = Warehouse.objects.filter(
-                                pk__in=allowed_ids
-                            ).filter(
-                                Q(is_enabled=1) | Q(pk=self.instance.destination_warehouse_id)
-                            )
-                        self.fields['destination_warehouse'].queryset = queryset.order_by('name')
-                    else:
-                        self.fields['destination_warehouse'].queryset = Warehouse.objects.none()
-                else:
-                    queryset = Warehouse.objects.filter(company_id=self.company_id, is_enabled=1)
+                    # Always include instance warehouse if editing (even if not in allowed_ids)
+                    instance_warehouse_id = None
                     if getattr(self.instance, 'pk', None) and getattr(self.instance, 'destination_warehouse_id', None):
-                        queryset = Warehouse.objects.filter(
-                            company_id=self.company_id
-                        ).filter(
-                            Q(is_enabled=1) | Q(pk=self.instance.destination_warehouse_id)
-                        )
+                        instance_warehouse_id = self.instance.destination_warehouse_id
+                        # Add instance warehouse to allowed_ids if not already there
+                        if instance_warehouse_id not in allowed_ids:
+                            allowed_ids.append(instance_warehouse_id)
+                    
+                    if allowed_ids:
+                        # Build queryset with allowed warehouses
+                        queryset_conditions = Q(pk__in=allowed_ids, is_enabled=1)
+                        # Include selected warehouse from POST data if it exists
+                        if destination_warehouse_id_from_data:
+                            queryset_conditions |= Q(pk=destination_warehouse_id_from_data)
+                        # Always include instance warehouse if it exists (for edit mode, even if disabled)
+                        if instance_warehouse_id:
+                            queryset_conditions |= Q(pk=instance_warehouse_id)
+                        queryset = Warehouse.objects.filter(queryset_conditions)
+                        self.fields['destination_warehouse'].queryset = queryset.order_by('name')
+                        # Set initial value from instance if editing
+                        # Django ModelChoiceField uses instance.field for initial value in edit mode
+                        if instance_warehouse_id and not self.is_bound:
+                            self.initial['destination_warehouse'] = instance_warehouse_id
+                            self._ensure_warehouse_instance('destination_warehouse', instance_warehouse_id)
+                    else:
+                        # If no allowed warehouses, still include instance warehouse if editing
+                        queryset_conditions = Q(company_id=self.company_id, is_enabled=1)
+                        # Include selected warehouse from POST data if it exists
+                        if destination_warehouse_id_from_data:
+                            queryset_conditions |= Q(pk=destination_warehouse_id_from_data)
+                        # Include instance warehouse if it exists (important for edit mode)
+                        instance_dest_wh_id = None
+                        if getattr(self.instance, 'pk', None) and getattr(self.instance, 'destination_warehouse_id', None):
+                            instance_dest_wh_id = self.instance.destination_warehouse_id
+                            queryset_conditions |= Q(pk=instance_dest_wh_id)
+                        queryset = Warehouse.objects.filter(queryset_conditions)
+                        self.fields['destination_warehouse'].queryset = queryset.order_by('name')
+                        # Set initial value from instance if editing
+                        if instance_dest_wh_id and not self.is_bound:
+                            self.initial['destination_warehouse'] = instance_dest_wh_id
+                            self._ensure_warehouse_instance('destination_warehouse', instance_dest_wh_id)
+                else:
+                    # Build queryset with all enabled warehouses in company
+                    queryset_conditions = Q(company_id=self.company_id, is_enabled=1)
+                    # Include selected warehouse from POST data if it exists
+                    if destination_warehouse_id_from_data:
+                        queryset_conditions |= Q(pk=destination_warehouse_id_from_data)
+                    # Include instance warehouse if it exists
+                    instance_dest_wh_id = None
+                    if getattr(self.instance, 'pk', None) and getattr(self.instance, 'destination_warehouse_id', None):
+                        instance_dest_wh_id = self.instance.destination_warehouse_id
+                        queryset_conditions |= Q(pk=instance_dest_wh_id)
+                    queryset = Warehouse.objects.filter(queryset_conditions)
                     self.fields['destination_warehouse'].queryset = queryset.order_by('name')
+                    # Set initial value from instance if editing
+                    if instance_dest_wh_id and not self.is_bound:
+                        self.initial['destination_warehouse'] = instance_dest_wh_id
+                        self._ensure_warehouse_instance('destination_warehouse', instance_dest_wh_id)
                 self.fields['destination_warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
+    
+    def _update_querysets_after_company_id(self) -> None:
+        """Update warehouse querysets after company_id is set by formset."""
+        # This method is called by BaseLineFormSet after company_id is set
+        if not self.company_id:
+            return
+        
+        # Re-run the warehouse queryset setup logic
+        if 'source_warehouse' in self.fields:
+            item = self._resolve_item()
+            # Get selected warehouse ID from POST data if available
+            source_warehouse_id_from_data = None
+            if self.data:
+                # Try to get warehouse ID using form prefix
+                prefix = getattr(self, 'prefix', '')
+                if prefix:
+                    warehouse_key = f'{prefix}-source_warehouse'
+                else:
+                    warehouse_key = 'source_warehouse'
+                
+                warehouse_value = self.data.get(warehouse_key)
+                if not warehouse_value:
+                    # Fallback: search for any key ending with -source_warehouse
+                    for key in self.data.keys():
+                        if key.endswith('-source_warehouse'):
+                            warehouse_value = self.data.get(key)
+                            break
+                
+                if warehouse_value:
+                    try:
+                        source_warehouse_id_from_data = int(warehouse_value)
+                    except (ValueError, TypeError):
+                        pass
+            
+            if item:
+                allowed_ids = [int(option['value']) for option in self._get_item_allowed_warehouses(item)]
+                # Always include instance warehouse if editing (even if not in allowed_ids)
+                instance_warehouse_id = None
+                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'source_warehouse_id', None):
+                    instance_warehouse_id = self.instance.source_warehouse_id
+                    # Add instance warehouse to allowed_ids if not already there
+                    if instance_warehouse_id not in allowed_ids:
+                        allowed_ids.append(instance_warehouse_id)
+                
+                if allowed_ids:
+                    queryset_conditions = Q(pk__in=allowed_ids, is_enabled=1)
+                    if source_warehouse_id_from_data:
+                        queryset_conditions |= Q(pk=source_warehouse_id_from_data)
+                    # Always include instance warehouse if it exists (for edit mode, even if disabled)
+                    if instance_warehouse_id:
+                        queryset_conditions |= Q(pk=instance_warehouse_id)
+                    queryset = Warehouse.objects.filter(queryset_conditions)
+                    self.fields['source_warehouse'].queryset = queryset.order_by('name')
+                    # Set initial value from instance if editing
+                    if instance_warehouse_id and not self.is_bound:
+                        self.initial['source_warehouse'] = instance_warehouse_id
+                        self._ensure_warehouse_instance('source_warehouse', instance_warehouse_id)
+                else:
+                    # If no allowed warehouses, still include instance warehouse if editing
+                    queryset_conditions = Q(company_id=self.company_id, is_enabled=1)
+                    if source_warehouse_id_from_data:
+                        queryset_conditions |= Q(pk=source_warehouse_id_from_data)
+                    instance_src_wh_id = None
+                    if getattr(self.instance, 'pk', None) and getattr(self.instance, 'source_warehouse_id', None):
+                        instance_src_wh_id = self.instance.source_warehouse_id
+                        queryset_conditions |= Q(pk=instance_src_wh_id)
+                    queryset = Warehouse.objects.filter(queryset_conditions)
+                    self.fields['source_warehouse'].queryset = queryset.order_by('name')
+                    # Set initial value from instance if editing
+                    if instance_src_wh_id and not self.is_bound:
+                        self.initial['source_warehouse'] = instance_src_wh_id
+                        self._ensure_warehouse_instance('source_warehouse', instance_src_wh_id)
+            else:
+                queryset_conditions = Q(company_id=self.company_id, is_enabled=1)
+                if source_warehouse_id_from_data:
+                    queryset_conditions |= Q(pk=source_warehouse_id_from_data)
+                instance_src_wh_id = None
+                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'source_warehouse_id', None):
+                    instance_src_wh_id = self.instance.source_warehouse_id
+                    queryset_conditions |= Q(pk=instance_src_wh_id)
+                queryset = Warehouse.objects.filter(queryset_conditions)
+                self.fields['source_warehouse'].queryset = queryset.order_by('name')
+                # Set initial value from instance if editing
+                if instance_src_wh_id and not self.is_bound:
+                    self.initial['source_warehouse'] = instance_src_wh_id
+                    self._ensure_warehouse_instance('source_warehouse', instance_src_wh_id)
+        
+        if 'destination_warehouse' in self.fields:
+            item = self._resolve_item()
+            # Get selected warehouse ID from POST data if available
+            destination_warehouse_id_from_data = None
+            if self.data:
+                # Try to get warehouse ID using form prefix
+                prefix = getattr(self, 'prefix', '')
+                if prefix:
+                    warehouse_key = f'{prefix}-destination_warehouse'
+                else:
+                    warehouse_key = 'destination_warehouse'
+                
+                warehouse_value = self.data.get(warehouse_key)
+                if not warehouse_value:
+                    # Fallback: search for any key ending with -destination_warehouse
+                    for key in self.data.keys():
+                        if key.endswith('-destination_warehouse'):
+                            warehouse_value = self.data.get(key)
+                            break
+                
+                if warehouse_value:
+                    try:
+                        destination_warehouse_id_from_data = int(warehouse_value)
+                    except (ValueError, TypeError):
+                        pass
+            
+            if item:
+                allowed_ids = [int(option['value']) for option in self._get_item_allowed_warehouses(item)]
+                # Always include instance warehouse if editing (even if not in allowed_ids)
+                instance_warehouse_id = None
+                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'destination_warehouse_id', None):
+                    instance_warehouse_id = self.instance.destination_warehouse_id
+                    # Add instance warehouse to allowed_ids if not already there
+                    if instance_warehouse_id not in allowed_ids:
+                        allowed_ids.append(instance_warehouse_id)
+                
+                if allowed_ids:
+                    queryset_conditions = Q(pk__in=allowed_ids, is_enabled=1)
+                    if destination_warehouse_id_from_data:
+                        queryset_conditions |= Q(pk=destination_warehouse_id_from_data)
+                    # Always include instance warehouse if it exists (for edit mode, even if disabled)
+                    if instance_warehouse_id:
+                        queryset_conditions |= Q(pk=instance_warehouse_id)
+                    queryset = Warehouse.objects.filter(queryset_conditions)
+                    self.fields['destination_warehouse'].queryset = queryset.order_by('name')
+                    # Set initial value from instance if editing
+                    if instance_warehouse_id and not self.is_bound:
+                        self.initial['destination_warehouse'] = instance_warehouse_id
+                        self._ensure_warehouse_instance('destination_warehouse', instance_warehouse_id)
+                else:
+                    # If no allowed warehouses, still include instance warehouse if editing
+                    queryset_conditions = Q(company_id=self.company_id, is_enabled=1)
+                    if destination_warehouse_id_from_data:
+                        queryset_conditions |= Q(pk=destination_warehouse_id_from_data)
+                    instance_dest_wh_id = None
+                    if getattr(self.instance, 'pk', None) and getattr(self.instance, 'destination_warehouse_id', None):
+                        instance_dest_wh_id = self.instance.destination_warehouse_id
+                        queryset_conditions |= Q(pk=instance_dest_wh_id)
+                    queryset = Warehouse.objects.filter(queryset_conditions)
+                    self.fields['destination_warehouse'].queryset = queryset.order_by('name')
+                    # Set initial value from instance if editing
+                    if instance_dest_wh_id and not self.is_bound:
+                        self.initial['destination_warehouse'] = instance_dest_wh_id
+                        self._ensure_warehouse_instance('destination_warehouse', instance_dest_wh_id)
+            else:
+                queryset_conditions = Q(company_id=self.company_id, is_enabled=1)
+                if destination_warehouse_id_from_data:
+                    queryset_conditions |= Q(pk=destination_warehouse_id_from_data)
+                instance_dest_wh_id = None
+                if getattr(self.instance, 'pk', None) and getattr(self.instance, 'destination_warehouse_id', None):
+                    instance_dest_wh_id = self.instance.destination_warehouse_id
+                    queryset_conditions |= Q(pk=instance_dest_wh_id)
+                queryset = Warehouse.objects.filter(queryset_conditions)
+                self.fields['destination_warehouse'].queryset = queryset.order_by('name')
+                # Set initial value from instance if editing
+                if instance_dest_wh_id and not self.is_bound:
+                    self.initial['destination_warehouse'] = instance_dest_wh_id
+                    self._ensure_warehouse_instance('destination_warehouse', instance_dest_wh_id)
     
     def clean_source_warehouse(self) -> Optional[Warehouse]:
         """Validate source warehouse against item's allowed warehouses."""

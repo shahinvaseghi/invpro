@@ -58,6 +58,24 @@ function initCascadingDropdown(parentSelect, childSelect, apiUrl, options = {}) 
             return;
         }
         
+        // Save current value and text before clearing (important for warehouses)
+        const currentValue = childElement.value;
+        let currentOptionText = null;
+        if (currentValue) {
+            const existingOption = Array.from(childElement.options).find(opt => opt.value === currentValue || opt.value == currentValue);
+            if (existingOption) {
+                currentOptionText = existingOption.textContent;
+            }
+        }
+        // Also check data-initial-value attribute
+        if (!currentValue && childElement.hasAttribute('data-initial-value')) {
+            const initialValue = childElement.getAttribute('data-initial-value');
+            const existingOption = Array.from(childElement.options).find(opt => opt.value === initialValue || opt.value == initialValue);
+            if (existingOption) {
+                currentOptionText = existingOption.textContent;
+            }
+        }
+        
         // Show loading state
         childElement.disabled = true;
         const originalHTML = childElement.innerHTML;
@@ -123,11 +141,33 @@ function initCascadingDropdown(parentSelect, childSelect, apiUrl, options = {}) 
                 options = [];
             }
             
+            // Check if current value is in the options list (for warehouses)
+            const isWarehouseDropdown = data.warehouses !== undefined;
+            let currentValueInList = false;
+            if (isWarehouseDropdown && currentValue) {
+                currentValueInList = options.some(opt => {
+                    const optValue = opt.value || opt.id;
+                    return optValue == currentValue || optValue === currentValue;
+                });
+            }
+            
             // Update child dropdown
             // For units/warehouses format, use 'value' and 'label' fields
             const valueField = (data.units || data.warehouses) ? 'value' : config.valueField;
             const labelField = (data.units || data.warehouses) ? 'label' : config.labelField;
             updateDropdownOptions(childElement, options, config.placeholder, valueField, labelField);
+            
+            // If current warehouse is not in allowed list but we have a current value, add it anyway
+            // This preserves the selected warehouse even if it's not in the allowed list for the item
+            // This is important for edit mode where warehouse was selected before item restrictions were applied
+            if (isWarehouseDropdown && currentValue && !currentValueInList && currentOptionText) {
+                console.log('[initCascadingDropdown] Current warehouse not in allowed list, adding it anyway:', currentValue, currentOptionText);
+                const option = document.createElement('option');
+                option.value = currentValue;
+                option.textContent = currentOptionText;
+                option.selected = true;
+                childElement.appendChild(option);
+            }
             
             // Handle default_unit for units API
             if (data.default_unit && data.units && data.units.length > 0) {
@@ -150,6 +190,14 @@ function initCascadingDropdown(parentSelect, childSelect, apiUrl, options = {}) 
                     childElement.value = primaryGL.id;
                 } else if (data.gl_accounts.length === 1) {
                     childElement.value = data.gl_accounts[0].id;
+                }
+            }
+            
+            // Restore current value if it exists (for warehouses)
+            if (currentValue) {
+                const matchingOption = Array.from(childElement.options).find(opt => opt.value == currentValue || opt.value === currentValue);
+                if (matchingOption) {
+                    childElement.value = matchingOption.value;
                 }
             }
             
@@ -178,7 +226,16 @@ function initCascadingDropdown(parentSelect, childSelect, apiUrl, options = {}) 
     });
     
     // Initial load if parent has value
-    if (parentElement.value) {
+    // BUT: Don't dispatch change event if child already has a value (edit mode)
+    // This prevents disabling the dropdown when it already has a selected value
+    // Check for value in multiple ways: childElement.value, selected option, or data-initial-value
+    // Also check if dropdown already has options (populated by updateWarehouseChoices)
+    const hasChildValue = childElement.value || 
+                         childElement.querySelector('option[selected]') || 
+                         childElement.hasAttribute('data-initial-value');
+    const hasOptions = childElement.options.length > 1; // More than just placeholder
+    
+    if (parentElement.value && !hasChildValue && !hasOptions) {
         parentElement.dispatchEvent(new Event('change'));
     }
 }

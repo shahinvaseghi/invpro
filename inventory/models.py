@@ -1904,6 +1904,16 @@ class IssueWarehouseTransfer(InventoryDocumentBase):
         help_text=_('The production transfer request that created this warehouse transfer'),
     )
     production_transfer_code = models.CharField(max_length=30, blank=True)
+    
+    approver = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='warehouse_transfers_to_approve',
+        null=True,
+        blank=True,
+        verbose_name=_('Approver'),
+        help_text=_('User who can approve this warehouse transfer'),
+    )
 
     class Meta:
         verbose_name = _("Warehouse Transfer Issue")

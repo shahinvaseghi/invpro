@@ -8,9 +8,9 @@ This module contains views for:
 - Warehouse Transfer Issues
 - Serial Assignment for Issues
 """
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Set
 from django.contrib import messages
-from django.views.generic import ListView, CreateView, UpdateView, FormView, DetailView
+from django.views.generic import ListView, CreateView, UpdateView, FormView, DetailView, View
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.shortcuts import get_object_or_404
@@ -293,7 +293,7 @@ class IssuePermanentCreateView(LineFormsetMixin, ReceiptFormMixin, BaseDocumentC
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
-            (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
+            (_('Document Info'), ['document_code', 'approver']),  # document_date is hidden, auto-generated
         ]
     
     def get_breadcrumbs(self):
@@ -386,7 +386,7 @@ class IssuePermanentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, Rec
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
-            (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
+            (_('Document Info'), ['document_code', 'approver']),  # document_date is hidden, auto-generated
         ]
     
     def get_breadcrumbs(self):
@@ -784,7 +784,7 @@ class IssueConsumptionCreateView(LineFormsetMixin, ReceiptFormMixin, BaseDocumen
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
-            (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
+            (_('Document Info'), ['document_code', 'approver']),  # document_date is hidden, auto-generated
         ]
     
     def get_breadcrumbs(self):
@@ -862,7 +862,7 @@ class IssueConsumptionUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
-            (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
+            (_('Document Info'), ['document_code', 'approver']),  # document_date is hidden, auto-generated
         ]
     
     def get_breadcrumbs(self):
@@ -1256,7 +1256,7 @@ class IssueConsignmentCreateView(LineFormsetMixin, ReceiptFormMixin, BaseDocumen
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
-            (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
+            (_('Document Info'), ['document_code', 'approver']),  # document_date is hidden, auto-generated
         ]
     
     def get_breadcrumbs(self):
@@ -1334,7 +1334,7 @@ class IssueConsignmentUpdateView(LineFormsetMixin, DocumentLockProtectedMixin, R
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
-            (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
+            (_('Document Info'), ['document_code', 'approver']),  # document_date is hidden, auto-generated
         ]
     
     def get_breadcrumbs(self):
@@ -1728,6 +1728,29 @@ class IssueWarehouseTransferListView(InventoryBaseView, BaseDocumentListView):
         context['create_label'] = _('Warehouse Transfer Issue')
         context['print_enabled'] = True
         context['delete_url_name'] = None  # Delete not implemented yet
+        context['approve_url_name'] = 'inventory:issue_warehouse_transfer_approve'
+        context['reject_url_name'] = 'inventory:issue_warehouse_transfer_reject'
+        
+        # Add approval logic to each warehouse transfer
+        company_id: Optional[int] = self.request.session.get('active_company_id')
+        if company_id:
+            from inventory.forms.base import get_feature_approvers
+            approver_queryset = get_feature_approvers("inventory.issues.warehouse_transfer", company_id)
+            approver_ids: Set[int] = set(approver_queryset.values_list('id', flat=True))
+            
+            for wt in context['object_list']:
+                wt.can_current_user_approve = (
+                    not wt.is_locked
+                    and wt.approver_id
+                    and wt.approver_id == self.request.user.id
+                    and self.request.user.id in approver_ids
+                )
+                wt.can_current_user_reject = (
+                    not wt.is_locked
+                    and wt.approver_id
+                    and wt.approver_id == self.request.user.id
+                    and self.request.user.id in approver_ids
+                )
         
         return context
 
@@ -1806,7 +1829,7 @@ class IssueWarehouseTransferCreateView(LineFormsetMixin, ReceiptFormMixin, BaseD
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
-            (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
+            (_('Document Info'), ['document_code', 'approver']),  # document_date is hidden, auto-generated
         ]
     
     def get_breadcrumbs(self):
@@ -1910,7 +1933,7 @@ class IssueWarehouseTransferUpdateView(LineFormsetMixin, DocumentLockProtectedMi
     def get_fieldsets(self) -> list:
         """Return fieldsets configuration."""
         return [
-            (_('Document Info'), ['document_code']),  # document_date is hidden, auto-generated
+            (_('Document Info'), ['document_code', 'approver']),  # document_date is hidden, auto-generated
         ]
     
     def get_breadcrumbs(self):
@@ -1984,6 +2007,28 @@ class IssueWarehouseTransferDetailView(InventoryBaseView, BaseDetailView):
         context['detail_title'] = self.get_page_title()
         # Add empty info_banner list to enable info_banner_extra block
         context['info_banner'] = []
+        
+        # Add approval logic
+        company_id: Optional[int] = self.request.session.get('active_company_id')
+        if company_id:
+            from inventory.forms.base import get_feature_approvers
+            approver_queryset = get_feature_approvers("inventory.issues.warehouse_transfer", company_id)
+            approver_ids: Set[int] = set(approver_queryset.values_list('id', flat=True))
+            
+            warehouse_transfer = context.get('warehouse_transfer') or self.object
+            warehouse_transfer.can_current_user_approve = (
+                not warehouse_transfer.is_locked
+                and warehouse_transfer.approver_id
+                and warehouse_transfer.approver_id == self.request.user.id
+                and self.request.user.id in approver_ids
+            )
+            warehouse_transfer.can_current_user_reject = (
+                not warehouse_transfer.is_locked
+                and warehouse_transfer.approver_id
+                and warehouse_transfer.approver_id == self.request.user.id
+                and self.request.user.id in approver_ids
+            )
+        
         return context
 
 
@@ -2001,3 +2046,93 @@ class IssueWarehouseTransferUnlockView(DocumentUnlockView):
     success_message = _('حواله انتقال بین انبارها از قفل خارج شد و قابل ویرایش است.')
     feature_code = 'inventory.issues.warehouse_transfer'
     required_action = 'unlock_own'
+
+
+class IssueWarehouseTransferApproveView(InventoryBaseView, View):
+    """Approve view for warehouse transfer issues."""
+    
+    def post(self, request, *args, **kwargs) -> HttpResponseRedirect:
+        """Approve a warehouse transfer issue."""
+        company_id: Optional[int] = self.request.session.get('active_company_id')
+        if not company_id:
+            messages.error(request, _('شرکت فعال مشخص نشده است.'))
+            return HttpResponseRedirect(reverse('inventory:issue_warehouse_transfer'))
+
+        warehouse_transfer = get_object_or_404(
+            models.IssueWarehouseTransfer,
+            pk=kwargs.get('pk'),
+            company_id=company_id,
+        )
+
+        if warehouse_transfer.is_locked:
+            messages.info(request, _('این حواله قبلاً تایید و قفل شده است.'))
+            return HttpResponseRedirect(reverse('inventory:issue_warehouse_transfer_detail', kwargs={'pk': warehouse_transfer.pk}))
+
+        if not warehouse_transfer.approver_id:
+            messages.error(request, _('برای این حواله هنوز تاییدکننده تعیین نشده است.'))
+            return HttpResponseRedirect(reverse('inventory:issue_warehouse_transfer_detail', kwargs={'pk': warehouse_transfer.pk}))
+
+        if warehouse_transfer.approver_id != request.user.id:
+            messages.error(request, _('تنها تاییدکننده تعیین‌شده می‌تواند این حواله را تایید کند.'))
+            return HttpResponseRedirect(reverse('inventory:issue_warehouse_transfer_detail', kwargs={'pk': warehouse_transfer.pk}))
+
+        from inventory.forms.base import get_feature_approvers
+        allowed_user_ids: Set[int] = set(get_feature_approvers("inventory.issues.warehouse_transfer", company_id).values_list('id', flat=True))
+        if request.user.id not in allowed_user_ids:
+            messages.error(request, _('شما مجوز تایید حواله انتقال بین انبار را ندارید.'))
+            return HttpResponseRedirect(reverse('inventory:issue_warehouse_transfer_detail', kwargs={'pk': warehouse_transfer.pk}))
+
+        now = timezone.now()
+        warehouse_transfer.is_locked = 1
+        warehouse_transfer.locked_at = now
+        warehouse_transfer.locked_by = request.user
+        warehouse_transfer.edited_by = request.user
+        warehouse_transfer.save(update_fields=['is_locked', 'locked_at', 'locked_by', 'edited_by'])
+        messages.success(request, _('حواله انتقال بین انبار تایید و قفل شد.'))
+        return HttpResponseRedirect(reverse('inventory:issue_warehouse_transfer_detail', kwargs={'pk': warehouse_transfer.pk}))
+
+
+class IssueWarehouseTransferRejectView(InventoryBaseView, View):
+    """Reject view for warehouse transfer issues."""
+    
+    def post(self, request, *args, **kwargs) -> HttpResponseRedirect:
+        """Reject a warehouse transfer issue."""
+        company_id: Optional[int] = self.request.session.get('active_company_id')
+        if not company_id:
+            messages.error(request, _('شرکت فعال مشخص نشده است.'))
+            return HttpResponseRedirect(reverse('inventory:issue_warehouse_transfer'))
+
+        warehouse_transfer = get_object_or_404(
+            models.IssueWarehouseTransfer,
+            pk=kwargs.get('pk'),
+            company_id=company_id,
+        )
+
+        if warehouse_transfer.is_locked:
+            messages.info(request, _('این حواله قبلاً تایید و قفل شده است و نمی‌توان آن را رد کرد.'))
+            return HttpResponseRedirect(reverse('inventory:issue_warehouse_transfer_detail', kwargs={'pk': warehouse_transfer.pk}))
+
+        if not warehouse_transfer.approver_id:
+            messages.error(request, _('برای این حواله هنوز تاییدکننده تعیین نشده است.'))
+            return HttpResponseRedirect(reverse('inventory:issue_warehouse_transfer_detail', kwargs={'pk': warehouse_transfer.pk}))
+
+        if warehouse_transfer.approver_id != request.user.id:
+            messages.error(request, _('تنها تاییدکننده تعیین‌شده می‌تواند این حواله را رد کند.'))
+            return HttpResponseRedirect(reverse('inventory:issue_warehouse_transfer_detail', kwargs={'pk': warehouse_transfer.pk}))
+
+        from inventory.forms.base import get_feature_approvers
+        allowed_user_ids: Set[int] = set(get_feature_approvers("inventory.issues.warehouse_transfer", company_id).values_list('id', flat=True))
+        if request.user.id not in allowed_user_ids:
+            messages.error(request, _('شما مجوز رد حواله انتقال بین انبار را ندارید.'))
+            return HttpResponseRedirect(reverse('inventory:issue_warehouse_transfer_detail', kwargs={'pk': warehouse_transfer.pk}))
+
+        rejection_reason = request.POST.get('rejection_reason', '').strip()
+        if not rejection_reason:
+            messages.error(request, _('لطفاً دلیل رد را وارد کنید.'))
+            return HttpResponseRedirect(reverse('inventory:issue_warehouse_transfer_detail', kwargs={'pk': warehouse_transfer.pk}))
+
+        warehouse_transfer.approver = None
+        warehouse_transfer.edited_by = request.user
+        warehouse_transfer.save(update_fields=['approver', 'edited_by'])
+        messages.success(request, _('حواله انتقال بین انبار رد شد. تاییدکننده حذف شد و می‌توانید تاییدکننده جدیدی انتخاب کنید.'))
+        return HttpResponseRedirect(reverse('inventory:issue_warehouse_transfer_detail', kwargs={'pk': warehouse_transfer.pk}))

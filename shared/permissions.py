@@ -590,6 +590,30 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.CREATE_ISSUE_FROM_WAREHOUSE_REQUEST,
         ],
     ),
+    "inventory.issues.warehouse_transfer": FeaturePermission(
+        code="inventory.issues.warehouse_transfer",
+        label=_("Warehouse Transfer Issues"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_OTHER,
+            PermissionAction.DELETE_SAME_GROUP,
+            PermissionAction.LOCK_OWN,
+            PermissionAction.LOCK_OTHER,
+            PermissionAction.LOCK_SAME_GROUP,
+            PermissionAction.UNLOCK_OWN,
+            PermissionAction.UNLOCK_OTHER,
+            PermissionAction.UNLOCK_SAME_GROUP,
+            PermissionAction.APPROVE,
+            PermissionAction.REJECT,
+            PermissionAction.CANCEL,
+        ],
+    ),
     # Inventory – Requests
     "inventory.requests.purchase": FeaturePermission(
         code="inventory.requests.purchase",
@@ -741,6 +765,21 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.VIEW_OWN,
             PermissionAction.VIEW_ALL,
             PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    # Accounting – Base Definitions
+    "accounting.base": FeaturePermission(
+        code="accounting.base",
+        label=_("Base Definitions (تعاریف پایه)"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
     # Accounting – Fiscal Years

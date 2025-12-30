@@ -6,6 +6,9 @@
 {% block info_banner_extra %}
 <div><strong>{% trans "Document Code" %}:</strong> {{ warehouse_transfer.document_code }}</div>
 <div><strong>{% trans "Document Date" %}:</strong> {{ warehouse_transfer.document_date|jalali_date }}</div>
+{% if warehouse_transfer.approver %}
+<div><strong>{% trans "Approver" %}:</strong> {{ warehouse_transfer.approver.get_full_name|default:warehouse_transfer.approver.username }}</div>
+{% endif %}
 {% if warehouse_transfer.production_transfer %}
 <div>
   <strong>{% trans "Production Transfer" %}:</strong>
@@ -22,6 +25,22 @@
     <span class="badge badge-unlocked">{% trans "Editable" %}</span>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block page_actions %}
+{% if warehouse_transfer.can_current_user_approve %}
+  <form method="post" action="{% url 'inventory:issue_warehouse_transfer_approve' warehouse_transfer.pk %}" style="display: inline;">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary" data-confirm="{% trans 'Are you sure you want to approve this warehouse transfer?' %}">
+      {% trans "Approve" %}
+    </button>
+  </form>
+{% endif %}
+{% if warehouse_transfer.can_current_user_reject %}
+  <button type="button" class="btn btn-danger" onclick="showRejectModal({{ warehouse_transfer.pk }})">
+    {% trans "Reject" %}
+  </button>
+{% endif %}
 {% endblock %}
 
 {% block detail_sections %}

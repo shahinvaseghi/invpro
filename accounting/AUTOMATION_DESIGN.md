@@ -1467,7 +1467,560 @@ class AutomationDocumentApproval:
 
 ---
 
+## طراحی API
+
+### 1. API Endpoints پیشنهادی
+
+#### مدیریت فرایندها
+
+```
+GET    /api/automation/processes/                    # لیست فرایندها
+POST   /api/automation/processes/                    # ایجاد فرایند جدید
+GET    /api/automation/processes/{id}/               # جزئیات فرایند
+PUT    /api/automation/processes/{id}/               # ویرایش فرایند
+DELETE /api/automation/processes/{id}/               # حذف فرایند
+POST   /api/automation/processes/{id}/activate/      # فعال‌سازی فرایند
+POST   /api/automation/processes/{id}/deactivate/    # غیرفعال‌سازی فرایند
+POST   /api/automation/processes/{id}/duplicate/     # کپی کردن فرایند
+POST   /api/automation/processes/{id}/test/          # تست فرایند روی سند نمونه
+```
+
+#### مدیریت شرایط
+
+```
+GET    /api/automation/processes/{id}/conditions/    # لیست شرایط فرایند
+POST   /api/automation/processes/{id}/conditions/     # افزودن شرط جدید
+PUT    /api/automation/conditions/{id}/               # ویرایش شرط
+DELETE /api/automation/conditions/{id}/              # حذف شرط
+POST   /api/automation/conditions/{id}/test/         # تست شرط روی سند نمونه
+```
+
+#### مدیریت متغیرها
+
+```
+GET    /api/automation/processes/{id}/variables/      # لیست متغیرهای فرایند
+POST   /api/automation/processes/{id}/variables/      # افزودن متغیر جدید
+PUT    /api/automation/variables/{id}/                # ویرایش متغیر
+DELETE /api/automation/variables/{id}/               # حذف متغیر
+POST   /api/automation/variables/{id}/preview/        # پیش‌نمایش مقدار متغیر
+```
+
+#### مدیریت مراحل سند
+
+```
+GET    /api/automation/processes/{id}/steps/          # لیست مراحل فرایند
+POST   /api/automation/processes/{id}/steps/          # افزودن مرحله جدید
+PUT    /api/automation/steps/{id}/                    # ویرایش مرحله
+DELETE /api/automation/steps/{id}/                   # حذف مرحله
+POST   /api/automation/steps/{id}/reorder/           # تغییر ترتیب مراحل
+```
+
+#### مدیریت خطوط سند
+
+```
+GET    /api/automation/steps/{id}/lines/              # لیست خطوط مرحله
+POST   /api/automation/steps/{id}/lines/              # افزودن خط جدید
+PUT    /api/automation/lines/{id}/                    # ویرایش خط
+DELETE /api/automation/lines/{id}/                   # حذف خط
+POST   /api/automation/lines/{id}/reorder/           # تغییر ترتیب خطوط
+```
+
+#### لاگ و مانیتورینگ
+
+```
+GET    /api/automation/executions/                   # لیست اجراها
+GET    /api/automation/executions/{id}/               # جزئیات اجرا
+GET    /api/automation/processes/{id}/executions/     # اجراهای یک فرایند
+POST   /api/automation/executions/{id}/retry/         # اجرای مجدد
+POST   /api/automation/executions/{id}/cancel/       # لغو اجرا
+```
+
+#### تاییدیه اسناد
+
+```
+GET    /api/automation/approvals/pending/             # اسناد در انتظار تایید
+POST   /api/automation/approvals/{id}/approve/        # تایید سند
+POST   /api/automation/approvals/{id}/reject/         # رد سند
+```
+
+#### متادیتا و پیکربندی
+
+```
+GET    /api/automation/document-types/                # لیست انواع اسناد قابل انتخاب
+GET    /api/automation/document-types/{type}/fields/  # فیلدهای قابل فیلتر/استخراج برای نوع سند
+GET    /api/automation/operators/                     # لیست عملگرهای قابل استفاده
+GET    /api/automation/aggregation-types/             # انواع تجمیع قابل استفاده
+```
+
+### 2. ساختار Request/Response
+
+#### ایجاد فرایند
+
+**Request:**
+```json
+POST /api/automation/processes/
+{
+  "name": "خودکارسازی سند فروش",
+  "description": "ایجاد خودکار سند حسابداری برای فاکتورهای فروش",
+  "trigger_module": "sales",
+  "trigger_document_type": "Invoice",
+  "trigger_model": "sales.Invoice",
+  "is_active": false
+}
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "name": "خودکارسازی سند فروش",
+  "description": "ایجاد خودکار سند حسابداری برای فاکتورهای فروش",
+  "trigger_module": "sales",
+  "trigger_document_type": "Invoice",
+  "trigger_model": "sales.Invoice",
+  "is_active": false,
+  "created_at": "2025-01-15T10:00:00Z",
+  "created_by": 1
+}
+```
+
+#### افزودن شرط
+
+**Request:**
+```json
+POST /api/automation/processes/1/conditions/
+{
+  "filter_type": "document_specific",
+  "filter_category": "document_field",
+  "field_name": "total_amount",
+  "field_type": "number",
+  "operator": ">",
+  "value": 1000000,
+  "value_type": "static",
+  "logical_operator": "AND",
+  "order": 1
+}
+```
+
+#### افزودن متغیر
+
+**Request:**
+```json
+POST /api/automation/processes/1/variables/
+{
+  "name": "invoice_total",
+  "display_name": "مبلغ کل فاکتور",
+  "source_type": "field",
+  "field_path": "total_amount",
+  "field_type": "header_field",
+  "data_type": "number",
+  "order": 1
+}
+```
+
+#### تست فرایند
+
+**Request:**
+```json
+POST /api/automation/processes/1/test/
+{
+  "trigger_document_id": 123,
+  "dry_run": true
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "conditions_evaluated": {
+    "condition_1": true,
+    "condition_2": true
+  },
+  "variables_extracted": {
+    "invoice_total": 1500000,
+    "customer_tafsili": 45,
+    "invoice_date": "2025-01-15",
+    "invoice_number": "INV-001"
+  },
+  "documents_preview": [
+    {
+      "step_number": 1,
+      "document_type": "accounting_document",
+      "header": {
+        "date": "2025-01-15",
+        "description": "سند خودکار برای فاکتور INV-001"
+      },
+      "lines": [
+        {
+          "debit_account": "Bank Account",
+          "credit_account": "Sales Revenue",
+          "amount": 1500000,
+          "tafsili": "Customer A"
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## جزئیات UI/UX
+
+### 1. صفحه لیست فرایندها
+
+**ویژگی‌ها:**
+- نمایش لیست تمام فرایندها در یک جدول
+- فیلتر بر اساس وضعیت (فعال/غیرفعال)، ماژول، نوع سند
+- جستجو بر اساس نام فرایند
+- نمایش خلاصه اطلاعات هر فرایند:
+  - نام فرایند
+  - نوع سند مبدأ
+  - تعداد شرایط
+  - تعداد متغیرها
+  - تعداد مراحل
+  - وضعیت (فعال/غیرفعال)
+  - آخرین اجرا
+- دکمه‌های عملیات:
+  - مشاهده جزئیات
+  - ویرایش
+  - کپی
+  - فعال/غیرفعال کردن
+  - حذف
+  - تست
+
+**نمایش پیشنهادی:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ فرایندهای خودکارسازی                                    [+ جدید] │
+├─────────────────────────────────────────────────────────────────┤
+│ [جستجو...] [فیلتر: همه] [ماژول: همه] [وضعیت: همه]              │
+├─────────────────────────────────────────────────────────────────┤
+│ نام فرایند        │ سند مبدأ    │ شرایط │ متغیرها │ مراحل │ وضعیت │
+├─────────────────────────────────────────────────────────────────┤
+│ خودکارسازی فروش  │ فاکتور فروش │   3   │    5    │   1   │  فعال │
+│ خودکارسازی خرید  │ رسید کالا   │   2   │    4    │   1   │ غیرفعال│
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 2. صفحه ایجاد/ویرایش فرایند (Wizard)
+
+**مرحله 1: اطلاعات پایه**
+- نام فرایند
+- توضیحات
+- انتخاب سند مبدأ (dropdown با جستجو)
+- نمایش اطلاعات سند انتخاب شده
+
+**مرحله 2: تعریف شرایط**
+- بخش فیلترهای عمومی:
+  - دکمه "افزودن فیلتر عمومی"
+  - لیست فیلترهای اضافه شده
+  - امکان ویرایش/حذف
+- بخش فیلترهای خاص سند:
+  - نمایش فیلدهای قابل فیلتر به صورت dropdown
+  - دکمه "افزودن فیلتر"
+  - لیست فیلترهای اضافه شده
+- پیش‌نمایش شرط نهایی
+- دکمه "تست شرایط" (با انتخاب یک سند نمونه)
+
+**مرحله 3: استخراج متغیرها**
+- نمایش ساختار سند به صورت درختی
+- امکان expand/collapse بخش‌ها
+- checkbox برای انتخاب فیلدها
+- بخش متغیرهای انتخاب شده:
+  - لیست متغیرها
+  - امکان ویرایش نام متغیر
+  - امکان حذف
+  - پیش‌نمایش مقدار (با انتخاب سند نمونه)
+- دکمه "تست استخراج"
+
+**مرحله 4: تعریف مراحل ایجاد سند**
+- لیست مراحل (به ترتیب step_number)
+- دکمه "افزودن مرحله جدید"
+- برای هر مرحله:
+  - اطلاعات کلی (نوع سند، شماره مرحله، نیاز به تایید)
+  - فیلدهای هدر (با امکان استفاده از متغیرها)
+  - خطوط سند (با امکان افزودن/حذف/ویرایش)
+  - شرط اجرا (اختیاری)
+- امکان drag & drop برای تغییر ترتیب
+- پیش‌نمایش سند ایجاد شده
+
+**مرحله 5: بررسی و تایید**
+- خلاصه کامل فرایند
+- امکان بازگشت به مراحل قبلی
+- دکمه "ذخیره" یا "ذخیره و فعال"
+
+### 3. صفحه جزئیات فرایند
+
+**تب‌ها:**
+1. **اطلاعات کلی:** نمایش و ویرایش اطلاعات پایه
+2. **شرایط:** مدیریت شرایط
+3. **متغیرها:** مدیریت متغیرها
+4. **مراحل:** مدیریت مراحل و خطوط
+5. **تاریخچه اجرا:** نمایش لاگ‌های اجرا
+6. **تست:** تست فرایند روی سند نمونه
+
+### 4. صفحه تاییدیه اسناد
+
+**ویژگی‌ها:**
+- لیست اسناد در انتظار تایید
+- فیلتر بر اساس فرایند، نوع سند، تاریخ
+- نمایش اطلاعات هر سند:
+  - فرایند مربوطه
+  - سند مبدأ
+  - نوع سند
+  - تاریخ ایجاد
+  - مبلغ (در صورت وجود)
+- دکمه‌های عملیات:
+  - مشاهده جزئیات سند
+  - تایید
+  - رد (با وارد کردن دلیل)
+
+### 5. صفحه تاریخچه اجرا
+
+**ویژگی‌ها:**
+- نمایش لیست تمام اجراها
+- فیلتر بر اساس فرایند، وضعیت، تاریخ
+- نمایش اطلاعات هر اجرا:
+  - فرایند
+  - سند مبدأ
+  - وضعیت
+  - تاریخ اجرا
+  - تعداد اسناد ایجاد شده
+- دکمه‌های عملیات:
+  - مشاهده جزئیات
+  - اجرای مجدد (در صورت خطا)
+  - لغو (در صورت pending)
+
+---
+
+## استراتژی تست
+
+### 1. تست واحد (Unit Tests)
+
+**مدل‌ها:**
+- تست ایجاد/ویرایش/حذف فرایند
+- تست ایجاد/ویرایش/حذف شرایط
+- تست ایجاد/ویرایش/حذف متغیرها
+- تست ایجاد/ویرایش/حذف مراحل و خطوط
+- تست اعتبارسنجی داده‌ها
+
+**سرویس‌ها:**
+- تست استخراج متغیرها از سند
+- تست ارزیابی شرایط
+- تست محاسبه مقادیر از متغیرها
+- تست ایجاد سند از الگو
+
+### 2. تست یکپارچگی (Integration Tests)
+
+- تست اجرای کامل فرایند روی یک سند نمونه
+- تست زنجیره اسناد با تاییدیه
+- تست مدیریت خطا و rollback
+- تست اجرای async
+
+### 3. تست عملکرد (Performance Tests)
+
+- تست اجرای فرایند روی تعداد زیادی سند
+- تست اجرای همزمان چندین فرایند
+- تست استفاده از cache
+- تست استفاده از queue
+
+### 4. تست امنیت (Security Tests)
+
+- تست دسترسی‌های کاربران
+- تست جداسازی داده‌های شرکت‌ها
+- تست اعتبارسنجی ورودی‌ها
+- تست جلوگیری از SQL Injection و XSS
+
+---
+
+## بهینه‌سازی عملکرد
+
+### 1. Caching
+
+**استراتژی Cache:**
+- Cache کردن فرایندهای فعال (TTL: 1 ساعت)
+- Cache کردن فیلدهای قابل فیلتر/استخراج برای هر نوع سند (TTL: 24 ساعت)
+- Cache کردن متغیرهای استخراج شده برای هر سند (TTL: 5 دقیقه)
+- استفاده از Redis برای cache توزیع شده
+
+### 2. Database Optimization
+
+**ایندکس‌ها:**
+- `AutomationProcess`: `(company_id, is_active, trigger_model)`
+- `AutomationCondition`: `(process_id, is_active, order)`
+- `AutomationVariable`: `(process_id, is_active)`
+- `AutomationDocumentStep`: `(process_id, step_number)`
+- `AutomationExecutionLog`: `(process_id, status, executed_at)`
+
+**Query Optimization:**
+- استفاده از `select_related` و `prefetch_related` برای کاهش تعداد query
+- استفاده از `bulk_create` برای ایجاد چندین خط سند
+- استفاده از transaction برای عملیات‌های چند مرحله‌ای
+
+### 3. Async Processing
+
+**استراتژی:**
+- استفاده از Celery برای اجرای async فرایندها
+- استفاده از queue برای مدیریت ترافیک
+- اجرای فرایندها در background تا UI مسدود نشود
+- امکان retry خودکار در صورت خطا
+
+### 4. Monitoring و Alerting
+
+**متریک‌ها:**
+- تعداد اجراهای موفق/ناموفق
+- زمان متوسط اجرای فرایند
+- تعداد اسناد ایجاد شده
+- تعداد اسناد در انتظار تایید
+
+**Alert:**
+- هشدار در صورت خطای مکرر
+- هشدار در صورت تعداد زیاد اسناد در انتظار تایید
+- هشدار در صورت کندی اجرا
+
+---
+
+## ملاحظات امنیتی
+
+### 1. دسترسی‌ها (Permissions)
+
+**سطوح دسترسی:**
+- **View:** مشاهده فرایندها و تاریخچه اجرا
+- **Create:** ایجاد فرایند جدید
+- **Edit:** ویرایش فرایند
+- **Delete:** حذف فرایند
+- **Activate/Deactivate:** فعال/غیرفعال کردن فرایند
+- **Approve:** تایید اسناد ایجاد شده
+- **Execute:** اجرای دستی فرایند
+
+### 2. جداسازی داده‌ها
+
+- هر فرایند باید به یک شرکت خاص تعلق داشته باشد
+- کاربران فقط می‌توانند فرایندهای شرکت خود را مشاهده/ویرایش کنند
+- اجرای فرایند فقط روی اسناد همان شرکت انجام می‌شود
+
+### 3. اعتبارسنجی ورودی‌ها
+
+- اعتبارسنجی کامل تمام ورودی‌های کاربر
+- Sanitize کردن مقادیر متغیرها قبل از استفاده
+- اعتبارسنجی expression‌های محاسباتی
+- جلوگیری از اجرای کد دلخواه در expression‌ها
+
+### 4. Audit Log
+
+- ثبت تمام تغییرات در فرایندها
+- ثبت تمام اجراها
+- ثبت تمام تاییدیه‌ها/ردها
+- امکان ردیابی کامل تاریخچه
+
+---
+
+## مثال‌های پیشرفته
+
+### مثال 4: خودکارسازی چند مرحله‌ای با شرط
+
+**Trigger:** فاکتور فروش قطعی می‌شود
+
+**Conditions:**
+1. مبلغ فاکتور بیشتر از 500,000 تومان
+2. روش پرداخت نقدی
+
+**Variables:**
+- `invoice_total`: مبلغ کل فاکتور
+- `customer_tafsili`: تفصیلی مشتری
+- `payment_method`: روش پرداخت
+- `invoice_date`: تاریخ فاکتور
+- `invoice_number`: شماره فاکتور
+
+**Document Step 1: سند حسابداری فروش**
+- نیاز به تایید: دستی
+- خط 1:
+  - بدهکار: تفصیلی مشتری
+  - بستانکار: حساب درآمد فروش
+  - مبلغ: `{invoice_total}`
+
+**Document Step 2: سند دریافت وجه**
+- شرط اجرا: `{payment_method} == "نقدی"`
+- نیاز به تایید: خودکار
+- منتظر تایید سند قبلی: بله
+- خط 1:
+  - حساب: حساب صندوق
+  - طرف حساب: تفصیلی مشتری
+  - مبلغ: `{invoice_total}`
+
+### مثال 5: خودکارسازی با تجمیع خطوط
+
+**Trigger:** حواله دائم انبار قطعی می‌شود
+
+**Variables:**
+- `line_items`: تمام خطوط حواله
+- `cost_center`: مرکز هزینه
+- `warehouse`: انبار مبدأ
+
+**Document Step 1: سند هزینه انبار**
+- خط 1 (برای هر خط حواله):
+  - بدهکار: حساب هزینه انبار
+  - بستانکار: حساب موجودی کالا
+  - مبلغ: `{line_items[].amount}`
+  - مرکز هزینه: `{cost_center}`
+  - توضیحات: "حواله کالا - {line_items[].item_name}"
+
+→ در این حالت، برای هر خط حواله یک خط سند حسابداری ایجاد می‌شود.
+
+### مثال 6: خودکارسازی با محاسبات پیچیده
+
+**Trigger:** فاکتور فروش قطعی می‌شود
+
+**Variables:**
+- `invoice_total`: مبلغ کل فاکتور
+- `tax_rate`: نرخ مالیات (9%)
+- `tax_amount`: `{invoice_total} * {tax_rate}`
+- `net_amount`: `{invoice_total} - {tax_amount}`
+
+**Document Step 1: سند حسابداری فروش**
+- خط 1:
+  - بدهکار: تفصیلی مشتری
+  - بستانکار: حساب درآمد فروش
+  - مبلغ: `{net_amount}`
+- خط 2:
+  - بدهکار: تفصیلی مشتری
+  - بستانکار: حساب مالیات بر ارزش افزوده
+  - مبلغ: `{tax_amount}`
+
+---
+
+## ملاحظات استقرار (Deployment)
+
+### 1. Migration Strategy
+
+- ایجاد migration برای مدل‌های جدید
+- Migration برای داده‌های موجود (در صورت نیاز)
+- Backup قبل از migration
+
+### 2. Feature Flag
+
+- استفاده از feature flag برای فعال/غیرفعال کردن قابلیت
+- امکان فعال کردن تدریجی برای کاربران مختلف
+- امکان rollback سریع در صورت مشکل
+
+### 3. Monitoring
+
+- نصب monitoring tools (مثل Sentry برای خطاها)
+- تنظیم alert برای خطاهای مهم
+- Dashboard برای نمایش متریک‌ها
+
+### 4. Documentation
+
+- مستندسازی API
+- مستندسازی UI برای کاربران
+- راهنمای استفاده
+- مثال‌های کاربردی
+
+---
+
 **تاریخ ایجاد:** 2025  
 **وضعیت:** در حال طراحی  
-**نسخه:** 0.1
+**نسخه:** 0.2
 
