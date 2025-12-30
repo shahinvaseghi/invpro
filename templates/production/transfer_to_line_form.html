@@ -53,6 +53,11 @@
       {% if form.order.help_text %}
         <small class="form-text">{{ form.order.help_text }}</small>
       {% endif %}
+      {% if object and object.order_id %}
+      <script type="application/json" id="order-data">
+        {"order_id": {{ object.order_id }}}
+      </script>
+      {% endif %}
     </div>
 
     <div class="form-field">
@@ -897,12 +902,43 @@ document.addEventListener('DOMContentLoaded', function() {
   var operationsError = document.getElementById('operations-error');
   var scrapReplacementCheckbox = document.getElementById('id_is_scrap_replacement');
   
+  // Get order ID from select or from JSON data (for edit mode when select is disabled)
+  function getOrderId() {
+    if (orderSelect && orderSelect.value) {
+      return orderSelect.value;
+    }
+    // Try to get from JSON data if select is disabled (edit mode)
+    var orderDataScript = document.getElementById('order-data');
+    if (orderDataScript) {
+      try {
+        var orderData = JSON.parse(orderDataScript.textContent);
+        if (orderData && orderData.order_id) {
+          return orderData.order_id.toString();
+        }
+      } catch (e) {
+        console.error('Error parsing order data:', e);
+      }
+    }
+    // Try to get from selected option's value even if disabled
+    if (orderSelect) {
+      var selectedOption = orderSelect.options[orderSelect.selectedIndex];
+      if (selectedOption && selectedOption.value) {
+        return selectedOption.value;
+      }
+    }
+    return null;
+  }
+  
   function updateOperationsVisibility() {
     var selectedTransferType = document.querySelector('input[name="transfer_type"]:checked');
     if (selectedTransferType && selectedTransferType.value === 'operations') {
       operationsSelectionRow.style.display = 'block';
-      if (orderSelect && orderSelect.value) {
+      var orderId = getOrderId();
+      if (orderId) {
         loadOperations();
+      } else {
+        operationsError.textContent = '{% trans "Please select a product order first." %}';
+        operationsError.style.display = 'block';
       }
     } else {
       operationsSelectionRow.style.display = 'none';
@@ -910,7 +946,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function loadOperations() {
-    var orderId = orderSelect.value;
+    var orderId = getOrderId();
     if (!orderId) {
       operationsList.innerHTML = '';
       return;
@@ -1065,8 +1101,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // Handle scrap replacement checkbox change
   if (scrapReplacementCheckbox) {
     scrapReplacementCheckbox.addEventListener('change', function() {
-      if (document.querySelector('input[name="transfer_type"]:checked')?.value === 'operations' && orderSelect && orderSelect.value) {
-        loadOperations();
+      if (document.querySelector('input[name="transfer_type"]:checked')?.value === 'operations') {
+        var orderId = getOrderId();
+        if (orderId) {
+          loadOperations();
+        }
       }
     });
   }
@@ -1080,7 +1119,8 @@ document.addEventListener('DOMContentLoaded', function() {
   var qcApproverField = document.getElementById('id_qc_approved_by');
   
   // Check scrap replacement availability on page load
-  if (orderSelect && orderSelect.value) {
+  var initialOrderId = getOrderId();
+  if (initialOrderId) {
     updateScrapReplacementAvailability();
   }
   

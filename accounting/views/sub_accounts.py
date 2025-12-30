@@ -4,6 +4,7 @@ Sub Account (حساب معین) CRUD views for accounting module.
 from typing import Any, Dict
 from django.contrib import messages
 from django.db.models import Q
+from django.db.models.deletion import ProtectedError
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -412,4 +413,41 @@ class SubAccountDeleteView(BaseDeleteView):
             {'label': _('تعریف حساب معین'), 'url': reverse('accounting:sub_accounts')},
             {'label': _('حذف'), 'url': None},
         ]
+    
+    def post(self, request, *args, **kwargs):
+        """Handle POST request for deletion with ProtectedError handling."""
+        self.object = self.get_object()
+        
+        # First check validation
+        is_valid, error_message = self.validate_deletion()
+        if not is_valid:
+            messages.error(self.request, error_message)
+            return HttpResponseRedirect(self.get_success_url())
+        
+        try:
+            self.object.delete()
+            messages.success(self.request, self.success_message)
+            return HttpResponseRedirect(self.get_success_url())
+        except ProtectedError as e:
+            # Check if error is due to child accounts (تفصیلی)
+            if self.object.child_accounts.exists():
+                error_message = _('نمی‌توان حساب معینی که دارای حساب تفصیلی است را حذف کرد.')
+            else:
+                # Check if error is due to AccountingDocumentLine usage
+                from accounting.models import AccountingDocumentLine
+                document_lines_count = AccountingDocumentLine.objects.filter(sub_account=self.object).count()
+                
+                if document_lines_count > 0:
+                    if document_lines_count == 1:
+                        error_message = _('نمی‌توان این حساب معین را حذف کرد چون در 1 سطر سند حسابداری استفاده شده است.')
+                    else:
+                        error_message = _('نمی‌توان این حساب معین را حذف کرد چون در {count} سطر سند حسابداری استفاده شده است.').format(
+                            count=document_lines_count
+                        )
+                else:
+                    # Generic error message for other protected relationships
+                    error_message = _('نمی‌توان این حساب معین را حذف کرد چون در موارد دیگر استفاده شده است.')
+            
+            messages.error(self.request, error_message)
+            return HttpResponseRedirect(self.get_success_url())
 
