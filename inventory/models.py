@@ -335,7 +335,6 @@ class Item(InventorySortableModel):
     sequence_segment = models.CharField(max_length=5, validators=[NUMERIC_CODE_VALIDATOR], editable=False)
     item_code = models.CharField(max_length=7, validators=[NUMERIC_CODE_VALIDATOR], blank=True, help_text="7-digit code: User(2) + Sequence(5)")
     full_item_code = models.CharField(max_length=16, unique=True, validators=[NUMERIC_CODE_VALIDATOR], blank=True, help_text="16-digit complete code: Type(3) + Category(3) + SubCategory(3) + ItemCode(7)")
-    batch_number = models.CharField(max_length=20)
     secondary_batch_number = models.CharField(max_length=50, blank=True, help_text=_("User-defined secondary batch number"))
     name = models.CharField(max_length=180, unique=True)
     name_en = models.CharField(max_length=180, unique=True)
@@ -412,9 +411,10 @@ class Item(InventorySortableModel):
             # Full item code: Type(3) + Category(3) + SubCategory(3) + ItemCode(7) = 16 digits
             self.full_item_code = f"{self.type_code}{self.category_code}{self.subcategory_code}{self.item_code}"
         
-        # Generate batch_number if not set
-        if not self.batch_number:
-            self.batch_number = self._generate_batch_number()
+        # Validate: if has_lot_tracking=1, requires_temporary_receipt must be 1
+        if self.has_lot_tracking == 1 and self.requires_temporary_receipt != 1:
+            from django.core.exceptions import ValidationError
+            raise ValidationError(_("Items with lot tracking must require temporary receipt."))
         
         super().save(*args, **kwargs)
 
@@ -452,20 +452,6 @@ class Item(InventorySortableModel):
         
         # If no existing codes found, start from 00001
         return "00001"
-
-    def _generate_batch_number(self) -> str:
-        now = timezone.now()
-        prefix = now.strftime("%m%y")
-        queryset = Item.objects.filter(
-            company=self.company,
-            batch_number__startswith=prefix,
-        ).exclude(pk=self.pk)
-        last = queryset.order_by("-batch_number").values_list("batch_number", flat=True).first()
-        if last:
-            sequence = int(last.split("-")[-1]) + 1
-        else:
-            sequence = 1
-        return f"{prefix}-{str(sequence).zfill(6)}"
 
 
 class ItemSpec(InventorySortableModel):
@@ -1191,9 +1177,28 @@ class ItemLot(InventoryBaseModel):
 
     def save(self, *args, **kwargs):
         if not self.item_code:
-            self.item_code = self.item.item_code
+            self.item_code = self.item.item_code or self.item.full_item_code or ""
+        
+        # Batch number should come from ItemBatch (QC module) when converting from temporary receipt
+        # If not set, try to get it from the temporary receipt's batch
         if not self.batch_number:
-            self.batch_number = self.item.batch_number
+            # Try to find batch from temporary receipt if this permanent receipt was converted from temporary
+            if hasattr(self.receipt_document, 'temporary_conversion') and self.receipt_document.temporary_conversion:
+                temporary_receipt = self.receipt_document.temporary_conversion
+                # Try to find batch for this item from temporary receipt lines
+                try:
+                    from qc.models import ItemBatch
+                    batch = ItemBatch.objects.filter(
+                        receipt_temporary=temporary_receipt,
+                        item=self.item,
+                        company=self.company,
+                        is_enabled=1
+                    ).first()
+                    if batch:
+                        self.batch_number = batch.batch_number
+                except ImportError:
+                    pass
+        
         if not self.lot_code:
             self.lot_code = self._generate_lot_code()
         if not self.receipt_document_code:

@@ -1,4 +1,5 @@
 from django.utils.translation import gettext_lazy as _
+from decimal import Decimal
 
 from django.conf import settings
 from django.core.validators import RegexValidator
@@ -103,4 +104,119 @@ class ReceiptInspection(QCBaseModel):
             self.temporary_receipt_code = self.temporary_receipt.document_code
         if not self.inspector_code:
             self.inspector_code = self.inspector.public_code
+        super().save(*args, **kwargs)
+
+
+class ItemBatch(QCBaseModel):
+    """Batch number tracking for items received through temporary receipts."""
+    
+    class Status(models.TextChoices):
+        AVAILABLE = "available", _("Available")
+        RESERVED = "reserved", _("Reserved")
+        CONSUMED = "consumed", _("Consumed")
+        SCRAPPED = "scrapped", _("Scrapped")
+    
+    item = models.ForeignKey(
+        "inventory.Item",
+        on_delete=models.PROTECT,
+        related_name="qc_batches",
+    )
+    item_code = models.CharField(
+        max_length=16,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        help_text=_("Cached item code"),
+    )
+    batch_number = models.CharField(
+        max_length=30,
+        help_text=_("Batch number for this receipt line"),
+    )
+    receipt_temporary = models.ForeignKey(
+        "inventory.ReceiptTemporary",
+        on_delete=models.CASCADE,
+        related_name="batches",
+    )
+    receipt_temporary_code = models.CharField(
+        max_length=20,
+        help_text=_("Cached temporary receipt document code"),
+    )
+    receipt_temporary_line = models.ForeignKey(
+        "inventory.ReceiptTemporaryLine",
+        on_delete=models.CASCADE,
+        related_name="batches",
+    )
+    quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[],
+        help_text=_("Quantity for this batch"),
+    )
+    unit = models.CharField(
+        max_length=30,
+        help_text=_("Unit of measure"),
+    )
+    warehouse = models.ForeignKey(
+        "inventory.Warehouse",
+        on_delete=models.PROTECT,
+        related_name="qc_batches",
+        null=True,
+        blank=True,
+    )
+    warehouse_code = models.CharField(
+        max_length=6,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        blank=True,
+        help_text=_("Cached warehouse code"),
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.AVAILABLE,
+        help_text=_("Current status of the batch"),
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text=_("Additional notes for this batch"),
+    )
+    
+    class Meta:
+        verbose_name = _("Item Batch")
+        verbose_name_plural = _("Item Batches")
+        ordering = ("company", "item", "batch_number", "-created_at")
+        indexes = [
+            models.Index(fields=("company", "item"), name="qc_batch_item_idx"),
+            models.Index(fields=("company", "receipt_temporary"), name="qc_batch_receipt_idx"),
+            models.Index(fields=("company", "receipt_temporary_line"), name="qc_batch_line_idx"),
+            models.Index(fields=("company", "batch_number"), name="qc_batch_number_idx"),
+            models.Index(fields=("company", "status"), name="qc_batch_status_idx"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "batch_number"),
+                name="qc_batch_unique_number",
+            ),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.batch_number} - {self.item.name}"
+    
+    def save(self, *args, **kwargs):
+        """Auto-populate cached fields."""
+        if self.item and not self.item_code:
+            self.item_code = self.item.item_code or self.item.full_item_code or ""
+        
+        if self.receipt_temporary and not self.receipt_temporary_code:
+            self.receipt_temporary_code = self.receipt_temporary.document_code
+        
+        if self.receipt_temporary_line and not self.quantity:
+            self.quantity = self.receipt_temporary_line.qc_approved_quantity or self.receipt_temporary_line.quantity
+        
+        if self.receipt_temporary_line and not self.unit:
+            self.unit = self.receipt_temporary_line.unit
+        
+        if self.receipt_temporary_line and not self.warehouse:
+            self.warehouse = self.receipt_temporary_line.warehouse
+        
+        if self.warehouse and not self.warehouse_code:
+            self.warehouse_code = self.warehouse.public_code
+        
         super().save(*args, **kwargs)

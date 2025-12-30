@@ -29,6 +29,7 @@ from inventory.models import (
     ReceiptConsignmentLine,
     PurchaseRequest,
     WarehouseRequest,
+    ItemSerial,
 )
 from inventory.forms.base import (
     UNIT_CHOICES,
@@ -243,6 +244,28 @@ class ReceiptPermanentForm(forms.ModelForm):
                 temp = cleaned_data.get('temporary_receipt')
                 if temp.company_id != self.company_id:
                     self.add_error('temporary_receipt', _('Selected temporary receipt belongs to a different company.'))
+
+                # Validate that all lines requiring QC serials have serials assigned
+                for line in temp.lines.filter(is_enabled=1, is_qc_approved=1):
+                    if line.item and line.item.serial_in_qc == 1:
+                        # Query serials by receipt_line_reference
+                        existing_serials_count = ItemSerial.objects.filter(
+                            receipt_line_reference=f"QC:{line.pk}",
+                            company=temp.company_id,
+                            is_enabled=1
+                        ).count()
+                        required_quantity = int(line.qc_approved_quantity or line.quantity)
+
+                        if existing_serials_count < required_quantity:
+                            self.add_error('temporary_receipt', _(
+                                'Line %(item)s requires %(required)s serials but only %(existing)s are assigned. '
+                                'Please complete serial assignment in QC module first.'
+                            ) % {
+                                'item': line.item.name,
+                                'required': required_quantity,
+                                'existing': existing_serials_count
+                            })
+
             if cleaned_data.get('purchase_request'):
                 pr = cleaned_data.get('purchase_request')
                 if pr.company_id != self.company_id:

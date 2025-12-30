@@ -118,7 +118,7 @@ class ItemAdmin(ModelAdmin):
     list_display = ("company", "item_code", "name", "type", "category", "is_enabled")
     list_filter = ("company", "type", "category", "has_lot_tracking", "is_enabled")
     search_fields = ("item_code", "name", "name_en")
-    readonly_fields = ("item_code", "sequence_segment", "batch_number", "type_code", "category_code", "subcategory_code", "full_item_code", "created_at", "edited_at")
+    readonly_fields = ("item_code", "sequence_segment", "type_code", "category_code", "subcategory_code", "full_item_code", "created_at", "edited_at")
     
     def get_search_results(self, request, queryset, search_term):
         """Filter queryset based on active company from session."""
@@ -151,7 +151,7 @@ class ItemAdmin(ModelAdmin):
             "classes": ("collapse",)
         }),
         ("Batch Information", {
-            "fields": ("batch_number", "secondary_batch_number"),
+            "fields": ("secondary_batch_number",),
             "classes": ("collapse",)
         }),
         ("Product Details", {

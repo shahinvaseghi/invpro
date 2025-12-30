@@ -20,6 +20,20 @@ from qc.views.inspections import (
     TemporaryReceiptQCRejectionManagementSaveView,
 )
 
+# Import serial assignment views
+from qc.views.serials import (
+    QCSerialAssignmentListView,
+    QCSerialAssignmentView,
+    QCSerialAssignmentLineView,
+)
+
+# Import batch assignment views
+from qc.views.batches import (
+    QCBatchAssignmentListView,
+    QCBatchAssignmentView,
+    QCBatchAssignmentLineView,
+)
+
 __all__ = [
     # Base views
     'QCBaseView',
@@ -30,5 +44,13 @@ __all__ = [
     'TemporaryReceiptQCRejectView',
     'TemporaryReceiptQCRejectionManagementView',
     'TemporaryReceiptQCRejectionManagementSaveView',
+    # Serial assignment views
+    'QCSerialAssignmentListView',
+    'QCSerialAssignmentView',
+    'QCSerialAssignmentLineView',
+    # Batch assignment views
+    'QCBatchAssignmentListView',
+    'QCBatchAssignmentView',
+    'QCBatchAssignmentLineView',
 ]
 

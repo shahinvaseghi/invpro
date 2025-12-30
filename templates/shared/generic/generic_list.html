@@ -95,15 +95,21 @@
                     {{ value|default:"-" }}
                   {% endif %}
                 {% endwith %}
+              {% elif header.custom_content %}
+                {% if object.custom_content_rendered %}
+                  {{ object.custom_content_rendered|get_item:header.label|default:"-" }}
+                {% else %}
+                  -
+                {% endif %}
               {% else %}
-                {{ header.custom_content|default:"-" }}
+                -
               {% endif %}
             </td>
           {% endfor %}
           {% if show_actions %}
             <td>
               {% block action_buttons %}
-                {% include 'shared/partials/row_actions.html' with object=object feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
+                {% include 'shared/partials/row_actions.html' with object=object feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name custom_actions=object.custom_actions %}
               {% endblock %}
             </td>
           {% endif %}

@@ -814,6 +814,18 @@ class ItemForm(BaseModelForm):
                     except (ValueError, TypeError):
                         cleaned_data[field_name] = 0
 
+        # Validate: if has_lot_tracking=1, requires_temporary_receipt must be 1
+        has_lot_tracking = cleaned_data.get('has_lot_tracking', 0)
+        requires_temporary_receipt = cleaned_data.get('requires_temporary_receipt', 0)
+        
+        if has_lot_tracking == 1 and requires_temporary_receipt != 1:
+            self.add_error(
+                'has_lot_tracking',
+                _('کالاهای دارای رهگیری لات باید حتماً نیاز به رسید موقت داشته باشند. لطفاً تیک "نیاز به رسید موقت" را فعال کنید.')
+            )
+            # Also automatically set requires_temporary_receipt to 1
+            cleaned_data['requires_temporary_receipt'] = 1
+
         return cleaned_data
 
 

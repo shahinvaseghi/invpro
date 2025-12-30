@@ -209,6 +209,8 @@
       </button>
       <div class="section-content" id="qc">
         <a href="{% url 'qc:temporary_receipts' %}" class="nav-link">{% trans "Temporary Receipts" %}</a>
+        <a href="{% url 'qc:serial_assignment_list' %}" class="nav-link">{% trans "Serial Assignment" %}</a>
+        <a href="{% url 'qc:batch_assignment_list' %}" class="nav-link">{% trans "Batch Assignment" %}</a>
       </div>
     </div>
     {% endif %}
